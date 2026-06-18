@@ -1,0 +1,57 @@
+{
+  "version": "8.0.0",
+  "settings": {
+    "featuredSurveyId": "survey_demo",
+    "contactEmail": "valoragroup@mnsoft.com.br",
+    "whatsappEnabled": true,
+    "whatsappNumber": "5511999999999",
+    "email": {
+      "mode": "outbox",
+      "senderName": "Valora Group",
+      "senderEmail": "valoragroup@mnsoft.com.br",
+      "smtpUsername": "valoragroup@mnsoft.com.br",
+      "smtpHost": "",
+      "smtpPort": 587,
+      "smtpSecurity": "starttls"
+    }
+  },
+  "organizations": [
+    {
+      "id": "org_demo",
+      "type": "juridica",
+      "name": "Empresa Exemplo",
+      "document": "00.000.000/0001-00",
+      "planId": "growth",
+      "status": "active"
+    }
+  ],
+  "users": [
+    {
+      "uid": "firebase-auth-uid",
+      "name": "Administrador da empresa",
+      "email": "gestor@empresa.com",
+      "role": "empresa_admin",
+      "companyId": "org_demo",
+      "status": "active"
+    }
+  ],
+  "forms": [
+    {
+      "id": "form_valora_insight",
+      "companyId": "global",
+      "name": "Valora Insight™",
+      "scoringMethod": "weightedAverage",
+      "questionTypes": ["scale", "single", "multiple", "shortText", "longText", "singleCorrect"]
+    }
+  ],
+  "surveys": [
+    {
+      "id": "survey_demo",
+      "companyId": "org_demo",
+      "formId": "form_valora_insight",
+      "status": "active",
+      "tokenHash": "armazenar-apenas-hash-no-backend",
+      "expiresAt": "2026-12-31T23:59:59.999Z"
+    }
+  ]
+}

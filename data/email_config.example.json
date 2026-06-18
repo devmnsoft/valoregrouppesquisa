@@ -1,0 +1,9 @@
+{
+  "mode": "outbox",
+  "senderName": "Valora Group",
+  "senderEmail": "valoragroup@mnsoft.com.br",
+  "smtpUsername": "valoragroup@mnsoft.com.br",
+  "smtpHost": "",
+  "smtpPort": 587,
+  "smtpSecurity": "starttls"
+}

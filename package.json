@@ -1,0 +1,18 @@
+{
+  "name": "valora-pulse-security-tests",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test:rules": "npx firebase emulators:exec --only firestore \"npx mocha tests/rules/**/*.test.js --timeout 20000\"",
+    "test:functions": "npx firebase emulators:exec --only firestore,functions \"npx mocha tests/functions/**/*.test.js --timeout 30000\"",
+    "test:security": "npm run test:rules && npm run test:functions",
+    "emulators:start": "npx firebase emulators:start --only auth,firestore,functions"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase": "^10.14.1",
+    "firebase-tools": "^13.29.2",
+    "mocha": "^10.8.2",
+    "firebase-admin": "^12.7.0"
+  }
+}

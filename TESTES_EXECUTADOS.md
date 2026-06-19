@@ -1,104 +1,108 @@
-# Testes executados — Valora Group™ 8.6.0
+# Testes executados — Valora Pulse
 
-## Validação técnica
+Data: 2026-06-19
 
-- sintaxe JavaScript de `app.js` e `pdf.js`;
-- compilação Python de `server.py`;
-- servidor vinculado somente a `127.0.0.1`;
-- seleção automática de porta;
-- endpoint de saúde;
-- ausência da senha SMTP no pacote.
+## Escopo testado nesta entrega
 
-## Jornada pública
+Foram executadas verificações estáticas e uma revisão manual guiada das jornadas solicitadas. Como este ambiente não possui navegador interativo acoplado ao servidor local durante a execução, os cenários de clique foram documentados como roteiro obrigatório de QA manual para homologação.
 
-- home carrega sem tela branca;
-- logo, WhatsApp e ValoraBot aparecem;
-- ValoraBot abre e fecha;
-- logo do cabeçalho e rodapé retorna à home;
-- bloco de 5 minutos contém explicação;
-- pesquisa escolhida pelo administrador aparece em destaque;
-- layout validado em desktop, tablet e celular sem overflow do documento.
+## Checks automáticos executados
 
-## Administrador geral
+- `node --check app.js` — validação de sintaxe JavaScript concluída sem erros.
 
-- login;
-- dashboards e menus;
-- criação, edição e exclusão de usuário com confirmação;
-- editor de formulário com os seis tipos de pergunta;
-- criação, edição e revisão de formulário;
-- criação instantânea de pesquisa;
-- link com `survey`, `token` e validade;
-- compartilhamento por WhatsApp e e-mail;
-- escolha da pesquisa da home;
-- módulos com confirmação;
-- logs e backup somente no perfil global;
-- relatório PDF baixado e validado.
+## Cenário 1 — Admin Valora
 
-## Empresa
+Roteiro manual:
 
-- login e dashboard;
-- isolamento do menu;
-- ausência de backup e logs;
-- acesso a formulários, pesquisas, respostas, relatórios e plano da própria empresa.
+1. Acessar `#login`.
+2. Entrar com `admin@valoragroup.com` / `Valora@2026`.
+3. Abrir dashboard global.
+4. Cadastrar empresa em **Clientes**.
+5. Cadastrar usuário empresa admin em **Usuários**.
+6. Criar formulário global em **Formulários e provas**.
+7. Criar pesquisa em **Pesquisas e links**.
+8. Abrir **Respostas** e **Relatórios**.
+9. Gerar relatório PDF.
 
-## Participante
+Resultado esperado: admin vê menus globais, consegue criar empresas, formulários, pesquisas, usuários, respostas, relatórios, módulos, configurações, backup e logs.
 
-- abertura de link seguro;
-- identificação e aceite LGPD;
-- resposta ao questionário;
-- cálculo e tela de resultado;
-- navegação para área pessoal mesmo após URL com query string;
-- histórico e certificados.
+## Cenário 2 — Empresa Admin
 
-## Documentos
+Roteiro manual:
 
-Foram gerados e inspecionados:
+1. Entrar com `gestor@empresa.com` / `Empresa@2026`.
+2. Abrir **Empresa › Usuários**.
+3. Cadastrar funcionário com nome, e-mail, telefone, cargo/função, área/departamento e status ativo.
+4. Pesquisar por nome/e-mail e filtrar por status.
+5. Selecionar funcionário, selecionar todos e limpar seleção.
+6. Abrir **Formulários e provas**, criar formulário próprio.
+7. Abrir **Pesquisas e links**, criar pesquisa ativa.
+8. Compartilhar pesquisa e usar **Enviar para funcionários**.
+9. Confirmar geração de convite e, no modo local, criação de `.eml` em `data/outbox`.
+10. Acompanhar respostas, dashboards e relatórios da própria empresa.
 
-- relatório global PDF;
-- relatório individual PDF;
-- certificado PDF.
+Resultado esperado: empresa não escolhe outra empresa, não vê dados de terceiros e o convite fica registrado em `state.invitations`.
 
-Os arquivos foram reconhecidos como PDF 1.4, com página A4 ou paisagem, e renderizados para inspeção visual sem corte crítico ou sobreposição.
+## Cenário 3 — Gestor de Pesquisa
 
-## E-mail
+Roteiro manual:
 
-- configuração em modo caixa de saída;
-- geração de convite `.eml`;
-- geração de resultado `.eml`;
-- identidade visual e remetente configurável;
-- senha ausente do frontend e do pacote.
+1. Entrar com `rh@empresa.com` / `Empresa@2026`.
+2. Criar/clonar questionário da própria empresa.
+3. Configurar perguntas com tipos escala, escolha única, múltipla, texto curto/longo e resposta correta.
+4. Criar pesquisa e enviar convites.
+5. Acompanhar respostas, gráficos e relatórios da empresa.
 
-## Matriz manual complementar — Firebase e frontend
+Resultado esperado: gestor não acessa financeiro global, empresas de terceiros, módulos críticos ou backup.
 
-> Status inicial: pendente de execução em ambiente com Firebase Auth, Firestore Rules e Cloud Functions apontando para o projeto correto. Registrar evidências, navegador, usuário, empresa e data em cada item.
+## Cenário 4 — Participante
 
-### Autenticação Firebase
+Roteiro manual:
 
-- [ ] Login Firebase com usuário ativo: autentica, carrega perfil no Firestore e exibe menus compatíveis com o papel.
-- [ ] Logout: encerra sessão Firebase, limpa estado visual da aplicação e impede retorno por histórico do navegador a áreas autenticadas.
-- [ ] Usuário inativo: autenticação pode ocorrer, mas a aplicação bloqueia uso após leitura do perfil inativo e mostra mensagem adequada.
-- [ ] Usuário sem perfil: autenticação sem documento em `users/{uid}` não libera menus nem dados internos.
+1. Abrir link seguro recebido por e-mail/outbox.
+2. Preencher identificação.
+3. Aceitar LGPD quando exigido.
+4. Responder perguntas obrigatórias.
+5. Concluir.
+6. Ver resultado se configurado.
+7. Entrar como participante e consultar histórico/certificado.
 
-### Perfis autenticados
+Resultado esperado: resposta concluída alimenta área de respostas, dashboard, relatório e certificado com os mesmos números.
 
-- [ ] Admin Valora: acessa empresas, usuários, planos, logs, backups, pesquisas, respostas e relatórios globais.
-- [ ] Empresa Admin: acessa somente dados da própria empresa, cria usuários permitidos e não visualiza logs globais, backup global ou empresas de terceiros.
-- [ ] Participante: acessa próprio perfil, histórico e certificados; não visualiza dados administrativos ou respostas de terceiros.
+## Cenário 5 — Cálculo
 
-### Jornada pública
+Roteiro manual:
 
-- [ ] Link público válido: abre pesquisa via Cloud Function, sem leitura direta de `surveys` no client.
-- [ ] Link público inválido/expirado/encerrado: exibe erro amigável e não mostra perguntas.
-- [ ] Envio de resposta válido: registra resposta, mostra confirmação e gera token/resultado quando aplicável.
-- [ ] Resultado: resultado público abre somente com token válido e não expõe dados de outras respostas.
+1. Criar formulário com cinco perguntas: escala, escolha única, múltipla escolha, texto com `scoreWhenFilled` e resposta correta.
+2. Configurar pesos, máximos e dimensões.
+3. Responder com valores conhecidos.
+4. Conferir manualmente:
+   - escala = nota/5 × máximo × peso;
+   - escolha única = score da alternativa × peso;
+   - múltipla = soma das alternativas limitada ao máximo × peso;
+   - texto sem score não prejudica nota;
+   - resposta correta = máximo quando correta;
+   - percentual = nota normalizada/5 × 100;
+   - dimensão só consolida perguntas vinculadas.
 
-### Responsividade e navegadores
+Resultado esperado: `calculateSurveyResult(form, answers)` gera pontuação bruta, máxima, percentual, nota 0–5, dimensões e faixa final coerentes.
 
-- [ ] Mobile 360px: home, login, pesquisa pública, formulário e resultado não apresentam overflow horizontal nem botões inacessíveis.
-- [ ] Desktop: dashboards, tabelas, modais, editor de formulário e relatórios renderizam sem quebras visuais críticas.
+## Cenário 6 — Mobile 360px
 
-### Exportações
+Roteiro manual:
 
-- [ ] Exportação global disponível apenas para Admin Valora.
-- [ ] Exportação de empresa contém somente dados da empresa autenticada.
-- [ ] PDF/CSV exportado não inclui tokens, hashes, dados de empresas terceiras ou campos sensíveis desnecessários.
+1. Ajustar viewport para 360px.
+2. Testar login, menu e navegação.
+3. Cadastrar funcionário.
+4. Criar pergunta no editor.
+5. Responder questionário.
+6. Abrir dashboard e área de respostas.
+
+Resultado esperado: tabelas permanecem legíveis com `data-label`, botões continuam acessíveis e não há quebra crítica de layout.
+
+## Observações e riscos restantes
+
+- Teste visual em navegador real ainda é necessário para validar responsividade e fluxo de modal em todos os dispositivos.
+- Status `opened` e `expired` dependem de backend/Cloud Functions para rastreamento automático em produção.
+- Envio SMTP real deve ser configurado apenas no servidor local ou em secrets do Firebase Functions.
+- LGPD precisa de validação jurídica antes de produção.

@@ -1,8 +1,10 @@
 (function(){
 'use strict';
 
-const VERSION='8.3.0';
-const STORE_KEY='valoraPulseFinal800';
+const APP_CONFIG=window.ValoraConfig||{APP_VERSION:'8.3.0',STORE_KEY:'valoraPulseFinal800',STORAGE_MODE:'local',FIREBASE_ENABLED:false,REQUIRE_AUTH_SERVER_VALIDATION:false};
+const repository=window.ValoraRepository;
+const VERSION=APP_CONFIG.APP_VERSION;
+const STORE_KEY=APP_CONFIG.STORE_KEY;
 const LOGO_FULL='assets/logo-full.jpeg';
 const LOGO_SYMBOL='assets/logo-symbol.jpeg';
 const DEFAULT_SENDER='valoragroup@mnsoft.com.br';
@@ -117,6 +119,7 @@ document.addEventListener('keydown',e=>{
 });
 
 function init(){
+  if(!repository)throw new Error('Camada de repositório não carregada.');
   renderShell();
   routeFromLocation();
   window.addEventListener('hashchange',routeFromLocation);
@@ -565,7 +568,7 @@ const actions={
   toggleMenu(el){const n=$('#navActions');if(!n)return;const open=!n.classList.contains('open');n.classList.toggle('open',open);document.body.classList.toggle('menu-open',open);if(el)el.setAttribute('aria-expanded',String(open));},
   scrollTo(el){const target=el.dataset.target;const go=()=>{const node=document.getElementById(target);if(node)node.scrollIntoView({behavior:'smooth',block:'start'});};document.body.classList.remove('menu-open');$('#navActions')?.classList.remove('open');$('.mobile-menu')?.setAttribute('aria-expanded','false');if(!document.getElementById(target)){navigate('home');setTimeout(go,80);}else go();},
   goMyArea(){const u=currentUser();if(!u)return navigate('login');navigate(u.role==='participante'?'participante/dashboard':['empresa_admin','gestor_pesquisa'].includes(u.role)?'empresa/dashboard':'admin/dashboard');},
-  logout(){audit('Logout realizado','usuário',currentUser()?.id||'',currentUser()?.email||'');state.session=null;save();toast('Sessão encerrada.','success');goHome();},
+  logout(){logoutUser();},
   selectPlan(el){navigate('signup');setTimeout(()=>{const s=$('select[name="planId"]');if(s)s.value=el.dataset.id;},80);},
   toggleBot(){toggleBot();},botQuick(el){appendBot(el.dataset.text,'me');setTimeout(()=>appendBot(botReply(el.dataset.text),'bot'),100);},
   portalTab(el){navigate(`${el.dataset.scope}/${el.dataset.tab}`);},pageHelp(el){openModal('Ajuda desta página',`<div class="page-help"><b>${esc(portalTitle(el.dataset.scope,el.dataset.tab))}</b><br>${esc(portalHelp(el.dataset.scope,el.dataset.tab))}</div><p>Use os botões primários para criar, os secundários para consultar ou editar e os vermelhos para ações irreversíveis. Ações críticas sempre exibem confirmação.</p>`,'small');},
@@ -594,7 +597,7 @@ const formHandlers={
   user:saveUser,company:saveCompany,invoice:saveInvoice,plan:savePlan,module:saveModule,survey:saveSurvey,quickSurvey:saveQuickSurvey,takeSurvey:submitSurvey,inviteEmail:sendInviteEmail,resultEmail:submitResultEmail,settings:saveSettings,companySettings:saveCompanySettings,importBackup
 };
 
-function login(form){const fd=data(form),u=state.users.find(x=>x.email.toLowerCase()===fd.email.toLowerCase()&&x.password===fd.password&&x.status==='active');if(!u)return toast('E-mail, senha ou status inválido.','error');state.session={userId:u.id,createdAt:nowIso()};save();audit('Login realizado','usuário',u.id,u.email);toast(`Bem-vindo(a), ${u.name}.`,'success');actions.goMyArea();}
+function login(form){const fd=data(form);const u=loginUser(fd.email,fd.password);if(!u)return toast('E-mail, senha ou status inválido.','error');audit('Login realizado','usuário',u.id,u.email);toast(`Bem-vindo(a), ${u.name}.`,'success');actions.goMyArea();}
 function signup(form){const fd=data(form);if(fd.password!==fd.password2)return toast('As senhas não conferem.','error');if(state.users.some(u=>u.email.toLowerCase()===fd.email.toLowerCase()))return toast('Já existe usuário com este e-mail.','error');const company={id:uid('org'),type:fd.type,name:fd.companyName,document:fd.document||'',email:fd.email,phone:fd.phone||'',cep:fd.cep||'',address:fd.address||'',planId:fd.planId||defaultPlan().id,status:'active',createdAt:nowIso(),updatedAt:nowIso()};const user={id:uid('u'),name:fd.name,email:fd.email,password:fd.password,role:'empresa_admin',companyId:company.id,phone:fd.phone||'',status:'active',createdAt:nowIso()};state.companies.push(company);state.users.push(user);createInvoiceForCompany(company);state.session={userId:user.id,createdAt:nowIso()};audit('Ambiente criado','empresa',company.id,company.name);persist('Ambiente criado com sucesso.');navigate('empresa/dashboard');}
 function saveCompanySettings(form){const c=currentCompany();if(!c)return;const fd=data(form);Object.assign(c,{type:fd.type,name:fd.name,document:fd.document,email:fd.email,phone:fd.phone,cep:fd.cep,address:fd.address,updatedAt:nowIso()});audit('Dados da empresa atualizados','empresa',c.id,c.name);persist('Dados atualizados.');rerenderPortal();}
 function toggleBot(force){const p=$('#botPanel');if(!p)return;const open=typeof force==='boolean'?force:!p.classList.contains('open');p.classList.toggle('open',open);p.setAttribute('aria-hidden',open?'false':'true');}
@@ -613,26 +616,26 @@ function clearLogs(){if(currentUser()?.role!=='admin_valora')return;confirmActio
 function exportMyData(){const u=currentUser();if(!u)return;const payload={user:{...u,password:undefined},responses:responsesForUser(u)};downloadText(`meus-dados-${slug(u.name)}.json`,JSON.stringify(payload,null,2),'application/json');audit('Dados pessoais exportados','usuário',u.id,u.email);}
 function requestDeletion(){const u=currentUser();if(!u)return;confirmAction('Registrar solicitação?', 'A solicitação será registrada no log para análise do controlador dos dados.',()=>{audit('Solicitação LGPD de exclusão','usuário',u.id,u.email);persist('Solicitação registrada. A organização responsável deverá analisá-la.');});}
 
-function currentUser(){return state.users.find(u=>u.id===state.session?.userId)||null;}
+function currentUser(){return repository.currentUser({state});}
 function currentCompany(){const u=currentUser();return u?.companyId?companyById(u.companyId):null;}
-function companyById(id){return state.companies.find(c=>c.id===id)||null;}
+function companyById(id){return loadCompanies().find(c=>c.id===id)||null;}
 function companyName(id){return companyById(id)?.name||'Valora Group';}
 function planById(id){return state.plans.find(p=>p.id===id)||null;}
 function defaultPlan(){return state.plans.find(p=>p.default)||state.plans[0];}
-function formById(id){return state.forms.find(f=>f.id===id)||null;}
-function surveyTitle(id){return state.surveys.find(s=>s.id===id)?.title||'Pesquisa removida';}
+function formById(id){return loadForms().find(f=>f.id===id)||null;}
+function surveyTitle(id){return loadSurveys().find(s=>s.id===id)?.title||'Pesquisa removida';}
 function canManageCompany(id){const u=currentUser();return !!u&&(u.role==='admin_valora'||u.role==='consultor_valora'||u.companyId===id);}
-function scopedSurveys(companyId){return state.surveys.filter(s=>s.companyId===companyId).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));}
-function scopedResponses(companyId){return state.responses.filter(r=>r.companyId===companyId).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));}
-function scopedForms(companyId){return state.forms.filter(f=>f.global||f.companyId===companyId).sort((a,b)=>Number(b.global)-Number(a.global)||a.name.localeCompare(b.name));}
-function responsesForUser(u){if(!u)return[];return state.responses.filter(r=>r.participant.email.toLowerCase()===u.email.toLowerCase()).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));}
-function activeSurveysForParticipant(){const u=currentUser();return state.surveys.filter(s=>surveyIsActive(s)&&(!u?.companyId||s.companyId===u.companyId)).sort((a,b)=>new Date(a.expiresAt)-new Date(b.expiresAt));}
+function scopedSurveys(companyId){return loadSurveys().filter(s=>s.companyId===companyId).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));}
+function scopedResponses(companyId){return loadResponses().filter(r=>r.companyId===companyId).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));}
+function scopedForms(companyId){return loadForms().filter(f=>f.global||f.companyId===companyId).sort((a,b)=>Number(b.global)-Number(a.global)||a.name.localeCompare(b.name));}
+function responsesForUser(u){if(!u)return[];return loadResponses().filter(r=>r.participant.email.toLowerCase()===u.email.toLowerCase()).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));}
+function activeSurveysForParticipant(){const u=currentUser();return loadSurveys().filter(s=>surveyIsActive(s)&&(!u?.companyId||s.companyId===u.companyId)).sort((a,b)=>new Date(a.expiresAt)-new Date(b.expiresAt));}
 function moduleEnabled(id){return state.modules.find(m=>m.id===id)?.enabled!==false;}
 function isExpired(s){return !s?.expiresAt||new Date(s.expiresAt)<new Date();}
 function surveyIsActive(s){return s?.status==='active'&&!isExpired(s)&&(!s.startsAt||new Date(s.startsAt)<=new Date());}
 function daysUntil(v){const d=Math.ceil((new Date(v)-new Date())/86400000);return d<0?`${Math.abs(d)} dia(s) expirada`:d===0?'Expira hoje':`${d} dia(s) restantes`;}
-function featuredSurvey(){const configured=state.surveys.find(s=>s.id===state.settings.featuredSurveyId&&surveyIsActive(s));return configured||state.surveys.find(s=>surveyIsActive(s))||null;}
-function responsesThisMonth(companyId=''){const now=new Date();return state.responses.filter(r=>(!companyId||r.companyId===companyId)&&new Date(r.createdAt).getMonth()===now.getMonth()&&new Date(r.createdAt).getFullYear()===now.getFullYear()).length;}
+function featuredSurvey(){const configured=loadSurveys().find(s=>s.id===state.settings.featuredSurveyId&&surveyIsActive(s));return configured||loadSurveys().find(s=>surveyIsActive(s))||null;}
+function responsesThisMonth(companyId=''){const now=new Date();return loadResponses().filter(r=>(!companyId||r.companyId===companyId)&&new Date(r.createdAt).getMonth()===now.getMonth()&&new Date(r.createdAt).getFullYear()===now.getFullYear()).length;}
 function aggregateDimensions(responses){const bag={};responses.forEach(r=>Object.entries(r.byDimension||{}).forEach(([name,v])=>{(bag[name]||(bag[name]=[])).push(Number(v.normalized5||0));}));return Object.fromEntries(Object.entries(bag).map(([k,v])=>[k,avg(v)]));}
 function recentLogs(limit=6){return `<div class="activity-list">${state.logs.slice(-limit).reverse().map(l=>`<div class="activity-item"><b>${esc(l.action)}</b><span>${esc(l.detail||l.entityType||'')}</span><small>${brDate(l.createdAt)}</small></div>`).join('')||'<div class="empty">Sem atividade recente.</div>'}</div>`;}
 function usageBars(companyId){const c=companyById(companyId),p=planById(c?.planId);if(!p)return '<div class="empty">Plano não localizado.</div>';const active=scopedSurveys(companyId).filter(s=>surveyIsActive(s)).length,month=responsesThisMonth(companyId),managers=state.users.filter(u=>u.companyId===companyId&&['empresa_admin','gestor_pesquisa'].includes(u.role)&&u.status==='active').length;const row=(label,used,max)=>`<div class="usage-row"><div><b>${esc(label)}</b><span>${used} / ${max<0?'Ilimitado':max}</span></div><div class="bar"><span style="width:${max<0?Math.min(100,used*8):clamp(used/Math.max(1,max)*100,0,100)}%"></span></div></div>`;return row('Pesquisas ativas',active,p.maxActiveSurveys)+row('Respostas no mês',month,p.maxResponsesMonth)+row('Gestores',managers,p.maxManagers);}
@@ -645,8 +648,19 @@ function defaultFaq(){return [{q:'Quanto tempo leva o Valora Insight™?',a:'A p
 function defaultBands(){return [{id:'attention',label:'Atenção',from:0,to:2.2,color:'#b5262b',description:'Fragilidades críticas que exigem prioridade.',recommendation:'Estabilidade operacional e governança básica.'},{id:'evolution',label:'Evolução',from:2.21,to:3.4,color:'#c47b00',description:'Fundamentos presentes com oportunidades de fortalecimento.',recommendation:'Consistência de processos e desenvolvimento de liderança.'},{id:'consistency',label:'Consistência',from:3.41,to:4.4,color:'#08764e',description:'Sistemas estruturados, operação segura e boa previsibilidade.',recommendation:'Inovação, benchmark e diferenciação competitiva.'},{id:'excellence',label:'Excelência',from:4.41,to:5,color:'#0f5265',description:'Maturidade elevada e geração sustentável de valor.',recommendation:'Manutenção, compartilhamento de práticas e liderança de mercado.'}];}
 function createInvoiceForCompany(c){const p=planById(c.planId);if(p&&p.price>0)state.invoices.push({id:uid('inv'),companyId:c.id,amount:p.price,dueAt:datePlus(30),status:'open',createdAt:nowIso()});}
 function audit(action,entityType='',entityId='',detail=''){const u=currentUser();state.logs.push({id:uid('log'),createdAt:nowIso(),userName:u?.name||'Sistema',userRole:u?.role||'',action,entityType,entityId,detail});if(state.logs.length>3000)state.logs=state.logs.slice(-3000);save();}
-function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch(err){console.error(err);toast('O navegador não conseguiu salvar os dados localmente.','error');}}
-function loadStore(){try{const raw=localStorage.getItem(STORE_KEY);if(raw){const obj=JSON.parse(raw);normalizeState(obj);return obj;}}catch(err){console.warn(err);}const seeded=seedStore();localStorage.setItem(STORE_KEY,JSON.stringify(seeded));return seeded;}
+function save(){try{saveChanges();}catch(err){console.error(err);toast('O navegador não conseguiu salvar os dados.','error');}}
+function loadStore(){return repository.loadStore({storeKey:STORE_KEY,seedStore,normalizeState});}
+
+// Fachada de acesso a dados. Hoje o modo local mantém o comportamento do MVP;
+// em produção, estes pontos passam a delegar para Firebase Auth/Firestore/Functions.
+function loginUser(email,password){return repository.login({state,email,password,nowIso});}
+function logoutUser(){const u=currentUser();audit('Logout realizado','usuário',u?.id||'',u?.email||'');repository.logout({state});save();toast('Sessão encerrada.','success');goHome();}
+function loadCompanies(){return repository.loadCompanies({state});}
+function loadUsers(){return repository.loadUsers({state});}
+function loadForms(){return repository.loadForms({state});}
+function loadSurveys(){return repository.loadSurveys({state});}
+function loadResponses(){return repository.loadResponses({state});}
+function saveChanges(){return repository.saveChanges({storeKey:STORE_KEY,state});}
 function normalizeState(obj=state){obj.version=VERSION;obj.settings=obj.settings||{};obj.settings.lgpdText=obj.settings.lgpdText||LGPD_TEXT;obj.settings.faq=obj.settings.faq||defaultFaq();obj.settings.email={mode:'outbox',senderName:'Valora Group',senderEmail:DEFAULT_SENDER,smtpUsername:DEFAULT_SENDER,smtpHost:'',smtpPort:587,smtpSecurity:'starttls',...(obj.settings.email||{})};obj.modules=obj.modules||seedModules();obj.plans=obj.plans||seedPlans();obj.companies=obj.companies||[];obj.users=obj.users||[];obj.forms=(obj.forms||[]).map(normalizeForm);obj.surveys=obj.surveys||[];obj.responses=(obj.responses||[]).map(r=>({...r,resultToken:r.resultToken||secureToken(),normalized5:Number(r.normalized5??r.average??0),percentage:Number(r.percentage??(Number(r.average||0)/5*100)),rawScore:Number(r.rawScore??r.totalScore??0),maxScore:Number(r.maxScore??r.totalMax??0)}));obj.invoices=obj.invoices||[];obj.logs=obj.logs||[];return obj;}
 
 function seedStore(){

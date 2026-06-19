@@ -1,4 +1,4 @@
-# Documentação do Produto — Valora Group™ 8.5
+# Documentação do Produto — Valora Group™ 8.6.0
 
 ## Proposta
 

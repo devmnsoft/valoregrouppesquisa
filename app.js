@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const APP_CONFIG=window.ValoraConfig||{APP_VERSION:'8.3.0',STORE_KEY:'valoraPulseFinal800',STORAGE_MODE:'local',FIREBASE_ENABLED:false,REQUIRE_AUTH_SERVER_VALIDATION:false};
+const APP_CONFIG=window.ValoraConfig||{APP_VERSION:'8.6.0',STORE_KEY:'valoraPulseFinal800',STORAGE_MODE:'local',FIREBASE_ENABLED:false,REQUIRE_AUTH_SERVER_VALIDATION:false};
 const repository=window.ValoraRepository;
 const VERSION=APP_CONFIG.APP_VERSION;
 const STORE_KEY=APP_CONFIG.STORE_KEY;

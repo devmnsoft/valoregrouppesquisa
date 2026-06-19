@@ -21,8 +21,20 @@ service cloud.firestore {
       return role() == 'admin_valora';
     }
 
+    function isValoraConsultant() {
+      return role() == 'consultor_valora';
+    }
+
     function isValoraTeam() {
       return role() in ['admin_valora', 'consultor_valora'];
+    }
+
+    function isEmpresaAdmin() {
+      return role() == 'empresa_admin';
+    }
+
+    function isResearchManager() {
+      return role() == 'gestor_pesquisa';
     }
 
     function isCompanyManager() {
@@ -37,8 +49,72 @@ service cloud.firestore {
       return isValoraAdmin() || (isCompanyManager() && sameCompany(id));
     }
 
+    function affectedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function onlyAllowedSelfProfileFieldsChanged() {
+      return affectedKeys().hasOnly(['name', 'phone', 'preferences', 'updatedAt']);
+    }
+
+    function userPayloadRoleIsCompanyRole() {
+      return request.resource.data.role in ['empresa_admin', 'gestor_pesquisa', 'participante'];
+    }
+
+    function preservesUserCompany() {
+      return request.resource.data.companyId == resource.data.companyId;
+    }
+
+    function isSameUid(uid) {
+      return request.resource.data.uid == uid;
+    }
+
+    function empresaAdminCanCreateUser(uid) {
+      return isEmpresaAdmin()
+             && sameCompany(request.resource.data.companyId)
+             && userPayloadRoleIsCompanyRole()
+             && isSameUid(uid);
+    }
+
+    function empresaAdminCanUpdateUser() {
+      return isEmpresaAdmin()
+             && sameCompany(resource.data.companyId)
+             && sameCompany(request.resource.data.companyId)
+             && preservesUserCompany()
+             && userPayloadRoleIsCompanyRole();
+    }
+
+    function organizationBillingOrPlanFieldsChanged() {
+      return affectedKeys().hasAny([
+        'planId',
+        'plan',
+        'billing',
+        'billingStatus',
+        'billingEmail',
+        'subscriptionId',
+        'subscriptionStatus',
+        'stripeCustomerId',
+        'paymentMethod',
+        'trialEndsAt',
+        'limits',
+        'priceId'
+      ]);
+    }
+
+    function companyCanEditOrganization(organizationId) {
+      return isEmpresaAdmin()
+             && sameCompany(organizationId)
+             && !organizationBillingOrPlanFieldsChanged();
+    }
+
+    function isGlobalForm() {
+      return resource.data.companyId == 'global' || resource.data.isGlobal == true;
+    }
+
+    // Configuração pública pode alimentar páginas públicas. Configuração privada
+    // contém parâmetros sensíveis e fica restrita ao admin Valora.
     match /settings/{documentId} {
-      allow read: if documentId == 'public' || signedIn();
+      allow read: if documentId == 'public' || isValoraAdmin();
       allow write: if isValoraAdmin();
     }
 
@@ -47,71 +123,84 @@ service cloud.firestore {
       allow write: if isValoraAdmin();
     }
 
+    // Logs são append-only pelo backend/Cloud Functions (Admin SDK bypassa rules).
+    // Nenhum frontend, nem mesmo admin_valora autenticado no client, altera logs.
     match /logs/{logId} {
-      allow read, write: if isValoraAdmin();
+      allow read: if isValoraAdmin();
+      allow create, update, delete: if false;
     }
 
     match /organizations/{organizationId} {
       allow read: if isValoraTeam() || sameCompany(organizationId);
       allow create, delete: if isValoraAdmin();
-      allow update: if isValoraAdmin() || (role() == 'empresa_admin' && sameCompany(organizationId));
+      allow update: if isValoraAdmin() || companyCanEditOrganization(organizationId);
     }
 
     match /users/{uid} {
       allow read: if isValoraTeam()
-                  || request.auth.uid == uid
-                  || (role() == 'empresa_admin' && sameCompany(resource.data.companyId));
-      allow create: if isValoraAdmin()
-                    || (role() == 'empresa_admin'
-                        && sameCompany(request.resource.data.companyId)
-                        && request.resource.data.role in ['empresa_admin', 'gestor_pesquisa', 'participante']);
+                  || (signedIn() && request.auth.uid == uid)
+                  || (isEmpresaAdmin() && sameCompany(resource.data.companyId));
+
+      allow create: if isValoraAdmin() || empresaAdminCanCreateUser(uid);
+
+      // Usuários comuns só podem editar campos de perfil não sensíveis.
+      // Campos como role, companyId, status, email, permissions e planId nunca
+      // podem ser alterados pelo próprio usuário, evitando escalada de privilégio.
       allow update: if isValoraAdmin()
-                    || request.auth.uid == uid
-                    || (role() == 'empresa_admin'
-                        && sameCompany(resource.data.companyId)
-                        && sameCompany(request.resource.data.companyId)
-                        && request.resource.data.role in ['empresa_admin', 'gestor_pesquisa', 'participante']);
-      allow delete: if isValoraAdmin()
-                    || (role() == 'empresa_admin' && sameCompany(resource.data.companyId));
+                    || (signedIn()
+                        && request.auth.uid == uid
+                        && onlyAllowedSelfProfileFieldsChanged())
+                    || empresaAdminCanUpdateUser();
+
+      allow delete: if isValoraAdmin();
     }
 
     match /forms/{formId} {
       allow read: if signedIn()
-                  && (resource.data.companyId == 'global'
+                  && (isGlobalForm()
                       || isValoraTeam()
                       || sameCompany(resource.data.companyId));
       allow create: if isValoraAdmin()
-                    || (isCompanyManager() && sameCompany(request.resource.data.companyId));
+                    || (isCompanyManager()
+                        && request.resource.data.companyId != 'global'
+                        && request.resource.data.isGlobal != true
+                        && sameCompany(request.resource.data.companyId));
       allow update, delete: if isValoraAdmin()
                             || (isCompanyManager()
+                                && !isGlobalForm()
                                 && sameCompany(resource.data.companyId)
-                                && sameCompany(request.resource.data.companyId));
+                                && sameCompany(request.resource.data.companyId)
+                                && request.resource.data.companyId == resource.data.companyId
+                                && request.resource.data.isGlobal != true);
     }
 
+    // Surveys não têm leitura pública direta. Links públicos devem resolver via
+    // Cloud Function, que valida token/link e usa Admin SDK quando apropriado.
     match /surveys/{surveyId} {
-      allow read: if isValoraTeam() || sameCompany(resource.data.companyId);
+      allow read: if signedIn() && (isValoraTeam() || sameCompany(resource.data.companyId));
       allow create: if isValoraAdmin()
                     || (isCompanyManager() && sameCompany(request.resource.data.companyId));
       allow update, delete: if isValoraAdmin()
                             || (isCompanyManager()
                                 && sameCompany(resource.data.companyId)
-                                && sameCompany(request.resource.data.companyId));
+                                && sameCompany(request.resource.data.companyId)
+                                && request.resource.data.companyId == resource.data.companyId);
     }
 
+    // Respostas públicas devem ser criadas por Cloud Function para evitar envio
+    // direto em empresa de terceiros ou manipulação de participantUid/companyId.
     match /responses/{responseId} {
       allow read: if isValoraTeam()
                   || sameCompany(resource.data.companyId)
                   || (signedIn() && request.auth.uid == resource.data.participantUid);
-      allow create: if signedIn()
-                    && (sameCompany(request.resource.data.companyId)
-                        || request.auth.uid == request.resource.data.participantUid);
+      allow create: if false;
       allow update, delete: if isValoraAdmin();
     }
 
     match /invoices/{invoiceId} {
       allow read: if isValoraAdmin()
-                  || (role() == 'empresa_admin' && sameCompany(resource.data.companyId));
-      allow write: if isValoraAdmin();
+                  || (isEmpresaAdmin() && sameCompany(resource.data.companyId));
+      allow create, update, delete: if isValoraAdmin();
     }
   }
 }

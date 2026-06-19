@@ -8,6 +8,15 @@ window.ValoraConfig=Object.freeze({
   APP_VERSION:'8.3.0',
   STORAGE_MODE:'local', // "local" para demo/MVP; "firebase" para produção.
   FIREBASE_ENABLED:false,
+  // Configuração pública do app Web Firebase. Preencha somente chaves públicas do projeto.
+  FIREBASE_CONFIG:{
+    // apiKey:'',
+    // authDomain:'',
+    // projectId:'',
+    // storageBucket:'',
+    // messagingSenderId:'',
+    // appId:''
+  },
   REQUIRE_AUTH_SERVER_VALIDATION:false,
   STORE_KEY:'valoraPulseFinal800'
 });

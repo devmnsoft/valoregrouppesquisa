@@ -131,3 +131,35 @@ O administrador geral pode editar valores, limites, destaques e funcionalidades.
 ## Limite da versão local
 
 Esta entrega é um MVP funcional para validação do produto e da experiência. `localStorage` não substitui uma base multiusuário de produção. Para publicação comercial, implemente Firebase Auth, Firestore, Functions, trilha imutável, hashing de senhas/tokens, controle de sessão, backups gerenciados e monitoramento.
+
+### Cloud Functions para e-mail, CEP e CNPJ em produção
+
+Em `STORAGE_MODE: 'firebase'`, o frontend chama Cloud Functions (`sendEmail`, `getEmailStatus`, `lookupCep` e `lookupCnpj`) e não depende do `server.py`. O `server.py` permanece somente para demonstração local (`STORAGE_MODE: 'local'`).
+
+Configure segredos e variáveis de ambiente antes do deploy:
+
+```bash
+firebase functions:secrets:set SMTP_PASSWORD
+firebase functions:config:set smtp.host="smtp.seudominio.com.br" # legado, se utilizado no seu projeto
+```
+
+Para a implementação atual em Functions v2, defina também as variáveis de ambiente não secretas no ambiente de deploy/console Firebase:
+
+```bash
+SMTP_HOST=smtp.seudominio.com.br
+SMTP_PORT=587
+SMTP_SECURITY=starttls
+SMTP_USERNAME=usuario@seudominio.com.br
+SMTP_SENDER_EMAIL=nao-responda@seudominio.com.br
+SMTP_SENDER_NAME="Valora Group"
+```
+
+Regras de segurança implementadas nas Functions:
+
+- `sendEmail` exige usuário autenticado e limita envio a `admin_valora`, `empresa_admin` e `gestor_pesquisa`.
+- `empresa_admin` e `gestor_pesquisa` só enviam templates `invite` e `result` vinculados à própria empresa.
+- `participante` não tem envio livre.
+- `SMTP_PASSWORD` é lido via Secret Manager e nunca enviado ao navegador ou gravado no Firestore.
+- `getEmailStatus` retorna somente `configured`, `senderName` e `senderEmail` mascarado.
+- `lookupCep` valida 8 dígitos, consulta ViaCEP com fallback BrasilAPI e aplica rate limit.
+- `lookupCnpj` valida 14 dígitos, exige autenticação, consulta BrasilAPI e retorna apenas dados cadastrais necessários.

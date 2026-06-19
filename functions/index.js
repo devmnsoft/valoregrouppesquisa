@@ -1,12 +1,41 @@
 'use strict';
 const admin=require('firebase-admin');
 const {onCall,HttpsError}=require('firebase-functions/v2/https');
+const {defineSecret}=require('firebase-functions/params');
+const nodemailer=require('nodemailer');
 const {sha256,timingSafeEqualHex,createToken}=require('./utils/hash');
 const {required,asObject,asBoolean,validateParticipant}=require('./utils/validation');
 const {auditLog}=require('./utils/audit');
 admin.initializeApp();
 const db=admin.firestore();
+const SMTP_PASSWORD=defineSecret('SMTP_PASSWORD');
 const TS=admin.firestore.FieldValue.serverTimestamp;
+
+const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const ALLOWED_TEMPLATES=new Set(['invite','result','test','operational']);
+function cleanText(v,max=5000){return String(v||'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,max);}
+function onlyDigits(v){return String(v||'').replace(/\D/g,'');}
+function maskEmail(email){const [name,domain]=String(email||'').split('@');if(!domain)return '';return `${name.slice(0,2)}***@${domain}`;}
+async function authedUser(req){
+  if(!req.auth?.uid)throw new HttpsError('unauthenticated','Entre novamente para continuar.');
+  const snap=await db.collection('users').doc(req.auth.uid).get();
+  const claims=req.auth.token||{}, d=snap.exists?snap.data():{};
+  const role=claims.role||d.role, companyId=claims.companyId||d.companyId||'';
+  if(d.status&&d.status!=='active')throw new HttpsError('permission-denied','Usuário inativo.');
+  return {uid:req.auth.uid,email:claims.email||d.email||'',role,companyId,name:d.name||claims.name||''};
+}
+async function assertSurveyCompany(surveyId,user){
+  if(!surveyId)return null;
+  const snap=await db.collection('surveys').doc(surveyId).get();
+  if(!snap.exists)throw new HttpsError('not-found','Pesquisa não encontrada.');
+  const s={id:snap.id,...snap.data()};
+  if(user.role!=='admin_valora'&&s.companyId!==user.companyId)throw new HttpsError('permission-denied','Pesquisa fora da sua empresa.');
+  return s;
+}
+function publicEmailConfig(){return {configured:!!(process.env.SMTP_HOST&&process.env.SMTP_USERNAME&&process.env.SMTP_SENDER_EMAIL),senderName:process.env.SMTP_SENDER_NAME||'Valora Group',senderEmail:maskEmail(process.env.SMTP_SENDER_EMAIL||process.env.SMTP_USERNAME||'')};}
+function buildEmailHtml(templateType,payload){const title=cleanText(payload.title||payload.subject||'Valora Pulse™',140),message=cleanText(payload.message||payload.text||'',4000),buttonUrl=cleanText(payload.buttonUrl||payload.link||'',800),buttonLabel=cleanText(payload.buttonLabel||'Acessar',40);return `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#082a37;background:#eef7f9;padding:24px"><main style="max-width:680px;margin:auto;background:white;border-radius:16px;padding:28px"><h1>${title}</h1><p style="white-space:pre-line;line-height:1.6">${message}</p>${buttonUrl?`<p><a href="${buttonUrl}" style="background:#0b3d4d;color:white;padding:12px 18px;border-radius:999px;text-decoration:none">${buttonLabel}</a></p>`:''}<small>Valora Group • ${templateType}</small></main></body></html>`;}
+async function callJson(url,msg){const r=await fetch(url,{headers:{'user-agent':'ValoraPulse/1.0'}});const b=await r.json().catch(()=>null);if(!r.ok||!b)throw new Error(msg);return b;}
+
 function ip(req){return req.rawRequest?.headers?.['x-forwarded-for']?.split(',')[0]?.trim()||req.rawRequest?.ip||'';}
 function ua(req){return req.rawRequest?.headers?.['user-agent']||'';}
 async function rateLimit(key,limit,windowMs){const ref=db.collection('rateLimits').doc(key);const now=Date.now();let allowed=false;await db.runTransaction(async tx=>{const s=await tx.get(ref);const d=s.exists?s.data():{};let count=d.resetAt?.toMillis?.()>now?Number(d.count||0):0;if(count>=limit)throw new HttpsError('resource-exhausted','Muitas tentativas. Aguarde e tente novamente.');count++;tx.set(ref,{count,resetAt:new Date(now+windowMs),updatedAt:TS()},{merge:true});allowed=true;});return allowed;}
@@ -19,3 +48,29 @@ exports.validateSurveyLink=onCall(async req=>{const surveyId=required(req.data,'
 exports.submitSurveyResponse=onCall(async req=>{const data=asObject(req.data,'payload'),surveyId=required(data,'surveyId'),token=required(data,'token');const ctx=await loadValidSurvey({surveyId,token,req,action:'submit'});const answers=asObject(data.answers,'answers'),participant=validateParticipant(data.participant||{});if(!participant.name||!participant.email)throw new HttpsError('invalid-argument','Nome e e-mail são obrigatórios.');if(ctx.survey.lgpdRequired!==false&&!asBoolean(data.lgpdConsent))throw new HttpsError('failed-precondition','Aceite LGPD obrigatório.');for(const q of ctx.form.questions||[]){const v=answers[q.id];if(q.required&&(v===undefined||v===null||v===''||(Array.isArray(v)&&!v.length)))throw new HttpsError('invalid-argument',`Pergunta obrigatória não respondida: ${q.id}`);}if(!ctx.survey.allowRepeat){const dup=await db.collection('responses').where('surveyId','==',surveyId).where('participant.email','==',participant.email).limit(1).get();if(!dup.empty)throw new HttpsError('already-exists','Participante já respondeu esta pesquisa.');}const result=calc(ctx.form,answers),resultToken=createToken(24);const ref=db.collection('responses').doc();const response={surveyId,formId:ctx.form.id,companyId:ctx.survey.companyId,participant:{...participant,lgpdConsent:asBoolean(data.lgpdConsent),communicationConsent:asBoolean(data.communicationConsent)},answers,lgpdConsent:{accepted:asBoolean(data.lgpdConsent),acceptedAt:TS(),textVersion:ctx.survey.lgpdVersion||ctx.form.lgpdVersion||'default'},communicationConsent:asBoolean(data.communicationConsent),ip:ip(req),userAgent:ua(req),resultTokenHash:sha256(resultToken),createdAt:TS(),...result};await db.runTransaction(async tx=>{tx.set(ref,response);tx.update(db.collection('surveys').doc(surveyId),{responseCount:admin.firestore.FieldValue.increment(1),updatedAt:TS()});});await auditLog(db,{action:'submitSurveyResponse',actorType:'public',companyId:ctx.survey.companyId,entity:'response',entityId:ref.id,after:{surveyId},ip:ip(req),userAgent:ua(req)});return {responseId:ref.id,resultToken,accessToken:resultToken,score:{rawScore:result.rawScore,maxScore:result.maxScore,normalized5:result.normalized5,percentage:result.percentage},level:result.level,message:result.level?.recommendation||'Resposta registrada com sucesso.'};});
 exports.getPublicResult=onCall(async req=>{const responseId=required(req.data,'responseId'),resultToken=required(req.data,'resultToken');await rateLimit(`result:${ip(req)||'unknown'}:${responseId}`,60,15*60*1000);const snap=await db.collection('responses').doc(responseId).get();if(!snap.exists)throw new HttpsError('not-found','Resultado não encontrado.');const r={id:snap.id,...snap.data()};if(!r.resultTokenHash||!timingSafeEqualHex(sha256(resultToken),r.resultTokenHash))throw new HttpsError('permission-denied','Token de resultado inválido.');await auditLog(db,{action:'getPublicResult',actorType:'public',companyId:r.companyId,entity:'response',entityId:responseId,ip:ip(req),userAgent:ua(req)});return {id:r.id,surveyId:r.surveyId,companyId:r.companyId,participant:{name:r.participant?.name,email:r.participant?.email},createdAt:r.createdAt,rawScore:r.rawScore,maxScore:r.maxScore,normalized5:r.normalized5,percentage:r.percentage,byDimension:r.byDimension,level:r.level,qualitative:r.qualitative||[]};});
 exports.hashSurveyToken=onCall(async req=>({tokenHash:sha256(required(req.data,'token'))}));
+
+
+exports.getEmailStatus=onCall({secrets:[SMTP_PASSWORD]},async req=>{await rateLimit(`emailStatus:${ip(req)||'unknown'}`,60,15*60*1000);return publicEmailConfig();});
+exports.sendEmail=onCall({secrets:[SMTP_PASSWORD]},async req=>{
+  const user=await authedUser(req), data=asObject(req.data,'payload');
+  if(!['admin_valora','empresa_admin','gestor_pesquisa'].includes(user.role))throw new HttpsError('permission-denied','Seu perfil não pode enviar e-mails.');
+  const to=cleanText(data.to,254).toLowerCase(), subject=cleanText(data.subject,140), templateType=cleanText(data.templateType||'operational',40);
+  if(!EMAIL_RE.test(to))throw new HttpsError('invalid-argument','Informe um e-mail válido.');
+  if(!subject||subject.length>140)throw new HttpsError('invalid-argument','Assunto inválido ou muito longo.');
+  if(!ALLOWED_TEMPLATES.has(templateType))throw new HttpsError('invalid-argument','Template de e-mail não permitido.');
+  if(user.role!=='admin_valora'&&!['invite','result'].includes(templateType))throw new HttpsError('permission-denied','Sua empresa só pode enviar convites e resultados.');
+  const survey=await assertSurveyCompany(data.surveyId,user);
+  if(data.responseId&&user.role!=='admin_valora'){
+    const rs=await db.collection('responses').doc(String(data.responseId)).get();
+    if(!rs.exists||rs.data().companyId!==user.companyId)throw new HttpsError('permission-denied','Resultado fora da sua empresa.');
+  }
+  await rateLimit(`emailSend:${user.uid}`,20,60*60*1000);
+  const cfg=publicEmailConfig();if(!cfg.configured||!SMTP_PASSWORD.value())throw new HttpsError('failed-precondition','Envio de e-mail não configurado.');
+  const transporter=nodemailer.createTransport({host:process.env.SMTP_HOST,port:Number(process.env.SMTP_PORT||587),secure:String(process.env.SMTP_SECURITY||'starttls')==='ssl',auth:{user:process.env.SMTP_USERNAME,pass:SMTP_PASSWORD.value()}});
+  const payload=asObject(data.payload||{},'payload');
+  const info=await transporter.sendMail({from:{name:process.env.SMTP_SENDER_NAME||'Valora Group',address:process.env.SMTP_SENDER_EMAIL||process.env.SMTP_USERNAME},to,subject,text:cleanText(payload.text||data.text||payload.message,4000),html:cleanText(data.html,20000)||buildEmailHtml(templateType,{...payload,subject})});
+  await auditLog(db,{action:'sendEmail',actorId:user.uid,actorType:user.role,companyId:survey?.companyId||user.companyId,entity:'email',entityId:info.messageId,after:{to,templateType,surveyId:data.surveyId||'',responseId:data.responseId||''},ip:ip(req),userAgent:ua(req)});
+  return {sent:true,messageId:info.messageId};
+});
+exports.lookupCep=onCall(async req=>{const cep=onlyDigits(req.data?.cep);if(cep.length!==8)throw new HttpsError('invalid-argument','Informe um CEP com 8 dígitos.');await rateLimit(`cep:${req.auth?.uid||ip(req)||'anon'}`,60,15*60*1000);let d;try{d=await callJson(`https://viacep.com.br/ws/${cep}/json/`,'CEP não encontrado.');if(d.erro)throw new Error('CEP não encontrado.');}catch(_){d=await callJson(`https://brasilapi.com.br/api/cep/v2/${cep}`,'CEP não encontrado.');}return {cep,logradouro:d.logradouro||d.street||'',bairro:d.bairro||d.neighborhood||'',localidade:d.localidade||d.city||'',uf:d.uf||d.state||'',address:[d.logradouro||d.street,d.bairro||d.neighborhood,d.localidade||d.city,d.uf||d.state].filter(Boolean).join(', ')};});
+exports.lookupCnpj=onCall(async req=>{const user=await authedUser(req),cnpj=onlyDigits(req.data?.cnpj);if(cnpj.length!==14)throw new HttpsError('invalid-argument','Informe um CNPJ com 14 dígitos.');await rateLimit(`cnpj:${user.uid}`,30,15*60*1000);const d=await callJson(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`,'CNPJ não encontrado.');return {razao_social:d.razao_social||'',nome_fantasia:d.nome_fantasia||'',cnpj:d.cnpj||cnpj,endereco:[d.descricao_tipo_de_logradouro,d.logradouro,d.numero,d.bairro].filter(Boolean).join(', '),municipio:d.municipio||'',uf:d.uf||'',situacao_cadastral:d.descricao_situacao_cadastral||d.situacao_cadastral||'',cep:d.cep||''};});

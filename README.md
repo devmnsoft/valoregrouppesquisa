@@ -194,3 +194,48 @@ Para invalidar cache em uma nova entrega:
 4. Oriente usuários a recarregar com atualização forçada se ainda houver sessão antiga (`Ctrl+F5`/`Cmd+Shift+R`).
 
 O HTML é servido com `no-store`; JS, CSS e imagens podem ter cache longo porque os caminhos dos assets são versionados.
+
+## Atualização da jornada operacional (2026-06-19)
+
+Esta versão consolida a operação ponta a ponta do Valora Pulse em modo local/demo e deixa pontos de integração preparados para Firebase/produção.
+
+### Funcionários/respondentes
+
+A tela **Empresa › Usuários** passa a operar também como cadastro de funcionários/respondentes. A abordagem escolhida foi manter respondentes com login ou histórico em `users` com `role: participante`, `type: funcionario`, `companyId`, `position` e `department`. Essa escolha evita duplicidade entre cadastro de funcionário e conta de participante no modo local; em produção Firebase, a mesma decisão pode ser materializada em `users/{uid}` quando houver login ou em uma coleção `participants/employees` espelhada quando o convidado não tiver autenticação.
+
+Regras implementadas:
+
+- funcionário sempre vinculado ao `companyId` da empresa atual;
+- empresa admin não consegue escolher outra empresa;
+- e-mail único na base local;
+- campos de cargo/função, área/departamento, telefone e status ativo/inativo;
+- pesquisa, filtro de status, seleção múltipla, selecionar todos, limpar seleção e contador;
+- desativar/reativar sem excluir histórico.
+
+### Envio de questionários por e-mail
+
+O envio pode partir de **Pesquisas e links › Compartilhar › Enviar para funcionários** ou de **Usuários › Enviar pesquisa aos selecionados**. O sistema cria registros em `state.invitations` com status `pending`, `sent`, `failed`, `answered`, `opened` ou `expired` conforme a evolução disponível. Em modo local/demo, o envio usa `server.py` e gera `.eml` em `data/outbox` quando SMTP real não estiver configurado. Em Firebase/produção, o navegador não deve enviar SMTP diretamente: a integração prevista é por Cloud Functions com secrets/variáveis do backend.
+
+### Cálculo centralizado
+
+O cálculo foi centralizado em `calculateSurveyResult(form, answers)` e mantido compatível com o alias interno `calculateResult`. A regra é:
+
+- escala 1 a 5: `nota / 5 * pontuação máxima * peso`;
+- escolha única: pontuação da alternativa selecionada, com peso;
+- múltipla escolha: soma das alternativas marcadas limitada à pontuação máxima da pergunta, com peso;
+- texto curto/longo: pontua somente quando `scoreWhenFilled` estiver configurado; respostas qualitativas sem pontuação não reduzem a nota;
+- resposta correta: acerto recebe pontuação máxima; erro recebe zero ou score configurado na alternativa;
+- dimensões recebem apenas perguntas vinculadas à dimensão;
+- retorno inclui pontuação bruta, máxima, percentual, nota 0–5, resultado por dimensão, faixa e recomendações.
+
+### ValoraBot contextual
+
+O ValoraBot agora considera perfil logado e rota/tela atual nas respostas. Ele cobre funcionários, convites/e-mail, LGPD, cálculo, peso, dimensão, respostas, dashboards, relatórios, tipos de pergunta e próximos passos práticos sem prometer recursos inexistentes.
+
+### Pendências para Firebase/produção
+
+- Implementar Cloud Functions para envio em lote, atualização de status `opened/answered/expired` e reenvio.
+- Persistir `invitations` em Firestore com regras por `companyId`.
+- Definir se convidados sem login ficam em `participants/employees` ou são provisionados em Auth + `users/{uid}`.
+- Criar índices Firestore para respostas por empresa, pesquisa, período e status.
+- Validar juridicamente texto LGPD e contratos controlador/operador.

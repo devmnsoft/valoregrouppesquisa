@@ -7,13 +7,14 @@ const firebaseConfig={...(config.FIREBASE_CONFIG||{})};
 function hasFirebaseConfig(cfg){return !!(cfg.apiKey&&cfg.authDomain&&cfg.projectId&&cfg.appId);}
 function compat(){return window.firebase&&typeof window.firebase.initializeApp==='function';}
 
-let services={app:null,auth:null,db:null,initialized:false,available:false,error:null};
+let services={app:null,auth:null,db:null,functions:null,initialized:false,available:false,error:null};
 
 try{
   if(config.STORAGE_MODE==='firebase'&&config.FIREBASE_ENABLED&&hasFirebaseConfig(firebaseConfig)&&compat()){
     services.app=window.firebase.apps?.length?window.firebase.app():window.firebase.initializeApp(firebaseConfig);
     services.auth=window.firebase.auth();
     services.db=window.firebase.firestore();
+    services.functions=window.firebase.functions();
     services.initialized=true;
     services.available=true;
     try{services.auth.setPersistence(window.firebase.auth.Auth.Persistence.LOCAL);}catch(err){console.warn('[Valora Pulse] Persistência Firebase Auth não configurada.',err);}

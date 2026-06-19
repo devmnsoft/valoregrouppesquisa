@@ -194,3 +194,11 @@ Regras de segurança implementadas nas Functions:
 - `getEmailStatus` retorna somente `configured`, `senderName` e `senderEmail` mascarado.
 - `lookupCep` valida 8 dígitos, consulta ViaCEP com fallback BrasilAPI e aplica rate limit.
 - `lookupCnpj` valida 14 dígitos, exige autenticação, consulta BrasilAPI e retorna apenas dados cadastrais necessários.
+
+## Headers de produção e CSP
+
+A versão canônica desta entrega é **8.6.0** (`APP_VERSION` em `config.js`). O Firebase Hosting usa `firebase.json` para enviar HTML com `Cache-Control: no-store` e assets JS/CSS/imagens com cache longo, desde que os assets continuem versionados no `index.html` com `?v=8.6.0`.
+
+A política CSP inicial permite o funcionamento atual sem abrir permissões amplas: scripts da própria origem e SDK Firebase em `https://www.gstatic.com`, estilos locais com `'unsafe-inline'` temporário, imagens `self`, `data:` e `blob:`, conexões para Firebase/Google APIs, Cloud Functions, ViaCEP e BrasilAPI, `object-src 'none'`, `base-uri 'self'` e `frame-ancestors 'self'`.
+
+TODO de hardening: remover dependências de estilo inline para eliminar `'unsafe-inline'` de `style-src` em uma versão futura.

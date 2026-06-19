@@ -1,4 +1,4 @@
-# Escopo Funcional — Valora Group™ 8.3
+# Escopo Funcional — Valora Group™ 8.6.0
 
 ## Incluído nesta entrega
 

@@ -25,6 +25,18 @@ CONFIG_FILE = DATA_DIR / "email_config.json"
 LOGO_FILE = ROOT / "assets" / "logo-full.jpeg"
 DEFAULT_SENDER = "valoragroup@mnsoft.com.br"
 MAX_BODY = 2 * 1024 * 1024
+APP_VERSION = "8.6.0"
+LOCAL_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' https://www.gstatic.com; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data: blob:; "
+    "font-src 'self' data:; "
+    "connect-src 'self' https://viacep.com.br https://brasilapi.com.br "
+    "https://*.googleapis.com https://*.firebaseio.com https://*.cloudfunctions.net "
+    "https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com; "
+    "object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+)
 
 DATA_DIR.mkdir(exist_ok=True)
 OUTBOX_DIR.mkdir(exist_ok=True)
@@ -114,7 +126,7 @@ def build_message(payload: dict, cfg: dict) -> EmailMessage:
     msg["From"] = f"{sender_name} <{sender_email}>"
     msg["To"] = to_address
     msg["Subject"] = subject
-    msg["X-Valora-Pulse"] = "8.0.0"
+    msg["X-Valora-Pulse"] = APP_VERSION
     msg.set_content(text or "Mensagem Valora Pulse™")
     if html:
         msg.add_alternative(html, subtype="html")
@@ -172,14 +184,14 @@ def deliver_message(msg: EmailMessage, cfg: dict) -> dict:
 def fetch_json(url: str) -> dict:
     request = urllib.request.Request(
         url,
-        headers={"User-Agent": "ValoraPulse/8.0 (+local diagnostic platform)"},
+        headers={"User-Agent": f"ValoraPulse/{APP_VERSION} (+local diagnostic platform)"},
     )
     with urllib.request.urlopen(request, timeout=12) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
 class ValoraHandler(SimpleHTTPRequestHandler):
-    server_version = "ValoraPulseLocal/8.0"
+    server_version = f"ValoraPulseLocal/{APP_VERSION}"
 
     def end_headers(self) -> None:
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
@@ -187,6 +199,8 @@ class ValoraHandler(SimpleHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("X-Frame-Options", "SAMEORIGIN")
         self.send_header("Referrer-Policy", "strict-origin-when-cross-origin")
+        self.send_header("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+        self.send_header("Content-Security-Policy", LOCAL_CSP)
         super().end_headers()
 
     def log_message(self, fmt: str, *args) -> None:
@@ -226,7 +240,7 @@ class ValoraHandler(SimpleHTTPRequestHandler):
         path = urlparse(self.path).path
         try:
             if path == "/api/health":
-                return self._json(200, {"ok": True, "version": "8.0.0"})
+                return self._json(200, {"ok": True, "version": APP_VERSION})
             if path == "/api/email/status":
                 return self._json(200, public_email_status(load_email_config()))
             if path == "/api/outbox":
@@ -330,9 +344,9 @@ def create_server() -> tuple[ValoraServer, int]:
 def main() -> None:
     os.chdir(ROOT)
     server, port = create_server()
-    url = f"http://127.0.0.1:{port}/index.html?v=8.0.0"
+    url = f"http://127.0.0.1:{port}/index.html?v={APP_VERSION}"
     print("===============================================")
-    print(" VALORA PULSE 8.0 - SERVIDOR LOCAL")
+    print(f" VALORA PULSE {APP_VERSION} - SERVIDOR LOCAL")
     print("===============================================")
     print(f"Sistema disponível em {url}")
     print("Se o navegador não abrir automaticamente, copie o endereço acima.")

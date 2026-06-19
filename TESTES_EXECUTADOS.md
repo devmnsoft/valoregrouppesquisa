@@ -1,4 +1,4 @@
-# Testes executados — Valora Group™ 8.5
+# Testes executados — Valora Group™ 8.6.0
 
 ## Validação técnica
 

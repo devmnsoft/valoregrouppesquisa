@@ -458,3 +458,47 @@ select{white-space:normal}.checkline span{color:var(--ink);overflow-wrap:anywher
 .hero-logo{display:block}
 @media (max-width:980px){.hero-grid-polished{grid-template-columns:1fr!important;gap:34px!important}.hero-showcase{max-width:640px;margin:0 auto}.showcase-main{grid-template-columns:1fr;text-align:center}.showcase-copy{text-align:center}.refined-ring{margin:0 auto}}
 @media (max-width:620px){.hero-polished{padding:42px 0 34px!important}.hero-polished h1{font-size:clamp(2.7rem,14vw,4.7rem)!important}.hero-showcase{padding:18px!important;border-radius:26px!important}.showcase-logo{width:min(230px,84%);padding:20px;margin-bottom:16px}.showcase-main{padding:18px}.showcase-steps{grid-template-columns:1fr}.refined-ring{width:170px!important;height:170px!important}.refined-ring strong{font-size:3.55rem!important}.refined-time-copy{text-align:center}}
+
+/* v8.7.0 — responsividade administrativa: tabelas em cards, ações, modais e overflow */
+html,body{max-width:100%;overflow-x:hidden}
+.content,.app-shell,#app,.card,.modal-box,.modal-body,.table-wrap{min-width:0}
+.table td,.table th,.badge,.status,.btn,.email-status{max-width:100%}
+.table td,.muted,.share-link,.code-box,pre,code,input,textarea,select{overflow-wrap:anywhere;word-break:normal}
+.table-actions{min-width:0}.table-actions .btn{flex:0 1 auto}
+.modal-layer,.confirm-layer{overflow:auto;align-items:center}.modal-box{display:flex;flex-direction:column;max-height:min(92vh,calc(100dvh - 28px));overflow:hidden}.modal-head{flex:0 0 auto}.modal-body{flex:1 1 auto;overflow:auto;-webkit-overflow-scrolling:touch}.confirm-actions{position:sticky;bottom:0;z-index:4;margin:16px -2px -2px;padding-top:12px;background:linear-gradient(180deg,rgba(255,255,255,.86),#fff 35%)}
+
+@media(max-width:760px){
+  .app-shell{display:block;min-height:0}
+  .sidebar{position:static;height:auto;max-height:none;padding:14px}
+  .sidebar .who{margin-bottom:12px}
+  .side-menu{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;padding-bottom:4px;scroll-snap-type:x proximity}
+  .side-menu button{flex:0 0 auto;min-width:152px;text-align:center;scroll-snap-align:start}
+  .content{padding:18px 12px 92px}
+  .page-head{display:grid;gap:12px}.help-button{width:100%;margin-top:0}
+  .section-toolbar>.btn,.section-toolbar>.table-actions,.quick-actions,.table-actions{width:100%}
+  .quick-actions .btn{flex:1 1 100%}
+
+  .table-wrap{overflow:visible;border:0;background:transparent;box-shadow:none;padding:0}
+  .table{min-width:0;width:100%;display:block;border-collapse:separate;background:transparent}
+  .table thead{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  .table tbody{display:grid;gap:12px;width:100%}
+  .table tr{display:grid;gap:0;padding:14px;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:var(--shadow-soft)}
+  .table td{display:grid;grid-template-columns:minmax(92px,36%) minmax(0,1fr);gap:10px;align-items:start;padding:10px 0;border-bottom:1px solid #e3eef2;font-size:.95rem;overflow-wrap:anywhere;hyphens:auto}
+  .table td:last-child{border-bottom:0;padding-bottom:0}
+  .table td::before{content:attr(data-label);color:#31596a;font-size:.76rem;font-weight:1000;letter-spacing:.035em;text-transform:uppercase;overflow-wrap:anywhere}
+  .table td[colspan]{grid-template-columns:1fr}.table td[colspan]::before{content:"";display:none}
+  .table td .badge,.table td .status{min-width:0;white-space:normal;text-align:center;overflow-wrap:anywhere}
+  .table .table-actions{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(136px,1fr));gap:8px;min-width:0;width:100%;align-items:stretch}
+  .table .table-actions .btn{width:100%;min-height:44px;padding:10px 12px}
+
+  .modal-layer,.confirm-layer{align-items:flex-end;padding:10px}
+  .modal-box,.modal-box.large,.modal-box.small{width:100%;max-height:calc(100dvh - 20px);border-radius:22px 22px 16px 16px}
+  .modal-head{min-height:60px;padding:12px 14px}.modal-head h2,.modal-head h3{font-size:1.16rem;overflow-wrap:anywhere}.modal-body{padding:14px}
+  .confirm-actions{display:grid;grid-template-columns:1fr;gap:8px}.confirm-actions .btn{width:100%;min-height:46px}
+  .toast-zone{bottom:76px!important;width:calc(100vw - 20px)!important}.toast{overflow-wrap:anywhere}
+}
+
+@media(max-width:420px){
+  .table td{grid-template-columns:1fr;gap:3px}.table td::before{font-size:.72rem}
+  .table .table-actions{grid-template-columns:1fr}.side-menu button{min-width:136px}.content{padding-left:10px;padding-right:10px}
+}

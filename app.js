@@ -256,7 +256,19 @@ function portalHelp(scope,tab){
 function renderPortalTab(scope,tab){
   const root=$('#portalContent');root.innerHTML=`<div class="page-head"><div><div class="breadcrumb">${scope==='admin'?'Operação Valora':scope==='empresa'?'Portal da empresa':'Portal do participante'} › ${esc(portalTitle(scope,tab))}</div><h1 class="page-title">${esc(portalTitle(scope,tab))}</h1></div><button class="btn btn-soft help-button" data-action="pageHelp" data-scope="${scope}" data-tab="${tab}">Como usar esta página</button></div><div class="page-help"><b>Você está em:</b> ${esc(portalHelp(scope,tab))}</div><div id="tabBody"></div>`;
   const body=$('#tabBody',root);if(scope==='admin')renderAdminTab(tab,body);else if(scope==='empresa')renderCompanyTab(tab,body);else renderParticipantTab(tab,body);
+  enhanceResponsiveTables(body);
 }
+function enhanceResponsiveTables(root=document){
+  $$('.table',root).forEach(table=>{
+    const labels=$$('thead th',table).map(th=>th.textContent.trim());
+    $$('tbody tr',table).forEach(row=>{
+      $$('td',row).forEach((cell,index)=>{
+        if(labels[index]&&!cell.hasAttribute('data-label'))cell.setAttribute('data-label',labels[index]);
+      });
+    });
+  });
+}
+
 function renderAdminTab(tab,body){
   const map={dashboard:adminDashboard,clients:clientsSection,finance:financeSection,plans:plansSection,surveys:()=>surveysSection('admin'),forms:()=>formsSection('admin'),users:()=>usersSection('admin'),responses:()=>responsesSection('admin'),reports:()=>reportsSection('admin'),modules:modulesSection,settings:settingsSection,backup:backupSection,logs:logsSection};
   body.innerHTML=(map[tab]||adminDashboard)();

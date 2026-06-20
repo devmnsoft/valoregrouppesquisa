@@ -11,7 +11,7 @@ window.ValoraLocalRepository={
       try{localStorage.removeItem(storeKey);}catch(_){ }
       const seeded=seedStore();
       normalizeState(seeded);
-      localStorage.setItem(storeKey,JSON.stringify(seeded));
+      try{localStorage.setItem(storeKey,JSON.stringify(seeded));}catch(err){console.warn('[Valora Pulse] Não foi possível salvar seed local.',err);}
       return seeded;
     };
     try{
@@ -20,15 +20,15 @@ window.ValoraLocalRepository={
     }catch(err){return resetCorruptedLocalStore(err);}
     return resetCorruptedLocalStore('Base local ausente.');
   },
-  saveStore({storeKey,state}){localStorage.setItem(storeKey,JSON.stringify(state));},
-  login({state,email,password,nowIso}){
-    const user=state.users.find(x=>x.email.toLowerCase()===email.toLowerCase()&&x.password===password&&x.status==='active');
+  saveStore({storeKey,state}={}){if(!state)return;try{localStorage.setItem(storeKey,JSON.stringify(state));}catch(err){console.warn('[Valora Pulse] Não foi possível salvar base local.',err);}},
+  login({state,email,password,nowIso}={}){
+    const user=(state?.users||[]).find(x=>x.email.toLowerCase()===email.toLowerCase()&&x.password===password&&x.status==='active');
     if(!user)return null;
-    state.session={userId:user.id,createdAt:nowIso()};
+    if(state)state.session={userId:user.id,createdAt:nowIso()};
     return user;
   },
-  logout({state}){state.session=null;},
-  currentUser({state}){return state.users.find(u=>u.id===state.session?.userId)||null;},
+  logout({state}={}){if(state)state.session=null;},
+  currentUser({state}={}){return (state?.users||[]).find(u=>u.id===state?.session?.userId)||null;},
   listOrganizations({state}={}){return Promise.resolve(clone(state?.companies||[]));},
   getOrganization(id,{state}={}){return Promise.resolve(clone((state?.companies||[]).find(x=>x.id===id)||null));},
   createOrganization(data,{state}={}){const item={id:data.id||`org_${Date.now().toString(36)}`,...data};state?.companies?.push(item);return Promise.resolve(clone(item));},
@@ -51,11 +51,11 @@ window.ValoraLocalRepository={
   listInvitations(companyId,{state}={}){const rows=state?.invitations||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
   createInvitation(data,{state}={}){const item={id:data.id||`invite_${Date.now().toString(36)}`,...data};state?.invitations?.push(item);return Promise.resolve(clone(item));},
   updateInvitation(id,data,{state}={}){const item=(state?.invitations||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
-  loadCompanies({state}){return state.companies;},
-  loadUsers({state}){return state.users;},
-  loadForms({state}){return state.forms;},
-  loadSurveys({state}){return state.surveys;},
-  loadResponses({state}){return state.responses;},
+  loadCompanies({state}={}){return state?.companies||[];},
+  loadUsers({state}={}){return state?.users||[];},
+  loadForms({state}={}){return state?.forms||[];},
+  loadSurveys({state}={}){return state?.surveys||[];},
+  loadResponses({state}={}){return state?.responses||[];},
   listNotifications(filters={}, {state}={}){let rows=state?.notifications||[];Object.entries(filters||{}).forEach(([k,v])=>{if(v)rows=rows.filter(x=>String(x[k]||'')===String(v));});return Promise.resolve(clone(rows));},
   listUserNotifications(userId,{state}={}){return Promise.resolve(clone((state?.notifications||[]).filter(x=>x.userId===userId)));},
   listCompanyNotifications(companyId,{state}={}){return Promise.resolve(clone((state?.notifications||[]).filter(x=>x.companyId===companyId)));},

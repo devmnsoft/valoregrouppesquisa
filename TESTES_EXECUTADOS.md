@@ -124,3 +124,13 @@ Data: 2026-06-20
 - `node --check analytics-service.js` — aprovado.
 - `node --check report-service.js` — aprovado.
 - `node --check app.js` — aprovado.
+
+## Plano de Ação e Acompanhamento de Melhorias — 2026-06-20
+
+- Empresa Admin: validar criação manual, edição, responsável, status, conclusão e filtros por prioridade/status.
+- Gestor Pesquisa: validar geração automática a partir de pesquisa, vínculo com dimensão e acompanhamento.
+- Analista Resultados: validar visualização e ausência de permissão de exclusão.
+- Gestor Área: validar visualização/atualização apenas do departamento próprio.
+- Admin Valora: validar visão global, vencidas por empresa e relatório executivo com plano de ação.
+- Permissões: validar bloqueio para participante, convidado externo e isolamento entre empresas.
+- Relatórios: validar seção de plano de ação recomendado com ações sugeridas, criadas, concluídas e vencidas.

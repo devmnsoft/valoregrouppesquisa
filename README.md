@@ -329,3 +329,9 @@ Relatórios disponíveis na Central de relatórios:
 - Uso do plano.
 
 Cada relatório possui sumário executivo automático, recomendações, plano de ação sugerido, tratamento de estados sem dados e auditoria de exportação.
+
+## Módulo Plano de Ação
+
+O Valora Pulse agora inclui o módulo **Plano de ação**, com criação manual de ações, geração automática por resultados, acompanhamento por status/prioridade/prazo, evidências, comentários e integração com relatórios executivos. A coleção Firestore adotada é `actionPlans`, segregada por `companyId` e protegida pelas regras de perfil.
+
+Consulte `PLANO_DE_ACAO.md` para modelo de dados, permissões, status, prioridades e roteiro de testes.

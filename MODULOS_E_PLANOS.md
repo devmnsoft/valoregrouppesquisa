@@ -53,7 +53,7 @@ Módulo comercial para gestão de ações de melhoria. Pode ser habilitado por p
 
 O Valora Pulse agora possui sino global, contador de não lidas, dropdown, tela “Central de notificações”, ações para marcar como lida/dispensar e links rápidos. A documentação completa de tipos, regras, permissões, Firestore e lembretes automáticos está em `NOTIFICACOES_E_ALERTAS.md`.
 
-## Limites e assinatura por empresa
+## Evolução white label e assinatura
 
 Os limites efetivos são calculados pelo plano contratado somado a `limitsOverride` da organização: pesquisas ativas, respostas/mês, gestores, funcionários e e-mails/mês. O portal do plano exibe consumo, módulos liberados/bloqueados e recomendação de upgrade quando o uso ultrapassa 80%.
 

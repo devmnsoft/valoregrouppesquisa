@@ -82,7 +82,7 @@ Use esta checklist como bloqueio de go-live. Cada item deve ter responsável, da
 - [ ] Participante/convidado responde por link seguro sem portal administrativo completo.
 - [ ] Dashboards, respostas, relatórios e certificados usam os mesmos campos de resultado (`rawScore`, `maxScore`, `normalized5`, `percentage`, `byDimension`, `level`, `qualitative`).
 
-## Checklist white label e assinatura
+## Evolução white label e assinatura
 
 - [ ] Validar unicidade de slug com `organizationSlugs/{slug}` ou Cloud Function transacional.
 - [ ] Confirmar rules impedindo Empresa Admin de alterar assinatura, plano e limites.

@@ -344,3 +344,7 @@ O Valora Pulse agora possui sino global, contador de não lidas, dropdown, tela 
 ## White label e assinatura
 
 O Valora Pulse possui estrutura de white label por organização, com slug público, URL de logo, cores por empresa, preferências de marca em pesquisa pública/e-mails e portal de assinatura/uso do plano. A documentação completa está em [WHITE_LABEL_E_ASSINATURA.md](WHITE_LABEL_E_ASSINATURA.md).
+
+## Assinaturas e cobrança
+
+A base financeira do SaaS agora inclui assinatura em `organizations.subscription`, coleção `invoices`, painel Admin Valora › Financeiro, visão Empresa › Plano contratado, bloqueios por status comercial e estrutura segura para gateway via Cloud Functions. Detalhes completos em [`ASSINATURAS_E_COBRANCA.md`](ASSINATURAS_E_COBRANCA.md).

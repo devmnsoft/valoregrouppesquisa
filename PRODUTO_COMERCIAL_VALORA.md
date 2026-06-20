@@ -102,3 +102,7 @@ O Valora Pulse agora possui sino global, contador de não lidas, dropdown, tela 
 ## Evolução white label e assinatura
 
 O produto agora separa identidade visual da empresa cliente de dados comerciais críticos. Empresa Admin personaliza nome público, slogan, logo, cores e contatos; Admin Valora controla plano, assinatura, limites, cobrança e status comercial. Status `trial`, `active`, `overdue`, `suspended`, `cancelled` e `inactive` orientam alertas e bloqueios.
+
+## Evolução financeira SaaS
+
+O produto passa a controlar trial, assinatura ativa, inadimplência, suspensão, cancelamento, faturas manuais, KPIs financeiros, MRR/ARR estimados e preparação para gateway real por Cloud Functions/Webhooks. A empresa cliente visualiza faturas e plano, mas não altera cobrança, status, limites ou pagamentos.

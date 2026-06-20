@@ -178,3 +178,12 @@ Data: 2026-06-20.
 - Bloqueio: configurar `subscription.status=suspended` e confirmar bloqueio de nova pesquisa e convites.
 - Limites: reduzir `limitsOverride.maxActiveSurveys` e validar status excedido/alerta.
 - Mobile: abrir Dados e marca e Plano contratado em 360px sem scroll horizontal.
+
+## Assinaturas e cobrança
+
+- Admin Valora: criar fatura manual; marcar como paga; cancelar; visualizar MRR/ARR, faturas em aberto/vencidas, clientes trial/inadimplentes/suspensos.
+- Empresa Admin: visualizar plano, status, ciclo, faturas abertas/pagas e link externo; tentativa de alteração financeira deve ser bloqueada pela UI/regras.
+- Bloqueios: `overdue`, `suspended`, `cancelled`, `inactive` limitam criação/envio/relatórios conforme helper central.
+- Notificações: trial vencendo/expirado, fatura próxima, pagamento confirmado, falha de pagamento e assinatura suspensa.
+- Firebase Rules: Empresa A não lê fatura da B; gestor/analista/participante/convidado não acessam financeiro; Admin Valora altera.
+- Mobile: painel financeiro usa tabela responsiva já convertida em cards por `enhanceResponsiveTables`.

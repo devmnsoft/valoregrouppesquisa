@@ -334,10 +334,7 @@ service cloud.firestore {
 
     match /invoices/{invoiceId} {
       allow read: if isValoraAdmin()
-                  || (isEmpresaAdmin() && sameCompany(resource.data.companyId))
-                  || (isResearchManager() && sameCompany(resource.data.companyId))
-                  || (isResultsAnalyst() && sameCompany(resource.data.companyId))
-                  || (isAreaManager() && sameCompany(resource.data.companyId));
+                  || (isEmpresaAdmin() && sameCompany(resource.data.companyId));
       allow create, update, delete: if isValoraAdmin();
     }
   }

@@ -89,3 +89,11 @@ Use esta checklist como bloqueio de go-live. Cada item deve ter responsável, da
 - [ ] Testar links públicos com `?org=slug`.
 - [ ] Testar e-mails com marca da empresa e rodapé Valora.
 - [ ] Testar bloqueios para `suspended`, `cancelled` e limites excedidos.
+
+## Checklist financeiro e gateway
+
+- [ ] Configurar secrets do gateway apenas em Cloud Functions.
+- [ ] Validar assinatura criptográfica dos webhooks reais.
+- [ ] Testar idempotência de eventos de pagamento.
+- [ ] Confirmar Firestore Rules de `invoices` para Admin Valora e Empresa Admin.
+- [ ] Testar modo manual antes de ativar gateway real.

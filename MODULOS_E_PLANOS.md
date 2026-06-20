@@ -56,3 +56,7 @@ O Valora Pulse agora possui sino global, contador de não lidas, dropdown, tela 
 ## Limites e assinatura por empresa
 
 Os limites efetivos são calculados pelo plano contratado somado a `limitsOverride` da organização: pesquisas ativas, respostas/mês, gestores, funcionários e e-mails/mês. O portal do plano exibe consumo, módulos liberados/bloqueados e recomendação de upgrade quando o uso ultrapassa 80%.
+
+## Cobrança recorrente e limites
+
+Planos alimentam `organizations.subscription` e faturas em `invoices`. O ciclo pode ser mensal, trimestral, semestral, anual ou manual. Status financeiros (`trial`, `active`, `past_due`, `overdue`, `suspended`, `cancelled`, `inactive`) interferem nos helpers de criação de pesquisa, envio de convites, relatórios e acesso operacional.

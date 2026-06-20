@@ -47,3 +47,8 @@ A fonte técnica central é `module-definitions.js`. Cada módulo declara `id`, 
 ## actionPlans — Plano de ação
 
 Módulo comercial para gestão de ações de melhoria. Pode ser habilitado por plano, aparece no menu administrativo para perfis autorizados e pode receber limites comerciais por quantidade de ações no plano gratuito ou em contratos específicos.
+
+
+## Central de Notificações e Alertas Inteligentes
+
+O Valora Pulse agora possui sino global, contador de não lidas, dropdown, tela “Central de notificações”, ações para marcar como lida/dispensar e links rápidos. A documentação completa de tipos, regras, permissões, Firestore e lembretes automáticos está em `NOTIFICACOES_E_ALERTAS.md`.

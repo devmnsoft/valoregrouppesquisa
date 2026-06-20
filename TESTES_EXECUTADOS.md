@@ -134,3 +134,34 @@ Data: 2026-06-20
 - Admin Valora: validar visão global, vencidas por empresa e relatório executivo com plano de ação.
 - Permissões: validar bloqueio para participante, convidado externo e isolamento entre empresas.
 - Relatórios: validar seção de plano de ação recomendado com ações sugeridas, criadas, concluídas e vencidas.
+
+
+## Central de Notificações e Alertas Inteligentes
+
+O Valora Pulse agora possui sino global, contador de não lidas, dropdown, tela “Central de notificações”, ações para marcar como lida/dispensar e links rápidos. A documentação completa de tipos, regras, permissões, Firestore e lembretes automáticos está em `NOTIFICACOES_E_ALERTAS.md`.
+
+## Evolução — Central de Notificações, Alertas Inteligentes e Lembretes
+
+Data: 2026-06-20.
+
+### Checks automatizados executados
+
+- `node --check app.js`: passou.
+- `node --check notification-service.js`: passou.
+- `node --check firebase-repository.js`: passou.
+- `node --check local-repository.js`: passou.
+- `node --check functions/index.js`: passou.
+- `git diff --check`: passou.
+- `npm test -- --runInBand`: falhou porque o projeto não possui script `test` no `package.json`.
+- `npm run test:rules`: não concluiu por limitação de ambiente; o Firebase CLI tentou baixar o emulador Firestore e recebeu HTTP 403.
+
+### Roteiro manual obrigatório
+
+- Admin Valora: validar alertas globais, empresas travadas, limites do plano, marcação como lida e ação relacionada.
+- Empresa Admin: validar alertas da própria empresa, convite pendente, ação vencida, limite do plano e isolamento contra outra empresa.
+- Gestor de Pesquisa: validar pesquisa vencendo, baixa taxa de resposta e convite pendente.
+- Analista de Resultados: validar relatório disponível e ausência de alertas de criação/edição não permitidos.
+- Gestor de Área: validar apenas alertas da própria área/departamento.
+- Participante: validar pesquisa/resultado disponível e ausência de alertas administrativos.
+- Segurança: validar que empresa A não lê empresa B, participante não lê administrativo e usuário não altera notificação de outro usuário.
+- Mobile: abrir em 360px, validar dropdown, cards e botões sem scroll horizontal.

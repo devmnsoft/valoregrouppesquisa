@@ -99,3 +99,28 @@ Data: 2026-06-20
 ### Observações
 
 Não foram executados testes Firebase com emuladores nesta entrega por serem suíte de segurança dependente de ambiente externo/serviços do Firebase. O modo local/demo permanece sem novas dependências pesadas.
+
+## Testes executados — evolução relatórios executivos
+
+Data: 2026-06-20
+
+### Cenários validados por inspeção e checagem estática
+
+| Perfil | Cenário | Resultado esperado | Status |
+|---|---|---|---|
+| Admin Valora | Gerar relatório global | Métricas globais, MRR, clientes travados, ranking e alertas comerciais vêm do analytics-service | Validado por código |
+| Admin Valora | Exportar PDF/Excel/Word/CSV/JSON | Todos os formatos usam o mesmo objeto de relatório central | Validado por código |
+| Empresa Admin | Gerar relatório executivo da empresa | Dados limitados à própria empresa, com sumário, recomendações e plano de ação | Validado por código |
+| Empresa Admin | Gerar relatório por pesquisa | Convites, respostas, taxa, média, dimensões e comentários usam filtros por pesquisa | Validado por código |
+| Gestor Pesquisa | Gerar relatório de pesquisa | Indicadores e qualitativos disponíveis sem alterar dados administrativos | Validado por código |
+| Analista Resultados | Exportar relatório | Fluxo de leitura/exportação preservado sem ações administrativas | Validado por código |
+| Gestor Área | Relatório da área | Mantém dependência do escopo aplicado nas telas e permissões existentes | Validado por código |
+| Participante | Relatório individual/certificado | Função central de participante não mistura respostas de terceiros | Validado por código |
+| Sem dados | Exportação sem respostas/convites/dimensões | Mensagens amigáveis e linha de estado vazio, sem quebra | Validado por código |
+| Consistência | Dashboard x resposta x relatório | Relatórios consomem `ValoraAnalytics` para evitar duplicidade de cálculo | Validado por código |
+
+### Comandos executados
+
+- `node --check analytics-service.js` — aprovado.
+- `node --check report-service.js` — aprovado.
+- `node --check app.js` — aprovado.

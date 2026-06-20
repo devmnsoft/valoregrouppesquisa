@@ -313,3 +313,19 @@ Em `STORAGE_MODE='firebase'`, o mesmo checklist usa coleções reais (`organizat
 Os dashboards executivos usam `analytics-service.js` como camada central de indicadores. A regra padrão é contar apenas respostas concluídas e convites efetivamente enviados (`sent`, `opened`, `answered`, `resent`). A taxa de resposta é calculada como respostas concluídas únicas divididas por convites enviados únicos. A média geral usa `normalized5` e o percentual é `normalized5 / 5 * 100`.
 
 A área de respostas e a central de relatórios usam os mesmos filtros e métricas para evitar divergência entre dashboard, relatório e exportação. Em ambientes sem dados, os cards exibem estados vazios com orientação operacional.
+
+## Relatórios executivos consultivos
+
+A versão atual adiciona `report-service.js` como camada central de relatórios. Ela reutiliza `analytics-service.js` para manter os mesmos cálculos dos dashboards em PDF, Word, Excel, CSV e JSON.
+
+Relatórios disponíveis na Central de relatórios:
+
+- Executivo global Valora;
+- Executivo da empresa;
+- Por pesquisa;
+- Individual do participante;
+- Por dimensão;
+- Implantação;
+- Uso do plano.
+
+Cada relatório possui sumário executivo automático, recomendações, plano de ação sugerido, tratamento de estados sem dados e auditoria de exportação.

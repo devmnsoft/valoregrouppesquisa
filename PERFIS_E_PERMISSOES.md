@@ -24,3 +24,12 @@ A fonte técnica central é `role-definitions.js`. Todas as telas e ações deve
 ## Mensagem padrão de bloqueio
 
 Quando uma ação não é permitida, o produto deve mostrar: “Seu perfil não possui permissão para executar esta ação.”
+
+## Validação operacional por perfil — Firebase real
+
+- `admin_valora`: acesso global a organizações, planos, módulos, formulários globais, pesquisas, respostas, relatórios e logs permitidos.
+- `empresa_admin`: acesso somente à própria `companyId`; pode gerir funcionários, perfis empresariais, formulários, pesquisas, convites e relatórios da empresa.
+- `gestor_pesquisa`: cria formulários/pesquisas e envia convites da própria empresa; não altera plano, financeiro global, backup ou perfis Valora.
+- `analista_resultados`: leitura de pesquisas, respostas, dashboards e relatórios permitidos; não cria formulários, pesquisas, convites ou usuários.
+- `gestor_area`: leitura da própria empresa filtrada por `department` quando preenchido em usuário/resposta/convite; limitação atual documentada até coleta obrigatória de área em todos os formulários.
+- `participante` e `convidado_externo`: resposta por link seguro e resultado quando configurado, sem portal administrativo completo.

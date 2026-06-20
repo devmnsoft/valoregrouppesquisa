@@ -39,3 +39,7 @@ A fonte técnica central é `module-definitions.js`. Cada módulo declara `id`, 
 - Plano inativo não deve aparecer para novos clientes.
 - Plano vinculado a clientes não pode ser excluído.
 - Módulos liberados no plano controlam menu, botões e ações.
+
+## Seed comercial mínimo
+
+`firestore.seed.sample.json` define os módulos base `clientes`, `usuarios`, `funcionarios`, `formularios`, `pesquisas`, `convitesEmail`, `respostas`, `relatorios`, `certificados`, `financeiro`, `planos`, `modulos`, `valorabot`, `lgpd`, `exportacoes`, `backup` e `logs`, além dos planos Gratuito, Essencial, Growth e Enterprise com limites de pesquisas, respostas, gestores, funcionários e e-mails mensais.

@@ -282,3 +282,9 @@ No modo Firebase, o estado que o `app.js` consome continua compatível com os no
 Coleções esperadas no Firestore: `organizations`, `users`, `plans`, `modules`, `forms`, `surveys`, `responses`, `invitations`, `invoices`, `settings` e `logs`.
 
 Para ativar o Firebase, configure `config.js` com `STORAGE_MODE: 'firebase'`, `FIREBASE_ENABLED: true` e a configuração pública do app Web Firebase. Não inclua senhas, tokens privados, service accounts ou secrets no frontend.
+
+## Firebase real — jornada SaaS homologável
+
+Para operar em produção, use `STORAGE_MODE='firebase'`, publique Rules/Functions/Hosting, importe `firestore.seed.sample.json` via Admin SDK e crie o primeiro `admin_valora` no Firebase Auth sem senha em arquivos versionados. O envio em lote de convites no Firebase usa a Cloud Function `sendSurveyInvitations`; no modo local/demo permanece usando outbox ou fallback local, preservando a demonstração.
+
+Consulte `FIREBASE_SETUP.md`, `CHECKLIST_PRODUCAO.md` e `TESTES_EXECUTADOS.md` para seed, primeiro acesso, SMTP por secrets, jornadas por perfil, limites de plano, resposta pública por token e riscos restantes.

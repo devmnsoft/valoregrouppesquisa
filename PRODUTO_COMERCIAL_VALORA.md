@@ -24,3 +24,7 @@ Esta evolução consolida a base SaaS multiempresa do Valora Pulse: perfis, mód
 ## Próximo passo sugerido
 
 Finalizar Firebase Repository com dados reais do Firestore.
+
+## Fluxo comercial operacional Firebase
+
+A jornada SaaS validada para homologação é: seed mínimo, primeiro `admin_valora`, criação de organização, criação do admin da empresa, cadastro de funcionários, formulário, pesquisa, convite por e-mail via Cloud Function, resposta por link seguro, cálculo backend, dashboards, respostas, relatórios/certificados e auditoria. O modo local/demo continua disponível para demonstração com outbox local.

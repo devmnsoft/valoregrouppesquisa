@@ -56,3 +56,28 @@ Use esta checklist como bloqueio de go-live. Cada item deve ter responsável, da
 - [ ] Testado que `state.companies` é alimentado a partir de `organizations`.
 - [ ] Confirmado que logs não são gravados diretamente pelo frontend.
 - [ ] Confirmado que criação pública de respostas permanece exclusiva de Cloud Functions.
+
+## Primeiro acesso — passo a passo obrigatório
+
+1. Criar projeto Firebase de produção.
+2. Ativar Authentication por e-mail/senha.
+3. Criar usuário `admin_valora` no Firebase Auth, com senha definida somente no console/Auth ou fluxo seguro interno.
+4. Criar `users/{uid}` com `role: "admin_valora"`, `companyId: ""`, `status: "active"`.
+5. Definir custom claims do admin com Admin SDK.
+6. Publicar Firestore Rules: `firebase deploy --only firestore:rules`.
+7. Publicar Cloud Functions: `firebase deploy --only functions`.
+8. Publicar Hosting: `firebase deploy --only hosting`.
+9. Configurar SMTP via Secret Manager (`SMTP_PASSWORD`) e variáveis `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURITY`, `SMTP_USERNAME`, `SMTP_SENDER_EMAIL`, `SMTP_SENDER_NAME`.
+10. Definir `STORAGE_MODE: 'firebase'` e `FIREBASE_ENABLED: true` no build/ambiente correto.
+11. Rodar o seed mínimo de `firestore.seed.sample.json` via Admin SDK.
+12. Testar login do admin, dashboard global, criação da primeira empresa real, criação do admin da empresa e envio de convite real.
+
+## Homologação ponta a ponta Valora Pulse
+
+- [ ] Admin Valora acessa dashboard global, clientes, planos, módulos, formulários globais, pesquisas, respostas, relatórios e auditoria.
+- [ ] Empresa Admin vê somente a própria empresa, cadastra funcionários, cria formulário/pesquisa, envia convites e consulta uso do plano.
+- [ ] Gestor de Pesquisa cria formulários/pesquisas e envia convites sem acessar financeiro global, backup, plano ou perfis Valora.
+- [ ] Analista de Resultados tem leitura de dashboards, respostas e relatórios, sem criar formulário/pesquisa ou alterar usuários.
+- [ ] Gestor de Área lê somente dados da própria empresa e do próprio `department` quando preenchido.
+- [ ] Participante/convidado responde por link seguro sem portal administrativo completo.
+- [ ] Dashboards, respostas, relatórios e certificados usam os mesmos campos de resultado (`rawScore`, `maxScore`, `normalized5`, `percentage`, `byDimension`, `level`, `qualitative`).

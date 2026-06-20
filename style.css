@@ -502,3 +502,25 @@ html,body{max-width:100%;overflow-x:hidden}
   .table td{grid-template-columns:1fr;gap:3px}.table td::before{font-size:.72rem}
   .table .table-actions{grid-template-columns:1fr}.side-menu button{min-width:136px}.content{padding-left:10px;padding-right:10px}
 }
+
+/* Administração de planos comerciais */
+.plan-admin-head{align-items:flex-start;margin-bottom:16px}
+.plan-admin-head h2{margin:0 0 6px;color:var(--ink);font-size:clamp(1.8rem,3vw,2.6rem);letter-spacing:-.04em}
+.plan-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}
+.admin-plan-grid{align-items:stretch}
+.admin-plan-card{text-align:left;gap:12px}
+.admin-plan-card.inactive{opacity:.82;background:#f8fafb}
+.admin-plan-card.featured .status,.admin-plan-card.featured .badge:not(.dark){background:#fff;color:var(--brand);border-color:rgba(255,255,255,.45)}
+.plan-badges{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-start}
+.plan-limits{display:grid;grid-template-columns:1fr;gap:7px;margin:4px 0 8px;padding:12px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.72);color:var(--ink)}
+.plan-card.featured .plan-limits{border-color:rgba(255,255,255,.24);background:rgba(255,255,255,.12);color:#fff}
+.plan-limits span{display:flex;justify-content:space-between;gap:10px;font-size:.9rem}
+.feature-list{display:grid;gap:8px;margin-bottom:12px}
+.plan-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;margin-top:auto}
+.plan-actions .btn{width:100%;min-height:38px;padding:9px 10px}
+.resource-editor{display:grid;gap:10px;margin-bottom:10px}
+.resource-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto auto;gap:8px;align-items:center}
+.module-check-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.plan-preview{background:linear-gradient(135deg,#f7fbfc,#fff)}
+@media(max-width:1200px){.plan-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){.plan-kpis{grid-template-columns:1fr}.plan-actions,.module-check-grid{grid-template-columns:1fr}.resource-row{grid-template-columns:1fr 1fr}.resource-row input{grid-column:1/-1}.resource-row .btn{width:100%}.admin-plan-card{text-align:left}.plan-admin-head .btn{width:100%}}

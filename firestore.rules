@@ -53,6 +53,14 @@ service cloud.firestore {
       return signedIn() && id != null && companyId() == id;
     }
 
+    function department() {
+      return signedIn() ? userDoc().data.department : null;
+    }
+
+    function sameArea() {
+      return !isAreaManager() || (department() != null && resource.data.department == department());
+    }
+
     function canManageCompany(id) {
       return isValoraAdmin() || (isCompanyManager() && sameCompany(id));
     }
@@ -131,6 +139,11 @@ service cloud.firestore {
       allow write: if isValoraAdmin();
     }
 
+    match /modules/{moduleId} {
+      allow read: if signedIn();
+      allow write: if isValoraAdmin();
+    }
+
     // Logs são append-only pelo backend/Cloud Functions (Admin SDK bypassa rules).
     // Nenhum frontend, nem mesmo admin_valora autenticado no client, altera logs.
     match /logs/{logId} {
@@ -202,10 +215,23 @@ service cloud.firestore {
     // direto em empresa de terceiros ou manipulação de participantUid/companyId.
     match /responses/{responseId} {
       allow read: if isValoraTeam()
-                  || sameCompany(resource.data.companyId)
+                  || (sameCompany(resource.data.companyId) && sameArea())
                   || (signedIn() && request.auth.uid == resource.data.participantUid);
       allow create: if false;
       allow update, delete: if isValoraAdmin();
+    }
+
+    match /invitations/{invitationId} {
+      allow read: if isValoraTeam()
+                  || (sameCompany(resource.data.companyId) && role() != 'convidado_externo');
+      allow create: if isValoraAdmin()
+                    || (isCompanyManager() && sameCompany(request.resource.data.companyId));
+      allow update: if isValoraAdmin()
+                    || (isCompanyManager()
+                        && sameCompany(resource.data.companyId)
+                        && sameCompany(request.resource.data.companyId)
+                        && request.resource.data.companyId == resource.data.companyId);
+      allow delete: if isValoraAdmin();
     }
 
     match /invoices/{invoiceId} {

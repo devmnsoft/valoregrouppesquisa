@@ -248,3 +248,6 @@ A gestão de perfis do Valora Pulse é centralizada em `ROLE_DEFINITIONS` no `ap
 - O cadastro de funcionários permite escolher somente perfis de empresa, com padrão `participante`.
 - Menus, filtros, envio de questionários e validações consultam a matriz central sempre que possível.
 - Consulte `PERFIS_E_PERMISSOES.md` para a tabela funcional e preparação Firebase.
+
+## Arquitetura comercial SaaS
+A documentação comercial central está em `PRODUTO_COMERCIAL_VALORA.md`. A nomenclatura técnica recomendada para produção é `organizations`; a UI usa “Clientes/Empresas” e o modo demo preserva `companies` como adaptador local. Perfis estão centralizados em `role-definitions.js` e módulos em `module-definitions.js`.

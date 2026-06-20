@@ -141,3 +141,15 @@ Resultado esperado: tabelas permanecem legíveis com `data-label`, botões conti
 ### Teste 7 — Segurança
 - Tentar manipular `role`/`companyId` no payload local; `saveUser` bloqueia perfis globais por empresa e alteração do próprio perfil.
 - Revisar `firestore.rules` para bloquear perfis globais por empresa, alteração comum de campos sensíveis e edição fora da própria empresa.
+
+## Roteiro comercial SaaS 2026
+- Admin Valora cria empresa com plano ativo e administrador principal.
+- Empresa cria funcionários com perfis permitidos e não cria `admin_valora`/`consultor_valora`.
+- `gestor_pesquisa` cria formulário/pesquisa; `analista_resultados` apenas lê respostas/relatórios.
+- `gestor_area` visualiza somente registros da sua área/departamento.
+- `participante` e `convidado_externo` respondem por escopo/link seguro.
+- Plano gratuito bloqueia limite de pesquisas/respostas/e-mails; plano inativo não aparece para novo cliente.
+- Empresa suspensa ou inadimplente não cria pesquisa nem envia convite.
+- Convite respeita status ativo, opt-in de e-mail e validade; resposta concluída muda convite para `answered`.
+- Dashboard, relatório e certificado usam respostas concluídas e o mesmo resultado persistido.
+- Firestore Rules bloqueiam escrita direta em `responses` e `logs` pelo frontend.

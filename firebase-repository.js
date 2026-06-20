@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const ALLOWED_ROLES=['admin_valora','consultor_valora','empresa_admin','gestor_pesquisa','participante'];
+const ALLOWED_ROLES=Object.keys(window.ValoraRoles?.ROLE_DEFINITIONS||{admin_valora:1,consultor_valora:1,empresa_admin:1,gestor_pesquisa:1,analista_resultados:1,gestor_area:1,participante:1,convidado_externo:1});
 const PROFILE_MISSING_MESSAGE='Seu usuário ainda não possui perfil configurado. Solicite liberação ao administrador.';
 const session={authUser:null,profile:null,claims:{},ready:false,readyPromise:null,unsubscribe:null};
 
@@ -39,7 +39,13 @@ function waitUntilReady(){
   });
   return session.readyPromise;
 }
-function emptyStore(seedStore,normalizeState){const state=seedStore();state.session=null;state.users=[];normalizeState(state);return state;}
+function emptyStore(seedStore,normalizeState){const state=seedStore();state.session=null;state.users=[];state.companies=[];state.forms=[];state.surveys=[];state.responses=[];state.invitations=[];normalizeState(state);return state;}
+function ts(){return window.firebase.firestore.FieldValue.serverTimestamp();}
+function docData(d){return d.exists?{id:d.id,...d.data()}:null;}
+async function listCollection(name,filters=[]){const s=ensureFirebase();let q=s.db.collection(name);filters.forEach(([field,op,value])=>{if(value!==undefined&&value!==null&&value!=='')q=q.where(field,op,value);});const snap=await q.get();return snap.docs.map(docData);}
+async function createDoc(name,data){const s=ensureFirebase();const payload={...data,createdAt:data.createdAt||ts(),updatedAt:ts()};const ref=data.id?s.db.collection(name).doc(data.id):s.db.collection(name).doc();await ref.set({...payload,id:ref.id},{merge:false});return {id:ref.id,...data};}
+async function updateDoc(name,id,data){const s=ensureFirebase();await s.db.collection(name).doc(id).set({...data,updatedAt:ts()},{merge:true});return {id,...data};}
+function companyFilter(companyId){return companyId?[['companyId','==',companyId]]:[];}
 function mapAuthError(err){
   const code=err?.code||'';
   if(['auth/invalid-credential','auth/user-not-found','auth/wrong-password'].includes(code))return 'Credenciais inválidas. Confira e-mail e senha.';
@@ -57,6 +63,28 @@ window.ValoraFirebaseRepository={
   async login({email,password}){const s=ensureFirebase();try{const cred=await s.auth.signInWithEmailAndPassword(email,password);return await loadProfile(cred.user);}catch(err){throw Object.assign(new Error(mapAuthError(err)),{code:err?.code});}},
   async logout(){const s=ensureFirebase();session.profile=null;session.claims={};cleanFirebaseLocalState();await s.auth.signOut();},
   currentUser(){return session.profile;},
+  async listOrganizations(){return listCollection('organizations');},
+  async getOrganization(id){const s=ensureFirebase();return docData(await s.db.collection('organizations').doc(id).get());},
+  async createOrganization(data){return createDoc('organizations',data);},
+  async updateOrganization(id,data){return updateDoc('organizations',id,data);},
+  async listUsers(companyId){return listCollection('users',companyFilter(companyId));},
+  async createUserProfile(data){return createDoc('users',data);},
+  async updateUserProfile(id,data){return updateDoc('users',id,data);},
+  async listPlans(){return listCollection('plans');},
+  async createPlan(data){return createDoc('plans',data);},
+  async updatePlan(id,data){return updateDoc('plans',id,data);},
+  async listModules(){return listCollection('modules');},
+  async updateModule(data){return updateDoc('modules',data.id,data);},
+  async listForms(companyId){return listCollection('forms',companyFilter(companyId));},
+  async createForm(data){return createDoc('forms',data);},
+  async updateForm(id,data){return updateDoc('forms',id,data);},
+  async listSurveys(companyId){return listCollection('surveys',companyFilter(companyId));},
+  async createSurvey(data){return createDoc('surveys',data);},
+  async updateSurvey(id,data){return updateDoc('surveys',id,data);},
+  async listResponses(companyId){return listCollection('responses',companyFilter(companyId));},
+  async listInvitations(companyId){return listCollection('invitations',companyFilter(companyId));},
+  async createInvitation(data){return createDoc('invitations',data);},
+  async updateInvitation(id,data){return updateDoc('invitations',id,data);},
   loadCompanies({state}){return state.companies;},loadUsers({state}){return state.users;},loadForms({state}){return state.forms;},loadSurveys({state}){return state.surveys;},loadResponses({state}){return state.responses;},
   saveChanges({state}){return state;}
 };

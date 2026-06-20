@@ -307,3 +307,9 @@ A empresa sai de `novo` para `implantado` conforme completa as etapas. O status 
 ### Fluxo recomendado em Firebase
 
 Em `STORAGE_MODE='firebase'`, o mesmo checklist usa coleções reais (`organizations`, `users`, `forms`, `surveys`, `invitations` e `responses`). O envio em massa continua passando por Cloud Functions; o frontend apenas abre o fluxo e recarrega o estado quando a Function confirma o processamento. Não há exposição de credenciais SMTP no navegador.
+
+## Indicadores executivos e consistência
+
+Os dashboards executivos usam `analytics-service.js` como camada central de indicadores. A regra padrão é contar apenas respostas concluídas e convites efetivamente enviados (`sent`, `opened`, `answered`, `resent`). A taxa de resposta é calculada como respostas concluídas únicas divididas por convites enviados únicos. A média geral usa `normalized5` e o percentual é `normalized5 / 5 * 100`.
+
+A área de respostas e a central de relatórios usam os mesmos filtros e métricas para evitar divergência entre dashboard, relatório e exportação. Em ambientes sem dados, os cards exibem estados vazios com orientação operacional.

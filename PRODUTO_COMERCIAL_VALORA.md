@@ -38,3 +38,46 @@ O botão **Configurar minha primeira pesquisa** abre um wizard de seis etapas: r
 O Admin Valora passa a enxergar o **Status de implantação do cliente** em visão global, incluindo empresas novas, em configuração, com funcionários, com pesquisa criada, com convites, com respostas, implantadas e travadas. Isso melhora demonstrações, CS e priorização comercial sem remover funcionalidades existentes.
 
 Estados vazios inteligentes foram adicionados para funcionários, formulários, pesquisas, respostas e relatórios, sempre com orientação e CTA para a próxima tela. O ValoraBot também responde perguntas de onboarding como “Como começo?”, “Qual próximo passo?” e “Por que meu dashboard está vazio?” considerando o estágio real da empresa.
+## Evolução — dashboards executivos e indicadores centralizados
+
+### Camada central de indicadores
+
+A evolução adiciona `analytics-service.js` como fonte única para dashboards, respostas, relatórios e exportações. As principais funções são:
+
+- `getGlobalDashboardMetrics(state)`: clientes, MRR, planos, convites, respostas, implantação e alertas globais.
+- `getCompanyDashboardMetrics(state, companyId)`: uso do plano, implantação, convites, respostas, dimensões e recomendações da empresa.
+- `getSurveyMetrics(state, surveyId)`: taxa de resposta e resultado de uma pesquisa.
+- `getResponseMetrics(state, filters)`: respostas concluídas, média `normalized5`, percentual, dimensões, distribuição e extremos.
+- `getPlanUsageMetrics(state, companyId)`: uso versus limites de plano.
+- `getOnboardingMetrics(state, companyId)`: status de implantação.
+- `getDimensionMetrics(responses)`: maturidade por dimensão.
+- `getInvitationMetrics(state, companyId)`: convites enviados e taxa de resposta.
+- `getTimeSeriesMetrics(state, filters)`: evolução mensal.
+
+### Regras comerciais dos indicadores
+
+- Resposta só entra nos indicadores se estiver concluída (`completed`, `finished`, `answered`, `done` ou equivalentes normalizados).
+- Convite enviado só conta com status `sent`, `opened`, `answered` ou `resent`.
+- Taxa de resposta = respostas concluídas únicas / convites enviados únicos.
+- Duplicidades usam `id` da resposta/convite ou a combinação pesquisa + e-mail.
+- Média geral usa `normalized5`.
+- Percentual = `normalized5 / 5 * 100`.
+- Dimensão consolida apenas os resultados dimensionais gravados em `byDimension`.
+- Estados vazios mostram orientação de próxima ação.
+- Alertas automáticos cobrem baixa taxa de resposta, dimensão crítica e alto uso do plano.
+
+### Dashboards
+
+#### Admin Valora
+
+Exibe visão comercial com clientes totais, ativos, implantação, travados, MRR, plano mais utilizado, respostas no mês, taxa de resposta, clientes por plano, implantação, MRR por plano, evolução e atenção comercial.
+
+#### Empresa
+
+Exibe funcionários, pesquisas ativas, convites enviados, respostas concluídas, taxa, média geral, dimensão forte/crítica, uso do plano, evolução, distribuição e recomendações.
+
+#### Perfis
+
+- `analista_resultados` recebe visão analítica sem ações de criação/envio.
+- Gestores e administradores continuam com ações rápidas quando suas permissões permitem.
+- Escopo de empresa continua respeitando `companyId` e funções existentes de permissão.

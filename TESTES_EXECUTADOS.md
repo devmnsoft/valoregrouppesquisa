@@ -256,3 +256,23 @@ Data: 2026-06-20.
 - `node --check firebase-repository.js`: passou.
 - `node --check repository.js`: passou.
 - `node --check pdf.js`: passou.
+
+## Correção de inicialização 8.6.3
+
+### Problema
+- `normalizeInvoice()` dependia de `companyById()`, que dependia de `state` global.
+- Durante `initializeState()`, `state` ainda era `null`.
+- `local-repository.loadCompanies()` não era null-safe.
+- Tela de erro usava handler inline bloqueado por CSP.
+
+### Correção
+- `normalizeState()` passou a normalizar o objeto recebido, sem depender do `state` global para faturas.
+- `normalizeInvoice(i, store)` usa `store.companies` para resolver dados do cliente e plano.
+- Repositório local passou a retornar coleções vazias quando `state` está nulo ou indefinido.
+- Recuperação de localStorage ausente/corrompido recria seed e continua em memória mesmo se o navegador impedir gravação.
+- Tela de erro usa `addEventListener` em vez de `onclick` inline.
+- CSP mantida restritiva, sem `unsafe-inline` em scripts, com `https://www.gstatic.com` em `connect-src`.
+
+### Validações executadas
+- `node --check` em todos os arquivos JavaScript do projeto fora de `node_modules`.
+- Revisão de ausência de `onclick` inline na tela de erro fatal.

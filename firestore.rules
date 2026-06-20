@@ -37,6 +37,14 @@ service cloud.firestore {
       return role() == 'gestor_pesquisa';
     }
 
+    function isResultsAnalyst() {
+      return role() == 'analista_resultados';
+    }
+
+    function isAreaManager() {
+      return role() == 'gestor_area';
+    }
+
     function isCompanyManager() {
       return role() in ['empresa_admin', 'gestor_pesquisa'];
     }
@@ -58,7 +66,7 @@ service cloud.firestore {
     }
 
     function userPayloadRoleIsCompanyRole() {
-      return request.resource.data.role in ['empresa_admin', 'gestor_pesquisa', 'participante'];
+      return request.resource.data.role in ['empresa_admin', 'gestor_pesquisa', 'analista_resultados', 'gestor_area', 'participante', 'convidado_externo'];
     }
 
     function preservesUserCompany() {
@@ -139,7 +147,10 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isValoraTeam()
                   || (signedIn() && request.auth.uid == uid)
-                  || (isEmpresaAdmin() && sameCompany(resource.data.companyId));
+                  || (isEmpresaAdmin() && sameCompany(resource.data.companyId))
+                  || (isResearchManager() && sameCompany(resource.data.companyId))
+                  || (isResultsAnalyst() && sameCompany(resource.data.companyId))
+                  || (isAreaManager() && sameCompany(resource.data.companyId));
 
       allow create: if isValoraAdmin() || empresaAdminCanCreateUser(uid);
 
@@ -199,7 +210,10 @@ service cloud.firestore {
 
     match /invoices/{invoiceId} {
       allow read: if isValoraAdmin()
-                  || (isEmpresaAdmin() && sameCompany(resource.data.companyId));
+                  || (isEmpresaAdmin() && sameCompany(resource.data.companyId))
+                  || (isResearchManager() && sameCompany(resource.data.companyId))
+                  || (isResultsAnalyst() && sameCompany(resource.data.companyId))
+                  || (isAreaManager() && sameCompany(resource.data.companyId));
       allow create, update, delete: if isValoraAdmin();
     }
   }

@@ -106,3 +106,38 @@ Resultado esperado: tabelas permanecem legíveis com `data-label`, botões conti
 - Status `opened` e `expired` dependem de backend/Cloud Functions para rastreamento automático em produção.
 - Envio SMTP real deve ser configurado apenas no servidor local ou em secrets do Firebase Functions.
 - LGPD precisa de validação jurídica antes de produção.
+
+## Gestão de perfis e permissões — 2026-06-20
+
+### Teste 1 — Admin Valora
+- Cadastrar empresa com plano/status obrigatórios.
+- Criar administrador principal da empresa no cadastro do cliente.
+- Criar consultor Valora via tela global de usuários.
+- Verificar menu completo do `admin_valora` e menu reduzido do `consultor_valora`.
+- Confirmar que ações críticas continuam auditadas.
+
+### Teste 2 — Empresa Admin
+- Cadastrar `participante`, `gestor_pesquisa`, `analista_resultados` e `gestor_area`.
+- Validar que `gestor_area` exige departamento/área.
+- Tentar criar `admin_valora` e `consultor_valora`; a matriz e validação bloqueiam.
+
+### Teste 3 — Gestor Pesquisa
+- Acessar menus de visão geral, pesquisas, formulários, funcionários/envio, respostas e relatórios.
+- Criar questionário e enviar pesquisa.
+- Verificar ausência de plano/financeiro e dados críticos da empresa.
+
+### Teste 4 — Analista Resultados
+- Acessar visão geral, respostas e relatórios.
+- Verificar ausência de criação de questionários, envio e cadastro de funcionários.
+
+### Teste 5 — Participante
+- Acessar área pessoal, pesquisas disponíveis, histórico, certificados e LGPD.
+- Tentar acessar admin/empresa; deve exibir acesso não permitido.
+
+### Teste 6 — Convidado externo
+- Abrir link público de pesquisa e responder.
+- Confirmar ausência de menu administrativo/portal completo.
+
+### Teste 7 — Segurança
+- Tentar manipular `role`/`companyId` no payload local; `saveUser` bloqueia perfis globais por empresa e alteração do próprio perfil.
+- Revisar `firestore.rules` para bloquear perfis globais por empresa, alteração comum de campos sensíveis e edição fora da própria empresa.

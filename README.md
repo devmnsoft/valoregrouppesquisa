@@ -239,3 +239,12 @@ O ValoraBot agora considera perfil logado e rota/tela atual nas respostas. Ele c
 - Definir se convidados sem login ficam em `participants/employees` ou são provisionados em Auth + `users/{uid}`.
 - Criar índices Firestore para respostas por empresa, pesquisa, período e status.
 - Validar juridicamente texto LGPD e contratos controlador/operador.
+
+## Perfis de usuário e permissões
+
+A gestão de perfis do Valora Pulse é centralizada em `ROLE_DEFINITIONS` no `app.js`. Os perfis oficiais são: `admin_valora`, `consultor_valora`, `empresa_admin`, `gestor_pesquisa`, `analista_resultados`, `gestor_area`, `participante` e `convidado_externo`.
+
+- O cadastro de cliente permite criar o Administrador da Empresa com perfil fixo `empresa_admin`.
+- O cadastro de funcionários permite escolher somente perfis de empresa, com padrão `participante`.
+- Menus, filtros, envio de questionários e validações consultam a matriz central sempre que possível.
+- Consulte `PERFIS_E_PERMISSOES.md` para a tabela funcional e preparação Firebase.

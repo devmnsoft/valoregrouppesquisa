@@ -202,3 +202,9 @@ A versão canônica desta entrega é **8.6.0** (`APP_VERSION` em `config.js`). O
 A política CSP inicial permite o funcionamento atual sem abrir permissões amplas: scripts da própria origem e SDK Firebase em `https://www.gstatic.com`, estilos locais com `'unsafe-inline'` temporário, imagens `self`, `data:` e `blob:`, conexões para Firebase/Google APIs, Cloud Functions, ViaCEP e BrasilAPI, `object-src 'none'`, `base-uri 'self'` e `frame-ancestors 'self'`.
 
 TODO de hardening: remover dependências de estilo inline para eliminar `'unsafe-inline'` de `style-src` em uma versão futura.
+
+## Perfis e coleção `users/{uid}`
+
+Para produção, cada usuário deve ter documento em `users/{uid}` com `role`, `companyId`, `department`, `position`, `status`, `receivesEmail` e `portalAccess`. O frontend já prepara os perfis oficiais e as regras Firestore foram ajustadas para permitir que `empresa_admin` crie apenas perfis de empresa (`empresa_admin`, `gestor_pesquisa`, `analista_resultados`, `gestor_area`, `participante`, `convidado_externo`).
+
+A criação real de usuários deve ocorrer por Firebase Auth/Cloud Functions ou convite seguro. O modo local/demo mantém senha inicial no armazenamento local apenas para demonstração.

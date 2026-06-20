@@ -249,3 +249,27 @@ Fluxo mínimo recomendado:
 ### Erros tratados
 
 O repository converte erros comuns em mensagens amigáveis: perfil sem permissão, sessão expirada, usuário sem perfil, empresa inativa, indisponibilidade de rede/Firestore e coleção vazia. Stack traces ficam restritos ao console técnico.
+
+## Seed mínimo e primeiro acesso homologado
+
+Use `firestore.seed.sample.json` como contrato de dados inicial para Firestore. O arquivo cobre `settings/public`, planos Gratuito/Essencial/Growth/Enterprise, módulos comerciais, organização exemplo, usuários sem senha e formulário global com escala, escolha única, múltipla escolha, texto curto/longo, questão correta, dimensões e faixas de resultado.
+
+### Como rodar o seed
+
+1. Crie os usuários no Firebase Authentication primeiro. Não grave senhas no seed.
+2. Copie os UIDs reais para `users/AUTH_UID_ADMIN_VALORA` e, se desejar, `users/AUTH_UID_EMPRESA_ADMIN`.
+3. Importe com script Admin SDK próprio, convertendo todo valor `SERVER_TIMESTAMP` para `FieldValue.serverTimestamp()`.
+4. Publique custom claims coerentes, por exemplo `role: 'admin_valora'` e `companyId: ''` para o primeiro administrador.
+5. Publique `firestore.rules` e Functions antes de liberar usuários finais.
+
+### Jornada Firebase real validada pela arquitetura
+
+- Primeiro admin: Firebase Auth + `users/{uid}` com `role=admin_valora`, `status=active` e claims equivalentes.
+- Empresa: gravada em `organizations/{companyId}`; o frontend mapeia `organizations` para `state.companies` para preservar modo local/demo.
+- Convites: em modo Firebase, envio em lote passa pela callable `sendSurveyInvitations`, que valida perfil, empresa da pesquisa, empresa ativa, plano, e-mails, participantes inativos e `receivesEmail=false`; cada convite é persistido em `invitations` com status padronizado.
+- Resposta pública: `validateSurveyLink`, `submitSurveyResponse` e `getPublicResult` continuam sendo a barreira obrigatória. O `companyId` público é ignorado; a empresa vem da pesquisa. A resposta atualiza o contador da pesquisa e marca convite como `answered` quando houver `invitationId` ou e-mail correspondente.
+- Gestor de área: a estrutura usa `department` em usuários, convites e respostas. O filtro de Firestore Rules aplica `department` quando o perfil é `gestor_area`; se um formulário ainda não coletar área explicitamente, a resposta fica filtrável quando `department` for preenchido no payload/convite.
+
+### Status de convite aceitos
+
+`pending`, `sent`, `opened`, `answered`, `expired`, `failed`, `resent`, `cancelled`.

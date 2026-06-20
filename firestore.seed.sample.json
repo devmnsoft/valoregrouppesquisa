@@ -1,109 +1,27 @@
 {
+  "_instructions": "Seed de referência. Substitua SERVER_TIMESTAMP por FieldValue.serverTimestamp() em script Admin SDK. Não contém senhas; crie senhas no Firebase Authentication.",
   "settings": {
     "public": {
-      "contactEmail": "valoragroup@example.com",
-      "whatsappEnabled": false,
+      "appName": "Valora Pulse",
+      "version": "8.6.0",
+      "publicLgpdText": "Texto público de LGPD a validar juridicamente antes da produção.",
+      "contactEmail": "contato@valoragroup.example",
+      "whatsappNumber": "5511999999999",
       "featuredSurveyId": "survey_example",
-      "lgpdText": "Texto público de LGPD a validar juridicamente antes da produção.",
       "createdAt": "SERVER_TIMESTAMP",
       "updatedAt": "SERVER_TIMESTAMP"
     }
   },
   "plans": {
-    "free": {
-      "name": "Gratuito",
-      "description": "Plano inicial para validação.",
-      "price": 0,
-      "status": "active",
-      "default": true,
-      "maxActiveSurveys": 1,
-      "maxResponsesMonth": 30,
-      "maxManagers": 1,
-      "maxEmployees": 50,
-      "enabledModules": ["pesquisas", "relatorios"],
-      "createdAt": "SERVER_TIMESTAMP",
-      "updatedAt": "SERVER_TIMESTAMP"
-    },
-    "essential": {
-      "name": "Essencial",
-      "description": "Plano pago base para empresas.",
-      "price": 590,
-      "status": "active",
-      "default": false,
-      "maxActiveSurveys": 3,
-      "maxResponsesMonth": 150,
-      "maxManagers": 2,
-      "maxEmployees": 200,
-      "enabledModules": ["pesquisas", "relatorios", "convitesEmail"],
-      "createdAt": "SERVER_TIMESTAMP",
-      "updatedAt": "SERVER_TIMESTAMP"
-    }
+    "free": { "name": "Gratuito", "description": "Validação inicial com limites reduzidos.", "price": 0, "status": "active", "default": true, "highlight": false, "maxActiveSurveys": 1, "maxResponsesMonth": 30, "maxManagers": 1, "maxEmployees": 50, "maxEmailsMonth": 30, "features": ["1 pesquisa ativa", "30 respostas/mês", "Relatório básico"], "enabledModules": ["formularios", "pesquisas", "respostas", "relatorios", "lgpd"], "createdAt": "SERVER_TIMESTAMP", "updatedAt": "SERVER_TIMESTAMP" },
+    "essential": { "name": "Essencial", "description": "Operação recorrente para pequenas equipes.", "price": 590, "status": "active", "default": false, "highlight": false, "maxActiveSurveys": 3, "maxResponsesMonth": 150, "maxManagers": 2, "maxEmployees": 200, "maxEmailsMonth": 300, "features": ["Convites por e-mail", "Dashboard empresa", "Exportações CSV/JSON"], "enabledModules": ["funcionarios", "formularios", "pesquisas", "convitesEmail", "respostas", "relatorios", "lgpd", "exportacoes"], "createdAt": "SERVER_TIMESTAMP", "updatedAt": "SERVER_TIMESTAMP" },
+    "growth": { "name": "Growth", "description": "Gestão multiárea com relatórios e certificados.", "price": 1490, "status": "active", "default": false, "highlight": true, "maxActiveSurveys": 10, "maxResponsesMonth": 1000, "maxManagers": 10, "maxEmployees": 2000, "maxEmailsMonth": 2500, "features": ["Certificados", "Relatórios PDF/Word/Excel", "Gestor de área"], "enabledModules": ["clientes", "usuarios", "funcionarios", "formularios", "pesquisas", "convitesEmail", "respostas", "relatorios", "certificados", "lgpd", "exportacoes", "logs", "valorabot"], "createdAt": "SERVER_TIMESTAMP", "updatedAt": "SERVER_TIMESTAMP" },
+    "enterprise": { "name": "Enterprise", "description": "Contrato corporativo com limites personalizados.", "price": 0, "status": "active", "default": false, "highlight": false, "maxActiveSurveys": -1, "maxResponsesMonth": -1, "maxManagers": -1, "maxEmployees": -1, "maxEmailsMonth": -1, "features": ["Limites contratados", "Backup", "Governança avançada"], "enabledModules": ["clientes", "usuarios", "funcionarios", "formularios", "pesquisas", "convitesEmail", "respostas", "relatorios", "certificados", "financeiro", "planos", "modulos", "valorabot", "lgpd", "exportacoes", "backup", "logs"], "createdAt": "SERVER_TIMESTAMP", "updatedAt": "SERVER_TIMESTAMP" }
   },
   "modules": {
-    "pesquisas": { "name": "Pesquisas", "enabled": true, "features": ["Formulários", "Links seguros"], "updatedAt": "SERVER_TIMESTAMP" },
-    "relatorios": { "name": "Relatórios", "enabled": true, "features": ["Dashboards", "Exportações"], "updatedAt": "SERVER_TIMESTAMP" },
-    "convitesEmail": { "name": "Convites por e-mail", "enabled": true, "features": ["Envio via Cloud Functions"], "updatedAt": "SERVER_TIMESTAMP" }
+    "clientes": { "name": "Clientes", "enabled": true }, "usuarios": { "name": "Usuários", "enabled": true }, "funcionarios": { "name": "Funcionários", "enabled": true }, "formularios": { "name": "Formulários", "enabled": true }, "pesquisas": { "name": "Pesquisas", "enabled": true }, "convitesEmail": { "name": "Convites por e-mail", "enabled": true }, "respostas": { "name": "Respostas", "enabled": true }, "relatorios": { "name": "Relatórios", "enabled": true }, "certificados": { "name": "Certificados", "enabled": true }, "financeiro": { "name": "Financeiro", "enabled": true }, "planos": { "name": "Planos", "enabled": true }, "modulos": { "name": "Módulos", "enabled": true }, "valorabot": { "name": "ValoraBot", "enabled": true }, "lgpd": { "name": "LGPD", "enabled": true }, "exportacoes": { "name": "Exportações", "enabled": true }, "backup": { "name": "Backup", "enabled": true }, "logs": { "name": "Logs", "enabled": true }
   },
-  "organizations": {
-    "org_example": {
-      "name": "Empresa Exemplo",
-      "type": "juridica",
-      "document": "00.000.000/0001-00",
-      "email": "admin.empresa@example.com",
-      "phone": "",
-      "planId": "essential",
-      "status": "active",
-      "createdAt": "SERVER_TIMESTAMP",
-      "updatedAt": "SERVER_TIMESTAMP"
-    }
-  },
-  "users": {
-    "AUTH_UID_ADMIN_VALORA": {
-      "uid": "AUTH_UID_ADMIN_VALORA",
-      "name": "Admin Valora",
-      "email": "admin.valora@example.com",
-      "role": "admin_valora",
-      "companyId": "",
-      "status": "active",
-      "createdAt": "SERVER_TIMESTAMP",
-      "updatedAt": "SERVER_TIMESTAMP"
-    },
-    "AUTH_UID_EMPRESA_ADMIN": {
-      "uid": "AUTH_UID_EMPRESA_ADMIN",
-      "name": "Admin Empresa Exemplo",
-      "email": "admin.empresa@example.com",
-      "role": "empresa_admin",
-      "companyId": "org_example",
-      "status": "active",
-      "createdAt": "SERVER_TIMESTAMP",
-      "updatedAt": "SERVER_TIMESTAMP"
-    }
-  },
-  "forms": {
-    "form_example": {
-      "name": "Formulário exemplo",
-      "companyId": "global",
-      "isGlobal": true,
-      "status": "active",
-      "questions": [],
-      "createdAt": "SERVER_TIMESTAMP",
-      "updatedAt": "SERVER_TIMESTAMP"
-    }
-  },
-  "surveys": {
-    "survey_example": {
-      "companyId": "org_example",
-      "formId": "form_example",
-      "title": "Pesquisa exemplo",
-      "status": "draft",
-      "tokenHash": "sha256-do-token-gerado-no-backend",
-      "expiresAt": "2030-12-31T23:59:59.000Z",
-      "createdAt": "SERVER_TIMESTAMP",
-      "updatedAt": "SERVER_TIMESTAMP"
-    }
-  },
-  "responses": {},
-  "invitations": {},
-  "invoices": {},
-  "logs": {}
+  "organizations": { "org_example": { "name": "Empresa Exemplo", "type": "juridica", "document": "00.000.000/0001-00", "email": "admin.empresa@example.com", "planId": "growth", "status": "active", "createdAt": "SERVER_TIMESTAMP", "updatedAt": "SERVER_TIMESTAMP" } },
+  "users": { "AUTH_UID_ADMIN_VALORA": { "uid": "AUTH_UID_ADMIN_VALORA", "name": "Admin Valora", "email": "admin.valora@example.com", "role": "admin_valora", "companyId": "", "status": "active", "createdAt": "SERVER_TIMESTAMP", "updatedAt": "SERVER_TIMESTAMP" }, "AUTH_UID_EMPRESA_ADMIN": { "uid": "AUTH_UID_EMPRESA_ADMIN", "name": "Admin Empresa Exemplo", "email": "admin.empresa@example.com", "role": "empresa_admin", "companyId": "org_example", "department": "Diretoria", "status": "active", "receivesEmail": true, "createdAt": "SERVER_TIMESTAMP", "updatedAt": "SERVER_TIMESTAMP" } },
+  "forms": { "form_example": { "name": "Diagnóstico exemplo Valora Pulse", "companyId": "global", "isGlobal": true, "scoringMethod": "weightedAverage", "dimensions": [{ "id": "cultura", "name": "Cultura" }, { "id": "governanca", "name": "Governança" }], "questions": [{ "id": "q_scale", "type": "scale", "text": "Em escala de 1 a 5, avalie a clareza da comunicação.", "required": true, "dimensionId": "cultura", "dimensionName": "Cultura", "maxScore": 5, "weight": 1 }, { "id": "q_single", "type": "single", "text": "Qual prática está mais madura?", "required": true, "dimensionId": "governanca", "dimensionName": "Governança", "options": [{ "id": "a", "text": "Rituais definidos", "score": 5 }, { "id": "b", "text": "Processos informais", "score": 2 }] }, { "id": "q_multi", "type": "multiple", "text": "Quais canais são usados?", "required": false, "dimensionId": "cultura", "dimensionName": "Cultura", "maxScore": 5, "options": [{ "id": "email", "text": "E-mail", "score": 2 }, { "id": "reuniao", "text": "Reuniões", "score": 2 }, { "id": "portal", "text": "Portal", "score": 2 }] }, { "id": "q_short", "type": "shortText", "text": "Resumo em uma frase.", "required": false, "scoreWhenFilled": 0 }, { "id": "q_long", "type": "longText", "text": "Descreva oportunidades de melhoria.", "required": false, "scoreWhenFilled": 0 }, { "id": "q_correct", "type": "singleCorrect", "text": "Qual alternativa representa LGPD?", "required": true, "maxScore": 5, "options": [{ "id": "ok", "text": "Tratamento com finalidade e base legal", "correct": true, "score": 5 }, { "id": "no", "text": "Uso sem transparência", "correct": false, "score": 0 }] }], "resultBands": [{ "from": 0, "to": 2.49, "label": "Inicial", "recommendation": "Priorizar fundamentos." }, { "from": 2.5, "to": 3.99, "label": "Em evolução", "recommendation": "Consolidar práticas." }, { "from": 4, "to": 5, "label": "Avançado", "recommendation": "Escalar boas práticas." }], "createdAt": "SERVER_TIMESTAMP", "updatedAt": "SERVER_TIMESTAMP" } }
 }

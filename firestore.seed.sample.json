@@ -1,0 +1,109 @@
+{
+  "settings": {
+    "public": {
+      "contactEmail": "valoragroup@example.com",
+      "whatsappEnabled": false,
+      "featuredSurveyId": "survey_example",
+      "lgpdText": "Texto público de LGPD a validar juridicamente antes da produção.",
+      "createdAt": "SERVER_TIMESTAMP",
+      "updatedAt": "SERVER_TIMESTAMP"
+    }
+  },
+  "plans": {
+    "free": {
+      "name": "Gratuito",
+      "description": "Plano inicial para validação.",
+      "price": 0,
+      "status": "active",
+      "default": true,
+      "maxActiveSurveys": 1,
+      "maxResponsesMonth": 30,
+      "maxManagers": 1,
+      "maxEmployees": 50,
+      "enabledModules": ["pesquisas", "relatorios"],
+      "createdAt": "SERVER_TIMESTAMP",
+      "updatedAt": "SERVER_TIMESTAMP"
+    },
+    "essential": {
+      "name": "Essencial",
+      "description": "Plano pago base para empresas.",
+      "price": 590,
+      "status": "active",
+      "default": false,
+      "maxActiveSurveys": 3,
+      "maxResponsesMonth": 150,
+      "maxManagers": 2,
+      "maxEmployees": 200,
+      "enabledModules": ["pesquisas", "relatorios", "convitesEmail"],
+      "createdAt": "SERVER_TIMESTAMP",
+      "updatedAt": "SERVER_TIMESTAMP"
+    }
+  },
+  "modules": {
+    "pesquisas": { "name": "Pesquisas", "enabled": true, "features": ["Formulários", "Links seguros"], "updatedAt": "SERVER_TIMESTAMP" },
+    "relatorios": { "name": "Relatórios", "enabled": true, "features": ["Dashboards", "Exportações"], "updatedAt": "SERVER_TIMESTAMP" },
+    "convitesEmail": { "name": "Convites por e-mail", "enabled": true, "features": ["Envio via Cloud Functions"], "updatedAt": "SERVER_TIMESTAMP" }
+  },
+  "organizations": {
+    "org_example": {
+      "name": "Empresa Exemplo",
+      "type": "juridica",
+      "document": "00.000.000/0001-00",
+      "email": "admin.empresa@example.com",
+      "phone": "",
+      "planId": "essential",
+      "status": "active",
+      "createdAt": "SERVER_TIMESTAMP",
+      "updatedAt": "SERVER_TIMESTAMP"
+    }
+  },
+  "users": {
+    "AUTH_UID_ADMIN_VALORA": {
+      "uid": "AUTH_UID_ADMIN_VALORA",
+      "name": "Admin Valora",
+      "email": "admin.valora@example.com",
+      "role": "admin_valora",
+      "companyId": "",
+      "status": "active",
+      "createdAt": "SERVER_TIMESTAMP",
+      "updatedAt": "SERVER_TIMESTAMP"
+    },
+    "AUTH_UID_EMPRESA_ADMIN": {
+      "uid": "AUTH_UID_EMPRESA_ADMIN",
+      "name": "Admin Empresa Exemplo",
+      "email": "admin.empresa@example.com",
+      "role": "empresa_admin",
+      "companyId": "org_example",
+      "status": "active",
+      "createdAt": "SERVER_TIMESTAMP",
+      "updatedAt": "SERVER_TIMESTAMP"
+    }
+  },
+  "forms": {
+    "form_example": {
+      "name": "Formulário exemplo",
+      "companyId": "global",
+      "isGlobal": true,
+      "status": "active",
+      "questions": [],
+      "createdAt": "SERVER_TIMESTAMP",
+      "updatedAt": "SERVER_TIMESTAMP"
+    }
+  },
+  "surveys": {
+    "survey_example": {
+      "companyId": "org_example",
+      "formId": "form_example",
+      "title": "Pesquisa exemplo",
+      "status": "draft",
+      "tokenHash": "sha256-do-token-gerado-no-backend",
+      "expiresAt": "2030-12-31T23:59:59.000Z",
+      "createdAt": "SERVER_TIMESTAMP",
+      "updatedAt": "SERVER_TIMESTAMP"
+    }
+  },
+  "responses": {},
+  "invitations": {},
+  "invoices": {},
+  "logs": {}
+}

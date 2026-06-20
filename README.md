@@ -269,3 +269,16 @@ Documentação complementar:
 - `MODULOS_E_PLANOS.md`
 - `PRODUTO_COMERCIAL_VALORA.md`
 - `TESTES_EXECUTADOS.md`
+
+## Modo Firebase real
+
+A aplicação agora mantém dois modos de persistência:
+
+- `STORAGE_MODE: 'local'`: usa `local-repository.js`, `localStorage` e as credenciais de demonstração desta página.
+- `STORAGE_MODE: 'firebase'`: usa Firebase Auth para sessão e Cloud Firestore como fonte da verdade por meio de `firebase-repository.js`.
+
+No modo Firebase, o estado que o `app.js` consome continua compatível com os nomes atuais (`state.companies`, `state.users`, `state.plans`, `state.modules`, `state.forms`, `state.surveys`, `state.responses`, `state.invitations`, `state.invoices`, `state.settings` e `state.logs`). A coleção Firestore canônica para empresas é `organizations`; ela é adaptada para `state.companies` para preservar as telas atuais.
+
+Coleções esperadas no Firestore: `organizations`, `users`, `plans`, `modules`, `forms`, `surveys`, `responses`, `invitations`, `invoices`, `settings` e `logs`.
+
+Para ativar o Firebase, configure `config.js` com `STORAGE_MODE: 'firebase'`, `FIREBASE_ENABLED: true` e a configuração pública do app Web Firebase. Não inclua senhas, tokens privados, service accounts ou secrets no frontend.

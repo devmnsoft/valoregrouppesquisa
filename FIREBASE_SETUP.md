@@ -211,3 +211,41 @@ A criação real de usuários deve ocorrer por Firebase Auth/Cloud Functions ou 
 
 ## Repositório Firebase 2026
 `firebase-repository.js` expõe métodos reais de Firestore para `organizations`, `users`, `plans`, `modules`, `forms`, `surveys`, `responses` e `invitations`. O modo local/demo continua em `local-repository.js` e mantém `companies` como compatibilidade para a interface atual.
+
+## Repository Firestore real
+
+`firebase-repository.js` carrega e salva dados reais nas coleções `organizations`, `users`, `plans`, `modules`, `forms`, `surveys`, `responses`, `invitations`, `invoices`, `settings` e `logs`.
+
+### Compatibilidade com o app atual
+
+- Firestore usa `organizations` como coleção canônica.
+- O `app.js` segue lendo `state.companies`; o repository converte `organizations` para esse array.
+- `logs` são somente leitura no cliente. Escrita de auditoria direta deve ser feita por Cloud Function/Admin SDK porque as rules bloqueiam gravação client-side.
+
+### Seed mínimo
+
+Use `firestore.seed.sample.json` como referência de estrutura. Substitua os IDs `AUTH_UID_*` por UIDs reais criados no Firebase Authentication. Campos `SERVER_TIMESTAMP` representam `FieldValue.serverTimestamp()` quando importados por script/Admin SDK.
+
+Fluxo mínimo recomendado:
+
+1. Criar o primeiro usuário no Firebase Auth.
+2. Criar `users/{uid}` com `role: "admin_valora"`, `status: "active"` e `companyId: ""`.
+3. Definir custom claims equivalentes com Admin SDK.
+4. Criar `settings/public`, planos `free` e `essential`, módulos padrão e uma organização exemplo.
+5. Criar um usuário Auth para `empresa_admin`, criar `users/{uid}` com `companyId` da organização e definir custom claims.
+6. Publicar `firestore.rules` e testar isolamento por empresa antes de cadastrar dados reais.
+
+### Carregamento por perfil
+
+- `admin_valora`: carrega organizações, usuários, planos, módulos, formulários, pesquisas, respostas, convites, faturas, settings e logs somente leitura.
+- `consultor_valora`: carrega dados operacionais globais permitidos pelas rules, sem depender de financeiro crítico.
+- `empresa_admin`: carrega somente a própria organização e dados com o mesmo `companyId`, incluindo faturas quando permitido.
+- `gestor_pesquisa`: carrega formulários, pesquisas, usuários necessários, respostas e convites da própria empresa.
+- `analista_resultados`: carrega pesquisas e respostas da própria empresa, sem métodos de criação liberados pelas rules.
+- `gestor_area`: carrega dados da própria empresa e filtra respostas por `department` quando o perfil possui área.
+- `participante`: carrega perfil próprio e respostas próprias; portal público deve continuar via Cloud Functions.
+- `convidado_externo`: não deve receber portal completo; use link público/Cloud Function.
+
+### Erros tratados
+
+O repository converte erros comuns em mensagens amigáveis: perfil sem permissão, sessão expirada, usuário sem perfil, empresa inativa, indisponibilidade de rede/Firestore e coleção vazia. Stack traces ficam restritos ao console técnico.

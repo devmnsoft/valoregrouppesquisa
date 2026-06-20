@@ -101,4 +101,4 @@ O Valora Pulse agora possui sino global, contador de não lidas, dropdown, tela 
 
 ## Evolução white label e assinatura
 
-O produto agora separa identidade visual da empresa cliente de dados comerciais críticos. Empresa Admin personaliza nome público, slogan, logo, cores e contatos; Admin Valora controla plano, assinatura, limites, cobrança e status comercial. Status `trial`, `active`, `overdue`, `suspended`, `cancelled` e `inactive` orientam alertas e bloqueios.
+Esta versão adiciona estrutura de identidade visual por empresa, slug público, campos de assinatura, limites customizados, status comercial e portal de plano contratado. Consulte `WHITE_LABEL_E_ASSINATURA.md` para modelo, permissões, regras de bloqueio e roteiro de testes.

@@ -166,15 +166,15 @@ Data: 2026-06-20.
 - Segurança: validar que empresa A não lê empresa B, participante não lê administrativo e usuário não altera notificação de outro usuário.
 - Mobile: abrir em 360px, validar dropdown, cards e botões sem scroll horizontal.
 
-## 2026-06-20 — White label, personalização e assinatura
+## Evolução white label e assinatura
 
-- Admin Valora: revisar tela Clientes com slug, plano/assinatura, status e uso.
-- Admin Valora: validar edição comercial de plano/status/limites por dados de organização em Firestore/local.
-- Empresa Admin: abrir Dados e marca, editar logo URL, cores, nome público, slogan, slug e contatos.
-- Empresa Admin: confirmar que plano, cobrança, limites e status não aparecem como campos editáveis.
-- Portal do plano: verificar nome, valor, status da assinatura, pagamento, renovação, limites, uso e módulos.
-- Pesquisa pública: abrir `index.html?survey=survey_demo&token=<token>&org=empresa-exemplo` e validar marca/Powered by Valora.
-- E-mail: enviar convite e resultado em modo local/outbox para conferir marca quando `useCompanyBrandOnEmails=true`.
-- Bloqueio: configurar `subscription.status=suspended` e confirmar bloqueio de nova pesquisa e convites.
-- Limites: reduzir `limitsOverride.maxActiveSurveys` e validar status excedido/alerta.
-- Mobile: abrir Dados e marca e Plano contratado em 360px sem scroll horizontal.
+Esta versão adiciona estrutura de identidade visual por empresa, slug público, campos de assinatura, limites customizados, status comercial e portal de plano contratado. Consulte `WHITE_LABEL_E_ASSINATURA.md` para modelo, permissões, regras de bloqueio e roteiro de testes.
+
+### Testes manuais previstos — white label e assinatura
+- Admin Valora: editar marca, plano/status comercial, limites customizados e verificar alertas.
+- Empresa Admin: editar logo, cores, nome público e contatos; validar bloqueio de plano/limites.
+- Pesquisa pública: abrir com e sem marca da empresa e verificar Powered by Valora.
+- E-mail: validar preview/HTML com marca da empresa ou Valora padrão.
+- Relatórios: validar capa/uso do plano sem vazamento entre empresas.
+- Bloqueios: empresa suspensa não cria pesquisa/envios; limite excedido bloqueia ações aplicáveis.
+- Mobile: validar tela de personalização e plano em 360px sem scroll horizontal.

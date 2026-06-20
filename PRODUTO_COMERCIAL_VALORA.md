@@ -81,3 +81,11 @@ Exibe funcionários, pesquisas ativas, convites enviados, respostas concluídas,
 - `analista_resultados` recebe visão analítica sem ações de criação/envio.
 - Gestores e administradores continuam com ações rápidas quando suas permissões permitem.
 - Escopo de empresa continua respeitando `companyId` e funções existentes de permissão.
+
+## Evolução comercial — relatórios executivos premium
+
+A Central de relatórios passa a operar com uma camada central (`report-service.js`) que consome os indicadores consolidados do `analytics-service.js`. Isso reduz risco de números divergentes entre dashboards, respostas e arquivos exportados.
+
+A entrega comercial agora contempla relatórios para Admin Valora, empresas clientes, pesquisas, dimensões, implantação, uso de plano e participantes individuais. Os documentos trazem resumo executivo automático, recomendações consultivas, plano de ação sugerido, métricas principais e tabelas compatíveis com PDF, Word, Excel, CSV e JSON.
+
+O visual mantém a identidade Valora Group, com linguagem executiva e estrutura adequada para diretoria, RH, governança, controladoria e consultores. Estados sem dados são tratados com mensagens orientativas, e cada exportação gera auditoria.

@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const APP_CONFIG=window.ValoraConfig||{APP_VERSION:'8.6.3',STORE_KEY:'valoraPulseFinal800',STORAGE_MODE:'local',FIREBASE_ENABLED:false,REQUIRE_AUTH_SERVER_VALIDATION:false};
+const APP_CONFIG=window.ValoraConfig||{APP_VERSION:'8.6.4',STORE_KEY:'valoraPulseFinal800',STORAGE_MODE:'local',FIREBASE_ENABLED:false,REQUIRE_AUTH_SERVER_VALIDATION:false};
 const repository=window.ValoraRepository;
 const VERSION=APP_CONFIG.APP_VERSION;
 const STORE_KEY=APP_CONFIG.STORE_KEY;
@@ -172,7 +172,7 @@ document.addEventListener('keydown',e=>{
 
 async function init(){
   if(!repository)throw new Error('Camada de repositório não carregada.');
-  if(!state)initializeState();
+  initializeState();
   if(repository.mode==='firebase'&&window.ValoraFirebaseAuth?.waitUntilReady)await window.ValoraFirebaseAuth.waitUntilReady();
   window.addEventListener('valora:auth-changed',()=>routeFromLocation());
   renderShell();
@@ -453,7 +453,7 @@ function miniResponsesTable(list,participant=false,scope='participant'){return `
 const ACTION_PRIORITY_LABELS={low:'Baixa',medium:'Média',high:'Alta',critical:'Crítica'};
 const ACTION_STATUS_LABELS={pending:'Pendente',in_progress:'Em andamento',waiting:'Aguardando',completed:'Concluída',cancelled:'Cancelada',overdue:'Vencida'};
 const ACTION_SOURCE_LABELS={manual:'Manual',dimension_critical:'Dimensão crítica',survey_result:'Resultado da pesquisa',executive_report:'Relatório executivo',consultant_recommendation:'Recomendação consultiva'};
-function normalizeActionPlan(a={}){return {id:a.id||uid('act'),companyId:a.companyId||'',surveyId:a.surveyId||'',responseId:a.responseId||'',reportId:a.reportId||'',dimensionId:a.dimensionId||'',dimensionName:a.dimensionName||'',questionId:a.questionId||'',title:a.title||'',description:a.description||'',source:a.source||'manual',priority:a.priority||'medium',status:a.status||'pending',responsibleUserId:a.responsibleUserId||'',responsibleName:a.responsibleName||'',department:a.department||'',dueDate:a.dueDate||'',startDate:a.startDate||nowIso(),completedAt:a.completedAt||'',progress:Number(a.progress||0),evidence:a.evidence||'',comments:Array.isArray(a.comments)?a.comments:[],createdAt:a.createdAt||nowIso(),updatedAt:a.updatedAt||nowIso(),createdBy:a.createdBy||'',updatedBy:a.updatedBy||''};}
+function normalizeActionPlan(a={},store=null){return {id:a.id||uid('act'),companyId:a.companyId||'',surveyId:a.surveyId||'',responseId:a.responseId||'',reportId:a.reportId||'',dimensionId:a.dimensionId||'',dimensionName:a.dimensionName||'',questionId:a.questionId||'',title:a.title||'',description:a.description||'',source:a.source||'manual',priority:a.priority||'medium',status:a.status||'pending',responsibleUserId:a.responsibleUserId||'',responsibleName:a.responsibleName||'',department:a.department||'',dueDate:a.dueDate||'',startDate:a.startDate||nowIso(),completedAt:a.completedAt||'',progress:Number(a.progress||0),evidence:a.evidence||'',comments:Array.isArray(a.comments)?a.comments:[],createdAt:a.createdAt||nowIso(),updatedAt:a.updatedAt||nowIso(),createdBy:a.createdBy||'',updatedBy:a.updatedBy||''};}
 function actionIsOverdue(a){return !['completed','cancelled'].includes(a.status)&&a.dueDate&&new Date(a.dueDate)<new Date();}
 function actionEffectiveStatus(a){return actionIsOverdue(a)?'overdue':a.status;}
 function actionPlansForUser(companyId=''){const u=currentUser();let rows=state.actionPlans||[];if(!GLOBAL_ROLES.includes(u?.role))rows=rows.filter(a=>a.companyId===u?.companyId);else if(companyId)rows=rows.filter(a=>a.companyId===companyId);if(u?.role==='gestor_area')rows=rows.filter(a=>(a.department||'')===(u.department||''));return rows.sort((a,b)=>new Date(a.dueDate||a.updatedAt)-new Date(b.dueDate||b.updatedAt));}
@@ -625,7 +625,11 @@ function blankQuestion(type='scale',dimension=null){
   if(['single','multiple','singleCorrect'].includes(type))q.options=[{id:uid('opt'),text:'Opção 1',score:type==='singleCorrect'?1:0,correct:type==='singleCorrect'},{id:uid('opt'),text:'Opção 2',score:0,correct:false}];
   return q;
 }
-function normalizeForm(form){
+function companyByIdFrom(store,id){return (store?.companies||[]).find(c=>c.id===id)||null;}
+function formByIdFrom(store,id){return (store?.forms||[]).find(f=>f.id===id)||null;}
+function surveyByIdFrom(store,id){return (store?.surveys||[]).find(s=>s.id===id)||null;}
+function normalizeUser(user={},store=null){return {...user,status:user.status||'active'};}
+function normalizeForm(form,store=null){
   const f=deepClone(form||{});f.id=f.id||'';f.name=f.name||'';f.category=f.category||'Personalizado';f.description=f.description||'';f.timeMin=Number(f.timeMin||5);f.status=f.status||'active';f.scoringMethod=f.scoringMethod||'weightedAverage';f.dimensions=Array.isArray(f.dimensions)&&f.dimensions.length?f.dimensions:[{id:uid('dim'),name:'Geral',description:'Perguntas gerais'}];f.questions=Array.isArray(f.questions)?f.questions:[];f.resultBands=Array.isArray(f.resultBands)&&f.resultBands.length?f.resultBands:defaultBands();f.questions=f.questions.map(q=>normalizeQuestion(q,f.dimensions));return f;
 }
 function normalizeQuestion(q,dimensions){
@@ -995,7 +999,7 @@ function createInvoiceForCompany(c){const p=planById(c.planId);if(p&&p.price>0)s
 function audit(action,entityType='',entityId='',detail=''){const u=currentUser();state.logs.push({id:uid('log'),createdAt:nowIso(),userName:u?.name||'Sistema',userRole:u?.role||'',action,entityType,entityId,detail});if(state.logs.length>3000)state.logs=state.logs.slice(-3000);save();}
 function save(){try{saveChanges();}catch(err){console.error(err);toast('O navegador não conseguiu salvar os dados.','error');}}
 function loadStore(){return repository.loadStore({storeKey:STORE_KEY,seedStore,normalizeState});}
-function initializeState(){state=loadStore();window.ValoraState=state;return state;}
+function initializeState(){if(state)return state;state=loadStore();if(!state||typeof state!=='object')throw new Error('Estado inicial inválido.');window.ValoraState=state;return state;}
 
 // Fachada de acesso a dados. Hoje o modo local mantém o comportamento do MVP;
 // em produção, estes pontos passam a delegar para Firebase Auth/Firestore/Functions.
@@ -1016,7 +1020,10 @@ function normalizePlan(plan,modules=null){
   p.price=Number(p.price||0);p.maxActiveSurveys=Number(p.maxActiveSurveys??0);p.maxResponsesMonth=Number(p.maxResponsesMonth??0);p.maxManagers=Number(p.maxManagers??0);p.maxEmployees=Number(p.maxEmployees??p.maxRespondents??0);
   return p;
 }
-function normalizeState(obj={}){obj.version=VERSION;obj.settings=obj.settings||{};obj.settings.lgpdText=obj.settings.lgpdText||LGPD_TEXT;obj.settings.faq=obj.settings.faq||defaultFaq();obj.settings.email={mode:'outbox',senderName:'Valora Group',senderEmail:DEFAULT_SENDER,smtpUsername:DEFAULT_SENDER,smtpHost:'',smtpPort:587,smtpSecurity:'starttls',...(obj.settings.email||{})};obj.modules=obj.modules||seedModules();obj.plans=(obj.plans||seedPlans()).map(plan=>normalizePlan(plan,obj.modules));obj.companies=(obj.companies||[]).map(c=>normalizeCompany(c,obj));obj.users=obj.users||[];obj.forms=(obj.forms||[]).map(f=>normalizeForm(f,obj));obj.surveys=obj.surveys||[];obj.responses=(obj.responses||[]).map(r=>({...r,resultToken:r.resultToken||secureToken(),normalized5:Number(r.normalized5??r.average??0),percentage:Number(r.percentage??(Number(r.average||0)/5*100)),rawScore:Number(r.rawScore??r.totalScore??0),maxScore:Number(r.maxScore??r.totalMax??0)}));obj.invoices=(obj.invoices||[]).map(i=>normalizeInvoice(i,obj));obj.notifications=obj.notifications||[];if(window.ValoraNotifications)window.ValoraNotifications.generateNotifications(obj);obj.actionPlans=(obj.actionPlans||[]).map(a=>normalizeActionPlan(a,obj));obj.invitations=(obj.invitations||[]).map(i=>({...i,status:i.status||'pending'}));obj.logs=obj.logs||[];return obj;}
+function normalizeResponse(r={},store=null){return {...r,resultToken:r.resultToken||secureToken(),normalized5:Number(r.normalized5??r.average??0),percentage:Number(r.percentage??(Number(r.average||0)/5*100)),rawScore:Number(r.rawScore??r.totalScore??0),maxScore:Number(r.maxScore??r.totalMax??0)};}
+function normalizeSurvey(survey={},store=null){return {...survey,status:survey.status||'draft',token:survey.token||secureToken()};}
+function normalizeInvitation(i={},store=null){return {...i,status:i.status||'pending'};}
+function normalizeState(obj={}){obj.version=VERSION;obj.settings=obj.settings||{};obj.settings.lgpdText=obj.settings.lgpdText||LGPD_TEXT;obj.settings.faq=obj.settings.faq||defaultFaq();obj.settings.email={mode:'outbox',senderName:'Valora Group',senderEmail:DEFAULT_SENDER,smtpUsername:DEFAULT_SENDER,smtpHost:'',smtpPort:587,smtpSecurity:'starttls',...(obj.settings.email||{})};obj.modules=obj.modules||seedModules();obj.plans=(obj.plans||seedPlans()).map(plan=>normalizePlan(plan,obj.modules));obj.companies=(obj.companies||[]).map(c=>normalizeCompany(c,obj));obj.users=(obj.users||[]).map(u=>normalizeUser(u,obj));obj.forms=(obj.forms||[]).map(f=>normalizeForm(f,obj));obj.surveys=(obj.surveys||[]).map(s=>normalizeSurvey(s,obj));obj.responses=(obj.responses||[]).map(r=>normalizeResponse(r,obj));obj.invoices=(obj.invoices||[]).map(i=>normalizeInvoice(i,obj));obj.notifications=obj.notifications||[];if(window.ValoraNotifications)window.ValoraNotifications.generateNotifications(obj);obj.actionPlans=(obj.actionPlans||[]).map(a=>normalizeActionPlan(a,obj));obj.invitations=(obj.invitations||[]).map(i=>normalizeInvitation(i,obj));obj.logs=obj.logs||[];return obj;}
 
 function normalizeInvoice(i,store=state){const companies=store?.companies||[],companyId=i.companyId||i.organizationId||'',c=companies.find(x=>x.id===companyId)||{},planId=i.planId||c.planId||'';return {id:i.id||uid('inv'),companyId,organizationId:i.organizationId||companyId,planId,subscriptionId:i.subscriptionId||companyId||'',number:i.number||`FAT-${String(i.createdAt||nowIso()).slice(0,10).replace(/-/g,'')}-${String(i.id||'').slice(-4).toUpperCase()}`,description:i.description||'Assinatura Valora Pulse',amount:Number(i.amount||0),currency:i.currency||'BRL',status:i.status||'open',dueDate:i.dueDate||i.dueAt||'',dueAt:i.dueAt||i.dueDate||'',paidAt:i.paidAt||'',cancelledAt:i.cancelledAt||'',refundedAt:i.refundedAt||'',billingPeriodStart:i.billingPeriodStart||'',billingPeriodEnd:i.billingPeriodEnd||'',paymentMethod:i.paymentMethod||'',paymentProvider:i.paymentProvider||'manual',externalInvoiceId:i.externalInvoiceId||'',externalPaymentId:i.externalPaymentId||'',paymentUrl:i.paymentUrl||'',pixCode:i.pixCode||'',boletoUrl:i.boletoUrl||'',customerName:i.customerName||c.name||'',customerEmail:i.customerEmail||c.email||'',customerDocument:i.customerDocument||c.document||'',items:i.items||[{description:i.description||'Assinatura Valora Pulse',quantity:1,unitPrice:Number(i.amount||0),total:Number(i.amount||0)}],createdAt:i.createdAt||nowIso(),updatedAt:i.updatedAt||'',createdBy:i.createdBy||'',updatedBy:i.updatedBy||'',notes:i.notes||''};}
 function seedStore(){

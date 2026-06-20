@@ -288,3 +288,22 @@ Para ativar o Firebase, configure `config.js` com `STORAGE_MODE: 'firebase'`, `F
 Para operar em produção, use `STORAGE_MODE='firebase'`, publique Rules/Functions/Hosting, importe `firestore.seed.sample.json` via Admin SDK e crie o primeiro `admin_valora` no Firebase Auth sem senha em arquivos versionados. O envio em lote de convites no Firebase usa a Cloud Function `sendSurveyInvitations`; no modo local/demo permanece usando outbox ou fallback local, preservando a demonstração.
 
 Consulte `FIREBASE_SETUP.md`, `CHECKLIST_PRODUCAO.md` e `TESTES_EXECUTADOS.md` para seed, primeiro acesso, SMTP por secrets, jornadas por perfil, limites de plano, resposta pública por token e riscos restantes.
+
+## Onboarding guiado e primeira implantação
+
+O dashboard da empresa agora conduz o cliente pelo fluxo **Primeiros passos da implantação**, do primeiro acesso até a primeira resposta e o primeiro relatório. O progresso é calculado dinamicamente por empresa com os pesos: dados básicos (+10%), plano (+10%), administrador (+10%), ao menos um funcionário (+15%), ao menos um formulário (+15%), ao menos uma pesquisa ativa (+15%), ao menos um convite (+10%), ao menos uma resposta (+10%) e relatório disponível (+5%).
+
+A empresa sai de `novo` para `implantado` conforme completa as etapas. O status intermediário pode ser `configurando`, `funcionarios_cadastrados`, `pesquisa_criada`, `convites_enviados`, `com_respostas` ou `travado` quando permanece sem evolução suficiente por muitos dias.
+
+### Fluxo recomendado em modo local
+
+1. Inicie o servidor local com `python3 server.py` ou use os scripts `iniciar-site-mac-linux.sh` / `INICIAR_SITE_WINDOWS.bat`.
+2. Entre como `empresa_admin` de demonstração.
+3. Abra **Empresa › Visão geral** e confira o checklist **Primeiros passos da implantação**.
+4. Clique em **Configurar minha primeira pesquisa**.
+5. Revise dados da empresa, cadastre ao menos um funcionário, escolha ou gere o **Diagnóstico Essencial de Maturidade**, crie a pesquisa e revise o envio dos convites.
+6. Abra o link da pesquisa, responda como participante e retorne ao dashboard para ver respostas, taxa de resposta e relatório liberado.
+
+### Fluxo recomendado em Firebase
+
+Em `STORAGE_MODE='firebase'`, o mesmo checklist usa coleções reais (`organizations`, `users`, `forms`, `surveys`, `invitations` e `responses`). O envio em massa continua passando por Cloud Functions; o frontend apenas abre o fluxo e recarrega o estado quando a Function confirma o processamento. Não há exposição de credenciais SMTP no navegador.

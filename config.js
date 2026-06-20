@@ -5,7 +5,7 @@
 // Em produção, altere STORAGE_MODE para "firebase" somente depois de configurar
 // Firebase Auth, Firestore, Cloud Functions e regras de segurança revisadas.
 window.ValoraConfig=Object.freeze({
-  APP_VERSION:'8.6.1',
+  APP_VERSION:'8.6.2',
   STORAGE_MODE:'local', // "local" para demo/MVP; "firebase" para produção.
   FIREBASE_ENABLED:false,
   // Configuração pública do app Web Firebase. Preencha somente chaves públicas do projeto.

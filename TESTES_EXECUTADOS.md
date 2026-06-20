@@ -165,3 +165,16 @@ Data: 2026-06-20.
 - Participante: validar pesquisa/resultado disponível e ausência de alertas administrativos.
 - Segurança: validar que empresa A não lê empresa B, participante não lê administrativo e usuário não altera notificação de outro usuário.
 - Mobile: abrir em 360px, validar dropdown, cards e botões sem scroll horizontal.
+
+## 2026-06-20 — White label, personalização e assinatura
+
+- Admin Valora: revisar tela Clientes com slug, plano/assinatura, status e uso.
+- Admin Valora: validar edição comercial de plano/status/limites por dados de organização em Firestore/local.
+- Empresa Admin: abrir Dados e marca, editar logo URL, cores, nome público, slogan, slug e contatos.
+- Empresa Admin: confirmar que plano, cobrança, limites e status não aparecem como campos editáveis.
+- Portal do plano: verificar nome, valor, status da assinatura, pagamento, renovação, limites, uso e módulos.
+- Pesquisa pública: abrir `index.html?survey=survey_demo&token=<token>&org=empresa-exemplo` e validar marca/Powered by Valora.
+- E-mail: enviar convite e resultado em modo local/outbox para conferir marca quando `useCompanyBrandOnEmails=true`.
+- Bloqueio: configurar `subscription.status=suspended` e confirmar bloqueio de nova pesquisa e convites.
+- Limites: reduzir `limitsOverride.maxActiveSurveys` e validar status excedido/alerta.
+- Mobile: abrir Dados e marca e Plano contratado em 360px sem scroll horizontal.

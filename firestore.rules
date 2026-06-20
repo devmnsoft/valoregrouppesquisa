@@ -121,12 +121,14 @@ service cloud.firestore {
         'billing',
         'billingStatus',
         'billingEmail',
+        'subscription',
         'subscriptionId',
         'subscriptionStatus',
         'stripeCustomerId',
         'paymentMethod',
         'trialEndsAt',
         'limits',
+        'limitsOverride',
         'priceId'
       ]);
     }
@@ -153,10 +155,18 @@ service cloud.firestore {
       return affectedKeys().hasOnly(['status', 'progress', 'evidence', 'comments', 'updatedAt', 'updatedBy', 'completedAt']);
     }
 
+    function companyAllowedOrganizationFieldsChanged() {
+      return affectedKeys().hasOnly(['publicName','slogan','slug','brand','settings','updatedAt','updatedBy']);
+    }
+
     function companyCanEditOrganization(organizationId) {
       return isEmpresaAdmin()
              && sameCompany(organizationId)
-             && !organizationBillingOrPlanFieldsChanged();
+             && companyAllowedOrganizationFieldsChanged()
+             && !organizationBillingOrPlanFieldsChanged()
+             && request.resource.data.planId == resource.data.planId
+             && request.resource.data.subscription == resource.data.subscription
+             && request.resource.data.limitsOverride == resource.data.limitsOverride;
     }
 
     function isGlobalForm() {
@@ -185,6 +195,11 @@ service cloud.firestore {
     match /logs/{logId} {
       allow read: if isValoraAdmin();
       allow create, update, delete: if false;
+    }
+
+    match /organizationSlugs/{slug} {
+      allow read: if true;
+      allow create, update, delete: if isValoraAdmin();
     }
 
     match /organizations/{organizationId} {

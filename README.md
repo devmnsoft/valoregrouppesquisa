@@ -340,3 +340,7 @@ Consulte `PLANO_DE_ACAO.md` para modelo de dados, permissões, status, prioridad
 ## Central de Notificações e Alertas Inteligentes
 
 O Valora Pulse agora possui sino global, contador de não lidas, dropdown, tela “Central de notificações”, ações para marcar como lida/dispensar e links rápidos. A documentação completa de tipos, regras, permissões, Firestore e lembretes automáticos está em `NOTIFICACOES_E_ALERTAS.md`.
+
+## White label e assinatura
+
+O Valora Pulse possui estrutura de white label por organização, com slug público, URL de logo, cores por empresa, preferências de marca em pesquisa pública/e-mails e portal de assinatura/uso do plano. A documentação completa está em [WHITE_LABEL_E_ASSINATURA.md](WHITE_LABEL_E_ASSINATURA.md).

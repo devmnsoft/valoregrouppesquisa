@@ -48,3 +48,9 @@ Quando uma ação não é permitida, o produto deve mostrar: “Seu perfil não 
 ## Central de Notificações e Alertas Inteligentes
 
 O Valora Pulse agora possui sino global, contador de não lidas, dropdown, tela “Central de notificações”, ações para marcar como lida/dispensar e links rápidos. A documentação completa de tipos, regras, permissões, Firestore e lembretes automáticos está em `NOTIFICACOES_E_ALERTAS.md`.
+
+## Permissões de white label
+
+- Empresa Admin: edita identidade pública, logo, cores, contatos e preferências de exibição da marca da própria empresa.
+- Empresa Admin não edita `planId`, `subscription`, `limitsOverride`, cobrança ou status comercial.
+- Admin Valora: edita dados cadastrais, plano, limites, assinatura, trial, status comercial e identidade visual.

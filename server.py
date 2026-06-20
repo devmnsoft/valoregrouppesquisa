@@ -25,7 +25,7 @@ CONFIG_FILE = DATA_DIR / "email_config.json"
 LOGO_FILE = ROOT / "assets" / "logo-full.jpeg"
 DEFAULT_SENDER = "valoragroup@mnsoft.com.br"
 MAX_BODY = 2 * 1024 * 1024
-APP_VERSION = "8.6.1"
+APP_VERSION = "8.6.4"
 LOCAL_CSP = (
     "default-src 'self'; "
     "script-src 'self' https://www.gstatic.com; "

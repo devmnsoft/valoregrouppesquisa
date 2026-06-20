@@ -276,3 +276,37 @@ Data: 2026-06-20.
 ### Validações executadas
 - `node --check` em todos os arquivos JavaScript do projeto fora de `node_modules`.
 - Revisão de ausência de `onclick` inline na tela de erro fatal.
+
+## 2026-06-20 — Estabilização da inicialização 8.6.4
+
+### Escopo validado
+- Inicialização com `state` começando em `null` e `initializeState()` idempotente.
+- Normalização pura baseada no objeto recebido, com normalizers recebendo `store`.
+- Faturas normalizadas sem `companyById()` ou carregadores dependentes de estado global.
+- Repositório local revisado para leituras null-safe.
+- Recuperação automática para localStorage ausente ou corrompido.
+- Tela de falha de inicialização sem handlers inline, usando `addEventListener`.
+- CSP mantida restritiva com `connect-src` incluindo `https://www.gstatic.com`.
+- Assets versionados para `8.6.4`.
+
+### Testes executados
+- `node --check app.js`
+- `node --check local-repository.js`
+- `node --check config.js`
+- `node --check firebase-init.js`
+- `node --check firebase-repository.js`
+- `node --check repository.js`
+- `node --check pdf.js`
+- `node --check role-definitions.js`
+- `node --check module-definitions.js`
+- `node --check analytics-service.js`
+- `node --check report-service.js`
+- `node --check notification-service.js`
+- `while IFS= read -r f; do node --check "$f" || exit 1; done < <(find . -name '*.js' -not -path './node_modules/*' -not -path './functions/node_modules/*' -print | sort)`
+
+### Roteiro manual obrigatório no navegador
+- Base vazia: remover `localStorage`, recarregar e confirmar abertura da Home com seed recriada.
+- Base corrompida: gravar valor inválido em `localStorage`, recarregar e confirmar seed recriada.
+- Login: entrar com admin demo, abrir `#admin/dashboard`, `#admin/plans`, `#admin/clients` e recarregar.
+- CSP: forçar tela de erro, clicar em “Tentar novamente” e “Recriar base local”, confirmando ausência de bloqueio por inline handler.
+- Console: confirmar ausência de `Cannot read properties of null`, `Cannot access state before initialization`, `Cannot access calculateResult before initialization`, `Identifier has already been declared` e `Executing inline event handler violates CSP`.

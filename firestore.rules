@@ -100,6 +100,20 @@ service cloud.firestore {
              && userPayloadRoleIsCompanyRole();
     }
 
+
+    function notificationAudienceMatches(data) {
+      return isValoraTeam()
+             || (sameCompany(data.companyId)
+                 && data.audience != 'global'
+                 && (data.userId == null || data.userId == '' || data.userId == request.auth.uid)
+                 && (data.role == null || data.role == '' || data.role == role())
+                 && (!isAreaManager() || data.department == null || data.department == '' || data.department == department()));
+    }
+
+    function notificationOnlyUserStateChanged() {
+      return affectedKeys().hasOnly(['read', 'readAt', 'dismissed', 'dismissedAt', 'updatedAt']);
+    }
+
     function organizationBillingOrPlanFieldsChanged() {
       return affectedKeys().hasAny([
         'planId',
@@ -256,6 +270,24 @@ service cloud.firestore {
       allow delete: if isValoraAdmin();
     }
 
+
+    match /notifications/{notificationId} {
+      // Estrutura escolhida: coleção raiz notifications, sempre com companyId,
+      // audience/role/userId/department para permitir consultas por usuário e
+      // alertas globais sem duplicar subcoleções por empresa.
+      allow read: if signedIn()
+                  && role() != 'convidado_externo'
+                  && notificationAudienceMatches(resource.data)
+                  && !(role() == 'participante'
+                       && resource.data.type in ['action_overdue', 'action_critical', 'plan_limit_warning', 'plan_limit_exceeded', 'onboarding_stalled', 'system_error']);
+      allow create: if false;
+      allow update: if signedIn()
+                    && notificationAudienceMatches(resource.data)
+                    && notificationAudienceMatches(request.resource.data)
+                    && request.resource.data.companyId == resource.data.companyId
+                    && notificationOnlyUserStateChanged();
+      allow delete: if false;
+    }
 
     match /actionPlans/{actionPlanId} {
       allow read: if isValoraAdmin()

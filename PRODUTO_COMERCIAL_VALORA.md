@@ -93,3 +93,8 @@ O visual mantém a identidade Valora Group, com linguagem executiva e estrutura 
 ## Evolução comercial: Plano de ação
 
 O módulo **Plano de ação** transforma diagnósticos em execução acompanhável. Ele permite demonstrar valor consultivo contínuo, pois conecta dimensões críticas, baixa adesão e recomendações executivas a responsáveis, prazos, evidências e evolução por cliente.
+
+
+## Central de Notificações e Alertas Inteligentes
+
+O Valora Pulse agora possui sino global, contador de não lidas, dropdown, tela “Central de notificações”, ações para marcar como lida/dispensar e links rápidos. A documentação completa de tipos, regras, permissões, Firestore e lembretes automáticos está em `NOTIFICACOES_E_ALERTAS.md`.

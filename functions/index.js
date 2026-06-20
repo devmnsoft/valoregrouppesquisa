@@ -1,6 +1,7 @@
 'use strict';
 const admin=require('firebase-admin');
 const {onCall,HttpsError}=require('firebase-functions/v2/https');
+const {onSchedule}=require('firebase-functions/v2/scheduler');
 const {defineSecret}=require('firebase-functions/params');
 const nodemailer=require('nodemailer');
 const {sha256,timingSafeEqualHex,createToken}=require('./utils/hash');
@@ -110,3 +111,12 @@ exports.sendEmail=onCall({secrets:[SMTP_PASSWORD]},async req=>{
 });
 exports.lookupCep=onCall(async req=>{const cep=onlyDigits(req.data?.cep);if(cep.length!==8)throw new HttpsError('invalid-argument','Informe um CEP com 8 dígitos.');await rateLimit(`cep:${req.auth?.uid||ip(req)||'anon'}`,60,15*60*1000);let d;try{d=await callJson(`https://viacep.com.br/ws/${cep}/json/`,'CEP não encontrado.');if(d.erro)throw new Error('CEP não encontrado.');}catch(_){d=await callJson(`https://brasilapi.com.br/api/cep/v2/${cep}`,'CEP não encontrado.');}return {cep,logradouro:d.logradouro||d.street||'',bairro:d.bairro||d.neighborhood||'',localidade:d.localidade||d.city||'',uf:d.uf||d.state||'',address:[d.logradouro||d.street,d.bairro||d.neighborhood,d.localidade||d.city,d.uf||d.state].filter(Boolean).join(', ')};});
 exports.lookupCnpj=onCall(async req=>{const user=await authedUser(req),cnpj=onlyDigits(req.data?.cnpj);if(cnpj.length!==14)throw new HttpsError('invalid-argument','Informe um CNPJ com 14 dígitos.');await rateLimit(`cnpj:${user.uid}`,30,15*60*1000);const d=await callJson(`https://brasilapi.com.br/api/cnpj/v1/${cnpj}`,'CNPJ não encontrado.');return {razao_social:d.razao_social||'',nome_fantasia:d.nome_fantasia||'',cnpj:d.cnpj||cnpj,endereco:[d.descricao_tipo_de_logradouro,d.logradouro,d.numero,d.bairro].filter(Boolean).join(', '),municipio:d.municipio||'',uf:d.uf||'',situacao_cadastral:d.descricao_situacao_cadastral||d.situacao_cadastral||'',cep:d.cep||''};});
+
+
+async function auditScheduledReminder(name){
+  await auditLog(db,{action:name,actorType:'system',entity:'notification',entityId:'scheduled',after:{status:'prepared_todo',note:'Estrutura segura preparada; envio automático deve validar plano, receivesEmail, e-mail válido, LGPD e deduplicação.'}});
+}
+exports.scheduledGenerateNotifications=onSchedule('every 24 hours',async()=>auditScheduledReminder('scheduledGenerateNotifications'));
+exports.scheduledSendPendingReminders=onSchedule('every 24 hours',async()=>auditScheduledReminder('scheduledSendPendingReminders'));
+exports.scheduledExpireInvitations=onSchedule('every 24 hours',async()=>auditScheduledReminder('scheduledExpireInvitations'));
+exports.scheduledMarkOverdueActions=onSchedule('every 24 hours',async()=>auditScheduledReminder('scheduledMarkOverdueActions'));

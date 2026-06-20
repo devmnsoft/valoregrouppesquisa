@@ -43,3 +43,8 @@ Quando uma ação não é permitida, o produto deve mostrar: “Seu perfil não 
 - `analista_resultados`: leitura, sem exclusão.
 - `gestor_area`: leitura e atualização operacional apenas do próprio departamento.
 - `participante` e `convidado_externo`: sem acesso ao módulo administrativo.
+
+
+## Central de Notificações e Alertas Inteligentes
+
+O Valora Pulse agora possui sino global, contador de não lidas, dropdown, tela “Central de notificações”, ações para marcar como lida/dispensar e links rápidos. A documentação completa de tipos, regras, permissões, Firestore e lembretes automáticos está em `NOTIFICACOES_E_ALERTAS.md`.

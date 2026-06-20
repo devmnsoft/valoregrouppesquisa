@@ -35,3 +35,13 @@ Use esta checklist como bloqueio de go-live. Cada item deve ter responsável, da
 - [ ] Jornada participante aprovada: perfil próprio, edição restrita e histórico próprio.
 - [ ] Exportações validadas sem vazamento entre empresas.
 - [ ] Evidências anexadas em `TESTES_EXECUTADOS.md` ou no registro de release.
+
+## Checklist comercial SaaS 2026
+- [ ] Publicar `role-definitions.js` e validar menus/botões por perfil.
+- [ ] Publicar `module-definitions.js` e validar módulos por plano.
+- [ ] Migrar `companies` local para `organizations` no Firestore.
+- [ ] Garantir Cloud Function para criação pública de respostas.
+- [ ] Garantir Cloud Function para envio de e-mail e atualização de `invitations`.
+- [ ] Criar índices por `companyId`, `surveyId`, `status`, `department` e mês.
+- [ ] Bloquear empresa `suspended`/`overdue` em criação de pesquisas e envios.
+- [ ] Monitorar limites de plano no backend.

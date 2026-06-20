@@ -208,3 +208,6 @@ TODO de hardening: remover dependências de estilo inline para eliminar `'unsafe
 Para produção, cada usuário deve ter documento em `users/{uid}` com `role`, `companyId`, `department`, `position`, `status`, `receivesEmail` e `portalAccess`. O frontend já prepara os perfis oficiais e as regras Firestore foram ajustadas para permitir que `empresa_admin` crie apenas perfis de empresa (`empresa_admin`, `gestor_pesquisa`, `analista_resultados`, `gestor_area`, `participante`, `convidado_externo`).
 
 A criação real de usuários deve ocorrer por Firebase Auth/Cloud Functions ou convite seguro. O modo local/demo mantém senha inicial no armazenamento local apenas para demonstração.
+
+## Repositório Firebase 2026
+`firebase-repository.js` expõe métodos reais de Firestore para `organizations`, `users`, `plans`, `modules`, `forms`, `surveys`, `responses` e `invitations`. O modo local/demo continua em `local-repository.js` e mantém `companies` como compatibilidade para a interface atual.

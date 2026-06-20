@@ -26,3 +26,6 @@ Convidados externos podem ficar em `users` com `role: 'convidado_externo'` e `po
 - `empresa_admin` só cria/edita usuários da própria empresa.
 - Alterações de perfil devem ser registradas em auditoria/Cloud Functions.
 - `gestor_area` deve possuir `department`/`areaId` para futura segmentação obrigatória.
+
+## Matriz central 2026
+A fonte executável de perfis e helpers é `role-definitions.js`. Use `getRoleDefinition(role)`, `can(user, permission)`, `canAccessScope(user, companyId)`, `canCreateRole(currentUser, targetRole)`, `availableRolesForUser(currentUser)` e `availableRolesForCompany(currentUser)` para evitar permissões espalhadas.

@@ -45,3 +45,14 @@ Use esta checklist como bloqueio de go-live. Cada item deve ter responsável, da
 - [ ] Criar índices por `companyId`, `surveyId`, `status`, `department` e mês.
 - [ ] Bloquear empresa `suspended`/`overdue` em criação de pesquisas e envios.
 - [ ] Monitorar limites de plano no backend.
+
+## Repository Firestore real
+
+- [ ] `config.js` publicado com `STORAGE_MODE: 'firebase'` e `FIREBASE_ENABLED: true` somente no ambiente Firebase.
+- [ ] `firestore.seed.sample.json` convertido em seed real via Admin SDK sem senhas nem tokens puros.
+- [ ] Primeiro `admin_valora` criado no Auth, em `users/{uid}` e em custom claims.
+- [ ] Primeira organização criada em `organizations` e não em `companies`.
+- [ ] Usuário `empresa_admin` criado com `companyId` da organização e claims coerentes.
+- [ ] Testado que `state.companies` é alimentado a partir de `organizations`.
+- [ ] Confirmado que logs não são gravados diretamente pelo frontend.
+- [ ] Confirmado que criação pública de respostas permanece exclusiva de Cloud Functions.

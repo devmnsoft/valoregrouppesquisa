@@ -4,51 +4,47 @@ Data: 2026-06-20
 
 ## Checagens automatizadas executadas nesta entrega
 
+- `node --check firebase-repository.js` — passou.
 - `node --check app.js` — passou.
 - `node --check role-definitions.js` — passou.
 - `node --check module-definitions.js` — passou.
 - `node --check functions/index.js` — passou.
 
-## Roteiro funcional obrigatório
+## Roteiro funcional obrigatório — modo local
 
-### Admin Valora
-- Criar empresa.
-- Criar administrador principal `empresa_admin`.
-- Criar plano.
-- Ativar módulos.
-- Criar usuário de cada perfil permitido.
+- Abrir o sistema com `STORAGE_MODE: 'local'`.
+- Login demo com `admin@valoragroup.com` / `Valora@2026`.
+- Confirmar clientes em `state.companies`.
+- Confirmar usuários em `state.users`.
+- Confirmar planos em `state.plans`.
+- Confirmar pesquisas em `state.surveys`.
+- Confirmar respostas em `state.responses`.
+- Salvar alteração e recarregar para confirmar persistência no `localStorage`.
 
-### Empresa Admin
-- Cadastrar `participante`, `gestor_pesquisa`, `analista_resultados`, `gestor_area` e `convidado_externo`.
-- Tentar criar `admin_valora`; deve ser bloqueado.
+## Roteiro funcional obrigatório — modo Firebase
 
-### Gestor Pesquisa
-- Criar questionário.
-- Criar pesquisa.
-- Enviar convite.
-- Ver respostas.
-- Confirmar que não vê financeiro global.
+- Configurar `STORAGE_MODE: 'firebase'`, `FIREBASE_ENABLED: true` e `FIREBASE_CONFIG` pública.
+- Publicar `firestore.rules`.
+- Criar seed mínimo com base em `firestore.seed.sample.json`.
+- Login Firebase com `admin_valora`.
+- Confirmar carregamento de `organizations` em `state.companies`.
+- Confirmar carregamento de planos, módulos, usuários, formulários, pesquisas, respostas, convites, faturas, settings e logs somente leitura.
+- Criar organização pelo portal admin e confirmar documento em `organizations/{id}`.
+- Criar usuário `empresa_admin` com Auth/claim/perfil Firestore coerentes.
+- Login como `empresa_admin` e confirmar que apenas a própria empresa aparece.
+- Login como `gestor_pesquisa` e confirmar formulários/pesquisas/respostas da própria empresa.
+- Login como `participante` e confirmar somente pesquisas/respostas próprias.
+- Login com usuário sem `users/{uid}` e confirmar bloqueio amigável.
 
-### Analista Resultados
-- Ver respostas e relatórios.
-- Confirmar bloqueio para criar questionário.
-- Confirmar bloqueio para enviar pesquisa.
+## Roteiro funcional obrigatório — segurança
 
-### Gestor Área
-- Ver apenas área/departamento.
-- Confirmar bloqueio para alterar funcionários.
-- Confirmar bloqueio para criar pesquisa.
+- Empresa A não lê `organizations`, `users`, `surveys`, `responses`, `invitations` ou `invoices` da Empresa B.
+- Participante não lê resposta de outro participante.
+- Empresa não edita `plans` nem `modules`.
+- `analista_resultados` não cria pesquisa nem formulário.
+- `logs` não aceitam escrita direta pelo frontend.
+- Respostas públicas são criadas somente via Cloud Function.
 
-### Participante
-- Responder pesquisa.
-- Confirmar ausência de administração.
+## Observações desta entrega
 
-### Convidado Externo
-- Responder via link.
-- Confirmar ausência de portal administrativo.
-
-### Plano e módulo
-- Plano sem módulo de relatórios bloqueia relatórios.
-- Plano sem envio de e-mail bloqueia convite.
-- Limite de respostas/mês é respeitado pela Cloud Function.
-- Limite de pesquisas ativas é respeitado no frontend/demo.
+Os testes automatizados acima validam sintaxe JavaScript. A validação Firebase completa exige projeto Firebase real ou emuladores com usuários, claims e dados seed.

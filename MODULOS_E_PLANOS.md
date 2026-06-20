@@ -43,3 +43,7 @@ A fonte técnica central é `module-definitions.js`. Cada módulo declara `id`, 
 ## Seed comercial mínimo
 
 `firestore.seed.sample.json` define os módulos base `clientes`, `usuarios`, `funcionarios`, `formularios`, `pesquisas`, `convitesEmail`, `respostas`, `relatorios`, `certificados`, `financeiro`, `planos`, `modulos`, `valorabot`, `lgpd`, `exportacoes`, `backup` e `logs`, além dos planos Gratuito, Essencial, Growth e Enterprise com limites de pesquisas, respostas, gestores, funcionários e e-mails mensais.
+
+## actionPlans — Plano de ação
+
+Módulo comercial para gestão de ações de melhoria. Pode ser habilitado por plano, aparece no menu administrativo para perfis autorizados e pode receber limites comerciais por quantidade de ações no plano gratuito ou em contratos específicos.

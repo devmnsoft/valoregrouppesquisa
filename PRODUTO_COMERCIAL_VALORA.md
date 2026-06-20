@@ -89,3 +89,7 @@ A Central de relatórios passa a operar com uma camada central (`report-service.
 A entrega comercial agora contempla relatórios para Admin Valora, empresas clientes, pesquisas, dimensões, implantação, uso de plano e participantes individuais. Os documentos trazem resumo executivo automático, recomendações consultivas, plano de ação sugerido, métricas principais e tabelas compatíveis com PDF, Word, Excel, CSV e JSON.
 
 O visual mantém a identidade Valora Group, com linguagem executiva e estrutura adequada para diretoria, RH, governança, controladoria e consultores. Estados sem dados são tratados com mensagens orientativas, e cada exportação gera auditoria.
+
+## Evolução comercial: Plano de ação
+
+O módulo **Plano de ação** transforma diagnósticos em execução acompanhável. Ele permite demonstrar valor consultivo contínuo, pois conecta dimensões críticas, baixa adesão e recomendações executivas a responsáveis, prazos, evidências e evolução por cliente.

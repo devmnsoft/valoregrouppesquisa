@@ -58,7 +58,7 @@ function waitUntilReady(){
   return session.readyPromise;
 }
 function dispatchAuthChanged(){window.dispatchEvent(new CustomEvent('valora:auth-changed',{detail:{user:session.profile,loaded:session.loaded,error:session.lastError}}));}
-function emptyStore(seedStore,normalizeState){const state=seedStore();Object.assign(state,{session:null,users:[],companies:[],forms:[],surveys:[],responses:[],invitations:[],invoices:[],logs:[]});normalizeState(state);return state;}
+function emptyStore(seedStore,normalizeState){const state=seedStore();Object.assign(state,{session:null,users:[],companies:[],forms:[],surveys:[],responses:[],invitations:[],invoices:[],actionPlans:[],logs:[]});normalizeState(state);return state;}
 async function queryCollection(name,filters=[],orderBy=null,limit=null){
   try{let q=firestore().collection(name);filters.forEach(([field,op,value])=>{if(value!==undefined&&value!==null&&value!=='')q=q.where(field,op,value);});if(orderBy)q=q.orderBy(orderBy);if(limit)q=q.limit(limit);return asArray(await q.get());}
   catch(err){throw mapCollectionError(err);}
@@ -78,14 +78,14 @@ async function loadSettings(){const p=session.profile;if(!p)return {};if(p.role=
 async function loadStoreData(){
   const p=session.profile;if(!p)return null;
   const canFinance=['admin_valora','empresa_admin'].includes(p.role);
-  const [organizations,users,plans,modules,forms,surveys,responses,invitations,invoices,settings,logs]=await Promise.all([
-    loadOrganizations(),loadUsers(),queryCollection('plans'),queryCollection('modules'),loadForms(),loadSurveys(),loadResponses(),scopedRows('invitations'),canFinance?scopedRows('invoices'):Promise.resolve([]),loadSettings(),p.role==='admin_valora'?queryCollection('logs',[],null,300):Promise.resolve([])
+  const [organizations,users,plans,modules,forms,surveys,responses,invitations,invoices,actionPlans,settings,logs]=await Promise.all([
+    loadOrganizations(),loadUsers(),queryCollection('plans'),queryCollection('modules'),loadForms(),loadSurveys(),loadResponses(),scopedRows('invitations'),canFinance?scopedRows('invoices'):Promise.resolve([]),scopedRows('actionPlans'),loadSettings(),p.role==='admin_valora'?queryCollection('logs',[],null,300):Promise.resolve([])
   ]);
-  return {session:{userId:p.id||p.uid,createdAt:new Date().toISOString()},companies:organizations.map(normalizeCompany),organizations,users,plans,modules,forms,surveys,responses,invitations,invoices,settings,logs};
+  return {session:{userId:p.id||p.uid,createdAt:new Date().toISOString()},companies:organizations.map(normalizeCompany),organizations,users,plans,modules,forms,surveys,responses,invitations,invoices,actionPlans,settings,logs};
 }
 async function hydrateStore(){
   if(session.loading)return;session.loading=true;session.lastError=null;
-  try{const data=await loadStoreData();if(!data)return;Object.assign(session.store,data);session.normalizeState?.(session.store);session.cache=clone({companies:session.store.companies,users:session.store.users,plans:session.store.plans,modules:session.store.modules,forms:session.store.forms,surveys:session.store.surveys,responses:session.store.responses,invitations:session.store.invitations,invoices:session.store.invoices,settings:session.store.settings});session.loaded=true;}
+  try{const data=await loadStoreData();if(!data)return;Object.assign(session.store,data);session.normalizeState?.(session.store);session.cache=clone({companies:session.store.companies,users:session.store.users,plans:session.store.plans,modules:session.store.modules,forms:session.store.forms,surveys:session.store.surveys,responses:session.store.responses,invitations:session.store.invitations,invoices:session.store.invoices,actionPlans:session.store.actionPlans,settings:session.store.settings});session.loaded=true;}
   catch(err){session.lastError=err;console.warn('[Valora Pulse] Falha ao carregar Firestore.',err);}
   finally{session.loading=false;}
 }
@@ -103,7 +103,7 @@ window.ValoraFirebaseRepository={
   async logout(){const s=ensureFirebase();session.profile=null;session.claims={};session.loaded=false;cleanFirebaseLocalState();await s.auth.signOut();},
   currentUser(){return session.profile;},
   async loadStoreFromFirestore(){await hydrateStore();return session.store;},
-  loadCompanies({state}={}){return state?.companies||[];},loadOrganizations:loadOrganizations,loadUsers({state}={}){return state?.users||[];},loadPlans({state}={}){return state?.plans||[];},loadModules({state}={}){return state?.modules||[];},loadForms({state}={}){return state?.forms||[];},loadSurveys({state}={}){return state?.surveys||[];},loadResponses({state}={}){return state?.responses||[];},loadInvitations({state}={}){return state?.invitations||[];},loadInvoices({state}={}){return state?.invoices||[];},loadSettings({state}={}){return state?.settings||{};},
+  loadCompanies({state}={}){return state?.companies||[];},loadOrganizations:loadOrganizations,loadUsers({state}={}){return state?.users||[];},loadPlans({state}={}){return state?.plans||[];},loadModules({state}={}){return state?.modules||[];},loadForms({state}={}){return state?.forms||[];},loadSurveys({state}={}){return state?.surveys||[];},loadResponses({state}={}){return state?.responses||[];},loadInvitations({state}={}){return state?.invitations||[];},loadActionPlans({state}={}){return state?.actionPlans||[];},loadInvoices({state}={}){return state?.invoices||[];},loadSettings({state}={}){return state?.settings||{};},
   listOrganizations:loadOrganizations,getOrganization(id){return getDoc('organizations',id);},createOrganization(data){return createDoc('organizations',data);},updateOrganization(id,data){return updateDoc('organizations',id,data);},deleteOrganization(id){return deleteDoc('organizations',id);},
   listUsers:loadUsers,createUserProfile(data){return createDoc('users',{...data,uid:data.uid||data.id});},updateUserProfile(id,data){return updateDoc('users',id,data);},deactivateUser(id){return updateDoc('users',id,{status:'inactive'});},reactivateUser(id){return updateDoc('users',id,{status:'active'});},
   listPlans(){return queryCollection('plans');},createPlan(data){return createDoc('plans',data);},updatePlan(id,data){return updateDoc('plans',id,data);},deletePlan(id){return deleteDoc('plans',id);},
@@ -112,8 +112,9 @@ window.ValoraFirebaseRepository={
   listSurveys:loadSurveys,createSurvey(data){return createDoc('surveys',data);},updateSurvey(id,data){return updateDoc('surveys',id,data);},deleteSurvey(id){return deleteDoc('surveys',id);},
   listResponses:loadResponses,getResponse(id){return getDoc('responses',id);},
   listInvitations(companyId){return scopedRows('invitations',companyId);},createInvitation(data){return createDoc('invitations',data);},updateInvitation(id,data){return updateDoc('invitations',id,data);},
+  listActionPlans(companyId,filters={}){const fs=buildScopeFilter(companyId);Object.entries(filters||{}).forEach(([k,v])=>{if(v)fs.push([k,'==',v]);});return queryCollection('actionPlans',fs);},createActionPlan(data){return createDoc('actionPlans',data);},updateActionPlan(id,data){return updateDoc('actionPlans',id,data);},deleteActionPlan(id){return deleteDoc('actionPlans',id);},addActionComment(actionId,comment){return updateDoc('actionPlans',actionId,{comments:fv().arrayUnion(comment)});},markActionCompleted(actionId){return updateDoc('actionPlans',actionId,{status:'completed',progress:100,completedAt:ts()});},generateActionPlansFromSurvey(surveyId){return queryCollection('actionPlans',[["surveyId","==",surveyId]]);},
   listInvoices(companyId){return scopedRows('invoices',companyId);},createInvoice(data){return createDoc('invoices',data);},updateInvoice(id,data){return updateDoc('invoices',id,data);},
-  async saveChanges({state}={}){session.store=state||session.store;if(!session.profile||!session.loaded)return session.store;try{await Promise.all(['companies','users','plans','modules','forms','surveys','invitations','invoices'].map(syncCollectionFromState));await syncSettings();}catch(err){console.warn('[Valora Pulse] Falha ao salvar no Firestore.',err);throw mapCollectionError(err);}return session.store;},
+  async saveChanges({state}={}){session.store=state||session.store;if(!session.profile||!session.loaded)return session.store;try{await Promise.all(['companies','users','plans','modules','forms','surveys','invitations','invoices','actionPlans'].map(syncCollectionFromState));await syncSettings();}catch(err){console.warn('[Valora Pulse] Falha ao salvar no Firestore.',err);throw mapCollectionError(err);}return session.store;},
   async saveAuditLog(){console.info('[Valora Pulse] Auditoria direta pelo frontend não é permitida pelas rules; use Cloud Function/Admin SDK.');return false;}
 };
 })();

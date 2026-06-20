@@ -50,6 +50,13 @@ window.ValoraLocalRepository={
   loadForms({state}){return state.forms;},
   loadSurveys({state}){return state.surveys;},
   loadResponses({state}){return state.responses;},
+  listActionPlans(companyId,{state,filters}={}){let rows=state?.actionPlans||[];if(companyId)rows=rows.filter(x=>x.companyId===companyId);if(filters)Object.entries(filters).forEach(([k,v])=>{if(v)rows=rows.filter(x=>String(x[k]||'')===String(v));});return Promise.resolve(clone(rows));},
+  createActionPlan(data,{state}={}){const item={id:data.id||`act_${Date.now().toString(36)}`,...data};state?.actionPlans?.push(item);return Promise.resolve(clone(item));},
+  updateActionPlan(id,data,{state}={}){const item=(state?.actionPlans||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
+  deleteActionPlan(id,{state}={}){if(state)state.actionPlans=(state.actionPlans||[]).filter(x=>x.id!==id);return Promise.resolve(true);},
+  addActionComment(actionId,comment,{state}={}){const item=(state?.actionPlans||[]).find(x=>x.id===actionId);if(item)(item.comments||(item.comments=[])).push(comment);return Promise.resolve(clone(item));},
+  markActionCompleted(actionId,{state}={}){const item=(state?.actionPlans||[]).find(x=>x.id===actionId);if(item)Object.assign(item,{status:'completed',progress:100,completedAt:new Date().toISOString()});return Promise.resolve(clone(item));},
+  generateActionPlansFromSurvey(surveyId,{state}={}){return Promise.resolve(clone((state?.actionPlans||[]).filter(x=>x.surveyId===surveyId)));},
   saveChanges({storeKey,state}){this.saveStore({storeKey,state});return clone(state);}
 };
 })();

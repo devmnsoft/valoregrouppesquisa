@@ -117,6 +117,28 @@ service cloud.firestore {
       ]);
     }
 
+
+
+    function actionPlanCompanyImmutable() {
+      return request.resource.data.companyId == resource.data.companyId;
+    }
+
+    function actionPlanSameCompanyOnCreate() {
+      return sameCompany(request.resource.data.companyId);
+    }
+
+    function actionPlanSameCompanyOnExisting() {
+      return sameCompany(resource.data.companyId);
+    }
+
+    function actionPlanSameArea() {
+      return department() != null && resource.data.department == department();
+    }
+
+    function actionPlanOnlyAreaFieldsChanged() {
+      return affectedKeys().hasOnly(['status', 'progress', 'evidence', 'comments', 'updatedAt', 'updatedBy', 'completedAt']);
+    }
+
     function companyCanEditOrganization(organizationId) {
       return isEmpresaAdmin()
              && sameCompany(organizationId)
@@ -232,6 +254,35 @@ service cloud.firestore {
                         && sameCompany(request.resource.data.companyId)
                         && request.resource.data.companyId == resource.data.companyId);
       allow delete: if isValoraAdmin();
+    }
+
+
+    match /actionPlans/{actionPlanId} {
+      allow read: if isValoraAdmin()
+                  || isValoraConsultant()
+                  || (role() in ['empresa_admin', 'gestor_pesquisa', 'analista_resultados'] && actionPlanSameCompanyOnExisting())
+                  || (isAreaManager() && actionPlanSameCompanyOnExisting() && actionPlanSameArea());
+
+      allow create: if isValoraAdmin()
+                    || isValoraConsultant()
+                    || ((isEmpresaAdmin() || isResearchManager())
+                        && actionPlanSameCompanyOnCreate());
+
+      allow update: if isValoraAdmin()
+                    || isValoraConsultant()
+                    || ((isEmpresaAdmin() || isResearchManager())
+                        && actionPlanSameCompanyOnExisting()
+                        && sameCompany(request.resource.data.companyId)
+                        && actionPlanCompanyImmutable())
+                    || (isAreaManager()
+                        && actionPlanSameCompanyOnExisting()
+                        && actionPlanSameArea()
+                        && sameCompany(request.resource.data.companyId)
+                        && actionPlanCompanyImmutable()
+                        && actionPlanOnlyAreaFieldsChanged());
+
+      allow delete: if isValoraAdmin()
+                    || (isEmpresaAdmin() && actionPlanSameCompanyOnExisting());
     }
 
     match /invoices/{invoiceId} {

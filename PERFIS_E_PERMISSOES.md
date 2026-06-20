@@ -33,3 +33,13 @@ Quando uma ação não é permitida, o produto deve mostrar: “Seu perfil não 
 - `analista_resultados`: leitura de pesquisas, respostas, dashboards e relatórios permitidos; não cria formulários, pesquisas, convites ou usuários.
 - `gestor_area`: leitura da própria empresa filtrada por `department` quando preenchido em usuário/resposta/convite; limitação atual documentada até coleta obrigatória de área em todos os formulários.
 - `participante` e `convidado_externo`: resposta por link seguro e resultado quando configurado, sem portal administrativo completo.
+
+## Permissões do Plano de Ação
+
+- `admin_valora`: acesso global a `actionPlans`.
+- `consultor_valora`: visualização e sugestão consultiva.
+- `empresa_admin`: gestão completa dentro da própria empresa.
+- `gestor_pesquisa`: criação e edição de ações vinculadas a pesquisas/resultados da própria empresa.
+- `analista_resultados`: leitura, sem exclusão.
+- `gestor_area`: leitura e atualização operacional apenas do próprio departamento.
+- `participante` e `convidado_externo`: sem acesso ao módulo administrativo.

@@ -78,3 +78,24 @@ Os testes automatizados acima validam sintaxe JavaScript. A validação Firebase
 
 - `node --check app.js` — validação sintática do JavaScript principal.
 - `npm test -- --runInBand` — não há script `test` genérico neste repositório; usar `npm run test:rules` e `npm run test:functions` com emuladores Firebase quando disponíveis.
+## Testes executados — evolução dashboards executivos
+
+Data: 2026-06-20
+
+### Verificações realizadas
+
+- Admin Valora: validação estática do dashboard global com múltiplas métricas comerciais, clientes por plano, MRR estimado, implantação, travados e alertas comerciais.
+- Empresa: validação estática de estados vazios, respostas concluídas, taxa de resposta, uso do plano, dimensões, evolução e recomendações.
+- Gestor de Pesquisa: ações rápidas preservadas para perfis com permissão (`criar pesquisa`, `enviar convites`, `ver respostas`).
+- Analista de Resultados: dashboard mostra leitura analítica sem botões administrativos de criação/envio.
+- Mobile: CSS adicionado para gráficos, rankings e alertas não estourarem em 360px.
+- Consistência: dashboards, respostas e relatórios passam a consumir `ValoraAnalytics` para respostas concluídas, convites enviados, taxa, médias e dimensões.
+
+### Comandos
+
+- `node --check analytics-service.js` — aprovado.
+- `node --check app.js` — aprovado.
+
+### Observações
+
+Não foram executados testes Firebase com emuladores nesta entrega por serem suíte de segurança dependente de ambiente externo/serviços do Firebase. O modo local/demo permanece sem novas dependências pesadas.

@@ -1,31 +1,26 @@
 # Perfis e permissões — Valora Pulse
 
-O Valora Pulse separa usuários da operação Valora, usuários administrativos da empresa cliente e respondentes. A matriz central fica em `ROLE_DEFINITIONS` no frontend e deve ser espelhada em claims/Firestore Rules em produção.
+A fonte técnica central é `role-definitions.js`. Todas as telas e ações devem consultar `can(user, permission)` antes de executar operações sensíveis.
 
-| Perfil | Escopo | Pode cadastrar funcionários | Pode criar questionário | Pode enviar pesquisa | Pode ver respostas | Pode ver financeiro | Pode administrar plataforma |
+| Perfil | Escopo | Cadastra funcionários | Cria questionário | Envia pesquisa | Vê respostas | Vê financeiro | Administra plataforma |
 |---|---|---:|---:|---:|---:|---:|---:|
-| `admin_valora` | Valora global | Sim, qualquer empresa | Sim, global e empresa | Sim | Sim, todas as empresas | Sim | Sim |
-| `consultor_valora` | Valora leitura/apoio | Não | Não | Não | Sim, conforme apoio | Não | Não |
-| `empresa_admin` | Empresa cliente | Sim, somente própria empresa | Sim | Sim | Sim, própria empresa | Não, só plano contratado | Não |
-| `gestor_pesquisa` | Empresa cliente | Não | Sim | Sim | Sim, própria empresa | Não | Não |
-| `analista_resultados` | Empresa cliente | Não | Não | Não | Sim, própria empresa | Não | Não |
-| `gestor_area` | Área/departamento | Não | Não | Não | Sim, somente área quando segmentado | Não | Não |
-| `participante` | Área pessoal | Não | Não | Não | Só próprios resultados permitidos | Não | Não |
-| `convidado_externo` | Link público | Não | Não | Não | Só resultado da pesquisa, se permitido | Não | Não |
+| admin_valora | Valora/global | Sim | Sim | Sim | Sim | Sim | Sim |
+| consultor_valora | Valora/leitura operacional | Não | Não | Não | Sim | Não | Não |
+| empresa_admin | Própria empresa | Sim | Sim | Sim | Sim | Plano contratado | Não |
+| gestor_pesquisa | Própria empresa | Não | Sim | Sim | Sim | Não | Não |
+| analista_resultados | Própria empresa | Não | Não | Não | Sim | Não | Não |
+| gestor_area | Departamento/área | Não | Não | Não | Apenas área | Não | Não |
+| participante | Área pessoal | Não | Não | Não | Próprias respostas quando liberado | Não | Não |
+| convidado_externo | Link seguro | Não | Não | Não | Não | Não | Não |
 
-## Produção Firebase
+## Regras de criação de perfis
 
-Coleção recomendada: `users/{uid}` com `uid`, `name`, `email`, `phone`, `role`, `companyId`, `department`, `position`, `status`, `receivesEmail`, `portalAccess`, `preferences`, `createdAt`, `updatedAt`, `createdBy`, `updatedBy` e `lastLoginAt`.
+- `admin_valora` pode criar qualquer perfil.
+- `empresa_admin` pode criar apenas: `empresa_admin`, `gestor_pesquisa`, `analista_resultados`, `gestor_area`, `participante` e `convidado_externo`.
+- Empresas nunca podem criar `admin_valora` ou `consultor_valora`.
+- `gestor_area` exige departamento.
+- `convidado_externo` pode existir sem acesso ao portal e responder por link seguro.
 
-Convidados externos podem ficar em `users` com `role: 'convidado_externo'` e `portalAccess: false`; se a jornada pública crescer, mover dados mínimos para `participants/{participantId}` via Cloud Functions.
+## Mensagem padrão de bloqueio
 
-## Regras de segurança
-
-- Empresas não podem criar `admin_valora` nem `consultor_valora`.
-- Usuário não pode alterar o próprio `role`, `companyId`, `status` ou permissões.
-- `empresa_admin` só cria/edita usuários da própria empresa.
-- Alterações de perfil devem ser registradas em auditoria/Cloud Functions.
-- `gestor_area` deve possuir `department`/`areaId` para futura segmentação obrigatória.
-
-## Matriz central 2026
-A fonte executável de perfis e helpers é `role-definitions.js`. Use `getRoleDefinition(role)`, `can(user, permission)`, `canAccessScope(user, companyId)`, `canCreateRole(currentUser, targetRole)`, `availableRolesForUser(currentUser)` e `availableRolesForCompany(currentUser)` para evitar permissões espalhadas.
+Quando uma ação não é permitida, o produto deve mostrar: “Seu perfil não possui permissão para executar esta ação.”

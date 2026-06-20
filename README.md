@@ -251,3 +251,21 @@ A gestão de perfis do Valora Pulse é centralizada em `ROLE_DEFINITIONS` no `ap
 
 ## Arquitetura comercial SaaS
 A documentação comercial central está em `PRODUTO_COMERCIAL_VALORA.md`. A nomenclatura técnica recomendada para produção é `organizations`; a UI usa “Clientes/Empresas” e o modo demo preserva `companies` como adaptador local. Perfis estão centralizados em `role-definitions.js` e módulos em `module-definitions.js`.
+
+## Base comercial e operacional SaaS
+
+A fundação de perfis, permissões, módulos e planos foi centralizada para reduzir regras espalhadas no frontend e manter compatibilidade com modo local/demo.
+
+- Perfis oficiais e helpers: `role-definitions.js`.
+- Módulos oficiais e helpers: `module-definitions.js`.
+- Planos controlam `enabledModules` e limites como pesquisas ativas, respostas/mês, gestores, funcionários e e-mails/mês.
+- Empresas devem possuir ao menos um `empresa_admin`.
+- Funcionários/respondentes devem receber perfil explícito.
+- Firestore Rules mantêm respostas públicas somente por Cloud Function e reconhecem os perfis empresariais de leitura/área/convidado.
+
+Documentação complementar:
+
+- `PERFIS_E_PERMISSOES.md`
+- `MODULOS_E_PLANOS.md`
+- `PRODUTO_COMERCIAL_VALORA.md`
+- `TESTES_EXECUTADOS.md`

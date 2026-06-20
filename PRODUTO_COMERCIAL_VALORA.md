@@ -28,3 +28,13 @@ Finalizar Firebase Repository com dados reais do Firestore.
 ## Fluxo comercial operacional Firebase
 
 A jornada SaaS validada para homologação é: seed mínimo, primeiro `admin_valora`, criação de organização, criação do admin da empresa, cadastro de funcionários, formulário, pesquisa, convite por e-mail via Cloud Function, resposta por link seguro, cálculo backend, dashboards, respostas, relatórios/certificados e auditoria. O modo local/demo continua disponível para demonstração com outbox local.
+
+## Evolução comercial — onboarding guiado
+
+A experiência comercial passa a ter uma jornada prescritiva no dashboard da empresa. O componente **Primeiros passos da implantação** mostra percentual concluído, etapa atual, próximo passo, alertas de plano/perfil e CTAs contextuais para dados da empresa, plano, administrador, funcionários, questionários, pesquisas, convites, respostas e relatórios.
+
+O botão **Configurar minha primeira pesquisa** abre um wizard de seis etapas: revisão cadastral, cadastro rápido de funcionários, escolha/criação do questionário, configuração da pesquisa com LGPD, preparação do envio e conclusão. Quando o cliente não possui questionário, o fluxo cria o **Diagnóstico Essencial de Maturidade** com dimensões de Cultura, Processos e Liderança.
+
+O Admin Valora passa a enxergar o **Status de implantação do cliente** em visão global, incluindo empresas novas, em configuração, com funcionários, com pesquisa criada, com convites, com respostas, implantadas e travadas. Isso melhora demonstrações, CS e priorização comercial sem remover funcionalidades existentes.
+
+Estados vazios inteligentes foram adicionados para funcionários, formulários, pesquisas, respostas e relatórios, sempre com orientação e CTA para a próxima tela. O ValoraBot também responde perguntas de onboarding como “Como começo?”, “Qual próximo passo?” e “Por que meu dashboard está vazio?” considerando o estágio real da empresa.

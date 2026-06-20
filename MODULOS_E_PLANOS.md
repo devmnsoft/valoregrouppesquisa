@@ -55,4 +55,8 @@ O Valora Pulse agora possui sino global, contador de não lidas, dropdown, tela 
 
 ## Evolução white label e assinatura
 
-Esta versão adiciona estrutura de identidade visual por empresa, slug público, campos de assinatura, limites customizados, status comercial e portal de plano contratado. Consulte `WHITE_LABEL_E_ASSINATURA.md` para modelo, permissões, regras de bloqueio e roteiro de testes.
+Os limites efetivos são calculados pelo plano contratado somado a `limitsOverride` da organização: pesquisas ativas, respostas/mês, gestores, funcionários e e-mails/mês. O portal do plano exibe consumo, módulos liberados/bloqueados e recomendação de upgrade quando o uso ultrapassa 80%.
+
+## Cobrança recorrente e limites
+
+Planos alimentam `organizations.subscription` e faturas em `invoices`. O ciclo pode ser mensal, trimestral, semestral, anual ou manual. Status financeiros (`trial`, `active`, `past_due`, `overdue`, `suspended`, `cancelled`, `inactive`) interferem nos helpers de criação de pesquisa, envio de convites, relatórios e acesso operacional.

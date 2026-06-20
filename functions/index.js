@@ -120,3 +120,39 @@ exports.scheduledGenerateNotifications=onSchedule('every 24 hours',async()=>audi
 exports.scheduledSendPendingReminders=onSchedule('every 24 hours',async()=>auditScheduledReminder('scheduledSendPendingReminders'));
 exports.scheduledExpireInvitations=onSchedule('every 24 hours',async()=>auditScheduledReminder('scheduledExpireInvitations'));
 exports.scheduledMarkOverdueActions=onSchedule('every 24 hours',async()=>auditScheduledReminder('scheduledMarkOverdueActions'));
+
+const payments = require('./payments/payment-provider');
+
+function assertValoraAdmin(user) {
+  if (user.role !== 'admin_valora') throw new HttpsError('permission-denied', 'Apenas Admin Valora pode operar cobrança.');
+}
+
+exports.createPaymentLink = onCall(async req => {
+  const user = await authedUser(req); assertValoraAdmin(user);
+  const invoiceId = required(req.data, 'invoiceId');
+  const snap = await db.collection('invoices').doc(invoiceId).get();
+  if (!snap.exists) throw new HttpsError('not-found', 'Fatura não encontrada.');
+  const invoice = { id: snap.id, ...snap.data() };
+  const provider = invoice.paymentProvider || 'manual';
+  const result = await payments.createPaymentLink(invoice, provider);
+  await snap.ref.set({ paymentProvider: provider, paymentUrl: result.paymentUrl || '', updatedAt: TS(), updatedBy: user.uid }, { merge: true });
+  await auditLog(db, { action: 'payment_link_created', actorId: user.uid, actorType: user.role, companyId: invoice.companyId, entity: 'invoice', entityId: invoiceId, after: { provider } });
+  return result;
+});
+
+exports.createCheckoutSession = onCall(async req => {
+  const user = await authedUser(req); assertValoraAdmin(user);
+  throw new HttpsError('failed-precondition', 'Checkout real ainda não configurado. Configure provider e secrets no backend.');
+});
+exports.syncSubscriptionStatus = onCall(async req => { const user = await authedUser(req); assertValoraAdmin(user); return { synced: false, mode: 'manual' }; });
+exports.cancelSubscription = onCall(async req => { const user = await authedUser(req); assertValoraAdmin(user); return { cancelled: false, mode: 'manual' }; });
+exports.upgradeSubscription = onCall(async req => { const user = await authedUser(req); assertValoraAdmin(user); return { upgraded: false, mode: 'manual' }; });
+exports.downgradeSubscription = onCall(async req => { const user = await authedUser(req); assertValoraAdmin(user); return { downgraded: false, mode: 'manual' }; });
+
+exports.handlePaymentWebhook = onCall(async req => {
+  const provider = cleanText(req.data?.provider || 'manual', 40);
+  if (provider !== 'manual') throw new HttpsError('failed-precondition', 'Webhooks reais devem usar endpoint HTTP com validação criptográfica de assinatura.');
+  const result = await payments.handleWebhook({ ...req.data, provider }, provider, { db });
+  await auditLog(db, { action: 'payment_webhook_received', actorType: 'system', entity: 'webhook', entityId: provider, after: result });
+  return result;
+});

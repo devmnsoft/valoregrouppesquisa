@@ -3,8 +3,8 @@
 const TYPES=['trial_ending','payment_overdue','subscription_suspended','upgrade_recommended','white_label_incomplete','survey_expiring','survey_expired','invitation_pending','invitation_failed','new_response','low_response_rate','action_overdue','action_critical','plan_limit_warning','plan_limit_exceeded','onboarding_stalled','report_ready','system_error'];
 const SEVERITIES=['info','success','warning','danger','critical'];
 const GLOBAL_ROLES=['admin_valora','consultor_valora'];
-const ADMIN_TYPES=new Set(['plan_limit_warning','plan_limit_exceeded','onboarding_stalled','invitation_failed','system_error']);
-const MANAGER_TYPES=new Set(['survey_expiring','survey_expired','invitation_pending','invitation_failed','new_response','low_response_rate','action_overdue','action_critical','plan_limit_warning','plan_limit_exceeded','onboarding_stalled','report_ready']);
+const ADMIN_TYPES=new Set(['plan_limit_warning','plan_limit_exceeded','trial_ending','payment_overdue','subscription_suspended','upgrade_recommended','white_label_incomplete','onboarding_stalled','invitation_failed','system_error']);
+const MANAGER_TYPES=new Set(['survey_expiring','survey_expired','invitation_pending','invitation_failed','new_response','low_response_rate','action_overdue','action_critical','plan_limit_warning','plan_limit_exceeded','trial_ending','payment_overdue','subscription_suspended','upgrade_recommended','white_label_incomplete','onboarding_stalled','report_ready']);
 const ANALYST_TYPES=new Set(['new_response','low_response_rate','action_critical','report_ready']);
 const PARTICIPANT_TYPES=new Set(['survey_expiring','report_ready']);
 const escId=v=>String(v||'').replace(/[^a-z0-9_-]+/gi,'_').slice(0,80);

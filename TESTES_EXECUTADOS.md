@@ -178,3 +178,40 @@ Esta versão adiciona estrutura de identidade visual por empresa, slug público,
 - Relatórios: validar capa/uso do plano sem vazamento entre empresas.
 - Bloqueios: empresa suspensa não cria pesquisa/envios; limite excedido bloqueia ações aplicáveis.
 - Mobile: validar tela de personalização e plano em 360px sem scroll horizontal.
+
+## Correção de inicialização — RESERVED_ORG_SLUGS e CSP Firebase
+
+Data: 2026-06-20.
+
+### Erro encontrado
+
+- A aplicação ficava presa em “Carregando o sistema...” porque `app.js` declarava `RESERVED_ORG_SLUGS` duas vezes no mesmo IIFE com `const`, gerando `Uncaught SyntaxError: Identifier 'RESERVED_ORG_SLUGS' has already been declared` antes da inicialização.
+- A CSP do Firebase Hosting permitia scripts de `https://www.gstatic.com`, mas não permitia conexões para o mesmo host em `connect-src`, causando bloqueio dos source maps `firebase-*.js.map` carregados pelo DevTools.
+
+### Causa
+
+- Duplicação de bloco da evolução de white label/slug em `app.js`, incluindo `RESERVED_ORG_SLUGS` e a mensagem comercial.
+- Cabeçalho `Content-Security-Policy` em `firebase.json` incompleto para o fluxo de debug/source maps do Firebase hospedado em `www.gstatic.com`.
+
+### Correção de inicialização
+
+- Corrigida declaração duplicada de `RESERVED_ORG_SLUGS`, mantendo uma única lista congelada e um `Set` derivado para validação eficiente.
+- Corrigida CSP para permitir source maps/recursos do Firebase em `https://www.gstatic.com` via `connect-src`, sem usar `*`, `unsafe-eval` ou ampliar `script-src`.
+- Adicionado fallback visual para falha fatal de inicialização, com mensagem clara no `#app` e botão “Tentar novamente”, evitando carregamento infinito em erros de runtime.
+- Atualizada a versão de assets para `8.6.1`, forçando invalidação dos JS/CSS versionados no navegador.
+- Validado por sintaxe que o sistema não mantém o erro de redeclaração e pode sair da tela de carregamento após o parse de `app.js`.
+
+### Validação executada
+
+- `rg -n "RESERVED_ORG_SLUGS|const RESERVED_ORG_SLUGS|let RESERVED_ORG_SLUGS|var RESERVED_ORG_SLUGS" . -g '!node_modules' -g '!functions/node_modules'` — confirmado apenas um `const RESERVED_ORG_SLUGS` local e usos via `RESERVED_ORG_SLUG_SET`.
+- `node --check` em todos os arquivos JavaScript locais encontrados por `rg --files -g '*.js' -g '!node_modules' -g '!functions/node_modules'` — aprovado.
+- `git diff --check` — aprovado.
+
+### Roteiro manual pós-deploy
+
+- Abrir `index.html` ou a URL do Firebase Hosting em janela anônima para garantir download dos assets `?v=8.6.1`.
+- Confirmar que a home sai de “Carregando o sistema...” e renderiza os cards principais.
+- Abrir `#login`, autenticar com usuário de teste e verificar menu.
+- Abrir `#admin/dashboard` com perfil `admin_valora`.
+- Abrir `#admin/plans` e validar que a rota de planos renderiza.
+- Confirmar no console que não há `SyntaxError` de `RESERVED_ORG_SLUGS` nem bloqueio CSP para `https://www.gstatic.com/firebasejs/... .map`.

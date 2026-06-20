@@ -1,14 +1,15 @@
 (function(){
 'use strict';
 
-const APP_CONFIG=window.ValoraConfig||{APP_VERSION:'8.6.0',STORE_KEY:'valoraPulseFinal800',STORAGE_MODE:'local',FIREBASE_ENABLED:false,REQUIRE_AUTH_SERVER_VALIDATION:false};
+const APP_CONFIG=window.ValoraConfig||{APP_VERSION:'8.6.1',STORE_KEY:'valoraPulseFinal800',STORAGE_MODE:'local',FIREBASE_ENABLED:false,REQUIRE_AUTH_SERVER_VALIDATION:false};
 const repository=window.ValoraRepository;
 const VERSION=APP_CONFIG.APP_VERSION;
 const STORE_KEY=APP_CONFIG.STORE_KEY;
 const LOGO_FULL='assets/logo-full.jpeg';
 const LOGO_SYMBOL='assets/logo-symbol.jpeg';
 const DEFAULT_SENDER='valoragroup@mnsoft.com.br';
-const RESERVED_ORG_SLUGS=new Set(['admin','login','valora','api','firebase','suporte','app']);
+const RESERVED_ORG_SLUGS=Object.freeze(['admin','login','valora','api','firebase','suporte','app','www','dashboard','plans','lgpd']);
+const RESERVED_ORG_SLUG_SET=new Set(RESERVED_ORG_SLUGS);
 const VALORA_THEME={logoUrl:LOGO_FULL,primaryColor:'#0b3d4d',secondaryColor:'#d7a94b',accentColor:'#18a0fb',backgroundColor:'#eef7f9',textColor:'#082a37'};
 const COMMERCIAL_BLOCK_MESSAGE='Este recurso não está disponível no plano atual ou a assinatura está suspensa. Fale com a Valora Group para regularizar.';
 
@@ -46,11 +47,9 @@ const PERMISSION_DENIED_MESSAGE='Seu perfil não possui permissão para executar
 const STATUS_LABELS={active:'Ativo',inactive:'Inativo',draft:'Rascunho',closed:'Encerrado',paid:'Pago',open:'Em aberto',overdue:'Vencido',sent:'Enviado',pending:'Pendente',answered:'Respondido',failed:'Falhou',expired:'Expirado'};
 
 const DEFAULT_BRAND={logoUrl:'',logoFileName:'',primaryColor:'#0b3d4d',secondaryColor:'#0f5265',accentColor:'#d6a85c',backgroundColor:'#eef7f9',textColor:'#082a37',useCompanyBrandOnPublicSurvey:true,useCompanyBrandOnEmails:true,showPoweredByValora:true};
-const RESERVED_ORG_SLUGS=new Set(['admin','login','valora','api','firebase','suporte','app']);
 const SUBSCRIPTION_STATUS_LABELS={trial:'Trial',active:'Ativa',overdue:'Pagamento em atraso',suspended:'Suspensa',cancelled:'Cancelada',inactive:'Inativa'};
-const COMMERCIAL_BLOCK_MESSAGE='Este recurso não está disponível no plano atual ou a assinatura está suspensa. Fale com a Valora Group para regularizar.';
 function normalizeSlug(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'').slice(0,60);}
-function validateOrganizationSlug(value,id=''){const v=normalizeSlug(value);if(!v)return 'Slug obrigatório para white label público.';if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v))return 'Slug deve conter apenas letras minúsculas, números e hífen.';if(RESERVED_ORG_SLUGS.has(v))return 'Slug reservado. Escolha outro endereço.';if((state?.companies||[]).some(c=>c.id!==id&&c.slug===v))return 'Slug já está em uso por outra empresa.';return '';}
+function validateOrganizationSlug(value,id=''){const v=normalizeSlug(value);if(!v)return 'Slug obrigatório para white label público.';if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(v))return 'Slug deve conter apenas letras minúsculas, números e hífen.';if(RESERVED_ORG_SLUG_SET.has(v))return 'Slug reservado. Escolha outro endereço.';if((state?.companies||[]).some(c=>c.id!==id&&c.slug===v))return 'Slug já está em uso por outra empresa.';return '';}
 function findOrganizationBySlug(value){const v=normalizeSlug(value);return (state?.companies||[]).find(c=>c.slug===v)||null;}
 function validHex(v){return /^#[0-9a-f]{6}$/i.test(String(v||''));}
 function getCompanyTheme(company){const b={...DEFAULT_BRAND,...(company?.brand||{})};Object.keys(DEFAULT_BRAND).forEach(k=>{if(k.endsWith('Color')&&!validHex(b[k]))b[k]=DEFAULT_BRAND[k];});return b;}
@@ -127,8 +126,15 @@ function run(label,fn,...args){
 }
 function handleError(label,err){
   console.error(`[Valora Pulse] ${label}`,err);
+  if(label==='a inicialização')renderFatalStartupError(err);
   toast(`Não foi possível concluir ${label}. ${err?.message||err}`,'error');
   try{audit('Erro tratado','sistema','',`${label}: ${err?.message||err}`);}catch(_){ }
+}
+function renderFatalStartupError(error){
+  const app=document.getElementById('app');
+  if(!app)return;
+  const isLocalMode=['localhost','127.0.0.1',''].includes(location.hostname)||APP_CONFIG.STORAGE_MODE==='local';
+  app.innerHTML=`<section class="section"><div class="container"><div class="card"><span class="badge danger">Falha na inicialização</span><h1>Não foi possível inicializar o sistema.</h1><p>Atualize a página. Se o problema continuar, contate o suporte.</p><button class="btn btn-primary" type="button" onclick="location.reload()">Tentar novamente</button>${isLocalMode?`<pre class="debug-box">${esc(error?.stack||error?.message||error)}</pre>`:''}</div></div></section>`;
 }
 
 window.addEventListener('error',e=>handleError('a operação',e.error||new Error(e.message)));
@@ -1012,7 +1018,7 @@ function sampleResponse(companyId,surveyId,form){const answers={};form.questions
 
 // White label, assinatura e controles comerciais — evolução SaaS multiempresa.
 function normalizeSlug(value){return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9-]+/g,'-').replace(/^-+|-+$/g,'').replace(/-{2,}/g,'-').slice(0,60);}
-function validateOrganizationSlug(value,currentId=''){const v=normalizeSlug(value);if(!v)return {ok:false,message:'Slug obrigatório para white label público.'};if(RESERVED_ORG_SLUGS.has(v))return {ok:false,message:'Slug reservado.'};const used=state.companies.find(c=>c.id!==currentId&&c.slug===v);return used?{ok:false,message:'Slug já está em uso.'}:{ok:true,value:v};}
+function validateOrganizationSlug(value,currentId=''){const v=normalizeSlug(value);if(!v)return {ok:false,message:'Slug obrigatório para white label público.'};if(RESERVED_ORG_SLUG_SET.has(v))return {ok:false,message:'Slug reservado.'};const used=state.companies.find(c=>c.id!==currentId&&c.slug===v);return used?{ok:false,message:'Slug já está em uso.'}:{ok:true,value:v};}
 function findOrganizationBySlug(slug){return state.companies.find(c=>c.slug===normalizeSlug(slug))||null;}
 function getCompanyTheme(company){const b=company?.brand||{};return {...VALORA_THEME,...b,logoUrl:b.logoUrl||LOGO_FULL};}
 function applyCompanyTheme(company){if(!company||getRoleDefinition(currentUser()?.role).scope==='valora')return resetCompanyTheme();const t=getCompanyTheme(company);document.documentElement.style.setProperty('--brand-primary',t.primaryColor);document.documentElement.style.setProperty('--brand-secondary',t.secondaryColor);document.documentElement.style.setProperty('--brand-accent',t.accentColor);document.documentElement.style.setProperty('--brand-bg',t.backgroundColor);document.documentElement.style.setProperty('--brand-text',t.textColor);}

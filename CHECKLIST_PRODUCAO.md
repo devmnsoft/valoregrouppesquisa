@@ -85,3 +85,8 @@ Use esta checklist como bloqueio de go-live. Cada item deve ter responsável, da
 ## Evolução white label e assinatura
 
 Esta versão adiciona estrutura de identidade visual por empresa, slug público, campos de assinatura, limites customizados, status comercial e portal de plano contratado. Consulte `WHITE_LABEL_E_ASSINATURA.md` para modelo, permissões, regras de bloqueio e roteiro de testes.
+
+## Nota CSP Firebase Hosting
+
+- [ ] Confirmar que o header `Content-Security-Policy` publicado mantém `script-src 'self' https://www.gstatic.com` e inclui `https://www.gstatic.com` também em `connect-src`, necessário para recursos/source maps dos SDKs Firebase durante diagnóstico.
+- [ ] Confirmar que a CSP continua sem `connect-src *`, sem `script-src *` e sem `unsafe-eval`.

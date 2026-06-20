@@ -1,4 +1,4 @@
-# Valora Group™ 8.6.0 — versão funcional local
+# Valora Group™ 8.6.1 — versão funcional local
 
 Plataforma web para criação, aplicação e análise de diagnósticos, pesquisas e provas de cultura, governança, liderança, pessoas, controladoria e advisory.
 
@@ -166,7 +166,7 @@ Regras de segurança implementadas nas Functions:
 
 ## Versão, cache e modos de execução
 
-A versão canônica desta entrega é **Valora Group™ 8.6.0** e fica centralizada em `config.js` por meio de `APP_VERSION`. O `app.js` consome `window.ValoraConfig.APP_VERSION`; o `index.html` usa a mesma versão nas query strings dos assets (`?v=8.6.0`) para facilitar invalidação de cache e diagnóstico de suporte.
+A versão canônica desta entrega é **Valora Group™ 8.6.1** e fica centralizada em `config.js` por meio de `APP_VERSION`. O `app.js` consome `window.ValoraConfig.APP_VERSION`; o `index.html` usa a mesma versão nas query strings dos assets (`?v=8.6.1`) para facilitar invalidação de cache e diagnóstico de suporte.
 
 ### Modo local/demo
 
@@ -176,13 +176,13 @@ Use `server.py` apenas para demonstração local em `STORAGE_MODE: 'local'`. Ele
 curl http://127.0.0.1:8095/api/health
 ```
 
-A resposta deve conter `"version": "8.6.0"`. Se o servidor escolher outra porta, use a porta exibida no terminal.
+A resposta deve conter `"version": "8.6.1"`. Se o servidor escolher outra porta, use a porta exibida no terminal.
 
 ### Modo Firebase/produção
 
 Em produção, publique pelo Firebase Hosting com `STORAGE_MODE: 'firebase'`, `FIREBASE_ENABLED: true`, Firestore Rules revisadas e Cloud Functions para e-mail, CEP, CNPJ e links públicos. O Firebase Hosting aplica os headers definidos em `firebase.json`: HTML sem cache, assets versionados com cache longo, `X-Content-Type-Options`, proteção de frame, `Referrer-Policy`, `Permissions-Policy` e CSP inicial.
 
-A CSP permite scripts locais e SDK Firebase em `https://www.gstatic.com`; conexões para Firebase/Google APIs, Cloud Functions, ViaCEP e BrasilAPI; imagens locais, `data:` e `blob:`. O `style-src` mantém `'unsafe-inline'` temporariamente para evitar quebra visual durante esta etapa de hardening. TODO: remover estilos inline e trocar por classes CSS para retirar `'unsafe-inline'` da política.
+A CSP permite scripts locais e SDK Firebase em `https://www.gstatic.com`; conexões para `https://www.gstatic.com`, Firebase/Google APIs, Cloud Functions, ViaCEP e BrasilAPI; imagens locais, `data:` e `blob:`. O `style-src` mantém `'unsafe-inline'` temporariamente para evitar quebra visual durante esta etapa de hardening. TODO: remover estilos inline e trocar por classes CSS para retirar `'unsafe-inline'` da política.
 
 ### Invalidação de cache
 

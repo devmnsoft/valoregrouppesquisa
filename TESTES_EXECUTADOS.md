@@ -165,3 +165,16 @@ Data: 2026-06-20.
 - Participante: validar pesquisa/resultado disponível e ausência de alertas administrativos.
 - Segurança: validar que empresa A não lê empresa B, participante não lê administrativo e usuário não altera notificação de outro usuário.
 - Mobile: abrir em 360px, validar dropdown, cards e botões sem scroll horizontal.
+
+## Evolução white label e assinatura
+
+Esta versão adiciona estrutura de identidade visual por empresa, slug público, campos de assinatura, limites customizados, status comercial e portal de plano contratado. Consulte `WHITE_LABEL_E_ASSINATURA.md` para modelo, permissões, regras de bloqueio e roteiro de testes.
+
+### Testes manuais previstos — white label e assinatura
+- Admin Valora: editar marca, plano/status comercial, limites customizados e verificar alertas.
+- Empresa Admin: editar logo, cores, nome público e contatos; validar bloqueio de plano/limites.
+- Pesquisa pública: abrir com e sem marca da empresa e verificar Powered by Valora.
+- E-mail: validar preview/HTML com marca da empresa ou Valora padrão.
+- Relatórios: validar capa/uso do plano sem vazamento entre empresas.
+- Bloqueios: empresa suspensa não cria pesquisa/envios; limite excedido bloqueia ações aplicáveis.
+- Mobile: validar tela de personalização e plano em 360px sem scroll horizontal.

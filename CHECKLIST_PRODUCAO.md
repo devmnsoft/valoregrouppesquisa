@@ -81,3 +81,7 @@ Use esta checklist como bloqueio de go-live. Cada item deve ter responsável, da
 - [ ] Gestor de Área lê somente dados da própria empresa e do próprio `department` quando preenchido.
 - [ ] Participante/convidado responde por link seguro sem portal administrativo completo.
 - [ ] Dashboards, respostas, relatórios e certificados usam os mesmos campos de resultado (`rawScore`, `maxScore`, `normalized5`, `percentage`, `byDimension`, `level`, `qualitative`).
+
+## Evolução white label e assinatura
+
+Esta versão adiciona estrutura de identidade visual por empresa, slug público, campos de assinatura, limites customizados, status comercial e portal de plano contratado. Consulte `WHITE_LABEL_E_ASSINATURA.md` para modelo, permissões, regras de bloqueio e roteiro de testes.

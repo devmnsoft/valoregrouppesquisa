@@ -127,6 +127,8 @@ service cloud.firestore {
         'paymentMethod',
         'trialEndsAt',
         'limits',
+        'limitsOverride',
+        'subscription',
         'priceId'
       ]);
     }
@@ -153,10 +155,19 @@ service cloud.firestore {
       return affectedKeys().hasOnly(['status', 'progress', 'evidence', 'comments', 'updatedAt', 'updatedBy', 'completedAt']);
     }
 
+    function companyAllowedOrganizationKeys() {
+      return ['publicName','slogan','brand','settings','updatedAt','updatedBy'];
+    }
+
     function companyCanEditOrganization(organizationId) {
       return isEmpresaAdmin()
              && sameCompany(organizationId)
-             && !organizationBillingOrPlanFieldsChanged();
+             && !organizationBillingOrPlanFieldsChanged()
+             && affectedKeys().hasOnly(companyAllowedOrganizationKeys())
+             && request.resource.data.subscription == resource.data.subscription
+             && request.resource.data.planId == resource.data.planId
+             && request.resource.data.limitsOverride == resource.data.limitsOverride
+             && request.resource.data.status == resource.data.status;
     }
 
     function isGlobalForm() {
@@ -191,6 +202,14 @@ service cloud.firestore {
       allow read: if isValoraTeam() || sameCompany(organizationId);
       allow create, delete: if isValoraAdmin();
       allow update: if isValoraAdmin() || companyCanEditOrganization(organizationId);
+    }
+
+    // Slugs públicos devem ser gravados por processo confiável/Admin Valora.
+    // O app usa organizations.slug para consulta; em produção recomenda-se
+    // organizationSlugs/{slug} para garantir unicidade transacional.
+    match /organizationSlugs/{slug} {
+      allow read: if true;
+      allow write: if isValoraAdmin();
     }
 
     match /users/{uid} {

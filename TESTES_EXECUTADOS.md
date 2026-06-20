@@ -166,24 +166,52 @@ Data: 2026-06-20.
 - Segurança: validar que empresa A não lê empresa B, participante não lê administrativo e usuário não altera notificação de outro usuário.
 - Mobile: abrir em 360px, validar dropdown, cards e botões sem scroll horizontal.
 
-## 2026-06-20 — White label, personalização e assinatura
+## Evolução white label e assinatura
 
-- Admin Valora: revisar tela Clientes com slug, plano/assinatura, status e uso.
-- Admin Valora: validar edição comercial de plano/status/limites por dados de organização em Firestore/local.
-- Empresa Admin: abrir Dados e marca, editar logo URL, cores, nome público, slogan, slug e contatos.
-- Empresa Admin: confirmar que plano, cobrança, limites e status não aparecem como campos editáveis.
-- Portal do plano: verificar nome, valor, status da assinatura, pagamento, renovação, limites, uso e módulos.
-- Pesquisa pública: abrir `index.html?survey=survey_demo&token=<token>&org=empresa-exemplo` e validar marca/Powered by Valora.
-- E-mail: enviar convite e resultado em modo local/outbox para conferir marca quando `useCompanyBrandOnEmails=true`.
-- Bloqueio: configurar `subscription.status=suspended` e confirmar bloqueio de nova pesquisa e convites.
-- Limites: reduzir `limitsOverride.maxActiveSurveys` e validar status excedido/alerta.
-- Mobile: abrir Dados e marca e Plano contratado em 360px sem scroll horizontal.
+Esta versão adiciona estrutura de identidade visual por empresa, slug público, campos de assinatura, limites customizados, status comercial e portal de plano contratado. Consulte `WHITE_LABEL_E_ASSINATURA.md` para modelo, permissões, regras de bloqueio e roteiro de testes.
 
-## Assinaturas e cobrança
+### Testes manuais previstos — white label e assinatura
+- Admin Valora: editar marca, plano/status comercial, limites customizados e verificar alertas.
+- Empresa Admin: editar logo, cores, nome público e contatos; validar bloqueio de plano/limites.
+- Pesquisa pública: abrir com e sem marca da empresa e verificar Powered by Valora.
+- E-mail: validar preview/HTML com marca da empresa ou Valora padrão.
+- Relatórios: validar capa/uso do plano sem vazamento entre empresas.
+- Bloqueios: empresa suspensa não cria pesquisa/envios; limite excedido bloqueia ações aplicáveis.
+- Mobile: validar tela de personalização e plano em 360px sem scroll horizontal.
 
-- Admin Valora: criar fatura manual; marcar como paga; cancelar; visualizar MRR/ARR, faturas em aberto/vencidas, clientes trial/inadimplentes/suspensos.
-- Empresa Admin: visualizar plano, status, ciclo, faturas abertas/pagas e link externo; tentativa de alteração financeira deve ser bloqueada pela UI/regras.
-- Bloqueios: `overdue`, `suspended`, `cancelled`, `inactive` limitam criação/envio/relatórios conforme helper central.
-- Notificações: trial vencendo/expirado, fatura próxima, pagamento confirmado, falha de pagamento e assinatura suspensa.
-- Firebase Rules: Empresa A não lê fatura da B; gestor/analista/participante/convidado não acessam financeiro; Admin Valora altera.
-- Mobile: painel financeiro usa tabela responsiva já convertida em cards por `enhanceResponsiveTables`.
+## Correção de inicialização — RESERVED_ORG_SLUGS e CSP Firebase
+
+Data: 2026-06-20.
+
+### Erro encontrado
+
+- A aplicação ficava presa em “Carregando o sistema...” porque `app.js` declarava `RESERVED_ORG_SLUGS` duas vezes no mesmo IIFE com `const`, gerando `Uncaught SyntaxError: Identifier 'RESERVED_ORG_SLUGS' has already been declared` antes da inicialização.
+- A CSP do Firebase Hosting permitia scripts de `https://www.gstatic.com`, mas não permitia conexões para o mesmo host em `connect-src`, causando bloqueio dos source maps `firebase-*.js.map` carregados pelo DevTools.
+
+### Causa
+
+- Duplicação de bloco da evolução de white label/slug em `app.js`, incluindo `RESERVED_ORG_SLUGS` e a mensagem comercial.
+- Cabeçalho `Content-Security-Policy` em `firebase.json` incompleto para o fluxo de debug/source maps do Firebase hospedado em `www.gstatic.com`.
+
+### Correção de inicialização
+
+- Corrigida declaração duplicada de `RESERVED_ORG_SLUGS`, mantendo uma única lista congelada e um `Set` derivado para validação eficiente.
+- Corrigida CSP para permitir source maps/recursos do Firebase em `https://www.gstatic.com` via `connect-src`, sem usar `*`, `unsafe-eval` ou ampliar `script-src`.
+- Adicionado fallback visual para falha fatal de inicialização, com mensagem clara no `#app` e botão “Tentar novamente”, evitando carregamento infinito em erros de runtime.
+- Atualizada a versão de assets para `8.6.1`, forçando invalidação dos JS/CSS versionados no navegador.
+- Validado por sintaxe que o sistema não mantém o erro de redeclaração e pode sair da tela de carregamento após o parse de `app.js`.
+
+### Validação executada
+
+- `rg -n "RESERVED_ORG_SLUGS|const RESERVED_ORG_SLUGS|let RESERVED_ORG_SLUGS|var RESERVED_ORG_SLUGS" . -g '!node_modules' -g '!functions/node_modules'` — confirmado apenas um `const RESERVED_ORG_SLUGS` local e usos via `RESERVED_ORG_SLUG_SET`.
+- `node --check` em todos os arquivos JavaScript locais encontrados por `rg --files -g '*.js' -g '!node_modules' -g '!functions/node_modules'` — aprovado.
+- `git diff --check` — aprovado.
+
+### Roteiro manual pós-deploy
+
+- Abrir `index.html` ou a URL do Firebase Hosting em janela anônima para garantir download dos assets `?v=8.6.1`.
+- Confirmar que a home sai de “Carregando o sistema...” e renderiza os cards principais.
+- Abrir `#login`, autenticar com usuário de teste e verificar menu.
+- Abrir `#admin/dashboard` com perfil `admin_valora`.
+- Abrir `#admin/plans` e validar que a rota de planos renderiza.
+- Confirmar no console que não há `SyntaxError` de `RESERVED_ORG_SLUGS` nem bloqueio CSP para `https://www.gstatic.com/firebasejs/... .map`.

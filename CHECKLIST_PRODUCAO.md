@@ -84,16 +84,9 @@ Use esta checklist como bloqueio de go-live. Cada item deve ter responsável, da
 
 ## Evolução white label e assinatura
 
-- [ ] Validar unicidade de slug com `organizationSlugs/{slug}` ou Cloud Function transacional.
-- [ ] Confirmar rules impedindo Empresa Admin de alterar assinatura, plano e limites.
-- [ ] Testar links públicos com `?org=slug`.
-- [ ] Testar e-mails com marca da empresa e rodapé Valora.
-- [ ] Testar bloqueios para `suspended`, `cancelled` e limites excedidos.
+Esta versão adiciona estrutura de identidade visual por empresa, slug público, campos de assinatura, limites customizados, status comercial e portal de plano contratado. Consulte `WHITE_LABEL_E_ASSINATURA.md` para modelo, permissões, regras de bloqueio e roteiro de testes.
 
-## Checklist financeiro e gateway
+## Nota CSP Firebase Hosting
 
-- [ ] Configurar secrets do gateway apenas em Cloud Functions.
-- [ ] Validar assinatura criptográfica dos webhooks reais.
-- [ ] Testar idempotência de eventos de pagamento.
-- [ ] Confirmar Firestore Rules de `invoices` para Admin Valora e Empresa Admin.
-- [ ] Testar modo manual antes de ativar gateway real.
+- [ ] Confirmar que o header `Content-Security-Policy` publicado mantém `script-src 'self' https://www.gstatic.com` e inclui `https://www.gstatic.com` também em `connect-src`, necessário para recursos/source maps dos SDKs Firebase durante diagnóstico.
+- [ ] Confirmar que a CSP continua sem `connect-src *`, sem `script-src *` e sem `unsafe-eval`.

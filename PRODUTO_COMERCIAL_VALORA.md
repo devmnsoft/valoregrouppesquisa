@@ -98,3 +98,7 @@ O módulo **Plano de ação** transforma diagnósticos em execução acompanháv
 ## Central de Notificações e Alertas Inteligentes
 
 O Valora Pulse agora possui sino global, contador de não lidas, dropdown, tela “Central de notificações”, ações para marcar como lida/dispensar e links rápidos. A documentação completa de tipos, regras, permissões, Firestore e lembretes automáticos está em `NOTIFICACOES_E_ALERTAS.md`.
+
+## Evolução white label e assinatura
+
+O produto agora separa identidade visual da empresa cliente de dados comerciais críticos. Empresa Admin personaliza nome público, slogan, logo, cores e contatos; Admin Valora controla plano, assinatura, limites, cobrança e status comercial. Status `trial`, `active`, `overdue`, `suspended`, `cancelled` e `inactive` orientam alertas e bloqueios.

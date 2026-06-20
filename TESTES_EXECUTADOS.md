@@ -215,3 +215,44 @@ Data: 2026-06-20.
 - Abrir `#admin/dashboard` com perfil `admin_valora`.
 - Abrir `#admin/plans` e validar que a rota de planos renderiza.
 - Confirmar no console que não há `SyntaxError` de `RESERVED_ORG_SLUGS` nem bloqueio CSP para `https://www.gstatic.com/firebasejs/... .map`.
+
+## Correção de inicialização 8.6.2
+
+Data: 2026-06-20.
+
+### Problemas corrigidos
+
+- `state` era acessado antes da inicialização durante `normalizeState`, porque `let state = loadStore()` executava antes de toda a base auxiliar estar pronta e `normalizeCompany()` chamava `planById()` com dependência do estado global.
+- `calculateResult` podia ser acessado antes da inicialização durante `seedStore`, pois o carregamento/seed local ocorria antes da declaração `const calculateResult = calculateSurveyResult` ser executada.
+- `localStorage` antigo, corrompido ou incompatível podia travar a aplicação na tela “Carregando o sistema...”.
+- CSP não permitia `https://www.gstatic.com` no `connect-src` para source maps/recursos de debug do Firebase.
+
+### Correção aplicada
+
+- A inicialização do estado passou a ser tardia: `state` começa como `null`, `window.ValoraState` começa como `null`, e `initializeState()` executa `loadStore()` no início de `init()`.
+- `planById()` e `defaultPlan()` passaram a tolerar `state` nulo e delegam para helpers puros `planByIdFrom(plans, id)` e `defaultPlanFrom(plans)`.
+- `normalizeCompany(company, store)` agora usa os planos do objeto em normalização (`store.plans`) e não consulta o estado global durante o carregamento inicial.
+- `normalizeState(obj)` chama `normalizeCompany(c, obj)`, mantendo a normalização autocontida no objeto recebido.
+- `local-repository.js` recria um seed limpo quando o JSON local falha no parse ou na normalização, normaliza o seed e grava novamente no `localStorage`.
+- Tela fatal de inicialização ganhou ação para recriar a base local, evitando carregamento infinito em falhas não recuperáveis no navegador.
+- Versão dos assets atualizada para `8.6.2`.
+
+### Validação
+
+- O app deve sair da tela de carregamento.
+- Login local/demo deve funcionar.
+- Rotas principais devem funcionar: home, `#login`, `#admin/dashboard`, `#admin/plans`, dashboard da empresa e área do participante.
+- Recarregar a página não deve quebrar a aplicação.
+- LocalStorage antigo incompatível deve ser descartado e substituído por seed limpo.
+- Console não deve mostrar `Cannot access 'state' before initialization`, `Cannot access 'calculateResult' before initialization` ou `Identifier ... has already been declared`.
+- `node --check` executado nos JS principais.
+
+### Checks automatizados executados
+
+- `node --check app.js`: passou.
+- `node --check local-repository.js`: passou.
+- `node --check config.js`: passou.
+- `node --check firebase-init.js`: passou.
+- `node --check firebase-repository.js`: passou.
+- `node --check repository.js`: passou.
+- `node --check pdf.js`: passou.

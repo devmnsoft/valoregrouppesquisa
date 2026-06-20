@@ -6,13 +6,19 @@ function clone(v){return JSON.parse(JSON.stringify(v));}
 window.ValoraLocalRepository={
   mode:'local',
   loadStore({storeKey,seedStore,normalizeState}){
+    const resetCorruptedLocalStore=reason=>{
+      console.warn('[Valora Pulse] Base local incompatível. Recriando seed.',reason);
+      try{localStorage.removeItem(storeKey);}catch(_){ }
+      const seeded=seedStore();
+      normalizeState(seeded);
+      localStorage.setItem(storeKey,JSON.stringify(seeded));
+      return seeded;
+    };
     try{
       const raw=localStorage.getItem(storeKey);
       if(raw){const obj=JSON.parse(raw);normalizeState(obj);return obj;}
-    }catch(err){console.warn('[Valora Pulse] Falha ao carregar localStorage',err);}
-    const seeded=seedStore();
-    localStorage.setItem(storeKey,JSON.stringify(seeded));
-    return seeded;
+    }catch(err){return resetCorruptedLocalStore(err);}
+    return resetCorruptedLocalStore('Base local ausente.');
   },
   saveStore({storeKey,state}){localStorage.setItem(storeKey,JSON.stringify(state));},
   login({state,email,password,nowIso}){

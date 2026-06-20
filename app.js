@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const APP_CONFIG=window.ValoraConfig||{APP_VERSION:'8.6.1',STORE_KEY:'valoraPulseFinal800',STORAGE_MODE:'local',FIREBASE_ENABLED:false,REQUIRE_AUTH_SERVER_VALIDATION:false};
+const APP_CONFIG=window.ValoraConfig||{APP_VERSION:'8.6.2',STORE_KEY:'valoraPulseFinal800',STORAGE_MODE:'local',FIREBASE_ENABLED:false,REQUIRE_AUTH_SERVER_VALIDATION:false};
 const repository=window.ValoraRepository;
 const VERSION=APP_CONFIG.APP_VERSION;
 const STORE_KEY=APP_CONFIG.STORE_KEY;
@@ -106,8 +106,8 @@ O envio de resultado por e-mail ou WhatsApp é opcional e depende da escolha do 
 10. ACEITE
 Ao marcar a opção de aceite, o participante declara que leu e compreendeu este termo e autoriza o tratamento necessário à participação, ao cálculo do resultado e às comunicações escolhidas. Este texto deve ser validado juridicamente antes do uso em produção.`;
 
-let state=loadStore();
-window.ValoraState=state;
+let state=null;
+window.ValoraState=null;
 let currentRoute='home';
 let builderDraft=null;
 let confirmCallback=null;
@@ -134,7 +134,8 @@ function renderFatalStartupError(error){
   const app=document.getElementById('app');
   if(!app)return;
   const isLocalMode=['localhost','127.0.0.1',''].includes(location.hostname)||APP_CONFIG.STORAGE_MODE==='local';
-  app.innerHTML=`<section class="section"><div class="container"><div class="card"><span class="badge danger">Falha na inicialização</span><h1>Não foi possível inicializar o sistema.</h1><p>Atualize a página. Se o problema continuar, contate o suporte.</p><button class="btn btn-primary" type="button" onclick="location.reload()">Tentar novamente</button>${isLocalMode?`<pre class="debug-box">${esc(error?.stack||error?.message||error)}</pre>`:''}</div></div></section>`;
+  const resetButton=isLocalMode?`<button class="btn btn-secondary" type="button" onclick="localStorage.removeItem('${STORE_KEY}'); location.reload()">Recriar base local</button>`:'';
+  app.innerHTML=`<section class="section"><div class="container"><div class="card"><span class="badge danger">Falha na inicialização</span><h1>Não foi possível carregar o Valora Pulse™</h1><p>Atualize a página. Se o problema continuar, contate o suporte.</p><div class="confirm-actions"><button class="btn btn-primary" type="button" onclick="location.reload()">Tentar novamente</button>${resetButton}</div>${isLocalMode?`<pre class="debug-box">${esc(error?.stack||error?.message||error)}</pre>`:''}</div></div></section>`;
 }
 
 window.addEventListener('error',e=>handleError('a operação',e.error||new Error(e.message)));
@@ -167,6 +168,7 @@ document.addEventListener('keydown',e=>{
 
 async function init(){
   if(!repository)throw new Error('Camada de repositório não carregada.');
+  if(!state)initializeState();
   if(repository.mode==='firebase'&&window.ValoraFirebaseAuth?.waitUntilReady)await window.ValoraFirebaseAuth.waitUntilReady();
   window.addEventListener('valora:auth-changed',()=>routeFromLocation());
   renderShell();
@@ -957,8 +959,10 @@ function currentUser(){return repository.currentUser({state});}
 function currentCompany(){const u=currentUser();return u?.companyId?companyById(u.companyId):null;}
 function companyById(id){return loadCompanies().find(c=>c.id===id)||null;}
 function companyName(id){return companyById(id)?.name||'Valora Group';}
-function planById(id){return state.plans.find(p=>p.id===id)||null;}
-function defaultPlan(){return state.plans.find(p=>p.default)||state.plans[0];}
+function planByIdFrom(plans,id){return (plans||[]).find(p=>p.id===id)||null;}
+function defaultPlanFrom(plans){return (plans||[]).find(p=>p.default)||(plans||[])[0]||null;}
+function planById(id){return planByIdFrom(state?.plans,id);}
+function defaultPlan(){return defaultPlanFrom(state?.plans);}
 function formById(id){return loadForms().find(f=>f.id===id)||null;}
 function surveyTitle(id){return loadSurveys().find(s=>s.id===id)?.title||'Pesquisa removida';}
 function canManageCompany(id){const u=currentUser();return !!u&&(u.role==='admin_valora'||u.role==='consultor_valora'||u.companyId===id);}
@@ -987,6 +991,7 @@ function createInvoiceForCompany(c){const p=planById(c.planId);if(p&&p.price>0)s
 function audit(action,entityType='',entityId='',detail=''){const u=currentUser();state.logs.push({id:uid('log'),createdAt:nowIso(),userName:u?.name||'Sistema',userRole:u?.role||'',action,entityType,entityId,detail});if(state.logs.length>3000)state.logs=state.logs.slice(-3000);save();}
 function save(){try{saveChanges();}catch(err){console.error(err);toast('O navegador não conseguiu salvar os dados.','error');}}
 function loadStore(){return repository.loadStore({storeKey:STORE_KEY,seedStore,normalizeState});}
+function initializeState(){state=loadStore();window.ValoraState=state;return state;}
 
 // Fachada de acesso a dados. Hoje o modo local mantém o comportamento do MVP;
 // em produção, estes pontos passam a delegar para Firebase Auth/Firestore/Functions.
@@ -999,7 +1004,7 @@ function loadSurveys(){return repository.loadSurveys({state});}
 function loadResponses(){return repository.loadResponses({state});}
 function saveChanges(){if(window.ValoraNotifications)window.ValoraNotifications.generateNotifications(state);return repository.saveChanges({storeKey:STORE_KEY,state});}
 
-function normalizeCompany(c){const planId=c.planId||c.subscription?.planId||defaultPlan()?.id;const base={legalName:c.legalName||c.name||'',publicName:c.publicName||c.name||'',slogan:c.slogan||'',slug:c.slug||normalizeSlug(c.name||c.id||''),brand:{logoUrl:'',logoFileName:'',primaryColor:VALORA_THEME.primaryColor,secondaryColor:VALORA_THEME.secondaryColor,accentColor:VALORA_THEME.accentColor,backgroundColor:VALORA_THEME.backgroundColor,textColor:VALORA_THEME.textColor,useCompanyBrandOnPublicSurvey:true,useCompanyBrandOnEmails:false,showPoweredByValora:true},subscription:{planId,planName:planById(planId)?.name||'',status:c.status==='inactive'?'inactive':'active',billingStatus:'open',billingCycle:'monthly',trialStartedAt:'',trialEndsAt:'',currentPeriodStart:c.createdAt||nowIso(),currentPeriodEnd:'',nextBillingAt:'',cancelledAt:'',suspendedAt:'',paymentProvider:'manual',externalCustomerId:'',externalSubscriptionId:'',notes:'',startedAt:c.createdAt||nowIso(),renewedAt:'',paymentMethod:''},limitsOverride:{},settings:{contactEmail:c.email||'',supportEmail:'',whatsapp:c.phone||'',lgpdContact:'',defaultSurveyExpirationDays:30,allowPublicResults:true,allowParticipantCertificates:true},...c};base.planId=planId;base.subscription={...base.subscription,...(c.subscription||{}),planId};base.brand={...base.brand,...(c.brand||{})};base.settings={...base.settings,...(c.settings||{})};base.limitsOverride={...base.limitsOverride,...(c.limitsOverride||{})};return base;}
+function normalizeCompany(c,store=state){const plans=store?.plans||[];let planId=c.planId||c.subscription?.planId||defaultPlanFrom(plans)?.id||'';const selectedPlan=planByIdFrom(plans,planId),fallbackPlan=defaultPlanFrom(plans);if(!selectedPlan&&fallbackPlan)planId=fallbackPlan.id;const base={legalName:c.legalName||c.name||'',publicName:c.publicName||c.name||'',slogan:c.slogan||'',slug:c.slug||normalizeSlug(c.name||c.id||''),brand:{logoUrl:'',logoFileName:'',primaryColor:VALORA_THEME.primaryColor,secondaryColor:VALORA_THEME.secondaryColor,accentColor:VALORA_THEME.accentColor,backgroundColor:VALORA_THEME.backgroundColor,textColor:VALORA_THEME.textColor,useCompanyBrandOnPublicSurvey:true,useCompanyBrandOnEmails:false,showPoweredByValora:true},subscription:{planId,planName:planByIdFrom(plans,planId)?.name||'',status:c.status==='inactive'?'inactive':'active',billingStatus:'open',billingCycle:'monthly',trialStartedAt:'',trialEndsAt:'',currentPeriodStart:c.createdAt||nowIso(),currentPeriodEnd:'',nextBillingAt:'',cancelledAt:'',suspendedAt:'',paymentProvider:'manual',externalCustomerId:'',externalSubscriptionId:'',notes:'',startedAt:c.createdAt||nowIso(),renewedAt:'',paymentMethod:''},limitsOverride:{},settings:{contactEmail:c.email||'',supportEmail:'',whatsapp:c.phone||'',lgpdContact:'',defaultSurveyExpirationDays:30,allowPublicResults:true,allowParticipantCertificates:true},...c};base.planId=planId;base.subscription={...base.subscription,...(c.subscription||{}),planId};base.brand={...base.brand,...(c.brand||{})};base.settings={...base.settings,...(c.settings||{})};base.limitsOverride={...base.limitsOverride,...(c.limitsOverride||{})};return base;}
 function normalizePlan(plan,modules=null){
   const p={status:'active',maxEmployees:0,features:[],enabledModules:null,internalNotes:'',allowReports:true,allowCertificates:true,allowEmailSending:true,allowValoraBot:false,allowExport:true,allowCustomQuestionnaires:true,allowGlobalTemplates:false,...(plan||{})};
   p.features=Array.isArray(p.features)?p.features:[];
@@ -1007,7 +1012,7 @@ function normalizePlan(plan,modules=null){
   p.price=Number(p.price||0);p.maxActiveSurveys=Number(p.maxActiveSurveys??0);p.maxResponsesMonth=Number(p.maxResponsesMonth??0);p.maxManagers=Number(p.maxManagers??0);p.maxEmployees=Number(p.maxEmployees??p.maxRespondents??0);
   return p;
 }
-function normalizeState(obj=state){obj.version=VERSION;obj.settings=obj.settings||{};obj.settings.lgpdText=obj.settings.lgpdText||LGPD_TEXT;obj.settings.faq=obj.settings.faq||defaultFaq();obj.settings.email={mode:'outbox',senderName:'Valora Group',senderEmail:DEFAULT_SENDER,smtpUsername:DEFAULT_SENDER,smtpHost:'',smtpPort:587,smtpSecurity:'starttls',...(obj.settings.email||{})};obj.modules=obj.modules||seedModules();obj.plans=(obj.plans||seedPlans()).map(plan=>normalizePlan(plan,obj.modules));obj.companies=(obj.companies||[]).map(normalizeCompany);obj.users=obj.users||[];obj.forms=(obj.forms||[]).map(normalizeForm);obj.surveys=obj.surveys||[];obj.responses=(obj.responses||[]).map(r=>({...r,resultToken:r.resultToken||secureToken(),normalized5:Number(r.normalized5??r.average??0),percentage:Number(r.percentage??(Number(r.average||0)/5*100)),rawScore:Number(r.rawScore??r.totalScore??0),maxScore:Number(r.maxScore??r.totalMax??0)}));obj.invoices=(obj.invoices||[]).map(normalizeInvoice);obj.notifications=obj.notifications||[];if(window.ValoraNotifications)window.ValoraNotifications.generateNotifications(obj);obj.actionPlans=(obj.actionPlans||[]).map(normalizeActionPlan);obj.invitations=(obj.invitations||[]).map(i=>({...i,status:i.status||'pending'}));obj.logs=obj.logs||[];return obj;}
+function normalizeState(obj=state){obj.version=VERSION;obj.settings=obj.settings||{};obj.settings.lgpdText=obj.settings.lgpdText||LGPD_TEXT;obj.settings.faq=obj.settings.faq||defaultFaq();obj.settings.email={mode:'outbox',senderName:'Valora Group',senderEmail:DEFAULT_SENDER,smtpUsername:DEFAULT_SENDER,smtpHost:'',smtpPort:587,smtpSecurity:'starttls',...(obj.settings.email||{})};obj.modules=obj.modules||seedModules();obj.plans=(obj.plans||seedPlans()).map(plan=>normalizePlan(plan,obj.modules));obj.companies=(obj.companies||[]).map(c=>normalizeCompany(c,obj));obj.users=obj.users||[];obj.forms=(obj.forms||[]).map(normalizeForm);obj.surveys=obj.surveys||[];obj.responses=(obj.responses||[]).map(r=>({...r,resultToken:r.resultToken||secureToken(),normalized5:Number(r.normalized5??r.average??0),percentage:Number(r.percentage??(Number(r.average||0)/5*100)),rawScore:Number(r.rawScore??r.totalScore??0),maxScore:Number(r.maxScore??r.totalMax??0)}));obj.invoices=(obj.invoices||[]).map(normalizeInvoice);obj.notifications=obj.notifications||[];if(window.ValoraNotifications)window.ValoraNotifications.generateNotifications(obj);obj.actionPlans=(obj.actionPlans||[]).map(normalizeActionPlan);obj.invitations=(obj.invitations||[]).map(i=>({...i,status:i.status||'pending'}));obj.logs=obj.logs||[];return obj;}
 
 function normalizeInvoice(i){const c=companyById(i.companyId)||{};return {id:i.id||uid('inv'),companyId:i.companyId||i.organizationId||'',organizationId:i.organizationId||i.companyId||'',planId:i.planId||companyById(i.companyId)?.planId||'',subscriptionId:i.subscriptionId||i.companyId||'',number:i.number||`FAT-${String(i.createdAt||nowIso()).slice(0,10).replace(/-/g,'')}-${String(i.id||'').slice(-4).toUpperCase()}`,description:i.description||'Assinatura Valora Pulse',amount:Number(i.amount||0),currency:i.currency||'BRL',status:i.status||'open',dueDate:i.dueDate||i.dueAt||'',dueAt:i.dueAt||i.dueDate||'',paidAt:i.paidAt||'',cancelledAt:i.cancelledAt||'',refundedAt:i.refundedAt||'',billingPeriodStart:i.billingPeriodStart||'',billingPeriodEnd:i.billingPeriodEnd||'',paymentMethod:i.paymentMethod||'',paymentProvider:i.paymentProvider||'manual',externalInvoiceId:i.externalInvoiceId||'',externalPaymentId:i.externalPaymentId||'',paymentUrl:i.paymentUrl||'',pixCode:i.pixCode||'',boletoUrl:i.boletoUrl||'',customerName:i.customerName||c.name||'',customerEmail:i.customerEmail||c.email||'',customerDocument:i.customerDocument||c.document||'',items:i.items||[{description:i.description||'Assinatura Valora Pulse',quantity:1,unitPrice:Number(i.amount||0),total:Number(i.amount||0)}],createdAt:i.createdAt||nowIso(),updatedAt:i.updatedAt||'',createdBy:i.createdBy||'',updatedBy:i.updatedBy||'',notes:i.notes||''};}
 function seedStore(){

@@ -192,6 +192,56 @@ service cloud.firestore {
       allow write: if isValoraAdmin();
     }
 
+
+    function canHandleSupportFor(company) {
+      return isValoraTeam() || (isEmpresaAdmin() && sameCompany(company));
+    }
+
+    match /supportConversations/{conversationId} {
+      allow read: if signedIn() && (
+        resource.data.requesterUserId == request.auth.uid ||
+        canHandleSupportFor(resource.data.companyId)
+      );
+      allow create: if signedIn() && request.resource.data.requesterUserId == request.auth.uid
+                    && request.resource.data.companyId == companyId();
+      allow update: if signedIn()
+                    && request.resource.data.companyId == resource.data.companyId
+                    && (
+                      resource.data.requesterUserId == request.auth.uid ||
+                      canHandleSupportFor(resource.data.companyId)
+                    );
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if signedIn() && exists(/databases/$(database)/documents/supportConversations/$(conversationId))
+          && (
+            get(/databases/$(database)/documents/supportConversations/$(conversationId)).data.requesterUserId == request.auth.uid ||
+            canHandleSupportFor(get(/databases/$(database)/documents/supportConversations/$(conversationId)).data.companyId)
+          );
+        allow create: if signedIn() && exists(/databases/$(database)/documents/supportConversations/$(conversationId))
+          && request.resource.data.conversationId == conversationId
+          && (
+            get(/databases/$(database)/documents/supportConversations/$(conversationId)).data.requesterUserId == request.auth.uid ||
+            canHandleSupportFor(get(/databases/$(database)/documents/supportConversations/$(conversationId)).data.companyId)
+          );
+        allow update, delete: if false;
+      }
+    }
+
+    match /supportMessages/{messageId} {
+      allow read: if signedIn() && exists(/databases/$(database)/documents/supportConversations/$(resource.data.conversationId))
+        && (
+          get(/databases/$(database)/documents/supportConversations/$(resource.data.conversationId)).data.requesterUserId == request.auth.uid ||
+          canHandleSupportFor(get(/databases/$(database)/documents/supportConversations/$(resource.data.conversationId)).data.companyId)
+        );
+      allow create: if signedIn() && exists(/databases/$(database)/documents/supportConversations/$(request.resource.data.conversationId))
+        && (
+          get(/databases/$(database)/documents/supportConversations/$(request.resource.data.conversationId)).data.requesterUserId == request.auth.uid ||
+          canHandleSupportFor(get(/databases/$(database)/documents/supportConversations/$(request.resource.data.conversationId)).data.companyId)
+        );
+      allow update, delete: if false;
+    }
+
     // Logs são append-only pelo backend/Cloud Functions (Admin SDK bypassa rules).
     // Nenhum frontend, nem mesmo admin_valora autenticado no client, altera logs.
     match /logs/{logId} {

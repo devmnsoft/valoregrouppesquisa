@@ -104,3 +104,11 @@ Esta versão adiciona estrutura de identidade visual por empresa, slug público,
 - [ ] Configurar `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID` via Secrets.
 - [ ] Validar Firestore Rules para `logs` e `systemLogs`.
 - [ ] Testar mascaramento antes de habilitar Telegram em produção.
+
+
+## Observabilidade e suporte
+
+- Validar `logger-service.js` sem dados sensíveis.
+- Configurar Telegram somente via backend/secrets.
+- Publicar Cloud Functions de atendimento público com rate limit.
+- Revisar regras de `supportConversations` e `supportMessages`.

@@ -548,3 +548,6 @@ html,body{max-width:100%;overflow-x:hidden}
 .public-brand{background:var(--company-bg,#eef7f9);color:var(--company-text,#082a37);border-color:var(--company-primary,#0b3d4d)}
 .public-brand b{display:block;font-size:1.25rem}.public-brand span{color:inherit;opacity:.8}.powered{text-align:center;color:var(--muted);font-size:.85rem;margin:18px 0 0}.usage-row.atenção .bar span{background:var(--warning)}.usage-row.excedido .bar span{background:var(--danger)}
 @media(max-width:420px){.brand-preview,.public-brand{align-items:flex-start;flex-direction:column}.brand-preview img,.public-brand img{width:72px;height:72px}.brand-preview span{display:block;width:max-content}.survey-container{padding-left:0;padding-right:0}}
+.support-thread{max-height:52vh;overflow:auto;display:grid;gap:10px;padding:8px;background:#f6fbfc;border-radius:16px}
+.bot-panel .bot-quick{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+@media (max-width:420px){.support-thread{max-height:46vh}.bot-panel{width:min(100vw - 16px,360px);right:8px}.modal-layer .modal{width:min(100vw - 16px,360px)}}

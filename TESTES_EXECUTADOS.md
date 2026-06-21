@@ -383,3 +383,15 @@ Data: 2026-06-20.
 ### Comandos executados
 
 - `for f in $(rg --files -g '*.js' | sort); do node --check "$f" || exit 1; done` — aprovado.
+
+
+## Evolução: logger, manuais, chatbot e atendimento
+
+- Logger: simular logs debug/info/warn/error/critical/audit/security em Admin > Logs.
+- Erros: simular erro frontend, async, Firebase, e-mail, chatbot e verificar toast + log.
+- Manuais: validar public, admin_valora, consultor_valora, empresa_admin, gestor_pesquisa, analista_resultados, gestor_area, participante e convidado_externo.
+- Chatbot público: perguntar “O que é o Valora Pulse?”, “Como respondo uma pesquisa?”, “Meus dados estão seguros?” e “Como falo com suporte?”.
+- Chatbot logado: testar empresa_admin, participante e analista_resultados com perguntas de permissão.
+- Atendimento: abrir conversa pública, logada e assumir/encerrar como atendente autorizado.
+- Segurança: confirmar e-mail/token/URL sanitizados e ausência de token Telegram no frontend.
+- Mobile: validar manual, chatbot, chat e fila em 360px.

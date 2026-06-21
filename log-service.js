@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 const LEVELS=['debug','info','warn','error','critical','audit','security','test'];
-const CATEGORIES=['auth','user','company','plan','module','survey','form','invitation','response','report','action_plan','notification','billing','integration','api','webhook','firebase','system','security','test'];
+const CATEGORIES=['system','auth','user','company','profile','permission','plan','module','form','survey','invitation','response','report','action_plan','notification','billing','integration','api','webhook','chatbot','support_chat','manual','firebase','telegram','security','test'];
 const DEFAULT_CONFIG={enabled:true,consoleEnabled:true,persistLogs:true,telegramEnabled:false,telegramLevels:['critical','error','security'],telegramCategories:['system','security','billing','integration','firebase'],maskSensitiveData:true,maxLocalLogs:3000,environment:'local'};
 function uid(p='log'){return `${p}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,9)}`;}
 function maskEmail(email){const [name,domain]=String(email||'').split('@');if(!domain)return '';return `${name.slice(0,2)}***@${domain}`;}
@@ -21,5 +21,5 @@ function createSystemLog(event={}){const cfg=config();if(!cfg.enabled)return nul
  if(window.ValoraConfig?.STORAGE_MODE==='firebase')persistRemote(log);
  if(shouldTelegram(log,cfg))sendTelegram(log);return log;}
  const api={DEFAULT_CONFIG,maskEmail,maskDocument,maskToken,sanitizeLogMetadata,sanitizeTelegramMessage,createSystemLog,logDebug:e=>createSystemLog({...e,level:'debug'}),logInfo:e=>createSystemLog({...e,level:'info'}),logWarn:e=>createSystemLog({...e,level:'warn'}),logError:e=>createSystemLog({...e,level:'error'}),logCritical:e=>createSystemLog({...e,level:'critical'}),logAudit:e=>createSystemLog({...e,level:'audit'}),logSecurity:e=>createSystemLog({...e,level:'security',category:e?.category||'security'}),logTest:e=>createSystemLog({...e,level:e?.level||'test',category:'test',isTest:true})};
- window.ValoraLogs=api;
+ window.ValoraLogs=api;window.ValoraLogger=window.ValoraLogger||{debug:api.logDebug,info:api.logInfo,warn:api.logWarn,error:api.logError,critical:api.logCritical,audit:api.logAudit,security:api.logSecurity,test:api.logTest,logEvent:api.createSystemLog,logError:api.logError,sanitizeMetadata:api.sanitizeLogMetadata,sanitizeExternalLogPayload:api.sanitizeTelegramMessage};
 })();

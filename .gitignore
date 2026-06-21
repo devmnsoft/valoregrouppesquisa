@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+functions/node_modules/
+
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+.env.local
+.env.production
+telegram.env
+secrets.json
+.runtimeconfig.json
+
+# Firebase local/runtime artifacts
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
+# Local generated data
+data/outbox/
+*.eml
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/

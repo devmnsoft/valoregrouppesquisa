@@ -328,3 +328,7 @@ Data: 2026-06-20.
 - Segurança: simular acesso negado e confirmar log `security`.
 - Erros: simular erro frontend e confirmar captura sem quebrar o sistema.
 - Anti-spam: repetir evento crítico mais de 10 vezes em 5 minutos e confirmar rate limit nas Functions.
+
+## Observabilidade adicionada
+- Logs centralizados em `log-service.js` com mascaramento, exportação CSV/JSON/Excel compatível e testes manuais no painel Admin.
+- Arquivos locais de segredo (`.env`, `.env.local`, `.env.production`, `telegram.env`, `secrets.json`) são ignorados pelo Git.

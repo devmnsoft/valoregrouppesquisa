@@ -422,3 +422,72 @@ Data: 2026-06-20.
 - `node --check app.js` — aprovado.
 - `for f in $(rg --files -g '*.js' -g '!functions/node_modules/**' -g '!node_modules/**' | sort); do node --check "$f" || exit 1; done` — aprovado.
 - `python3 -m py_compile server.py` — aprovado.
+
+## ValoraBot 2.0 — evolução conversacional
+
+### Público sem login
+
+- O que é o Valora Pulse?
+- Como respondo uma pesquisa?
+- Meus dados estão seguros?
+- O que é LGPD?
+- Meu link expirou.
+- Quero falar com suporte.
+
+### Admin Valora
+
+- Como cadastrar cliente?
+- Como ver logs?
+- Como configurar Telegram?
+- Como configurar planos?
+- Como acompanhar implantação?
+
+### Empresa Admin
+
+- Como cadastrar funcionários?
+- Qual perfil devo escolher?
+- Como criar pesquisa?
+- Como enviar convites?
+- Como ver respostas?
+
+### Gestor Pesquisa
+
+- Como criar questionário?
+- Como configurar pontuação?
+- Como enviar pesquisa?
+- Como ver pendentes?
+
+### Analista Resultados
+
+- Como ver relatórios?
+- Como filtrar respostas?
+- Como interpretar dimensões?
+
+### Participante
+
+- Como responder?
+- Como ver resultado?
+- Como baixar certificado?
+- Como excluir meus dados?
+
+### Atendimento
+
+- Pedir atendente sem login.
+- Pedir atendente logado.
+- Bot encaminha conversa.
+- Mensagem aparece no atendimento.
+- Atendente responde.
+
+### Mobile
+
+- Abrir bot em 360px.
+- Enviar mensagem.
+- Clicar sugestão.
+- Abrir atendimento.
+- Fechar bot.
+
+### Checks técnicos executados
+
+- `node --check chatbot-knowledge-base.js`
+- `node --check chatbot-service.js`
+- `node --check app.js`

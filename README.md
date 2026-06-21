@@ -429,3 +429,15 @@ Antes de deploy produtivo, valide:
 ## Confiabilidade, manuais e suporte
 
 Esta versão adiciona logger global sanitizado, manuais por perfil, ValoraBot contextual e atendimento humano local/demo com preparação Firebase. Consulte `LOGGER_E_TRY_CATCH.md`, `MANUAIS_POR_PERFIL.md`, `CHATBOT_E_ATENDIMENTO.md` e `SUPORTE_HUMANO.md`.
+
+
+## ValoraBot 2.0
+
+O Valora Pulse inclui o ValoraBot 2.0, assistente de produto contextual baseado em regras, perfil logado, rota atual, manual por perfil e base de conhecimento interna. O bot responde visitantes públicos, participantes e perfis administrativos sem depender de API externa nem chave de IA no frontend.
+
+Documentação relacionada:
+
+- `CHATBOT_VALORABOT.md` — arquitetura, intenções, contexto, logs e evolução futura.
+- `MANUAIS_POR_PERFIL.md` — manuais usados pelo bot por perfil.
+- `SUPORTE_HUMANO.md` — fluxo de atendimento humano e segurança.
+- `TESTES_EXECUTADOS.md` — roteiro de testes por perfil, atendimento e mobile.

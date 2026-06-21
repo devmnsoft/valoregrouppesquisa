@@ -445,3 +445,16 @@ Documentação relacionada:
 ## Central de Atendimento, Tickets, SLA e Base de Conhecimento
 
 Esta evolução adiciona o módulo `support` com fila de atendimentos, criação de tickets para usuários logados e públicos, mensagens, notas internas, categorias, SLA, avaliação, base de conhecimento e preparação Firebase/Cloud Functions. Consulte `CENTRAL_DE_ATENDIMENTO.md`, `BASE_DE_CONHECIMENTO.md` e `SLA_ATENDIMENTO.md`.
+
+## Build e deploy Firebase Hosting
+
+O Firebase Hosting de produção publica a pasta `dist/`. Essa pasta é gerada pelo build e não deve ser commitada no repositório.
+
+Antes de publicar, execute:
+
+```bash
+npm run build:prod
+firebase deploy --only hosting
+```
+
+Não commitar a pasta `dist/`, arquivos hashados de build, source maps ou binários copiados para `dist/assets/`.

@@ -26,3 +26,14 @@ data/outbox/
 .DS_Store
 .vscode/
 .idea/
+
+# Production build artifacts
+dist/
+dist/**
+*.map
+
+# Local secrets and generated runtime data
+secrets.json
+serviceAccount*.json
+data/email_config.json
+data/outbox/

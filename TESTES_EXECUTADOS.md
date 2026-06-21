@@ -509,3 +509,12 @@ Checks técnicos executados nesta entrega:
 - `node --check module-definitions.js` — passou.
 - `node --check firebase-repository.js` — passou.
 - `node --check functions/index.js` — passou.
+
+## Build seguro de produção
+
+- `npm run check`
+- `npm run security:check`
+- `npm run build:prod`
+- `node --check dist/assets/app.*.js`
+- `find dist -name "*.map"` retorna vazio
+- `dist/` não é versionado no Git

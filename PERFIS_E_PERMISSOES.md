@@ -52,3 +52,9 @@ O Valora Pulse agora possui sino global, contador de não lidas, dropdown, tela 
 ## Evolução white label e assinatura
 
 Esta versão adiciona estrutura de identidade visual por empresa, slug público, campos de assinatura, limites customizados, status comercial e portal de plano contratado. Consulte `WHITE_LABEL_E_ASSINATURA.md` para modelo, permissões, regras de bloqueio e roteiro de testes.
+
+## Permissões de integrações
+- `admin_valora`: gerencia integrações globais e de qualquer empresa.
+- `empresa_admin`: gerencia integrações da própria empresa quando o plano permite.
+- `gestor_pesquisa` e `analista_resultados`: podem acessar/exportar dados permitidos quando habilitado.
+- `participante` e `convidado_externo`: não acessam integrações.

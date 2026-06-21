@@ -106,3 +106,6 @@ O produto agora separa identidade visual da empresa cliente de dados comerciais 
 ## Evolução financeira SaaS
 
 O produto passa a controlar trial, assinatura ativa, inadimplência, suspensão, cancelamento, faturas manuais, KPIs financeiros, MRR/ARR estimados e preparação para gateway real por Cloud Functions/Webhooks. A empresa cliente visualiza faturas e plano, mas não altera cobrança, status, limites ou pagamentos.
+
+## Evolução: Integrações corporativas
+O módulo Integrações posiciona o Valora Pulse para uso Enterprise com conectores para RH, ERP, CRM, BI, planilhas e automações. A venda deve destacar API pública autenticada por escopos, webhooks assinados, importação/exportação e governança LGPD.

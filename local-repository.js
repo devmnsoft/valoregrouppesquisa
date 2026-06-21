@@ -82,6 +82,22 @@ window.ValoraLocalRepository={
   addActionComment(actionId,comment,{state}={}){const item=(state?.actionPlans||[]).find(x=>x.id===actionId);if(item)(item.comments||(item.comments=[])).push(comment);return Promise.resolve(clone(item));},
   markActionCompleted(actionId,{state}={}){const item=(state?.actionPlans||[]).find(x=>x.id===actionId);if(item)Object.assign(item,{status:'completed',progress:100,completedAt:new Date().toISOString()});return Promise.resolve(clone(item));},
   generateActionPlansFromSurvey(surveyId,{state}={}){return Promise.resolve(clone((state?.actionPlans||[]).filter(x=>x.surveyId===surveyId)));},
+
+  listIntegrations(companyId,{state}={}){const rows=state?.integrations||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
+  createIntegration(data,{state}={}){const item={id:data.id||`int_${Date.now().toString(36)}`,...data};(state.integrations||(state.integrations=[])).push(item);return Promise.resolve(clone(item));},
+  updateIntegration(id,data,{state}={}){const item=(state?.integrations||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
+  deleteIntegration(id,{state}={}){if(state)state.integrations=(state.integrations||[]).filter(x=>x.id!==id);return Promise.resolve(true);},
+  listApiKeys(companyId,{state}={}){const rows=state?.apiKeys||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows).map(x=>({...x,keyHash:x.keyHash?'[protected]':''})));},
+  createApiKey(data,{state}={}){const item={id:data.id||`key_${Date.now().toString(36)}`,...data};(state.apiKeys||(state.apiKeys=[])).push(item);return Promise.resolve(clone(item));},
+  revokeApiKey(id,{state}={}){const item=(state?.apiKeys||[]).find(x=>x.id===id);if(item)Object.assign(item,{status:'revoked',revokedAt:new Date().toISOString()});return Promise.resolve(clone(item));},
+  listWebhooks(companyId,{state}={}){const rows=state?.webhooks||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows).map(x=>({...x,secretHash:x.secretHash?'[protected]':''})));},
+  createWebhook(data,{state}={}){const item={id:data.id||`wh_${Date.now().toString(36)}`,...data};(state.webhooks||(state.webhooks=[])).push(item);return Promise.resolve(clone(item));},
+  updateWebhook(id,data,{state}={}){const item=(state?.webhooks||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
+  deleteWebhook(id,{state}={}){if(state)state.webhooks=(state.webhooks||[]).filter(x=>x.id!==id);return Promise.resolve(true);},
+  testWebhook(id,{state}={}){const item=(state?.webhooks||[]).find(x=>x.id===id);if(item)Object.assign(item,{lastDeliveryAt:new Date().toISOString(),lastDeliveryStatus:'success'});return Promise.resolve(clone(item));},
+  importEmployees(rows,{state}={}){(state.users||(state.users=[])).push(...rows);return Promise.resolve({created:rows.length,updated:0,ignored:0,errors:[]});},
+  exportData(type,filters={}, {state}={}){return Promise.resolve(clone((state?.[type]||[]).filter(x=>!filters.companyId||x.companyId===filters.companyId)));},
+
   saveChanges({storeKey,state}){this.saveStore({storeKey,state});return clone(state);}
 };
 })();

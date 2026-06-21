@@ -60,3 +60,6 @@ Os limites efetivos são calculados pelo plano contratado somado a `limitsOverri
 ## Cobrança recorrente e limites
 
 Planos alimentam `organizations.subscription` e faturas em `invoices`. O ciclo pode ser mensal, trimestral, semestral, anual ou manual. Status financeiros (`trial`, `active`, `past_due`, `overdue`, `suspended`, `cancelled`, `inactive`) interferem nos helpers de criação de pesquisa, envio de convites, relatórios e acesso operacional.
+
+## Módulo `integrations`
+Inclui API pública, API keys, webhooks, importação de funcionários, exportação estruturada, exportação BI-ready e logs. Planos gratuitos não devem liberar API pública completa; Enterprise libera API/webhooks. Planos intermediários podem liberar apenas exportação manual.

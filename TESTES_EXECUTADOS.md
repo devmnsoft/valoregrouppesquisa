@@ -395,3 +395,30 @@ Data: 2026-06-20.
 - Atendimento: abrir conversa pública, logada e assumir/encerrar como atendente autorizado.
 - Segurança: confirmar e-mail/token/URL sanitizados e ausência de token Telegram no frontend.
 - Mobile: validar manual, chatbot, chat e fila em 360px.
+
+## Evolução — Shell público simplificado da pesquisa (8.6.5)
+
+### Escopo validado
+- Pesquisa pública: URL com `?survey=...&token=...` passa a usar header público sem links comerciais, com logo Valora, status “Pesquisa segura”, Ajuda em nova aba, ValoraBot e WhatsApp contextual quando houver número configurado.
+- Resultado público: URL com `?result=...&rt=...` também usa o mesmo shell público simplificado.
+- Ajuda pública: rota `#public-help` documenta como responder, link seguro, LGPD, uso dos dados, suporte e resultado.
+- White label: card da empresa permanece na pesquisa pública, usa logo da empresa quando configurada e mantém “Powered by Valora Group” conforme configuração da marca.
+- Mobile 360px: header público, botões, título, badge de tempo, card de empresa, etapas e botões flutuantes receberam regras responsivas para evitar estouro horizontal e cobertura do formulário.
+
+### Checklist manual recomendado
+| Área | Cenário | Resultado esperado | Status |
+| --- | --- | --- | --- |
+| Desktop | Abrir `index.html?survey=survey_demo&token=<token>&org=empresa-exemplo` | Header simplificado aparece; não aparecem “Como funciona”, “Planos”, “Entrar” ou “Criar ambiente” | Validado por código |
+| Desktop | Clicar em Ajuda | Abre `index.html#public-help` em nova aba sem limpar o formulário da pesquisa | Validado por código |
+| Desktop | Abrir ValoraBot na pesquisa pública | Painel abre com sugestões de participante externo sobre pesquisa, LGPD, link expirado e suporte | Validado por código |
+| Desktop | Clicar WhatsApp com número configurado | Abre `https://wa.me/...` com mensagem contextual contendo pesquisa e empresa | Validado por código |
+| Mobile 360px | Abrir a pesquisa pública | Header cabe na tela, ações ficam compactas e não há scroll horizontal esperado | Validado por CSS |
+| Mobile 360px | Percorrer formulário até o envio | Ações flutuantes ficam acima da base e o painel do bot sobe para não cobrir o formulário | Validado por CSS |
+| Demais páginas | Acessar `#home`, `#login`, `#admin/dashboard`, `#empresa/dashboard`, `#participante/dashboard` | Header completo permanece para jornadas comerciais e portais internos | Validado por código |
+| White label | Empresa com `brand.logoUrl` | Logo da empresa aparece no card da pesquisa pública | Validado por código |
+| White label | Empresa sem logo | Fallback Valora aparece no card da pesquisa pública | Validado por código |
+
+### Comandos executados
+- `node --check app.js` — aprovado.
+- `for f in $(rg --files -g '*.js' -g '!functions/node_modules/**' -g '!node_modules/**' | sort); do node --check "$f" || exit 1; done` — aprovado.
+- `python3 -m py_compile server.py` — aprovado.

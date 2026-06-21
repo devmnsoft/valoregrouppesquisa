@@ -90,3 +90,10 @@ Esta versão adiciona estrutura de identidade visual por empresa, slug público,
 
 - [ ] Confirmar que o header `Content-Security-Policy` publicado mantém `script-src 'self' https://www.gstatic.com` e inclui `https://www.gstatic.com` também em `connect-src`, necessário para recursos/source maps dos SDKs Firebase durante diagnóstico.
 - [ ] Confirmar que a CSP continua sem `connect-src *`, sem `script-src *` e sem `unsafe-eval`.
+
+## Checklist de integrações
+- [ ] Configurar Cloud Function `publicApi` com domínio/hosting.
+- [ ] Definir segredo real de assinatura HMAC para webhooks.
+- [ ] Revisar plano Enterprise e limites de rate limit.
+- [ ] Validar rules de `integrations`, `apiKeys`, `webhooks` e `integrationLogs` em emulador.
+- [ ] Garantir revisão jurídica LGPD para exportações com dados pessoais.

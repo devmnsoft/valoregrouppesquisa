@@ -310,3 +310,11 @@ Data: 2026-06-20.
 - Login: entrar com admin demo, abrir `#admin/dashboard`, `#admin/plans`, `#admin/clients` e recarregar.
 - CSP: forçar tela de erro, clicar em “Tentar novamente” e “Recriar base local”, confirmando ausência de bloqueio por inline handler.
 - Console: confirmar ausência de `Cannot read properties of null`, `Cannot access state before initialization`, `Cannot access calculateResult before initialization`, `Identifier has already been declared` e `Executing inline event handler violates CSP`.
+
+## Integrações, API pública e webhooks
+- API Key: criação com hash, exibição única, revogação e bloqueio de chave revogada previstos.
+- API pública: endpoints `employees`, `surveys`, `responses`, `reports` e `webhooks/test` preparados com escopo e `companyId`.
+- Webhook: cadastro, teste, headers de assinatura, log e falha simulável.
+- Importação: valida e-mail, rejeita perfil global, atualiza duplicados e exibe resumo.
+- Exportação: exporta funcionários, pesquisas, respostas e formato `responses_flat`, com anonimização quando marcada.
+- Permissões: participante/convidado sem acesso; empresa limitada ao próprio `companyId`.

@@ -342,6 +342,45 @@ service cloud.firestore {
                     || (isEmpresaAdmin() && actionPlanSameCompanyOnExisting());
     }
 
+
+
+    function canReadIntegrations(data) {
+      return isValoraAdmin()
+             || (role() in ['empresa_admin', 'gestor_pesquisa', 'analista_resultados'] && sameCompany(data.companyId));
+    }
+
+    function canManageIntegrations(data) {
+      return isValoraAdmin() || (isEmpresaAdmin() && sameCompany(data.companyId));
+    }
+
+    match /integrations/{integrationId} {
+      allow read: if canReadIntegrations(resource.data);
+      allow create: if canManageIntegrations(request.resource.data);
+      allow update, delete: if canManageIntegrations(resource.data)
+                            && request.resource.data.companyId == resource.data.companyId;
+    }
+
+    // API pública usa Cloud Functions/Admin SDK. O frontend nunca lê keyHash.
+    match /apiKeys/{apiKeyId} {
+      allow read: if canManageIntegrations(resource.data);
+      allow create: if false;
+      allow update, delete: if false;
+    }
+
+    // Secrets de webhook são criados/atualizados por fluxo confiável e não devem
+    // ser expostos a participantes, convidados ou empresas de terceiros.
+    match /webhooks/{webhookId} {
+      allow read: if canManageIntegrations(resource.data);
+      allow create: if canManageIntegrations(request.resource.data);
+      allow update, delete: if canManageIntegrations(resource.data)
+                            && request.resource.data.companyId == resource.data.companyId;
+    }
+
+    match /integrationLogs/{logId} {
+      allow read: if canReadIntegrations(resource.data);
+      allow create, update, delete: if false;
+    }
+
     match /invoices/{invoiceId} {
       allow read: if isValoraAdmin()
                   || (isEmpresaAdmin() && sameCompany(resource.data.companyId));

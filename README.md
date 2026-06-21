@@ -348,3 +348,6 @@ O Valora Pulse possui estrutura de white label por organização, com slug públ
 ## Assinaturas e cobrança
 
 A base financeira do SaaS agora inclui assinatura em `organizations.subscription`, coleção `invoices`, painel Admin Valora › Financeiro, visão Empresa › Plano contratado, bloqueios por status comercial e estrutura segura para gateway via Cloud Functions. Detalhes completos em [`ASSINATURAS_E_COBRANCA.md`](ASSINATURAS_E_COBRANCA.md).
+
+## Integrações, API pública e webhooks
+O Valora Pulse possui base para integrações corporativas por empresa: API keys com hash, webhooks assinados, importação de funcionários, exportações estruturadas e logs. Consulte `INTEGRACOES_API_WEBHOOKS.md` para endpoints, escopos, eventos, HMAC, importação CSV, exportação BI e cuidados de LGPD.

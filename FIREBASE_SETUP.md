@@ -273,3 +273,11 @@ Use `firestore.seed.sample.json` como contrato de dados inicial para Firestore. 
 ### Status de convite aceitos
 
 `pending`, `sent`, `opened`, `answered`, `expired`, `failed`, `resent`, `cancelled`.
+
+
+## Secrets de observabilidade
+```bash
+firebase functions:secrets:set TELEGRAM_BOT_TOKEN
+firebase functions:secrets:set TELEGRAM_CHAT_ID
+```
+O token do Telegram deve existir apenas em Cloud Functions/Secret Manager.

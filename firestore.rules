@@ -199,6 +199,11 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /systemLogs/{logId} {
+      allow read: if isValoraAdmin();
+      allow create, update, delete: if false;
+    }
+
     match /organizationSlugs/{slug} {
       allow read: if true;
       allow create, update, delete: if isValoraAdmin();
@@ -208,6 +213,11 @@ service cloud.firestore {
       allow read: if isValoraTeam() || sameCompany(organizationId);
       allow create, delete: if isValoraAdmin();
       allow update: if isValoraAdmin() || companyCanEditOrganization(organizationId);
+
+      match /logs/{logId} {
+        allow read: if isValoraAdmin() || (isValoraTeam() && resource.data.companyId == organizationId);
+        allow create, update, delete: if false;
+      }
     }
 
     // Slugs públicos devem ser gravados por processo confiável/Admin Valora.

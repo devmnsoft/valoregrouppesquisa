@@ -109,3 +109,8 @@ O produto passa a controlar trial, assinatura ativa, inadimplência, suspensão,
 
 ## Evolução: Integrações corporativas
 O módulo Integrações posiciona o Valora Pulse para uso Enterprise com conectores para RH, ERP, CRM, BI, planilhas e automações. A venda deve destacar API pública autenticada por escopos, webhooks assinados, importação/exportação e governança LGPD.
+
+
+## Suporte e confiança operacional
+
+O produto passa a incluir manuais por perfil, chatbot contextual, atendimento humano e logs/auditoria sanitizados como recursos de governança operacional e suporte ao cliente.

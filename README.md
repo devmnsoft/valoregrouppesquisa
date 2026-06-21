@@ -424,3 +424,8 @@ Antes de deploy produtivo, valide:
 4. Registrar evidências finais.
 5. Obter aceite formal do responsável.
 6. Preparar deploy controlado com plano de rollback.
+
+
+## Confiabilidade, manuais e suporte
+
+Esta versão adiciona logger global sanitizado, manuais por perfil, ValoraBot contextual e atendimento humano local/demo com preparação Firebase. Consulte `LOGGER_E_TRY_CATCH.md`, `MANUAIS_POR_PERFIL.md`, `CHATBOT_E_ATENDIMENTO.md` e `SUPORTE_HUMANO.md`.

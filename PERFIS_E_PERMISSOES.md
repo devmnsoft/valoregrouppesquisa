@@ -58,3 +58,8 @@ Esta versão adiciona estrutura de identidade visual por empresa, slug público,
 - `empresa_admin`: gerencia integrações da própria empresa quando o plano permite.
 - `gestor_pesquisa` e `analista_resultados`: podem acessar/exportar dados permitidos quando habilitado.
 - `participante` e `convidado_externo`: não acessam integrações.
+
+
+## Atendimento humano
+
+Foram adicionadas permissões `canHandleSupport` para atendimento da própria empresa e `canHandleGlobalSupport` para atendimento global Valora. Empresa Admin atende sua empresa; Admin/Consultor Valora atendem globalmente.

@@ -491,3 +491,21 @@ Data: 2026-06-20.
 - `node --check chatbot-knowledge-base.js`
 - `node --check chatbot-service.js`
 - `node --check app.js`
+
+## Evolução: Central de Atendimento, Tickets, SLA e Base de Conhecimento
+
+- Público sem login: abrir ValoraBot, clicar **Falar com atendente**, informar nome/e-mail/categoria/assunto/mensagem, confirmar criação do ticket e validar que não há listagem pública.
+- Participante: entrar como participante, abrir atendimento, responder conversa, encerrar e avaliar; validar visualização apenas de tickets próprios.
+- Empresa Admin/Atendente: entrar no portal da empresa, abrir **Atendimento**, assumir ticket da empresa, responder, criar nota interna, resolver e encerrar; validar que empresa B não aparece.
+- Admin Valora: abrir **Atendimentos**, validar KPIs, filtros, tickets globais, assumir tickets e visualizar SLA.
+- Chatbot: fazer pergunta com artigo publicado, validar resposta da base; clicar **Falar com atendente** quando não resolveu.
+- SLA: criar ticket crítico, validar `slaDueAt`, simular vencimento alterando data e executar `checkSupportSla` no emulador.
+- Segurança: testar Rules para empresa A/B, participante de outro usuário, notas internas invisíveis ao solicitante e público sem listagem.
+- Mobile: em 360px, validar cards/tabela responsiva, conversa sem rolagem horizontal e campo de mensagem utilizável.
+
+Checks técnicos executados nesta entrega:
+
+- `node --check app.js` — passou.
+- `node --check module-definitions.js` — passou.
+- `node --check firebase-repository.js` — passou.
+- `node --check functions/index.js` — passou.

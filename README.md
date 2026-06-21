@@ -441,3 +441,7 @@ Documentação relacionada:
 - `MANUAIS_POR_PERFIL.md` — manuais usados pelo bot por perfil.
 - `SUPORTE_HUMANO.md` — fluxo de atendimento humano e segurança.
 - `TESTES_EXECUTADOS.md` — roteiro de testes por perfil, atendimento e mobile.
+
+## Central de Atendimento, Tickets, SLA e Base de Conhecimento
+
+Esta evolução adiciona o módulo `support` com fila de atendimentos, criação de tickets para usuários logados e públicos, mensagens, notas internas, categorias, SLA, avaliação, base de conhecimento e preparação Firebase/Cloud Functions. Consulte `CENTRAL_DE_ATENDIMENTO.md`, `BASE_DE_CONHECIMENTO.md` e `SLA_ATENDIMENTO.md`.

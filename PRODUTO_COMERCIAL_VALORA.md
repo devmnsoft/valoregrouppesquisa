@@ -114,3 +114,7 @@ O módulo Integrações posiciona o Valora Pulse para uso Enterprise com conecto
 ## Suporte e confiança operacional
 
 O produto passa a incluir manuais por perfil, chatbot contextual, atendimento humano e logs/auditoria sanitizados como recursos de governança operacional e suporte ao cliente.
+
+## Módulo de atendimento
+
+A matriz comercial passa a incluir `support`: central de atendimento, tickets, SLA, base de conhecimento, avaliações e alertas seguros, compatível com planos SaaS e segregação multiempresa.

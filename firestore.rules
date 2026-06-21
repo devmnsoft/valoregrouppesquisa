@@ -242,6 +242,55 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+
+
+    match /supportTickets/{ticketId} {
+      allow read: if signedIn() && (
+        resource.data.requesterUserId == request.auth.uid ||
+        canHandleSupportFor(resource.data.companyId)
+      );
+      allow create: if signedIn() && request.resource.data.requesterUserId == request.auth.uid
+                    && (request.resource.data.requesterType != 'public')
+                    && (isValoraTeam() || request.resource.data.companyId == companyId());
+      allow update: if signedIn()
+                    && request.resource.data.companyId == resource.data.companyId
+                    && (
+                      resource.data.requesterUserId == request.auth.uid ||
+                      canHandleSupportFor(resource.data.companyId)
+                    );
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if signedIn() && exists(/databases/$(database)/documents/supportTickets/$(ticketId))
+          && (
+            (get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.requesterUserId == request.auth.uid && resource.data.internal != true) ||
+            canHandleSupportFor(get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.companyId)
+          );
+        allow create: if signedIn() && exists(/databases/$(database)/documents/supportTickets/$(ticketId))
+          && request.resource.data.ticketId == ticketId
+          && (
+            get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.requesterUserId == request.auth.uid ||
+            canHandleSupportFor(get(/databases/$(database)/documents/supportTickets/$(ticketId)).data.companyId)
+          );
+        allow update, delete: if false;
+      }
+    }
+
+    match /knowledgeBase/{articleId} {
+      allow read: if resource.data.published == true && resource.data.audience == 'public' || signedIn();
+      allow create, update, delete: if isValoraAdmin();
+    }
+
+    match /supportSlaPolicies/{policyId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isValoraAdmin();
+    }
+
+    match /supportCategories/{categoryId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isValoraAdmin();
+    }
+
     // Logs são append-only pelo backend/Cloud Functions (Admin SDK bypassa rules).
     // Nenhum frontend, nem mesmo admin_valora autenticado no client, altera logs.
     match /logs/{logId} {

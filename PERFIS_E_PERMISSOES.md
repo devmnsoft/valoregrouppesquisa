@@ -63,3 +63,7 @@ Esta versão adiciona estrutura de identidade visual por empresa, slug público,
 ## Atendimento humano
 
 Foram adicionadas permissões `canHandleSupport` para atendimento da própria empresa e `canHandleGlobalSupport` para atendimento global Valora. Empresa Admin atende sua empresa; Admin/Consultor Valora atendem globalmente.
+
+## Atendimento, tickets e base de conhecimento
+
+O módulo `support` usa `canHandleSupport` para atendimento da própria empresa e `canHandleGlobalSupport` para fila global Valora. Solicitantes veem apenas seus tickets; empresas veem apenas sua própria empresa; Admin Valora vê todos. Notas internas são exclusivas de atendentes.

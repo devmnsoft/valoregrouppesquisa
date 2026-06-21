@@ -52,3 +52,7 @@ O histórico local registra somente conteúdo necessário da conversa em `state.
 ## Evolução futura com IA real
 
 Para usar IA generativa, mantenha o frontend sem chave. A chamada deve passar por Cloud Function, com minimização de dados, consentimento quando necessário, filtros por perfil/empresa, fallback para regras e auditoria em logs.
+
+## Escalonamento para atendimento
+
+O ValoraBot consulta a base de conhecimento antes de abrir ticket. Quando a resposta não resolve ou o usuário clica em **Falar com atendente**, o fluxo cria um ticket com contexto de rota, perfil e pesquisa pública quando disponível.

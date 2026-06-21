@@ -332,3 +332,54 @@ Data: 2026-06-20.
 ## Observabilidade adicionada
 - Logs centralizados em `log-service.js` com mascaramento, exportação CSV/JSON/Excel compatível e testes manuais no painel Admin.
 - Arquivos locais de segredo (`.env`, `.env.local`, `.env.production`, `telegram.env`, `secrets.json`) são ignorados pelo Git.
+
+## Homologação final e Release Candidate — 2026-06-21
+
+**Versão testada:** Valora Group™ 8.6.4 RC1
+**Responsáveis:** QA/Produto/Arquitetura — execução documental e regressão técnica inicial por agente automatizado.
+**Status geral:** aprovado com ressalvas para apresentação controlada; produção depende de homologação real com evidências.
+
+### Resumo de testes
+
+- Criados documentos formais de release candidate, checklist de homologação, matriz de bugs, regressão técnica, roteiro ponta a ponta e aceite do produto.
+- Executada regressão sintática em todos os arquivos JavaScript encontrados no repositório com `node --check`.
+- Não foram confirmados bugs bloqueantes por checagem sintática.
+- Testes funcionais manuais em navegador, Firebase real, SMTP real, Telegram real, integrações reais e mobile 360px permanecem pendentes de execução na etapa de homologação real.
+
+### Aprovação por área
+
+| Área | Resultado | Observações |
+|---|---|---|
+| Documentação de release | Aprovado | `RELEASE_CANDIDATE.md` criado. |
+| Checklist de homologação | Aprovado | `CHECKLIST_HOMOLOGACAO_FINAL.md` criado. |
+| Matriz de bugs | Aprovado | `BUGS_HOMOLOGACAO.md` criado com critérios de severidade. |
+| Regressão técnica | Aprovado | Todos os arquivos `.js` passaram em `node --check`. |
+| Roteiro ponta a ponta | Aprovado | `ROTEIRO_TESTE_PONTA_A_PONTA.md` criado. |
+| Aceite do produto | Aprovado com ressalvas | Critérios documentados; execução real pendente. |
+| Modo local/demo | Pendente de homologação real | Exige execução em navegador e evidências. |
+| Modo Firebase | Pendente de homologação real | Exige projeto Firebase/emuladores, Auth, claims, Rules e Functions. |
+| Segurança | Pendente de homologação real | Exige testes multiempresa e perfis. |
+| Integrações | Pendente de homologação real | Exige credenciais e endpoints reais/sandbox. |
+| Mobile 360px | Pendente de homologação real | Exige teste visual em navegador/dispositivo. |
+
+### Bugs encontrados
+
+| ID | Severidade | Área | Status | Observação |
+|---|---|---|---|---|
+| — | — | — | — | Nenhum bug bloqueante confirmado por regressão sintática nesta etapa. |
+
+### Pendências
+
+- Executar `CHECKLIST_HOMOLOGACAO_FINAL.md` em navegador.
+- Executar `ROTEIRO_TESTE_PONTA_A_PONTA.md` em modo local/demo.
+- Executar roteiro em Firebase real ou emuladores.
+- Registrar bugs reais em `BUGS_HOMOLOGACAO.md`.
+- Validar console sem erro crítico.
+- Validar CSP, headers e cache no ambiente publicado.
+- Validar Telegram, SMTP, webhooks e logs de integração.
+- Validar mobile em 360px.
+- Corrigir e retestar qualquer bug bloqueante encontrado.
+
+### Comandos executados
+
+- `for f in $(rg --files -g '*.js' | sort); do node --check "$f" || exit 1; done` — aprovado.

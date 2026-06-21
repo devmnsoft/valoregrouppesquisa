@@ -355,3 +355,72 @@ O Valora Pulse possui base para integrações corporativas por empresa: API keys
 
 ## Observabilidade operacional
 A aplicação possui serviço central em `log-service.js`, painel **Logs e Monitoramento**, exportação CSV/JSON e integração segura com Telegram via Cloud Functions. Consulte `OBSERVABILIDADE_E_LOGS.md` e `TELEGRAM_ALERTAS.md`.
+
+## Status da release
+
+**Versão:** Valora Group™ 8.6.4 RC1
+**Data do release candidate:** 2026-06-21
+**Status:** aprovado com ressalvas para apresentação controlada e homologação com cliente.
+
+### Modo local
+
+O modo local/demo permanece configurado em `config.js` com `STORAGE_MODE: 'local'` e `FIREBASE_ENABLED: false`. Use este modo para demonstrações controladas, testes de fluxo e validação de experiência sem dependência de infraestrutura externa.
+
+Para testar localmente:
+
+```bash
+./iniciar-site-mac-linux.sh
+```
+
+No Windows, use `INICIAR_SITE_WINDOWS.bat`. Após abrir o sistema, valide login, base local limpa, recriação da base, questionários, pesquisas, participação, dashboards, relatórios, logs e exportações.
+
+### Modo Firebase
+
+O modo Firebase/produção deve ser habilitado somente após configurar Firebase Auth, Firestore, Cloud Functions, Hosting, Rules, secrets, usuários, claims e dados seed. Altere `STORAGE_MODE` para `'firebase'`, defina `FIREBASE_ENABLED: true` e preencha somente as chaves públicas do projeto em `FIREBASE_CONFIG`.
+
+Antes de deploy produtivo, valide:
+
+- Firestore Rules com usuários e claims reais;
+- Cloud Functions com payloads válidos e inválidos;
+- secrets via Secret Manager ou variáveis de ambiente seguras;
+- SMTP real;
+- Telegram real ou sandbox operacional;
+- isolamento Empresa A x Empresa B;
+- resposta pública via Function;
+- logs sem dados sensíveis.
+
+### Como testar a release candidate
+
+1. Ler `RELEASE_CANDIDATE.md` para entender escopo, riscos, pendências e decisão preliminar.
+2. Executar `CHECKLIST_HOMOLOGACAO_FINAL.md` item a item.
+3. Executar `ROTEIRO_TESTE_PONTA_A_PONTA.md` com evidências.
+4. Registrar bugs em `BUGS_HOMOLOGACAO.md`.
+5. Validar a regressão de sintaxe e runtime descrita em `CHECKLIST_REGRESSAO_TECNICA.md`.
+6. Consolidar o aceite em `ACEITE_PRODUTO.md` e atualizar `TESTES_EXECUTADOS.md`.
+
+### Documentos de homologação
+
+- `RELEASE_CANDIDATE.md` — decisão, escopo, riscos, bloqueantes e pendências da release.
+- `CHECKLIST_HOMOLOGACAO_FINAL.md` — checklist funcional completo por área.
+- `BUGS_HOMOLOGACAO.md` — matriz de bugs e critérios de severidade.
+- `CHECKLIST_REGRESSAO_TECNICA.md` — regressão técnica e checagens JavaScript.
+- `ROTEIRO_TESTE_PONTA_A_PONTA.md` — fluxo principal ponta a ponta.
+- `ACEITE_PRODUTO.md` — critérios de aceite por produto, técnico, segurança, comercial e operação.
+- `TESTES_EXECUTADOS.md` — histórico consolidado de testes executados e pendências.
+
+### Riscos conhecidos
+
+- O modo `localStorage` é adequado para demonstração, mas não para produção multiusuário.
+- A homologação Firebase real depende de ambiente externo completo, credenciais, claims e dados seed.
+- SMTP, Telegram, webhooks e integrações dependem de chaves e disponibilidade de serviços externos.
+- A CSP ainda possui exceção temporária para estilos inline, que deve ser removida em etapa futura de hardening visual.
+- A publicação em produção exige execução manual da homologação real, evidências e correção dos bloqueantes encontrados.
+
+### Próximos passos
+
+1. Executar homologação real com QA e responsável de produto.
+2. Corrigir bugs bloqueantes encontrados.
+3. Retestar os bloqueantes corrigidos.
+4. Registrar evidências finais.
+5. Obter aceite formal do responsável.
+6. Preparar deploy controlado com plano de rollback.

@@ -1,0 +1,8 @@
+'use strict';
+function cleanText(v,max=4000){return String(v||'').replace(/[\u0000-\u001f\u007f]/g,' ').trim().slice(0,max);}
+function maskEmail(email){const [n,d]=String(email||'').split('@');return d?`${n.slice(0,2)}***@${d}`:'';}
+function maskDocument(v){const d=String(v||'').replace(/\D/g,'');return d?`${d.slice(0,2)}***${d.slice(-2)}`:'';}
+function sanitizeValue(k,v){const key=String(k||'').toLowerCase();if(/password|senha|token|secret|api.?key|authorization|cookie/.test(key))return '***';if(/cpf|cnpj|document/.test(key))return maskDocument(v);if(/email/.test(key))return maskEmail(v);return typeof v==='string'?cleanText(v,500):v;}
+function sanitizeMetadata(obj,depth=0){if(obj==null||depth>4)return obj;if(typeof obj!=='object')return sanitizeValue('',obj);if(Array.isArray(obj))return obj.slice(0,30).map(x=>sanitizeMetadata(x,depth+1));return Object.fromEntries(Object.entries(obj).map(([k,v])=>[k,typeof v==='object'?sanitizeMetadata(v,depth+1):sanitizeValue(k,v)]));}
+async function logServerEvent(db,admin,event={}){const ref=db.collection(event.category==='security'||!event.companyId?'systemLogs':'logs').doc();const log={id:ref.id,level:event.level||'info',category:event.category||'system',action:cleanText(event.action||'server_event',120),message:cleanText(event.message||'',1000),companyId:cleanText(event.companyId||'',160),route:cleanText(event.route||'',300),metadata:sanitizeMetadata(event.metadata||{}),telegramSent:!!event.telegramSent,telegramSentAt:event.telegramSentAt||null,createdAt:admin.firestore.FieldValue.serverTimestamp()};await ref.set(log);return log;}
+module.exports={cleanText,maskEmail,maskDocument,sanitizeMetadata,logServerEvent};

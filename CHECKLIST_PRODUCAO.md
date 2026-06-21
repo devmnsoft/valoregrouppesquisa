@@ -97,3 +97,10 @@ Esta versão adiciona estrutura de identidade visual por empresa, slug público,
 - [ ] Revisar plano Enterprise e limites de rate limit.
 - [ ] Validar rules de `integrations`, `apiKeys`, `webhooks` e `integrationLogs` em emulador.
 - [ ] Garantir revisão jurídica LGPD para exportações com dados pessoais.
+
+
+## Observabilidade e Telegram
+- [ ] Revisar `observability` por ambiente.
+- [ ] Configurar `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID` via Secrets.
+- [ ] Validar Firestore Rules para `logs` e `systemLogs`.
+- [ ] Testar mascaramento antes de habilitar Telegram em produção.

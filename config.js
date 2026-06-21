@@ -8,6 +8,7 @@ window.ValoraConfig=Object.freeze({
   APP_VERSION:'8.6.4',
   STORAGE_MODE:'local', // "local" para demo/MVP; "firebase" para produção.
   FIREBASE_ENABLED:false,
+  observability:{enabled:true,consoleEnabled:true,persistLogs:true,telegramEnabled:false,telegramLevels:['critical','error','security'],telegramCategories:['system','security','billing','integration','firebase'],maskSensitiveData:true,maxLocalLogs:3000,environment:'local'},
   // Configuração pública do app Web Firebase. Preencha somente chaves públicas do projeto.
   FIREBASE_CONFIG:{
     // apiKey:'',

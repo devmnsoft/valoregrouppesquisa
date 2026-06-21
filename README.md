@@ -351,3 +351,7 @@ A base financeira do SaaS agora inclui assinatura em `organizations.subscription
 
 ## Integrações, API pública e webhooks
 O Valora Pulse possui base para integrações corporativas por empresa: API keys com hash, webhooks assinados, importação de funcionários, exportações estruturadas e logs. Consulte `INTEGRACOES_API_WEBHOOKS.md` para endpoints, escopos, eventos, HMAC, importação CSV, exportação BI e cuidados de LGPD.
+
+
+## Observabilidade operacional
+A aplicação possui serviço central em `log-service.js`, painel **Logs e Monitoramento**, exportação CSV/JSON e integração segura com Telegram via Cloud Functions. Consulte `OBSERVABILIDADE_E_LOGS.md` e `TELEGRAM_ALERTAS.md`.

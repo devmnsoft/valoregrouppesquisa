@@ -318,3 +318,13 @@ Data: 2026-06-20.
 - Importação: valida e-mail, rejeita perfil global, atualiza duplicados e exibe resumo.
 - Exportação: exporta funcionários, pesquisas, respostas e formato `responses_flat`, com anonimização quando marcada.
 - Permissões: participante/convidado sem acesso; empresa limitada ao próprio `companyId`.
+
+
+## Observabilidade e logs
+- Logs locais: gerar info, warn, error e security pelo painel **Logs e Monitoramento**.
+- Filtros: validar nível, categoria, Telegram e logs de teste.
+- Exportação: baixar CSV e JSON e verificar dados mascarados.
+- Telegram: configurar secrets, habilitar envio e executar **Enviar teste Telegram**.
+- Segurança: simular acesso negado e confirmar log `security`.
+- Erros: simular erro frontend e confirmar captura sem quebrar o sistema.
+- Anti-spam: repetir evento crítico mais de 10 vezes em 5 minutos e confirmar rate limit nas Functions.

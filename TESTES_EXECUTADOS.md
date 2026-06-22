@@ -701,3 +701,27 @@ Homologação local aprovada com ressalvas para validações que exigem execuç�
 - Package-only: `node scripts/publish-iis-prd.js --mode firebase --package-only` gera `publish/valoragroup-iis-prd-YYYYMMDD-HHMM/` com `index.html`, `assets/` e `web.config`.
 - Apply: `node scripts/publish-iis-prd.js --iis-path C:\inetpub\wwwroot\valoragroup --mode firebase --apply` cria backup, limpa IIS, copia dist e valida publicação.
 - With-data: `node scripts/publish-iis-prd.js --iis-path C:\inetpub\wwwroot\valoragroup --mode firebase --with-data --data-file .\exports\valora-prd-export.json --project gestordepesquisa --apply` executa dry-run de importação, importação com backup e publicação.
+
+## Health Check PRD pós-publicação
+
+Use o script `scripts/healthcheck-prd.js` para validar IIS, HTML, assets JS/CSS, MIME, Firebase, Functions, Firestore opcional, pesquisa pública opcional e ValoraBot público após publicar.
+
+```bash
+node scripts/healthcheck-prd.js --url https://valoragroup.mnsoft.com.br --project gestordepesquisa --check-firebase --check-functions
+```
+
+Integrado ao publicador IIS:
+
+```bash
+node scripts/publish-iis-prd.js --iis-path C:\inetpub\wwwroot\valoragroup --mode firebase --apply --health-url https://valoragroup.mnsoft.com.br --project gestordepesquisa
+```
+
+Relatórios são gerados em `publish/reports/` e não devem ser commitados.
+
+## Testes planejados para Health Check PRD
+
+- Publicação correta: validar HTML 200, JS 200, CSS 200, MIME correto e Firebase config OK com `node scripts/healthcheck-prd.js --url <URL_PRD> --project gestordepesquisa --check-firebase`.
+- Asset ausente: simular `index.html` apontando para asset inexistente; o health check deve falhar com a mensagem de publicação inconsistente.
+- Firestore vazio: executar com `--check-firestore`; o health check deve orientar bootstrap/importação local -> Firebase.
+- Firebase config vazia: publicar build sem `FIREBASE_CONFIG.projectId`; o health check deve falhar na validação Firebase.
+- ValoraBot público: executar validação Playwright opcional ou `tests/health/prd-health.spec.js`; o botão deve aparecer, abrir sem login e não gerar erro crítico no console.

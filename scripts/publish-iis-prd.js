@@ -10,7 +10,7 @@ const reportsDir = path.join(publishDir, 'reports');
 const backupRoot = path.join(root, 'backups', 'iis');
 const webConfigTemplate = path.join(root, 'templates', 'iis', 'web.config');
 const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
-const report = { errors: [], checks: [], js: [], css: [], backup: '', packagePath: '', iisValidation: null, distValidation: null, dataImported: false };
+const report = { errors: [], checks: [], js: [], css: [], backup: '', packagePath: '', iisValidation: null, distValidation: null, dataImported: false, healthcheck: null };
 
 function parseArgs(argv) {
   const out = { mode: 'firebase', backup: true };
@@ -29,6 +29,18 @@ const args = parseArgs(process.argv.slice(2));
 function fail(msg) { report.errors.push(msg); throw new Error(msg); }
 function log(msg) { console.log(msg); }
 function run(cmd, opts = {}) { log(`$ ${cmd}`); cp.execSync(cmd, { cwd: root, stdio: 'inherit', shell: true, ...opts }); }
+function runHealthcheck() {
+  if (!args.healthUrl) return;
+  if (!args.project) fail('--health-url exige --project para validar Firebase PRD.');
+  const cmd = `node scripts/healthcheck-prd.js --url "${args.healthUrl}" --project "${args.project}" --check-firebase --check-functions`;
+  try {
+    run(cmd);
+    report.healthcheck = 'OK';
+  } catch (err) {
+    report.healthcheck = 'FALHA';
+    fail(`Health check PRD falhou após a publicação. Backup disponível em ${report.backup || 'não criado'}. Sugestão: executar rollback antes de liberar o ambiente.`);
+  }
+}
 function ensureFile(rel) { const p = path.join(root, rel); if (!fs.existsSync(p)) fail(`Arquivo obrigatório não encontrado: ${rel}`); return p; }
 function readConfig() { ensureFile('config.js'); const txt = fs.readFileSync(path.join(root, 'config.js'), 'utf8'); return { txt, storage: /STORAGE_MODE\s*:\s*['"]([^'"]+)/.exec(txt)?.[1], firebaseEnabled: /FIREBASE_ENABLED\s*:\s*(true|false)/.exec(txt)?.[1] === 'true', hasFirebaseConfig: ['apiKey', 'authDomain', 'projectId', 'appId'].every(k => new RegExp(`${k}\\s*:\\s*['\"][^'\"]+`).test(txt)) }; }
 function prevalidate() { ensureFile('index.html'); ensureFile('package.json'); ensureFile('scripts/build-production.js'); ensureFile('templates/iis/web.config'); if (args.apply && !args.iisPath) fail('--iis-path é obrigatório com --apply.'); if (args.apply && !fs.existsSync(args.iisPath)) fs.mkdirSync(args.iisPath, { recursive: true }); }
@@ -42,7 +54,7 @@ function backupDirectory(src) { const name = `valoragroup-${stamp}`; const dest 
 function validateIisPublication(iisPath) { validateDist(iisPath); const files = walk(iisPath).map(f => path.relative(iisPath, f).replace(/\\/g, '/')); for (const f of ['index.html', 'web.config']) if (!files.includes(f)) fail(`Publicação IIS inválida: ${f} ausente.`); const loose = files.filter(f => /^(app|config|firebase-repository|local-repository|repository)\.js$/.test(f) || /^(exports|backups)(\/|$)/.test(f)); if (loose.length) fail(`Publicação IIS inválida: arquivos proibidos: ${loose.join(', ')}`); report.iisValidation = 'OK'; }
 function generateWebConfig() { fs.copyFileSync(webConfigTemplate, path.join(dist, 'web.config')); }
 function packageOnly() { const dest = path.join(publishDir, `valoragroup-iis-prd-${stamp}`); fs.rmSync(dest, { recursive: true, force: true }); copyDirectory(dist, dest); report.packagePath = path.relative(root, dest); log(`Pacote gerado em ${report.packagePath}`); }
-function writeReport(status) { fs.mkdirSync(reportsDir, { recursive: true }); const body = `# Relatório de publicação IIS PRD\n\n- Data: ${new Date().toISOString()}\n- Modo: ${args.mode}\n- Projeto Firebase: ${args.project || 'não informado'}\n- Caminho IIS: ${args.iisPath || 'não aplicado'}\n- Build version: ${readConfig().txt.match(/APP_VERSION:\s*'([^']+)'/)?.[1] || 'n/a'}\n- JS gerados: ${report.js.join(', ') || 'n/a'}\n- CSS gerados: ${report.css.join(', ') || 'n/a'}\n- web.config usado: templates/iis/web.config\n- Backup criado: ${report.backup || 'não'}\n- Dados importados: ${report.dataImported ? 'sim' : 'não'}\n- Validação dist: ${report.distValidation || 'não executada'}\n- Validação IIS: ${report.iisValidation || 'não executada'}\n- Erros: ${report.errors.join('; ') || 'nenhum'}\n- Status final: ${status}\n`;
+function writeReport(status) { fs.mkdirSync(reportsDir, { recursive: true }); const body = `# Relatório de publicação IIS PRD\n\n- Data: ${new Date().toISOString()}\n- Modo: ${args.mode}\n- Projeto Firebase: ${args.project || 'não informado'}\n- Caminho IIS: ${args.iisPath || 'não aplicado'}\n- Build version: ${readConfig().txt.match(/APP_VERSION:\s*'([^']+)'/)?.[1] || 'n/a'}\n- JS gerados: ${report.js.join(', ') || 'n/a'}\n- CSS gerados: ${report.css.join(', ') || 'n/a'}\n- web.config usado: templates/iis/web.config\n- Backup criado: ${report.backup || 'não'}\n- Dados importados: ${report.dataImported ? 'sim' : 'não'}\n- Validação dist: ${report.distValidation || 'não executada'}\n- Validação IIS: ${report.iisValidation || 'não executada'}\n- Health check PRD: ${report.healthcheck || 'não executado'}\n- Erros: ${report.errors.join('; ') || 'nenhum'}\n- Status final: ${status}\n`;
   const file = path.join(reportsDir, `iis-prd-publish-${stamp}.md`); fs.writeFileSync(file, body, 'utf8'); log(`Relatório: ${path.relative(root, file)}`); }
 try {
   prevalidate(); validateMode();
@@ -51,7 +63,7 @@ try {
   if (!args.skipBuild) run('npm run build:prod');
   generateWebConfig(); validateDist();
   if (args.packageOnly) packageOnly();
-  else if (args.apply) { if (args.backup) backupDirectory(args.iisPath); emptyDirectory(args.iisPath); copyDirectory(dist, args.iisPath); validateIisPublication(args.iisPath); log('Publicação IIS concluída.'); }
+  else if (args.apply) { if (args.backup) backupDirectory(args.iisPath); emptyDirectory(args.iisPath); copyDirectory(dist, args.iisPath); validateIisPublication(args.iisPath); runHealthcheck(); log('Publicação IIS concluída.'); }
   else log('Dry-run concluído. Nada foi copiado para o IIS.');
   writeReport('SUCESSO');
 } catch (err) { console.error(`\nERRO: ${err.message}`); writeReport('FALHA'); process.exit(1); }

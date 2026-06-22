@@ -185,3 +185,19 @@ Em modo Firebase, `getEmailStatus` deve continuar sendo chamada por `httpsCallab
 - Conferir `dist/index.html`, `dist/assets/app.*.js`, `dist/assets/style.*.css` e `dist/web.config`.
 - Confirmar backup em `backups/iis/` antes do `--apply`.
 - Validar site no IIS sem 500.19, 403.14 ou MIME `text/html` para JS/CSS.
+
+## Health Check PRD pós-publicação
+
+Use o script `scripts/healthcheck-prd.js` para validar IIS, HTML, assets JS/CSS, MIME, Firebase, Functions, Firestore opcional, pesquisa pública opcional e ValoraBot público após publicar.
+
+```bash
+node scripts/healthcheck-prd.js --url https://valoragroup.mnsoft.com.br --project gestordepesquisa --check-firebase --check-functions
+```
+
+Integrado ao publicador IIS:
+
+```bash
+node scripts/publish-iis-prd.js --iis-path C:\inetpub\wwwroot\valoragroup --mode firebase --apply --health-url https://valoragroup.mnsoft.com.br --project gestordepesquisa
+```
+
+Relatórios são gerados em `publish/reports/` e não devem ser commitados.

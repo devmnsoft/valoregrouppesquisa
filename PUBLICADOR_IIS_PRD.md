@@ -43,3 +43,19 @@ npm run package:iis
 - gera `dist/web.config` sem URL Rewrite para evitar 500.19;
 - no `--apply`, cria backup em `backups/iis/valoragroup-YYYYMMDD-HHMM/` antes de limpar e copiar;
 - gera relatório em `publish/reports/iis-prd-publish-YYYYMMDD-HHMM.md`.
+
+## Health Check PRD pós-publicação
+
+Use o script `scripts/healthcheck-prd.js` para validar IIS, HTML, assets JS/CSS, MIME, Firebase, Functions, Firestore opcional, pesquisa pública opcional e ValoraBot público após publicar.
+
+```bash
+node scripts/healthcheck-prd.js --url https://valoragroup.mnsoft.com.br --project gestordepesquisa --check-firebase --check-functions
+```
+
+Integrado ao publicador IIS:
+
+```bash
+node scripts/publish-iis-prd.js --iis-path C:\inetpub\wwwroot\valoragroup --mode firebase --apply --health-url https://valoragroup.mnsoft.com.br --project gestordepesquisa
+```
+
+Relatórios são gerados em `publish/reports/` e não devem ser commitados.

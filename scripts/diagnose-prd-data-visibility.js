@@ -1,0 +1,14 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('fs');const path=require('path');const admin=require('firebase-admin');const {parseArgs}=require('./firebase-seed-utils');
+const args=parseArgs();if(!args.project||!args.email){console.error('Uso: node scripts/diagnose-prd-data-visibility.js --project gestordepesquisa --email admin@valoragroup.com');process.exit(1);}admin.initializeApp({projectId:args.project});const db=admin.firestore();const auth=admin.auth();
+const collections=['settings','modules','plans','organizations','companies','users','forms','surveys','responses','invitations','invoices','actionPlans','notifications','knowledgeBase','supportCategories','supportSlaPolicies','supportTickets','supportMessages','integrations','webhooks','apiKeys'];
+async function count(c){const s=await db.collection(c).count().get();return s.data().count||0;}
+(async()=>{const errors=[];let user=null;try{user=await auth.getUserByEmail(args.email);}catch(e){errors.push(`Auth user não encontrado: ${e.message}`);}const uid=user?.uid||'';const claims=user?.customClaims||{};let userDocExists=false,userDoc=null,legacyMatches=[];if(uid){const snap=await db.collection('users').doc(uid).get();userDocExists=snap.exists;userDoc=snap.exists?{id:snap.id,...snap.data()}:null;}if(args.email){const legacy=await db.collection('users').where('email','==',args.email).get();legacyMatches=legacy.docs.map(d=>({id:d.id,uid:d.data().uid||'',role:d.data().role||'',companyId:d.data().companyId||''}));}
+const counted=Object.fromEntries(await Promise.all(collections.map(async c=>[c,await count(c).catch(e=>{errors.push(`${c}: ${e.message}`);return null;})])));
+if(claims.role!=='admin_valora')errors.push('Custom claim role não é admin_valora; o frontend não deve conseguir ler tudo.');
+if(!userDocExists)errors.push(`Documento users/${uid} ausente.`);
+const report={email:args.email,uid,claims,userDocExists,userDocRole:userDoc?.role||'',userDocCompanyId:userDoc?.companyId||'',legacyMatches,adminValoraCanSeeAll:claims.role==='admin_valora',collections:counted,errors};
+const now=new Date();const stamp=now.toISOString().replace(/[-:]/g,'').slice(0,13).replace('T','-');const outDir=path.join(process.cwd(),'publish','reports');fs.mkdirSync(outDir,{recursive:true});const out=path.join(outDir,`diagnostico-visibilidade-prd-${stamp}.md`);fs.writeFileSync(out,`# Diagnóstico de visibilidade PRD\n\nProjeto: ${args.project}\nE-mail: ${args.email}\nGerado em: ${now.toISOString()}\n\n\`\`\`json\n${JSON.stringify(report,null,2)}\n\`\`\`\n\n## Leitura\n- Admin Valora deve ver todas as coleções quando \`claims.role === "admin_valora"\`.\n- Se o Admin SDK conta dados e o frontend não, verifique custom claims no token do navegador, Firestore Rules publicadas e erros em Admin > Status do Ambiente.\n`);
+report.reportPath=out;console.log(JSON.stringify(report,null,2));if(errors.length)process.exit(2);
+})().catch(e=>{console.error(e);process.exit(1);});

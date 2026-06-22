@@ -10,11 +10,11 @@ service cloud.firestore {
     }
 
     function role() {
-      return signedIn() ? userDoc().data.role : null;
+      return signedIn() ? request.auth.token.role : null;
     }
 
     function companyId() {
-      return signedIn() ? userDoc().data.companyId : null;
+      return signedIn() ? request.auth.token.companyId : null;
     }
 
     function isValoraAdmin() {
@@ -308,6 +308,12 @@ service cloud.firestore {
       allow create, update, delete: if isValoraAdmin();
     }
 
+
+    match /companies/{companyId} {
+      allow read: if isValoraTeam() || sameCompany(companyId) || sameCompany(resource.data.companyId);
+      allow create, update, delete: if isValoraAdmin();
+    }
+
     match /organizations/{organizationId} {
       allow read: if isValoraTeam() || sameCompany(organizationId);
       allow create, delete: if isValoraAdmin();
@@ -494,6 +500,11 @@ service cloud.firestore {
       allow read: if isValoraAdmin()
                   || (isEmpresaAdmin() && sameCompany(resource.data.companyId));
       allow create, update, delete: if isValoraAdmin();
+    }
+
+    match /{document=**} {
+      allow read: if isValoraAdmin();
+      allow write: if false;
     }
   }
 }

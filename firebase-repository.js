@@ -5,7 +5,8 @@ const ALLOWED_ROLES=Object.keys(window.ValoraRoles?.ROLE_DEFINITIONS||{admin_val
 const GLOBAL_ROLES=['admin_valora','consultor_valora'];
 const PROFILE_MISSING_MESSAGE='Seu usuário ainda não possui perfil configurado. Solicite liberação ao administrador.';
 const FRIENDLY_LOAD_ERROR='Não foi possível carregar as informações. Tente novamente.';
-const session={authUser:null,profile:null,claims:{},ready:false,readyPromise:null,unsubscribe:null,store:null,normalizeState:null,loaded:false,loading:false,lastError:null,cache:{}};
+const REQUIRED_FRONTEND_COLLECTIONS=['settings','modules','plans','organizations','companies','users','forms','surveys','responses','invitations','invoices','actionPlans','notifications','knowledgeBase','supportCategories','supportSlaPolicies','supportTickets','supportMessages','integrations','webhooks','apiKeys'];
+const session={authUser:null,profile:null,claims:{},ready:false,readyPromise:null,unsubscribe:null,store:null,normalizeState:null,loaded:false,loading:false,lastError:null,cache:{},authDebug:null};
 
 function services(){return window.ValoraFirebaseServices||{};}
 function ensureFirebase(){const s=services();if(!s.initialized||!s.auth||!s.db)throw Object.assign(new Error('Serviço de autenticação indisponível. Tente novamente mais tarde.'),{code:'network'});return s;}
@@ -20,11 +21,14 @@ function docData(d){return d.exists?{id:d.id,...d.data()}:null;}
 function asArray(snap){return snap.docs.map(docData).filter(Boolean);}
 function isGlobalRole(profile=session.profile){return GLOBAL_ROLES.includes(profile?.role);}
 function actorId(){return session.profile?.uid||session.profile?.id||session.authUser?.uid||'system';}
-function normalizeCompany(org){return org?{...org,id:org.id||org.uid,name:org.name||org.publicName||org.legalName,publicName:org.publicName||org.name||org.legalName,legalName:org.legalName||org.name||org.publicName,planId:org.planId||org.subscription?.planId||'essential'}:org;}
+function normalizeCompany(org){if(!org)return org;const fallback='Empresa sem nome';return {...org,id:org.id||org.uid,name:org.name||org.publicName||org.legalName||fallback,publicName:org.publicName||org.name||org.legalName||fallback,legalName:org.legalName||org.name||org.publicName||fallback,planId:org.planId||org.subscription?.planId||'essential',status:org.status||'active'};}
 function collectionNameForStateKey(key){return ({companies:'organizations'})[key]||key;}
 function collectionStateKey(collection){return ({organizations:'companies'})[collection]||collection;}
 function canUseCompanyScope(){return !!session.profile?.companyId&&!isGlobalRole();}
 function buildScopeFilter(companyId){return companyId?[['companyId','==',companyId]]:[];}
+function firestoreDebug(){window.ValoraFirestoreDebug=window.ValoraFirestoreDebug||{errors:[],collections:{},auth:{}};return window.ValoraFirestoreDebug;}
+function recordFirestoreError(collectionName,err){const dbg=firestoreDebug();const item={collection:collectionName,code:err?.code||'',message:err?.message||String(err),createdAt:new Date().toISOString()};dbg.errors.push(item);dbg.lastError=item;if(dbg.errors.length>80)dbg.errors=dbg.errors.slice(-80);console.error(`[Valora Pulse] Erro ao carregar ${collectionName}`,err);}
+function recordCollectionDebug(collectionName,count,meta={}){const dbg=firestoreDebug();dbg.collections[collectionName]={count:Number(count||0),loadedAt:new Date().toISOString(),...meta};}
 function mapCollectionError(err){
   const code=err?.code||'';
   if(code==='permission-denied')return Object.assign(new Error('Seu perfil não possui permissão para acessar estes dados.'),{code});
@@ -32,7 +36,8 @@ function mapCollectionError(err){
   if(code==='unavailable'||code.includes('network'))return Object.assign(new Error('Não foi possível carregar as informações. Tente novamente.'),{code});
   return Object.assign(new Error(FRIENDLY_LOAD_ERROR),{code});
 }
-async function getClaims(user=session.authUser){if(!user)return {};const token=await user.getIdTokenResult(true);return token.claims||{};}
+async function refreshAuthDebug(user=session.authUser){if(!user)return {};await user.getIdToken(true);const tokenResult=await user.getIdTokenResult(true);const claims=tokenResult.claims||{};session.authDebug={uid:user.uid,email:user.email,claims,refreshedAt:new Date().toISOString(),tokenRefreshed:true,hasRoleClaim:!!claims.role};firestoreDebug().auth=session.authDebug;if(session.store)session.store.authDebug=session.authDebug;if(!claims.role)console.warn('[Valora Pulse] Usuário autenticado, mas sem custom claim role. Faça logout/login ou reaplique claims.');return claims;}
+async function getClaims(user=session.authUser){if(!user)return {};return refreshAuthDebug(user);}
 async function getCurrentAuthUser(){await waitUntilReady();return session.authUser;}
 async function getCurrentUserProfile(){await waitUntilReady();return session.profile;}
 async function loadProfile(user){
@@ -61,10 +66,10 @@ function waitUntilReady(){
 function dispatchAuthChanged(){window.dispatchEvent(new CustomEvent('valora:auth-changed',{detail:{user:session.profile,loaded:session.loaded,error:session.lastError}}));}
 function emptyStore(seedStore,normalizeState){const state=seedStore();Object.assign(state,{session:null,users:[],companies:[],forms:[],surveys:[],responses:[],invitations:[],invoices:[],actionPlans:[],supportTickets:[],supportMessages:[],supportSlaPolicies:[],supportCategories:[],knowledgeBase:[],integrations:[],apiKeys:[],webhooks:[],integrationLogs:[],logs:[]});normalizeState(state);return state;}
 async function queryCollection(name,filters=[],orderBy=null,limit=null){
-  try{let q=firestore().collection(name);filters.forEach(([field,op,value])=>{if(value!==undefined&&value!==null&&value!=='')q=q.where(field,op,value);});if(orderBy)q=q.orderBy(orderBy);if(limit)q=q.limit(limit);return asArray(await q.get());}
-  catch(err){throw mapCollectionError(err);}
+  try{let q=firestore().collection(name);filters.forEach(([field,op,value])=>{if(value!==undefined&&value!==null&&value!=='')q=q.where(field,op,value);});if(orderBy)q=q.orderBy(orderBy);if(limit)q=q.limit(limit);const rows=asArray(await q.get());recordCollectionDebug(name,rows.length,{filters:filters.map(f=>f.join(' '))});return rows;}
+  catch(err){recordFirestoreError(name,err);throw mapCollectionError(err);}
 }
-async function getDoc(name,id){try{return docData(await firestore().collection(name).doc(id).get());}catch(err){throw mapCollectionError(err);}}
+async function getDoc(name,id){try{const row=docData(await firestore().collection(name).doc(id).get());recordCollectionDebug(name,row?1:0,{docId:id,docExists:!!row});return row;}catch(err){recordFirestoreError(name,err);throw mapCollectionError(err);}}
 function metadata(data={},creating=false){const profile=session.profile||{};const out={...data,updatedAt:ts(),updatedBy:actorId()};if(creating){out.createdAt=data.createdAt||ts();out.createdBy=data.createdBy||actorId();}if(!out.companyId&&profile.companyId&&!['plans','modules','settings'].includes(data.__collection||''))out.companyId=profile.companyId;delete out.__collection;return out;}
 async function createDoc(name,data){const ref=data.id?firestore().collection(name).doc(data.id):firestore().collection(name).doc();const payload=metadata({...data,id:ref.id,__collection:name},true);await ref.set(payload,{merge:false});return {id:ref.id,...data};}
 async function updateDoc(name,id,data){const safe={...data};delete safe.id;delete safe.createdAt;delete safe.createdBy;await firestore().collection(name).doc(id).set(metadata({...safe,__collection:name}),{merge:true});return {id,...data};}
@@ -83,13 +88,15 @@ async function loadStoreData(){
   const [organizations,companiesRaw,users,plans,modules,forms,surveys,responses,invitations,invoices,actionPlans,supportTickets,supportMessages,supportSlaPolicies,supportCategories,knowledgeBase,notifications,settings,logs,integrations,apiKeys,webhooks,integrationLogs]=await Promise.all([
     loadOrganizations(),loadCompaniesRaw(),loadUsers(),queryCollection('plans'),queryCollection('modules'),loadForms(),loadSurveys(),loadResponses(),scopedRows('invitations'),canFinance?scopedRows('invoices'):Promise.resolve([]),scopedRows('actionPlans'),scopedRows('supportTickets'),scopedRows('supportMessages'),queryCollection('supportSlaPolicies'),queryCollection('supportCategories'),queryCollection('knowledgeBase'),scopedRows('notifications'),loadSettings(),p.role==='admin_valora'?queryCollection('logs',[],null,300):Promise.resolve([]),scopedRows('integrations'),scopedRows('apiKeys'),scopedRows('webhooks'),scopedRows('integrationLogs')
   ]);
-  const companies=organizations.length?organizations.map(normalizeCompany):companiesRaw.map(normalizeCompany);
-  return {session:{userId:p.id||p.uid,createdAt:new Date().toISOString()},organizations,companies,users,plans,modules,forms,surveys,responses,invitations,invoices,actionPlans,supportTickets,supportMessages,supportSlaPolicies,supportCategories,knowledgeBase,notifications,settings,logs,integrations,apiKeys,webhooks,integrationLogs,firestoreLastError:null};
+  const companiesFromOrganizations=organizations.map(normalizeCompany);
+  const companies=companiesFromOrganizations.length?companiesFromOrganizations:companiesRaw.map(normalizeCompany);
+  const compatibleOrganizations=organizations.length?organizations:companiesRaw.map(normalizeCompany);
+  return {session:{userId:p.id||p.uid,createdAt:new Date().toISOString()},authDebug:session.authDebug,organizations:compatibleOrganizations,companies,users,plans,modules,forms,surveys,responses,invitations,invoices,actionPlans,supportTickets,supportMessages,supportSlaPolicies,supportCategories,knowledgeBase,notifications,settings,logs,integrations,apiKeys,webhooks,integrationLogs,firestoreLastError:null,firestoreDebug:firestoreDebug()};
 }
 async function hydrateStore(){
   if(session.loading)return;session.loading=true;session.lastError=null;
-  try{const data=await loadStoreData();if(!data)return;Object.assign(session.store,data);session.normalizeState?.(session.store);session.cache=clone({companies:session.store.companies,users:session.store.users,plans:session.store.plans,modules:session.store.modules,forms:session.store.forms,surveys:session.store.surveys,responses:session.store.responses,invitations:session.store.invitations,invoices:session.store.invoices,actionPlans:session.store.actionPlans,supportTickets:session.store.supportTickets,supportMessages:session.store.supportMessages,supportSlaPolicies:session.store.supportSlaPolicies,supportCategories:session.store.supportCategories,knowledgeBase:session.store.knowledgeBase,notifications:session.store.notifications,settings:session.store.settings});session.loaded=true;}
-  catch(err){session.lastError=err;if(session.store)session.store.firestoreLastError={code:err?.code||'',message:err?.message||String(err),at:new Date().toISOString()};console.warn('[Valora Pulse] Falha ao carregar Firestore.',err);}
+  try{const data=await loadStoreData();if(!data)return;Object.assign(session.store,data);session.normalizeState?.(session.store);REQUIRED_FRONTEND_COLLECTIONS.forEach(k=>recordCollectionDebug(k,k==='settings'?Object.keys(session.store.settings||{}).length:(session.store[k]||[]).length,{stateKey:k}));session.cache=clone({companies:session.store.companies,users:session.store.users,plans:session.store.plans,modules:session.store.modules,forms:session.store.forms,surveys:session.store.surveys,responses:session.store.responses,invitations:session.store.invitations,invoices:session.store.invoices,actionPlans:session.store.actionPlans,supportTickets:session.store.supportTickets,supportMessages:session.store.supportMessages,supportSlaPolicies:session.store.supportSlaPolicies,supportCategories:session.store.supportCategories,knowledgeBase:session.store.knowledgeBase,notifications:session.store.notifications,settings:session.store.settings});session.loaded=true;}
+  catch(err){session.lastError=err;if(session.store){session.store.firestoreLastError={code:err?.code||'',message:err?.message||String(err),at:new Date().toISOString()};session.store.firestoreDebug=firestoreDebug();}console.warn('[Valora Pulse] Falha ao carregar Firestore.',err);}
   finally{session.loading=false;}
 }
 function changed(a,b){return JSON.stringify(a||null)!==JSON.stringify(b||null);}

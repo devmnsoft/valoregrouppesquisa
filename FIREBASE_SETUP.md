@@ -281,3 +281,14 @@ firebase functions:secrets:set TELEGRAM_BOT_TOKEN
 firebase functions:secrets:set TELEGRAM_CHAT_ID
 ```
 O token do Telegram deve existir apenas em Cloud Functions/Secret Manager.
+
+## Seed inicial obrigatório
+
+Ativar Firebase não migra localStorage. Gere o export sanitizado no Admin Valora e importe com:
+
+```bash
+node scripts/import-firestore-seed.js --file ./exports/valora-local-export.json --project gestordepesquisa --dry-run
+node scripts/import-firestore-seed.js --file ./exports/valora-local-export.json --project gestordepesquisa --apply --backup --create-auth-users --send-password-reset
+```
+
+A service account deve ficar fora do repositório e ser referenciada por `GOOGLE_APPLICATION_CREDENTIALS`.

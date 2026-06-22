@@ -134,3 +134,12 @@ Esta versão adiciona estrutura de identidade visual por empresa, slug público,
 - [ ] Workflow `Firebase production deploy` revisado: somente `workflow_dispatch` ou tag `v*`, com `environment: production`.
 - [ ] Deploy real executado apenas após autorização formal, aprovação do environment e plano de rollback conhecido.
 - [ ] Resultado da homologação registrado em `HOMOLOGACAO_PIPELINES.md`.
+
+## Firebase PRD/HML — seed inicial
+
+- [ ] Exportar localStorage pelo Admin Valora com sanitização.
+- [ ] Conferir que não há senha, SMTP, Telegram, service account ou segredo no JSON.
+- [ ] Rodar dry-run do importador Firebase.
+- [ ] Rodar `--apply --backup --create-auth-users` somente após aprovação.
+- [ ] Validar com `scripts/validate-firebase-seed.js`.
+- [ ] Confirmar planos, perguntas, pesquisas, usuários e login em PRD.

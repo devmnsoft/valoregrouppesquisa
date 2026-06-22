@@ -631,3 +631,27 @@ Homologação local aprovada com ressalvas para validações que exigem execuç�
 - Cenários previstos: Home, Planos, pesquisa pública, certificado em tela, certificado PDF/PNG e ValoraBot público/logado.
 - Evidências geradas localmente em `tests/visual/screenshots/` e artifacts no workflow manual `.github/workflows/visual-smoke.yml`.
 - Observação: a execução depende da instalação dos browsers com `npx playwright install chromium`.
+
+## Correção CORS getEmailStatus callable — 2026-06-22
+
+### Escopo validado
+
+- Produção IIS com `STORAGE_MODE='firebase'` deve consultar o status de e-mail pelo Firebase Functions SDK, usando `httpsCallable('getEmailStatus')`, e não por `fetch` direto para `cloudfunctions.net/getEmailStatus`.
+- `getEmailStatus` permanece como Cloud Function callable (`onCall`) em `functions/index.js`.
+- `updateEmailStatus()` passa a tratar Firebase indisponível ou falha na callable como indisponibilidade não fatal, exibindo mensagem amigável e registrando `console.warn`.
+- Modo local continua usando `/api/email/status` e, se falhar, informa fallback local/outbox sem quebrar a aplicação.
+
+### Roteiro manual obrigatório — produção IIS com Firebase
+
+| Cenário | Resultado esperado | Status |
+|---|---|---|
+| Abrir `https://valoragroup.mnsoft.com.br` com `STORAGE_MODE='firebase'` e Firebase SDK carregado | Aplicação inicializa normalmente no IIS | A validar em produção |
+| Entrar na tela de configurações/e-mail | `getEmailStatus` é chamado via `window.ValoraFirebaseServices.functions.httpsCallable('getEmailStatus')` | A validar em produção |
+| Inspecionar Network/Console | Não há `fetch` direto para `https://us-central1-gestordepesquisa.cloudfunctions.net/getEmailStatus` e não aparece erro de CORS para `getEmailStatus` | A validar em produção |
+| Simular Functions indisponível ou bloqueada | Interface mostra status amigável de indisponibilidade e a aplicação continua navegável | A validar em produção |
+
+### Comandos executados nesta correção
+
+- `rg -n "getEmailStatus|updateEmailStatus|fetch\\(|cloudfunctions\\.net/getEmailStatus|service\\.ts|firebaseCallable" -g '!node_modules' -g '!dist' -g '!build' .` — usado para localizar chamadas relacionadas e confirmar ausência de `fetch` direto para a callable.
+- `npm run check` — validação sintática principal.
+- `npm run build:prod` — build de produção.

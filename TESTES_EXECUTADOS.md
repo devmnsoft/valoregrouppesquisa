@@ -518,3 +518,12 @@ Checks técnicos executados nesta entrega:
 - `node --check dist/assets/app.*.js`
 - `find dist -name "*.map"` retorna vazio
 - `dist/` não é versionado no Git
+
+## Auditoria de segurança completa — 2026-06-21
+
+- Criado `RELATORIO_AUDITORIA_SEGURANCA.md` com achados, risco, reprodução, impacto, correção e status.
+- Criado `PLANO_CORRECAO_SEGURANCA.md` separando itens antes de produção, antes do piloto e monitoramento.
+- Executado `node scripts/security-check.js` após endurecimento do script; resultado aprovado no repositório atual.
+- Executado `node --check functions/index.js` após correções em Cloud Functions; resultado aprovado.
+- Corrigidos pontos de alta/crítica: HTML injection em e-mails, update amplo da API de funcionários e SSRF básico em webhooks.
+- Pendências: executar emuladores completos, `npm audit`, `npm outdated` e validação de App Check no ambiente final.

@@ -121,12 +121,12 @@ function createReport(options,filename='relatorio-valora-pulse.pdf'){
 
 function createCertificate(data,filename='certificado-valora-pulse.pdf'){
   const W=842,H=595,parts=[];
-  const participant=String(data?.name||'Participante');
-  const survey=String(data?.survey||'Valora Pulse');
-  const date=String(data?.date||new Date().toLocaleDateString('pt-BR'));
-  const score=String(data?.score||'Participação confirmada');
-  const level=String(data?.level||'');
-  const companyLine=String(data?.companyLine||`Pesquisa promovida por ${data?.company||'Valora Group'}, com tecnologia Valora Group™.`);
+  const participant=String(data?.participantName||data?.name||'Participante');
+  const survey=String(data?.surveyTitle||data?.survey||'Valora Pulse™');
+  const date=String(data?.completedAt?new Date(data.completedAt).toLocaleDateString('pt-BR'):data?.date||new Date().toLocaleDateString('pt-BR'));
+  const score=String(data?.scoreLabel||data?.score||'Participação concluída');
+  const level=String(data?.maturityLabel||data?.level||'');
+  const companyLine=String(data?.institutionalMessage||data?.companyLine||`Pesquisa demonstrativa realizada na plataforma Valora Pulse™.`);
   parts.push(ascii(`0.985 0.995 1 rg 0 0 ${W} ${H} re f\n`));
   parts.push(ascii(`0.043 0.239 0.302 RG 5 w 28 28 ${W-56} ${H-56} re S\n`));
   parts.push(ascii(`0.69 0.86 0.89 RG 1.2 w 44 44 ${W-88} ${H-88} re S\n`));
@@ -141,7 +141,7 @@ function createCertificate(data,filename='certificado-valora-pulse.pdf'){
   splitWords(body,92).slice(0,4).forEach((line,i)=>parts.push(cmdText(W/2-(line.length*3.05),H-360-i*16,10.5,line,false,'0.25 0.40 0.46')));
   parts.push(cmdRect(W/2-170,112,340,76,'0.93 0.98 0.99','0.45 0.79 0.84',1));
   parts.push(cmdText(W/2-24,162,9,'Resultado',false,'0.25 0.40 0.46'));
-  parts.push(cmdText(W/2-(score.length*4.7),137,18,score,true,'0.043 0.239 0.302'));
+  splitWords(score,54).slice(0,2).forEach((line,i)=>parts.push(cmdText(W/2-(line.length*4.35),141-i*17,15,line,true,'0.043 0.239 0.302')));
   if(level)parts.push(cmdText(W/2-(level.length*3.2),119,9,level,false,'0.03 0.46 0.31'));
   splitWords(companyLine,92).slice(0,2).forEach((line,i)=>parts.push(cmdText(70,82-i*13,8.8,line,false,'0.25 0.40 0.46')));
   parts.push(cmdText(70,45,8.5,'Valora Group™ — Governança, cultura e crescimento organizacional.',false,'0.043 0.239 0.302'));

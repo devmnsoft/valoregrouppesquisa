@@ -594,3 +594,18 @@ Homologação local aprovada com ressalvas para validações que exigem execuç�
 - Empresa real aparece na linha “Pesquisa promovida por [Nome da Empresa], com tecnologia Valora Group™.” quando aplicável.
 - Pesquisa demonstrativa evita exibir “Empresa Exemplo” indevidamente e mostra “Pesquisa demonstrativa realizada na plataforma Valora Pulse™.”.
 - Botões revisados para “Baixar certificado em PDF” e “Baixar certificado em imagem”.
+
+## Correção de certificados
+
+- Resolvidos conflitos da branch: `git status` não indicou arquivos em conflito antes das alterações.
+- Certificado HTML revisado.
+- Certificado PDF revisado.
+- Certificado imagem/PNG revisado.
+- Helper único de dados do certificado criado/reutilizado.
+- “Empresa Exemplo” removida de certificados demo.
+- Empresa real exibida corretamente quando aplicável.
+- Índice de maturidade validado.
+- Percentual validado.
+- Nível/faixa validado.
+- Layout desktop validado.
+- Layout mobile validado.

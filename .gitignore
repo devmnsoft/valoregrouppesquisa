@@ -45,3 +45,9 @@ tests/visual/screenshots/
 tests/visual/output/
 *.webm
 *.trace.zip
+
+# Firebase migration exports/backups
+backups/
+exports/
+*.local-export.json
+valora-local-export-*.json

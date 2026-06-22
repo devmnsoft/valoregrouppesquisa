@@ -486,3 +486,7 @@ npm run test:visual:headed
 Por padrão, o Playwright sobe `VALORA_PORT=8095 python server.py`. Para reaproveitar um servidor local já aberto, use `VISUAL_SKIP_WEBSERVER=1 VISUAL_BASE_URL=http://127.0.0.1:8095 npm run test:visual`.
 
 Screenshots e traces ficam em `tests/visual/screenshots/`, `tests/visual/output/`, `test-results/` e `playwright-report/`; esses artefatos são ignorados pelo Git e não devem ser commitados.
+
+## Migração localStorage → Firebase
+
+Produção Firebase exige importação/seed inicial. Os dados testados no modo local ficam no navegador (`localStorage`, chave `valoraPulseFinal800`) e não aparecem automaticamente no Firestore ao mudar `STORAGE_MODE` para `firebase`. Use o painel **Admin Valora › Backup e migração** para exportar JSON sanitizado e depois rode `scripts/import-firestore-seed.js` com `--dry-run` antes de `--apply`. Veja `MIGRACAO_LOCAL_FIREBASE.md`.

@@ -655,3 +655,11 @@ Homologação local aprovada com ressalvas para validações que exigem execuç�
 - `rg -n "getEmailStatus|updateEmailStatus|fetch\\(|cloudfunctions\\.net/getEmailStatus|service\\.ts|firebaseCallable" -g '!node_modules' -g '!dist' -g '!build' .` — usado para localizar chamadas relacionadas e confirmar ausência de `fetch` direto para a callable.
 - `npm run check` — validação sintática principal.
 - `npm run build:prod` — build de produção.
+
+## Migração localStorage → Firebase
+
+- Exportação local: validar pelo Admin Valora que o arquivo `valora-local-export-YYYYMMDD-HHMM.json` é gerado sem senhas, token Telegram, SMTP password ou service account.
+- Dry-run: `node scripts/import-firestore-seed.js --file ./exports/valora-local-export.json --project gestordepesquisa --dry-run` deve listar quantidades sem escrever no Firestore.
+- Importação: `node scripts/import-firestore-seed.js --file ./exports/valora-local-export.json --project gestordepesquisa --apply --backup --create-auth-users --send-password-reset` deve popular planos, empresas, usuários/Auth, formulários, perguntas e pesquisas.
+- Validação: `node scripts/validate-firebase-seed.js --project gestordepesquisa` deve retornar sem inconsistências críticas.
+- Produção: publicar IIS com Firebase, abrir PRD, validar planos, login, perguntas, pesquisas, respostas quando importadas, certificados e chatbot.

@@ -197,7 +197,7 @@ Regras de segurança implementadas nas Functions:
 
 ## Headers de produção e CSP
 
-A versão canônica desta entrega é **8.6.4** (`APP_VERSION` em `config.js`). O Firebase Hosting usa `firebase.json` para enviar HTML com `Cache-Control: no-store` e assets JS/CSS/imagens com cache longo, desde que os assets continuem versionados no `index.html` com `?v=8.6.4`.
+A versão canônica desta entrega é **8.6.6** (`APP_VERSION` em `config.js`). O Firebase Hosting usa `firebase.json` para enviar HTML com `Cache-Control: no-store` e assets JS/CSS/imagens com cache longo, desde que os assets continuem versionados no `index.html` com `?v=8.6.6`.
 
 A política CSP inicial permite o funcionamento atual sem abrir permissões amplas: scripts da própria origem e SDK Firebase em `https://www.gstatic.com`, estilos locais com `'unsafe-inline'` temporário, imagens `self`, `data:` e `blob:`, conexões para `https://www.gstatic.com`, Firebase/Google APIs, Cloud Functions, ViaCEP e BrasilAPI, `object-src 'none'`, `base-uri 'self'` e `frame-ancestors 'self'`.
 

@@ -5,7 +5,7 @@
 // Em produção, altere STORAGE_MODE para "firebase" somente depois de configurar
 // Firebase Auth, Firestore, Cloud Functions e regras de segurança revisadas.
 window.ValoraConfig=Object.freeze({
-  APP_VERSION:'8.6.5',
+  APP_VERSION:'8.6.6',
   STORAGE_MODE:'local', // "local" para demo/MVP; "firebase" para produção.
   FIREBASE_ENABLED:false,
   observability:{enabled:true,consoleEnabled:true,persistLogs:true,telegramEnabled:false,telegramLevels:['critical','error','security'],telegramCategories:['system','security','billing','integration','firebase'],maskSensitiveData:true,maxLocalLogs:3000,environment:'local'},

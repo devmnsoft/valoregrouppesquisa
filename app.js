@@ -998,9 +998,23 @@ async function saveSettings(form){
 async function sendTestEmail(){const form=$('form[data-form="settings"]');if(!form)return;const fd=data(form);if(!isFirebaseMode())await saveEmailServerConfig(fd);const to=fd.testRecipient||fd.contactEmail;if(!to)return toast('Informe um destinatário para o teste.','error');await sendEmail({to,toName:'Teste Valora',subject:'Teste de e-mail — Valora Pulse™',text:'Este é um teste do remetente configurado na administração do Valora Pulse™.',html:emailHtml('E-mail de teste','A configuração de envio do Valora Pulse™ está funcionando. Este teste usa a identidade visual da Valora Group.','Abrir Valora Pulse',location.href.split('#')[0]),templateType:'test',buttonUrl:location.href.split('#')[0]});audit('E-mail de teste solicitado','e-mail','test',to);updateEmailStatus();}
 async function saveEmailServerConfig(fd){if(isFirebaseMode())throw new Error('Em produção Firebase, configure SMTP via Secret Manager/variáveis de ambiente, não pelo navegador.');const cfg={mode:fd.emailMode||'outbox',senderName:fd.senderName||'Valora Group',senderEmail:fd.senderEmail||DEFAULT_SENDER,smtpUsername:fd.smtpUsername||DEFAULT_SENDER,smtpHost:fd.smtpHost||'',smtpPort:Number(fd.smtpPort||587),smtpSecurity:fd.smtpSecurity||'starttls',password:fd.smtpPassword||''};const res=await fetch('/api/email/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});const body=await res.json().catch(()=>({}));if(!res.ok)throw new Error(body.error||'Falha na configuração de e-mail.');return body;}
 async function getEmailStatus(){
-  if(!isFirebaseMode())return {mode:'outbox',available:true,configured:false,message:'Modo local/outbox.'};
-  try{return await callFirebaseFunction('getEmailStatus',{});}
-  catch(err){
+  const cfg=window.ValoraConfig||{};
+
+  if(cfg.STORAGE_MODE!=='firebase'){
+    try{
+      const res=await fetch('/api/email/status');
+      if(!res.ok)throw new Error(`HTTP ${res.status}`);
+      return await res.json();
+    }catch(_){
+      return {mode:'outbox',available:true,configured:false,message:'Modo local/outbox.'};
+    }
+  }
+
+  try{
+    const callable=firebaseCallable('getEmailStatus');
+    const result=await callable({});
+    return result&&result.data?result.data:result;
+  }catch(err){
     console.warn('[Valora Pulse] Status de e-mail indisponível.',err);
     return {mode:'firebase',available:false,configured:false,message:'Status de e-mail indisponível no momento.'};
   }

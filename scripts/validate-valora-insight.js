@@ -54,6 +54,10 @@ assert(!/NaN|undefined|\[object Object\]/.test(devText), 'Devolutiva contém NaN
 assert(!/ESG|Sustentabilidade/i.test(dev.radarText), 'ESG não pode aparecer no diagnóstico principal');
 assert(!banned.some(rx => rx.test(devText)), 'Devolutiva contém frase genérica proibida');
 assert(dev.maturityLevel.label === 'Em estruturação', 'Resposta exemplo 72/125 deve ser Em estruturação');
+const calculated = sandbox.calculateValoraInsightResult(responseFor([18,12,16,14,12]), form);
+const devFromCalculated = sandbox.generateValoraInsightDevolutiva(calculated, form, {});
+assert(devFromCalculated.result.totalScore === 72, 'generateValoraInsightDevolutiva deve aceitar o objeto result já calculado sem zerar pontuação');
+
 assert(dev.finalPrinciple === 'Empresas não evoluem quando entendem o diagnóstico.\nElas evoluem quando aceitam a verdade que ele revela.', 'Princípio final obrigatório divergente');
 const persistedOnly = sandbox.calculateValoraInsightResult({ valoraInsight: { dimensionScores: official.map((name,i)=>({ name, score: [18,12,16,14,12][i] })) } }, form);
 assert(persistedOnly.totalScore === 72, 'Resposta persistida só com valoraInsight.dimensionScores deve regenerar 72/125');

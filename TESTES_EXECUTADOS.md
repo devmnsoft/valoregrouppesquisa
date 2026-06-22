@@ -623,3 +623,11 @@ Homologação local aprovada com ressalvas para validações que exigem execuç�
 - Linguagem natural do ValoraBot revisada para saudações contextuais, respostas consultivas, sugestões por contexto e ação constante “Falar com atendente”.
 - Atendimento humano pelo bot revisado para registrar contexto sem token completo, usando rota, perfil, surveyId/resultId e dados do usuário quando logado.
 - Checks executados: `npm run check`, `node --check pdf.js`, `npm run security:check`, `npm run build:prod`, `git ls-files dist`.
+
+## QA visual automatizado
+
+- Estrutura adicionada em `tests/visual/` com Playwright.
+- Comando preparado: `npm run test:visual`.
+- Cenários previstos: Home, Planos, pesquisa pública, certificado em tela, certificado PDF/PNG e ValoraBot público/logado.
+- Evidências geradas localmente em `tests/visual/screenshots/` e artifacts no workflow manual `.github/workflows/visual-smoke.yml`.
+- Observação: a execução depende da instalação dos browsers com `npx playwright install chromium`.

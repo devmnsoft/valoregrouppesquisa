@@ -469,3 +469,20 @@ O repositório possui workflows de CI/CD para proteger o build de produção:
 - Deploy de produção é controlado por `workflow_dispatch` ou tags `v*`, usando environment `production` para aprovação manual.
 
 Consulte `GITHUB_ACTIONS.md`, `AMBIENTES_E_DEPLOY.md`, `GITHUB_SECRETS.md`, `CHECKLIST_RELEASE.md` e `ROLLBACK_PRODUCAO.md` antes de publicar.
+
+## QA visual com Playwright
+
+O projeto possui uma etapa de QA visual em `tests/visual/` para gerar evidências antes de produção, cobrindo Home, Planos, pesquisa pública, resultado/certificado, downloads PDF/PNG e ValoraBot em jornadas públicas e logadas.
+
+Comandos principais:
+
+```bash
+npm install
+npx playwright install chromium
+npm run test:visual
+npm run test:visual:headed
+```
+
+Por padrão, o Playwright sobe `VALORA_PORT=8095 python server.py`. Para reaproveitar um servidor local já aberto, use `VISUAL_SKIP_WEBSERVER=1 VISUAL_BASE_URL=http://127.0.0.1:8095 npm run test:visual`.
+
+Screenshots e traces ficam em `tests/visual/screenshots/`, `tests/visual/output/`, `test-results/` e `playwright-report/`; esses artefatos são ignorados pelo Git e não devem ser commitados.

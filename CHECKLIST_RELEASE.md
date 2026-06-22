@@ -28,3 +28,13 @@
 - [ ] Confirmar preview Firebase somente em PR interno e com secrets de homologação.
 - [ ] Confirmar produção somente via `workflow_dispatch` ou tag `v*`, com environment `production` e aprovação manual.
 - [ ] Confirmar rollback revisado e responsável definido antes do deploy.
+
+## QA visual antes da produção
+
+- [ ] Rodar `npm run test:visual` em desktop 1366x768 e mobile 360x800.
+- [ ] Revisar screenshots em `tests/visual/screenshots/`.
+- [ ] Validar certificado em tela sem `NaN`, cortes ou sobreposição.
+- [ ] Validar download de PDF e PNG do certificado, com nome seguro e arquivo não vazio.
+- [ ] Confirmar ValoraBot sem login, em pesquisa pública e logado por perfil.
+- [ ] Garantir que `tests/visual/screenshots/`, `tests/visual/output/`, `test-results/` e `playwright-report/` não foram commitados.
+- [ ] Em CI, rodar manualmente o workflow `Visual Smoke` e anexar os artifacts à homologação.

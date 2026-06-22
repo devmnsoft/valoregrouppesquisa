@@ -19,7 +19,11 @@
     "export:local": "node scripts/export-local-state.js",
     "import:firebase:dry": "node scripts/import-local-export-to-firebase.js --dry-run",
     "validate:prd:data": "node scripts/validate-prd-data.js",
-    "release:prd:data": "node scripts/release-prd-with-data.js"
+    "release:prd:data": "node scripts/release-prd-with-data.js",
+    "publish:iis:dry": "node scripts/publish-iis-prd.js --dry-run --mode firebase",
+    "publish:iis": "node scripts/publish-iis-prd.js --apply --mode firebase",
+    "publish:iis:local": "node scripts/publish-iis-prd.js --apply --mode local",
+    "package:iis": "node scripts/publish-iis-prd.js --package-only --mode firebase"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

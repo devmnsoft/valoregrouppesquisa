@@ -177,3 +177,11 @@ A validação confirma Admin em Auth/Firestore, custom claims, planos, módulos,
 ### getEmailStatus em PRD
 
 Em modo Firebase, `getEmailStatus` deve continuar sendo chamada por `httpsCallable('getEmailStatus')`, nunca por `fetch` direto para `cloudfunctions.net/getEmailStatus`. Se o e-mail não estiver configurado, a aplicação deve mostrar status amigável e não quebrar o carregamento.
+
+## Checklist Publicador IIS PRD
+
+- Rodar dry-run do publicador.
+- Validar Firebase PRD em `config.js`.
+- Conferir `dist/index.html`, `dist/assets/app.*.js`, `dist/assets/style.*.css` e `dist/web.config`.
+- Confirmar backup em `backups/iis/` antes do `--apply`.
+- Validar site no IIS sem 500.19, 403.14 ou MIME `text/html` para JS/CSS.

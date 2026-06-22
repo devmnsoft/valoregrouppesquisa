@@ -694,3 +694,10 @@ Homologação local aprovada com ressalvas para validações que exigem execuç�
 - Dry-run: `node scripts/import-local-export-to-firebase.js --file ./exports/valora-prd-export.json --project gestordepesquisa --dry-run` deve exibir contagens e não escrever no Firebase.
 - Apply: `node scripts/release-prd-with-data.js --file ./exports/valora-prd-export.json --project gestordepesquisa --iis-path C:\inetpub\wwwroot\valoragroup --apply` deve criar backup, importar Firestore/Auth, aplicar claims, gerar build e publicar no IIS.
 - PRD: validar login, planos, usuários, perguntas, pesquisa pública, certificado e ValoraBot no domínio publicado.
+
+## Publicador IIS PRD
+
+- Dry-run: `node scripts/publish-iis-prd.js --mode firebase --dry-run` valida pré-requisitos, Firebase PRD, checks, build e dist sem copiar IIS.
+- Package-only: `node scripts/publish-iis-prd.js --mode firebase --package-only` gera `publish/valoragroup-iis-prd-YYYYMMDD-HHMM/` com `index.html`, `assets/` e `web.config`.
+- Apply: `node scripts/publish-iis-prd.js --iis-path C:\inetpub\wwwroot\valoragroup --mode firebase --apply` cria backup, limpa IIS, copia dist e valida publicação.
+- With-data: `node scripts/publish-iis-prd.js --iis-path C:\inetpub\wwwroot\valoragroup --mode firebase --with-data --data-file .\exports\valora-prd-export.json --project gestordepesquisa --apply` executa dry-run de importação, importação com backup e publicação.

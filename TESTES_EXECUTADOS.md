@@ -565,3 +565,14 @@ Relatório principal: `HOMOLOGACAO_PIPELINES.md`.
 ### Resultado
 
 Homologação local aprovada com ressalvas para validações que exigem execução real no GitHub Actions/Firebase: artifact do run, preview publicado e deploy/rollback em ambiente autorizado.
+
+## Valora Pulse 8.6.6 — jornada pública instantânea e planos
+
+- Pesquisa instantânea/Home: botões `Responder pesquisa em destaque` e `Iniciar diagnóstico` alterados para `openSurveyInNewTab`, abrindo `window.open(..., '_blank', 'noopener,noreferrer')` sem `location.href`, `history.pushState` ou roteamento da aba original. Validação por inspeção de código.
+- Header público: shell da pesquisa exibe marca Valora, texto `Pesquisa segura`, botão `← Home`, Ajuda, ValoraBot e WhatsApp quando houver número configurado. Menus públicos de Home (`Planos`, `Entrar`, `Criar ambiente`) não são renderizados na jornada pública. Validação por inspeção de `renderPublicSurveyShell()`.
+- Empresa Exemplo/demo: adicionado `isDemoCompany()` e `shouldShowPublicCompanyChip()`. Links demo `org_demo`/`empresa-exemplo` não exibem chip `Empresa Exemplo`; o card interno mostra `Valora Insight™` e `Pesquisa demonstrativa segura`. Empresas reais continuam usando `publicName`, logo e white label quando configuradas. Validação por inspeção de código.
+- Ajuda pública: rota `#public-help` reescrita com instruções sobre como responder, link seguro, expiração, LGPD, suporte, resultado, Home e ValoraBot. Inclui CTA `Voltar para Home`.
+- Layout: botões públicos refinados, foco visível, header compacto, ações flutuantes ocultas em desktop público (`min-width:900px`) e compactadas em mobile até 360px.
+- Planos: seed comercial reescrito para Essencial, Profissional, Corporativo e Enterprise, com público-alvo, badge comercial, preço sob consulta/sob contrato, recursos e CTAs específicos. `renderPlans()` passou a exibir badge, público-alvo, descrição, preço e CTA por plano.
+- Versão/cache: `APP_VERSION` e query strings atualizadas para `8.6.6`.
+- Checks executados: `node --check app.js` sem erro de sintaxe.

@@ -1,0 +1,8 @@
+#!/usr/bin/env node
+'use strict';
+const admin=require('firebase-admin');
+const {DIAGNOSE_EMAILS}=require('./auth-user-fixtures');
+function arg(k){const i=process.argv.indexOf(`--${k}`);return i>=0?process.argv[i+1]:'';}
+const project=arg('project'); if(!project){console.error('Uso: node scripts/diagnose-auth-users.js --project gestordepesquisa');process.exit(2);} 
+admin.initializeApp({projectId:project}); const auth=admin.auth(), db=admin.firestore();
+(async()=>{const out=[];for(const email of DIAGNOSE_EMAILS){const row={email,authExists:false};try{const u=await auth.getUserByEmail(email);row.authExists=true;row.uid=u.uid;row.emailVerified=u.emailVerified;row.disabled=u.disabled;row.providerIds=(u.providerData||[]).map(p=>p.providerId);row.emailPasswordProvider=row.providerData?.some(p=>p.providerId==='password')||false;row.claims=u.customClaims||{};const doc=await db.collection('users').doc(u.uid).get();row.firestoreUserDocExists=doc.exists;if(doc.exists)row.firestoreUserDoc={role:doc.get('role')||'',companyId:doc.get('companyId')||'',legacyId:doc.get('legacyId')||''};const legacy=await db.collection('users').where('legacyId','in',[row.firestoreUserDoc?.legacyId||'',email]).limit(5).get().catch(()=>({empty:true,docs:[]}));row.legacyDocs=(legacy.docs||[]).map(d=>d.id);}catch(e){if(e.code==='auth/user-not-found')row.error='auth/user-not-found';else row.error=e.message;}out.push(row);}console.log(JSON.stringify({project,checkedAt:new Date().toISOString(),manualChecks:['Firebase Console > Authentication > Sign-in method > Email/Password habilitado','Firebase Console > Authentication > Settings > Authorized domains'],users:out},null,2));})().catch(e=>{console.error(e);process.exit(1);});

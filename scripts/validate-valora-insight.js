@@ -55,6 +55,8 @@ assert(!/ESG|Sustentabilidade/i.test(dev.radarText), 'ESG não pode aparecer no 
 assert(!banned.some(rx => rx.test(devText)), 'Devolutiva contém frase genérica proibida');
 assert(dev.maturityLevel.label === 'Em estruturação', 'Resposta exemplo 72/125 deve ser Em estruturação');
 assert(dev.finalPrinciple === 'Empresas não evoluem quando entendem o diagnóstico.\nElas evoluem quando aceitam a verdade que ele revela.', 'Princípio final obrigatório divergente');
+const persistedOnly = sandbox.calculateValoraInsightResult({ valoraInsight: { dimensionScores: official.map((name,i)=>({ name, score: [18,12,16,14,12][i] })) } }, form);
+assert(persistedOnly.totalScore === 72, 'Resposta persistida só com valoraInsight.dimensionScores deve regenerar 72/125');
 const legacy = sandbox.normalizeLegacyValoraInsightResponse({ rawScore: 130, maxScore: 135, byDimension: { ESG: { rawScore: 10, maxScore: 10 } } }, form);
 assert(legacy.legacyScore && legacy.legacyScore.maxScore === 135, 'Legacy score 135 deve ser preservado');
 if (errors.length) { console.error('Valora Insight QA: FAIL'); for (const e of errors) console.error(`- ${e}`); process.exit(1); }

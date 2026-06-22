@@ -1000,23 +1000,26 @@ async function saveEmailServerConfig(fd){if(isFirebaseMode())throw new Error('Em
 async function getEmailStatus(){
   const cfg=window.ValoraConfig||{};
 
-  if(cfg.STORAGE_MODE!=='firebase'){
-    try{
-      const res=await fetch('/api/email/status');
-      if(!res.ok)throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    }catch(_){
-      return {mode:'outbox',available:true,configured:false,message:'Modo local/outbox.'};
-    }
+  if(cfg.STORAGE_MODE==='firebase'){
+    return {
+      mode:'firebase',
+      available:true,
+      configured:false,
+      message:'Status de e-mail gerenciado pelo Firebase/Secret Manager.'
+    };
   }
 
   try{
-    const callable=firebaseCallable('getEmailStatus');
-    const result=await callable({});
-    return result&&result.data?result.data:result;
-  }catch(err){
-    console.warn('[Valora Pulse] Status de e-mail indisponível.',err);
-    return {mode:'firebase',available:false,configured:false,message:'Status de e-mail indisponível no momento.'};
+    const res=await fetch('/api/email/status');
+    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  }catch(_){
+    return {
+      mode:'outbox',
+      available:true,
+      configured:false,
+      message:'Modo local/outbox.'
+    };
   }
 }
 async function updateEmailStatus(){

@@ -49,6 +49,9 @@ let html = index
   .replace(/<script\s+src="(?!https?:)[^"]+\.js(?:\?v=[^"]*)?"\s+defer><\/script>\n?/g, '')
   .replace('</body>', `  <script src="assets/${jsFile}" defer></script>\n</body>`);
 fs.writeFileSync(path.join(dist, 'index.html'), html, 'utf8');
+const webConfig=path.join(root,'templates','iis','web.config');
+if(fs.existsSync(webConfig))fs.copyFileSync(webConfig,path.join(dist,'web.config'));
+else console.warn('templates/iis/web.config não encontrado; dist/web.config não foi gerado.');
 
 require('./postbuild-security-check');
 console.log(`Build de produção gerado em dist/ com ${jsFile} e ${cssFile}.`);

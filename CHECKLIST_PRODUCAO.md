@@ -112,3 +112,14 @@ Esta versão adiciona estrutura de identidade visual por empresa, slug público,
 - Configurar Telegram somente via backend/secrets.
 - Publicar Cloud Functions de atendimento público com rate limit.
 - Revisar regras de `supportConversations` e `supportMessages`.
+
+## CI/CD e deploy controlado
+
+- [ ] PR validada pelo workflow `PR validation`.
+- [ ] `dist/` não commitado e validado por `npm run check:no-dist`.
+- [ ] Build seguro gerado pelo workflow `Secure production build`.
+- [ ] Source maps ausentes no artefato `dist/`.
+- [ ] Segredos ausentes no código e no build.
+- [ ] Deploy de produção executado somente por `workflow_dispatch` ou tag `v*`.
+- [ ] Environment `production` configurado no GitHub com aprovação manual.
+- [ ] Rollback revisado conforme `ROLLBACK_PRODUCAO.md`.

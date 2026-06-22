@@ -518,3 +518,24 @@ Checks técnicos executados nesta entrega:
 - `node --check dist/assets/app.*.js`
 - `find dist -name "*.map"` retorna vazio
 - `dist/` não é versionado no Git
+
+## CI/CD seguro — 2026-06-21
+
+### Comandos obrigatórios registrados
+
+- `npm run check` — valida sintaxe dos arquivos principais.
+- `npm run check:no-dist` — falha se `dist/` estiver versionado ou alterado no PR.
+- `npm run security:check` — valida ausência de `dist/` versionado, segredos óbvios e CSP insegura.
+- `npm run build:prod` — gera `dist/` em modo produção e executa postbuild security check.
+- `for file in dist/assets/*.js; do node --check "$file"; done` — valida todos os bundles JavaScript gerados.
+- `find dist -name "*.map"` — deve retornar vazio.
+
+### Validações esperadas nos workflows
+
+- Workflow de PR executa em pull requests para `main`.
+- PR com `dist/` commitado falha em `npm run check:no-dist`.
+- PR sem `dist/` passa pelos checks quando não há erros de sintaxe/segurança.
+- Build gera `dist/` como artefato, sem entrar no Git.
+- Deploy usa `firebase.json` com Hosting apontando para `dist`.
+- Source maps ausentes bloqueiam publicação insegura.
+- Segredos e tokens suspeitos bloqueiam o pipeline.

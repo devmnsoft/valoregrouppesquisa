@@ -1,0 +1,65 @@
+name: Secure production build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  secure-build:
+    name: Build dist securely
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate repository state
+        run: npm run check:no-dist
+
+      - name: Syntax checks
+        run: npm run check
+
+      - name: Security checks
+        run: npm run security:check
+
+      - name: Production build
+        run: npm run build:prod
+
+      - name: Validate generated JavaScript
+        run: |
+          set -euo pipefail
+          for file in dist/assets/*.js; do
+            node --check "$file"
+          done
+
+      - name: Block source maps in dist
+        run: |
+          set -euo pipefail
+          if find dist -name "*.map" | grep .; then
+            echo "Source maps não podem ser publicados em produção."
+            exit 1
+          fi
+
+      - name: Post-build security check
+        run: npm run postbuild:security
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: valora-pulse-dist
+          path: dist
+          if-no-files-found: error
+          retention-days: 7

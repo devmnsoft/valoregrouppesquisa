@@ -216,7 +216,7 @@ function routeFromLocation(){
 function route(path){
   currentRoute=path||'home';renderShell();
   const [view,tab]=currentRoute.split('/');
-  if(['admin','empresa','participante'].includes(view)&&!currentUser())return renderLogin('Entre para acessar sua área.');
+  if(['admin','empresa','participante'].includes(view)&&!currentUser())return renderLogin('Acesso seguro à plataforma Valora Pulse™.');
   if(view==='admin'&&getRoleDefinition(currentUser()?.role).scope!=='valora')return renderNoAccess();
   if(view==='empresa'&&!['valora','empresa'].includes(getRoleDefinition(currentUser()?.role).scope))return renderNoAccess();
   if(view==='participante'&&!['participante','externo'].includes(getRoleDefinition(currentUser()?.role).scope))return renderNoAccess();
@@ -339,6 +339,7 @@ function portalHelp(scope,tab){
     'admin/modules':'Ative ou desative recursos do produto. A mudança é registrada em auditoria.',
     'admin/settings':'Escolha a pesquisa da home, configure WhatsApp, remetente, templates de e-mail, FAQ e termo LGPD.',
     'admin/publish':'Gere export, checklist, web.config e comandos seguros. O navegador não copia arquivos para o IIS; o script Node roda no servidor.',
+    'admin/status':'Status visual de ambiente, Firebase, carregamento de coleções e último erro Firestore.',
     'admin/backup':'Área exclusiva do administrador geral para exportar ou importar toda a base.',
     'admin/logs':'Trilha global de criação, edição, exclusão, compartilhamento, exportação, login e erros.',
     'empresa/dashboard':'Resumo do ambiente da sua empresa, uso do plano, pesquisas, respostas, índice e prioridades.',
@@ -378,7 +379,7 @@ function enhanceResponsiveTables(root=document){
 }
 
 function renderAdminTab(tab,body){
-  const map={dashboard:adminDashboard,notifications:notificationsSection,integrations:()=>integrationsSection('admin'),actionPlans:()=>actionPlansSection('admin'),clients:clientsSection,finance:financeSection,plans:plansSection,surveys:()=>surveysSection('admin'),forms:()=>formsSection('admin'),users:()=>usersSection('admin'),responses:()=>responsesSection('admin'),reports:()=>reportsSection('admin'),modules:modulesSection,settings:settingsSection,publish:publishSection,backup:backupSection,logs:logsSection,support:supportSection};
+  const map={dashboard:adminDashboard,status:adminEnvironmentStatusCard,notifications:notificationsSection,integrations:()=>integrationsSection('admin'),actionPlans:()=>actionPlansSection('admin'),clients:clientsSection,finance:financeSection,plans:plansSection,surveys:()=>surveysSection('admin'),forms:()=>formsSection('admin'),users:()=>usersSection('admin'),responses:()=>responsesSection('admin'),reports:()=>reportsSection('admin'),modules:modulesSection,settings:settingsSection,publish:publishSection,backup:backupSection,logs:logsSection,support:supportSection};
   body.innerHTML=(map[tab]||adminDashboard)();
 }
 function renderCompanyTab(tab,body){
@@ -1030,7 +1031,7 @@ async function getEmailStatus(){
   const cfg=window.ValoraConfig||{};
 
   if(cfg.STORAGE_MODE==='firebase'&&cfg.ENABLE_CLOUD_FUNCTIONS===false){
-    return {mode:'firebase',available:true,configured:false,message:'Status de e-mail gerenciado pela configuração de produção. Cloud Functions serão ativadas quando o projeto migrar para Blaze.'};
+    return {mode:'firebase',available:true,configured:false,message:'Status de e-mail indisponível no plano Spark. Cloud Functions serão ativadas quando o projeto migrar para Blaze.'};
   }
 
   if(cfg.STORAGE_MODE==='firebase'){
@@ -1060,7 +1061,7 @@ async function updateEmailStatus(){
     el.textContent=b.message||'E-mail: indisponível temporariamente';
     return;
   }
-  el.textContent=`Firebase Functions: ${b.configured?'configurado':'não configurado'} • remetente ${b.senderEmail||DEFAULT_SENDER}`;
+  el.textContent=b.message||`Firebase Functions: ${b.configured?'configurado':'não configurado'} • remetente ${b.senderEmail||DEFAULT_SENDER}`;
 }
 async function openOutbox(){try{const res=await fetch('/api/outbox');const b=await res.json();openModal('Caixa de saída de teste',`<div class="page-help"><b>Modo de teste:</b> cada envio cria um arquivo .eml que pode ser aberto no Outlook, Thunderbird ou aplicativo compatível.</div><div class="card">${(b.items||[]).map(x=>`<p><a href="${esc(x.url)}" target="_blank">${esc(x.name)}</a> <span class="muted">${esc(x.createdAt||'')}</span></p>`).join('')||'<div class="empty">Nenhum e-mail de teste gerado.</div>'}</div>`);}catch(err){toast(`Não foi possível abrir a caixa de saída: ${err.message}`,'error');}}
 

@@ -20,7 +20,7 @@ function docData(d){return d.exists?{id:d.id,...d.data()}:null;}
 function asArray(snap){return snap.docs.map(docData).filter(Boolean);}
 function isGlobalRole(profile=session.profile){return GLOBAL_ROLES.includes(profile?.role);}
 function actorId(){return session.profile?.uid||session.profile?.id||session.authUser?.uid||'system';}
-function normalizeCompany(org){return org?{...org,id:org.id||org.uid}:org;}
+function normalizeCompany(org){return org?{...org,id:org.id||org.uid,name:org.name||org.publicName||org.legalName,publicName:org.publicName||org.name||org.legalName,legalName:org.legalName||org.name||org.publicName,planId:org.planId||org.subscription?.planId||'essential'}:org;}
 function collectionNameForStateKey(key){return ({companies:'organizations'})[key]||key;}
 function collectionStateKey(collection){return ({organizations:'companies'})[collection]||collection;}
 function canUseCompanyScope(){return !!session.profile?.companyId&&!isGlobalRole();}
@@ -76,18 +76,20 @@ async function loadForms(companyId){const p=session.profile;if(!p)return [];if(i
 async function loadSurveys(companyId){const p=session.profile;if(!p)return [];if(isGlobalRole(p)&&!companyId)return queryCollection('surveys');return queryCollection('surveys',buildScopeFilter(companyId||p.companyId));}
 async function loadResponses(companyId){const p=session.profile;if(!p)return [];if(p.role==='participante')return queryCollection('responses',[['participantUid','==',p.uid||p.id]]);if(isGlobalRole(p)&&!companyId)return queryCollection('responses');let filters=buildScopeFilter(companyId||p.companyId);if(p.role==='gestor_area'&&p.department)filters.push(['department','==',p.department]);return queryCollection('responses',filters);}
 async function loadSettings(){const p=session.profile;if(!p)return {};if(p.role==='admin_valora'){const rows=await queryCollection('settings');return Object.fromEntries(rows.map(x=>[x.id,x]));}return await getDoc('settings','public')||{};}
+async function loadCompaniesRaw(companyId){const p=session.profile;if(!p)return [];if(isGlobalRole(p)&&!companyId)return queryCollection('companies');return queryCollection('companies',buildScopeFilter(companyId||p.companyId));}
 async function loadStoreData(){
   const p=session.profile;if(!p)return null;
   const canFinance=['admin_valora','empresa_admin'].includes(p.role);
-  const [organizations,users,plans,modules,forms,surveys,responses,invitations,invoices,actionPlans,supportTickets,supportSlaPolicies,supportCategories,knowledgeBase,notifications,settings,logs,integrations,apiKeys,webhooks,integrationLogs]=await Promise.all([
-    loadOrganizations(),loadUsers(),queryCollection('plans'),queryCollection('modules'),loadForms(),loadSurveys(),loadResponses(),scopedRows('invitations'),canFinance?scopedRows('invoices'):Promise.resolve([]),scopedRows('actionPlans'),scopedRows('supportTickets'),queryCollection('supportSlaPolicies'),queryCollection('supportCategories'),queryCollection('knowledgeBase'),scopedRows('notifications'),loadSettings(),p.role==='admin_valora'?queryCollection('logs',[],null,300):Promise.resolve([]),scopedRows('integrations'),scopedRows('apiKeys'),scopedRows('webhooks'),scopedRows('integrationLogs')
+  const [organizations,companiesRaw,users,plans,modules,forms,surveys,responses,invitations,invoices,actionPlans,supportTickets,supportMessages,supportSlaPolicies,supportCategories,knowledgeBase,notifications,settings,logs,integrations,apiKeys,webhooks,integrationLogs]=await Promise.all([
+    loadOrganizations(),loadCompaniesRaw(),loadUsers(),queryCollection('plans'),queryCollection('modules'),loadForms(),loadSurveys(),loadResponses(),scopedRows('invitations'),canFinance?scopedRows('invoices'):Promise.resolve([]),scopedRows('actionPlans'),scopedRows('supportTickets'),scopedRows('supportMessages'),queryCollection('supportSlaPolicies'),queryCollection('supportCategories'),queryCollection('knowledgeBase'),scopedRows('notifications'),loadSettings(),p.role==='admin_valora'?queryCollection('logs',[],null,300):Promise.resolve([]),scopedRows('integrations'),scopedRows('apiKeys'),scopedRows('webhooks'),scopedRows('integrationLogs')
   ]);
-  return {session:{userId:p.id||p.uid,createdAt:new Date().toISOString()},companies:organizations.map(normalizeCompany),organizations,users,plans,modules,forms,surveys,responses,invitations,invoices,actionPlans,supportTickets,supportSlaPolicies,supportCategories,knowledgeBase,notifications,settings,logs,integrations,apiKeys,webhooks,integrationLogs};
+  const companies=organizations.length?organizations.map(normalizeCompany):companiesRaw.map(normalizeCompany);
+  return {session:{userId:p.id||p.uid,createdAt:new Date().toISOString()},organizations,companies,users,plans,modules,forms,surveys,responses,invitations,invoices,actionPlans,supportTickets,supportMessages,supportSlaPolicies,supportCategories,knowledgeBase,notifications,settings,logs,integrations,apiKeys,webhooks,integrationLogs,firestoreLastError:null};
 }
 async function hydrateStore(){
   if(session.loading)return;session.loading=true;session.lastError=null;
   try{const data=await loadStoreData();if(!data)return;Object.assign(session.store,data);session.normalizeState?.(session.store);session.cache=clone({companies:session.store.companies,users:session.store.users,plans:session.store.plans,modules:session.store.modules,forms:session.store.forms,surveys:session.store.surveys,responses:session.store.responses,invitations:session.store.invitations,invoices:session.store.invoices,actionPlans:session.store.actionPlans,supportTickets:session.store.supportTickets,supportMessages:session.store.supportMessages,supportSlaPolicies:session.store.supportSlaPolicies,supportCategories:session.store.supportCategories,knowledgeBase:session.store.knowledgeBase,notifications:session.store.notifications,settings:session.store.settings});session.loaded=true;}
-  catch(err){session.lastError=err;console.warn('[Valora Pulse] Falha ao carregar Firestore.',err);}
+  catch(err){session.lastError=err;if(session.store)session.store.firestoreLastError={code:err?.code||'',message:err?.message||String(err),at:new Date().toISOString()};console.warn('[Valora Pulse] Falha ao carregar Firestore.',err);}
   finally{session.loading=false;}
 }
 function changed(a,b){return JSON.stringify(a||null)!==JSON.stringify(b||null);}

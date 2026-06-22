@@ -65,3 +65,33 @@ Relatórios são gerados em `publish/reports/` e não devem ser commitados.
 A forma recomendada no Windows Server é executar `tools\windows\Publicar-Valora-PRD.bat`. O BAT abre `tools\windows\Publicar-Valora-PRD.ps1`, que chama `scripts/publish-iis-prd.js` para dry-run, apply, package-only, publicação com dados, health check e rollback.
 
 Relatórios ficam em `publish/reports/` e backups em `backups/iis/`. Esses diretórios são ignorados pelo Git.
+
+## Erro: `spawnSync git ENOENT`
+
+Esse erro indica que o Git não está instalado ou não está disponível no `PATH` do Windows. O `security-check` trata a ausência do Git com mensagem amigável e fallback local fora do CI, mas o Git continua obrigatório em CI/GitHub Actions.
+
+Verifique:
+
+```powershell
+git --version
+```
+
+Instale, se necessário:
+
+```powershell
+winget install --id Git.Git -e --source winget
+```
+
+Ou adicione ao `PATH`:
+
+```text
+C:\Program Files\Git\cmd
+```
+
+Alternativa emergencial:
+
+```powershell
+node scripts/publish-iis-prd.js --iis-path C:\inetpub\wwwroot\valoragroup --mode firebase --apply --skip-security-check
+```
+
+Evite usar `--skip-security-check` em produção. A opção existe apenas para continuidade emergencial e o relatório da publicação registra que a validação foi pulada.

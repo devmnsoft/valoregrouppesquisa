@@ -6,11 +6,13 @@ const { execFileSync } = require('child_process');
 const root = path.resolve(__dirname, '..');
 const failures = [];
 const isCi = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
-const ignoredFallbackDirs = new Set(['node_modules', '.git', 'dist', 'test-results', 'playwright-report']);
 
-function hasGit() {
+function commandExists(command, args = ['--version']) {
   try {
-    execFileSync('git', ['--version'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    execFileSync(command, args, {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
     return true;
   } catch (_) {
     return false;
@@ -18,23 +20,25 @@ function hasGit() {
 }
 
 function git(args) {
-  try {
-    return execFileSync('git', args, { encoding: 'utf8' }).trim();
-  } catch (err) {
-    if (err.code === 'ENOENT') {
-      throw new Error(
-        'Git não encontrado no PATH. Instale o Git ou adicione C:\\Program Files\\Git\\cmd ao PATH do Windows.'
-      );
-    }
-    throw err;
-  }
+  return execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 }
 
 function walkFiles(dir, list = []) {
+  const ignoredDirs = new Set([
+    '.git',
+    'node_modules',
+    'dist',
+    'publish',
+    'backups',
+    'exports',
+    'test-results',
+    'playwright-report',
+  ]);
+
   if (!fs.existsSync(dir)) return list;
 
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (ignoredFallbackDirs.has(entry.name)) continue;
+    if (ignoredDirs.has(entry.name)) continue;
 
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
@@ -80,12 +84,18 @@ function checkFiles(files) {
   }
 }
 
-const gitAvailable = hasGit();
+const gitAvailable = commandExists('git');
 let fallbackMode = false;
 
 if (!gitAvailable) {
-  console.warn('Aviso: Git não foi encontrado. A verificação será feita nos arquivos locais, mas não será possível validar arquivos versionados com git ls-files.');
-  console.warn('Para corrigir no Windows, instale o Git ou adicione C:\\Program Files\\Git\\cmd ao PATH. Teste com: git --version');
+  console.warn('Aviso: Git não foi encontrado no PATH.');
+  console.warn('No Windows, instale o Git ou adicione C:\\Program Files\\Git\\cmd ao PATH.');
+  console.warn('Executando verificação local limitada sem git ls-files.');
+
+  if (fs.existsSync(path.join(root, 'dist'))) {
+    console.warn('Aviso: dist/ existe localmente. Isso é normal após build, mas a pasta não deve ser commitada.');
+    console.warn('Instale o Git para validar se dist/ está versionado.');
+  }
 
   if (isCi) {
     failures.push('Git não encontrado no ambiente CI. O security-check exige Git no CI.');
@@ -116,7 +126,9 @@ if (failures.length) {
 }
 
 if (fallbackMode) {
-  console.log('security-check aprovado em modo fallback local. Instale o Git para validar arquivos versionados.');
+  console.log('security-check aprovado em modo fallback local.');
+  console.log('Atenção: Git não foi encontrado; não foi possível validar arquivos versionados.');
+  console.log('Instale o Git para validação completa.');
 } else {
-  console.log('security-check aprovado.');
+  console.log('security-check aprovado: sem dist versionado, segredos óbvios ou CSP insegura.');
 }

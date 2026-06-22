@@ -56,3 +56,7 @@ valora-local-export-*.json
 valora-prd-export-*.json
 serviceAccount*.json
 release-prd-report-*.md
+
+publish/
+backups/
+exports/

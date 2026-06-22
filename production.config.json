@@ -1,0 +1,15 @@
+{
+  "projectName": "Valora Pulse",
+  "firebaseProjectId": "gestordepesquisa",
+  "productionUrl": "https://valoragroup.mnsoft.com.br",
+  "projectRoot": "C:\\DBBACK\\valoregrouppesquisa",
+  "serviceAccountPath": "C:\\FirebaseKeys\\gestordepesquisa-firebase-adminsdk-fbsvc-fe4f2380fd.json",
+  "localExportSource": "C:\\DBBACK\\valora-local-export-20260622-0037.json",
+  "localExportTarget": "exports\\valora-prd-export-20260622-0037.json",
+  "iisPath": "C:\\DBBACK\\valoregrouppesquisa\\dist",
+  "mode": "firebase",
+  "includeResponses": true,
+  "createAuthUsers": true,
+  "runHealthCheck": true,
+  "openBrowserAfterSuccess": true
+}

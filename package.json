@@ -23,7 +23,11 @@
     "publish:iis:dry": "node scripts/publish-iis-prd.js --dry-run --mode firebase",
     "publish:iis": "node scripts/publish-iis-prd.js --apply --mode firebase",
     "publish:iis:local": "node scripts/publish-iis-prd.js --apply --mode local",
-    "package:iis": "node scripts/publish-iis-prd.js --package-only --mode firebase"
+    "package:iis": "node scripts/publish-iis-prd.js --package-only --mode firebase",
+    "prod:dry": "node scripts/go-production.js --dry-run",
+    "prod:go": "node scripts/go-production.js --apply",
+    "prod:go:data": "node scripts/go-production.js --apply --with-data --open-browser",
+    "prod:health": "node scripts/healthcheck-prd.js --url https://valoragroup.mnsoft.com.br --project gestordepesquisa"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

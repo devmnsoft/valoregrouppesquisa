@@ -576,3 +576,34 @@ Homologação local aprovada com ressalvas para validações que exigem execuç�
 - Planos: seed comercial reescrito para Essencial, Profissional, Corporativo e Enterprise, com público-alvo, badge comercial, preço sob consulta/sob contrato, recursos e CTAs específicos. `renderPlans()` passou a exibir badge, público-alvo, descrição, preço e CTA por plano.
 - Versão/cache: `APP_VERSION` e query strings atualizadas para `8.6.6`.
 - Checks executados: `node --check app.js` sem erro de sintaxe.
+
+## Valora Pulse 8.6.7 — Home comercial e certificados
+
+### Home comercial
+
+- Área técnica **LGPD e confidencialidade desde o convite** removida da Home; funcionalidades de LGPD, consentimento e segurança permanecem na jornada e nas áreas internas.
+- Frase **Diagnóstico rápido • LGPD ativa • Link seguro** removida do topo e substituída por **Transforme respostas em decisões para sua empresa**.
+- Headline reescrita para reforçar cultura, liderança e governança; subtítulo atualizado para comunicar escuta, maturidade e planos de ação.
+- Seção **Da pergunta ao plano de ação** reescrita como **Do diagnóstico à decisão**, com cards **Estruture**, **Personalize**, **Envie** e **Decida**.
+- Termos técnicos da comunicação principal removidos: radio button, checkbox, text box, text area, pesos, método de cálculo, LGPD ativa, token, KPIs, benchmarks e trilha de auditoria.
+- CTAs revisados para linguagem comercial: **Iniciar diagnóstico** e **Criar ambiente gratuito**.
+- Layout desktop validado por inspeção de estrutura e CSS responsivo existente.
+- Layout mobile validado por inspeção das regras `@media` da timeline, hero e certificado.
+
+### Certificados
+
+- Área de certificado revisada para comunicar valor: **Seu certificado de participação está disponível** e confirmação de participação no diagnóstico.
+- Botões revisados para textos amigáveis: **Baixar certificado em PDF** e **Baixar certificado em imagem**.
+- Texto do certificado revisado com título, subtítulo, nome do participante em destaque, nome da pesquisa, data, resultado e mensagem institucional.
+- Layout HTML do certificado revisado com fundo limpo, borda elegante, marca Valora, detalhes organizados e responsividade.
+- Certificado PDF revisado em `pdf.js` com layout horizontal mais profissional, borda dupla, título, corpo comercial, resultado e rodapé institucional.
+- Certificado PNG/imagem revisado com canvas profissional, borda elegante, nome em destaque, pesquisa, data, resultado e marca institucional.
+- Empresa real aparece na mensagem **Pesquisa promovida por [Nome da Empresa], com tecnologia Valora Group™**.
+- Pesquisa demo evita exibir **Empresa Exemplo** indevidamente e usa **Pesquisa demonstrativa realizada na plataforma Valora Pulse™**.
+- Versão/cache atualizados para `8.6.7` em `APP_VERSION` e referências de assets.
+
+### Checks executados nesta entrega
+
+- `node --check app.js` — passou.
+- `node --check pdf.js` — passou.
+- `npm run check` — passou.

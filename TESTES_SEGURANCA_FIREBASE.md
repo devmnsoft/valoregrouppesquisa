@@ -85,3 +85,24 @@ Antes de promover para produção, anexar ao registro de release:
 - Leitura pública direta de surveys deve permanecer bloqueada; o caminho aceito é `validateSurveyLink`.
 - Campos sensíveis de usuário (`role`, `companyId`, `status`, `permissions`, `planId`) não devem ser editáveis pelo próprio usuário.
 - Qualquer nova collection com dados multiempresa deve ter teste explícito de acesso cruzado entre empresas.
+
+## Rodada de auditoria — 2026-06-21
+
+Cenários obrigatórios revisados/documentados:
+
+- Empresas A/B não devem ler ou editar dados entre si por `companyId`.
+- Empresa não pode alterar `planId`, billing, assinatura ou limites por Firestore Rules.
+- Usuário comum não altera `role`, `companyId`, `status`, `email`, `permissions` ou `planId` do próprio documento.
+- `empresa_admin` não pode criar `admin_valora` ou `consultor_valora`.
+- Público não lê `surveys` diretamente; link público deve usar `validateSurveyLink`.
+- Público não cria `responses` diretamente; `submitSurveyResponse` usa Admin SDK após validar token, LGPD, obrigatórias, duplicidade e limites.
+- Participante/convidado não lê logs, financeiro ou portal admin.
+- Logs são append-only pelo backend: `allow create, update, delete: if false` nas coleções de logs.
+
+Comandos recomendados:
+
+```bash
+npm run test:rules
+npm run test:functions
+npm run test:security
+```

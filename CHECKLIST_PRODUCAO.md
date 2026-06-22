@@ -112,3 +112,16 @@ Esta versão adiciona estrutura de identidade visual por empresa, slug público,
 - Configurar Telegram somente via backend/secrets.
 - Publicar Cloud Functions de atendimento público com rate limit.
 - Revisar regras de `supportConversations` e `supportMessages`.
+
+## Auditoria de segurança pré-homologação — 2026-06-21
+
+- [x] Relatório criado em `RELATORIO_AUDITORIA_SEGURANCA.md`.
+- [x] Plano de correção criado em `PLANO_CORRECAO_SEGURANCA.md`.
+- [x] `scripts/security-check.js` valida Hosting em `dist/`, ausência de source maps/segredos e CSP sem curingas perigosos.
+- [x] Cloud Functions corrigidas para sanitizar HTML de e-mail e bloquear URLs inseguras de webhook.
+- [x] API pública de funcionários corrigida para usar allowlist de campos no update.
+- [ ] Antes do deploy final, executar `npm run build:prod && npm run security:check` sobre o artefato real.
+- [ ] Antes do deploy final, executar testes de Rules/Functions em emuladores com credenciais de teste.
+- [ ] Habilitar e validar Firebase App Check para chamadas públicas e callable functions.
+
+Decisão atual: **pronto com ressalvas** até a execução da suíte completa de emuladores e validação de App Check.

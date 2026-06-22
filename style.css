@@ -576,3 +576,25 @@ html,body{max-width:100%;overflow-x:hidden}
 @media (min-width:900px){.public-floating-actions{display:none}}
 @media(max-width:700px){.public-home-button{min-width:40px;height:40px;padding:0 9px}.public-home-button span{display:none}.public-help-button{min-width:40px}.help-mark{width:18px;height:18px}.public-survey-actions{flex-wrap:nowrap}.public-survey-header{align-items:center}.public-survey-brand{flex:1 1 auto}.public-survey-actions{flex:0 0 auto}}
 @media(max-width:380px){.public-survey-brand span{font-size:.72rem}.public-home-button,.public-help-button,.public-bot-button,.public-whatsapp-button{min-width:36px;height:36px}.public-help-button{padding:0 8px}.public-survey-actions{gap:4px}}
+
+/* Certificado de participação com acabamento comercial */
+.certificate-panel{margin-top:22px;padding:22px;border:1px solid var(--line);border-radius:24px;background:linear-gradient(135deg,#fff,#f1fbfd);box-shadow:var(--shadow-soft)}
+.certificate-panel h3{margin:8px 0 6px;color:var(--ink);font-size:1.45rem}
+.certificate-panel p{margin:0;color:var(--muted)}
+.certificate{margin-top:18px;padding:18px;border:0;border-radius:28px;background:linear-gradient(135deg,#e8f7fa,#ffffff);color:var(--ink);text-align:center;box-shadow:0 24px 70px rgba(8,42,55,.10)}
+.certificate-inner{position:relative;padding:34px 42px 30px;border:2px solid #0b3d4d;border-radius:22px;background:#fff;overflow:hidden}
+.certificate-inner:before{content:"";position:absolute;inset:14px;border:1px solid #a9dfe7;border-radius:16px;pointer-events:none}
+.certificate-top{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:16px 20px;border-radius:16px;background:#0b3d4d;color:#fff}
+.certificate-top img{width:150px;margin:0;border-radius:10px;background:#0b3d4d}
+.certificate-top span{font-weight:800;letter-spacing:.04em;color:#d8f8fc}
+.certificate-kicker{position:relative;z-index:1;margin:28px 0 8px;color:#08765b;font-weight:800;text-transform:uppercase;letter-spacing:.12em;font-size:.78rem}
+.certificate h2{position:relative;z-index:1;margin:0 0 8px;color:#082a37;font-size:clamp(2rem,4vw,3rem);letter-spacing:-.035em}
+.certificate-subtitle{position:relative;z-index:1;margin:0 auto 24px;max-width:720px;color:#365d6d}
+.certificate-body{position:relative;z-index:1;max-width:820px;margin:0 auto 24px;font-size:1.12rem;line-height:1.65;color:#244b5a}
+.certificate-body strong{display:inline;color:#0b3d4d;font-weight:900}
+.certificate-result{position:relative;z-index:1;width:min(520px,100%);margin:0 auto 22px;padding:18px;border:1px solid #9fe3ec;border-radius:18px;background:#f2fbfd}
+.certificate-result span{display:block;color:#5a7480;font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.08em}
+.certificate-result b{display:block;margin-top:6px;color:#0b3d4d;font-size:1.25rem}
+.certificate-company,.certificate-footer{position:relative;z-index:1;margin:8px auto 0;max-width:780px;color:#365d6d}
+.certificate-footer{font-weight:800;color:#0b3d4d}
+@media (max-width:620px){.certificate{padding:10px;border-radius:20px}.certificate-inner{padding:22px 18px}.certificate-top{display:block}.certificate-top img{width:132px;margin:0 auto 10px}.certificate-body{font-size:1rem}.certificate h2{font-size:2rem}}

@@ -1,4 +1,4 @@
-# Valora Group™ 8.6.6 — versão funcional local
+# Valora Group™ 8.6.7 — versão funcional local
 
 Plataforma web para criação, aplicação e análise de diagnósticos, pesquisas e provas de cultura, governança, liderança, pessoas, controladoria e advisory.
 
@@ -166,7 +166,7 @@ Regras de segurança implementadas nas Functions:
 
 ## Versão, cache e modos de execução
 
-A versão canônica desta entrega é **Valora Group™ 8.6.6** e fica centralizada em `config.js` por meio de `APP_VERSION`. O `app.js` consome `window.ValoraConfig.APP_VERSION`; o `index.html` usa a mesma versão nas query strings dos assets (`?v=8.6.6`) para facilitar invalidação de cache e diagnóstico de suporte.
+A versão canônica desta entrega é **Valora Group™ 8.6.7** e fica centralizada em `config.js` por meio de `APP_VERSION`. O `app.js` consome `window.ValoraConfig.APP_VERSION`; o `index.html` usa a mesma versão nas query strings dos assets (`?v=8.6.7`) para facilitar invalidação de cache e diagnóstico de suporte.
 
 ### Modo local/demo
 
@@ -176,7 +176,7 @@ Use `server.py` apenas para demonstração local em `STORAGE_MODE: 'local'`. Ele
 curl http://127.0.0.1:8095/api/health
 ```
 
-A resposta deve conter `"version": "8.6.6"`. Se o servidor escolher outra porta, use a porta exibida no terminal.
+A resposta deve conter `"version": "8.6.7"`. Se o servidor escolher outra porta, use a porta exibida no terminal.
 
 ### Modo Firebase/produção
 
@@ -358,7 +358,7 @@ A aplicação possui serviço central em `log-service.js`, painel **Logs e Monit
 
 ## Status da release
 
-**Versão:** Valora Group™ 8.6.6 RC1
+**Versão:** Valora Group™ 8.6.7 RC1
 **Data do release candidate:** 2026-06-21
 **Status:** aprovado com ressalvas para apresentação controlada e homologação com cliente.
 

@@ -121,21 +121,30 @@ function createReport(options,filename='relatorio-valora-pulse.pdf'){
 
 function createCertificate(data,filename='certificado-valora-pulse.pdf'){
   const W=842,H=595,parts=[];
-  parts.push(ascii(`1 1 1 rg 0 0 ${W} ${H} re f\n`));
-  parts.push(ascii(`0.043 0.239 0.302 RG 10 w 24 24 ${W-48} ${H-48} re S\n`));
-  parts.push(ascii(`0.043 0.239 0.302 rg 48 ${H-148} ${W-96} 100 re f\n`));
-  parts.push(cmdText(72,H-92,26,'VALORA GROUP',true,'1 1 1'));
-  parts.push(cmdText(72,H-116,10,'GOVERNANÇA • CONTROLLER • ADVISORY',false,'0.77 0.95 0.98'));
-  parts.push(cmdText(W/2-154,H-205,27,'CERTIFICADO DE PARTICIPAÇÃO',true));
-  parts.push(cmdText(W/2-65,H-250,12,'Certificamos que',false,'0.25 0.40 0.46'));
-  const nameLines=splitWords(data?.name||'Participante',42);nameLines.slice(0,2).forEach((line,i)=>parts.push(cmdText(W/2-(line.length*8.2),H-292-i*26,22,line,true)));
-  const survey=`concluiu a pesquisa “${data?.survey||'Valora Pulse'}”`;
-  splitWords(survey,72).slice(0,2).forEach((line,i)=>parts.push(cmdText(W/2-(line.length*3.2),H-355-i*17,11,line,false,'0.25 0.40 0.46')));
-  parts.push(cmdRect(W/2-150,105,300,92,'0.93 0.98 0.99','0.45 0.79 0.84',1));
-  parts.push(cmdText(W/2-50,160,24,String(data?.score||'0 / 5'),true));
-  parts.push(cmdText(W/2-(String(data?.level||'').length*3.5),130,12,String(data?.level||''),true,'0.03 0.46 0.31'));
-  parts.push(cmdText(70,70,10,`${data?.company||'Valora Group'} • ${data?.date||new Date().toLocaleDateString('pt-BR')}`,false,'0.25 0.40 0.46'));
-  parts.push(cmdText(70,48,8,'Diagnóstico autoaplicado. Este documento não substitui certificação formal.',false,'0.36 0.49 0.54'));
+  const participant=String(data?.name||'Participante');
+  const survey=String(data?.survey||'Valora Pulse');
+  const date=String(data?.date||new Date().toLocaleDateString('pt-BR'));
+  const score=String(data?.score||'Participação confirmada');
+  const level=String(data?.level||'');
+  const companyLine=String(data?.companyLine||`Pesquisa promovida por ${data?.company||'Valora Group'}, com tecnologia Valora Group™.`);
+  parts.push(ascii(`0.985 0.995 1 rg 0 0 ${W} ${H} re f\n`));
+  parts.push(ascii(`0.043 0.239 0.302 RG 5 w 28 28 ${W-56} ${H-56} re S\n`));
+  parts.push(ascii(`0.69 0.86 0.89 RG 1.2 w 44 44 ${W-88} ${H-88} re S\n`));
+  parts.push(cmdRect(58,H-126,W-116,56,'0.043 0.239 0.302','0.043 0.239 0.302',0));
+  parts.push(cmdText(78,H-91,19,'VALORA GROUP™',true,'1 1 1'));
+  parts.push(cmdText(W-235,H-91,9,'Valora Pulse™',false,'0.78 0.95 0.98'));
+  parts.push(cmdText(W/2-105,H-177,11,'Certificado de Participação',false,'0.03 0.46 0.31'));
+  parts.push(cmdText(W/2-178,H-210,28,'Certificado de Participação',true,'0.03 0.17 0.22'));
+  parts.push(cmdText(W/2-196,H-236,11,'Este certificado confirma a participação no diagnóstico Valora Pulse.',false,'0.25 0.40 0.46'));
+  splitWords(participant,42).slice(0,2).forEach((line,i)=>parts.push(cmdText(W/2-(line.length*8.1),H-295-i*27,23,line,true,'0.043 0.239 0.302')));
+  const body=`Certificamos que ${participant} concluiu a pesquisa ${survey}, realizada em ${date}, contribuindo para a leitura de maturidade e evolução organizacional.`;
+  splitWords(body,92).slice(0,4).forEach((line,i)=>parts.push(cmdText(W/2-(line.length*3.05),H-360-i*16,10.5,line,false,'0.25 0.40 0.46')));
+  parts.push(cmdRect(W/2-170,112,340,76,'0.93 0.98 0.99','0.45 0.79 0.84',1));
+  parts.push(cmdText(W/2-24,162,9,'Resultado',false,'0.25 0.40 0.46'));
+  parts.push(cmdText(W/2-(score.length*4.7),137,18,score,true,'0.043 0.239 0.302'));
+  if(level)parts.push(cmdText(W/2-(level.length*3.2),119,9,level,false,'0.03 0.46 0.31'));
+  splitWords(companyLine,92).slice(0,2).forEach((line,i)=>parts.push(cmdText(70,82-i*13,8.8,line,false,'0.25 0.40 0.46')));
+  parts.push(cmdText(70,45,8.5,'Valora Group™ — Governança, cultura e crescimento organizacional.',false,'0.043 0.239 0.302'));
   const bytes=buildPdf([concat(parts)],[W,H]); return blobDownload(bytes,filename);
 }
 

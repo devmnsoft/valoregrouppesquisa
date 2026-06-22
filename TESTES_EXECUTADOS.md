@@ -576,3 +576,21 @@ Homologação local aprovada com ressalvas para validações que exigem execuç�
 - Planos: seed comercial reescrito para Essencial, Profissional, Corporativo e Enterprise, com público-alvo, badge comercial, preço sob consulta/sob contrato, recursos e CTAs específicos. `renderPlans()` passou a exibir badge, público-alvo, descrição, preço e CTA por plano.
 - Versão/cache: `APP_VERSION` e query strings atualizadas para `8.6.6`.
 - Checks executados: `node --check app.js` sem erro de sintaxe.
+
+## Home comercial — Valora Pulse 8.6.7
+- Área técnica extensa sobre privacidade e confidencialidade removida da comunicação principal da Home; as funções de LGPD, consentimento, privacidade e segurança permanecem nas jornadas e áreas internas.
+- Frase técnica do topo removida da Home e substituída por chamada comercial orientada a decisão.
+- Seção antiga da jornada reescrita como “Do diagnóstico à decisão”, com linguagem simples: Estruture, Personalize, Envie e Decida.
+- Termos técnicos da jornada comercial removidos da Home e substituídos por linguagem de negócio sobre pesquisa, participação, resultados e ação.
+- CTAs revisados para “Iniciar diagnóstico”, “Criar ambiente gratuito” e “Ver planos”.
+- Layout desktop validado por revisão estática do HTML gerado em `renderHome`.
+- Layout mobile validado por revisão estática das classes responsivas existentes e novo bloco de certificado com media query dedicada.
+
+## Certificados — Valora Pulse 8.6.7
+- Certificado PDF revisado com título, subtítulo, texto de participação, nome do participante, pesquisa, data, resultado, linha institucional e mensagem final.
+- Certificado PNG/imagem revisado com layout profissional em canvas, bordas, bloco institucional, destaque para participante e resultado.
+- Texto do certificado revisado para posicionar o documento como confirmação de participação no diagnóstico Valora Pulse.
+- Layout do certificado revisado com fundo limpo, borda elegante, espaçamento, marca Valora e composição preparada para PDF/PNG.
+- Empresa real aparece na linha “Pesquisa promovida por [Nome da Empresa], com tecnologia Valora Group™.” quando aplicável.
+- Pesquisa demonstrativa evita exibir “Empresa Exemplo” indevidamente e mostra “Pesquisa demonstrativa realizada na plataforma Valora Pulse™.”.
+- Botões revisados para “Baixar certificado em PDF” e “Baixar certificado em imagem”.

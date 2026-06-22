@@ -539,3 +539,29 @@ Checks técnicos executados nesta entrega:
 - Deploy usa `firebase.json` com Hosting apontando para `dist`.
 - Source maps ausentes bloqueiam publicação insegura.
 - Segredos e tokens suspeitos bloqueiam o pipeline.
+
+## Homologação dos pipelines CI/CD — 2026-06-22
+
+Relatório principal: `HOMOLOGACAO_PIPELINES.md`.
+
+### Comandos aprovados no estado limpo
+
+- `npm run check` — aprovado.
+- `npm run check:no-dist` — aprovado.
+- `npm run security:check` — aprovado.
+- `npm run build:prod` — aprovado.
+- `node --check dist/assets/app.*.js` — aprovado.
+- `find dist -name "*.map"` — retorno vazio.
+- `git ls-files dist` — retorno vazio.
+- `npm run postbuild:security` — aprovado.
+
+### Simulações negativas aprovadas
+
+- PR com `dist/`: criado `dist/teste.txt` temporário e forçado no índice; `npm run check:no-dist` falhou com a mensagem esperada. Arquivo removido ao final.
+- Source map indevido: criado `dist/assets/app.fake.js.map`; `npm run postbuild:security` falhou por arquivo proibido. Arquivo removido ao final.
+- Segredo fake: criado arquivo temporário rastreado com `TELEGRAM_BOT_TOKEN=fake_test_token_should_be_blocked`; `npm run security:check` falhou por segredo suspeito. Arquivo removido ao final.
+- CSP insegura: `firebase.json` foi alterado temporariamente com `script-src *`, `connect-src *` e `unsafe-eval`; `npm run security:check` falhou pelos padrões proibidos. Alteração revertida ao final.
+
+### Resultado
+
+Homologação local aprovada com ressalvas para validações que exigem execução real no GitHub Actions/Firebase: artifact do run, preview publicado e deploy/rollback em ambiente autorizado.

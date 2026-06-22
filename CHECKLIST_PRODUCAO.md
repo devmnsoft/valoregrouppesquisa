@@ -123,3 +123,14 @@ Esta versão adiciona estrutura de identidade visual por empresa, slug público,
 - [ ] Deploy de produção executado somente por `workflow_dispatch` ou tag `v*`.
 - [ ] Environment `production` configurado no GitHub com aprovação manual.
 - [ ] Rollback revisado conforme `ROLLBACK_PRODUCAO.md`.
+
+## Homologação dos pipelines
+
+- [ ] Evidência anexada de `npm run check` aprovado.
+- [ ] Evidência anexada de `npm run check:no-dist` aprovado e simulação de `dist/` bloqueada.
+- [ ] Evidência anexada de `npm run security:check` aprovado e simulações de segredo fake/CSP insegura bloqueadas.
+- [ ] Evidência anexada de `npm run build:prod`, `node --check dist/assets/app.*.js`, ausência de `.map` e `npm run postbuild:security` aprovados.
+- [ ] `git ls-files dist` retorna vazio.
+- [ ] Workflow `Firebase production deploy` revisado: somente `workflow_dispatch` ou tag `v*`, com `environment: production`.
+- [ ] Deploy real executado apenas após autorização formal, aprovação do environment e plano de rollback conhecido.
+- [ ] Resultado da homologação registrado em `HOMOLOGACAO_PIPELINES.md`.

@@ -1,0 +1,68 @@
+name: Firebase Hosting preview
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  preview:
+    name: Deploy PR preview channel
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate and build
+        run: |
+          npm run check:no-dist
+          npm run check
+          npm run security:check
+          npm run build:prod
+          for file in dist/assets/*.js; do node --check "$file"; done
+          if find dist -name "*.map" | grep .; then
+            echo "Source maps não podem ser publicados em produção."
+            exit 1
+          fi
+          npm run postbuild:security
+
+      - name: Deploy Firebase preview channel
+        id: preview
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID_HOMOLOG || secrets.FIREBASE_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FIREBASE_TOKEN:-}" ] || [ -z "${FIREBASE_PROJECT_ID:-}" ]; then
+            echo "Firebase preview não configurado: defina FIREBASE_TOKEN e FIREBASE_PROJECT_ID_HOMOLOG/FIREBASE_PROJECT_ID."
+            exit 1
+          fi
+          npx firebase hosting:channel:deploy "pr-${{ github.event.pull_request.number }}" --project "$FIREBASE_PROJECT_ID" --json > preview.json
+          node -e "const fs=require('fs'); const out=JSON.parse(fs.readFileSync('preview.json','utf8')); const url=out.result?.[0]?.url || out.result?.url || ''; console.log('preview_url='+url); fs.appendFileSync(process.env.GITHUB_OUTPUT, 'preview_url='+url+'\n');"
+
+      - name: Comment preview URL
+        if: steps.preview.outputs.preview_url != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = '${{ steps.preview.outputs.preview_url }}';
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `Preview Firebase Hosting publicado: ${url}`,
+            });

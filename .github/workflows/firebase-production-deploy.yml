@@ -1,0 +1,53 @@
+name: Firebase production deploy
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-production:
+    name: Deploy production hosting
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Validate and build
+        run: |
+          npm run check:no-dist
+          npm run check
+          npm run security:check
+          npm run build:prod
+          for file in dist/assets/*.js; do node --check "$file"; done
+          if find dist -name "*.map" | grep .; then
+            echo "Source maps não podem ser publicados em produção."
+            exit 1
+          fi
+          npm run postbuild:security
+
+      - name: Deploy Firebase Hosting production
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID_PROD || secrets.FIREBASE_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          if [ -z "${FIREBASE_TOKEN:-}" ] || [ -z "${FIREBASE_PROJECT_ID:-}" ]; then
+            echo "Deploy não configurado: defina FIREBASE_TOKEN e FIREBASE_PROJECT_ID_PROD/FIREBASE_PROJECT_ID."
+            exit 1
+          fi
+          npx firebase deploy --only hosting --project "$FIREBASE_PROJECT_ID"

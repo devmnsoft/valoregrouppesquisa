@@ -458,3 +458,14 @@ firebase deploy --only hosting
 ```
 
 Não commitar a pasta `dist/`, arquivos hashados de build, source maps ou binários copiados para `dist/assets/`.
+
+## CI/CD seguro
+
+O repositório possui workflows de CI/CD para proteger o build de produção:
+
+- PRs para `main` executam validação sintática, bloqueio de `dist/`, checks de segurança, build de produção, validação dos bundles JavaScript e bloqueio de source maps.
+- Builds seguros em `main` geram artefato `dist/` no GitHub Actions sem commitar a pasta.
+- Preview Firebase pode publicar canal `pr-<numero>` em PRs internos quando os secrets de homologação estiverem configurados.
+- Deploy de produção é controlado por `workflow_dispatch` ou tags `v*`, usando environment `production` para aprovação manual.
+
+Consulte `GITHUB_ACTIONS.md`, `AMBIENTES_E_DEPLOY.md`, `GITHUB_SECRETS.md`, `CHECKLIST_RELEASE.md` e `ROLLBACK_PRODUCAO.md` antes de publicar.

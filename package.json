@@ -9,7 +9,9 @@
     "test:rules": "npx firebase emulators:exec --only firestore \"npx mocha tests/rules/**/*.test.js --timeout 20000\"",
     "test:functions": "npx firebase emulators:exec --only firestore,functions \"npx mocha tests/functions/**/*.test.js --timeout 30000\"",
     "test:security": "npm run test:rules && npm run test:functions",
-    "emulators:start": "npx firebase emulators:start --only auth,firestore,functions"
+    "emulators:start": "npx firebase emulators:start --only auth,firestore,functions",
+    "check:no-dist": "node scripts/check-no-dist-committed.js",
+    "postbuild:security": "node scripts/postbuild-security-check.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

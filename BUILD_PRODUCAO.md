@@ -28,3 +28,10 @@ firebase deploy --only hosting
 ```
 
 Não commitar a pasta `dist/`.
+
+## Build seguro no CI
+
+O build de produção também é executado nos workflows `.github/workflows/pr-validation.yml` e `.github/workflows/secure-build.yml`.
+O pipeline sempre roda `npm run check:no-dist`, `npm run check`, `npm run security:check`, `npm run build:prod`, valida todos os `dist/assets/*.js` com `node --check` e falha se qualquer `*.map` aparecer em `dist/`.
+
+`dist/` continua sendo artefato descartável: pode ser enviado como artifact temporário do GitHub Actions, mas nunca deve ser commitado.

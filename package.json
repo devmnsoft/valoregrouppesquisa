@@ -15,7 +15,11 @@
     "serve:local": "python server.py",
     "test:visual": "playwright test tests/visual",
     "test:visual:headed": "playwright test tests/visual --headed",
-    "test:visual:update": "playwright test tests/visual --update-snapshots"
+    "test:visual:update": "playwright test tests/visual --update-snapshots",
+    "export:local": "node scripts/export-local-state.js",
+    "import:firebase:dry": "node scripts/import-local-export-to-firebase.js --dry-run",
+    "validate:prd:data": "node scripts/validate-prd-data.js",
+    "release:prd:data": "node scripts/release-prd-with-data.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

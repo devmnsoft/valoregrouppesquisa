@@ -51,3 +51,8 @@ backups/
 exports/
 *.local-export.json
 valora-local-export-*.json
+
+*.prd-export.json
+valora-prd-export-*.json
+serviceAccount*.json
+release-prd-report-*.md

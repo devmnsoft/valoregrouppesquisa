@@ -46,11 +46,11 @@ function normalizeExport(raw, opts={}){
   }
   return out;
 }
-function mapCompany(c){return {id:idOf(c,'org'),name:c.name||c.publicName||'',legalName:c.legalName||c.name||'',publicName:c.publicName||c.name||'',slug:c.slug||'',document:c.document||'',email:c.email||'',phone:c.phone||'',status:c.status||c.subscription?.status||'active',planId:c.planId||c.subscription?.planId||'',subscription:c.subscription||{},limitsOverride:c.limitsOverride||{},brand:c.brand||{},settings:c.settings||{},createdAt:c.createdAt||new Date().toISOString(),updatedAt:c.updatedAt||new Date().toISOString()};}
+function mapLocalCompanyToOrganization(c){return {id:idOf(c,'org'),name:c.name||c.publicName||'',legalName:c.legalName||c.name||'',publicName:c.publicName||c.name||'',slug:c.slug||'',document:c.document||'',email:c.email||'',phone:c.phone||'',status:c.status||c.subscription?.status||'active',planId:c.planId||c.subscription?.planId||'',subscription:c.subscription||{},limitsOverride:c.limitsOverride||{},brand:c.brand||{},settings:c.settings||{},createdAt:c.createdAt||new Date().toISOString(),updatedAt:c.updatedAt||new Date().toISOString(),isDemo:!!c.isDemo};}
 function collectionEntries(exportObj, opts={}){
   const d=exportObj.data||{};const entries=[];
   const add=(collection,id,data)=>entries.push({collection,id,data});
-  for(const c of d.companies||[]){const org=mapCompany(c);add('organizations',org.id,org);if(opts.legacyCompanies)add('companies',org.id,org);}
+  for(const c of d.companies||[]){const org=mapLocalCompanyToOrganization(c);add('organizations',org.id,org);if(opts.legacyCompanies)add('companies',org.id,org);}
   for(const k of ['modules','plans','forms','surveys','invitations','invoices','actionPlans','notifications','knowledgeBase','supportCategories','supportSlaPolicies','supportTickets','supportMessages','integrations','webhooks','apiKeys','logs'])for(const row of d[k]||[])add(k,idOf(row,k),row);
   if(opts.includeResponses)for(const row of d.responses||[])add('responses',idOf(row,'resp'),{...row,migratedFromLocal:true,isDemo:!!opts.markResponsesDemo});
   if(d.settings&&typeof d.settings==='object'){
@@ -59,4 +59,4 @@ function collectionEntries(exportObj, opts={}){
   }
   return entries;
 }
-module.exports={EXPORT_KEYS,COLLECTIONS,parseArgs,readJson,writeJson,stamp,normalizeExport,collectionEntries,idOf,sha256};
+module.exports={EXPORT_KEYS,COLLECTIONS,parseArgs,readJson,writeJson,stamp,normalizeExport,collectionEntries,idOf,sha256,mapLocalCompanyToOrganization};

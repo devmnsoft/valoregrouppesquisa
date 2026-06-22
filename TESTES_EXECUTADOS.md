@@ -687,3 +687,10 @@ Homologação local aprovada com ressalvas para validações que exigem execuç�
 - Apply: `node scripts/bootstrap-firebase-prd.js --project gestordepesquisa --apply --admin-email admin@valoragroup.com.br --admin-name "Admin Valora"` deve criar Admin Valora, planos, módulos, settings, organização, formulário e pesquisa.
 - Auth: validar no Firebase Console que o Admin existe, `users/{uid}` existe e os custom claims são `{ role: 'admin_valora', companyId: '' }`.
 - App PRD/IIS: abrir domínio publicado, confirmar que não aparece vazio, login admin funciona, portal Admin abre, tela de planos mostra planos, perguntas aparecem, pesquisa pública abre, resposta é enviada, resultado aparece, certificado aparece e ValoraBot aparece.
+
+## Release PRD com dados locais — 2026-06-22
+
+- Export: validar no Admin Valora os botões **Exportar dados para PRD Firebase** e **Exportar somente estrutura para PRD**, confirmando arquivo `valora-prd-export-YYYYMMDD-HHMM.json` sem senhas, SMTP, Telegram, service account, private key, API secret ou webhook secret.
+- Dry-run: `node scripts/import-local-export-to-firebase.js --file ./exports/valora-prd-export.json --project gestordepesquisa --dry-run` deve exibir contagens e não escrever no Firebase.
+- Apply: `node scripts/release-prd-with-data.js --file ./exports/valora-prd-export.json --project gestordepesquisa --iis-path C:\inetpub\wwwroot\valoragroup --apply` deve criar backup, importar Firestore/Auth, aplicar claims, gerar build e publicar no IIS.
+- PRD: validar login, planos, usuários, perguntas, pesquisa pública, certificado e ValoraBot no domínio publicado.

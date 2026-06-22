@@ -201,3 +201,13 @@ node scripts/publish-iis-prd.js --iis-path C:\inetpub\wwwroot\valoragroup --mode
 ```
 
 Relatórios são gerados em `publish/reports/` e não devem ser commitados.
+
+## Publicador Windows PRD/IIS
+
+- [ ] `publish.config.json` revisado com `firebaseProjectId`, `productionUrl` e `iisPath` corretos.
+- [ ] `config.js` em modo Firebase PRD antes do apply.
+- [ ] Dry-run executado sem erro.
+- [ ] Pacote IIS contém `index.html`, `assets/` e `web.config`.
+- [ ] Backup automático criado em `backups/iis/` antes de limpar a pasta IIS.
+- [ ] Health check PRD executado sem 500.19, 403.14, asset HTML ou Firebase sem config.
+- [ ] Rollback testado com `scripts/restore-iis-backup.js --latest`.

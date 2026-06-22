@@ -738,3 +738,28 @@ Data: 2026-06-22
 - Apply: executar opção 2 do menu; esperado: criar backup em `backups/iis/`, limpar IIS, copiar conteúdo de `dist/` sem subpasta `dist`, validar IIS e rodar health check.
 - With data: executar opção 4; esperado: exigir export JSON, rodar dry-run do importador, aplicar importação com backup, validar Firestore e publicar IIS.
 - Rollback: executar `tools\windows\Restaurar-Backup-IIS.bat`; esperado: listar/restaurar último backup e criar backup de segurança antes do restore.
+
+## Erro: `spawnSync git ENOENT`
+
+Esse erro indica que o Git não está instalado ou não está disponível no `PATH` do Windows.
+
+Correção validada/documentada:
+
+```powershell
+git --version
+winget install --id Git.Git -e --source winget
+```
+
+PATH esperado:
+
+```text
+C:\Program Files\Git\cmd
+```
+
+Alternativa emergencial para o publicador PRD/IIS:
+
+```powershell
+node scripts/publish-iis-prd.js --iis-path C:\inetpub\wwwroot\valoragroup --mode firebase --apply --skip-security-check
+```
+
+Não é recomendado pular o `security-check` em produção. O fallback local sem Git é limitado: procura segredos e padrões perigosos nos arquivos locais, mas não sabe exatamente quais arquivos estão versionados.

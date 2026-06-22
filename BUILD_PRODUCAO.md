@@ -57,3 +57,15 @@ C:\Program Files\Git\cmd
 ```
 
 O `npm run security:check` consegue fazer uma verificação local básica sem Git fora do CI, mas essa verificação não substitui a validação completa com `git ls-files`, porque não identifica exatamente quais arquivos estão versionados. Em CI, Git é obrigatório e a ausência dele continua falhando o pipeline.
+
+### Publicador PRD/IIS sem Git
+
+No publicador PRD/IIS, a ausência do Git é apresentada como orientação amigável, sem stack trace gigante. O publicador nunca pula o `security-check` automaticamente.
+
+Alternativa emergencial, não recomendada em produção:
+
+```powershell
+node scripts/publish-iis-prd.js --iis-path C:\inetpub\wwwroot\valoragroup --mode firebase --apply --skip-security-check
+```
+
+Quando `--skip-security-check` é usado explicitamente, o relatório registra: `ATENÇÃO: security-check foi pulado nesta publicação.`

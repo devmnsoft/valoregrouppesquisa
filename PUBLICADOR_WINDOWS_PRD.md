@@ -61,3 +61,33 @@ O publicador bloqueia Firebase PRD sem `STORAGE_MODE: 'firebase'`, `FIREBASE_ENA
 ## Melhoria futura
 
 Uma interface gráfica pode ser criada no futuro, mas a versão atual evita Electron para manter instalação simples, leve e auditável.
+
+## Erro: `spawnSync git ENOENT`
+
+Esse erro indica que o Git não está instalado ou não está disponível no `PATH` do Windows. O `security-check` agora mostra uma mensagem amigável e, fora do CI, executa uma verificação local limitada; em CI/GitHub Actions o Git continua obrigatório.
+
+Valide o Git no terminal usado para publicar:
+
+```powershell
+git --version
+```
+
+Se o comando não existir, instale o Git:
+
+```powershell
+winget install --id Git.Git -e --source winget
+```
+
+Ou adicione este diretório ao `PATH` do Windows e abra um novo terminal:
+
+```text
+C:\Program Files\Git\cmd
+```
+
+Alternativa emergencial, apenas quando você aceitar o risco de publicar sem a validação completa de segurança:
+
+```powershell
+node scripts/publish-iis-prd.js --iis-path C:\inetpub\wwwroot\valoragroup --mode firebase --apply --skip-security-check
+```
+
+Não é recomendado pular o `security-check` em produção. Quando `--skip-security-check` é usado, o relatório registra: `ATENÇÃO: security-check foi pulado nesta publicação.`

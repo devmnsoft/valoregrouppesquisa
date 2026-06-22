@@ -552,3 +552,13 @@ node scripts/publish-iis-prd.js --iis-path C:\inetpub\wwwroot\valoragroup --mode
 ```
 
 Relatórios são gerados em `publish/reports/` e não devem ser commitados.
+
+## Publicador Windows PRD/IIS
+
+Para publicar no IIS sem decorar comandos, use no Windows Server:
+
+```text
+tools\windows\Publicar-Valora-PRD.bat
+```
+
+Também há atalhos para simular, gerar pacote, rodar health check e restaurar backup em `tools/windows/`. Veja `PUBLICADOR_WINDOWS_PRD.md`.

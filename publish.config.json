@@ -1,0 +1,16 @@
+{
+  "projectName": "Valora Pulse",
+  "mode": "firebase",
+  "firebaseProjectId": "gestordepesquisa",
+  "productionUrl": "https://valoragroup.mnsoft.com.br",
+  "iisPath": "C:\\inetpub\\wwwroot\\valoragroup",
+  "backupPath": "backups\\iis",
+  "reportsPath": "publish\\reports",
+  "packagePath": "publish\\packages",
+  "preserveFiles": [
+    "web.config"
+  ],
+  "withData": false,
+  "dataFile": "",
+  "runHealthCheck": true
+}

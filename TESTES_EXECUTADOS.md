@@ -725,3 +725,16 @@ Relatórios são gerados em `publish/reports/` e não devem ser commitados.
 - Firestore vazio: executar com `--check-firestore`; o health check deve orientar bootstrap/importação local -> Firebase.
 - Firebase config vazia: publicar build sem `FIREBASE_CONFIG.projectId`; o health check deve falhar na validação Firebase.
 - ValoraBot público: executar validação Playwright opcional ou `tests/health/prd-health.spec.js`; o botão deve aparecer, abrir sem login e não gerar erro crítico no console.
+
+## Publicador Windows PRD/IIS — roteiro obrigatório
+
+Data: 2026-06-22
+
+- `node --check scripts/publish-iis-prd.js` — passou.
+- `node --check scripts/restore-iis-backup.js` — passou.
+- `node --check app.js` — passou.
+- Dry run: executar `tools\windows\Simular-Publicacao-PRD.bat` ou `node scripts/publish-iis-prd.js --dry-run`; esperado: valida plano, não copia arquivos e gera relatório.
+- Package only: executar `tools\windows\Gerar-Pacote-IIS.bat`; esperado: pacote em `publish/packages/` contendo `index.html`, `assets/` e `web.config`.
+- Apply: executar opção 2 do menu; esperado: criar backup em `backups/iis/`, limpar IIS, copiar conteúdo de `dist/` sem subpasta `dist`, validar IIS e rodar health check.
+- With data: executar opção 4; esperado: exigir export JSON, rodar dry-run do importador, aplicar importação com backup, validar Firestore e publicar IIS.
+- Rollback: executar `tools\windows\Restaurar-Backup-IIS.bat`; esperado: listar/restaurar último backup e criar backup de segurança antes do restore.

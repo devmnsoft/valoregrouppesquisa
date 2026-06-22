@@ -37,3 +37,11 @@ secrets.json
 serviceAccount*.json
 data/email_config.json
 data/outbox/
+
+# Playwright / visual QA artifacts
+test-results/
+playwright-report/
+tests/visual/screenshots/
+tests/visual/output/
+*.webm
+*.trace.zip

@@ -81,3 +81,30 @@ A devolutiva deve ser direta, humana, executiva, sem jargão excessivo, sem elog
 Empresas não evoluem quando entendem o diagnóstico.
 Elas evoluem quando aceitam a verdade que ele revela.
 ```
+
+## ValoraBot
+O ValoraBot deve responder, inclusive em páginas públicas de resultado, sobre:
+
+- o que é o Valora Insight™;
+- a pontuação oficial de 125 pontos;
+- as 5 dimensões oficiais;
+- o significado de Crítico, Em estruturação, Estruturada e Alta maturidade;
+- como interpretar o radar textual;
+- o que é a verdade estratégica;
+- o que fazer depois do diagnóstico;
+- como baixar relatório estratégico e certificado.
+
+Quando houver contexto de resultado disponível, a resposta deve usar a pontuação, o nível e o bloqueador estrutural atuais como referência, sem alterar o cálculo oficial.
+
+## Publicação IIS
+Fluxo operacional em Windows após validação local:
+
+```powershell
+npm run check
+node scripts\validate-valora-insight.js
+npm run build:prod
+robocopy C:\DBBACK\valoregrouppesquisa\dist C:\inetpub\wwwroot\valoragroup /MIR
+Copy-Item C:\DBBACK\valoregrouppesquisa\templates\iis\web.config C:\inetpub\wwwroot\valoragroup\web.config -Force
+iisreset
+node scripts\healthcheck-prd.js --url https://valoragroup.mnsoft.com.br --project gestordepesquisa
+```

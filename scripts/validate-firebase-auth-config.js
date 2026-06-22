@@ -1,0 +1,3 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('fs');function arg(k){const i=process.argv.indexOf(`--${k}`);return i>=0?process.argv[i+1]:'';}const project=arg('project')||'gestordepesquisa';const cfg=fs.existsSync('config.js')?fs.readFileSync('config.js','utf8'):'';const ok=cfg.includes(`projectId:'${project}'`)||cfg.includes(`projectId:"${project}"`);console.log(JSON.stringify({project,frontendProjectIdOk:ok,manualChecks:['Authentication > Sign-in method > Email/Password habilitado','Authentication > Settings > Authorized domains: valoragroup.mnsoft.com.br, localhost, 127.0.0.1'],requiredDomains:['valoragroup.mnsoft.com.br','localhost','127.0.0.1']},null,2));process.exit(ok?0:1);

@@ -17,3 +17,10 @@ Use os arquivos em `tools/windows` para executar cada etapa isoladamente ou o fl
 - PRD Blaze futuro: Cloud Functions com Secret Manager para e-mail seguro e logs remotos.
 - Backend externo futuro: API autenticada para transporte externo.
 - Validações: `node scripts/validate-runtime-capabilities.js` e `node scripts/validate-email-environment.js` garantem que PRD Spark não chame `/api/email/*`, `/api/outbox`, `getEmailStatus` ou `logServerEvent`.
+
+## Correção integrada — e-mail, certificados e ValoraBot
+
+- Validar com `node scripts/validate-email-runtime.js`.
+- Validar certificados com `node scripts/validate-certificates.js`.
+- Validar linguagem natural do bot com `node scripts/validate-chatbot-natural-language.js`.
+- Em produção IIS estática, e-mail automático fica indisponível até ativar um transporte seguro; modelos continuam editáveis.

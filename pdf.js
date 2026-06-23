@@ -131,26 +131,34 @@ function fitCenteredText(parts,pageWidth,y,maxChars,maxFont,minFont,text,color='
 }
 function createCertificate(data,filename='certificado-valora-pulse.pdf'){
   const W=842,H=595,parts=[];
-  const participant=String(data?.participantName||data?.name||'Participante');
-  const survey=String(data?.surveyTitle||data?.survey||'Valora Pulse™');
-  const date=String(data?.completedDate||(data?.completedAt?new Date(data.completedAt).toLocaleDateString('pt-BR'):data?.date||new Date().toLocaleDateString('pt-BR')));
-  const score=String(data?.scoreShortLabel||data?.scoreLabel||data?.score||'Participação concluída');
-  const level=String(data?.maturityLabel||data?.level||'');
-  const companyLine=String(data?.institutionalMessage||data?.companyLine||'Pesquisa demonstrativa realizada na plataforma Valora Pulse™.');
-  const body=String(data?.certificateBody||`Certificamos que ${participant} concluiu a pesquisa ${survey}, realizada em ${date}, contribuindo para a leitura de maturidade e evolução organizacional.`);
+  const participant=String(data?.participantName||'Participante não identificado');
+  const survey=String(data?.surveyTitle||data?.surveyName||'Diagnóstico Valora Insight™');
+  const date=String(data?.completedDate||data?.formattedDate||(data?.completedAt?new Date(data.completedAt).toLocaleDateString('pt-BR'):new Date().toLocaleDateString('pt-BR')));
+  const score=String(data?.scoreShortLabel||data?.scoreLabel||'Participação concluída');
+  const level=String(data?.maturityLabel||'');
+  const issuer=String(data?.issuedByText||data?.institutionalMessage||'Emitido por Valora Group');
+  const validation=String(data?.validationText||'');
   parts.push(ascii(`0.985 0.995 1 rg 0 0 ${W} ${H} re f\n`));
-  parts.push(ascii(`0.043 0.239 0.302 RG 5 w 28 28 ${W-56} ${H-56} re S\n`));
-  parts.push(ascii(`0.69 0.86 0.89 RG 1.2 w 44 44 ${W-88} ${H-88} re S\n`));
-  parts.push(cmdRect(58,H-126,W-116,56,'0.043 0.239 0.302','0.043 0.239 0.302',0));
-  parts.push(cmdText(78,H-91,19,'VALORA GROUP™',true,'1 1 1'));
-  parts.push(cmdText(W-235,H-91,9,String(data?.brandName||'Valora Pulse™'),false,'0.78 0.95 0.98'));
-  let y=H-166;y=centerText(parts,W,y,11,String(data?.certificateTitle||'Certificado de Participação'),false,'0.03 0.46 0.31')-8;y=centerText(parts,W,y,28,String(data?.certificateTitle||'Certificado de Participação'),true,'0.03 0.17 0.22')-2;y=wrappedCenteredText(parts,W,y,96,15,10.5,String(data?.certificateSubtitle||'Este certificado confirma a participação no diagnóstico Valora Pulse™.'),false,'0.25 0.40 0.46',2)-12;
-  y=fitCenteredText(parts,W,y,52,25,17,participant,'0.043 0.239 0.302')-8;
-  y=wrappedCenteredText(parts,W,y,105,15,10.5,body,false,'0.25 0.40 0.46',4)-8;
-  const boxH=78,boxY=Math.max(104,y-boxH-8);parts.push(cmdRect(W/2-185,boxY,370,boxH,'0.93 0.98 0.99','0.45 0.79 0.84',1));
-  centerText(parts,W,boxY+55,9,'Resultado',false,'0.25 0.40 0.46');wrappedCenteredText(parts,W,boxY+36,56,15,13.5,score,true,'0.043 0.239 0.302',2);if(level)centerText(parts,W,boxY+11,9,`Nível: ${level}`,false,'0.03 0.46 0.31');
-  wrappedCenteredText(parts,W,75,100,12,8.8,companyLine,false,'0.25 0.40 0.46',2);
-  centerText(parts,W,42,8.5,String(data?.poweredByValora||'Valora Group™ — Governança, cultura e crescimento organizacional.'),false,'0.043 0.239 0.302');
+  parts.push(ascii(`0.043 0.239 0.302 RG 4 w 30 30 ${W-60} ${H-60} re S\n`));
+  parts.push(ascii(`0.69 0.86 0.89 RG 1.2 w 48 48 ${W-96} ${H-96} re S\n`));
+  parts.push(cmdRect(66,H-122,W-132,54,'0.043 0.239 0.302','0.043 0.239 0.302',0));
+  parts.push(cmdText(88,H-88,18,'VALORA GROUP™',true,'1 1 1'));
+  parts.push(cmdText(W-210,H-88,10,'Valora Pulse™',true,'0.78 0.95 0.98'));
+  let y=H-158;
+  y=centerText(parts,W,y,11,'CERTIFICADO DE PARTICIPAÇÃO',true,'0.03 0.46 0.31')-16;
+  y=centerText(parts,W,y,16,'Certificamos que',false,'0.25 0.40 0.46')-8;
+  y=fitCenteredText(parts,W,y,44,30,18,participant,'0.043 0.239 0.302')-6;
+  y=centerText(parts,W,y,13,'concluiu o diagnóstico',false,'0.25 0.40 0.46')-8;
+  y=wrappedCenteredText(parts,W,y,70,17,13,survey,true,'0.03 0.16 0.21',3)-4;
+  y=centerText(parts,W,y,12,`em ${date}`,false,'0.25 0.40 0.46')-12;
+  const boxW=380,boxH=62,boxY=Math.max(116,y-boxH-6);
+  parts.push(cmdRect(W/2-boxW/2,boxY,boxW,boxH,'0.93 0.98 0.99','0.45 0.79 0.84',1));
+  centerText(parts,W,boxY+43,8.5,'Resultado',false,'0.25 0.40 0.46');
+  centerText(parts,W,boxY+25,12.5,score,true,'0.043 0.239 0.302');
+  if(level)centerText(parts,W,boxY+10,8.5,level,false,'0.03 0.46 0.31');
+  wrappedCenteredText(parts,W,78,92,12,9,issuer,false,'0.25 0.40 0.46',1);
+  if(validation)wrappedCenteredText(parts,W,61,100,11,8,validation,false,'0.25 0.40 0.46',1);
+  centerText(parts,W,38,8.8,'Tecnologia Valora Pulse™',true,'0.043 0.239 0.302');
   const bytes=buildPdf([concat(parts)],[W,H]); return blobDownload(bytes,filename);
 }
 

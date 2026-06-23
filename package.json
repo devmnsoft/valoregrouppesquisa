@@ -27,7 +27,10 @@
     "prod:dry": "node scripts/go-production.js --dry-run",
     "prod:go": "node scripts/go-production.js --apply",
     "prod:go:data": "node scripts/go-production.js --apply --with-data --open-browser",
-    "prod:health": "node scripts/healthcheck-prd.js --url https://valoragroup.mnsoft.com.br --project gestordepesquisa"
+    "prod:health": "node scripts/healthcheck-prd.js --url https://valoragroup.mnsoft.com.br --project gestordepesquisa",
+    "validate:data-contracts": "node scripts/validate-data-contracts.js",
+    "validate:render-resilience": "node scripts/validate-render-resilience.js",
+    "audit:data-shapes": "node scripts/audit-data-shapes.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

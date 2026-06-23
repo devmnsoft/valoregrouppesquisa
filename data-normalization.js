@@ -17,9 +17,11 @@ function asString(value,fallback=''){if(value===null||value===undefined)return f
 function asNumber(value,fallback=0){const n=Number(value);return Number.isFinite(n)?n:fallback;}
 function asBoolean(value,fallback=false){if(typeof value==='boolean')return value;if(value==='true')return true;if(value==='false')return false;return fallback;}
 function defaultFaq(){return [
-  {id:'faq_1',question:'O que é o Valora Insight™?',answer:'É um diagnóstico de maturidade organizacional que transforma respostas em uma leitura executiva sobre cultura, governança, liderança, pessoas e crescimento.'},
-  {id:'faq_2',question:'Quanto tempo leva para responder?',answer:'O diagnóstico essencial leva poucos minutos e apresenta uma leitura resumida ao final.'},
-  {id:'faq_3',question:'Existe plano gratuito?',answer:'Sim. O plano Grátis permite iniciar com uma pesquisa ativa, até 10 respostas e uma devolutiva resumida.'}
+  {id:'faq_valora_insight',question:'O que é o Valora Insight™?',answer:'É um diagnóstico de maturidade organizacional que ajuda a identificar forças, fragilidades e prioridades de evolução da empresa.'},
+  {id:'faq_tempo',question:'Quanto tempo leva para responder?',answer:'O diagnóstico essencial foi pensado para ser rápido e objetivo, levando poucos minutos para ser respondido.'},
+  {id:'faq_resultado',question:'O que recebo ao final?',answer:'Você recebe uma leitura de maturidade com pontuação, nível, principais dimensões analisadas e uma devolutiva estratégica conforme o plano contratado.'},
+  {id:'faq_gratis',question:'Existe um diagnóstico gratuito?',answer:'Sim. O plano Grátis permite iniciar com uma pesquisa ativa, até 10 respostas, resultado individual, devolutiva resumida e certificado simples.'},
+  {id:'faq_empresa',question:'A plataforma serve para qualquer empresa?',answer:'Sim. O Valora Pulse™ pode ser usado por empresas em diferentes estágios para organizar diagnósticos, respostas, relatórios e planos de evolução.'}
 ];}
 function parseFaq(text){
   const lines=String(text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
@@ -32,19 +34,41 @@ function parseFaq(text){
   }
   return rows.length?rows:defaultFaq();
 }
+const FAQ_META_KEYS=new Set(['id','uid','createdAt','updatedAt','updatedBy','createdBy','migratedAt','migratedBy','source','version','storeKey','metadata','settings','email','contactEmail','whatsappNumber','whatsappEnabled','featuredSurveyId','inviteSubject','inviteBody','resultSubject','resultBody','lgpdText']);
+function isFaqLikeItem(item){return !!(item&&typeof item==='object'&&!Array.isArray(item)&&(item.question||item.pergunta||item.title||item.titulo||item.answer||item.resposta||item.content||item.texto));}
+function normalizeFaqItem(item,index){
+  if(typeof item==='string')return {id:`faq_${index+1}`,question:item.trim(),answer:''};
+  if(!isFaqLikeItem(item))return null;
+  const question=item.question||item.pergunta||item.title||item.titulo||'';
+  const answer=item.answer||item.resposta||item.content||item.texto||'';
+  const q=String(question||'').trim(),a=String(answer||'').trim();
+  if(!q&&!a)return null;
+  return {id:item.id||`faq_${index+1}`,question:q,answer:a};
+}
 function normalizeFaqItems(value,fallback=defaultFaq()){
   let raw=value;
   if(typeof raw==='string')raw=parseFaq(raw);
-  if(raw&&typeof raw==='object'&&!Array.isArray(raw)){
-    if(Array.isArray(raw.items))raw=raw.items;else if(Array.isArray(raw.faq))raw=raw.faq;else if(Array.isArray(raw.questions))raw=raw.questions;else raw=Object.entries(raw).map(([question,answer])=>({question,answer}));
+  if(Array.isArray(raw)){
+    const normalized=raw.map(normalizeFaqItem).filter(Boolean);
+    return normalized.length?normalized:fallback;
   }
-  const arr=Array.isArray(raw)?raw:fallbackArray(fallback);
-  const normalized=arr.map((item,index)=>{
-    if(typeof item==='string')return {id:`faq_${index+1}`,question:item,answer:''};
-    const obj=asObject(item);
-    return {id:asString(obj.id,`faq_${index+1}`),question:asString(obj.question||obj.pergunta||obj.title||obj.titulo||obj.q,''),answer:asString(obj.answer||obj.resposta||obj.content||obj.texto||obj.a,'')};
-  }).filter(item=>item.question||item.answer);
-  return normalized.length?normalized:normalizeFaqItems(fallback,[]);
+  if(raw&&typeof raw==='object'){
+    if(Array.isArray(raw.items))return normalizeFaqItems(raw.items,fallback);
+    if(Array.isArray(raw.faq))return normalizeFaqItems(raw.faq,fallback);
+    if(Array.isArray(raw.questions))return normalizeFaqItems(raw.questions,fallback);
+    const numericKeys=Object.keys(raw).filter(key=>/^\d+$/.test(key)).sort((a,b)=>Number(a)-Number(b));
+    if(numericKeys.length){
+      const normalized=numericKeys.map(key=>normalizeFaqItem(raw[key],Number(key))).filter(Boolean);
+      return normalized.length?normalized:fallback;
+    }
+    const possibleFaqPairs=Object.entries(raw).filter(([key,answer])=>{
+      if(FAQ_META_KEYS.has(key)||!answer||typeof answer!=='string')return false;
+      const lower=key.toLowerCase();
+      return key.includes('?')||key.length>12||lower.startsWith('o que')||lower.startsWith('como')||lower.startsWith('qual')||lower.startsWith('existe');
+    }).map(([question,answer],index)=>({id:`faq_pair_${index+1}`,question,answer}));
+    if(possibleFaqPairs.length)return possibleFaqPairs;
+  }
+  return fallback;
 }
 function normalizeEmailSettings(email={}){const e=asObject(email);return {...e,mode:asString(e.mode,'disabled'),senderName:asString(e.senderName,'Valora Group'),senderEmail:asString(e.senderEmail,'valoragroup@mnsoft.com.br')};}
 function normalizeSettings(settings={}){const s=asObject(settings);return {...s,featuredSurveyId:asString(s.featuredSurveyId,''),contactEmail:asString(s.contactEmail,''),whatsappEnabled:asBoolean(s.whatsappEnabled,true),whatsappNumber:asString(s.whatsappNumber,'+55 91 99254-5353'),inviteSubject:asString(s.inviteSubject,'Convite para responder o diagnóstico'),inviteBody:asString(s.inviteBody,'Olá, você foi convidado para responder um diagnóstico de maturidade organizacional.'),resultSubject:asString(s.resultSubject,'Seu resultado Valora Insight™'),resultBody:asString(s.resultBody,'Seu resultado está disponível para consulta.'),lgpdText:asString(s.lgpdText,''),faq:normalizeFaqItems(s.faq,defaultFaq()),email:normalizeEmailSettings(s.email)};}

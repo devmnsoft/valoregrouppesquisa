@@ -10,8 +10,8 @@ const reportsDir = path.join(root, 'publish', 'reports');
 const stamp = new Date().toISOString().replace(/[-:T]/g, '').slice(0, 12);
 const okTypes = { js: ['application/javascript', 'text/javascript', 'application/x-javascript', 'application/ecmascript', 'text/ecmascript'], css: ['text/css'] };
 const report = { date: new Date().toISOString(), url: '', project: '', status: 'PENDING', checks: [], errors: [], warnings: [], recommendations: [] };
-const fatalConsolePattern = /openOnboardingWizard is not defined|Cannot access 'actions' before initialization|Cannot access 'formHandlers' before initialization|violates the following Content Security Policy|script-src|apis\.google\.com|ReferenceError/i;
-const prdRoutes = ['/', '#home', '#login', '#admin/dashboard', '#admin/settings'];
+const fatalConsolePattern = /Firebase não configurado|saveOnboardingWizard is not defined|openOnboardingWizard is not defined|Cannot access 'actions'|Cannot access 'formHandlers'|violates(?: the following)? Content Security Policy|Empresa Exemplo|undefined|NaN|\[object Object\]|script-src|apis\.google\.com|ReferenceError/i;
+const prdRoutes = ['/', '#home', '#login', '#admin/dashboard', '#admin/settings', '#admin/responses'];
 
 function parseArgs(argv) { const out = { timeout: 15000, report: true }; for (let i = 0; i < argv.length; i++) { const a = argv[i]; if (!a.startsWith('--')) continue; const k = a.slice(2).replace(/-([a-z])/g, (_, c) => c.toUpperCase()); if (['json','report','checkFirebase','checkFirestore','checkFunctions','checkPublicSurvey'].includes(k)) out[k] = true; else out[k] = argv[++i]; } out.timeout = Number(out.timeout || 15000); return out; }
 const args = parseArgs(process.argv.slice(2)); report.url = args.url || ''; report.project = args.project || '';

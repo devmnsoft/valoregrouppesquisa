@@ -129,7 +129,7 @@ function missingAction(actionName){
   toast('Esta ação ainda não está disponível neste ambiente.','warn');
 }
 function missingFormHandler(formName){
-  console.warn(`[Valora Pulse] Form handler não registrado: ${formName}`);
+  console.warn(`[Valora Pulse] Formulário não registrado: ${formName}`);
   toast('Este formulário ainda não está disponível.','warn');
 }
 function handleDocumentClick(e){
@@ -1065,21 +1065,33 @@ const CERTIFICATE_LAYOUT={aspectRatio:297/210,pngWidth:1800,pngHeight:1273,pdfOr
 function normalizeCertificateSource(response={}){return {...response,participantName:response.participantName||response.participant?.name||response.respondentName||response.identification?.name||''};}
 function formatCertificateDate(value){return brDay(value||nowIso());}
 function createCertificateCode(response={}){return response.certificateCode||`VAL-${String(response.id||uid('cert')).replace(/[^a-z0-9]/gi,'').slice(-10).toUpperCase()}`;}
-function buildCertificateViewModel({response,survey,form,organization,participantUser}={}){
-  response=normalizeCertificateSource(response||{});
-  const participantName=response.participantName||response.participant?.name||response.respondentName||response.identification?.name||participantUser?.name||'';
-  const surveyName=survey?.title||form?.name||'Diagnóstico Valora Insight™';
-  const rawIssuerName=organization?.publicName||organization?.name||organization?.legalName||survey?.issuerName||'';
-  const forbiddenPlaceholders=new Set(['empresa exemplo','empresa-exemplo','empresa demo','demo company']);
-  const normalizedIssuer=String(rawIssuerName).trim();
-  const issuerName=normalizedIssuer&&!forbiddenPlaceholders.has(normalizedIssuer.toLowerCase())?normalizedIssuer:'Valora Group';
-  const completedAt=response.completedAt||response.submittedAt||response.createdAt||new Date().toISOString();
-  return {participantName:String(participantName).trim()||'Participante não identificado',surveyName,issuerName,completedAt,formattedDate:formatCertificateDate(completedAt),score:Number(response.valoraInsight?.totalScore??response.totalScore??response.rawScore??response.score??0),maxScore:Number(response.valoraInsight?.maxScore??response.maxScore??125),maturityLabel:response.valoraInsight?.maturityLevel?.label||response.maturityLabel||response.level?.label||'',certificateCode:response.certificateCode||createCertificateCode(response),issuedByText:`Emitido por ${issuerName}`,validationText:(response.certificateCode||response.id)?`Código de validação: ${response.certificateCode||createCertificateCode(response)}`:'',responseId:response.id||'',participantEmail:response.participant?.email||response.email||'',fileBaseName:`certificado-${slug(participantName)}-${slug(surveyName)}`};
+function sanitizeCertificateText(value){return String(value??'').replace(/[<>]/g,'').replace(/\s+/g,' ').trim();}
+function sanitizeIssuerName(value){
+  const raw=String(value||'').trim();
+  const blocked=['empresa exemplo','empresa-exemplo','empresa demo','demo company','empresa teste'];
+  if(!raw||blocked.includes(raw.toLowerCase()))return 'Valora Group';
+  return raw;
+}
+function buildCertificateViewModel(responseIdOrResponse){
+  const st=state||{};
+  const response=typeof responseIdOrResponse==='string'?(st.responses||[]).find(r=>r.id===responseIdOrResponse):(responseIdOrResponse?.response||responseIdOrResponse||{});
+  const survey=responseIdOrResponse?.survey||(st.surveys||[]).find(s=>s.id===response?.surveyId)||{};
+  const form=responseIdOrResponse?.form||(st.forms||[]).find(f=>f.id===(response?.formId||survey?.formId))||{};
+  const organization=responseIdOrResponse?.organization||(st.organizations||[]).find(o=>o.id===(response?.companyId||survey?.companyId))||(st.companies||[]).find(c=>c.id===(response?.companyId||survey?.companyId))||{};
+  const participantUser=responseIdOrResponse?.participantUser||(st.users||[]).find(u=>u.id===response?.userId||u.uid===response?.userId||u.email===response?.participantEmail||u.email===response?.email||u.email===response?.participant?.email)||{};
+  const participantName=response?.participantName||response?.participant?.name||response?.respondentName||response?.identification?.name||response?.name||participantUser?.name||'';
+  const issuerRaw=organization?.publicName||organization?.name||organization?.legalName||survey?.issuerName||'Valora Group';
+  const issuerName=sanitizeIssuerName(issuerRaw);
+  const completedAt=response?.completedAt||response?.submittedAt||response?.createdAt||new Date().toISOString();
+  const scoreData=getCertificateScore(response||{});
+  const surveyName=sanitizeCertificateText(survey?.title||form?.name||'Diagnóstico Valora Insight™');
+  const safeParticipant=sanitizeCertificateText(participantName)||'Participante não identificado';
+  return {responseId:response?.id||'',participantName:safeParticipant,issuerName,surveyName,completedAt,formattedDate:formatCertificateDate(completedAt),maturityLabel:scoreData.maturityLabel||'',scoreLabel:scoreData.scoreLabel||'',scoreShortLabel:scoreData.scoreShortLabel||'Participação concluída',certificateCode:response?.certificateCode||createCertificateCode(response||{}),issuedByText:`Emitido por ${issuerName}`,validationText:`Código de validação: ${response?.certificateCode||createCertificateCode(response||{})}`,productName:'Valora Pulse™',brandName:'Valora Pulse™',valid:!!response,participantEmail:response?.participant?.email||response?.participantEmail||response?.email||'',fileBaseName:`certificado-${slug(safeParticipant)}-${slug(surveyName)}`};
 }
 function validateCertificateViewModel(model){const errors=[];if(!model.participantName||model.participantName==='Participante não identificado')errors.push('Nome do participante não encontrado. Revise a identificação da resposta antes da emissão.');if(!model.surveyName)errors.push('Nome da pesquisa não encontrado.');if(!model.issuerName)errors.push('Emissor do certificado não encontrado.');return errors;}
-function buildCertificateLayout(model){return {logo:LOGO_FULL,eyebrow:'Certificado de Participação',title:model.participantName,body:['concluiu o diagnóstico',model.surveyName],metadata:[model.formattedDate,model.maturityLabel].filter(Boolean),footer:[model.issuedByText,model.validationText,'Tecnologia Valora Pulse™'].filter(Boolean)};}
-function buildCertificateData(responseIdOrResponse){const response=typeof responseIdOrResponse==='string'?state.responses.find(x=>x.id===responseIdOrResponse):responseIdOrResponse||{};const survey=state.surveys.find(x=>x.id===response.surveyId)||{};const form=state.forms.find(x=>x.id===(response.formId||survey.formId))||{};const organization=companyById(response.companyId||survey.companyId)||{};const participantUser=state.users.find(u=>u.email&&u.email===response.participant?.email)||{};const model=buildCertificateViewModel({response,survey,form,organization,participantUser});const layout=buildCertificateLayout(model);return {...model,layout,response,participantName:model.participantName,surveyTitle:model.surveyName,completedDate:model.formattedDate,companyName:model.issuerName,brandName:'Valora Pulse™',certificateTitle:layout.eyebrow,certificateSubtitle:'Certificamos que',certificateBody:`${model.participantName} concluiu o diagnóstico ${model.surveyName} em ${model.formattedDate}.`,scoreShortLabel:model.score?`${model.score} / ${model.maxScore} pontos`:'Participação concluída',scoreLabel:model.score?`${model.score} / ${model.maxScore} pontos`:'Participação concluída',institutionalMessage:model.issuedByText,poweredByValora:'Tecnologia Valora Pulse™',logoUrl:LOGO_FULL};}
-function certificateTemplateHtml(data,options={}){const d=data||buildCertificateData({});return `<div class="certificate-export" data-mode="${esc(options.mode||'screen')}"><article class="certificate-export-page"><div class="certificate-export-border"><header class="certificate-export-header"><div class="certificate-export-logo"><img src="${esc(d.logoUrl)}" alt="Valora Group"><span>Valora Group™</span></div><strong>${esc(d.brandName)}</strong></header><p class="certificate-export-kicker">${esc(d.layout.eyebrow)}</p><p class="certificate-export-subtitle">Certificamos que</p><h3 class="certificate-export-name">${esc(d.layout.title)}</h3><p class="certificate-export-body">concluiu o diagnóstico<br><b>${esc(d.surveyTitle)}</b><br>em ${esc(d.completedDate)}</p><section class="certificate-export-score"><span>Resultado</span><b>${esc(d.scoreShortLabel)}</b>${d.maturityLabel?`<small>${esc(d.maturityLabel)}</small>`:''}</section><div class="certificate-export-meta">${d.layout.metadata.map(x=>`<span>${esc(x)}</span>`).join('')}</div><p class="certificate-export-footer">${d.layout.footer.map(esc).join('<br>')}</p></div></article></div>`;}
+function buildCertificateLayout(model){return {logo:LOGO_FULL,eyebrow:'Certificado de Participação',title:model.participantName,body:['concluiu o diagnóstico',model.surveyName],metadata:[model.formattedDate,model.maturityLabel].filter(Boolean),footer:[model.issuedByText,'Tecnologia Valora Pulse™',model.validationText].filter(Boolean)};}
+function buildCertificateData(responseIdOrResponse){const model=buildCertificateViewModel(responseIdOrResponse);const layout=buildCertificateLayout(model);return {...model,layout,response:typeof responseIdOrResponse==='object'?responseIdOrResponse:{},surveyTitle:model.surveyName,completedDate:model.formattedDate,companyName:model.issuerName,certificateTitle:layout.eyebrow,certificateSubtitle:'Certificamos que',certificateBody:`Certificamos que ${model.participantName} concluiu o diagnóstico ${model.surveyName} em ${model.formattedDate}.`,institutionalMessage:model.issuedByText,poweredByValora:'Tecnologia Valora Pulse™',logoUrl:LOGO_FULL};}
+function certificateTemplateHtml(data,options={}){const d=data||buildCertificateData({});return `<div class="certificate-export" data-mode="${esc(options.mode||'screen')}"><article class="certificate-sheet certificate-export-page"><div class="certificate-export-border"><header class="certificate-export-header"><div class="certificate-export-logo"><img src="${esc(d.logoUrl)}" alt="Valora Group"><span>Valora Group™</span></div><strong>${esc(d.productName||d.brandName)}</strong></header><p class="certificate-export-kicker">${esc(d.layout.eyebrow)}</p><p class="certificate-export-subtitle">Certificamos que</p><h3 class="certificate-export-name">${esc(d.participantName)}</h3><p class="certificate-export-body">concluiu o diagnóstico<br><b>${esc(d.surveyTitle)}</b><br>em ${esc(d.completedDate)}</p><section class="certificate-export-score"><span>Resultado</span><b>${esc(d.scoreShortLabel)}</b>${d.maturityLabel?`<small>${esc(d.maturityLabel)}</small>`:''}</section><p class="certificate-export-footer">${esc(d.issuedByText)}<br>${esc(d.poweredByValora)}<br>${esc(d.validationText)}</p></div></article></div>`;}
 function certificateCompanyLine(r){return buildCertificateData(r).issuedByText;}
 function certificateHtml(r){const d=buildCertificateData(r);audit('Certificado HTML visualizado','resposta',d.responseId,d.participantEmail);return `<section class="certificate-panel"><div><span class="badge success">Certificado disponível</span><h3>Seu certificado de participação está disponível.</h3><p>Ele confirma sua participação no diagnóstico e usa a mesma fonte de dados para tela, PDF e PNG.</p></div></section>${certificateTemplateHtml(d,{mode:'screen'})}`;}
 function assertCertificateCanExport(d){const errors=validateCertificateViewModel(d);if(errors.length){toast(errors[0],'error');return false;}return true;}
@@ -1274,6 +1286,24 @@ const changes={
   moduleToggle(el){toggleModule(el.dataset.id,el.checked);},integrationCompanyFilter(){rerenderPortal();},roleExplain(el){const box=$('#roleExplainBox');if(box)box.innerHTML=roleHint(el.value);}
 };
 const inputs={actionPlanFilter(){filterActionPlans();},userFilter(){filterUsersTable();},notificationFilter(){filterNotifications();},supportFilter(){filterSupport();},logFilter(){filterLogsTable();}};
+
+async function saveOnboardingWizard(form){
+  const fd=data(form);
+  const user=currentUser();
+  if(!user){toast('Entre na plataforma para concluir a configuração inicial.','warn');return false;}
+  const payload={companyName:fd.companyName||fd.name||'',segment:fd.segment||'',size:fd.size||'',mainGoal:fd.mainGoal||'',updatedAt:new Date().toISOString()};
+  const companyId=user.companyId||fd.companyId;
+  if(!companyId){toast('Não foi possível identificar a empresa para salvar a configuração.','error');return false;}
+  const st=state||{};
+  const company=(st.companies||[]).find(c=>c.id===companyId)||(st.organizations||[]).find(o=>o.id===companyId);
+  if(!company){toast('Empresa não encontrada para configuração inicial.','error');return false;}
+  const onboarding={...(company.onboarding||{}),...payload,completed:true,completedAt:new Date().toISOString()};
+  if(repository.updateCompany)await repository.updateCompany(companyId,{onboarding,updatedAt:new Date().toISOString()});
+  else if(repository.updateOrganization)await repository.updateOrganization(companyId,{onboarding,updatedAt:new Date().toISOString()});
+  else{company.onboarding=onboarding;company.updatedAt=new Date().toISOString();await saveStore();}
+  toast('Configuração inicial salva com sucesso.','success');
+  closeModal?.();rerenderPortal?.();return true;
+}
 function createFormHandlers(){return {
   login,signup,actionPlan:saveActionPlan,bot(form){const msg=form.message.value.trim();if(!msg)return;form.reset();handleBotMessage(msg);},publicSupport:savePublicSupport,loggedSupport:saveLoggedSupport,knowledgeArticle:saveKnowledgeArticle,supportMessage:saveSupportMessage,supportInternalNote:saveSupportInternalNote,supportRating:saveSupportRating,
   apiKey:saveApiKey,webhook:saveWebhook,employeeImport:saveEmployeeImport,dataExport:exportData,user:saveUser,company:saveCompany,invoice:saveInvoice,plan:savePlan,module:saveModule,survey:saveSurvey,quickSurvey:saveQuickSurvey,takeSurvey:submitSurvey,inviteEmail:sendInviteEmail,bulkInvite:sendBulkInvite,resultEmail:submitResultEmail,settings:saveSettings,companySettings:saveCompanySettings,onboardingWizard:saveOnboardingWizard,importBackup

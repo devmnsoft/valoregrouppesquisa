@@ -1,0 +1,3 @@
+const { test, expect } = require('@playwright/test');
+test('ValoraBot deduplica suporte humano', async ({ page }) => { await page.goto('/'); const r=await page.evaluate(()=>window.ValoraChatbot.generateAnswer('quero falar com uma pessoa', window.ValoraChatbot.getChatContext())); expect(r.actions.filter(a=>/human|support/.test(a.type)).length).toBe(1); });
+test('ValoraBot entende volume por contexto', async ({ page }) => { await page.goto('/'); const r=await page.evaluate(()=>window.ValoraChatbot.generateAnswer('preciso ouvir meio mil pessoas', window.ValoraChatbot.getChatContext())); expect(['plan_recommendation','plans_pricing']).toContain(r.intent); });

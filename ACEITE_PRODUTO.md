@@ -56,3 +56,10 @@
 **Status atual:** aprovado com ressalvas para apresentação controlada.
 
 A aprovação final para produção só deve ocorrer após execução real do checklist de homologação, correção ou aceite formal dos bugs encontrados e registro das evidências.
+
+## Critérios finais de aceite — correção integrada
+
+E-mail: produção não chama endpoints locais, teste não quebra e modo local preserva outbox.
+Logger: console debug/info e logs remotos ficam bloqueados por capacidade de runtime.
+Certificados: HTML, PDF e PNG usam a mesma fonte de dados, validam participante e emissor e bloqueiam placeholders.
+ValoraBot: usa linguagem natural, memória curta, sinônimos, entidades, deduplicação de CTA humano e filtro de termos internos.

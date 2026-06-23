@@ -1,23 +1,18 @@
 (function(){
 'use strict';
-
-// Configuração central do Valora Pulse™.
-// Em produção, altere STORAGE_MODE para "firebase" somente depois de configurar
-// Firebase Auth, Firestore, Cloud Functions e regras de segurança revisadas.
 window.ValoraConfig=Object.freeze({
   APP_VERSION:'8.6.8',
-  STORAGE_MODE:'firebase', // "local" para demo/MVP; "firebase" para produção.
+  RUNTIME_ENV:'production',
+  STORAGE_MODE:'firebase',
   FIREBASE_ENABLED:true,
-  ENABLE_CLOUD_FUNCTIONS:false,
   FIREBASE_PLAN:'spark',
-  observability:{enabled:true,consoleEnabled:true,persistLogs:true,telegramEnabled:false,telegramLevels:['critical','error','security'],telegramCategories:['system','security','billing','integration','firebase'],maskSensitiveData:true,maxLocalLogs:3000,environment:'local'},
-  // Configuração pública do app Web Firebase. Preencha somente chaves públicas do projeto.
-  FIREBASE_CONFIG:{
-    projectId:'gestordepesquisa',
-    authDomain:'gestordepesquisa.firebaseapp.com',
-    storageBucket:'gestordepesquisa.appspot.com'
-  },
+  ENABLE_CLOUD_FUNCTIONS:false,
   REQUIRE_AUTH_SERVER_VALIDATION:false,
+  LOCAL_API_ENABLED:false,
+  LOCAL_API_BASE_URL:'',
+  EMAIL_TRANSPORT:'disabled',
+  observability:{enabled:true,consoleEnabled:false,consoleLevel:'warn',persistLogs:true,remoteLogsEnabled:false,telegramEnabled:false,legacyTraceEnabled:false,maskSensitiveData:true,maxLocalLogs:3000,environment:'production'},
+  FIREBASE_CONFIG:{projectId:'gestordepesquisa',authDomain:'gestordepesquisa.firebaseapp.com',storageBucket:'gestordepesquisa.appspot.com'},
   STORE_KEY:'valoraPulseFinal800'
 });
 })();

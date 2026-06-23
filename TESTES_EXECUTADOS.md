@@ -763,3 +763,11 @@ node scripts/publish-iis-prd.js --iis-path C:\inetpub\wwwroot\valoragroup --mode
 ```
 
 Não é recomendado pular o `security-check` em produção. O fallback local sem Git é limitado: procura segredos e padrões perigosos nos arquivos locais, mas não sabe exatamente quais arquivos estão versionados.
+
+## Correção runtime capabilities e e-mail por ambiente
+
+- Local: `server.py` fornece API local, outbox e SMTP opcional.
+- PRD Spark: IIS estático + Firebase Auth/Firestore, sem API local, sem Cloud Functions, sem envio automático de e-mail.
+- PRD Blaze futuro: Cloud Functions com Secret Manager para e-mail seguro e logs remotos.
+- Backend externo futuro: API autenticada para transporte externo.
+- Validações: `node scripts/validate-runtime-capabilities.js` e `node scripts/validate-email-environment.js` garantem que PRD Spark não chame `/api/email/*`, `/api/outbox`, `getEmailStatus` ou `logServerEvent`.

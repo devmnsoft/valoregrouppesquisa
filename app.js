@@ -289,11 +289,30 @@ function buildPublicSurveyUrl(survey){
 }
 function renderHome(){
   const featuredSurvey=getFeaturedFreeSurvey();
-  const surveyLink=featuredSurvey?buildPublicSurveyUrl(featuredSurvey):'#plans';
-  const diagnosticCta=featuredSurvey?'Responder diagnóstico grátis':'Ver planos';
+  const surveyLink=buildPublicSurveyUrl(featuredSurvey);
+  const whatsappLink=state.settings.whatsappEnabled&&onlyDigits(state.settings.whatsappNumber)?`https://wa.me/${onlyDigits(state.settings.whatsappNumber)}?text=${encodeURIComponent('Olá! Quero falar com um especialista sobre o Valora Insight™.')}`:'#public-help';
   $('#app').innerHTML=`
-  <section class="home-hero" aria-labelledby="homeHeroTitle"><div class="container home-hero-grid"><div class="home-hero-copy"><span class="eyebrow">Valora Insight™</span><h1 id="homeHeroTitle">Diagnóstico essencial de maturidade organizacional</h1><p class="lead">Uma leitura rápida, direta e estratégica para entender onde a empresa está, o que limita o crescimento e qual deve ser o próximo passo.</p><p class="hero-meta">5 dimensões • 25 perguntas • devolutiva estratégica</p><div class="hero-actions"><button class="btn btn-primary" data-action="openSurveyInNewTab" data-link="${esc(surveyLink)}">Iniciar diagnóstico grátis</button><a class="btn btn-secondary" href="#plans">Ver planos</a><button class="btn btn-soft" data-action="toggleBot">Falar com especialista</button></div><div class="journey-steps" aria-label="Passos da jornada"><span><b>1</b> Responder</span><span><b>2</b> Receber leitura</span><span><b>3</b> Decidir</span></div></div><aside class="home-hero-panel" aria-label="Resumo do diagnóstico"><img class="hero-logo" src="${LOGO_FULL}" alt="Valora Group"><div class="diagnostic-summary"><div class="time-ring"><div><strong>5</strong><span>minutos</span></div></div><ul><li>25 perguntas</li><li>5 dimensões</li><li>125 pontos</li></ul></div></aside></div></section>
-  <section class="section free-diagnostic-section"><div class="container"><div class="free-diagnostic-card"><span class="eyebrow">Diagnóstico gratuito</span><h2>Comece com uma primeira leitura de maturidade</h2><p>Responda a pesquisa inicial e receba uma devolutiva resumida para entender o estágio atual da organização.</p><button class="btn btn-primary" data-action="openSurveyInNewTab" data-link="${esc(surveyLink)}">${diagnosticCta}</button>${featuredSurvey?`<small>Pesquisa selecionada: ${esc(featuredSurvey.title||'Valora Insight™')}</small>`:'<small>Pesquisa gratuita indisponível no momento. Você será direcionado para os planos.</small>'}</div></div></section>
+  <section class="home-hero-v2" aria-labelledby="homeHeroTitle">
+    <div class="home-hero-inner">
+      <div class="hero-copy">
+        <div class="hero-brand-line"><img class="hero-brand-logo" src="${LOGO_SYMBOL}" alt="Valora Group"><span>Valora Insight™</span></div>
+        <span class="hero-eyebrow">Diagnóstico executivo de maturidade</span>
+        <h1 id="homeHeroTitle">Entenda o que limita o crescimento da sua empresa.</h1>
+        <p class="hero-lead">Uma leitura rápida, direta e estratégica para identificar forças, fragilidades e o próximo nível de evolução organizacional.</p>
+        <div class="hero-proof-row" aria-label="Provas do diagnóstico"><span>5 dimensões</span><span>25 perguntas</span><span>125 pontos</span><span>Devolutiva estratégica</span></div>
+        <div class="hero-actions"><a class="btn btn-primary" href="${esc(surveyLink)}">Responder diagnóstico grátis</a><a class="btn btn-secondary" href="#plans">Ver planos</a><a class="btn btn-ghost" href="${esc(whatsappLink)}" ${whatsappLink.startsWith('https://wa.me/')?'target="_blank" rel="noopener"':''}>Falar com especialista</a></div>
+        <p class="hero-institutional">Valora Group — consultoria, diagnóstico e governança para transformar maturidade organizacional em decisões executivas.</p>
+      </div>
+      <aside class="hero-insight-panel" aria-label="Resumo do diagnóstico Valora Insight">
+        <div class="panel-header"><span>Valora Insight™</span><strong>5 min</strong></div>
+        <h2>Diagnóstico essencial de maturidade</h2>
+        <p>Responda, receba uma leitura executiva e entenda qual dimensão mais limita a evolução da empresa.</p>
+        <div class="panel-metrics"><div><strong>5</strong><span>dimensões</span></div><div><strong>25</strong><span>perguntas</span></div><div><strong>125</strong><span>pontos</span></div></div>
+        <div class="panel-steps"><span><b>1</b> Responder</span><span><b>2</b> Receber leitura</span><span><b>3</b> Decidir</span></div>
+      </aside>
+    </div>
+  </section>
+  <section class="free-diagnostic-strip"><div><span>Diagnóstico gratuito</span><strong>Faça uma primeira leitura de maturidade.</strong><p>Receba uma devolutiva resumida sobre o estágio atual da organização.</p>${featuredSurvey?`<small>Pesquisa selecionada: ${esc(featuredSurvey.title||'Valora Insight™')}</small>`:'<small>Sem pesquisa gratuita ativa no momento; o CTA direciona para os planos.</small>'}</div><a class="btn btn-primary" href="${esc(surveyLink)}">Responder diagnóstico grátis</a></section>
   <section class="section"><div class="container"><h2 class="section-title">Jornadas separadas por responsabilidade.</h2><div class="grid grid-3"><div class="card icon-card" data-icon="◆"><h3>Administrador Valora</h3><p>Controla clientes, planos, financeiro, módulos, pesquisa da home, e-mail, LGPD, backup e logs globais.</p></div><div class="card icon-card" data-icon="▦"><h3>Empresa cliente</h3><p>Gerencia equipe, formulários, pesquisas, links, respostas e relatórios apenas do próprio ambiente.</p></div><div class="card icon-card" data-icon="✓"><h3>Participante</h3><p>Responde com consentimento, acompanha histórico, consulta resultados e baixa certificados.</p></div></div></div></section>
   ${plansGrid(false)}
   <section class="section"><div class="container faq"><h2 class="section-title">Perguntas frequentes</h2>${(state.settings.faq||defaultFaq()).map(x=>`<details><summary>${esc(x.q)}</summary><p>${esc(x.a)}</p></details>`).join('')}</div></section>`;

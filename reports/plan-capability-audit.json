@@ -1,0 +1,46 @@
+{
+  "free": {
+    "1 pesquisa ativa": "partial",
+    "Até 10 respostas": "partial",
+    "Resultado individual": "partial",
+    "Devolutiva resumida": "partial",
+    "Certificado simples": "partial"
+  },
+  "essential": {
+    "3 pesquisas ativas": "partial",
+    "Até 150 respostas/mês": "partial",
+    "2 gestores": "partial",
+    "Devolutiva estratégica": "partial",
+    "Relatório básico": "partial"
+  },
+  "professional": {
+    "12 pesquisas ativas": "partial",
+    "Até 1.000 respostas/mês": "partial",
+    "8 gestores": "partial",
+    "Relatório executivo": "partial",
+    "Plano de ação": "partial"
+  },
+  "corporate": {
+    "Pesquisas ilimitadas": "partial",
+    "Até 10.000 respostas/mês": "partial",
+    "50 gestores": "partial",
+    "Múltiplas unidades": "partial",
+    "Relatórios consolidados": "partial"
+  },
+  "enterprise": {
+    "Ambiente personalizado": "partial",
+    "Múltiplas empresas": "partial",
+    "Reunião estratégica": "service_justified",
+    "Relatórios consultivos": "service_justified",
+    "Acompanhamento executivo": "service_justified"
+  },
+  "contradictions": [],
+  "missingTests": [
+    "Limites de plano ainda carecem de testes contratuais completos."
+  ],
+  "publicClaimsWithoutEvidence": [
+    "Múltiplas unidades",
+    "Relatórios consolidados",
+    "Serviços Enterprise precisam de rastreio operacional dedicado."
+  ]
+}

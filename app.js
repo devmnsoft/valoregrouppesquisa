@@ -271,13 +271,22 @@ function renderBot(){
   $('#botPanel').classList.toggle('open',open);$('#botPanel').setAttribute('aria-hidden',open?'false':'true');
 }
 
-function getFeaturedFreeSurvey(){
-  const st=state||{},settings=st.settings||{},surveys=st.surveys||[];
-  const byFeatured=surveys.find(s=>s.id===settings.featuredSurveyId&&s.status==='active');
-  if(byFeatured)return byFeatured;
-  const freeSurvey=surveys.find(s=>s.status==='active'&&(s.isFree===true||s.planId==='free'||String(s.title||'').toLowerCase().includes('valora insight')));
-  return freeSurvey||null;
+function resolveFeaturedFreeSurvey(store=state){
+  const settings=store?.settings||{};
+  const surveys=Array.isArray(store?.surveys)?store.surveys:[];
+  const isUsable=survey=>survey&&survey.status==='active'&&survey.visibleOnHome!==false&&(!survey.expiresAt||new Date(survey.expiresAt)>new Date());
+  const featured=surveys.find(survey=>survey.id===settings.featuredSurveyId&&isUsable(survey));
+  if(featured)return featured;
+  return surveys.find(survey=>isUsable(survey)&&(survey.isFree===true||survey.isFeatured===true||survey.planId==='free'))||null;
 }
+function resolveFeaturedSurveyLink(survey){
+  if(!survey)return '';
+  if(survey.publicUrl)return survey.publicUrl;
+  if(survey.publicLink)return survey.publicLink;
+  if(typeof buildSurveyLink==='function')return buildSurveyLink(survey);
+  return buildPublicSurveyUrl(survey);
+}
+function getFeaturedFreeSurvey(){return resolveFeaturedFreeSurvey(state);}
 function buildPublicSurveyUrl(survey){
   if(!survey)return '#plans';
   if(survey.publicLink)return survey.publicLink;
@@ -288,31 +297,35 @@ function buildPublicSurveyUrl(survey){
   return `index.html?survey=${encodeURIComponent(survey.id)}&token=${encodeURIComponent(token)}${org?`&org=${encodeURIComponent(org)}`:''}`;
 }
 function renderHome(){
-  const featuredSurvey=getFeaturedFreeSurvey();
-  const surveyLink=buildPublicSurveyUrl(featuredSurvey);
+  const featuredSurvey=resolveFeaturedFreeSurvey(state);
+  const featuredSurveyLink=resolveFeaturedSurveyLink(featuredSurvey);
+  const primaryCta=featuredSurveyLink?`<a href="${esc(featuredSurveyLink)}" class="btn btn-primary">Responder diagnóstico grátis</a>`:`<a href="#plans" class="btn btn-primary">Conhecer o plano Grátis</a>`;
   const whatsappLink=state.settings.whatsappEnabled&&onlyDigits(state.settings.whatsappNumber)?`https://wa.me/${onlyDigits(state.settings.whatsappNumber)}?text=${encodeURIComponent('Olá! Quero falar com um especialista sobre o Valora Insight™.')}`:'#public-help';
   $('#app').innerHTML=`
-  <section class="home-hero-v2" aria-labelledby="homeHeroTitle">
+  <section class="home-hero-v3" aria-labelledby="homeHeroTitle">
     <div class="home-hero-inner">
       <div class="hero-copy">
-        <div class="hero-brand-line"><img class="hero-brand-logo" src="${LOGO_SYMBOL}" alt="Valora Group"><span>Valora Insight™</span></div>
+        <div class="insight-product-mark"><img src="${LOGO_SYMBOL}" alt="" aria-hidden="true"><div><strong>Valora Insight™</strong><span>Uma solução Valora Group</span></div></div>
         <span class="hero-eyebrow">Diagnóstico executivo de maturidade</span>
-        <h1 id="homeHeroTitle">Entenda o que limita o crescimento da sua empresa.</h1>
-        <p class="hero-lead">Uma leitura rápida, direta e estratégica para identificar forças, fragilidades e o próximo nível de evolução organizacional.</p>
-        <div class="hero-proof-row" aria-label="Provas do diagnóstico"><span>5 dimensões</span><span>25 perguntas</span><span>125 pontos</span><span>Devolutiva estratégica</span></div>
-        <div class="hero-actions"><a class="btn btn-primary" href="${esc(surveyLink)}">Responder diagnóstico grátis</a><a class="btn btn-secondary" href="#plans">Ver planos</a><a class="btn btn-ghost" href="${esc(whatsappLink)}" ${whatsappLink.startsWith('https://wa.me/')?'target="_blank" rel="noopener"':''}>Falar com especialista</a></div>
-        <p class="hero-institutional">Valora Group — consultoria, diagnóstico e governança para transformar maturidade organizacional em decisões executivas.</p>
+        <h1 id="homeHeroTitle">Descubra o que realmente limita a evolução da sua empresa.</h1>
+        <p class="hero-lead">Em poucos minutos, transforme respostas em uma leitura executiva sobre cultura, governança, liderança, pessoas e crescimento.</p>
+        <p class="hero-proof-line">5 minutos · 25 perguntas · devolutiva estratégica</p>
+        <div class="hero-actions">${primaryCta}<a class="btn btn-secondary" href="#how-it-works">Ver como funciona</a><a class="btn btn-ghost" href="${esc(whatsappLink)}" ${whatsappLink.startsWith('https://wa.me/')?'target="_blank" rel="noopener"':''}>Falar com especialista</a></div>
+        <p class="hero-institutional">Uma solução Valora Group para transformar maturidade organizacional em decisões executivas.</p>
       </div>
-      <aside class="hero-insight-panel" aria-label="Resumo do diagnóstico Valora Insight">
-        <div class="panel-header"><span>Valora Insight™</span><strong>5 min</strong></div>
-        <h2>Diagnóstico essencial de maturidade</h2>
-        <p>Responda, receba uma leitura executiva e entenda qual dimensão mais limita a evolução da empresa.</p>
-        <div class="panel-metrics"><div><strong>5</strong><span>dimensões</span></div><div><strong>25</strong><span>perguntas</span></div><div><strong>125</strong><span>pontos</span></div></div>
-        <div class="panel-steps"><span><b>1</b> Responder</span><span><b>2</b> Receber leitura</span><span><b>3</b> Decidir</span></div>
+      <aside class="hero-result-panel" aria-label="Exemplo de devolutiva do diagnóstico">
+        <div class="result-panel-top"><span>Prévia da sua devolutiva</span><strong>5 min</strong></div>
+        <span class="result-example-badge">Exemplo de devolutiva</span>
+        <div class="result-score"><strong>72 <small>/ 125</small></strong><span>Em estruturação</span></div>
+        <div class="dimension-preview" aria-label="Radar demonstrativo por dimensão">
+          ${[['Cultura',7],['Governança',5],['Liderança',6],['Pessoas',6],['Resultados',7]].map(([label,value])=>`<div class="dimension-row"><span>${label}</span><b aria-label="${value} de 10">${'█'.repeat(value)}${'░'.repeat(10-value)}</b></div>`).join('')}
+        </div>
+        <div class="blocker-card"><span>Principal bloqueio</span><strong>Estrutura de decisão</strong></div>
+        <p class="result-deliverables"><b>Você recebe:</b> Radar de maturidade · leitura executiva · próximo nível</p>
       </aside>
     </div>
   </section>
-  <section class="free-diagnostic-strip"><div><span>Diagnóstico gratuito</span><strong>Faça uma primeira leitura de maturidade.</strong><p>Receba uma devolutiva resumida sobre o estágio atual da organização.</p>${featuredSurvey?`<small>Pesquisa selecionada: ${esc(featuredSurvey.title||'Valora Insight™')}</small>`:'<small>Sem pesquisa gratuita ativa no momento; o CTA direciona para os planos.</small>'}</div><a class="btn btn-primary" href="${esc(surveyLink)}">Responder diagnóstico grátis</a></section>
+  <section id="how-it-works" class="free-diagnostic-strip"><div><span>Comece pela leitura essencial</span><strong>Responda ao diagnóstico gratuito e receba uma visão resumida do estágio atual da organização.</strong>${featuredSurvey?`<small>Pesquisa gratuita da Home: ${esc(featuredSurvey.title||featuredSurvey.id)}</small>`:'<small>Sem pesquisa gratuita ativa no momento; o CTA direciona para o plano Grátis.</small>'}</div>${featuredSurveyLink?`<a class="btn btn-primary" href="${esc(featuredSurveyLink)}">Responder agora</a>`:`<a class="btn btn-primary" href="#plans">Conhecer o plano Grátis</a>`}</section>
   <section class="section"><div class="container"><h2 class="section-title">Jornadas separadas por responsabilidade.</h2><div class="grid grid-3"><div class="card icon-card" data-icon="◆"><h3>Administrador Valora</h3><p>Controla clientes, planos, financeiro, módulos, pesquisa da home, e-mail, LGPD, backup e logs globais.</p></div><div class="card icon-card" data-icon="▦"><h3>Empresa cliente</h3><p>Gerencia equipe, formulários, pesquisas, links, respostas e relatórios apenas do próprio ambiente.</p></div><div class="card icon-card" data-icon="✓"><h3>Participante</h3><p>Responde com consentimento, acompanha histórico, consulta resultados e baixa certificados.</p></div></div></div></section>
   ${plansGrid(false)}
   <section class="section"><div class="container faq"><h2 class="section-title">Perguntas frequentes</h2>${(state.settings.faq||defaultFaq()).map(x=>`<details><summary>${esc(x.q)}</summary><p>${esc(x.a)}</p></details>`).join('')}</div></section>`;
@@ -485,6 +498,18 @@ function planWarnings(companyId){const p=getCompanyPlan(companyId);const u=curre
 function smartEmpty(kind){const map={employees:['Nenhum funcionário cadastrado ainda.','Cadastre os primeiros respondentes para enviar pesquisas e acompanhar resultados por área.','Cadastrar funcionário','newUser'],forms:['Nenhum questionário criado.','Crie um questionário próprio ou use um modelo global para iniciar seu diagnóstico.','Criar questionário','newForm'],surveys:['Nenhuma pesquisa ativa.','Crie uma pesquisa a partir de um questionário e envie convites aos funcionários.','Criar pesquisa','newSurvey'],invites:['Nenhum convite enviado.','Selecione uma pesquisa ativa e envie para os funcionários cadastrados.','Enviar convites','bulkInvite'],responses:['Ainda não há respostas.','Quando os participantes concluírem a pesquisa, os resultados aparecerão aqui.','Reenviar convites','bulkInvite'],reports:['Relatório ainda indisponível.','Você precisa ter pelo menos uma resposta concluída para gerar um relatório.','Ver pesquisas','portalTab']};const x=map[kind];return `<div class="card empty-smart"><h3>${x[0]}</h3><p>${x[1]}</p><button class="btn btn-primary" data-action="${x[3]}" ${kind==='reports'?'data-scope="empresa" data-tab="surveys"':''}>${x[2]}</button></div>`;}
 function onboardingStatusBadge(companyId){const m=onboardingMetrics(companyId);return `<span class="badge ${m.status==='travado'?'danger':m.status==='implantado'?'success':'warn'}">${esc(m.status)} • ${m.percent}%</span>`;}
 
+function featuredFreeSurveyDiagnostics(){
+  const selectedId=state?.settings?.featuredSurveyId||'';
+  const survey=selectedId?(state.surveys||[]).find(x=>x.id===selectedId):resolveFeaturedFreeSurvey(state);
+  const now=new Date();
+  let reason='exibida';
+  if(!survey)reason=selectedId?'ID selecionado não encontrado e sem fallback gratuito ativo':'sem pesquisa gratuita ativa';
+  else if(survey.status!=='active')reason='status diferente de active';
+  else if(survey.visibleOnHome===false)reason='visibleOnHome=false';
+  else if(survey.expiresAt&&new Date(survey.expiresAt)<=now)reason='pesquisa expirada';
+  else if(!resolveFeaturedSurveyLink(survey))reason='sem publicUrl/publicLink/link/token disponível';
+  return `<div class="card"><h4>Pesquisa gratuita da Home</h4><div class="kpi-grid mini">${kpi('ID selecionado',selectedId||'fallback')}${kpi('ID exibido',survey?.id||'—')}${kpi('Status',survey?.status||'—')}${kpi('publicUrl disponível',resolveFeaturedSurveyLink(survey)?'sim':'não')}${kpi('Validade',survey?.expiresAt?brDay(survey.expiresAt):'sem expiração')}${kpi('Motivo',reason,reason==='exibida'?'ok':'verificar',reason==='exibida'?'success':'warn')}</div></div>`;
+}
 function adminEnvironmentStatusCard(){
   const cfg=APP_CONFIG||{},email=state.settings?.email||{},user=currentUser()||{},lastCritical=(state.logs||[]).filter(l=>['critical','error'].includes(l.level)).slice(-1)[0],dbg=window.ValoraFirestoreDebug||state.firestoreDebug||{},fsErr=state.firestoreLastError||dbg.lastError;
   const auth=state.authDebug||dbg.auth||{claims:user.claims||{}};
@@ -495,7 +520,7 @@ function adminEnvironmentStatusCard(){
   const collectionRows=keys.map(k=>{const remote=dbg.collections?.[k]?.count;const loaded=counts[k];const warn=Number(remote||0)>0&&!loaded;return `<tr class="${warn?'warn-row':''}"><td>${esc(k)}</td><td>${loaded}</td><td>${remote??'—'}</td><td>${warn?'A coleção existe no Firestore, mas não foi carregada no frontend. Verifique regras, claims ou mapeamento.':'ok'}</td></tr>`;}).join('');
   const errors=(dbg.errors||[]).slice(-8).reverse().map(e=>`<tr><td>${esc(e.collection||'Firestore')}</td><td>${esc(e.code||'')}</td><td>${esc(e.message||'')}</td><td>${esc(e.createdAt||'')}</td></tr>`).join('')||'<tr><td colspan="4">Nenhum erro Firestore registrado no navegador.</td></tr>';
   const noClaim=APP_CONFIG.STORAGE_MODE==='firebase'&&user.email&&!auth.claims?.role?'<div class="danger-box">Usuário autenticado, mas sem custom claim role. Faça logout/login ou reaplique claims.</div>':'';
-  return `<div class="card environment-status"><div class="section-toolbar"><div><h3>Status do Ambiente / Diagnóstico PRD</h3><p class="muted">Leitura real do frontend publicado para diagnosticar Auth, Claims, Rules, cache e mapeamento.</p></div><span class="badge ${emptyBase.length?'warn':'success'}">${emptyBase.length?'atenção':'operacional'}</span></div><div class="kpi-grid mini">${kpi('Modo atual',cfg.STORAGE_MODE||'local')}${kpi('Firebase habilitado',cfg.FIREBASE_ENABLED?'sim':'não')}${kpi('Plano Firebase',cfg.FIREBASE_PLAN||'—')}${kpi('Cloud Functions',cfg.ENABLE_CLOUD_FUNCTIONS===false?'desabilitadas':'habilitadas',cfg.ENABLE_CLOUD_FUNCTIONS===false?'Spark sem dependência obrigatória':'Recursos serverless ativos',cfg.ENABLE_CLOUD_FUNCTIONS===false?'warn':'success')}${kpi('Project ID',cfg.FIREBASE_CONFIG?.projectId||'sem projectId')}${kpi('URL atual',location.href)}${kpi('Usuário autenticado',user.email?'sim':'não')}${kpi('E-mail',user.email||'—')}${kpi('UID',user.uid||user.id||auth.uid||'—')}${kpi('Role users/{uid}',user.role||'—')}${kpi('Role claim',auth.claims?.role||user.claims?.role||'—')}${kpi('CompanyId users/{uid}',user.companyId||'—')}${kpi('CompanyId claim',auth.claims?.companyId??user.claims?.companyId??'—')}${kpi('Token renovado',auth.tokenRefreshed?'sim':'não',auth.refreshedAt||'')}${kpi('E-mail app',email.mode||'outbox')}${kpi('ValoraBot',botOk?'disponível':'indisponível','público sem login',botOk?'success':'danger')}</div>${noClaim}${emptyBase.length?'<div class="danger-box">Ambiente Firebase com dados-base vazios no frontend. Se o Admin SDK conta dados, verifique Rules, claims ou mapeamento.</div>':''}<p class="muted"><b>Último erro Firebase/Firestore:</b> ${fsErr?esc(`${fsErr.collection||''} ${fsErr.code||''} ${fsErr.message||''}`):'nenhum registrado'}</p><div class="table-wrap"><h4>Coleções carregadas no navegador</h4><table><thead><tr><th>Coleção/estado</th><th>Frontend</th><th>Firestore lido</th><th>Diagnóstico</th></tr></thead><tbody>${collectionRows}</tbody></table></div><div class="table-wrap"><h4>Erros Firestore recentes</h4><table><thead><tr><th>Coleção</th><th>Código</th><th>Mensagem</th><th>Data</th></tr></thead><tbody>${errors}</tbody></table></div><p class="muted"><b>Último erro crítico:</b> ${lastCritical?esc(lastCritical.message||lastCritical.action||'Erro registrado'):'nenhum registrado'}</p></div>`;
+  return `<div class="card environment-status"><div class="section-toolbar"><div><h3>Status do Ambiente / Diagnóstico PRD</h3><p class="muted">Leitura real do frontend publicado para diagnosticar Auth, Claims, Rules, cache e mapeamento.</p></div><span class="badge ${emptyBase.length?'warn':'success'}">${emptyBase.length?'atenção':'operacional'}</span></div><div class="kpi-grid mini">${kpi('Modo atual',cfg.STORAGE_MODE||'local')}${kpi('Firebase habilitado',cfg.FIREBASE_ENABLED?'sim':'não')}${kpi('Plano Firebase',cfg.FIREBASE_PLAN||'—')}${kpi('Cloud Functions',cfg.ENABLE_CLOUD_FUNCTIONS===false?'desabilitadas':'habilitadas',cfg.ENABLE_CLOUD_FUNCTIONS===false?'Spark sem dependência obrigatória':'Recursos serverless ativos',cfg.ENABLE_CLOUD_FUNCTIONS===false?'warn':'success')}${kpi('Project ID',cfg.FIREBASE_CONFIG?.projectId||'sem projectId')}${kpi('URL atual',location.href)}${kpi('Usuário autenticado',user.email?'sim':'não')}${kpi('E-mail',user.email||'—')}${kpi('UID',user.uid||user.id||auth.uid||'—')}${kpi('Role users/{uid}',user.role||'—')}${kpi('Role claim',auth.claims?.role||user.claims?.role||'—')}${kpi('CompanyId users/{uid}',user.companyId||'—')}${kpi('CompanyId claim',auth.claims?.companyId??user.claims?.companyId??'—')}${kpi('Token renovado',auth.tokenRefreshed?'sim':'não',auth.refreshedAt||'')}${kpi('E-mail app',email.mode||'outbox')}${kpi('ValoraBot',botOk?'disponível':'indisponível','público sem login',botOk?'success':'danger')}</div>${noClaim}${emptyBase.length?'<div class="danger-box">Ambiente Firebase com dados-base vazios no frontend. Se o Admin SDK conta dados, verifique Rules, claims ou mapeamento.</div>':''}${featuredFreeSurveyDiagnostics()}<p class="muted"><b>Último erro Firebase/Firestore:</b> ${fsErr?esc(`${fsErr.collection||''} ${fsErr.code||''} ${fsErr.message||''}`):'nenhum registrado'}</p><div class="table-wrap"><h4>Coleções carregadas no navegador</h4><table><thead><tr><th>Coleção/estado</th><th>Frontend</th><th>Firestore lido</th><th>Diagnóstico</th></tr></thead><tbody>${collectionRows}</tbody></table></div><div class="table-wrap"><h4>Erros Firestore recentes</h4><table><thead><tr><th>Coleção</th><th>Código</th><th>Mensagem</th><th>Data</th></tr></thead><tbody>${errors}</tbody></table></div><p class="muted"><b>Último erro crítico:</b> ${lastCritical?esc(lastCritical.message||lastCritical.action||'Erro registrado'):'nenhum registrado'}</p></div>`;
 }
 function adminDashboard(){
   const m=window.ValoraAnalytics.getGlobalDashboardMetrics(state), actionRows=state.actionPlans||[], actionM=actionPlanMetrics(actionRows);

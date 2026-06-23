@@ -1,0 +1,2 @@
+const assert=require('assert');const norm=require('../data-normalization');
+describe('data shape normalization',()=>{it('normalizes faq variants and external arrays',()=>{for(const faq of ['Pergunta? Resposta',{pergunta1:'resposta1'},{items:[{question:'Q',answer:'A'}]},null]){const s=norm.normalizeAppState({settings:{faq},plans:{free:{name:'Grátis'}},knowledgeBase:{a:{title:'Artigo'}}});assert(Array.isArray(s.settings.faq));assert(Array.isArray(s.plans));assert(Array.isArray(s.knowledgeBase));}});});

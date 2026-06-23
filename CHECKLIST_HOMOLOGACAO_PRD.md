@@ -70,3 +70,11 @@ No plano Spark, a ausência de Cloud Functions não deve reprovar o health check
 - Validar certificados com `node scripts/validate-certificates.js`.
 - Validar linguagem natural do bot com `node scripts/validate-chatbot-natural-language.js`.
 - Em produção IIS estática, e-mail automático fica indisponível até ativar um transporte seguro; modelos continuam editáveis.
+
+## Contratos de dados e resiliência de render
+
+- Validar contratos: `node scripts/validate-data-contracts.js`.
+- Validar render com dados legados: `node scripts/validate-render-resilience.js`.
+- Auditar Firestore: `node scripts/audit-data-shapes.js --project gestordepesquisa`.
+- Reparar Firestore com backup: `node scripts/repair-data-shapes.js --project gestordepesquisa --backup --apply`.
+- No Windows Server, usar `tools\windows\19-corrigir-contratos-dados.bat` e `tools\windows\20-reparar-dados-firestore.bat`.

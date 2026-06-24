@@ -1,0 +1,4 @@
+const nodemailer=require('nodemailer');const {buildResultEmailTemplate}=require('./templates/result-email-template');
+function createTransporter(config){if(process.env.SMTP_MOCK==='true')return {sendMail:async()=>({messageId:'mock-message-id'})};return nodemailer.createTransport({host:config.smtp.host,port:config.smtp.port,secure:config.smtp.secure,auth:{user:config.smtp.user,pass:config.smtp.pass},connectionTimeout:15000,greetingTimeout:15000,socketTimeout:20000})}
+async function sendResultEmail(payload,config){const template=buildResultEmailTemplate(payload);const transporter=createTransporter(config);const info=await transporter.sendMail({from:`"${config.smtp.fromName}" <${config.smtp.fromEmail}>`,to:`"${payload.participant.name||'Participante'}" <${payload.participant.email}>`,subject:template.subject,text:template.text,html:template.html});return {ok:true,status:'sent',messageId:info.messageId}}
+module.exports={createTransporter,sendResultEmail};

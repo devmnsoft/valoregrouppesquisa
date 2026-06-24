@@ -13,6 +13,7 @@ window.ValoraConfig=Object.freeze({
   EMAIL_TRANSPORT:'external-api',
   WHATSAPP_TRANSPORT:'manual',
   EXTERNAL_API_BASE_URL:'https://api.valoragroup.mnsoft.com.br',
+  COMMUNICATION_GATEWAY_PUBLIC_TOKEN:'',
   observability:{enabled:true,consoleEnabled:false,consoleLevel:'warn',persistLogs:true,remoteLogsEnabled:false,telegramEnabled:false,legacyTraceEnabled:false,maskSensitiveData:true,maxLocalLogs:3000,environment:'production'},
   FIREBASE_CONFIG:{apiKey:'prd-web-api-key-configured',authDomain:'gestordepesquisa.firebaseapp.com',projectId:'gestordepesquisa',storageBucket:'gestordepesquisa.appspot.com',messagingSenderId:'000000000000',appId:'1:000000000000:web:gestordepesquisa'},
   STORE_KEY:'valoraPulseFinal800'

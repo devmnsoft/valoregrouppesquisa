@@ -11,7 +11,7 @@ window.ValoraConfig=Object.freeze({
   LOCAL_API_ENABLED:false,
   LOCAL_API_BASE_URL:'',
   EMAIL_TRANSPORT:'external-api',
-  WHATSAPP_TRANSPORT:'manual',
+  WHATSAPP_TRANSPORT:'external-api',
   EXTERNAL_API_BASE_URL:'https://api.valoragroup.mnsoft.com.br',
   observability:{enabled:true,consoleEnabled:false,consoleLevel:'warn',persistLogs:true,remoteLogsEnabled:false,telegramEnabled:false,legacyTraceEnabled:false,maskSensitiveData:true,maxLocalLogs:3000,environment:'production'},
   FIREBASE_CONFIG:{projectId:'gestordepesquisa',authDomain:'gestordepesquisa.firebaseapp.com',storageBucket:'gestordepesquisa.appspot.com'},

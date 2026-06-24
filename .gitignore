@@ -60,3 +60,7 @@ release-prd-report-*.md
 publish/
 backups/
 exports/
+
+# Communication gateway runtime logs
+communication-gateway/logs/
+communication-gateway/test-logs/

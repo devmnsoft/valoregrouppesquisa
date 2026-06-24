@@ -1,0 +1,15 @@
+const test=require('node:test');const assert=require('node:assert');
+process.env.GATEWAY_API_TOKEN='test-token-forte';process.env.ALLOWED_ORIGINS='https://valoragroup.mnsoft.com.br,http://localhost:8095';process.env.WHATSAPP_ENABLED='false';process.env.LOG_DIR='./test-logs';
+const {createApp}=require('../server');
+let server,base;test.before(async()=>{server=createApp().listen(0);await new Promise(r=>server.once('listening',r));base=`http://127.0.0.1:${server.address().port}`;});test.after(()=>server.close());
+async function req(path,opts={}){return fetch(base+path,{...opts,headers:{...(opts.headers||{})}});}const auth={'Authorization':'Bearer test-token-forte','Content-Type':'application/json','Origin':'http://localhost:8095'};
+const payload={eventType:'survey_completed',responseId:'resp_123',surveyId:'survey_123',companyId:'company_123',participant:{name:'Maria Silva',email:'maria@email.com',phone:'5591999999999'},company:{name:'Empresa Cliente'},survey:{title:'Diagnóstico Valora Insight™'},result:{score:72,maxScore:125,level:'Em estruturação',strongestDimension:'Resultados',weakestDimension:'Governança'},links:{resultUrl:'https://valoragroup.mnsoft.com.br/?result=demo'},channels:{email:false,whatsapp:true}};
+test('health',async()=>{const r=await req('/health');assert.equal(r.status,200);assert.equal((await r.json()).ok,true);});
+test('status',async()=>{const r=await req('/communication/status',{headers:auth});const b=await r.json();assert.equal(r.status,200);assert.equal(b.whatsapp.enabled,false);});
+test('env/token ausente',async()=>{const r=await req('/communication/status');assert.equal(r.status,401);});
+test('origem inválida',async()=>{const r=await req('/communication/status',{headers:{...auth,Origin:'https://evil.example'}});assert.equal(r.status,403);});
+test('payload inválido',async()=>{const r=await req('/communication/result/send',{method:'POST',headers:auth,body:JSON.stringify({})});assert.equal(r.status,400);});
+test('whatsapp desabilitado',async()=>{const r=await req('/communication/result/send',{method:'POST',headers:auth,body:JSON.stringify(payload)});const b=await r.json();assert.equal(r.status,200);assert.equal(b.results[0].status,'disabled');});
+test('envio de e-mail simulado/erro SMTP retorna JSON',async()=>{const r=await req('/communication/email/send',{method:'POST',headers:auth,body:JSON.stringify({to:'maria@email.com',subject:'Teste',text:'Teste'})});assert.equal(r.status,502);assert.match(r.headers.get('content-type'),/application\/json/);});
+test('WhatsApp payload válido direto',async()=>{const r=await req('/communication/whatsapp/send',{method:'POST',headers:auth,body:JSON.stringify({to:'5591999999999',message:'teste'})});const b=await r.json();assert.equal(b.status,'disabled');});
+test('erro Meta API é tratado pela camada de serviço quando habilitado sem credenciais',async()=>{const {validateWhatsAppConfig}=require('../src/whatsapp-service');const status=validateWhatsAppConfig();assert.equal(status.configured,false);});

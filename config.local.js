@@ -10,7 +10,9 @@ window.ValoraConfig=Object.freeze({
   REQUIRE_AUTH_SERVER_VALIDATION:false,
   LOCAL_API_ENABLED:true,
   LOCAL_API_BASE_URL:'',
-  EMAIL_TRANSPORT:'local-outbox',
+  EMAIL_TRANSPORT:'external-api',
+  WHATSAPP_TRANSPORT:'external-api',
+  EXTERNAL_API_BASE_URL:'https://api.valoragroup.mnsoft.com.br',
   observability:{enabled:true,consoleEnabled:true,consoleLevel:'debug',persistLogs:true,remoteLogsEnabled:false,telegramEnabled:false,legacyTraceEnabled:true,maskSensitiveData:true,maxLocalLogs:3000,environment:'local'},
   FIREBASE_CONFIG:{},
   STORE_KEY:'valoraPulseFinal800'

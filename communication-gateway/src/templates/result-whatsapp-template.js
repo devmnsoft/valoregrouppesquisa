@@ -1,0 +1,2 @@
+function buildResultWhatsApp(payload){const r=payload.result||{};return [`Olá, ${payload.participant?.name||'participante'}.`,'','Seu diagnóstico Valora Insight™ está pronto.',`Pontuação: ${r.score??'—'}/${r.maxScore||125}`,`Nível: ${r.level||'Disponível na devolutiva'}`,'',`Acesse sua devolutiva:`,payload.links?.resultUrl||'','',`Valora Group`].filter(x=>x!==undefined).join('\n');}
+module.exports={buildResultWhatsApp};

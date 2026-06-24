@@ -1,0 +1,4 @@
+const fs=require('fs');const path=require('path');const {config}=require('../config');const {maskEmail}=require('../logger');
+function fileFor(d=new Date()){return path.join(config.logDir,`communications-${d.toISOString().slice(0,7)}.jsonl`)}
+async function appendCommunicationLog(payload={},result={}){await fs.promises.mkdir(config.logDir,{recursive:true});const row={id:`comm_${Date.now()}_${Math.random().toString(36).slice(2,8)}`,createdAt:new Date().toISOString(),eventType:payload.eventType||'survey_completed',responseId:payload.responseId||'',companyId:payload.companyId||'',surveyId:payload.surveyId||'',channel:'email',status:result.status||'failed',recipientMasked:maskEmail(payload.participant?.email||payload.to||''),providerMessageId:result.messageId||'',error:result.error||''};await fs.promises.appendFile(fileFor(),JSON.stringify(row)+'\n');return row}
+module.exports={appendCommunicationLog,fileFor};

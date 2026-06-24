@@ -1,8 +1,16 @@
-# EMAIL_RESULT_TEMPLATE
+# Template de e-mail de resultado
 
-Implementação 2026-06-23 para certificados premium, comunicação pós-pesquisa e aderência comercial dos planos.
+O template premium Valora Insight™ fica em `communication-gateway/src/templates/result-email-template.js`.
 
-- Certificados usam `buildCertificateViewModel` como fonte única, PDF em `ValoraPDF.createCertificate` e PNG por canvas próprio com `toBlob`.
-- Comunicação usa `dispatchSurveyCompletedCommunications`, registra `communications` e não finge envio quando gateway/runtime não está ativo.
-- Gateway esperado: `POST /communication/email/send`, `POST /communication/whatsapp/send`, `GET /communication/status`, com token no backend e sem SMTP no frontend.
-- Planos oficiais: Grátis, Essencial, Profissional, Corporativo e Enterprise com `CAPABILITY_CATALOG` e `officialPlanCatalog`.
+Conteúdo obrigatório:
+- nome do participante;
+- título da pesquisa;
+- pontuação e pontuação máxima;
+- nível de maturidade;
+- dimensão mais forte;
+- dimensão prioritária;
+- botão “Ver meu resultado”;
+- link do certificado quando disponível;
+- rodapé Valora Group em nome da organização.
+
+Todos os dados interpolados no HTML passam por `escapeHtml`.

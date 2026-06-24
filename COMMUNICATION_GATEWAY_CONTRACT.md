@@ -1,8 +1,15 @@
-# COMMUNICATION_GATEWAY_CONTRACT
+# Contrato do Communication Gateway
 
-Implementação 2026-06-23 para certificados premium, comunicação pós-pesquisa e aderência comercial dos planos.
+Base URL de produção: `https://api.valoragroup.mnsoft.com.br`.
 
-- Certificados usam `buildCertificateViewModel` como fonte única, PDF em `ValoraPDF.createCertificate` e PNG por canvas próprio com `toBlob`.
-- Comunicação usa `dispatchSurveyCompletedCommunications`, registra `communications` e não finge envio quando gateway/runtime não está ativo.
-- Gateway esperado: `POST /communication/email/send`, `POST /communication/whatsapp/send`, `GET /communication/status`, com token no backend e sem SMTP no frontend.
-- Planos oficiais: Grátis, Essencial, Profissional, Corporativo e Enterprise com `CAPABILITY_CATALOG` e `officialPlanCatalog`.
+Headers obrigatórios para endpoints protegidos:
+- `Authorization: Bearer [GATEWAY_API_TOKEN]`
+- `Content-Type: application/json`
+
+Endpoints:
+- `GET /health` público.
+- `GET /communication/status` protegido.
+- `POST /communication/result/send` protegido, envia o e-mail transacional de resultado.
+- `POST /communication/email/send` protegido, reservado; retorna JSON controlado.
+
+O payload principal contém participante, empresa, pesquisa, resultado e links. Erros sempre retornam JSON e nunca HTML.

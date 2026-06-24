@@ -786,3 +786,8 @@ Não é recomendado pular o `security-check` em produção. O fallback local sem
 - Auditar Firestore: `node scripts/audit-data-shapes.js --project gestordepesquisa`.
 - Reparar Firestore com backup: `node scripts/repair-data-shapes.js --project gestordepesquisa --backup --apply`.
 - No Windows Server, usar `tools\windows\19-corrigir-contratos-dados.bat` e `tools\windows\20-reparar-dados-firestore.bat`.
+
+## Certificados premium, comunicação pós-pesquisa e planos
+- Diagnóstico: PNG antigo usava `toDataURL`, acoplado ao canvas síncrono; agora usa canvas próprio e `toBlob`.
+- Comunicação: fluxo pós-pesquisa registra tentativas e separa envio real de pendência/manual.
+- Planos: catálogo oficial e motor de capabilities adicionados.

@@ -39,3 +39,8 @@ No Spark, Cloud Functions ficam desabilitadas e recursos de e-mail/integração 
 - Auditar Firestore: `node scripts/audit-data-shapes.js --project gestordepesquisa`.
 - Reparar Firestore com backup: `node scripts/repair-data-shapes.js --project gestordepesquisa --backup --apply`.
 - No Windows Server, usar `tools\windows\19-corrigir-contratos-dados.bat` e `tools\windows\20-reparar-dados-firestore.bat`.
+
+## Certificados, comunicação e planos (2026-06-23)
+1. Validar com `tools\windows\23-validar-certificados-comunicacao-planos.bat`.
+2. Configurar gateway seguro em `EXTERNAL_API_BASE_URL` e token apenas no backend.
+3. Publicar com `tools\windows\24-publicar-certificados-comunicacao-planos.bat`.

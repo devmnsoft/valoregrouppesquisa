@@ -1,3 +1,2 @@
-function isEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||''))}
-function validateResultPayload(b={}){const errors=[];if(!b.responseId)errors.push('responseId');if(!b.participant||typeof b.participant!=='object')errors.push('participant');if(!isEmail(b.participant?.email))errors.push('participant.email');if(!b.links?.resultUrl)errors.push('links.resultUrl');return errors}
-module.exports={isEmail,validateResultPayload};
+function validateResultPayload(b={}){const errors=[];if(!b.responseId||typeof b.responseId!=='string')errors.push('responseId');if(b.resultToken!==undefined&&typeof b.resultToken!=='string')errors.push('resultToken');if(!b.channels||typeof b.channels!=='object')errors.push('channels');if(b.channels&&b.channels.email!==true&&b.channels.whatsapp!==true)errors.push('channels.email|channels.whatsapp');return errors}
+module.exports={validateResultPayload};

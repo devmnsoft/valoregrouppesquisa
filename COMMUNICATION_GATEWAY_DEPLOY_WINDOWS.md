@@ -1,11 +1,10 @@
-# Deploy Windows do Communication Gateway
+# Deploy Windows — Communication Gateway
 
-1. Copie `communication-gateway/.env.example` para `.env` no servidor.
-2. Configure `GATEWAY_API_TOKEN` forte e SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, remetente).
-3. Execute `communication-gateway\tools\windows\01-instalar.bat`.
-4. Inicie com `communication-gateway\tools\windows\02-iniciar.bat` ou registre como serviço Windows/IIS reverse proxy.
-5. Publique com HTTPS em `https://api.valoragroup.mnsoft.com.br`.
-6. Valide `GET /health` com `03-testar-health.bat`.
-7. Valide envio real com `04-testar-email-resultado.bat` após ajustar token/e-mail.
+1. Copie `communication-gateway\.env.production.example` para `.env`.
+2. Configure SMTP real em `.env` e a variável `GOOGLE_APPLICATION_CREDENTIALS` apontando para a chave do Firebase Admin no servidor.
+3. Execute `npm install --omit=dev` dentro de `communication-gateway`.
+4. Valide com `node tests\run-tests.js` e `curl http://localhost:8097/health`.
+5. Instale como serviço com NSSM conforme `communication-gateway\tools\windows\06-instalar-servico-nssm.md`.
+6. Publique por DNS/reverse proxy em `https://api.valoragroup.mnsoft.com.br`.
 
-Se o gateway cair, o frontend registra `failed` ou `pending-provider` e a exibição do resultado continua funcionando.
+O endpoint principal é `POST /communication/result/send` com `{ responseId, resultToken, channels }`. O gateway busca a resposta no Firestore com Firebase Admin, valida `resultToken`, monta o e-mail e registra a comunicação.

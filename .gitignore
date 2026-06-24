@@ -6,6 +6,8 @@ functions/node_modules/
 .env
 .env.*
 !.env.example
+!.env.local.example
+!.env.production.example
 .env.local
 .env.production
 telegram.env

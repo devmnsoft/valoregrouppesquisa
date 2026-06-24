@@ -8,6 +8,7 @@ function getRuntimeCapabilities(){
   const localApi=cfg.LOCAL_API_ENABLED===true&&transport==='local-outbox';
   const functions=cfg.ENABLE_CLOUD_FUNCTIONS===true&&transport==='firebase-functions';
   const externalApi=transport==='external-api'&&Boolean(cfg.EXTERNAL_API_BASE_URL);
+  const whatsappTransport=cfg.WHATSAPP_TRANSPORT||transport;
   return Object.freeze({
     environment:cfg.RUNTIME_ENV||'unknown',
     storageMode:cfg.STORAGE_MODE||'local',
@@ -15,6 +16,7 @@ function getRuntimeCapabilities(){
     localApi:Object.freeze({enabled:localApi,baseUrl:cfg.LOCAL_API_BASE_URL||''}),
     cloudFunctions:Object.freeze({enabled:cfg.ENABLE_CLOUD_FUNCTIONS===true}),
     email:Object.freeze({transport,available:localApi||functions||externalApi,canReadStatus:localApi||functions||externalApi,canConfigureTransport:localApi,canEditTemplates:true,canSend:localApi||functions||externalApi,hasOutbox:localApi}),
+    whatsapp:Object.freeze({transport:whatsappTransport,available:whatsappTransport==='external-api'&&Boolean(cfg.EXTERNAL_API_BASE_URL),canSend:whatsappTransport==='external-api'&&Boolean(cfg.EXTERNAL_API_BASE_URL),manualShare:true}),
     logs:Object.freeze({canPersistRemote:cfg.observability?.remoteLogsEnabled===true&&cfg.ENABLE_CLOUD_FUNCTIONS===true})
   });
 }

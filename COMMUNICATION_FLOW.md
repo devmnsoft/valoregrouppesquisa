@@ -1,4 +1,4 @@
-# PLAN_CAPABILITY_MATRIX
+# COMMUNICATION_FLOW
 
 Implementação 2026-06-23 para certificados premium, comunicação pós-pesquisa e aderência comercial dos planos.
 

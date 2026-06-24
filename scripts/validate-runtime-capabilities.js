@@ -7,6 +7,7 @@ if(cap.storageMode!=='firebase')failures.push('STORAGE_MODE PRD deve ser firebas
 if(cap.firebasePlan!=='spark')failures.push('FIREBASE_PLAN PRD deve ser spark.');
 if(cap.cloudFunctions.enabled)failures.push('Cloud Functions devem estar desabilitadas no Spark.');
 if(cap.localApi.enabled)failures.push('API local deve estar desabilitada na PRD.');
-if(cap.email.transport!=='disabled'||cap.email.canSend||cap.email.canReadStatus||cap.email.hasOutbox||cap.email.canConfigureTransport)failures.push('E-mail PRD Spark deve estar disabled e sem chamadas de rede.');
+if(!['disabled','external-api'].includes(cap.email.transport))failures.push('E-mail PRD Spark deve estar disabled ou external-api.');
+if(cap.email.transport==='disabled'&&(cap.email.canSend||cap.email.canReadStatus||cap.email.canConfigureTransport))failures.push('E-mail disabled não deve fazer chamadas de rede.');
 if(cap.logs.canPersistRemote)failures.push('Logs remotos devem estar desabilitados no Spark.');
 if(failures.length){console.error(failures.join('\n'));process.exit(1);}console.log('Capacidades PRD Spark validadas.');

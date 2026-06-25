@@ -1,11 +1,18 @@
-# Fluxo de e-mail de resultado
+# Fluxo de envio de resultado por e-mail
 
-1. Participante conclui a pesquisa.
-2. O frontend salva a resposta e chama `dispatchPostSurveyCommunication(response.id)`.
-3. O frontend envia ao gateway apenas `responseId`, `resultToken` e canais desejados.
-4. O gateway valida origem, payload e resposta no Firestore.
-5. O gateway recalcula/monta dados reais a partir do Firestore, envia SMTP e registra comunicação.
-6. Falha de SMTP/gateway não quebra a conclusão da pesquisa; o frontend registra `failed` ou `pending-provider`.
-7. Admin > Comunicações permite reenviar resultado, copiar link e ver resposta.
+## Mapa técnico revisado
+- Finalização da pesquisa: `submitSurvey` salva a resposta, calcula resultado e chama `dispatchSurveyCompletedCommunications` em segundo plano.
+- Resultado: `calculateResult`, `calculateValoraInsightResult`, `generateValoraInsightDevolutiva`, `buildCertificateViewModel`, `buildResultLink` e `buildCertificateLink` montam devolutiva, links e certificado no frontend.
+- Disparo: `dispatchPostSurveyCommunication(responseId)` chama o gateway com apenas `{ responseId, resultToken, channels: { email: true } }`.
+- Gateway: `POST /communication/result/send` valida origem/payload, executa `loadResultContext`, busca response/survey/form/company no Firestore, reconstrói o payload real, monta HTML e envia por SMTP.
+- Histórico: `communications` no frontend e coleção `communications`/JSONL no gateway registram status, tentativas, mensagem e falhas.
+- Reenvio: `resendResultEmail(responseId)` aparece em Admin > Respostas e Admin > Comunicações e respeita permissão por empresa.
+- Retry: `communication-gateway/src/queue/email-queue.js` persiste `logs/email-queue.json` e controla idempotência `survey-result:{responseId}:email`.
+- Teste SMTP: Admin > Configurações > Comunicação usa `POST /communication/email/test`.
 
-Para testar envio real, use `local-firebase`, configure SMTP no gateway local e conclua uma pesquisa com e-mail válido.
+## Comportamento ao finalizar
+1. A resposta é persistida.
+2. O resultado é calculado e exibido.
+3. A comunicação é disparada em segundo plano.
+4. Falhas de SMTP não bloqueiam a tela de resultado.
+5. Refresh não duplica envio quando a fila ou o histórico já possuem status `sent`, `pending` ou `processing`.

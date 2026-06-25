@@ -1,10 +1,11 @@
-# Deploy Windows — Communication Gateway
+# Publicação do Communication Gateway no Windows Server
 
-1. Copie `communication-gateway\.env.production.example` para `.env`.
-2. Configure SMTP real em `.env` e a variável `GOOGLE_APPLICATION_CREDENTIALS` apontando para a chave do Firebase Admin no servidor.
-3. Execute `npm install --omit=dev` dentro de `communication-gateway`.
-4. Valide com `node tests\run-tests.js` e `curl http://localhost:8097/health`.
-5. Instale como serviço com NSSM conforme `communication-gateway\tools\windows\06-instalar-servico-nssm.md`.
-6. Publique por DNS/reverse proxy em `https://api.valoragroup.mnsoft.com.br`.
+1. Copie a pasta `communication-gateway` para `C:\DBBACK\valoregrouppesquisa\communication-gateway`.
+2. Copie `.env.production.example` para `.env` e configure SMTP e Firebase Admin.
+3. Execute `npm install --omit=dev`.
+4. Valide com `npm test`.
+5. Instale como serviço com NSSM usando `communication-gateway\tools\windows\06-instalar-servico-nssm.md`.
+6. Publique o reverse proxy/IIS para `https://api.valoragroup.mnsoft.com.br` na porta interna `8097`.
+7. Teste `/health`, `/communication/status` e `/communication/email/test`.
 
-O endpoint principal é `POST /communication/result/send` com `{ responseId, resultToken, channels }`. O gateway busca a resposta no Firestore com Firebase Admin, valida `resultToken`, monta o e-mail e registra a comunicação.
+Para desativar temporariamente, altere o frontend para `EMAIL_TRANSPORT: 'disabled'` e `COMMUNICATION_GATEWAY.enabled: false`; a pesquisa continua finalizando.

@@ -26,7 +26,7 @@
     finally{clearTimeout(timer);}
     const contentType=String(response.headers.get('content-type')||'').toLowerCase();
     const text=await response.text();
-    if(contentType.includes('text/html')||/^\s*</.test(text))throw new Error('A API retornou HTML em vez de JSON.');
+    if(contentType.includes('text/html')||/^\s*</.test(text))throw new Error('A API retornou uma resposta inesperada. Verifique a publicação do backend.');
     if(!contentType.includes('application/json'))throw new Error('A API retornou formato inesperado.');
     let body={};
     try{body=text?JSON.parse(text):{};}catch(_){throw new Error('A API retornou JSON inválido.');}

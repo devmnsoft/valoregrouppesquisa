@@ -76,14 +76,25 @@ function getArchitectureWarnings(){
   if(emailTransport==='external-api'&&!(gateway.enabled===true&&gatewayBase)){
     add('warning','EMAIL_EXTERNAL_API_WITHOUT_GATEWAY','EMAIL_TRANSPORT=external-api requer COMMUNICATION_GATEWAY.enabled=true e baseUrl configurado.');
   }
-  if(isProduction&&runtime.dataProvider.mode==='api'&&cfg.CONFIRM_API_POSTGRES_CUTOVER!==true){
-    add('critical','PRODUCTION_API_PROVIDER_WITHOUT_CUTOVER_CONFIRMATION','Produção com DATA_PROVIDER=api exige confirmação explícita CONFIRM_API_POSTGRES_CUTOVER=true.');
+  if(isProduction&&runtime.dataProvider.mode==='api'&&!isCutoverExplicitlyAllowed()){
+    add('critical','PRODUCTION_API_PROVIDER_WITHOUT_CUTOVER_CONFIRMATION','Produção com DATA_PROVIDER=api exige ALLOW_API_PRODUCTION_CUTOVER=true.');
   }
   if(isProduction&&firebasePlan==='spark'&&publicProviders.includes('firebase-functions')){
     add('critical','SPARK_CLOUD_FUNCTIONS_PUBLIC_JOURNEY','Produção Spark não pode usar Cloud Functions na jornada pública.');
   }
+  if(isProduction&&/localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(runtime.dataProvider.apiBaseUrl||'')){
+    add('critical','PRODUCTION_API_BASE_URL_LOCALHOST','API_BASE_URL não pode apontar para localhost em produção.');
+  }
+  if(emailTransport==='external-api'&&!String(cfg.EXTERNAL_API_BASE_URL||'').trim()){
+    add('warning','EXTERNAL_API_BASE_URL_EMPTY_FOR_EMAIL','EMAIL_TRANSPORT=external-api requer EXTERNAL_API_BASE_URL configurado.');
+  }
+  if(gateway.enabled===true&&gatewayBase&&!String(gatewayBase).startsWith('http')){
+    add('warning','GATEWAY_HEALTH_UNAVAILABLE','Gateway habilitado sem baseUrl HTTP válida para /health.');
+  }
+
   return warnings;
 }
+function isCutoverExplicitlyAllowed(){const cfg=window.ValoraConfig||{};return cfg.ALLOW_API_PRODUCTION_CUTOVER===true;}
 function hasRuntimeCapability(capability){const runtime=getRuntimeCapabilities();const map={emailSending:runtime.email.canSend,emailTransportConfig:runtime.email.canConfigureTransport,emailOutbox:runtime.email.hasOutbox,remoteLogging:runtime.logs.canPersistRemote};return map[capability]!==false;}
-window.ValoraRuntime=Object.freeze({getCapabilities:getRuntimeCapabilities,hasRuntimeCapability,getArchitectureWarnings});
+window.ValoraRuntime=Object.freeze({getCapabilities:getRuntimeCapabilities,hasRuntimeCapability,getArchitectureWarnings,isCutoverExplicitlyAllowed});
 })();

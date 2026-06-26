@@ -1,6 +1,6 @@
 # Relatório de comparação Firebase x PostgreSQL
 
-Gerado em 2026-06-26T16:52:54.262Z.
+Gerado em 2026-06-26T18:02:32.352Z.
 
 Status: dry-run.
 

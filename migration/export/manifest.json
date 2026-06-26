@@ -1,0 +1,72 @@
+{
+  "ok": true,
+  "mode": "dry-run",
+  "collections": {
+    "settings": {
+      "count": 0,
+      "file": "migration/export/settings.json",
+      "dryRun": true
+    },
+    "plans": {
+      "count": 0,
+      "file": "migration/export/plans.json",
+      "dryRun": true
+    },
+    "modules": {
+      "count": 0,
+      "file": "migration/export/modules.json",
+      "dryRun": true
+    },
+    "companies": {
+      "count": 0,
+      "file": "migration/export/companies.json",
+      "dryRun": true
+    },
+    "organizations": {
+      "count": 0,
+      "file": "migration/export/organizations.json",
+      "dryRun": true
+    },
+    "users": {
+      "count": 0,
+      "file": "migration/export/users.json",
+      "dryRun": true
+    },
+    "forms": {
+      "count": 0,
+      "file": "migration/export/forms.json",
+      "dryRun": true
+    },
+    "surveys": {
+      "count": 0,
+      "file": "migration/export/surveys.json",
+      "dryRun": true
+    },
+    "responses": {
+      "count": 0,
+      "file": "migration/export/responses.json",
+      "dryRun": true
+    },
+    "invitations": {
+      "count": 0,
+      "file": "migration/export/invitations.json",
+      "dryRun": true
+    },
+    "communications": {
+      "count": 0,
+      "file": "migration/export/communications.json",
+      "dryRun": true
+    },
+    "actionPlans": {
+      "count": 0,
+      "file": "migration/export/actionPlans.json",
+      "dryRun": true
+    },
+    "certificates": {
+      "count": 0,
+      "file": "migration/export/certificates.json",
+      "dryRun": true
+    }
+  },
+  "createdAt": "2026-06-26T18:02:31.867Z"
+}

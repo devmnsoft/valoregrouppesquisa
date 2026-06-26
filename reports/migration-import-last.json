@@ -1,0 +1,60 @@
+{
+  "ok": true,
+  "mode": "dry-run",
+  "truncate": false,
+  "backup": false,
+  "batchSize": null,
+  "tables": {
+    "organizations": {
+      "rows": 0,
+      "batches": null,
+      "upsert": true
+    },
+    "users": {
+      "rows": 0,
+      "batches": null,
+      "upsert": true
+    },
+    "plans": {
+      "rows": 0,
+      "batches": null,
+      "upsert": true
+    },
+    "forms": {
+      "rows": 0,
+      "batches": null,
+      "upsert": true
+    },
+    "questions": {
+      "rows": 0,
+      "batches": null,
+      "upsert": true
+    },
+    "surveys": {
+      "rows": 0,
+      "batches": null,
+      "upsert": true
+    },
+    "responses": {
+      "rows": 0,
+      "batches": null,
+      "upsert": true
+    },
+    "answers": {
+      "rows": 0,
+      "batches": null,
+      "upsert": true
+    },
+    "results": {
+      "rows": 0,
+      "batches": null,
+      "upsert": true
+    },
+    "communications": {
+      "rows": 0,
+      "batches": null,
+      "upsert": true
+    }
+  },
+  "createdAt": "2026-06-26T18:02:32.201Z"
+}

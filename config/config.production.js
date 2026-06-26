@@ -7,6 +7,7 @@
     APP_PUBLIC_URL: 'https://valoragroup.mnsoft.com.br',
     STORAGE_MODE: 'firebase',
     DATA_PROVIDER: 'firebase',
+    HYBRID_PRIMARY_PROVIDER: 'firebase',
     API_BASE_URL: 'https://api.valoragroup.mnsoft.com.br',
     FIREBASE_ENABLED: true,
     FIREBASE_PLAN: 'spark',

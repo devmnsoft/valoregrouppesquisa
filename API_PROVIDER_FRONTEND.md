@@ -1,4 +1,4 @@
-# Endpoints da API
+# Provider API no Frontend
 
 Sprint 4 mantém Firebase em produção e adiciona MVP operacional PostgreSQL/API para homologação controlada.
 

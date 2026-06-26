@@ -1,11 +1,19 @@
 # MVP Vertical PostgreSQL
 
-Fluxo entregue para homologação controlada: PostgreSQL → API ASP.NET Core → provider API no frontend → pesquisa pública → resposta → resultado → certificado → job de e-mail.
+Sprint 4 mantém Firebase em produção e adiciona MVP operacional PostgreSQL/API para homologação controlada.
 
-## Como subir
+## Comandos principais
 
-1. `npm run postgres:up`
-2. `dotnet run --project backend/Valora.Api/Valora.Api.csproj`
-3. `node scripts/validate-api-backend.js`
+- Subir PostgreSQL: `npm run postgres:up`
+- Build backend: `npm run backend:build`
+- Testes backend: `npm run backend:test`
+- Validar provider API: `npm run api:provider`
+- Validar jornada pública: `npm run journey:provider`
+- Dry-run de migração: `node migration/import-postgres.js --dry-run`
+- Comparação: `npm run migration:compare`
 
-Produção continua com `DATA_PROVIDER: 'firebase'` até homologação.
+## Segurança
+
+- Produção permanece com `DATA_PROVIDER: 'firebase'`.
+- Cloud Functions não são usadas pela jornada pública quando `ENABLE_CLOUD_FUNCTIONS` está falso.
+- Senhas não são migradas em texto puro.

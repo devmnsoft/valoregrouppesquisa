@@ -1,18 +1,17 @@
 (function(global){
-  const cfg=global.ValoraConfig||global.VALORA_CONFIG||{};
-  const provider=cfg.DATA_PROVIDER||'firebase';
-  const api=global.ValoraApiClient;
-  global.ValoraApiRepository={
-    provider,
-    isApiEnabled(){ return provider==='api'||provider==='hybrid'; },
-    publicPlans(){ return this.isApiEnabled()?api.publicPlans():Promise.reject(new Error('DATA_PROVIDER não está em modo api/hybrid.')); },
-    registerCompany(payload){ return api.registerCompany(payload).then(r=>{ if(r?.token) localStorage.setItem('valora_api_token',r.token); return r; }); },
-    login(payload){ return api.login(payload).then(r=>{ if(r?.token) localStorage.setItem('valora_api_token',r.token); return r; }); },
-    validatePublicSurvey(surveyId,payload){ return api.validatePublicSurvey(surveyId,payload); },
-    submitPublicSurvey(surveyId,payload){ return api.submitPublicSurvey(surveyId,payload); },
-    submitPublicSurveyResponse(surveyId,payload){ return api.submitPublicSurvey(surveyId,payload); },
-    loadPublicResult(responseId,resultToken){ return api.loadPublicResult(responseId,resultToken); },
-    downloadCertificatePdf(responseId){ return `${api.baseUrl}/responses/${encodeURIComponent(responseId)}/certificate.pdf`; },
-    downloadCertificatePng(responseId){ return `${api.baseUrl}/responses/${encodeURIComponent(responseId)}/certificate.png`; }
-  };
+  'use strict';
+  const api=()=>global.ValoraApiClient;
+  function tokenFrom(result){return result?.token||result?.accessToken||result?.jwt;}
+  async function login(payload){const r=await api().post('/auth/login',payload);const t=tokenFrom(r);if(t)api().setToken(t);return r;}
+  async function registerCompany(payload){const r=await api().post('/auth/register-company',payload);const t=tokenFrom(r);if(t)api().setToken(t);return r;}
+  async function getMe(){return api().get('/me');}
+  async function getPublicPlans(){return api().get('/plans/public');}
+  function normalizeSurveyArgs(arg1,arg2){return typeof arg1==='object'?arg1:{surveyId:arg1,...(arg2||{})};}
+  async function validatePublicSurvey(arg1,arg2){const {surveyId,token,org}=normalizeSurveyArgs(arg1,arg2);return api().post(`/public/surveys/${encodeURIComponent(surveyId)}/validate`,{token,org:org||''});}
+  async function submitPublicSurveyResponse(arg1,arg2){const payload=typeof arg1==='object'?arg1:{surveyId:arg1,...(arg2||{})};return api().post(`/public/surveys/${encodeURIComponent(payload.surveyId)}/responses`,{token:payload.token,participant:payload.participant||{},answers:payload.answers||{},lgpdConsent:!!payload.lgpdConsent,communicationConsent:!!payload.communicationConsent});}
+  async function loadPublicResult(responseId,resultToken){return api().post(`/public/results/${encodeURIComponent(responseId)}`,{resultToken});}
+  function downloadCertificatePdf(responseId){return `${api().getBaseUrl()}/responses/${encodeURIComponent(responseId)}/certificate.pdf`;}
+  function downloadCertificatePng(responseId){return `${api().getBaseUrl()}/responses/${encodeURIComponent(responseId)}/certificate.png`;}
+  async function getMigrationStatus(){return api().get('/admin/migration/status');}
+  global.ValoraApiRepository=Object.freeze({login,registerCompany,getMe,getPublicPlans,publicPlans:getPublicPlans,validatePublicSurvey,submitPublicSurveyResponse,submitPublicSurvey:submitPublicSurveyResponse,loadPublicResult,downloadCertificatePdf,downloadCertificatePng,getMigrationStatus});
 })(window);

@@ -1058,11 +1058,61 @@ function isFirebaseMode(){return APP_CONFIG.STORAGE_MODE==='firebase';}
 
 function gatewayBaseUrl(){return (window.ValoraConfig?.COMMUNICATION_GATEWAY?.baseUrl||window.ValoraConfig?.EXTERNAL_API_BASE_URL||'').replace(/\/+$/,'');}
 async function callGatewayJson(path,options={},label='Gateway'){if(window.ValoraGatewayClient?.callGatewayJson)return window.ValoraGatewayClient.callGatewayJson(path,options,label);const baseUrl=gatewayBaseUrl();if(!baseUrl)throw new Error('Canal de comunicação indisponível.');return safeFetchJson(`${baseUrl}${path}`,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}},label);}
-async function validatePublicSurveyLink({surveyId,token,org}){const provider=window.ValoraConfig?.DATA_PROVIDER||'firebase';if((provider==='api'||provider==='hybrid')&&window.ValoraApiRepository?.validatePublicSurvey){const apiResult=await window.ValoraApiRepository.validatePublicSurvey(surveyId,{token,org:org||''});if(provider==='api')return apiResult;try{const firebaseResult=validatePublicSurveyLinkLocally({surveyId,token,org});console.info('hybrid public survey validation compared',{apiOk:apiResult?.ok===true,firebaseOk:firebaseResult?.ok===true});}catch(error){console.warn('hybrid public survey validation divergence',error.message);}return apiResult;}const runtime=runtimeCapabilities();if(runtime.publicJourney?.validationProvider==='external-api')return callGatewayJson(`/public/surveys/${encodeURIComponent(surveyId)}/validate`,{method:'POST',body:JSON.stringify({token,org:org||''})},'Validação do link da pesquisa');if(runtime.publicJourney?.validationProvider==='firebase-functions'&&window.ValoraConfig?.ENABLE_CLOUD_FUNCTIONS===true)return callPublicFunction('validateSurveyLink',{surveyId,token,org});return validatePublicSurveyLinkLocally({surveyId,token,org});}
+// DATA_PROVIDER hybrid: roteamento de leitura comparativa e escrita apenas no primário.
+async function hybridCompare(label,firebaseData,apiData){
+  const normalize=value=>JSON.stringify(value,Object.keys(value||{}).sort());
+  const firebaseOk=firebaseData!==undefined&&firebaseData!==null;
+  const apiOk=apiData!==undefined&&apiData!==null;
+  const equal=normalize(firebaseData)===normalize(apiData);
+  const entry={label,firebaseOk,apiOk,equal,createdAt:nowIso(),severity:equal?'info':'warning'};
+  state.migrationDiagnostics=Array.isArray(state.migrationDiagnostics)?state.migrationDiagnostics:[];
+  state.migrationDiagnostics.unshift(entry);
+  state.migrationDiagnostics=state.migrationDiagnostics.slice(0,50);
+  if(!equal)console.warn('hybrid provider divergence',entry);
+  return entry;
+}
+async function validatePublicSurveyLink({surveyId,token,org}){
+  const runtime=runtimeCapabilities();
+  if(runtime.publicJourney?.validationProvider==='api'){
+    return window.ValoraApiRepository.validatePublicSurvey({surveyId,token,org});
+  }
+  if(runtime.publicJourney?.validationProvider==='external-api'){
+    return window.ValoraGatewayClient.callGatewayJson(`/public/surveys/${encodeURIComponent(surveyId)}/validate`,{method:'POST',body:JSON.stringify({token,org:org||''})},'Validação do link da pesquisa');
+  }
+  if(runtime.publicJourney?.validationProvider==='firebase-functions'&&window.ValoraConfig?.ENABLE_CLOUD_FUNCTIONS===true){
+    return callPublicFunction('validateSurveyLink',{surveyId,token,org});
+  }
+  const localResult=validatePublicSurveyLinkLocally({surveyId,token,org});
+  if(runtime.dataProvider?.mode==='hybrid'&&window.ValoraApiRepository?.validatePublicSurvey){
+    window.ValoraApiRepository.validatePublicSurvey({surveyId,token,org}).then(apiResult=>hybridCompare('validatePublicSurveyLink',localResult,apiResult)).catch(error=>hybridCompare('validatePublicSurveyLink',localResult,{error:error.message}));
+  }
+  return localResult;
+}
 function validatePublicSurveyLinkLocally({surveyId,token,org}){const survey=state.surveys.find(s=>String(s.id)===String(surveyId));const form=survey?formById(survey.formId):null;if(!survey||!form)throw new Error('Pesquisa não encontrada.');const surveyToken=survey.token||survey.publicToken||survey.accessToken||'';if(!surveyToken||surveyToken!==token)throw new Error('Link inválido.');if(!surveyIsActive(survey))throw new Error('Pesquisa encerrada ou expirada.');const company=companyById(survey.companyId||survey.organizationId);if(org&&company?.slug&&normalizeSlug(org)!==normalizeSlug(company.slug))throw new Error('Organização pública não confere com o link informado.');return {ok:true,survey,form,company,lgpd:{text:state.settings?.lgpdText||LGPD_TEXT}};}
 async function submitSurveyResponseLocally(payload){const cached=publicSurveyCache.get(payload.surveyId);const survey=cached?.survey||state.surveys.find(s=>String(s.id)===String(payload.surveyId));const form=cached?.form||formById(survey?.formId);if(!survey||!form)throw new Error('Pesquisa não encontrada.');const surveyToken=survey.token||survey.publicToken||survey.accessToken||'';if(!surveyToken||surveyToken!==payload.token)throw new Error('Link inválido.');if(!surveyIsActive(survey))throw new Error('Pesquisa encerrada ou expirada.');const result=calculateResult(form,payload.answers||{});const response={id:uid('resp'),surveyId:survey.id,formId:form.id,companyId:survey.companyId,participant:payload.participant||{},answers:payload.answers||{},lgpdConsent:!!payload.lgpdConsent,communicationConsent:!!payload.communicationConsent,createdAt:nowIso(),completedAt:nowIso(),resultToken:secureToken(),...result,emailStatus:'pending'};state.responses.push(response);markInvitationAnswered(survey,payload.participant?.email);audit('Resposta enviada','resposta',response.id,`${payload.participant?.email||''} — ${survey.title}`);save();try{await dispatchPostSurveyCommunication(response.id);}catch(_){}return {ok:true,responseId:response.id,resultToken:response.resultToken,emailStatus:response.emailStatus||'pending'};}
-async function submitPublicSurveyResponse(payload){const provider=window.ValoraConfig?.DATA_PROVIDER||'firebase';const primary=window.ValoraConfig?.HYBRID_PRIMARY_PROVIDER||'firebase';if(provider==='api'||(provider==='hybrid'&&primary==='api'))return window.ValoraApiRepository.submitPublicSurveyResponse(payload.surveyId,{token:payload.token,participant:payload.participant,answers:payload.answers,lgpdConsent:payload.lgpdConsent,communicationConsent:payload.communicationConsent});const runtime=runtimeCapabilities();if(runtime.publicJourney?.submissionProvider==='external-api')return callGatewayJson(`/public/surveys/${encodeURIComponent(payload.surveyId)}/responses`,{method:'POST',body:JSON.stringify({token:payload.token,participant:payload.participant,answers:payload.answers,lgpdConsent:payload.lgpdConsent,communicationConsent:payload.communicationConsent})},'Envio da pesquisa');if(runtime.publicJourney?.submissionProvider==='firebase-functions'&&window.ValoraConfig?.ENABLE_CLOUD_FUNCTIONS===true)return callPublicFunction('submitSurveyResponse',payload);return submitSurveyResponseLocally(payload);}
-async function loadPublicResult(responseId,resultToken){const provider=window.ValoraConfig?.DATA_PROVIDER||'firebase';if((provider==='api'||provider==='hybrid')&&window.ValoraApiRepository?.loadPublicResult)return window.ValoraApiRepository.loadPublicResult(responseId,resultToken);const runtime=runtimeCapabilities();if(runtime.publicJourney?.resultProvider==='external-api')return callGatewayJson(`/public/results/${encodeURIComponent(responseId)}`,{method:'POST',body:JSON.stringify({resultToken})},'Consulta do resultado');return loadPublicResultLocally(responseId,resultToken);}
+async function submitPublicSurveyResponse(payload){
+  const runtime=runtimeCapabilities();
+  if(runtime.publicJourney?.submissionProvider==='api'){
+    return window.ValoraApiRepository.submitPublicSurveyResponse(payload);
+  }
+  if(runtime.publicJourney?.submissionProvider==='external-api'){
+    return window.ValoraGatewayClient.callGatewayJson(`/public/surveys/${encodeURIComponent(payload.surveyId)}/responses`,{method:'POST',body:JSON.stringify({token:payload.token,participant:payload.participant,answers:payload.answers,lgpdConsent:payload.lgpdConsent,communicationConsent:payload.communicationConsent})},'Envio da pesquisa');
+  }
+  if(runtime.publicJourney?.submissionProvider==='firebase-functions'&&window.ValoraConfig?.ENABLE_CLOUD_FUNCTIONS===true){
+    return callPublicFunction('submitSurveyResponse',payload);
+  }
+  if(runtime.dataProvider?.mode==='hybrid'&&runtime.dataProvider?.hybridPrimaryProvider==='api'){
+    return window.ValoraApiRepository.submitPublicSurveyResponse(payload);
+  }
+  return submitSurveyResponseLocally(payload);
+}
+async function loadPublicResult(responseId,resultToken){
+  const runtime=runtimeCapabilities();
+  if(runtime.publicJourney?.resultProvider==='api')return window.ValoraApiRepository.loadPublicResult(responseId,resultToken);
+  if(runtime.publicJourney?.resultProvider==='external-api')return window.ValoraGatewayClient.callGatewayJson(`/public/results/${encodeURIComponent(responseId)}`,{method:'POST',body:JSON.stringify({resultToken})},'Consulta do resultado');
+  if(runtime.publicJourney?.resultProvider==='firebase-functions'&&window.ValoraConfig?.ENABLE_CLOUD_FUNCTIONS===true)return callPublicFunction('loadPublicResult',{responseId,resultToken});
+  return loadPublicResultLocally(responseId,resultToken);
+}
 function loadPublicResultLocally(responseId,resultToken){const response=state.responses.find(x=>String(x.id)===String(responseId));if(!response)throw new Error('Resultado não encontrado.');if(response.resultToken&&response.resultToken!==resultToken)throw new Error('Token de resultado inválido.');const survey=state.surveys.find(x=>x.id===response.surveyId)||{};const company=companyById(response.companyId)||{};return {ok:true,response,survey,company,result:response,certificate:{responseId:response.id,resultToken}};}
 
 async function renderTakeSurvey(sid,token,orgSlug=''){

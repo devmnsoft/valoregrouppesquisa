@@ -8,3 +8,8 @@ if(env==='local-firebase'){if(cfg.STORAGE_MODE!=='firebase')errors.push('local-f
 return {ok:errors.length===0,errors,forbidden};}
 if(typeof module!=='undefined')module.exports={validateConfig,forbidden,firebaseRequired};else root.ValoraConfigSchema={validateConfig,forbidden,firebaseRequired};
 })(typeof window!=='undefined'?window:globalThis);
+
+// Fase 1 PostgreSQL: manter Firebase por padrão; use 'api' ou 'hybrid' para testes controlados.
+window.VALORA_CONFIG = window.VALORA_CONFIG || {};
+window.VALORA_CONFIG.DATA_PROVIDER = window.VALORA_CONFIG.DATA_PROVIDER || 'firebase';
+window.VALORA_CONFIG.API_BASE_URL = window.VALORA_CONFIG.API_BASE_URL || 'https://api.valoragroup.mnsoft.com.br';

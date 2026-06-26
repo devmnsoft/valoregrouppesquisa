@@ -1,0 +1,15 @@
+services:
+  valora-postgres:
+    image: postgres:16
+    container_name: valora-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: valoradb
+      POSTGRES_USER: valora
+      POSTGRES_PASSWORD: valora_dev_123
+    ports:
+      - "5434:5432"
+    volumes:
+      - valora_postgres_data:/var/lib/postgresql/data
+volumes:
+  valora_postgres_data:

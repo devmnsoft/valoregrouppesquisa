@@ -8,3 +8,8 @@
     FIREBASE_CONFIG: {}, STORE_KEY: 'valoraPulseFinal800'
   });
 })();
+
+// Fase 1 PostgreSQL: manter Firebase por padrão; use 'api' ou 'hybrid' para testes controlados.
+window.VALORA_CONFIG = window.VALORA_CONFIG || {};
+window.VALORA_CONFIG.DATA_PROVIDER = window.VALORA_CONFIG.DATA_PROVIDER || 'firebase';
+window.VALORA_CONFIG.API_BASE_URL = window.VALORA_CONFIG.API_BASE_URL || 'https://api.valoragroup.mnsoft.com.br';

@@ -1,2 +1,39 @@
-using System.Security.Claims; using Microsoft.AspNetCore.Authorization; using Microsoft.AspNetCore.Mvc; using Valora.Application.Contracts; using Valora.Application.DTOs; using Valora.Application.Services;
-namespace Valora.Api.Controllers; [Authorize][ApiController] public sealed class OrganizationsController(IOrganizationRepository orgs,PlanEntitlementService ent):ControllerBase{ Guid Org()=>Guid.Parse(User.FindFirstValue("organization_id")!); [HttpGet("/organizations/current")] public async Task<IActionResult> Current()=>Ok(await orgs.GetAsync(Org())); [HttpPatch("/organizations/current")] public async Task<IActionResult> Patch(UpdateOrganizationRequest r){ await orgs.UpdateCurrentAsync(Org(),r); return Ok(await orgs.GetAsync(Org())); } [HttpGet("/organizations/current/usage")] public async Task<IActionResult> Usage()=>Ok(await ent.GetUsageAsync(Org())); }
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Valora.Application.Contracts;
+using Valora.Application.DTOs;
+using Valora.Application.Services;
+
+namespace Valora.Api.Controllers;
+
+[Authorize]
+[ApiController]
+public sealed class OrganizationsController(
+    IOrganizationRepository organizations,
+    PlanEntitlementService entitlements) : ControllerBase
+{
+    [HttpGet("/organizations/current")]
+    public async Task<IActionResult> Current()
+    {
+        return Ok(await organizations.GetAsync(CurrentOrganizationId()));
+    }
+
+    [HttpPatch("/organizations/current")]
+    public async Task<IActionResult> Patch(UpdateOrganizationRequest request)
+    {
+        await organizations.UpdateCurrentAsync(CurrentOrganizationId(), request);
+        return Ok(await organizations.GetAsync(CurrentOrganizationId()));
+    }
+
+    [HttpGet("/organizations/current/usage")]
+    public async Task<IActionResult> Usage()
+    {
+        return Ok(await entitlements.GetUsageAsync(CurrentOrganizationId()));
+    }
+
+    private Guid CurrentOrganizationId()
+    {
+        return Guid.Parse(User.FindFirstValue("organization_id")!);
+    }
+}

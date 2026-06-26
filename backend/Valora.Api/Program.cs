@@ -1,8 +1,29 @@
-using System.Text; using Microsoft.AspNetCore.Authentication.JwtBearer; using Microsoft.IdentityModel.Tokens; using Serilog; using Valora.Application.Certificates; using Valora.Application.Communication; using Valora.Application.Contracts; using Valora.Application.Results; using Valora.Application.Services; using Valora.Infrastructure.Database; using Valora.Infrastructure.Repositories; using Valora.Infrastructure.Security;
-var builder=WebApplication.CreateBuilder(args); builder.Host.UseSerilog((ctx,lc)=>lc.ReadFrom.Configuration(ctx.Configuration).WriteTo.Console());
-builder.Services.AddControllers(); builder.Services.AddEndpointsApiExplorer(); builder.Services.AddSwaggerGen();
-builder.Services.AddSingleton<ValoraInsightCalculator>(); builder.Services.AddSingleton<ValoraInsightDevolutivaService>(); builder.Services.AddSingleton<CertificateService>(); builder.Services.AddSingleton<EmailService>(); builder.Services.AddSingleton<EmailJobService>(); builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
-builder.Services.AddScoped<IDbConnectionFactory,PostgresConnectionFactory>(); builder.Services.AddScoped<MigrationRunner>(); builder.Services.AddScoped<IOrganizationRepository,OrganizationRepository>(); builder.Services.AddScoped<IUserRepository,UserRepository>(); builder.Services.AddScoped<IPlanRepository,PlanRepository>(); builder.Services.AddScoped<ISurveyRepository,SurveyRepository>(); builder.Services.AddScoped<IResponseRepository,SurveyRepository>(); builder.Services.AddScoped<IFormRepository,FormRepository>(); builder.Services.AddScoped<IResultRepository,ResultRepository>(); builder.Services.AddScoped<ICertificateRepository,CertificateRepository>(); builder.Services.AddScoped<ICommunicationRepository,CommunicationRepository>(); builder.Services.AddScoped<IMigrationRepository,MigrationRepository>(); builder.Services.AddScoped<IAuditRepository,AuditRepository>(); builder.Services.AddScoped<IJwtTokenService,JwtTokenService>(); builder.Services.AddScoped<IPasswordHasher,BCryptPasswordHasher>(); builder.Services.AddScoped<AuthService>(); builder.Services.AddScoped<AuditService>(); builder.Services.AddScoped<PlanEntitlementService>();
-var jwt=builder.Configuration.GetSection("Jwt"); builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer(o=>{o.TokenValidationParameters=new(){ValidateIssuer=true,ValidateAudience=true,ValidateIssuerSigningKey=true,ValidateLifetime=true,ValidIssuer=jwt["Issuer"],ValidAudience=jwt["Audience"],IssuerSigningKey=new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Secret"]!))};}); builder.Services.AddAuthorization();
-var app=builder.Build(); app.UseExceptionHandler(errorApp => errorApp.Run(async context => { context.Response.ContentType = "application/json"; context.Response.StatusCode = StatusCodes.Status500InternalServerError; await context.Response.WriteAsJsonAsync(new { ok = false, message = "Erro interno da API.", code = "INTERNAL_ERROR" }); })); app.UseSwagger(); app.UseSwaggerUI(); app.UseSerilogRequestLogging(); app.UseAuthentication(); app.UseAuthorization(); app.MapControllers(); app.Run();
+using Serilog;
+using Valora.Api.Configuration;
+using Valora.Api.Middleware;
+using Valora.Application.DependencyInjection;
+using Valora.Infrastructure.DependencyInjection;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((context, logger) => logger
+    .ReadFrom.Configuration(context.Configuration)
+    .WriteTo.Console());
+
+builder.Services.AddApiServices(builder.Configuration);
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
+
+var app = builder.Build();
+
+app.UseMiddleware<ErrorHandlingMiddleware>();
+app.UseSwagger();
+app.UseSwaggerUI();
+app.UseSerilogRequestLogging();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+
+app.Run();
+
 public partial class Program { }

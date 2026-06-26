@@ -30,14 +30,15 @@
     "prod:health": "node scripts/healthcheck-prd.js --url https://valoragroup.mnsoft.com.br --project gestordepesquisa",
     "validate:data-contracts": "node scripts/validate-data-contracts.js",
     "validate:render-resilience": "node scripts/validate-render-resilience.js",
-    "audit:data-shapes": "node scripts/audit-data-shapes.js"
+    "audit:data-shapes": "node scripts/audit-data-shapes.js",
+    "test:home-featured": "npx mocha tests/home-featured-survey.spec.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",
+    "@playwright/test": "^1.45.0",
     "firebase": "^10.14.1",
-    "firebase-tools": "^13.29.2",
-    "mocha": "^10.8.2",
     "firebase-admin": "^12.7.0",
-    "@playwright/test": "^1.45.0"
+    "firebase-tools": "^13.29.2",
+    "mocha": "^10.8.2"
   }
 }

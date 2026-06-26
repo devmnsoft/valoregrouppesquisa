@@ -12,6 +12,23 @@ public sealed class AdminController(IWebHostEnvironment env, MigrationRunner run
         return Ok(new { ok = true, applied = await runner.RunAsync(root) });
     }
 
+
+
+    [HttpGet("/admin/architecture/status")]
+    public IActionResult ArchitectureStatus() => Ok(new
+    {
+        ok = true,
+        dataProvider = "api",
+        hybridPrimaryProvider = "firebase",
+        allowApiProductionCutover = false,
+        apiBaseUrl = "http://localhost:5000",
+        postgres = "configured",
+        firebase = "preserved",
+        gateway = "preserved",
+        cloudFunctions = "preserved",
+        warnings = new[] { "API/PostgreSQL somente para ambiente local/controlado até cutover aprovado." }
+    });
+
     [HttpGet("/admin/migration/status")]
     public IActionResult MigrationStatus() => Ok(new
     {

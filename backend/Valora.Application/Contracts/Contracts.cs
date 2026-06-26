@@ -8,3 +8,10 @@ public interface IResponseRepository { Task<dynamic?> GetResultAsync(Guid respon
 public interface IAuditRepository { Task AddAsync(AuditEntry entry); }
 public interface IJwtTokenService { string CreateToken(Guid userId, Guid? organizationId, string email, string role); }
 public interface IPasswordHasher { string Hash(string password); bool Verify(string password,string hash); }
+
+public interface IDbConnectionFactory { System.Data.IDbConnection Create(); }
+public interface IFormRepository { Task<dynamic?> GetAsync(Guid id); }
+public interface IResultRepository { Task<dynamic?> GetByResponseAsync(Guid responseId); }
+public interface ICertificateRepository { Task<dynamic?> GetByResponseAsync(Guid responseId); Task CreateMetadataAsync(Guid responseId,string validationCode,string status); }
+public interface ICommunicationRepository { Task AddEmailJobAsync(Guid responseId,string toEmail,string status); Task<IReadOnlyList<dynamic>> ListAsync(Guid? organizationId=null); }
+public interface IMigrationRepository { Task<dynamic?> GetStatusAsync(); Task SaveCompareReportAsync(string reportJson); }

@@ -25,3 +25,16 @@ No Windows, use `tools/windows/31-reparar-pesquisa-destaque-home.bat`.
 
 ## Testar no navegador
 Abra a Home e confirme a seção **Diagnóstico gratuito**, o botão **Responder diagnóstico grátis** e o `href` com `?survey=` e `token=`. Ao clicar, a rota pública deve chamar `renderTakeSurvey`.
+
+---
+
+## Atualização — Sprint Jornada Principal
+
+- Pesquisa pública usa provider configurável e não depende de Cloud Functions no Firebase Spark.
+- Produção usa gateway externo quando `PUBLIC_SUBMISSION_PROVIDER='external-api'`.
+- Fallback Firestore client só é permitido quando explicitamente configurado.
+- Home prioriza pesquisa destaque válida antes dos planos.
+- Certificados PDF/PNG usam ViewModel único e bloqueiam dados inválidos.
+- Menu mobile usa `toggleMenu(force)` e fecha em navegação/logout.
+- Cadastro Firebase cria Auth, organização e `users/{uid}` sem salvar senha em texto puro.
+- Comunicação pós-pesquisa registra status e não bloqueia resultado.

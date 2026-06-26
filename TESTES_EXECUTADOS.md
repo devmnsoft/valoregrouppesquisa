@@ -791,3 +791,16 @@ Não é recomendado pular o `security-check` em produção. O fallback local sem
 - Diagnóstico: PNG antigo usava `toDataURL`, acoplado ao canvas síncrono; agora usa canvas próprio e `toBlob`.
 - Comunicação: fluxo pós-pesquisa registra tentativas e separa envio real de pendência/manual.
 - Planos: catálogo oficial e motor de capabilities adicionados.
+
+---
+
+## Atualização — Sprint Jornada Principal
+
+- Pesquisa pública usa provider configurável e não depende de Cloud Functions no Firebase Spark.
+- Produção usa gateway externo quando `PUBLIC_SUBMISSION_PROVIDER='external-api'`.
+- Fallback Firestore client só é permitido quando explicitamente configurado.
+- Home prioriza pesquisa destaque válida antes dos planos.
+- Certificados PDF/PNG usam ViewModel único e bloqueiam dados inválidos.
+- Menu mobile usa `toggleMenu(force)` e fecha em navegação/logout.
+- Cadastro Firebase cria Auth, organização e `users/{uid}` sem salvar senha em texto puro.
+- Comunicação pós-pesquisa registra status e não bloqueia resultado.

@@ -652,3 +652,29 @@ html,body{max-width:100%;overflow-x:hidden}
 .featured-survey-action span{color:rgba(255,255,255,.76)}
 .featured-survey-action .btn{width:100%;justify-content:center}
 @media (max-width:760px){.featured-survey-card{grid-template-columns:1fr;border-radius:24px}.featured-survey-copy ul{display:grid;grid-template-columns:1fr 1fr}}
+
+@media (max-width: 860px) {
+  .mobile-menu { display: inline-flex !important; }
+  .nav-actions {
+    position: fixed !important;
+    inset: 72px 16px auto 16px !important;
+    display: grid !important;
+    gap: 10px !important;
+    padding: 16px !important;
+    border-radius: 22px !important;
+    background: rgba(255, 255, 255, .98) !important;
+    border: 1px solid rgba(15, 82, 101, .14) !important;
+    box-shadow: 0 24px 70px rgba(8, 47, 61, .22) !important;
+    transform: translateY(-12px);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 999;
+  }
+  .nav-actions.open, body.menu-open .nav-actions {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .nav-actions .btn, .nav-actions a { width: 100%; justify-content: center; }
+  body.menu-open { overflow: hidden; }
+}

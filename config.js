@@ -14,6 +14,7 @@
     REQUIRE_AUTH_SERVER_VALIDATION: false,
     LOCAL_API_ENABLED: false,
     LOCAL_API_BASE_URL: '',
+    PUBLIC_SUBMISSION_PROVIDER: 'external-api',
     EMAIL_TRANSPORT: 'external-api',
     WHATSAPP_TRANSPORT: 'manual',
     EXTERNAL_API_BASE_URL: 'https://api.valoragroup.mnsoft.com.br',

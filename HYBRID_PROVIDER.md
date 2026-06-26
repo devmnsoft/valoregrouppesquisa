@@ -1,13 +1,11 @@
-# Provider Híbrido
+# HYBRID_PROVIDER
 
-`DATA_PROVIDER=hybrid` habilita rota controlada. `HYBRID_PRIMARY_PROVIDER` define `firebase` ou `api`. Escritas seguem somente o primário; comparações usam `hybridCompare(label, primaryData, secondaryData)` e registram divergências em `state.migrationDiagnostics`.
+Atualizado na Sprint 19 para manter produção em Firebase por padrão e permitir API/PostgreSQL apenas em ambiente local/controlado.
 
-## Complemento Sprint 8
-
-## Estado Sprint 8
-- Produção permanece segura com `DATA_PROVIDER: 'firebase'` e `ALLOW_API_PRODUCTION_CUTOVER: false`.
-- API/PostgreSQL ficam disponíveis para homologação local/controlada com `DATA_PROVIDER: 'api'` ou `DATA_PROVIDER: 'hybrid'`.
-- Firebase, `firebase-repository.js` e `repository.js` são preservados.
-- Frontend não armazena SMTP, segredos de e-mail ou token WhatsApp; comunicação deve passar por Gateway/API.
-
-- Validadores: `api:provider`, `journey:provider`, `architecture:warnings`, `cutover:ready`, `api:e2e`, `postgres:mvp`, `hybrid:check`, `migration:validate`, `migration:compare`.
+## Pontos principais
+- Produção permanece com `DATA_PROVIDER='firebase'` e `ALLOW_API_PRODUCTION_CUTOVER=false`.
+- Jornada pública real usa `POST /public/surveys/{surveyId}/validate`, `POST /public/surveys/{surveyId}/responses` e `POST /public/results/{responseId}`.
+- Submissão pública grava dados transacionais em `valorapesquisa.responses`, `response_answers`, `result_scores`, `dimension_scores`, `certificates`, `email_jobs`, `communications` e `audit_logs`.
+- `resultToken` é retornado uma única vez no submit; o banco armazena somente `result_token_hash`.
+- Frontend continua Bootstrap + JavaScript puro, sem secrets e sem remover Firebase.
+- Docker usa `docker compose`; Windows fora do Docker usa `dotnet build backend\Valora.sln` e os validadores em `tools/windows/59-validar-jornada-publica-real-api-postgres.bat`.

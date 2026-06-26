@@ -1,22 +1,11 @@
-# Rollback para Firebase
+# ROLLBACK_PLAN_FIREBASE
 
-## Voltar provider
-Publicar configuração com `DATA_PROVIDER=firebase` e `ALLOW_API_PRODUCTION_CUTOVER=false`.
+Atualizado na Sprint 19 para manter produção em Firebase por padrão e permitir API/PostgreSQL apenas em ambiente local/controlado.
 
-## Preservar respostas feitas na API
-Exportar respostas API criadas durante a janela, registrar lote de compensação e reprocessar para Firebase ou manter fila auditável.
-
-## Reprocessar divergências
-Usar relatório de comparação, `migration.import_errors` e diagnósticos hybrid para corrigir respostas, resultados e comunicações.
-
-## Revalidar produção
-Executar `npm run check`, `npm run cutover:ready` e healthcheck PRD.
-
-## Publicar rollback no IIS
-Gerar pacote, publicar `config.js` Firebase, reciclar app pool se necessário e validar URL pública.
-
-## Estado Sprint 8
-- Produção permanece segura com `DATA_PROVIDER: 'firebase'` e `ALLOW_API_PRODUCTION_CUTOVER: false`.
-- API/PostgreSQL ficam disponíveis para homologação local/controlada com `DATA_PROVIDER: 'api'` ou `DATA_PROVIDER: 'hybrid'`.
-- Firebase, `firebase-repository.js` e `repository.js` são preservados.
-- Frontend não armazena SMTP, segredos de e-mail ou token WhatsApp; comunicação deve passar por Gateway/API.
+## Pontos principais
+- Produção permanece com `DATA_PROVIDER='firebase'` e `ALLOW_API_PRODUCTION_CUTOVER=false`.
+- Jornada pública real usa `POST /public/surveys/{surveyId}/validate`, `POST /public/surveys/{surveyId}/responses` e `POST /public/results/{responseId}`.
+- Submissão pública grava dados transacionais em `valorapesquisa.responses`, `response_answers`, `result_scores`, `dimension_scores`, `certificates`, `email_jobs`, `communications` e `audit_logs`.
+- `resultToken` é retornado uma única vez no submit; o banco armazena somente `result_token_hash`.
+- Frontend continua Bootstrap + JavaScript puro, sem secrets e sem remover Firebase.
+- Docker usa `docker compose`; Windows fora do Docker usa `dotnet build backend\Valora.sln` e os validadores em `tools/windows/59-validar-jornada-publica-real-api-postgres.bat`.

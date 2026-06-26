@@ -1,40 +1,11 @@
-# Demo Valora Insight™ — Teste API/PostgreSQL
+# DEMO_VALORA_INSIGHT_API_TEST
 
-- `surveyId`: `demo-valora-insight` (alias UUID seed: `11111111-1111-1111-1111-111111111111`)
-- token público: `demo-public-token`
-- organização: `Valora Group Demo`
-- formulário: `Diagnóstico Valora Insight™`
-- dimensões: Cultura e Propósito; Gestão e Governança; Liderança; Pessoas e Talentos; Resultados e Crescimento.
-- régua: 25 perguntas, 125 pontos.
+Atualizado na Sprint 19 para manter produção em Firebase por padrão e permitir API/PostgreSQL apenas em ambiente local/controlado.
 
-## Payload validate
-
-```bash
-curl -X POST http://localhost:5080/public/surveys/demo-valora-insight/validate \
-  -H "Content-Type: application/json" \
-  -d '{"token":"demo-public-token","org":"valora-demo"}'
-```
-
-## Payload submit — resultado esperado 72/125
-
-```bash
-curl -X POST http://localhost:5080/public/surveys/demo-valora-insight/responses \
-  -H "Content-Type: application/json" \
-  -d '{"token":"demo-public-token","participant":{"name":"Participante Demo","email":"demo@example.test"},"answers":{"q1":3,"q2":3,"q3":3,"q4":3,"q5":3,"q6":3,"q7":3,"q8":3,"q9":3,"q10":3,"q11":3,"q12":3,"q13":3,"q14":3,"q15":3,"q16":3,"q17":3,"q18":3,"q19":3,"q20":3,"q21":3,"q22":3,"q23":2,"q24":2,"q25":2},"lgpdConsent":true,"communicationConsent":true}'
-```
-
-## Payload result
-
-```bash
-curl -X POST http://localhost:5080/public/results/<responseId> \
-  -H "Content-Type: application/json" \
-  -d '{"resultToken":"<resultToken>"}'
-```
-
-## Resultado esperado
-
-- `totalScore`: `72`
-- `maxScore`: `125`
-- `maturityLabel`: `Em estruturação`
-- certificado: metadata `metadata-ready`
-- e-mail: `pending`, sem bloquear a visualização do resultado.
+## Pontos principais
+- Produção permanece com `DATA_PROVIDER='firebase'` e `ALLOW_API_PRODUCTION_CUTOVER=false`.
+- Jornada pública real usa `POST /public/surveys/{surveyId}/validate`, `POST /public/surveys/{surveyId}/responses` e `POST /public/results/{responseId}`.
+- Submissão pública grava dados transacionais em `valorapesquisa.responses`, `response_answers`, `result_scores`, `dimension_scores`, `certificates`, `email_jobs`, `communications` e `audit_logs`.
+- `resultToken` é retornado uma única vez no submit; o banco armazena somente `result_token_hash`.
+- Frontend continua Bootstrap + JavaScript puro, sem secrets e sem remover Firebase.
+- Docker usa `docker compose`; Windows fora do Docker usa `dotnet build backend\Valora.sln` e os validadores em `tools/windows/59-validar-jornada-publica-real-api-postgres.bat`.

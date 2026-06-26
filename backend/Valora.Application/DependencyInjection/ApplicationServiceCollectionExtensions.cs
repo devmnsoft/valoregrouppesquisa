@@ -19,6 +19,9 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<AuthService>();
         services.AddScoped<AuditService>();
         services.AddScoped<PlanEntitlementService>();
+        services.AddScoped<IPublicSurveyService, PublicSurveyService>();
+        services.AddScoped<IPublicResultService, PublicResultService>();
+        services.AddSingleton<IResultTokenService, ResultTokenService>();
         return services;
     }
 }

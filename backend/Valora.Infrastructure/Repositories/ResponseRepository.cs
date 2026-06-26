@@ -1,27 +1,5 @@
+using System.Data;
 using Dapper;
 using Valora.Application.Contracts;
-using Valora.Infrastructure.Database;
-
 namespace Valora.Infrastructure.Repositories;
-
-public sealed class ResponseRepository(IDbConnectionFactory factory) : IResponseRepository
-{
-    public async Task<dynamic?> GetResultAsync(Guid responseId)
-    {
-        using var connection = factory.Create();
-        return await connection.QuerySingleOrDefaultAsync(
-            """
-            SELECT r.id,
-                   r.participant_name,
-                   rs.total_score AS TotalScore,
-                   rs.percentage,
-                   rs.maturity_label AS Level,
-                   c.certificate_code AS ValidationCode
-              FROM valorapesquisa.responses r
-              LEFT JOIN valorapesquisa.result_scores rs ON rs.response_id = r.id
-              LEFT JOIN valorapesquisa.certificates c ON c.response_id = r.id
-             WHERE r.id = @responseId
-            """,
-            new { responseId });
-    }
-}
+public sealed class ResponseRepository(IDbConnectionFactory f):IResponseRepository{ public async Task<dynamic?> GetResultAsync(Guid responseId){using var c=f.Create(); return await c.QuerySingleOrDefaultAsync("SELECT r.id, r.survey_id, r.form_id, r.participant_name, r.participant_email, r.status, r.completed_at, rs.total_score, rs.max_score, rs.percentage, rs.maturity_label FROM valorapesquisa.responses r LEFT JOIN valorapesquisa.result_scores rs ON rs.response_id=r.id WHERE r.id=@responseId AND r.is_deleted=false",new{responseId});} public async Task<Guid> CreateResponseAsync(Guid organizationId,Guid surveyId,Guid formId,string? name,string? email,string? phone,string tokenHash,IDbTransaction tx){return await tx.Connection!.ExecuteScalarAsync<Guid>("INSERT INTO valorapesquisa.responses(organization_id,survey_id,form_id,participant_name,participant_email,participant_phone,result_token_hash,completed_at,status) VALUES (@organizationId,@surveyId,@formId,@name,@email,@phone,@tokenHash,now(),'completed') RETURNING id",new{organizationId,surveyId,formId,name,email,phone,tokenHash},tx);} public async Task AddAnswersAsync(Guid responseId,IEnumerable<dynamic> answers,IDbTransaction tx){foreach(var a in answers) await tx.Connection!.ExecuteAsync("INSERT INTO valorapesquisa.response_answers(response_id,question_id,answer_json,answer_text,score,max_score) VALUES (@responseId,@QuestionId,jsonb_build_object('value',@AnswerText),@AnswerText,@Score,@MaxScore)",new{responseId,a.QuestionId,a.AnswerText,a.Score,a.MaxScore},tx);} public async Task<dynamic?> GetByIdAsync(Guid responseId){using var c=f.Create(); return await c.QuerySingleOrDefaultAsync("SELECT * FROM valorapesquisa.responses WHERE id=@responseId AND is_deleted=false",new{responseId});}}

@@ -1,18 +1,11 @@
-# MVP Vertical PostgreSQL
+# POSTGRES_VERTICAL_MVP
 
-Entregue como arquitetura paralela: Docker PostgreSQL 16 na porta 5434, API ASP.NET Core em `backend/Valora.sln`, seed dos planos oficiais e demo Valora Insight™. Produção permanece em Firebase via `DATA_PROVIDER: 'firebase'`.
+Atualizado na Sprint 19 para manter produção em Firebase por padrão e permitir API/PostgreSQL apenas em ambiente local/controlado.
 
-## Execução
-1. `npm run postgres:up`
-2. `dotnet run --project backend/Valora.Api`
-3. `npm run api:provider && npm run journey:provider`
-
-## Complemento Sprint 8
-
-## Estado Sprint 8
-- Produção permanece segura com `DATA_PROVIDER: 'firebase'` e `ALLOW_API_PRODUCTION_CUTOVER: false`.
-- API/PostgreSQL ficam disponíveis para homologação local/controlada com `DATA_PROVIDER: 'api'` ou `DATA_PROVIDER: 'hybrid'`.
-- Firebase, `firebase-repository.js` e `repository.js` são preservados.
-- Frontend não armazena SMTP, segredos de e-mail ou token WhatsApp; comunicação deve passar por Gateway/API.
-
-- Validadores: `api:provider`, `journey:provider`, `architecture:warnings`, `cutover:ready`, `api:e2e`, `postgres:mvp`, `hybrid:check`, `migration:validate`, `migration:compare`.
+## Pontos principais
+- Produção permanece com `DATA_PROVIDER='firebase'` e `ALLOW_API_PRODUCTION_CUTOVER=false`.
+- Jornada pública real usa `POST /public/surveys/{surveyId}/validate`, `POST /public/surveys/{surveyId}/responses` e `POST /public/results/{responseId}`.
+- Submissão pública grava dados transacionais em `valorapesquisa.responses`, `response_answers`, `result_scores`, `dimension_scores`, `certificates`, `email_jobs`, `communications` e `audit_logs`.
+- `resultToken` é retornado uma única vez no submit; o banco armazena somente `result_token_hash`.
+- Frontend continua Bootstrap + JavaScript puro, sem secrets e sem remover Firebase.
+- Docker usa `docker compose`; Windows fora do Docker usa `dotnet build backend\Valora.sln` e os validadores em `tools/windows/59-validar-jornada-publica-real-api-postgres.bat`.

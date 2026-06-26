@@ -1,27 +1,11 @@
-# Cutover Firebase → API/PostgreSQL
+# CUTOVER_FIREBASE_TO_POSTGRESQL
 
-## Pré-requisitos
-- Backup Firebase validado.
-- Backup PostgreSQL validado.
-- Dry-run obrigatório sem erros críticos.
-- Apply local obrigatório em ambiente controlado.
-- Comparação Firebase x PostgreSQL obrigatória.
-- `ALLOW_API_PRODUCTION_CUTOVER=true` somente na janela aprovada.
+Atualizado na Sprint 19 para manter produção em Firebase por padrão e permitir API/PostgreSQL apenas em ambiente local/controlado.
 
-## Execução
-1. Congelar janela de manutenção.
-2. Exportar Firestore.
-3. Transformar e importar PostgreSQL.
-4. Comparar entidades críticas.
-5. Alterar `DATA_PROVIDER` de `firebase` para `api` apenas com aprovação.
-6. Validar health, login, planos, pesquisa pública, resposta, resultado, certificado e comunicação.
-7. Monitorar logs, divergências, e-mail e performance.
-
-## Critério de rollback
-Rollback imediato se health/database falhar, resposta pública falhar, divergência crítica aumentar, e-mail bloquear jornada ou certificados retornarem dados inválidos.
-
-## Estado Sprint 8
-- Produção permanece segura com `DATA_PROVIDER: 'firebase'` e `ALLOW_API_PRODUCTION_CUTOVER: false`.
-- API/PostgreSQL ficam disponíveis para homologação local/controlada com `DATA_PROVIDER: 'api'` ou `DATA_PROVIDER: 'hybrid'`.
-- Firebase, `firebase-repository.js` e `repository.js` são preservados.
-- Frontend não armazena SMTP, segredos de e-mail ou token WhatsApp; comunicação deve passar por Gateway/API.
+## Pontos principais
+- Produção permanece com `DATA_PROVIDER='firebase'` e `ALLOW_API_PRODUCTION_CUTOVER=false`.
+- Jornada pública real usa `POST /public/surveys/{surveyId}/validate`, `POST /public/surveys/{surveyId}/responses` e `POST /public/results/{responseId}`.
+- Submissão pública grava dados transacionais em `valorapesquisa.responses`, `response_answers`, `result_scores`, `dimension_scores`, `certificates`, `email_jobs`, `communications` e `audit_logs`.
+- `resultToken` é retornado uma única vez no submit; o banco armazena somente `result_token_hash`.
+- Frontend continua Bootstrap + JavaScript puro, sem secrets e sem remover Firebase.
+- Docker usa `docker compose`; Windows fora do Docker usa `dotnet build backend\Valora.sln` e os validadores em `tools/windows/59-validar-jornada-publica-real-api-postgres.bat`.

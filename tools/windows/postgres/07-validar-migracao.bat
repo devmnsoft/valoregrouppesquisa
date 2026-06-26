@@ -2,4 +2,4 @@
 setlocal
 cd /d %~dp0\..\..\..
 echo Valora Pulse - PostgreSQL transition helper
-docker compose -f docker-compose.postgres.yml up -d
+node migration\validate-migration.js

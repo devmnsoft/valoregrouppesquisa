@@ -1,4 +1,5 @@
 @echo off
-cd /d C:\DBBACK\valoregrouppesquisa\backend\Valora.Api
-dotnet run --urls http://localhost:5080
-pause
+setlocal
+cd /d %~dp0\..\..\..
+echo Valora Pulse - PostgreSQL transition helper
+dotnet run --project backend\Valora.Api\Valora.Api.csproj

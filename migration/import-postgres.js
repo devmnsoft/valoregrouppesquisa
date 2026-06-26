@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-console.log('TODO Fase 2: implementar etapa segura de migração Firebase -> PostgreSQL com validação e dry-run.');
+console.log('Stub seguro da sprint de transição: implemente credenciais e execute em ambiente controlado.');

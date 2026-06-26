@@ -9,3 +9,7 @@ public record LimitCheckResult(bool Allowed,string LimitKey,int LimitValue,int C
 public record AuditEntry(Guid? OrganizationId,Guid? UserId,string Action,string? EntityType,string? EntityId,string? Message,string MetadataJson="{}");
 public record UpdateOrganizationRequest(string? PublicName,string? Phone,string? Document);
 public record SubmitResponseRequest(string? ParticipantName,string? ParticipantEmail,Dictionary<string,object>? Answers);
+
+public record PublicSurveyValidateRequest(string Token,string? Org);
+public record PublicSurveySubmitRequest(string Token,Dictionary<string,object> Participant,Dictionary<string,object> Answers,bool LgpdConsent,bool CommunicationConsent);
+public record PublicResultRequest(string ResultToken);

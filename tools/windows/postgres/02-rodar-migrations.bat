@@ -1,4 +1,5 @@
 @echo off
-cd /d C:\DBBACK\valoregrouppesquisa
-node scripts\run-postgres-migrations.js
-pause
+setlocal
+cd /d %~dp0\..\..\..
+echo Valora Pulse - PostgreSQL transition helper
+curl -X POST http://localhost:5080/admin/database/migrate

@@ -1,0 +1,1 @@
+namespace Valora.Tests; public class PlanTests { [Fact] public void Official_seed_contains_five_plans(){ var sql=System.IO.File.ReadAllText("../../../../database/postgresql/008_seed_official_plans.sql"); foreach(var id in new[]{"free","essential","professional","corporate","enterprise"}) Assert.Contains($"'{id}'",sql); } }

@@ -1,3 +1,5 @@
-# Migração Firebase → PostgreSQL
-Mapeamento inicial: `companies/organizations → valora.organizations`, `users → valora.users`, `plans → billing.plans`, `forms → valora.forms/questions/options`, `surveys → valora.surveys`, `responses → valora.responses/response_answers/result_scores`.
-Nunca migrar senha em texto puro; usuários devem passar por reset ou hash seguro compatível.
+# Migração Firestore → PostgreSQL (schema único)
+
+Mapeamento atual: `companies/organizations → valorapesquisa.organizations`, `users → valorapesquisa.users`, `plans → valorapesquisa.plans`, `forms → valorapesquisa.forms/questions/options`, `surveys → valorapesquisa.surveys`, `responses → valorapesquisa.responses/response_answers/result_scores`.
+
+Use `node migration/export-firestore.js --dry-run`, `node migration/transform-firestore-to-postgres.js` e `node migration/import-postgres.js --dry-run` antes de qualquer `--apply` controlado.

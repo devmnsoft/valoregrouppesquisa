@@ -39,3 +39,22 @@ Validações Docker, PostgreSQL e backend completo devem ser executadas no ambie
 - `dotnet build backend/Valora.sln`: não executado no container porque `dotnet` não está instalado (`command not found`).
 - `dotnet test backend/Valora.sln`: não executado pelo mesmo motivo.
 - `node scripts/healthcheck-prd.js --url https://valoragroup.mnsoft.com.br --project gestordepesquisa`: FAIL por indisponibilidade DNS/gateway externo e SMTP PRD não configurado no ambiente de validação; build local foi validado pelo próprio script.
+
+## Sprint 13 — validações executadas neste ajuste
+
+- `npm run check`: passou no container.
+- `node scripts/validate-backend-implementation.js`: passou.
+- `node scripts/validate-migration-scripts.js`: passou.
+- `node scripts/validate-real-migration-dry-run.js`: passou e gerou artefatos de dry-run.
+- `node scripts/validate-api-provider.js`: passou.
+- `node scripts/validate-hybrid-provider.js`: passou.
+- `node scripts/validate-public-journey-provider.js`: passou.
+- `node scripts/validate-cutover-readiness.js`: passou.
+- `npm run build:prod`: passou e gerou build em `dist/`.
+- `node scripts/validate-architecture-warnings.js`: passou.
+- `node scripts/validate-api-backend.js`: passou.
+- `node scripts/validate-postgres-schema.js`: passou.
+- `node scripts/validate-end-to-end-api-flow.js`: não executou HTTP completo porque `API_BASE_URL` não está definido no container.
+- `node migration/validate-migration.js --dry-run`: passou.
+- `dotnet build backend/Valora.sln`: não executado no container porque `dotnet` não está instalado (`command not found`).
+- `dotnet test backend/Valora.sln`: não executado pelo mesmo motivo.

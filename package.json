@@ -50,7 +50,8 @@
     "postgres:schema": "node scripts/validate-single-postgres-schema.js",
     "backend:implementation": "node scripts/validate-backend-implementation.js",
     "backend:clean": "node scripts/validate-backend-clean-architecture.js",
-    "runtime:docker-windows": "node scripts/validate-docker-windows-runtime.js"
+    "runtime:docker-windows": "node scripts/validate-docker-windows-runtime.js",
+    "frontend:bootstrap": "node scripts/validate-bootstrap-frontend.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

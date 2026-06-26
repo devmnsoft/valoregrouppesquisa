@@ -1,2 +1,2 @@
 #!/usr/bin/env node
-console.log('Compat: use transform-to-postgres.js na Fase 2.');
+console.log('Stub seguro da sprint de transição: implemente credenciais e execute em ambiente controlado.');

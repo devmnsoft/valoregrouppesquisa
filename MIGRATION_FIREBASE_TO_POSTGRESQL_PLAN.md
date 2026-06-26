@@ -1,2 +1,9 @@
-# Plano de Migração Firebase → PostgreSQL
-Fase 1 mantém Firebase ativo e cria API/PostgreSQL em paralelo. Fase 2 exporta Firestore, transforma documentos para SQL/JSON, importa com dry-run e valida contagens. Mapeamentos: companies/organizations → valora.organizations; users → valora.users; plans → billing.plans; forms → valora.forms/questions/options; surveys → valora.surveys; responses → valora.responses/response_answers/result_scores. Não migrar senhas em texto puro.
+# Plano de migração Firebase → PostgreSQL
+
+1. Exportar Firestore com `migration/export-firestore.js`.
+2. Normalizar e transformar documentos com `migration/transform-firestore-to-postgres.js`.
+3. Importar em transação por domínio com `migration/import-postgres.js`.
+4. Validar contagens, hashes de respostas e amostras com `migration/validate-migration.js`.
+5. Comparar resultados Firebase/PostgreSQL com `migration/compare-firebase-postgres.js`.
+
+Senhas nunca serão migradas em texto puro; usuários deverão manter hash seguro existente ou passar por reset controlado.

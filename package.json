@@ -31,7 +31,12 @@
     "validate:data-contracts": "node scripts/validate-data-contracts.js",
     "validate:render-resilience": "node scripts/validate-render-resilience.js",
     "audit:data-shapes": "node scripts/audit-data-shapes.js",
-    "test:home-featured": "npx mocha tests/home-featured-survey.spec.js"
+    "test:home-featured": "npx mocha tests/home-featured-survey.spec.js",
+    "backend:build": "dotnet build backend/Valora.sln",
+    "backend:test": "dotnet test backend/Valora.sln",
+    "postgres:up": "docker compose -f docker-compose.postgres.yml up -d",
+    "migration:validate": "node migration/validate-migration.js",
+    "architecture:check": "node scripts/validate-architecture-transition.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

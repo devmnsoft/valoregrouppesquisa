@@ -6,7 +6,7 @@ using Valora.Application.Results;
 namespace Valora.Api.Controllers;
 
 [ApiController]
-public sealed class PublicController(ISurveyRepository surveys, AuditService audit):ControllerBase
+public sealed class PublicController(ISurveyRepository surveys, IResponseRepository responses, AuditService audit):ControllerBase
 {
     private static readonly Guid DemoSurveyGuid = Guid.Parse("11111111-1111-1111-1111-111111111111");
     private static readonly string[] DemoDimensions = ["Cultura e Propósito", "Gestão e Governança", "Liderança", "Pessoas e Talentos", "Resultados e Crescimento"];
@@ -15,7 +15,7 @@ public sealed class PublicController(ISurveyRepository surveys, AuditService aud
         || string.Equals(surveyId, DemoSurveyGuid.ToString(), StringComparison.OrdinalIgnoreCase)
         || string.Equals(token, "demo-public-token", StringComparison.OrdinalIgnoreCase);
 
-    [HttpPost("/public/surveys/{surveyId}/validate")]
+    [HttpPost("/legacy/public/surveys/{surveyId}/validate")]
     public async Task<IActionResult> Validate(string surveyId, PublicSurveyValidateRequest request)
     {
         if (IsDemo(surveyId, request.Token)) return Ok(new { ok=true, data=BuildDemoSurvey(request.Org), survey=BuildDemoSurvey(request.Org).survey, form=BuildDemoSurvey(request.Org).form, company=BuildDemoSurvey(request.Org).company, lgpd=new { text="Termo LGPD demonstrativo para homologação local Valora Insight™." } });
@@ -23,7 +23,7 @@ public sealed class PublicController(ISurveyRepository surveys, AuditService aud
         return survey is null ? NotFound(new { ok=false, message="Pesquisa pública não encontrada, expirada ou token inválido.", code="PUBLIC_SURVEY_NOT_FOUND" }) : Ok(new { ok=true, survey, company=new { slug=request.Org }, form=new { id="pending-backfill", questions=Array.Empty<object>() } });
     }
 
-    [HttpPost("/public/surveys/{surveyId}/responses")]
+    [HttpPost("/legacy/public/surveys/{surveyId}/responses")]
     public async Task<IActionResult> Submit(string surveyId, PublicSurveySubmitRequest request)
     {
         if (!request.LgpdConsent) return BadRequest(new { ok=false, message="Consentimento LGPD obrigatório.", code="LGPD_REQUIRED" });
@@ -43,7 +43,7 @@ public sealed class PublicController(ISurveyRepository surveys, AuditService aud
         return Ok(new { ok=true, responseId=id, resultToken=$"result_{id:N}", emailStatus=request.CommunicationConsent ? "pending" : "cancelled", certificate=new { responseId=id, status="metadata-ready" } });
     }
 
-    [HttpPost("/public/results/{responseId}")]
+    [HttpPost("/legacy/public/results/{responseId}")]
     public async Task<IActionResult> Result(string responseId, PublicResultRequest request)
     {
         if (responseId.StartsWith("demo", StringComparison.OrdinalIgnoreCase) || (request.ResultToken ?? string.Empty).StartsWith("result_", StringComparison.OrdinalIgnoreCase))
@@ -53,7 +53,7 @@ public sealed class PublicController(ISurveyRepository surveys, AuditService aud
             return Ok(new { ok=true, response=BuildDemoResponse(id, result), result, survey=BuildDemoSurvey(null).survey, company=BuildDemoSurvey(null).company, certificate=new { responseId=id, status="metadata-ready", validationCode=$"VAL-{id:N}"[..14] }, communication=new { resultEmail=new { status="pending" } } });
         }
         if (!Guid.TryParse(responseId, out var parsedResponseId)) return BadRequest(new { ok=false, message="Identificador do resultado inválido.", code="INVALID_RESPONSE_ID" });
-        var resultDb = await surveys.GetResultAsync(parsedResponseId);
+        var resultDb = await responses.GetResultAsync(parsedResponseId);
         return resultDb is null ? NotFound(new { ok=false, message="Resultado não encontrado.", code="RESULT_NOT_FOUND" }) : Ok(new { ok=true, result=resultDb, survey=new {}, company=new {}, certificate=new { responseId=parsedResponseId, status="metadata-ready" } });
     }
 

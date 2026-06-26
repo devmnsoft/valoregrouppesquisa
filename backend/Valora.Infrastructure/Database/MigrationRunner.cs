@@ -7,31 +7,40 @@ public sealed class MigrationRunner(IDbConnectionFactory factory, ILogger<Migrat
 {
     public async Task<IReadOnlyList<string>> RunAsync(string root)
     {
-        var dir = Path.Combine(root, "database", "postgresql");
-        var files = Directory.GetFiles(dir, "*.sql").OrderBy(x => x).ToList();
-        using var c = factory.Create();
-        c.Open();
-        await c.ExecuteAsync("CREATE SCHEMA IF NOT EXISTS valora; CREATE TABLE IF NOT EXISTS valorapesquisa.schema_migrations(script_name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now());");
-        var done = (await c.QueryAsync<string>("SELECT script_name FROM valorapesquisa.schema_migrations")).ToHashSet();
+        var directory = Path.Combine(root, "database", "postgresql");
+        var files = Directory.GetFiles(directory, "*.sql").OrderBy(Path.GetFileName).ToList();
+        using var connection = factory.Create();
+        connection.Open();
+        await connection.ExecuteAsync("""
+            CREATE SCHEMA IF NOT EXISTS valorapesquisa;
+            CREATE TABLE IF NOT EXISTS valorapesquisa.schema_migrations (
+              script_name text PRIMARY KEY,
+              applied_at timestamptz NOT NULL DEFAULT now()
+            );
+            """);
+        var completed = (await connection.QueryAsync<string>(
+            "SELECT script_name FROM valorapesquisa.schema_migrations")).ToHashSet();
         var applied = new List<string>();
-        foreach (var f in files)
+        foreach (var file in files)
         {
-            var name = Path.GetFileName(f);
-            if (done.Contains(name)) continue;
-            using var tx = c.BeginTransaction();
+            var scriptName = Path.GetFileName(file);
+            if (completed.Contains(scriptName)) continue;
+            using var transaction = connection.BeginTransaction();
             try
             {
-                await c.ExecuteAsync(await File.ReadAllTextAsync(f), transaction: tx);
-                await c.ExecuteAsync("INSERT INTO valorapesquisa.schema_migrations(script_name) VALUES (@name)", new { name }, tx);
-                tx.Commit();
-                applied.Add(name);
-                logger.LogInformation("Migration {Migration} aplicada", name);
+                await connection.ExecuteAsync(await File.ReadAllTextAsync(file), transaction: transaction);
+                await connection.ExecuteAsync(
+                    "INSERT INTO valorapesquisa.schema_migrations(script_name) VALUES (@scriptName)",
+                    new { scriptName },
+                    transaction);
+                transaction.Commit();
+                applied.Add(scriptName);
+                logger.LogInformation("Migration {Migration} aplicada", scriptName);
             }
             catch (Exception ex)
             {
-                tx.Rollback();
-                logger.LogError(ex, "Erro na migration {Migration}", name);
-                throw;
+                transaction.Rollback();
+                throw new InvalidOperationException($"Erro ao aplicar migration {scriptName}: {ex.Message}", ex);
             }
         }
         return applied;

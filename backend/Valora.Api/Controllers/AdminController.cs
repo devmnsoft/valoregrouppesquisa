@@ -4,7 +4,7 @@ namespace Valora.Api.Controllers;
 [ApiController]
 public sealed class AdminController(IWebHostEnvironment env, MigrationRunner runner) : ControllerBase
 {
-    [HttpPost("/admin/database/migrate")]
+    [HttpPost("/legacy/admin/database/migrate")]
     public async Task<IActionResult> Migrate()
     {
         if (!env.IsDevelopment() && !env.EnvironmentName.Equals("Local", StringComparison.OrdinalIgnoreCase)) return NotFound();
@@ -14,7 +14,7 @@ public sealed class AdminController(IWebHostEnvironment env, MigrationRunner run
 
 
 
-    [HttpGet("/admin/architecture/status")]
+    [HttpGet("/legacy/admin/architecture/status")]
     public IActionResult ArchitectureStatus() => Ok(new
     {
         ok = true,
@@ -29,7 +29,7 @@ public sealed class AdminController(IWebHostEnvironment env, MigrationRunner run
         warnings = new[] { "API/PostgreSQL somente para ambiente local/controlado até cutover aprovado." }
     });
 
-    [HttpGet("/admin/migration/status")]
+    [HttpGet("/legacy/admin/migration/status")]
     public IActionResult MigrationStatus() => Ok(new
     {
         ok = true,

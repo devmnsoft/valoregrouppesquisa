@@ -38,7 +38,8 @@
     "migration:validate": "node migration/validate-migration.js",
     "architecture:check": "node scripts/validate-architecture-transition.js",
     "journey:provider": "node scripts/validate-public-journey-provider.js",
-    "migration:compare": "node migration/compare-firebase-postgres.js"
+    "migration:compare": "node migration/compare-firebase-postgres.js",
+    "backend:health": "node scripts/validate-api-backend.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

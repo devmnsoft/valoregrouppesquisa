@@ -1,1 +1,62 @@
-{"ok":true,"status":"not-run-in-this-environment","criticalDivergences":0,"collections":["organizations","users","plans","forms","surveys","responses","results","communications"]}
+{
+  "ok": true,
+  "status": "dry-run",
+  "criticalDivergences": 0,
+  "domains": [
+    {
+      "name": "empresas",
+      "firebaseCount": 0,
+      "postgresCount": 0,
+      "divergences": 0
+    },
+    {
+      "name": "usuários",
+      "firebaseCount": 0,
+      "postgresCount": 0,
+      "divergences": 0
+    },
+    {
+      "name": "planos",
+      "firebaseCount": 0,
+      "postgresCount": 0,
+      "divergences": 0
+    },
+    {
+      "name": "formulários",
+      "firebaseCount": 0,
+      "postgresCount": 0,
+      "divergences": 0
+    },
+    {
+      "name": "pesquisas",
+      "firebaseCount": 0,
+      "postgresCount": 0,
+      "divergences": 0
+    },
+    {
+      "name": "respostas",
+      "firebaseCount": 0,
+      "postgresCount": 0,
+      "divergences": 0
+    },
+    {
+      "name": "resultados",
+      "firebaseCount": 0,
+      "postgresCount": 0,
+      "divergences": 0
+    },
+    {
+      "name": "scores",
+      "firebaseCount": 0,
+      "postgresCount": 0,
+      "divergences": 0
+    },
+    {
+      "name": "comunicações",
+      "firebaseCount": 0,
+      "postgresCount": 0,
+      "divergences": 0
+    }
+  ],
+  "createdAt": "2026-06-26T16:52:54.262Z"
+}

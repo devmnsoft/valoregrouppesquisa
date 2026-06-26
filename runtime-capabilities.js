@@ -77,7 +77,7 @@ function getArchitectureWarnings(){
     add('warning','EMAIL_EXTERNAL_API_WITHOUT_GATEWAY','EMAIL_TRANSPORT=external-api requer COMMUNICATION_GATEWAY.enabled=true e baseUrl configurado.');
   }
   if(isProduction&&runtime.dataProvider.mode==='api'&&!isCutoverExplicitlyAllowed()){
-    add('critical','PRODUCTION_API_PROVIDER_WITHOUT_CUTOVER_CONFIRMATION','Produção com DATA_PROVIDER=api exige ALLOW_API_PRODUCTION_CUTOVER=true.');
+    add('critical','API_CUTOVER_NOT_ALLOWED','DATA_PROVIDER=api em produção exige ALLOW_API_PRODUCTION_CUTOVER=true.');
   }
   if(isProduction&&firebasePlan==='spark'&&publicProviders.includes('firebase-functions')){
     add('critical','SPARK_CLOUD_FUNCTIONS_PUBLIC_JOURNEY','Produção Spark não pode usar Cloud Functions na jornada pública.');
@@ -87,6 +87,9 @@ function getArchitectureWarnings(){
   }
   if(emailTransport==='external-api'&&!String(cfg.EXTERNAL_API_BASE_URL||'').trim()){
     add('warning','EXTERNAL_API_BASE_URL_EMPTY_FOR_EMAIL','EMAIL_TRANSPORT=external-api requer EXTERNAL_API_BASE_URL configurado.');
+  }
+  if(gateway.enabled===true&&!gatewayBase){
+    add('warning','GATEWAY_HEALTH_UNAVAILABLE','Gateway habilitado sem health disponível.');
   }
   if(gateway.enabled===true&&gatewayBase&&!String(gatewayBase).startsWith('http')){
     add('warning','GATEWAY_HEALTH_UNAVAILABLE','Gateway habilitado sem baseUrl HTTP válida para /health.');

@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+const fs=require('fs');const req=['backend/Valora.sln','backend/Valora.Api/Program.cs','database/postgresql/010_seed_official_plans.sql','database/postgresql/011_seed_demo_valora_insight.sql','api-client.js','api-repository.js','scripts/validate-api-backend.js','scripts/validate-postgres-schema.js'];const miss=req.filter(f=>!fs.existsSync(f));if(miss.length){console.error('MVP vertical incompleto: '+miss.join(', '));process.exit(1)}console.log('validate-vertical-postgres-mvp: PASS');

@@ -53,12 +53,35 @@ function getArchitectureWarnings(){
   const cfg=window.ValoraConfig||{};
   const runtime=getRuntimeCapabilities();
   const warnings=[];
+  const add=(level,code,message)=>warnings.push({level,code,message});
   const publicProviders=[runtime.publicJourney.validationProvider,runtime.publicJourney.submissionProvider,runtime.publicJourney.resultProvider];
-  if(cfg.RUNTIME_ENV==='production'&&String(cfg.FIREBASE_PLAN||'').toLowerCase()==='spark'&&publicProviders.includes('firebase-functions'))warnings.push({code:'spark-cloud-functions-public-journey',severity:'critical',message:'Produção Spark não pode usar Cloud Functions na jornada pública.'});
-  if(runtime.dataProvider.mode==='api'&&!runtime.dataProvider.apiBaseUrl)warnings.push({code:'api-base-url-missing',severity:'critical',message:'API_BASE_URL ausente para DATA_PROVIDER=api.'});
-  if(cfg.COMMUNICATION_GATEWAY?.enabled===true&&!runtime.communicationGateway.baseUrl)warnings.push({code:'gateway-base-url-missing',severity:'critical',message:'Gateway externo habilitado sem baseUrl.'});
-  if(runtime.dataProvider.mode==='hybrid'&&!['firebase','api'].includes(cfg.HYBRID_PRIMARY_PROVIDER))warnings.push({code:'hybrid-primary-invalid',severity:'critical',message:'DATA_PROVIDER=hybrid sem HYBRID_PRIMARY_PROVIDER válido.'});
-  if(cfg.ENABLE_CLOUD_FUNCTIONS===false&&publicProviders.includes('firebase-functions'))warnings.push({code:'cloud-functions-disabled-provider-enabled',severity:'critical',message:'ENABLE_CLOUD_FUNCTIONS=false mas há provider público firebase-functions configurado.'});
+  const gateway=cfg.COMMUNICATION_GATEWAY||{};
+  const gatewayBase=runtime.communicationGateway.baseUrl;
+  const emailTransport=normalizeTransport(cfg.EMAIL_TRANSPORT||'disabled');
+  const isProduction=runtime.environment==='production';
+  const firebasePlan=String(runtime.firebasePlan||'').toLowerCase();
+
+  if(cfg.ENABLE_CLOUD_FUNCTIONS===false&&publicProviders.includes('firebase-functions')){
+    add('critical','CLOUD_FUNCTIONS_DISABLED_PUBLIC_PROVIDER','ENABLE_CLOUD_FUNCTIONS=false, mas a jornada pública está configurada para usar firebase-functions.');
+  }
+  if(runtime.dataProvider.mode==='api'&&!runtime.dataProvider.apiBaseUrl){
+    add('critical','API_PROVIDER_WITHOUT_BASE_URL','DATA_PROVIDER=api requer API_BASE_URL configurado.');
+  }
+  if(runtime.dataProvider.mode==='hybrid'&&!['firebase','api'].includes(cfg.HYBRID_PRIMARY_PROVIDER)){
+    add('critical','HYBRID_PRIMARY_PROVIDER_INVALID','DATA_PROVIDER=hybrid requer HYBRID_PRIMARY_PROVIDER=firebase ou api.');
+  }
+  if(runtime.publicJourney.submissionProvider==='external-api'&&!(gateway.enabled===true&&gatewayBase)){
+    add('critical','PUBLIC_SUBMISSION_EXTERNAL_API_WITHOUT_GATEWAY','PUBLIC_SUBMISSION_PROVIDER=external-api requer COMMUNICATION_GATEWAY.enabled=true e baseUrl configurado.');
+  }
+  if(emailTransport==='external-api'&&!(gateway.enabled===true&&gatewayBase)){
+    add('warning','EMAIL_EXTERNAL_API_WITHOUT_GATEWAY','EMAIL_TRANSPORT=external-api requer COMMUNICATION_GATEWAY.enabled=true e baseUrl configurado.');
+  }
+  if(isProduction&&runtime.dataProvider.mode==='api'&&cfg.CONFIRM_API_POSTGRES_CUTOVER!==true){
+    add('critical','PRODUCTION_API_PROVIDER_WITHOUT_CUTOVER_CONFIRMATION','Produção com DATA_PROVIDER=api exige confirmação explícita CONFIRM_API_POSTGRES_CUTOVER=true.');
+  }
+  if(isProduction&&firebasePlan==='spark'&&publicProviders.includes('firebase-functions')){
+    add('critical','SPARK_CLOUD_FUNCTIONS_PUBLIC_JOURNEY','Produção Spark não pode usar Cloud Functions na jornada pública.');
+  }
   return warnings;
 }
 function hasRuntimeCapability(capability){const runtime=getRuntimeCapabilities();const map={emailSending:runtime.email.canSend,emailTransportConfig:runtime.email.canConfigureTransport,emailOutbox:runtime.email.hasOutbox,remoteLogging:runtime.logs.canPersistRemote};return map[capability]!==false;}

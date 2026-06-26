@@ -14,9 +14,9 @@ async function loadPublicSurveyContext(surveyId){
   const [form,company]=await Promise.all([survey.formId?getDoc('forms',survey.formId):null,survey.companyId?getDoc('organizations',survey.companyId):null]);
   return {survey,form:form||{},company:company||{}};
 }
-function calculateBasicResult(form={},answers={}){let rawScore=0,maxScore=0;for(const q of (form.questions||[])){const v=answers[q.id];let max=Number(q.maxScore||5),raw=0;if(q.type==='scale')raw=Math.max(0,Math.min(5,Number(v||0)))/5*max;else if(Array.isArray(q.options)){const opt=q.options.find(o=>o.id===v||o.value===v);raw=Number(opt?.score||0);max=max||Math.max(0,...q.options.map(o=>Number(o.score||0)));}else raw=String(v||'').trim()?Number(q.scoreWhenFilled||0):0;rawScore+=raw;maxScore+=max;}const normalized5=maxScore?rawScore/maxScore*5:0;const band=(form.resultBands||[]).find(b=>normalized5>=Number(b.from)&&normalized5<=Number(b.to))||{};return {rawScore,maxScore,normalized5,percentage:normalized5/5*100,level:{label:band.label||band.name||'Resultado gerado',description:band.description||'',recommendation:band.recommendation||''}};}
+const {calculateResult:calculateBasicResult}=require('../services/result-service');
 async function savePublicSurveyResponse({survey,form,payload,resultToken}){
-  if(process.env.FIRESTORE_MOCK==='true')return {id:`resp_${Date.now()}`};
+  if(process.env.FIRESTORE_MOCK==='true'){const result=calculateBasicResult(form,payload.answers||{});return {id:`resp_${Date.now()}`,result};}
   const d=init();const ref=d.collection('responses').doc();const result=calculateBasicResult(form,payload.answers||{});
   await ref.set({id:ref.id,surveyId:survey.id,formId:form.id||survey.formId,companyId:survey.companyId||'',participant:payload.participant||{},answers:payload.answers||{},lgpdConsent:!!payload.lgpdConsent,communicationConsent:!!payload.communicationConsent,resultTokenHash:sha256(resultToken),createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),publicSubmissionProvider:'external-api',emailStatus:'pending',...result});
   return {id:ref.id,result};

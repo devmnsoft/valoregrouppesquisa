@@ -1,0 +1,21 @@
+using Valora.Application.Certificates;
+using Valora.Application.Communication;
+using Valora.Application.Results;
+
+var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+builder.Services.AddHealthChecks();
+builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email"));
+builder.Services.AddSingleton<ValoraInsightCalculator>();
+builder.Services.AddSingleton<ValoraInsightDevolutivaService>();
+builder.Services.AddSingleton<CertificateService>();
+builder.Services.AddSingleton<EmailService>();
+builder.Services.AddSingleton<EmailJobService>();
+var app = builder.Build();
+app.UseSwagger();
+app.UseSwaggerUI();
+app.MapHealthChecks("/health");
+app.MapControllers();
+app.Run();

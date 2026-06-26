@@ -1,0 +1,3 @@
+#!/usr/bin/env node
+const fs=require('fs');const a=JSON.parse(fs.readFileSync(process.argv[2]||'migration/firestore-export.json','utf8'));const b=JSON.parse(fs.readFileSync(process.argv[3]||'migration/postgres-import.json','utf8'));
+const keys=['plans','organizations','users','forms','surveys','responses','certificates','communications'];let fail=false;for(const k of keys){const fa=k==='organizations'?((a.collections.organizations||[]).length+(a.collections.companies||[]).length):(a.collections[k]||[]).length;const pb=(b[k]||[]).length;const ok=fa===pb;console.log(`${ok?'OK':'FAIL'} ${k}: firebase=${fa} postgresPayload=${pb}`);if(!ok)fail=true;}process.exit(fail?2:0);

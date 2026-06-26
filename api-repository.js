@@ -15,5 +15,6 @@
   async function getMigrationStatus(){return api().get('/admin/migration/status');}
   async function getApiHealth(){return api().get('/health');}
   async function getDatabaseHealth(){return api().get('/health/database');}
-  global.ValoraApiRepository=Object.freeze({login,registerCompany,getMe,getPublicPlans,publicPlans:getPublicPlans,validatePublicSurvey,submitPublicSurveyResponse,submitPublicSurvey:submitPublicSurveyResponse,loadPublicResult,loadResult:loadPublicResult,validateSurveyLink:validatePublicSurvey,downloadCertificatePdf,downloadCertificatePng,getMigrationStatus,getApiHealth,getDatabaseHealth});
+  async function sendResultEmail(responseId,payload={}){return api().post(`/communications/result/${encodeURIComponent(responseId)}/send-email`,payload);}
+  global.ValoraApiRepository=Object.freeze({login,registerCompany,getMe,getPublicPlans,publicPlans:getPublicPlans,validatePublicSurvey,submitPublicSurveyResponse,submitPublicSurvey:submitPublicSurveyResponse,loadPublicResult,loadResult:loadPublicResult,validateSurveyLink:validatePublicSurvey,downloadCertificatePdf,downloadCertificatePng,getMigrationStatus,getApiHealth,getDatabaseHealth,sendResultEmail});
 })(window);

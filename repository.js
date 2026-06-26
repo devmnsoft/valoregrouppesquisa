@@ -3,17 +3,22 @@
 
 const config=window.ValoraConfig||{};
 function currentDataProvider(){return ['firebase','api','hybrid'].includes(config.DATA_PROVIDER)?config.DATA_PROVIDER:'firebase';}
-function shouldUseApi(){return currentDataProvider()==='api';}
-function shouldUseFirebase(){return currentDataProvider()==='firebase';}
-function shouldUseHybrid(){return currentDataProvider()==='hybrid';}
-function primaryProvider(){return ['firebase','api'].includes(config.HYBRID_PRIMARY_PROVIDER)?config.HYBRID_PRIMARY_PROVIDER:'firebase';}
+function isApiProvider(){return currentDataProvider()==='api';}
+function isFirebaseProvider(){return currentDataProvider()==='firebase';}
+function isHybridProvider(){return currentDataProvider()==='hybrid';}
+function hybridPrimaryProvider(){return ['firebase','api'].includes(config.HYBRID_PRIMARY_PROVIDER)?config.HYBRID_PRIMARY_PROVIDER:'firebase';}
+const shouldUseApi=isApiProvider;
+const shouldUseFirebase=isFirebaseProvider;
+const shouldUseHybrid=isHybridProvider;
+const primaryProvider=hybridPrimaryProvider;
 function firebaseRepository(){return window.ValoraFirebaseRepository||window.ValoraLocalRepository;}
 function apiRepository(){return window.ValoraApiRepository;}
 function provider(name){if(name==='api')return apiRepository();return firebaseRepository();}
 function selectedProvider(){if(shouldUseApi())return provider('api');if(shouldUseHybrid())return provider(primaryProvider());return provider('firebase');}
 function secondaryProvider(){return primaryProvider()==='api'?provider('firebase'):provider('api');}
 function comparePayload(a,b){try{return JSON.stringify(a)===JSON.stringify(b);}catch(_){return false;}}
-function recordDivergence(method,primary,secondary){const entry={method,equal:comparePayload(primary,secondary),createdAt:new Date().toISOString(),severity:'warning'};window.ValoraHybridDiagnostics=window.ValoraHybridDiagnostics||[];window.ValoraHybridDiagnostics.unshift(entry);window.ValoraHybridDiagnostics=window.ValoraHybridDiagnostics.slice(0,50);if(!entry.equal)console.warn('[Valora Pulse] Divergência hybrid não crítica',entry);return entry;}
+async function hybridCompare(label,primaryData,secondaryData){return recordDivergence(label,primaryData,secondaryData);}
+function recordDivergence(method,primary,secondary){const entry={method,equal:comparePayload(primary,secondary),createdAt:new Date().toISOString(),severity:'warning'};window.ValoraHybridDiagnostics=window.ValoraHybridDiagnostics||[];window.ValoraHybridDiagnostics.unshift(entry);window.ValoraHybridDiagnostics=window.ValoraHybridDiagnostics.slice(0,50);if(window.state){window.state.migrationDiagnostics=Array.isArray(window.state.migrationDiagnostics)?window.state.migrationDiagnostics:[];window.state.migrationDiagnostics.unshift(entry);window.state.migrationDiagnostics=window.state.migrationDiagnostics.slice(0,50);}if(!entry.equal)console.warn('[Valora Pulse] Divergência hybrid não crítica',entry);return entry;}
 async function read(method,args){const p=selectedProvider();if(!p?.[method])throw new Error(`Provider sem método ${method}.`);const result=await p[method](...args);if(shouldUseHybrid()){const s=secondaryProvider();if(s?.[method])Promise.resolve().then(()=>s[method](...args)).then(other=>recordDivergence(method,result,other)).catch(error=>recordDivergence(method,result,{error:error.message}));}return result;}
 async function write(method,args){const p=selectedProvider();if(!p?.[method])throw new Error(`Provider sem método ${method}.`);return p[method](...args);}
 function certUrl(method,args){const p=selectedProvider();if(!p?.[method])return '';return p[method](...args);}
@@ -25,7 +30,7 @@ if(shouldUseHybrid()&&!['firebase','api'].includes(primaryProvider()))throw new 
 
 window.ValoraRepository=Object.freeze({
   ...base,
-  currentDataProvider,shouldUseApi,shouldUseFirebase,shouldUseHybrid,
+  currentDataProvider,isApiProvider,isFirebaseProvider,isHybridProvider,hybridPrimaryProvider,shouldUseApi,shouldUseFirebase,shouldUseHybrid,hybridCompare,
   login:(payload)=>write('login',[payload]),
   registerCompany:(payload)=>write(apiRepository()?.registerCompany?'registerCompany':'registerCompanyAccount',[payload]),
   registerCompanyAccount:(payload)=>write(apiRepository()?.registerCompany?'registerCompany':'registerCompanyAccount',[payload]),
@@ -37,6 +42,7 @@ window.ValoraRepository=Object.freeze({
   downloadCertificatePdf:(responseId)=>certUrl('downloadCertificatePdf',[responseId]),
   downloadCertificatePng:(responseId)=>certUrl('downloadCertificatePng',[responseId]),
   getMigrationStatus:()=>read('getMigrationStatus',[]),
+  getArchitectureStatus:async()=>({ok:true,capabilities:window.ValoraRuntime?.getCapabilities?.(),warnings:window.ValoraRuntime?.getArchitectureWarnings?.()||[],hybridDiagnostics:window.ValoraHybridDiagnostics||[]}),
   getHybridDiagnostics:()=>window.ValoraHybridDiagnostics||[]
 });
 })();

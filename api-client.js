@@ -8,6 +8,11 @@
   function clearToken(){memoryToken='';try{storage()?.removeItem(TOKEN_KEY);}catch(_){}}
   function baseUrl(){return (global.ValoraConfig?.API_BASE_URL||global.VALORA_CONFIG?.API_BASE_URL||'').replace(/\/+$/,'');}
   function timeoutMs(value){const configured=Number(value||global.ValoraConfig?.API_TIMEOUT_MS||global.VALORA_CONFIG?.API_TIMEOUT_MS||20000);return Number.isFinite(configured)&&configured>0?configured:20000;}
+  function sanitizeErrorDetail(value){return String(value||'').replace(/Bearer\s+[A-Za-z0-9._~+\/-]+=*/gi,'Bearer [redacted]').replace(/(password|senha|token|jwt|authorization)\s*[:=]\s*[^\s,;}]+/gi,'$1=[redacted]');}
+  function normalizeApiError(error,fallbackMessage='Não foi possível processar sua solicitação agora. Tente novamente em instantes.'){
+    const message=sanitizeErrorDetail(error?.message||error?.error||'');
+    return {ok:false,message:message||fallbackMessage,status:error?.status||error?.statusCode||0,code:error?.code||'API_ERROR'};
+  }
   async function apiFetch(path,options={}){
     const base=baseUrl();
     if(!base)throw new Error('API indisponível.');
@@ -25,7 +30,8 @@
     if(!contentType.includes('application/json'))throw new Error('A API retornou formato inesperado.');
     let body={};
     try{body=text?JSON.parse(text):{};}catch(_){throw new Error('A API retornou JSON inválido.');}
-    if(!response.ok||body.ok===false)throw new Error(body.message||`API retornou HTTP ${response.status}.`);
+    if(response.status===401&&options.clearTokenOnUnauthorized!==false)clearToken();
+    if(!response.ok||body.ok===false){const err=new Error(sanitizeErrorDetail(body.message||`API retornou HTTP ${response.status}.`));err.status=response.status;err.code=body.code;throw err;}
     return body;
   }
   const json=(method,path,body)=>apiFetch(path,{method,body:body===undefined?undefined:JSON.stringify(body)});
@@ -37,6 +43,6 @@
     put:(path,body)=>json('PUT',path,body),
     patch:(path,body)=>json('PATCH',path,body),
     delete:path=>apiFetch(path,{method:'DELETE'}),
-    setToken,clearToken,getToken,timeoutMs
+    setToken,clearToken,getToken,timeoutMs,normalizeApiError
   });
 })(window);

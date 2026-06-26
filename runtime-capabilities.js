@@ -15,6 +15,12 @@ function getRuntimeCapabilities(){
   const externalApi=transport==='external-api'&&gatewayEnabled;
   const whatsappTransport=normalizeWhatsappTransport(cfg.WHATSAPP_TRANSPORT||'manual');
   const whatsappExternal=whatsappTransport==='external-api'&&gatewayEnabled;
+  const configuredProvider=cfg.PUBLIC_SUBMISSION_PROVIDER||(cfg.STORAGE_MODE==='local'?'local':(gatewayEnabled?'external-api':''));
+  const provider=['external-api','firestore-client','local'].includes(configuredProvider)?configuredProvider:'';
+  const firestoreFallback=provider==='firestore-client'&&cfg.STORAGE_MODE==='firebase'&&cfg.FIREBASE_ENABLED===true;
+  const publicSubmitExternal=provider==='external-api'&&gatewayEnabled;
+  const canUseFunctions=cfg.ENABLE_CLOUD_FUNCTIONS===true;
+  const canSubmitPublic=provider==='local'||publicSubmitExternal||firestoreFallback||canUseFunctions;
   return Object.freeze({
     environment:cfg.RUNTIME_ENV||'unknown',
     storageMode:cfg.STORAGE_MODE||'local',
@@ -23,7 +29,8 @@ function getRuntimeCapabilities(){
     cloudFunctions:Object.freeze({enabled:cfg.ENABLE_CLOUD_FUNCTIONS===true}),
     email:Object.freeze({transport,available:localApi||functions||externalApi,canSend:localApi||functions||externalApi,canReadStatus:localApi||functions,canConfigureTransport:localApi,canEditTemplates:true,hasOutbox:localApi}),
     whatsapp:Object.freeze({transport:whatsappTransport,available:whatsappTransport==='manual'||whatsappExternal,canSendAutomatic:whatsappExternal,canShareManual:whatsappTransport==='manual',canSend:whatsappExternal,manualShare:whatsappTransport==='manual'}),
-    communicationGateway:Object.freeze({enabled:gatewayEnabled,baseUrl:gatewayBase,mode:gateway.mode||'disabled',canSendResult:transport==='external-api'&&gatewayEnabled&&gateway.sendResultOnSurveyCompleted===true,allowManualResend:gateway.allowManualResend===true}),
+    communicationGateway:Object.freeze({enabled:gatewayEnabled,baseUrl:gatewayBase,mode:gateway.mode||'disabled',canSendResult:transport==='external-api'&&gatewayEnabled&&gateway.sendResultOnSurveyCompleted===true,allowManualResend:gateway.allowManualResend===true,timeoutMs:Number(gateway.timeoutMs||20000)}),
+    publicSubmission:Object.freeze({provider,canSubmit:canSubmitPublic,requiresGateway:provider==='external-api',canFallbackToFirestoreClient:firestoreFallback}),
     logs:Object.freeze({canPersistRemote:cfg.observability?.remoteLogsEnabled===true&&cfg.ENABLE_CLOUD_FUNCTIONS===true})
   });
 }

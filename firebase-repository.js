@@ -102,6 +102,25 @@ async function hydrateStore(){
 function changed(a,b){return JSON.stringify(a||null)!==JSON.stringify(b||null);}
 async function syncCollectionFromState(key){const name=collectionNameForStateKey(key);const before=new Map((session.cache[key]||[]).map(x=>[x.id,x]));const now=new Map((session.store[key]||[]).map(x=>[x.id,x]));const writes=[];now.forEach((row,id)=>{if(key==='users'&&(!row.uid||row.uid!==id)&&!before.has(id)){console.warn('[Valora Pulse] TODO seguro: criação de usuário Firebase Auth deve ocorrer via Cloud Function/Admin SDK antes de gravar users/{uid}.',row.email);return;}if(!before.has(id))writes.push(createDoc(name,row));else if(changed(row,before.get(id)))writes.push(updateDoc(name,id,row));});before.forEach((_row,id)=>{if(!now.has(id))writes.push(deleteDoc(name,id));});await Promise.all(writes);session.cache[key]=clone(session.store[key]||[]);}
 async function syncSettings(){if(!changed(session.store.settings,session.cache.settings))return;const value=session.store.settings||{};if(value.public||Object.keys(value).some(k=>typeof value[k]==='object'))await Promise.all(Object.entries(value).map(([id,data])=>updateDoc('settings',id,data)));else await updateDoc('settings','public',value);session.cache.settings=clone(value);}
+
+async function registerCompanyAccount(data){
+  const s=ensureFirebase();
+  const email=String(data.email||'').trim().toLowerCase();
+  if(!email||!data.password)throw Object.assign(new Error('Informe e-mail e senha para criar o ambiente.'),{code:'invalid-signup'});
+  const cred=await s.auth.createUserWithEmailAndPassword(email,data.password);
+  const uid=cred.user.uid;
+  const now=new Date().toISOString();
+  const companyRef=s.db.collection('organizations').doc();
+  const company={id:companyRef.id,type:data.type||'juridica',name:data.companyName||data.name||email,publicName:data.companyName||data.name||email,slug:data.slug||String(data.companyName||email).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),document:data.document||'',email,phone:data.phone||'',cep:data.cep||'',address:data.address||'',planId:data.planId||'free',status:'active',subscription:{planId:data.planId||'free',status:'active',billingStatus:'free',startedAt:now},createdAt:now,updatedAt:now};
+  const user={id:uid,uid,name:data.name||data.companyName||email,email,role:'empresa_admin',companyId:company.id,phone:data.phone||'',status:'active',receivesEmail:true,portalAccess:true,createdAt:now,updatedAt:now};
+  const batch=s.db.batch();
+  batch.set(companyRef,company);
+  batch.set(s.db.collection('users').doc(uid),user);
+  await batch.commit();
+  const profile=await loadProfile(cred.user);
+  await hydrateStore();
+  return profile;
+}
 function mapAuthError(err){const code=err?.code||'';if(code.includes('invalid-credential')||code.includes('invalid-login-credentials')||code.includes('wrong-password'))return 'E-mail ou senha inválidos. Verifique os dados ou redefina sua senha.';if(code.includes('user-not-found'))return 'Usuário não encontrado no ambiente de produção.';if(code.includes('operation-not-allowed'))return 'Login por e-mail e senha não está habilitado no Firebase Auth.';if(code.includes('too-many-requests'))return 'Muitas tentativas de login. Aguarde alguns minutos e tente novamente.';if(code.includes('network-request-failed')||code==='unavailable')return 'Falha de conexão com o serviço de autenticação.';if(code.includes('configuration-not-found'))return 'Configuração do Firebase Auth não encontrada para este ambiente.';if(code==='inactive-user')return 'Usuário inativo. Solicite liberação ao administrador.';if(code==='profile-missing')return PROFILE_MISSING_MESSAGE;if(code==='inactive-company')return 'Sua empresa está inativa. Contate o administrador.';return 'Não foi possível entrar. Verifique seus dados ou solicite redefinição de senha.';}
 
 window.ValoraFirebaseAuth={getCurrentAuthUser,getCurrentUserProfile,waitUntilReady};
@@ -109,7 +128,8 @@ window.ValoraFirebaseRepository={
   mode:'firebase',
   loadStore({seedStore,normalizeState}){cleanFirebaseLocalState();session.store=emptyStore(seedStore,normalizeState);session.normalizeState=normalizeState;waitUntilReady().catch(()=>{});return session.store;},
   saveStore(){return this.saveChanges({state:session.store});},
-  async login({email,password}){const s=ensureFirebase();try{const cred=await s.auth.signInWithEmailAndPassword(email,password);const profile=await loadProfile(cred.user);await hydrateStore();return profile;}catch(err){throw Object.assign(new Error(mapAuthError(err)),{code:err?.code});}},
+  async login({email,password}){const s=ensureFirebase();try{const cred=await s.auth.signInWithEmailAndPassword(email,password);await cred.user.getIdToken(true);const profile=await loadProfile(cred.user);await hydrateStore();return profile;}catch(err){throw Object.assign(new Error(mapAuthError(err)),{code:err?.code});}},
+  registerCompanyAccount,
   async logout(){const s=ensureFirebase();session.profile=null;session.claims={};session.loaded=false;cleanFirebaseLocalState();await s.auth.signOut();},
   currentUser(){return session.profile;},
   async loadStoreFromFirestore(){await hydrateStore();return session.store;},

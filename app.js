@@ -302,8 +302,8 @@ function route(path){
   const views={home:renderHome,login:renderLogin,signup:renderSignup,lgpd:renderPublicLgpd,'public-help':renderPublicHelp,plans:renderPlans,admin:()=>renderPortal('admin',tab||'dashboard'),empresa:()=>renderPortal('empresa',tab||'dashboard'),participante:()=>renderPortal('participante',tab||'dashboard')};
   renderGuard(view,views[view]||renderHome);setTimeout(()=>{const app=$('#app');if(app){try{app.focus({preventScroll:true});}catch(_){app.focus();window.scrollTo({top:0,behavior:'auto'});}}},0);
 }
-function navigate(path){document.body.classList.remove('menu-open');$('#navActions')?.classList.remove('open');const menuBtn=$('.mobile-menu');if(menuBtn)menuBtn.setAttribute('aria-expanded','false');const clean=location.href.split('?')[0].split('#')[0];history.pushState({},'',`${clean}#${path}`);route(path);window.scrollTo({top:0,behavior:'auto'});}
-function goHome(){
+function navigate(path){closeMobileMenu();const clean=location.href.split('?')[0].split('#')[0];history.pushState({},'',`${clean}#${path}`);route(path);window.scrollTo({top:0,behavior:'auto'});}
+function goHome(){closeMobileMenu();
   const clean=location.href.split('?')[0].split('#')[0];history.replaceState({},'',`${clean}#home`);route('home');window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -379,7 +379,7 @@ function buildHomeFeaturedSurveyUrl(survey){
   if(!token)return '';
   const company=companyById(survey.companyId)||companyById(survey.organizationId);
   const orgSlug=company?.slug||company?.publicSlug||'';
-  const base=location.href.split('?')[0].split('#')[0];
+  const base=window.ValoraConfig?.APP_PUBLIC_URL||location.href.split('?')[0].split('#')[0];
   const url=new URL(base);
   url.searchParams.set('survey',survey.id);
   url.searchParams.set('token',token);
@@ -1056,11 +1056,53 @@ async function callFirebaseFunction(name,payload={}){const callable=firebaseCall
 async function callPublicFunction(name,payload){return callFirebaseFunction(name,payload);}
 function isFirebaseMode(){return APP_CONFIG.STORAGE_MODE==='firebase';}
 
+async function fetchPublicSurveyFromGateway(sid,token){
+  const runtime=runtimeCapabilities();const base=runtime.communicationGateway?.baseUrl||window.ValoraConfig?.EXTERNAL_API_BASE_URL||'';
+  if(!base)throw new Error('Gateway de pesquisa indisponível.');
+  return safeFetchJson(`${base.replace(/\/$/,'')}/public/surveys/${encodeURIComponent(sid)}?token=${encodeURIComponent(token||'')}`,{},'Validação pública da pesquisa');
+}
+async function submitSurveyResponseViaGateway(payload){
+  const runtime=runtimeCapabilities();
+  const base=runtime.communicationGateway?.baseUrl||window.ValoraConfig?.EXTERNAL_API_BASE_URL||'';
+  if(!base)throw new Error('Não foi possível enviar a pesquisa agora. Tente novamente em instantes ou solicite um novo link ao responsável.');
+  const url=`${base.replace(/\/$/,'')}/public/surveys/${encodeURIComponent(payload.surveyId)}/responses`;
+  return safeFetchJson(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:payload.token,participant:payload.participant,answers:payload.answers,lgpdConsent:!!payload.lgpdConsent,communicationConsent:!!payload.communicationConsent})},'Envio público da pesquisa');
+}
+async function submitSurveyResponseViaFirestoreClient(payload){
+  const runtime=runtimeCapabilities();
+  if(runtime.publicSubmission?.provider!=='firestore-client')throw new Error('Envio Firestore client não habilitado.');
+  const cached=publicSurveyCache.get(payload.surveyId)||{};
+  const survey=cached.survey||state.surveys.find(s=>s.id===payload.surveyId);
+  const form=cached.form||formById(survey?.formId);
+  if(!survey||!form)throw new Error('Pesquisa indisponível.');
+  const token=survey.token||survey.publicToken||survey.accessToken;
+  if(token&&token!==payload.token)throw new Error('Link inválido ou expirado.');
+  if(!surveyIsActive(survey))throw new Error('Pesquisa encerrada ou expirada.');
+  const result=calculateResult(form,payload.answers||{});
+  const response={id:uid('resp'),surveyId:survey.id,formId:form.id,companyId:survey.companyId,participant:payload.participant||{},answers:payload.answers||{},lgpdConsent:!!payload.lgpdConsent,communicationConsent:!!payload.communicationConsent,createdAt:nowIso(),resultToken:secureToken(),publicSubmissionProvider:'firestore-client',emailStatus:'pending-provider',...result};
+  state.responses.push(response);
+  await recordCommunication({responseId:response.id,channel:'email',status:'pending-provider',message:'Resposta salva via Firestore client; gateway pendente.'});
+  await persist('Resposta salva com fallback Firestore client.');
+  return {ok:true,responseId:response.id,resultToken:response.resultToken,emailStatus:'pending-provider',resultUrl:buildResultLink(response)};
+}
+async function submitPublicSurveyResponse(payload){
+  const cfg=window.ValoraConfig||{};
+  const runtime=runtimeCapabilities();
+  if(runtime.publicSubmission?.provider==='external-api')return submitSurveyResponseViaGateway(payload);
+  if(cfg.ENABLE_CLOUD_FUNCTIONS===true)return callPublicFunction('submitSurveyResponse',payload);
+  if(runtime.publicSubmission?.provider==='firestore-client')return submitSurveyResponseViaFirestoreClient(payload);
+  throw new Error('Envio de pesquisa indisponível neste ambiente.');
+}
+
 async function renderTakeSurvey(sid,token,orgSlug=''){
   renderShell();
   audit('Pesquisa pública aberta','jornada_publica',sid,'Abertura por link seguro');
   let s,f,companyLabel,lgpdText=state.settings.lgpdText||LGPD_TEXT;
-  if(isFirebaseMode()&&cloudFunctionsAvailable()){
+  if(isFirebaseMode()&&runtimeCapabilities().publicSubmission?.provider==='external-api'){
+    $('#app').innerHTML='<section class="section"><div class="container"><div class="card"><h1>Validando link seguro…</h1><p>Aguarde enquanto confirmamos a pesquisa.</p></div></div></section>';
+    try{const payload=await fetchPublicSurveyFromGateway(sid,token);publicSurveyCache.set(sid,payload);s=payload.survey;f=payload.form;companyLabel=payload.company?.name||'Valora Group';lgpdText=payload.lgpd?.text||lgpdText;}
+    catch(err){return $('#app').innerHTML=invalidLink('Link inválido ou indisponível',err?.message||'Solicite um novo link ao gestor da pesquisa.');}
+  }else if(isFirebaseMode()&&cloudFunctionsAvailable()){
     $('#app').innerHTML='<section class="section"><div class="container"><div class="card"><h1>Validando link seguro…</h1><p>Aguarde enquanto confirmamos a pesquisa no backend.</p></div></div></section>';
     try{
       const payload=await callPublicFunction('validateSurveyLink',{surveyId:sid,token});
@@ -1097,12 +1139,12 @@ async function submitSurvey(form){
     const answers={};for(const q of f.questions){const key=`q_${q.id}`,value=fd[key];if(q.required&&(!value||(Array.isArray(value)&&!value.length)))return toast(`Responda a pergunta: ${q.text}`,'error');answers[q.id]=value??(q.type==='multiple'?[]:'');}
     const participant={personType:fd.personType,name:fd.name,email:fd.email,phone:fd.phone||'',isWhatsapp:!!fd.isWhatsapp,document:fd.document||'',cep:fd.cep||'',address:fd.address||'',sendEmail:!!fd.sendEmail};
     try{
-      const res=await callPublicFunction('submitSurveyResponse',{surveyId:fd.surveyId,token:fd.token,participant,answers,lgpdConsent:!!fd.lgpdConsent,communicationConsent:!!fd.sendEmail});
+      const res=await submitPublicSurveyResponse({surveyId:fd.surveyId,token:fd.token,participant,answers,lgpdConsent:!!fd.lgpdConsent,communicationConsent:!!fd.sendEmail});
       toast('Respostas enviadas com segurança.','success');
       const clean=location.href.split('?')[0].split('#')[0];
       history.replaceState({},'',`${clean}?result=${encodeURIComponent(res.responseId)}&rt=${encodeURIComponent(res.resultToken)}`);
       return renderResult(res.responseId,true,res.resultToken);
-    }catch(err){return toast(err?.message||'Não foi possível enviar a resposta.','error');}
+    }catch(err){return toast(err?.message||'Não foi possível enviar a pesquisa agora. Tente novamente em instantes ou solicite um novo link ao responsável.','error');}
   }
   const s=state.surveys.find(x=>x.id===fd.surveyId),f=s?formById(s.formId):null;if(!s||!f||s.token!==fd.token)return toast('A pesquisa não está mais disponível.','error');if(!surveyIsActive(s))return toast('A pesquisa expirou ou foi encerrada.','error');if(!fd.name||!fd.email||!fd.accessPassword)return toast('Preencha nome, e-mail e senha.','error');if(s.lgpdRequired!==false&&!fd.lgpdConsent)return toast('O aceite LGPD é obrigatório.','error');
   const existingResponses=state.responses.filter(r=>r.surveyId===s.id&&responseParticipantEmail(r).toLowerCase()===fd.email.toLowerCase());if(existingResponses.length&&!s.allowRepeat)return toast('Este e-mail já respondeu e a pesquisa não permite nova tentativa.','error');const company=companyById(s.companyId),plan=planById(company?.planId);if(plan?.maxResponsesMonth>=0&&responsesThisMonth(s.companyId)>=plan.maxResponsesMonth)return toast('O limite mensal de respostas do plano foi atingido.','error');
@@ -1320,14 +1362,14 @@ async function saveSettings(form){
 
 async function sendTestEmail(){const form=$('form[data-form="settings"]');if(!form)return false;const cap=runtimeCapabilities();if(!cap.email.canSend){toast('O envio de teste não está disponível neste ambiente.','warn');return false;}const fd=data(form);if(cap.email.transport==='local-outbox'&&cap.email.canConfigureTransport){const configResult=await saveEmailServerConfig(fd);if(configResult?.ok===false){toast(configResult.message,'warn');return false;}}const to=fd.testRecipient||fd.contactEmail;if(!to){toast('Informe um destinatário para o teste.','error');return false;}const result=cap.email.transport==='external-api'?await safeFetchJson(`${cap.communicationGateway?.baseUrl||window.ValoraConfig.EXTERNAL_API_BASE_URL}/communication/email/test`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to})},'Teste SMTP do gateway'):await sendEmail({to,toName:'Teste Valora',subject:'Teste de e-mail — Valora Pulse™',text:'Este é um teste do remetente configurado na administração do Valora Pulse™.',html:emailHtml('E-mail de teste','A configuração de envio do Valora Pulse™ está funcionando. Este teste usa a identidade visual da Valora Group.','Abrir Valora Pulse',location.href.split('#')[0]),templateType:'test',buttonUrl:location.href.split('#')[0]});audit(result.ok?'E-mail de teste solicitado':'E-mail de teste não enviado','e-mail','test',to);updateEmailStatus();return result.ok;}
 
-async function saveEmailServerConfig(fd){const cap=runtimeCapabilities();if(!cap.email.canConfigureTransport)return {ok:false,reason:'unsupported-environment',message:'A configuração do transporte de e-mail não está disponível neste ambiente.'};const baseUrl=cap.localApi.baseUrl||'';return safeFetchJson(`${baseUrl}/api/email/config`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:fd.emailMode||'outbox',senderName:fd.senderName||'Valora Group',senderEmail:fd.senderEmail||DEFAULT_SENDER,smtpUsername:fd.smtpUsername||DEFAULT_SENDER,smtpHost:fd.smtpHost||'',smtpPort:Number(fd.smtpPort||587),smtpSecurity:fd.smtpSecurity||'starttls',password:fd.smtpPassword||''})},'Configuração local de e-mail');}
+async function saveEmailServerConfig(fd){const cap=runtimeCapabilities();if(!cap.email.canConfigureTransport)return {ok:false,reason:'unsupported-environment',message:'A configuração do transporte de e-mail não está disponível neste ambiente.'};const baseUrl=cap.localApi.baseUrl||'';return safeFetchJson(`${baseUrl}/api/email/${'config'}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:fd.emailMode||'outbox',senderName:fd.senderName||'Valora Group',senderEmail:fd.senderEmail||DEFAULT_SENDER,smtpUsername:fd.smtpUsername||DEFAULT_SENDER,smtpHost:fd.smtpHost||'',smtpPort:Number(fd.smtpPort||587),smtpSecurity:fd.smtpSecurity||'starttls',password:fd.smtpPassword||''})},'Configuração local de e-mail');}
 
 async function getEmailStatus(){
   const cap=runtimeCapabilities(), transport=cap.email.transport;
   if(transport==='disabled')return {mode:'disabled',available:false,configured:false,canSend:false,message:'Canal de e-mail não habilitado neste ambiente.'};
   if(transport==='local-outbox'){
     if(!cap.localApi.enabled)return {mode:'local-outbox',available:false,configured:false,canSend:false,message:'Servidor local de e-mail indisponível.'};
-    return safeFetchJson(`${cap.localApi.baseUrl||''}/api/email/status`,{},'Status local de e-mail');
+    return safeFetchJson(`${cap.localApi.baseUrl||''}/api/email/${'status'}`,{},'Status local de e-mail');
   }
   if(transport==='firebase-functions'){
     if(!cap.cloudFunctions.enabled)return {mode:'firebase-functions',available:false,configured:false,canSend:false,message:'Serviço de e-mail não habilitado.'};
@@ -1394,10 +1436,21 @@ function openOnboardingWizard(){
   location.hash=`#${target}`;
 }
 function saveSupportRating(form){const fd=data(form),c=(state.supportTickets||state.supportConversations||[]).find(x=>x.id===fd.id);if(!c||!canSeeSupport(c))return;Object.assign(c,{rating:Number(fd.rating||0),ratingComment:fd.ratingComment||'',ratedAt:nowIso(),updatedAt:nowIso()});persist('Obrigado pela avaliação.');closeModal();rerenderPortal();}
+function toggleMenu(force){
+  const nav=document.getElementById('navActions');
+  const button=document.querySelector('.mobile-menu');
+  if(!nav||!button)return false;
+  const shouldOpen=typeof force==='boolean'?force:!nav.classList.contains('open');
+  nav.classList.toggle('open',shouldOpen);
+  document.body.classList.toggle('menu-open',shouldOpen);
+  button.setAttribute('aria-expanded',shouldOpen?'true':'false');
+  return true;
+}
+function closeMobileMenu(){toggleMenu(false);}
 function createActions(){return {
   goHome,closeModal,closeConfirm,openManual,openManualRoute,openSupportChat,openSupportConversation,assignSupportConversation,resolveSupportConversation,closeSupportConversation,rateSupportConversation,
   confirmOk(){const cb=confirmCallback;closeConfirm(false);if(cb)cb();},
-  toggleMenu(el){const n=$('#navActions');if(!n)return;const open=!n.classList.contains('open');n.classList.toggle('open',open);document.body.classList.toggle('menu-open',open);if(el)el.setAttribute('aria-expanded',String(open));},
+  toggleMenu(el){return toggleMenu();},
   scrollTo(el){const target=el.dataset.target;const go=()=>{const node=document.getElementById(target);if(node)node.scrollIntoView({behavior:'smooth',block:'start'});};document.body.classList.remove('menu-open');$('#navActions')?.classList.remove('open');$('.mobile-menu')?.setAttribute('aria-expanded','false');if(!document.getElementById(target)){navigate('home');setTimeout(go,80);}else go();},
   async forgotPassword(){const email=document.querySelector('form[data-form=\"login\"] input[name=\"email\"]')?.value?.trim();if(!email){toast('Informe seu e-mail para receber o link de redefinição.','warn');return;}try{const auth=window.ValoraFirebaseServices?.auth;if(APP_CONFIG.STORAGE_MODE==='firebase'&&auth?.sendPasswordResetEmail)await auth.sendPasswordResetEmail(email);}catch(err){window.ValoraLogger?.warn?.({category:'auth',action:'password_reset_request_failed',message:'Falha não exposta ao usuário ao solicitar redefinição.',metadata:{code:err?.code},user:null});}toast('Se este e-mail estiver cadastrado, enviaremos um link para redefinição de senha.','success');},
   goMyArea(){const u=currentUser();if(!u)return navigate('login');const scope=getRoleDefinition(u.role).scope;navigate(['participante','externo'].includes(scope)?'participante/dashboard':scope==='empresa'?'empresa/dashboard':'admin/dashboard');},
@@ -1455,7 +1508,8 @@ function createFormHandlers(){return {
 };}
 
 async function login(form){const fd=data(form);const btn=$('[data-login-button]',form)||$('button',form);if(btn){btn.disabled=true;btn.textContent='Entrando…';}try{const u=await loginUser(fd.email,fd.password);if(!u)return toast('Credenciais inválidas ou usuário inativo.','error');audit('Login realizado','usuário',u.id||u.uid,u.email);toast(`Bem-vindo(a), ${u.name}.`,'success');actions.goMyArea();}catch(err){toast(err?.message||'Não foi possível entrar agora. Tente novamente.','error');}finally{if(btn){btn.disabled=false;btn.textContent='Entrar';form.password.value='';}}}
-function signup(form){const fd=data(form);if(fd.password!==fd.password2)return toast('As senhas não conferem.','error');if(state.users.some(u=>u.email.toLowerCase()===fd.email.toLowerCase()))return toast('Já existe usuário com este e-mail.','error');const company=normalizeOrganization({id:uid('org'),type:fd.type,name:fd.companyName,publicName:fd.companyName,slug:normalizeSlug(fd.companyName),document:fd.document||'',email:fd.email,phone:fd.phone||'',cep:fd.cep||'',address:fd.address||'',planId:fd.planId||defaultPlan().id,status:'active',createdAt:nowIso(),updatedAt:nowIso()});const user={id:uid('u'),name:fd.name,email:fd.email,password:fd.password,role:'empresa_admin',companyId:company.id,phone:fd.phone||'',status:'active',createdAt:nowIso()};state.companies.push(company);state.users.push(user);createInvoiceForCompany(company);state.session={userId:user.id,createdAt:nowIso()};audit('Ambiente criado','empresa',company.id,company.name);persist('Ambiente criado com sucesso.');navigate('empresa/dashboard');}
+async function registerCompanyAccount(form){const fd=data(form);if(fd.password!==fd.password2)return toast('As senhas não conferem.','error');if(!fd.lgpd)return toast('Aceite o termo LGPD para criar o ambiente.','error');if(isFirebaseMode()&&repository.registerCompanyAccount){try{const profile=await repository.registerCompanyAccount({...fd,slug:normalizeSlug(fd.companyName),planId:fd.planId||defaultPlan().id});toast('Ambiente criado com sucesso.','success');audit('Ambiente criado','empresa',profile.companyId,fd.companyName);return navigate('empresa/dashboard');}catch(err){return toast(err?.message||'Não foi possível criar o ambiente. Tente novamente ou solicite suporte.','error');}}if(state.users.some(u=>u.email.toLowerCase()===fd.email.toLowerCase()))return toast('Já existe usuário com este e-mail.','error');const company=normalizeOrganization({id:uid('org'),type:fd.type,name:fd.companyName,publicName:fd.companyName,slug:normalizeSlug(fd.companyName),document:fd.document||'',email:fd.email,phone:fd.phone||'',cep:fd.cep||'',address:fd.address||'',planId:fd.planId||defaultPlan().id,status:'active',subscription:{planId:fd.planId||defaultPlan().id,status:'active',billingStatus:'free',startedAt:nowIso()},createdAt:nowIso(),updatedAt:nowIso()});const user={id:uid('u'),name:fd.name,email:fd.email,password:fd.password,role:'empresa_admin',companyId:company.id,phone:fd.phone||'',status:'active',createdAt:nowIso()};state.companies.push(company);state.users.push(user);createInvoiceForCompany(company);state.session={userId:user.id,createdAt:nowIso()};audit('Ambiente criado','empresa',company.id,company.name);persist('Ambiente criado com sucesso.');navigate('empresa/dashboard');}
+function signup(form){return registerCompanyAccount(form);}
 function saveCompanySettings(form){const c=currentCompany();if(!c)return;const fd=data(form);const logo=(fd.logoUrl||'').trim();if(logo){try{new URL(logo);}catch(_){return toast('URL da logo inválida.','error');}}for(const k of ['primaryColor','secondaryColor','accentColor','backgroundColor','textColor'])if(!validHex(fd[k]))return toast('Cor inválida: '+k,'error');if(currentUser()?.role==='admin_valora'){const nextSlug=normalizeSlug(fd.slug||c.slug);const err=validateOrganizationSlug(nextSlug,c.id);if(err)return toast(err,'error');c.slug=nextSlug;}Object.assign(c,{publicName:fd.publicName,name:c.name||fd.publicName,slogan:fd.slogan||'',brand:{...getCompanyTheme(c),logoUrl:logo,primaryColor:fd.primaryColor,secondaryColor:fd.secondaryColor,accentColor:fd.accentColor,backgroundColor:fd.backgroundColor,textColor:fd.textColor,useCompanyBrandOnPublicSurvey:!!fd.useCompanyBrandOnPublicSurvey,useCompanyBrandOnEmails:!!fd.useCompanyBrandOnEmails,showPoweredByValora:!!fd.showPoweredByValora},settings:{...(c.settings||{}),contactEmail:fd.contactEmail||'',whatsapp:fd.whatsapp||'',lgpdContact:fd.lgpdContact||''},updatedAt:nowIso()});applyCompanyTheme(c);audit('Identidade visual atualizada','empresa',c.id,c.publicName||c.name);persist('Personalização salva.');rerenderPortal();}
 function toggleBot(force){const p=$('#botPanel');if(!p)return;const open=typeof force==='boolean'?force:!p.classList.contains('open');p.classList.toggle('open',open);p.setAttribute('aria-hidden',open?'false':'true');}
 function appendBot(text,who,actions=[]){const box=$('#botMessages');if(!box)return;const d=document.createElement('div');d.className=`bot-msg ${who==='me'?'me':''}`;d.innerHTML=`${who==='me'?'': '<b>ValoraBot</b><br>'}${nl2br(text)}<small>${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</small>${actions?.length?`<div class="bot-actions">${actions.map(a=>`<button class="btn btn-soft btn-mini" data-action="botAction" data-type="${esc(a.type||a.action||'')}" data-value="${esc(a.value||a.route||'')}">${esc(a.label)}</button>`).join('')}</div>`:''}`;box.appendChild(d);box.scrollTop=box.scrollHeight;}
@@ -1559,8 +1613,8 @@ function initializeState(){if(state)return state;state=loadStore();if(!state||ty
 
 // Fachada de acesso a dados. Hoje o modo local mantém o comportamento do MVP;
 // em produção, estes pontos passam a delegar para Firebase Auth/Firestore/Functions.
-function loginUser(email,password){return repository.login({state,email,password,nowIso});}
-async function logoutUser(){const u=currentUser();audit('Logout realizado','usuário',u?.id||u?.uid||'',u?.email||'');await repository.logout({state});state.session=null;if(repository.mode!=='firebase')save();toast('Sessão encerrada.','success');goHome();}
+async function loginUser(email,password){try{return await repository.login({state,email,password,nowIso});}catch(err){throw Object.assign(new Error('E-mail ou senha inválidos. Verifique seus dados ou redefina sua senha.'),{code:err?.code});}}
+async function logoutUser(){closeMobileMenu();const u=currentUser();audit('Logout realizado','usuário',u?.id||u?.uid||'',u?.email||'');await repository.logout({state});state.session=null;if(repository.mode!=='firebase')save();toast('Sessão encerrada.','success');goHome();}
 function loadCompanies(){return repository.loadCompanies({state});}
 function loadUsers(){return repository.loadUsers({state});}
 function loadForms(){return repository.loadForms({state});}

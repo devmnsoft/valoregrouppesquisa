@@ -84,3 +84,16 @@ No plano Spark, a ausência de Cloud Functions não deve reprovar o health check
 - Resposta concluída cria registros em `communications`.
 - WhatsApp abre `wa.me` quando o gateway não estiver ativo.
 - Planos oficiais passam em `validate-plan-contracts.js`.
+
+---
+
+## Atualização — Sprint Jornada Principal
+
+- Pesquisa pública usa provider configurável e não depende de Cloud Functions no Firebase Spark.
+- Produção usa gateway externo quando `PUBLIC_SUBMISSION_PROVIDER='external-api'`.
+- Fallback Firestore client só é permitido quando explicitamente configurado.
+- Home prioriza pesquisa destaque válida antes dos planos.
+- Certificados PDF/PNG usam ViewModel único e bloqueiam dados inválidos.
+- Menu mobile usa `toggleMenu(force)` e fecha em navegação/logout.
+- Cadastro Firebase cria Auth, organização e `users/{uid}` sem salvar senha em texto puro.
+- Comunicação pós-pesquisa registra status e não bloqueia resultado.

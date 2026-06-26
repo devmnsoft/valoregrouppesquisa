@@ -1,10 +1,19 @@
 # Provider Híbrido
 
-`DATA_PROVIDER='hybrid'` serve para diagnóstico controlado. A configuração `HYBRID_PRIMARY_PROVIDER` define se a submissão grava no Firebase ou na API para evitar duplicidade.
+Sprint 4 mantém Firebase em produção e adiciona MVP operacional PostgreSQL/API para homologação controlada.
 
-Regras:
+## Comandos principais
 
-- Validação pode comparar Firebase/gateway/API quando disponível.
-- Submissão deve ocorrer apenas no provider primário.
-- Divergências devem ser registradas para auditoria e QA.
-- Produção deve permanecer em `DATA_PROVIDER: 'firebase'` até a virada planejada.
+- Subir PostgreSQL: `npm run postgres:up`
+- Build backend: `npm run backend:build`
+- Testes backend: `npm run backend:test`
+- Validar provider API: `npm run api:provider`
+- Validar jornada pública: `npm run journey:provider`
+- Dry-run de migração: `node migration/import-postgres.js --dry-run`
+- Comparação: `npm run migration:compare`
+
+## Segurança
+
+- Produção permanece com `DATA_PROVIDER: 'firebase'`.
+- Cloud Functions não são usadas pela jornada pública quando `ENABLE_CLOUD_FUNCTIONS` está falso.
+- Senhas não são migradas em texto puro.

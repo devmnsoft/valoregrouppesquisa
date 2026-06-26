@@ -1,9 +1,19 @@
-# Registro de riscos da migração
+# Registro de Riscos da Migração
 
-| Risco | Mitigação |
-|---|---|
-| Dados sem shape padronizado | normalizadores e relatório de rejeições |
-| Senhas inseguras/legadas | não migrar texto puro; forçar reset quando necessário |
-| Resultado divergente | modo híbrido e comparação por amostra |
-| Jobs de e-mail duplicados | idempotência por `response_id` e status |
-| Corte abrupto de produção | ativação por empresa/piloto via `DATA_PROVIDER` |
+Sprint 4 mantém Firebase em produção e adiciona MVP operacional PostgreSQL/API para homologação controlada.
+
+## Comandos principais
+
+- Subir PostgreSQL: `npm run postgres:up`
+- Build backend: `npm run backend:build`
+- Testes backend: `npm run backend:test`
+- Validar provider API: `npm run api:provider`
+- Validar jornada pública: `npm run journey:provider`
+- Dry-run de migração: `node migration/import-postgres.js --dry-run`
+- Comparação: `npm run migration:compare`
+
+## Segurança
+
+- Produção permanece com `DATA_PROVIDER: 'firebase'`.
+- Cloud Functions não são usadas pela jornada pública quando `ENABLE_CLOUD_FUNCTIONS` está falso.
+- Senhas não são migradas em texto puro.

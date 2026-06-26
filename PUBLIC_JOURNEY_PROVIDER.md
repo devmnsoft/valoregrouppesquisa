@@ -1,25 +1,19 @@
 # Provider da Jornada Pública
 
-## Funções únicas
+Sprint 4 mantém Firebase em produção e adiciona MVP operacional PostgreSQL/API para homologação controlada.
 
-A jornada pública deve usar funções centralizadas:
+## Comandos principais
 
-- `validatePublicSurveyLink(payload)`
-- `submitPublicSurveyResponse(payload)`
-- `loadPublicResult(responseId, resultToken)`
+- Subir PostgreSQL: `npm run postgres:up`
+- Build backend: `npm run backend:build`
+- Testes backend: `npm run backend:test`
+- Validar provider API: `npm run api:provider`
+- Validar jornada pública: `npm run journey:provider`
+- Dry-run de migração: `node migration/import-postgres.js --dry-run`
+- Comparação: `npm run migration:compare`
 
-## Seleção por `DATA_PROVIDER`
+## Segurança
 
-- `firebase`: mantém fluxo atual com Firestore/local e Firebase Functions apenas se explicitamente habilitadas.
-- `api`: usa `ValoraApiRepository` e endpoints ASP.NET Core.
-- `hybrid`: chama API e Firebase/local quando possível, priorizando segurança e comparação controlada.
-
-## Regra Cloud Functions
-
-Se `ENABLE_CLOUD_FUNCTIONS=false`, a jornada pública não deve chamar `callPublicFunction`. O validador `scripts/validate-public-journey-provider.js` falha se encontrar chamada direta dentro de `renderTakeSurvey` ou `submitSurvey`.
-
-## Endpoints API preparados
-
-- `POST /public/surveys/{surveyId}/validate`
-- `POST /public/surveys/{surveyId}/responses`
-- `POST /public/results/{responseId}`
+- Produção permanece com `DATA_PROVIDER: 'firebase'`.
+- Cloud Functions não são usadas pela jornada pública quando `ENABLE_CLOUD_FUNCTIONS` está falso.
+- Senhas não são migradas em texto puro.

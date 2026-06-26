@@ -1,9 +1,19 @@
-# Plano de migração Firebase → PostgreSQL
+# Plano de Migração Firebase para PostgreSQL
 
-1. Exportar Firestore com `migration/export-firestore.js`.
-2. Normalizar e transformar documentos com `migration/transform-firestore-to-postgres.js`.
-3. Importar em transação por domínio com `migration/import-postgres.js`.
-4. Validar contagens, hashes de respostas e amostras com `migration/validate-migration.js`.
-5. Comparar resultados Firebase/PostgreSQL com `migration/compare-firebase-postgres.js`.
+Sprint 4 mantém Firebase em produção e adiciona MVP operacional PostgreSQL/API para homologação controlada.
 
-Senhas nunca serão migradas em texto puro; usuários deverão manter hash seguro existente ou passar por reset controlado.
+## Comandos principais
+
+- Subir PostgreSQL: `npm run postgres:up`
+- Build backend: `npm run backend:build`
+- Testes backend: `npm run backend:test`
+- Validar provider API: `npm run api:provider`
+- Validar jornada pública: `npm run journey:provider`
+- Dry-run de migração: `node migration/import-postgres.js --dry-run`
+- Comparação: `npm run migration:compare`
+
+## Segurança
+
+- Produção permanece com `DATA_PROVIDER: 'firebase'`.
+- Cloud Functions não são usadas pela jornada pública quando `ENABLE_CLOUD_FUNCTIONS` está falso.
+- Senhas não são migradas em texto puro.

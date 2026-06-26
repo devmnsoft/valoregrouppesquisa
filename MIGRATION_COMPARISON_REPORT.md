@@ -1,4 +1,4 @@
-# Endpoints da API
+# Relatório de Comparação Firebase x PostgreSQL
 
 Sprint 4 mantém Firebase em produção e adiciona MVP operacional PostgreSQL/API para homologação controlada.
 

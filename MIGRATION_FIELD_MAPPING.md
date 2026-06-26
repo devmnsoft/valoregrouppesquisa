@@ -1,9 +1,19 @@
-# Mapeamento inicial
+# Mapeamento de Campos da Migração
 
-- `companies`/`organizations` → `valora.organizations`
-- `users` → `valora.users`
-- `plans` → `billing.plans`, `billing.plan_limits`, `billing.plan_capabilities`
-- `forms` → `valora.forms`, `valora.form_dimensions`, `valora.questions`, `valora.question_options`
-- `surveys` → `valora.surveys`, `valora.survey_links`
-- `responses` → `valora.responses`, `valora.response_answers`, `valora.result_scores`, `valora.dimension_scores`
-- `communications` → `communication.communications`, `communication.email_jobs`
+Sprint 4 mantém Firebase em produção e adiciona MVP operacional PostgreSQL/API para homologação controlada.
+
+## Comandos principais
+
+- Subir PostgreSQL: `npm run postgres:up`
+- Build backend: `npm run backend:build`
+- Testes backend: `npm run backend:test`
+- Validar provider API: `npm run api:provider`
+- Validar jornada pública: `npm run journey:provider`
+- Dry-run de migração: `node migration/import-postgres.js --dry-run`
+- Comparação: `npm run migration:compare`
+
+## Segurança
+
+- Produção permanece com `DATA_PROVIDER: 'firebase'`.
+- Cloud Functions não são usadas pela jornada pública quando `ENABLE_CLOUD_FUNCTIONS` está falso.
+- Senhas não são migradas em texto puro.

@@ -14,8 +14,8 @@ INSERT INTO billing.plan_limits(plan_id,limit_key,limit_value) VALUES
 ON CONFLICT (plan_id,limit_key) DO UPDATE SET limit_value=EXCLUDED.limit_value;
 INSERT INTO billing.plan_capabilities(plan_id,capability_key,capability_level,capability_type) VALUES
 ('free','individualResult','full','feature'),('free','summaryInsight','full','feature'),('free','strategicInsight','none','feature'),('free','simpleCertificate','full','feature'),('free','basicReport','none','feature'),('free','executiveReport','none','feature'),('free','actionPlans','none','feature'),('free','multipleUnits','none','feature'),('free','consolidatedReports','none','feature'),('free','resultEmail','limited','communication'),('free','resultWhatsApp','manual','communication'),
-('essential','individualResult','full','feature'),('essential','summaryInsight','full','feature'),('essential','strategicInsight','full','feature'),('essential','basicReport','full','feature'),
-('professional','executiveReport','full','feature'),('professional','actionPlans','full','feature'),
-('corporate','multipleUnits','full','feature'),('corporate','consolidatedReports','full','feature'),
-('enterprise','multipleOrganizations','full','feature'),('enterprise','strategicMeeting','service','service'),('enterprise','consultativeReport','service','service'),('enterprise','executiveFollowUp','service','service')
+('essential','individualResult','full','feature'),('essential','summaryInsight','full','feature'),('essential','strategicInsight','full','feature'),('essential','basicReport','full','feature'),('essential','resultEmail','full','communication'),('essential','resultWhatsApp','manual','communication'),
+('professional','executiveReport','full','feature'),('professional','actionPlans','full','feature'),('professional','resultEmail','full','communication'),
+('corporate','multipleUnits','full','feature'),('corporate','consolidatedReports','full','feature'),('corporate','resultEmail','full','communication'),('corporate','resultWhatsApp','full','communication'),
+('enterprise','multipleOrganizations','full','feature'),('enterprise','customBranding','full','feature'),('enterprise','strategicMeeting','service','service'),('enterprise','consultativeReport','service','service'),('enterprise','executiveFollowUp','service','service')
 ON CONFLICT (plan_id,capability_key) DO UPDATE SET capability_level=EXCLUDED.capability_level, capability_type=EXCLUDED.capability_type;

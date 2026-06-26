@@ -4,7 +4,7 @@ const EMAIL_TRANSPORTS=new Set(['disabled','local-outbox','firebase-functions','
 const WHATSAPP_TRANSPORTS=new Set(['manual','disabled','external-api']);
 function normalizeTransport(value){return EMAIL_TRANSPORTS.has(value)?value:'disabled';}
 function normalizeWhatsappTransport(value){return WHATSAPP_TRANSPORTS.has(value)?value:'manual';}
-function normalizeProvider(value,fallback){return ['external-api','cloud-functions','local'].includes(value)?value:fallback;}
+function normalizeProvider(value,fallback){return ['external-api','firebase-functions','cloud-functions','local'].includes(value)?(value==='cloud-functions'?'firebase-functions':value):fallback;}
 function getRuntimeCapabilities(){
   const cfg=window.ValoraConfig||{};
   const transport=normalizeTransport(cfg.EMAIL_TRANSPORT||'disabled');
@@ -22,11 +22,11 @@ function getRuntimeCapabilities(){
   const validationProvider=normalizeProvider(cfg.PUBLIC_SURVEY_VALIDATION_PROVIDER,defaultProvider);
   const submissionProvider=normalizeProvider(cfg.PUBLIC_SUBMISSION_PROVIDER,defaultProvider);
   const resultProvider=normalizeProvider(cfg.RESULT_PROVIDER,defaultProvider);
-  const usesCloudFunctions=!isSparkProduction&&functionsEnabled&&[validationProvider,submissionProvider,resultProvider].includes('cloud-functions');
+  const usesCloudFunctions=!isSparkProduction&&functionsEnabled&&[validationProvider,submissionProvider,resultProvider].includes('firebase-functions');
   const usesGateway=[validationProvider,submissionProvider,resultProvider].includes('external-api');
-  const canValidateSurvey=validationProvider==='local'||(validationProvider==='external-api'&&gatewayEnabled)||(validationProvider==='cloud-functions'&&usesCloudFunctions);
-  const canSubmitResponse=submissionProvider==='local'||(submissionProvider==='external-api'&&gatewayEnabled)||(submissionProvider==='cloud-functions'&&usesCloudFunctions);
-  const canLoadResult=resultProvider==='local'||(resultProvider==='external-api'&&gatewayEnabled)||(resultProvider==='cloud-functions'&&usesCloudFunctions);
+  const canValidateSurvey=validationProvider==='local'||(validationProvider==='external-api'&&gatewayEnabled)||(validationProvider==='firebase-functions'&&usesCloudFunctions);
+  const canSubmitResponse=submissionProvider==='local'||(submissionProvider==='external-api'&&gatewayEnabled)||(submissionProvider==='firebase-functions'&&usesCloudFunctions);
+  const canLoadResult=resultProvider==='local'||(resultProvider==='external-api'&&gatewayEnabled)||(resultProvider==='firebase-functions'&&usesCloudFunctions);
   return Object.freeze({
     environment:cfg.RUNTIME_ENV||'unknown',
     storageMode:cfg.STORAGE_MODE||'local',

@@ -1072,45 +1072,32 @@ async function hybridCompare(label,firebaseData,apiData){
   return entry;
 }
 async function validatePublicSurveyLink({surveyId,token,org}){
-  const runtime=runtimeCapabilities();
-  if(runtime.publicJourney?.validationProvider==='api'){
-    return window.ValoraApiRepository.validatePublicSurvey({surveyId,token,org});
+  try{
+    if(window.ValoraRepository?.validatePublicSurvey)return await window.ValoraRepository.validatePublicSurvey({surveyId,token,org});
+  }catch(error){
+    if(window.ValoraConfig?.RUNTIME_ENV!=='local')throw new Error('Não foi possível processar sua pesquisa agora. Tente novamente em instantes ou solicite um novo link ao responsável.');
+    console.warn('[Valora Pulse] Fallback local de validação pública',error?.message);
   }
-  if(runtime.publicJourney?.validationProvider==='external-api'){
-    return window.ValoraGatewayClient.callGatewayJson(`/public/surveys/${encodeURIComponent(surveyId)}/validate`,{method:'POST',body:JSON.stringify({token,org:org||''})},'Validação do link da pesquisa');
-  }
-  if(runtime.publicJourney?.validationProvider==='firebase-functions'&&window.ValoraConfig?.ENABLE_CLOUD_FUNCTIONS===true){
-    return callPublicFunction('validateSurveyLink',{surveyId,token,org});
-  }
-  const localResult=validatePublicSurveyLinkLocally({surveyId,token,org});
-  if(runtime.dataProvider?.mode==='hybrid'&&window.ValoraApiRepository?.validatePublicSurvey){
-    window.ValoraApiRepository.validatePublicSurvey({surveyId,token,org}).then(apiResult=>hybridCompare('validatePublicSurveyLink',localResult,apiResult)).catch(error=>hybridCompare('validatePublicSurveyLink',localResult,{error:error.message}));
-  }
-  return localResult;
+  return validatePublicSurveyLinkLocally({surveyId,token,org});
 }
 function validatePublicSurveyLinkLocally({surveyId,token,org}){const survey=state.surveys.find(s=>String(s.id)===String(surveyId));const form=survey?formById(survey.formId):null;if(!survey||!form)throw new Error('Pesquisa não encontrada.');const surveyToken=survey.token||survey.publicToken||survey.accessToken||'';if(!surveyToken||surveyToken!==token)throw new Error('Link inválido.');if(!surveyIsActive(survey))throw new Error('Pesquisa encerrada ou expirada.');const company=companyById(survey.companyId||survey.organizationId);if(org&&company?.slug&&normalizeSlug(org)!==normalizeSlug(company.slug))throw new Error('Organização pública não confere com o link informado.');return {ok:true,survey,form,company,lgpd:{text:state.settings?.lgpdText||LGPD_TEXT}};}
 async function submitSurveyResponseLocally(payload){const cached=publicSurveyCache.get(payload.surveyId);const survey=cached?.survey||state.surveys.find(s=>String(s.id)===String(payload.surveyId));const form=cached?.form||formById(survey?.formId);if(!survey||!form)throw new Error('Pesquisa não encontrada.');const surveyToken=survey.token||survey.publicToken||survey.accessToken||'';if(!surveyToken||surveyToken!==payload.token)throw new Error('Link inválido.');if(!surveyIsActive(survey))throw new Error('Pesquisa encerrada ou expirada.');const result=calculateResult(form,payload.answers||{});const response={id:uid('resp'),surveyId:survey.id,formId:form.id,companyId:survey.companyId,participant:payload.participant||{},answers:payload.answers||{},lgpdConsent:!!payload.lgpdConsent,communicationConsent:!!payload.communicationConsent,createdAt:nowIso(),completedAt:nowIso(),resultToken:secureToken(),...result,emailStatus:'pending'};state.responses.push(response);markInvitationAnswered(survey,payload.participant?.email);audit('Resposta enviada','resposta',response.id,`${payload.participant?.email||''} — ${survey.title}`);save();try{await dispatchPostSurveyCommunication(response.id);}catch(_){}return {ok:true,responseId:response.id,resultToken:response.resultToken,emailStatus:response.emailStatus||'pending'};}
 async function submitPublicSurveyResponse(payload){
-  const runtime=runtimeCapabilities();
-  if(runtime.publicJourney?.submissionProvider==='api'){
-    return window.ValoraApiRepository.submitPublicSurveyResponse(payload);
-  }
-  if(runtime.publicJourney?.submissionProvider==='external-api'){
-    return window.ValoraGatewayClient.callGatewayJson(`/public/surveys/${encodeURIComponent(payload.surveyId)}/responses`,{method:'POST',body:JSON.stringify({token:payload.token,participant:payload.participant,answers:payload.answers,lgpdConsent:payload.lgpdConsent,communicationConsent:payload.communicationConsent})},'Envio da pesquisa');
-  }
-  if(runtime.publicJourney?.submissionProvider==='firebase-functions'&&window.ValoraConfig?.ENABLE_CLOUD_FUNCTIONS===true){
-    return callPublicFunction('submitSurveyResponse',payload);
-  }
-  if(runtime.dataProvider?.mode==='hybrid'&&runtime.dataProvider?.hybridPrimaryProvider==='api'){
-    return window.ValoraApiRepository.submitPublicSurveyResponse(payload);
+  try{
+    if(window.ValoraRepository?.submitPublicSurveyResponse)return await window.ValoraRepository.submitPublicSurveyResponse(payload);
+  }catch(error){
+    if(window.ValoraConfig?.RUNTIME_ENV!=='local')throw new Error('Não foi possível processar sua pesquisa agora. Tente novamente em instantes ou solicite um novo link ao responsável.');
+    console.warn('[Valora Pulse] Fallback local de envio público',error?.message);
   }
   return submitSurveyResponseLocally(payload);
 }
 async function loadPublicResult(responseId,resultToken){
-  const runtime=runtimeCapabilities();
-  if(runtime.publicJourney?.resultProvider==='api')return window.ValoraApiRepository.loadPublicResult(responseId,resultToken);
-  if(runtime.publicJourney?.resultProvider==='external-api')return window.ValoraGatewayClient.callGatewayJson(`/public/results/${encodeURIComponent(responseId)}`,{method:'POST',body:JSON.stringify({resultToken})},'Consulta do resultado');
-  if(runtime.publicJourney?.resultProvider==='firebase-functions'&&window.ValoraConfig?.ENABLE_CLOUD_FUNCTIONS===true)return callPublicFunction('loadPublicResult',{responseId,resultToken});
+  try{
+    if(window.ValoraRepository?.loadPublicResult)return await window.ValoraRepository.loadPublicResult(responseId,resultToken);
+  }catch(error){
+    if(window.ValoraConfig?.RUNTIME_ENV!=='local')throw new Error('Não foi possível processar sua pesquisa agora. Tente novamente em instantes ou solicite um novo link ao responsável.');
+    console.warn('[Valora Pulse] Fallback local de resultado público',error?.message);
+  }
   return loadPublicResultLocally(responseId,resultToken);
 }
 function loadPublicResultLocally(responseId,resultToken){const response=state.responses.find(x=>String(x.id)===String(responseId));if(!response)throw new Error('Resultado não encontrado.');if(response.resultToken&&response.resultToken!==resultToken)throw new Error('Token de resultado inválido.');const survey=state.surveys.find(x=>x.id===response.surveyId)||{};const company=companyById(response.companyId)||{};return {ok:true,response,survey,company,result:response,certificate:{responseId:response.id,resultToken}};}

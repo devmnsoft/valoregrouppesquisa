@@ -7,16 +7,21 @@
   function setToken(token){memoryToken=String(token||'');try{if(memoryToken)storage()?.setItem(TOKEN_KEY,memoryToken);else storage()?.removeItem(TOKEN_KEY);}catch(_){}}
   function clearToken(){memoryToken='';try{storage()?.removeItem(TOKEN_KEY);}catch(_){}}
   function baseUrl(){return (global.ValoraConfig?.API_BASE_URL||global.VALORA_CONFIG?.API_BASE_URL||'').replace(/\/+$/,'');}
+  function timeoutMs(value){const configured=Number(value||global.ValoraConfig?.API_TIMEOUT_MS||global.VALORA_CONFIG?.API_TIMEOUT_MS||20000);return Number.isFinite(configured)&&configured>0?configured:20000;}
   async function apiFetch(path,options={}){
     const base=baseUrl();
     if(!base)throw new Error('API indisponível.');
     const token=getToken();
     let response;
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),timeoutMs(options.timeoutMs));
     try{
-      response=await fetch(`${base}${path}`,{...options,headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{ }),...(options.headers||{})}});
-    }catch(_){throw new Error('Não foi possível conectar à API.');}
+      response=await fetch(`${base}${path}`,{...options,signal:controller.signal,headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{ }),...(options.headers||{})}});
+    }catch(err){throw new Error(err?.name==='AbortError'?'Tempo limite da API excedido.':'Não foi possível conectar à API.');}
+    finally{clearTimeout(timer);}
     const contentType=String(response.headers.get('content-type')||'').toLowerCase();
     const text=await response.text();
+    if(contentType.includes('text/html')||/^\s*</.test(text))throw new Error('A API retornou HTML em vez de JSON.');
     if(!contentType.includes('application/json'))throw new Error('A API retornou formato inesperado.');
     let body={};
     try{body=text?JSON.parse(text):{};}catch(_){throw new Error('A API retornou JSON inválido.');}
@@ -32,6 +37,6 @@
     put:(path,body)=>json('PUT',path,body),
     patch:(path,body)=>json('PATCH',path,body),
     delete:path=>apiFetch(path,{method:'DELETE'}),
-    setToken,clearToken,getToken
+    setToken,clearToken,getToken,timeoutMs
   });
 })(window);

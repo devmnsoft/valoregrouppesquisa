@@ -1,15 +1,9 @@
-# Sprint de Estabilização da Jornada Principal
+# Sprint de Integração Real da Jornada Pública com Gateway
 
-Documento atualizado na Sprint de Estabilização da Jornada Principal.
-
-- Pesquisa pública usa provider configurável e não depende de Cloud Functions no Firebase Spark.
-- Produção usa gateway externo quando `PUBLIC_SUBMISSION_PROVIDER='external-api'`.
-- Fallback Firestore client só é permitido quando explicitamente configurado.
-- Home prioriza pesquisa destaque válida antes dos planos.
-- Certificados PDF/PNG usam ViewModel único e bloqueiam dados inválidos.
-- Menu mobile usa `toggleMenu(force)` e fecha em navegação/logout.
-- Cadastro Firebase cria Auth, organização e `users/{uid}` sem salvar senha em texto puro.
-- Comunicação pós-pesquisa registra status e não bloqueia resultado.
-
-## Validação recomendada
-Execute `npm run check`, `npm run build:prod` e `tools/windows/35-validar-jornada-principal.bat` em Windows/IIS.
+- Produção Spark usa `PUBLIC_SURVEY_VALIDATION_PROVIDER`, `PUBLIC_SUBMISSION_PROVIDER` e `RESULT_PROVIDER` como `external-api`.
+- O frontend não contém segredos SMTP, tokens WhatsApp ou credenciais do gateway.
+- A pesquisa destaque é aberta pela Home e enviada para `/public/surveys/:surveyId/responses`.
+- O gateway valida token/status/expiração, calcula resultado, salva resposta e registra comunicação.
+- Falha de e-mail não quebra a submissão; `emailStatus` retorna `failed`/`pending`/`sent`.
+- Certificados PDF/PNG continuam gerados no frontend a partir do resultado seguro.
+- QA obrigatório: `npm run check`, validadores em `scripts/validate-*.js`, build produção e healthcheck PRD.

@@ -1,1 +1,0 @@
-namespace Valora.Domain.Entities; public record Organization(Guid Id,string Name); public record User(Guid Id,Guid? OrganizationId,string Email,string Role); public record Plan(string Id,string Name);

@@ -47,8 +47,10 @@
     "api:e2e": "node scripts/validate-end-to-end-api-flow.js",
     "cutover:ready": "node scripts/validate-cutover-readiness.js",
     "migration:dry-run-real": "node scripts/validate-real-migration-dry-run.js",
-    "postgres:schema": "node scripts/validate-postgres-schema.js",
-    "backend:implementation": "node scripts/validate-backend-implementation.js"
+    "postgres:schema": "node scripts/validate-single-postgres-schema.js",
+    "backend:implementation": "node scripts/validate-backend-implementation.js",
+    "backend:clean": "node scripts/validate-backend-clean-architecture.js",
+    "runtime:docker-windows": "node scripts/validate-docker-windows-runtime.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

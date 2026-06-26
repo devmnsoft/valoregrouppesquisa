@@ -1,6 +1,4 @@
 namespace Valora.Application.Results;
-public sealed record AnswerScore(string Dimension, decimal Score);
-public sealed record ValoraInsightResult(decimal TotalScore, decimal MaxScore, string Level, object Radar, string StrategicTruth, string Risk, string NextLevel);
 public sealed class ValoraInsightCalculator
 {
     public ValoraInsightResult Calculate(IEnumerable<AnswerScore> answers)

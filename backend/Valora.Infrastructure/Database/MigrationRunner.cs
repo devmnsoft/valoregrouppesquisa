@@ -11,8 +11,8 @@ public sealed class MigrationRunner(IDbConnectionFactory factory, ILogger<Migrat
         var files = Directory.GetFiles(dir, "*.sql").OrderBy(x => x).ToList();
         using var c = factory.Create();
         c.Open();
-        await c.ExecuteAsync("CREATE SCHEMA IF NOT EXISTS valora; CREATE TABLE IF NOT EXISTS valora.schema_migrations(script_name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now());");
-        var done = (await c.QueryAsync<string>("SELECT script_name FROM valora.schema_migrations")).ToHashSet();
+        await c.ExecuteAsync("CREATE SCHEMA IF NOT EXISTS valora; CREATE TABLE IF NOT EXISTS valorapesquisa.schema_migrations(script_name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now());");
+        var done = (await c.QueryAsync<string>("SELECT script_name FROM valorapesquisa.schema_migrations")).ToHashSet();
         var applied = new List<string>();
         foreach (var f in files)
         {
@@ -22,7 +22,7 @@ public sealed class MigrationRunner(IDbConnectionFactory factory, ILogger<Migrat
             try
             {
                 await c.ExecuteAsync(await File.ReadAllTextAsync(f), transaction: tx);
-                await c.ExecuteAsync("INSERT INTO valora.schema_migrations(script_name) VALUES (@name)", new { name }, tx);
+                await c.ExecuteAsync("INSERT INTO valorapesquisa.schema_migrations(script_name) VALUES (@name)", new { name }, tx);
                 tx.Commit();
                 applied.Add(name);
                 logger.LogInformation("Migration {Migration} aplicada", name);

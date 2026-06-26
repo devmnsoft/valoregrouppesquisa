@@ -1,13 +1,19 @@
-# Relatório de Comparação Firebase x PostgreSQL
+# Relatório de comparação Firebase x PostgreSQL
 
-Gerado por `migration/compare-firebase-postgres.js`. Quando não houver export local, o relatório fica como baseline aguardando execução com credenciais e dumps reais.
+Gerado em 2026-06-26T16:52:54.262Z.
 
-## Complemento Sprint 8
+Status: dry-run.
 
-## Estado Sprint 8
-- Produção permanece segura com `DATA_PROVIDER: 'firebase'` e `ALLOW_API_PRODUCTION_CUTOVER: false`.
-- API/PostgreSQL ficam disponíveis para homologação local/controlada com `DATA_PROVIDER: 'api'` ou `DATA_PROVIDER: 'hybrid'`.
-- Firebase, `firebase-repository.js` e `repository.js` são preservados.
-- Frontend não armazena SMTP, segredos de e-mail ou token WhatsApp; comunicação deve passar por Gateway/API.
+Divergências críticas: 0.
 
-- Validadores: `api:provider`, `journey:provider`, `architecture:warnings`, `cutover:ready`, `api:e2e`, `postgres:mvp`, `hybrid:check`, `migration:validate`, `migration:compare`.
+| Domínio | Firebase | PostgreSQL | Divergências |
+|---|---:|---:|---:|
+| empresas | 0 | 0 | 0 |
+| usuários | 0 | 0 | 0 |
+| planos | 0 | 0 | 0 |
+| formulários | 0 | 0 | 0 |
+| pesquisas | 0 | 0 | 0 |
+| respostas | 0 | 0 | 0 |
+| resultados | 0 | 0 | 0 |
+| scores | 0 | 0 | 0 |
+| comunicações | 0 | 0 | 0 |

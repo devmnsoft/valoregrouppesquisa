@@ -17,3 +17,13 @@ Sprint 4 mantém Firebase em produção e adiciona MVP operacional PostgreSQL/AP
 - Produção permanece com `DATA_PROVIDER: 'firebase'`.
 - Cloud Functions não são usadas pela jornada pública quando `ENABLE_CLOUD_FUNCTIONS` está falso.
 - Senhas não são migradas em texto puro.
+
+## Complemento Sprint 8
+
+## Estado Sprint 8
+- Produção permanece segura com `DATA_PROVIDER: 'firebase'` e `ALLOW_API_PRODUCTION_CUTOVER: false`.
+- API/PostgreSQL ficam disponíveis para homologação local/controlada com `DATA_PROVIDER: 'api'` ou `DATA_PROVIDER: 'hybrid'`.
+- Firebase, `firebase-repository.js` e `repository.js` são preservados.
+- Frontend não armazena SMTP, segredos de e-mail ou token WhatsApp; comunicação deve passar por Gateway/API.
+
+- Validadores: `api:provider`, `journey:provider`, `architecture:warnings`, `cutover:ready`, `api:e2e`, `postgres:mvp`, `hybrid:check`, `migration:validate`, `migration:compare`.

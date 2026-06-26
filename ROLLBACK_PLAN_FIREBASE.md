@@ -1,21 +1,22 @@
-# Plano de Rollback — Firebase
+# Rollback para Firebase
 
-## Gatilhos
+## Voltar provider
+Publicar configuração com `DATA_PROVIDER=firebase` e `ALLOW_API_PRODUCTION_CUTOVER=false`.
 
-- Falha em `/health` ou `/health/database`.
-- Divergência crítica no comparador.
-- Erro relevante em login, envio de pesquisa, resultado público, certificado ou e-mail.
+## Preservar respostas feitas na API
+Exportar respostas API criadas durante a janela, registrar lote de compensação e reprocessar para Firebase ou manter fila auditável.
 
-## Ação imediata
+## Reprocessar divergências
+Usar relatório de comparação, `migration.import_errors` e diagnósticos hybrid para corrigir respostas, resultados e comunicações.
 
-1. Restaurar `DATA_PROVIDER=firebase`.
-2. Restaurar providers públicos para gateway/Firebase atual conforme configuração validada.
-3. Reiniciar publicação IIS do frontend estático.
-4. Manter PostgreSQL/API em modo somente diagnóstico.
-5. Registrar incidente e preservar relatórios de comparação.
+## Revalidar produção
+Executar `npm run check`, `npm run cutover:ready` e healthcheck PRD.
 
-## Validação pós-rollback
+## Publicar rollback no IIS
+Gerar pacote, publicar `config.js` Firebase, reciclar app pool se necessário e validar URL pública.
 
-- Rodar `npm run check`.
-- Rodar health PRD.
-- Testar login e jornada pública Firebase.
+## Estado Sprint 8
+- Produção permanece segura com `DATA_PROVIDER: 'firebase'` e `ALLOW_API_PRODUCTION_CUTOVER: false`.
+- API/PostgreSQL ficam disponíveis para homologação local/controlada com `DATA_PROVIDER: 'api'` ou `DATA_PROVIDER: 'hybrid'`.
+- Firebase, `firebase-repository.js` e `repository.js` são preservados.
+- Frontend não armazena SMTP, segredos de e-mail ou token WhatsApp; comunicação deve passar por Gateway/API.

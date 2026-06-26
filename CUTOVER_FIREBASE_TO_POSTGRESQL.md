@@ -1,26 +1,27 @@
-# Cutover Firebase → PostgreSQL
+# Cutover Firebase → API/PostgreSQL
 
-## Pré-condições
+## Pré-requisitos
+- Backup Firebase validado.
+- Backup PostgreSQL validado.
+- Dry-run obrigatório sem erros críticos.
+- Apply local obrigatório em ambiente controlado.
+- Comparação Firebase x PostgreSQL obrigatória.
+- `ALLOW_API_PRODUCTION_CUTOVER=true` somente na janela aprovada.
 
-- Produção atual validada com `DATA_PROVIDER=firebase`.
-- PostgreSQL migrado localmente e em homologação.
-- Comparação Firebase x PostgreSQL sem divergências críticas.
-- Backend ASP.NET Core publicado com health checks verdes.
-- SMTP/certificados/auditoria validados.
+## Execução
+1. Congelar janela de manutenção.
+2. Exportar Firestore.
+3. Transformar e importar PostgreSQL.
+4. Comparar entidades críticas.
+5. Alterar `DATA_PROVIDER` de `firebase` para `api` apenas com aprovação.
+6. Validar health, login, planos, pesquisa pública, resposta, resultado, certificado e comunicação.
+7. Monitorar logs, divergências, e-mail e performance.
 
-## Passos
+## Critério de rollback
+Rollback imediato se health/database falhar, resposta pública falhar, divergência crítica aumentar, e-mail bloquear jornada ou certificados retornarem dados inválidos.
 
-1. Congelar janela de escrita ou ativar modo manutenção curto.
-2. Executar export Firestore.
-3. Transformar dados para contratos PostgreSQL.
-4. Importar com `--apply` em PostgreSQL de produção.
-5. Rodar comparador Firebase x PostgreSQL.
-6. Ativar `DATA_PROVIDER=hybrid` com primário Firebase para observabilidade.
-7. Trocar primário para API em homologação controlada.
-8. Após aceite, alterar produção para API em janela aprovada.
-
-## Não fazer
-
-- Não enviar segredos SMTP ao frontend.
-- Não ativar Cloud Functions em Spark para jornada pública.
-- Não duplicar escrita em modo hybrid.
+## Estado Sprint 8
+- Produção permanece segura com `DATA_PROVIDER: 'firebase'` e `ALLOW_API_PRODUCTION_CUTOVER: false`.
+- API/PostgreSQL ficam disponíveis para homologação local/controlada com `DATA_PROVIDER: 'api'` ou `DATA_PROVIDER: 'hybrid'`.
+- Firebase, `firebase-repository.js` e `repository.js` são preservados.
+- Frontend não armazena SMTP, segredos de e-mail ou token WhatsApp; comunicação deve passar por Gateway/API.

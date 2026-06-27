@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Valora.Api.Controllers;
 
 [ApiController]
+[Authorize]
 public sealed class MigrationController : ControllerBase
 {
     [HttpGet("/admin/migration/status")]

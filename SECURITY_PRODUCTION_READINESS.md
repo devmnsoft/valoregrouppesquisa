@@ -36,3 +36,19 @@ Sprint 27 — diagnóstico de prontidão SaaS para homologação.
 - PostgreSQL local usa exclusivamente o schema `valorapesquisa`.
 - Gates finais reforçados: SaaS readiness, certificado, e-mail, billing, cobertura frontend, E2E SaaS, cutover dry-run, rollback readiness e release candidate com relatório.
 - Limitação conhecida: ambientes sem API/PostgreSQL ativos executam validação estática/contratual; validação viva é feita com `VALORA_E2E_LIVE=1 npm run prod:saas-e2e`.
+
+## Sprint 30 - Gate executável de segurança
+
+O gate `prod:security-gate` valida controles de código e configuração antes da homologação final:
+
+- JWT com issuer, audience, lifetime e chave de assinatura configurável por ambiente.
+- Middleware de erro JSON sem stack trace em produção e com `correlationId`.
+- Headers de segurança no Firebase Hosting, incluindo CSP, X-Frame-Options e X-Content-Type-Options.
+- Regras Firestore preservadas com autenticação/negação explícita.
+- Endpoints administrativos protegidos por `[Authorize]`.
+- Rotas legacy bloqueadas por `LegacyEnabled` e `legacy_route_disabled`.
+- `DATA_PROVIDER=firebase` e `ALLOW_API_PRODUCTION_CUTOVER=false` preservados.
+- Política de CORS por ambiente: liberar somente origens homologadas em produção e manter localhost apenas para desenvolvimento.
+- Rate limit obrigatório para autenticação e pesquisa pública antes de exposição externa da API.
+- Limite de payload obrigatório para submissões públicas para evitar abuso e custo operacional.
+- Proibição de stack trace, segredos e dados pessoais completos em respostas/logs.

@@ -1,4 +1,4 @@
-# Correlation Id Policy
+# Frontend Api Error Handling
 
 Sprint 24 — Homologação Operacional.
 

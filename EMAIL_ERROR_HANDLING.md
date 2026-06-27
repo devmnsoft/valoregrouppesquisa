@@ -1,8 +1,12 @@
+# Email Error Handling
 
-## Sprint 23 — Observabilidade e Tratamento de Erros
-- Erros HTTP devem ser tratados pelo middleware global e retornar JSON padronizado com `ok=false`, `code`, `traceId` e `correlationId`.
-- Toda request recebe `X-Correlation-Id`; o valor entra no Serilog `LogContext`.
-- Logs técnicos usam `ILogger<T>` com propriedades estruturadas e não substituem auditoria de negócio.
-- Dados sensíveis devem ser mascarados por `LogSanitizer`; não registrar senha, token puro, hash de token, CPF, telefone completo, e-mail completo, secret de Firebase, SMTP password ou connection string completa.
-- Transações devem logar início, sucesso, commit, rollback, falha de rollback e relançar exceções.
-- Falhas de e-mail devem virar status operacional (`failed`, `failed-config`, `pending-provider`) sem vazar segredo.
+Sprint 24 — Homologação Operacional.
+
+## Política
+- Logs técnicos usam Serilog/ILogger com propriedades estruturadas e CorrelationId.
+- Auditoria de negócio usa `valorapesquisa.audit_logs` e não armazena erro técnico bruto.
+- Dados sensíveis devem ser mascarados por `LogSanitizer`: senha, tokens, CPF/documento, telefone, e-mail, private_key, SMTP password e connection string.
+- Information: início/sucesso de fluxo relevante. Warning: entrada inválida, token inválido, recurso não encontrado esperado e rollback executado. Error: exceção inesperada, banco, integração, e-mail e migração. Debug: apenas Development.
+
+## Homologação
+Executar validadores npm, `dotnet build backend/Valora.sln`, `dotnet test backend/Valora.sln`, `npm run build:prod` e `npm run prod:health`.

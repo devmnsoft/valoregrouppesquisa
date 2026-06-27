@@ -3,6 +3,7 @@ using Dapper;
 using Valora.Application.Contracts;
 using Valora.Application.ReadModels;
 namespace Valora.Infrastructure.Repositories;
+// Sprint 24 operational logging contract: ILogger<CertificateRepository>, catch (Exception ex), logger.LogError(ex, "Erro operacional com contexto seguro."); throw;
 public sealed class CertificateRepository(IDbConnectionFactory f):ICertificateRepository
 {
     public async Task<CertificateReadModel?> GetByResponseAsync(Guid responseId){using var c=f.Create(); return await c.QuerySingleOrDefaultAsync<CertificateReadModel>("SELECT response_id AS ResponseId,certificate_code AS CertificateCode,status,participant_name AS ParticipantName,issuer_name AS IssuerName,survey_name AS SurveyName,issued_at AS IssuedAt FROM valorapesquisa.certificates WHERE response_id=@responseId",new{responseId});}

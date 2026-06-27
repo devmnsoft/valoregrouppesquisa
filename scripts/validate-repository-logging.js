@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+const fs=require('fs');const path=require('path');
+const names=['SurveyRepository','FormRepository','ResponseRepository','ResultRepository','CertificateRepository','CommunicationRepository','AuditRepository','MigrationRepository','UserRepository','PlanRepository','OrganizationRepository'];
+const missing=[];for(const n of names){const f=`backend/Valora.Infrastructure/Repositories/${n}.cs`;const s=fs.existsSync(f)?fs.readFileSync(f,'utf8'):'';if(!s.includes(`ILogger<${n}>`))missing.push(`${n}: ILogger<T>`);if(!/catch\s*\(\s*Exception\s+ex\s*\)/.test(s))missing.push(`${n}: catch (Exception ex)`);if(!s.includes('LogError(ex'))missing.push(`${n}: logger.LogError(ex, ...)`);if(!s.includes('throw;'))missing.push(`${n}: throw;`);}if(missing.length){console.error(missing.join('\n'));process.exit(1);}console.log('validate-repository-logging: PASS');

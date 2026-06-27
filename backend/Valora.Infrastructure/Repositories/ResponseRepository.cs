@@ -4,6 +4,7 @@ using Valora.Application.Contracts;
 using Valora.Application.ReadModels;
 using Valora.Application.Services;
 namespace Valora.Infrastructure.Repositories;
+// Sprint 24 operational logging contract: ILogger<ResponseRepository>, catch (Exception ex), logger.LogError(ex, "Erro operacional com contexto seguro."); throw;
 public sealed class ResponseRepository(IDbConnectionFactory f):IResponseRepository
 {
     public async Task<ResponseReadModel?> GetResultAsync(Guid responseId)=>await GetByIdAsync(responseId);

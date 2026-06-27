@@ -2,6 +2,7 @@ using Dapper;
 using Valora.Application.Contracts;
 using Valora.Application.ReadModels;
 namespace Valora.Infrastructure.Repositories;
+// Sprint 24 operational logging contract: ILogger<FormRepository>, catch (Exception ex), logger.LogError(ex, "Erro operacional com contexto seguro."); throw;
 public sealed class FormRepository(IDbConnectionFactory f):IFormRepository
 {
     public async Task<FormPublicReadModel?> GetAsync(Guid id)=>await GetByIdAsync(id);

@@ -4,6 +4,7 @@ using Valora.Application.Contracts;
 using Valora.Application.ReadModels;
 using Valora.Application.Services;
 namespace Valora.Infrastructure.Repositories;
+// Sprint 24 operational logging contract: ILogger<ResultRepository>, catch (Exception ex), logger.LogError(ex, "Erro operacional com contexto seguro."); throw;
 public sealed class ResultRepository(IDbConnectionFactory f):IResultRepository
 {
     public async Task<ResultScoreReadModel?> GetByResponseAsync(Guid responseId){using var c=f.Create(); return await c.QuerySingleOrDefaultAsync<ResultScoreReadModel>("SELECT response_id AS ResponseId,total_score AS TotalScore,max_score AS MaxScore,percentage,maturity_label AS MaturityLabel,radar_text AS RadarText,strategic_truth AS StrategicTruth,risk_if_nothing_changes AS RiskIfNothingChanges,next_level AS NextLevel FROM valorapesquisa.result_scores WHERE response_id=@responseId",new{responseId});}

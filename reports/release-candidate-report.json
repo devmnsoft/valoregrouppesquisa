@@ -1,0 +1,271 @@
+{
+  "generatedAt": "2026-06-27T23:08:00.342Z",
+  "environment": "local",
+  "commit": "1c50dc3",
+  "gates": [
+    {
+      "gate": "check",
+      "status": "PASS",
+      "durationMs": 410
+    },
+    {
+      "gate": "frontend:bootstrap",
+      "status": "PASS",
+      "durationMs": 281
+    },
+    {
+      "gate": "frontend:api-errors",
+      "status": "PASS",
+      "durationMs": 288
+    },
+    {
+      "gate": "security:check",
+      "status": "PASS",
+      "durationMs": 740
+    },
+    {
+      "gate": "validate:data-contracts",
+      "status": "PASS",
+      "durationMs": 288
+    },
+    {
+      "gate": "validate:render-resilience",
+      "status": "PASS",
+      "durationMs": 291
+    },
+    {
+      "gate": "audit:data-shapes",
+      "status": "PASS",
+      "durationMs": 325
+    },
+    {
+      "gate": "api:no-fake-validator-comments",
+      "status": "PASS",
+      "durationMs": 309
+    },
+    {
+      "gate": "api:error-handling",
+      "status": "PASS",
+      "durationMs": 273
+    },
+    {
+      "gate": "api:logging",
+      "status": "PASS",
+      "durationMs": 274
+    },
+    {
+      "gate": "api:repository-logging",
+      "status": "PASS",
+      "durationMs": 286
+    },
+    {
+      "gate": "api:migration-logging",
+      "status": "PASS",
+      "durationMs": 275
+    },
+    {
+      "gate": "api:no-sensitive-logs",
+      "status": "PASS",
+      "durationMs": 481
+    },
+    {
+      "gate": "api:correlation",
+      "status": "PASS",
+      "durationMs": 270
+    },
+    {
+      "gate": "api:transaction-logging",
+      "status": "PASS",
+      "durationMs": 283
+    },
+    {
+      "gate": "api:email-errors",
+      "status": "PASS",
+      "durationMs": 284
+    },
+    {
+      "gate": "api:health-observability",
+      "status": "PASS",
+      "durationMs": 280
+    },
+    {
+      "gate": "api:provider",
+      "status": "PASS",
+      "durationMs": 284
+    },
+    {
+      "gate": "journey:provider",
+      "status": "PASS",
+      "durationMs": 282
+    },
+    {
+      "gate": "api:routes",
+      "status": "PASS",
+      "durationMs": 303
+    },
+    {
+      "gate": "api:public-real",
+      "status": "PASS",
+      "durationMs": 287
+    },
+    {
+      "gate": "api:typed-services",
+      "status": "PASS",
+      "durationMs": 303
+    },
+    {
+      "gate": "api:service-size",
+      "status": "PASS",
+      "durationMs": 297
+    },
+    {
+      "gate": "api:result-token",
+      "status": "PASS",
+      "durationMs": 286
+    },
+    {
+      "gate": "api:transactional-submit",
+      "status": "PASS",
+      "durationMs": 285
+    },
+    {
+      "gate": "api:repository-transaction",
+      "status": "PASS",
+      "durationMs": 287
+    },
+    {
+      "gate": "architecture:warnings",
+      "status": "PASS",
+      "durationMs": 290
+    },
+    {
+      "gate": "cutover:ready",
+      "status": "PASS",
+      "durationMs": 294
+    },
+    {
+      "gate": "backend:implementation",
+      "status": "PASS",
+      "durationMs": 278
+    },
+    {
+      "gate": "backend:clean",
+      "status": "PASS",
+      "durationMs": 293
+    },
+    {
+      "gate": "postgres:schema",
+      "status": "PASS",
+      "durationMs": 294
+    },
+    {
+      "gate": "runtime:docker-windows",
+      "status": "PASS",
+      "durationMs": 269
+    },
+    {
+      "gate": "prod:saas-readiness",
+      "status": "PASS",
+      "durationMs": 285
+    },
+    {
+      "gate": "prod:no-legacy",
+      "status": "PASS",
+      "durationMs": 261
+    },
+    {
+      "gate": "prod:no-pending",
+      "status": "PASS",
+      "durationMs": 264
+    },
+    {
+      "gate": "prod:saas-features",
+      "status": "PASS",
+      "durationMs": 290
+    },
+    {
+      "gate": "prod:auth-flow",
+      "status": "PASS",
+      "durationMs": 268
+    },
+    {
+      "gate": "prod:certificate-flow",
+      "status": "PASS",
+      "durationMs": 292
+    },
+    {
+      "gate": "prod:email-flow",
+      "status": "PASS",
+      "durationMs": 293
+    },
+    {
+      "gate": "prod:billing",
+      "status": "PASS",
+      "durationMs": 327
+    },
+    {
+      "gate": "prod:security-gate",
+      "status": "PASS",
+      "durationMs": 290
+    },
+    {
+      "gate": "prod:frontend-saas",
+      "status": "PASS",
+      "durationMs": 329
+    },
+    {
+      "gate": "backend:build",
+      "status": "FAIL",
+      "durationMs": 219
+    }
+  ],
+  "passed": [
+    "check",
+    "frontend:bootstrap",
+    "frontend:api-errors",
+    "security:check",
+    "validate:data-contracts",
+    "validate:render-resilience",
+    "audit:data-shapes",
+    "api:no-fake-validator-comments",
+    "api:error-handling",
+    "api:logging",
+    "api:repository-logging",
+    "api:migration-logging",
+    "api:no-sensitive-logs",
+    "api:correlation",
+    "api:transaction-logging",
+    "api:email-errors",
+    "api:health-observability",
+    "api:provider",
+    "journey:provider",
+    "api:routes",
+    "api:public-real",
+    "api:typed-services",
+    "api:service-size",
+    "api:result-token",
+    "api:transactional-submit",
+    "api:repository-transaction",
+    "architecture:warnings",
+    "cutover:ready",
+    "backend:implementation",
+    "backend:clean",
+    "postgres:schema",
+    "runtime:docker-windows",
+    "prod:saas-readiness",
+    "prod:no-legacy",
+    "prod:no-pending",
+    "prod:saas-features",
+    "prod:auth-flow",
+    "prod:certificate-flow",
+    "prod:email-flow",
+    "prod:billing",
+    "prod:security-gate",
+    "prod:frontend-saas"
+  ],
+  "failed": [
+    "backend:build"
+  ],
+  "residualRisk": "Sem promessa de zero bug; release bloqueado por qualquer gate falho. Homologação funcional e cutover controlado continuam obrigatórios.",
+  "status": "FAIL"
+}

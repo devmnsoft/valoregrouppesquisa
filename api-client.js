@@ -11,7 +11,7 @@
   function sanitizeErrorDetail(value){return String(value||'').replace(/Bearer\s+[A-Za-z0-9._~+\/-]+=*/gi,'Bearer [redacted]').replace(/(password|senha|token|jwt|authorization)\s*[:=]\s*[^\s,;}]+/gi,'$1=[redacted]');}
   function normalizeApiError(error,fallbackMessage='Não foi possível processar sua solicitação agora. Tente novamente em instantes.'){
     const message=sanitizeErrorDetail(error?.message||error?.error||'');
-    return {ok:false,message:message||fallbackMessage,status:error?.status||error?.statusCode||0,code:error?.code||'API_ERROR'};
+    return {ok:false,message:message||fallbackMessage,status:error?.status||error?.statusCode||0,code:error?.code||'API_ERROR',correlationId:error?.correlationId||error?.traceId||''};
   }
   async function apiFetch(path,options={}){
     const base=baseUrl();
@@ -31,7 +31,7 @@
     let body={};
     try{body=text?JSON.parse(text):{};}catch(_){throw new Error('A API retornou JSON inválido.');}
     if(response.status===401&&options.clearTokenOnUnauthorized!==false)clearToken();
-    if(!response.ok||body.ok===false){const err=new Error(sanitizeErrorDetail(body.message||`API retornou HTTP ${response.status}.`));err.status=response.status;err.code=body.code;throw err;}
+    if(!response.ok||body.ok===false){const err=new Error(sanitizeErrorDetail(body.message||`API retornou HTTP ${response.status}.`));err.status=response.status;err.code=body.code;err.correlationId=body.correlationId||response.headers.get('X-Correlation-Id')||'';err.traceId=body.traceId||'';err.userMessage=`${err.message}${err.correlationId?' Código de atendimento: '+err.correlationId:''}`;throw err;}
     return body;
   }
   const json=(method,path,body)=>apiFetch(path,{method,body:body===undefined?undefined:JSON.stringify(body)});

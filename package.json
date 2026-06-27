@@ -58,7 +58,13 @@
     "api:transactional-submit": "node scripts/validate-transactional-public-submit.js",
     "api:typed-services": "node scripts/validate-typed-public-services.js",
     "api:service-size": "node scripts/validate-service-method-size.js",
-    "api:repository-transaction": "node scripts/validate-repository-transaction-boundary.js"
+    "api:repository-transaction": "node scripts/validate-repository-transaction-boundary.js",
+    "api:error-handling": "node scripts/validate-error-handling-middleware.js",
+    "api:logging": "node scripts/validate-logging-coverage.js",
+    "api:no-sensitive-logs": "node scripts/validate-no-sensitive-logs.js",
+    "api:correlation": "node scripts/validate-correlation-id.js",
+    "api:transaction-logging": "node scripts/validate-transaction-logging.js",
+    "api:email-errors": "node scripts/validate-email-error-handling.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

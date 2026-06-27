@@ -79,7 +79,11 @@
     "prod:email-flow": "node scripts/validate-email-production-flow.js",
     "prod:billing": "node scripts/validate-billing-entitlements.js",
     "prod:security-gate": "node scripts/validate-security-production-gate.js",
-    "prod:final-gate": "node scripts/validate-release-candidate.js"
+    "prod:final-gate": "node scripts/validate-release-candidate.js",
+    "prod:saas-e2e": "node scripts/validate-saas-end-to-end-flow.js",
+    "prod:frontend-saas": "node scripts/validate-saas-frontend-coverage.js",
+    "prod:cutover-dry-run": "node scripts/validate-cutover-dry-run.js",
+    "prod:rollback-ready": "node scripts/validate-rollback-readiness.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

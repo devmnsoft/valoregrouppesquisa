@@ -1,3 +1,12 @@
-const {exists,assert,pass}=require('./validate-sprint27-utils');
-['SPRINT_27_SAAS_PRODUCTION_READINESS_AUDIT.md','SAAS_PLANS_AND_BILLING_READINESS.md','SECURITY_PRODUCTION_READINESS.md','LGPD_PRODUCTION_READINESS.md','AUDIT_LOG_POLICY.md'].forEach(file=>assert(exists(file), file+' missing'));
+const {assert,requireFile,requirePattern,readIf,allFiles,pass}=require('./production-gate-utils');
+const cs=allFiles(['backend'],['.cs']); const sql=allFiles(['database/postgresql'],['.sql']); const body=cs.map(readIf).join('\n');
+['backend/Valora.Application/Communication/EmailJobService.cs','backend/Valora.Infrastructure/Email/SmtpEmailSender.cs','backend/Valora.Application/Communication/EmailTemplateService.cs','backend/Valora.Infrastructure/Repositories/CommunicationRepository.cs'].forEach(requireFile);
+requirePattern('email_jobs table',sql,/CREATE TABLE IF NOT EXISTS valorapesquisa\.email_jobs/i);
+requirePattern('communications table',sql,/CREATE TABLE IF NOT EXISTS valorapesquisa\.communications/i);
+['pending','processing','sent','failed'].forEach(s=>assert(new RegExp(s,'i').test(body),`email status ${s} missing`));
+assert(/communications\/result\/\{responseId.*send-email/i.test(body),'result email endpoint missing');
+assert(/forgot-password/.test(body)&&/Create.*EmailJob|Enqueue/i.test(body),'forgot-password email job enqueue missing');
+assert(/last_error/i.test(body)&&/Sanitiz|Mask|LogSanitizer/i.test(body),'sanitized SMTP failure handling missing');
+assert(/admin\/email-jobs\/process/.test(body)&&/Authorize/.test(body),'protected email queue processor missing');
+assert(cs.some(f=>/Email.*Test|Smtp.*Test/i.test(f)),'SMTP/email failure test missing');
 pass('validate-email-production-flow');

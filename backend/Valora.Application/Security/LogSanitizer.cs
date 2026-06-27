@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Valora.Application.Security;
@@ -30,6 +32,13 @@ public static class LogSanitizer
     {
         if (string.IsNullOrWhiteSpace(connectionString)) return connectionString;
         return Regex.Replace(connectionString, "(?i)(Password|Pwd|User ID|Username|User)\\s*=\\s*[^;]*", "$1=***");
+    }
+
+    public static string HashForLog(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "empty";
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+        return Convert.ToHexString(bytes)[..12];
     }
 
     public static string SanitizeError(Exception ex) => ex.GetType().Name;

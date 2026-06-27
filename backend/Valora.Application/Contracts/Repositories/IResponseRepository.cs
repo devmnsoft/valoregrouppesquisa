@@ -1,3 +1,5 @@
 using System.Data;
+using Valora.Application.ReadModels;
+using Valora.Application.Services;
 namespace Valora.Application.Contracts;
-public interface IResponseRepository { Task<dynamic?> GetResultAsync(Guid responseId); Task<Guid> CreateResponseAsync(Guid organizationId,Guid surveyId,Guid formId,string? name,string? email,string? phone,string tokenHash,IDbTransaction transaction); Task AddAnswersAsync(Guid responseId,IEnumerable<dynamic> answers,IDbTransaction transaction); Task<dynamic?> GetByIdAsync(Guid responseId); }
+public interface IResponseRepository { Task<ResponseReadModel?> GetResultAsync(Guid responseId); Task<Guid> CreateResponseAsync(Guid organizationId,Guid surveyId,Guid formId,string? name,string? email,string? phone,string tokenHash,IDbConnection connection,IDbTransaction transaction); Task AddAnswersAsync(Guid responseId,IEnumerable<ScoredAnswer> answers,IDbConnection connection,IDbTransaction transaction); Task<ResponseReadModel?> GetByIdAsync(Guid responseId); }

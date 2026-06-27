@@ -1,6 +1,15 @@
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
 namespace Valora.Application.Services;
-public sealed class PublicResultService(IResponseRepository responses,ISurveyRepository surveys,IResultRepository results,ICertificateRepository certificates,IResultTokenService tokens):IPublicResultService{
- public async Task<PublicResultResponse> GetAsync(Guid responseId,PublicResultRequest request){if(string.IsNullOrWhiteSpace(request.ResultToken)) throw new UnauthorizedAccessException("Token do resultado obrigatório."); var response=await responses.GetByIdAsync(responseId)??throw new InvalidOperationException("Resultado não encontrado."); if(string.IsNullOrWhiteSpace((string?)response.result_token_hash)||!tokens.Verify(request.ResultToken,(string)response.result_token_hash)) throw new UnauthorizedAccessException("Token do resultado inválido."); var survey=await surveys.GetActivePublicSurveyAsync((Guid)response.survey_id)??throw new InvalidOperationException("Pesquisa do resultado não encontrada."); var score=await results.GetByResponseAsync(responseId)??throw new InvalidOperationException("Pontuação não encontrada."); var dims=await results.GetDimensionsByResponseIdAsync(responseId); var cert=await certificates.GetByResponseAsync(responseId)??throw new InvalidOperationException("Certificado não encontrado."); return new PublicResultResponse(true,new PublicResponseDto((Guid)response.id,(string?)response.participant_name,(string?)response.participant_email,(string)response.status,(DateTime?)response.completed_at),new PublicSurveyDto((Guid)survey.id,(string)survey.title,(string?)survey.description,(string)survey.status,(bool)survey.lgpd_required),new PublicCompanyDto((Guid)survey.organization_id,(string?)survey.organization_name,(string?)survey.public_name,(string?)survey.organization_slug),new ResultScoreDto((decimal)score.total_score,(decimal)score.max_score,(decimal)score.percentage,(string)score.maturity_label,null,null,(string?)score.radar_text,(string?)score.strategic_truth,(string?)score.risk_if_nothing_changes,(string?)score.next_level),dims.Select(d=>new DimensionScoreDto((string)d.dimension_name,(decimal)d.score,(decimal)d.max_score,(decimal)d.percentage,(string?)d.level_label)).ToList(),new CertificateMetadataDto((Guid)cert.response_id,(string)cert.certificate_code,(string?)cert.status??"metadata-ready",(string?)cert.participant_name,(string?)cert.issuer_name,(string?)cert.survey_name,(DateTime?)cert.issued_at));}
+public sealed class PublicResultService(PublicResultValidator validator,ISurveyRepository surveys,IResultRepository results,ICertificateRepository certificates,PublicResultAssembler assembler):IPublicResultService
+{
+    public async Task<PublicResultResponse> GetAsync(Guid responseId, PublicResultRequest request)
+    {
+        var response = await validator.ValidateAsync(responseId, request);
+        var survey = await surveys.GetActivePublicSurveyAsync(response.SurveyId) ?? throw new InvalidOperationException("Pesquisa do resultado não encontrada.");
+        var score = await results.GetByResponseAsync(responseId) ?? throw new InvalidOperationException("Pontuação não encontrada.");
+        var dims = await results.GetDimensionsByResponseIdAsync(responseId);
+        var cert = await certificates.GetByResponseAsync(responseId) ?? throw new InvalidOperationException("Certificado não encontrado.");
+        return assembler.Assemble(response, survey, score, dims, cert);
+    }
 }

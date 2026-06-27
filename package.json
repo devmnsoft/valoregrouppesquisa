@@ -55,7 +55,10 @@
     "api:routes": "node scripts/validate-public-api-routes.js",
     "api:public-real": "node scripts/validate-public-api-real-flow.js",
     "api:result-token": "node scripts/validate-result-token-security.js",
-    "api:transactional-submit": "node scripts/validate-transactional-public-submit.js"
+    "api:transactional-submit": "node scripts/validate-transactional-public-submit.js",
+    "api:typed-services": "node scripts/validate-typed-public-services.js",
+    "api:service-size": "node scripts/validate-service-method-size.js",
+    "api:repository-transaction": "node scripts/validate-repository-transaction-boundary.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

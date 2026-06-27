@@ -1,4 +1,4 @@
-# LOGGING AND OBSERVABILITY
+# PRODUCTION CUTOVER CHECKLIST
 
 Sprint 27 — diagnóstico de prontidão SaaS para homologação.
 

@@ -1,4 +1,4 @@
-# LOGGING AND OBSERVABILITY
+# SPRINT 27 SAAS PRODUCTION READINESS AUDIT
 
 Sprint 27 — diagnóstico de prontidão SaaS para homologação.
 

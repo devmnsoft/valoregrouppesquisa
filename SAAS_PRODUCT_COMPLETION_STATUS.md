@@ -1,4 +1,4 @@
-# LOGGING AND OBSERVABILITY
+# SAAS PRODUCT COMPLETION STATUS
 
 Sprint 27 — diagnóstico de prontidão SaaS para homologação.
 

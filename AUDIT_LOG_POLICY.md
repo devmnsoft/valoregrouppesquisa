@@ -1,4 +1,4 @@
-# LOGGING AND OBSERVABILITY
+# AUDIT LOG POLICY
 
 Sprint 27 — diagnóstico de prontidão SaaS para homologação.
 

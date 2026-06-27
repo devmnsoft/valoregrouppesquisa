@@ -1,4 +1,4 @@
-# LOGGING AND OBSERVABILITY
+# BUG RISK REGISTER
 
 Sprint 27 — diagnóstico de prontidão SaaS para homologação.
 

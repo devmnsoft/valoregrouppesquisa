@@ -1,4 +1,4 @@
-# LOGGING AND OBSERVABILITY
+# FIREBASE TO POSTGRES FINAL MAPPING
 
 Sprint 27 — diagnóstico de prontidão SaaS para homologação.
 

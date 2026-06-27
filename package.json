@@ -69,7 +69,17 @@
     "api:migration-logging": "node scripts/validate-migration-logging.js",
     "api:health-observability": "node scripts/validate-health-observability.js",
     "frontend:api-errors": "node scripts/validate-frontend-api-errors.js",
-    "api:no-fake-validator-comments": "node scripts/validate-no-validator-fake-comments.js"
+    "api:no-fake-validator-comments": "node scripts/validate-no-validator-fake-comments.js",
+    "prod:saas-readiness": "node scripts/validate-saas-production-readiness.js",
+    "prod:no-legacy": "node scripts/validate-no-legacy-production-routes.js",
+    "prod:no-pending": "node scripts/validate-no-pending-production-features.js",
+    "prod:saas-features": "node scripts/validate-saas-feature-coverage.js",
+    "prod:auth-flow": "node scripts/validate-auth-production-flow.js",
+    "prod:certificate-flow": "node scripts/validate-certificate-production-flow.js",
+    "prod:email-flow": "node scripts/validate-email-production-flow.js",
+    "prod:billing": "node scripts/validate-billing-entitlements.js",
+    "prod:security-gate": "node scripts/validate-security-production-gate.js",
+    "prod:final-gate": "node scripts/validate-release-candidate.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

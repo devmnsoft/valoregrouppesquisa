@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Logging;
 using Valora.Application.Contracts;
+using Valora.Application.Security;
 using Valora.Application.DTOs;
 
 namespace Valora.Application.Services;
@@ -9,15 +11,18 @@ public sealed class AuthService(
     IPlanRepository plans,
     IJwtTokenService jwt,
     IPasswordHasher hasher,
-    AuditService audit)
+    AuditService audit,
+    ILogger<AuthService> logger)
 {
     public async Task<AuthResponse> RegisterCompanyAsync(RegisterCompanyRequest request)
     {
         ValidateRegisterRequest(request);
+        logger.LogInformation("Company registration started. Email={Email}", LogSanitizer.MaskEmail(request.Email));
 
         var existing = await users.GetByEmailAsync(request.Email);
         if (existing is not null)
         {
+            logger.LogWarning("Company registration conflict. Email={Email}", LogSanitizer.MaskEmail(request.Email));
             throw new InvalidOperationException("E-mail já cadastrado.");
         }
 
@@ -44,6 +49,8 @@ public sealed class AuthService(
             organizationId.ToString(),
             "Empresa cadastrada via API."));
 
+        logger.LogInformation("Company registration succeeded. OrganizationId={OrganizationId} UserId={UserId} Email={Email}", organizationId, userId, LogSanitizer.MaskEmail(request.Email));
+
         return new AuthResponse(
             jwt.CreateToken(userId, organizationId, request.Email, "empresa_admin"),
             new { id = userId, name = request.Name, email = request.Email, role = "empresa_admin" },
@@ -53,6 +60,8 @@ public sealed class AuthService(
 
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
+        logger.LogInformation("Login started. Email={Email}", LogSanitizer.MaskEmail(request.Email));
+
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
         {
             throw new UnauthorizedAccessException("Credenciais inválidas.");
@@ -67,6 +76,7 @@ public sealed class AuthService(
         }
 
         await users.TouchLoginAsync((Guid)user.id);
+        logger.LogInformation("Login succeeded. UserId={UserId} Email={Email}", (Guid)user.id, LogSanitizer.MaskEmail((string)user.email));
 
         await audit.LogAsync(new AuditEntry(
             (Guid?)user.organization_id,

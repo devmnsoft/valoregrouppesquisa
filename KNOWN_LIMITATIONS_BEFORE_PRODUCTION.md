@@ -1,4 +1,4 @@
-# LOGGING AND OBSERVABILITY
+# KNOWN LIMITATIONS BEFORE PRODUCTION
 
 Sprint 27 — diagnóstico de prontidão SaaS para homologação.
 

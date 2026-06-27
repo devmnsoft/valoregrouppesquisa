@@ -1,4 +1,4 @@
-# LOGGING AND OBSERVABILITY
+# SAAS PLANS AND BILLING READINESS
 
 Sprint 27 — diagnóstico de prontidão SaaS para homologação.
 

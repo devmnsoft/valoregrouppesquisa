@@ -1,3 +1,3 @@
 using Valora.Application.DTOs;
 namespace Valora.Application.Contracts;
-public interface IUserRepository { Task<dynamic?> GetByEmailAsync(string email); Task<dynamic?> GetAsync(Guid id); Task<Guid> CreateAsync(Guid organizationId,string name,string email,string passwordHash,string role); Task TouchLoginAsync(Guid id); }
+public interface IUserRepository { Task<dynamic?> GetByEmailAsync(string email); Task<dynamic?> GetAsync(Guid id); Task<Guid> CreateAsync(Guid organizationId,string name,string email,string passwordHash,string role); Task TouchLoginAsync(Guid id); Task CreatePasswordResetTokenAsync(Guid userId,string tokenHash,DateTimeOffset expiresAt,string? requestIpHash,string? userAgent); Task<dynamic?> GetValidPasswordResetTokenAsync(string tokenHash); Task MarkPasswordResetTokenUsedAsync(Guid tokenId); Task UpdatePasswordHashAsync(Guid userId,string passwordHash); }

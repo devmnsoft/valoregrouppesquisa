@@ -2,13 +2,14 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Contracts;
+using Valora.Application.Security;
 using Valora.Application.DTOs;
 using Valora.Application.Services;
 
 namespace Valora.Api.Controllers;
 
 [ApiController]
-public sealed class AuthController(AuthService auth, IUserRepository users) : ControllerBase
+public sealed class AuthController(AuthService auth, IUserRepository users, ILogger<AuthController> logger) : ControllerBase
 {
     [HttpPost("/auth/register-company")]
     public async Task<IActionResult> Register(RegisterCompanyRequest request)
@@ -23,13 +24,25 @@ public sealed class AuthController(AuthService auth, IUserRepository users) : Co
     }
 
     [HttpPost("/auth/forgot-password")]
-    public IActionResult Forgot()
+    public async Task<IActionResult> Forgot(ForgotPasswordRequest request)
     {
-        return Accepted(new
+        try
         {
-            ok = true,
-            message = "Fluxo de recuperação será integrado ao e-mail transacional na próxima fase."
-        });
+            await auth.ForgotPasswordAsync(request, HttpContext.Connection.RemoteIpAddress?.ToString(), Request.Headers.UserAgent.ToString());
+            return Accepted(new { ok = true, message = "Se o e-mail estiver cadastrado, enviaremos instruções de recuperação." });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Falha controlada no forgot-password. Email={Email}", LogSanitizer.MaskEmail(request.Email));
+            return Accepted(new { ok = true, message = "Se o e-mail estiver cadastrado, enviaremos instruções de recuperação." });
+        }
+    }
+
+    [HttpPost("/auth/reset-password")]
+    public async Task<IActionResult> Reset(ResetPasswordRequest request)
+    {
+        await auth.ResetPasswordAsync(request);
+        return Ok(new { ok = true, message = "Senha redefinida com sucesso." });
     }
 
     [Authorize]

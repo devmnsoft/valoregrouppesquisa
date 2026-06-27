@@ -1,4 +1,4 @@
-# LOGGING AND OBSERVABILITY
+# PRODUCTION ROLLBACK CHECKLIST
 
 Sprint 27 — diagnóstico de prontidão SaaS para homologação.
 

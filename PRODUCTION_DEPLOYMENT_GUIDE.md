@@ -1,4 +1,4 @@
-# LOGGING AND OBSERVABILITY
+# PRODUCTION DEPLOYMENT GUIDE
 
 Sprint 27 — diagnóstico de prontidão SaaS para homologação.
 

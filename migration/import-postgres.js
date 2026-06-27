@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+'use strict';
+const migrationLogger=require('./migration-logger');
+async function main(){
+const done=migrationLogger.time();
+migrationLogger.step('import-postgres.js started');
 const fs=require('fs');const path=require('path');
 const args=new Set(process.argv.slice(2));const dry=args.has('--dry-run')||!args.has('--apply');const truncate=args.has('--truncate');const backup=args.has('--backup');const batchSize=Number(process.argv[process.argv.indexOf('--batch-size')+1]||500);
 const outDir=path.join(__dirname,'out');const files=['organizations','users','plans','forms','questions','surveys','responses','answers','results','communications'];
@@ -8,3 +13,7 @@ fs.mkdirSync(path.join(__dirname,'..','reports'),{recursive:true});fs.writeFileS
 if(dry){console.log('import-postgres: dry-run validado; nenhuma escrita executada.');process.exit(0);} 
 if(!process.env.DATABASE_URL){console.error('DATABASE_URL obrigatório para --apply.');process.exit(1);} 
 console.log('import-postgres: apply requer driver pg em ambiente controlado; resumo salvo para execução operacional.');
+
+migrationLogger.success('import-postgres.js completed',{durationMs:done()});
+}
+main().catch(error=>{migrationLogger.fail('import-postgres.js failed',{durationMs:0,error:migrationLogger.sanitize(error&&error.message||error)});process.exit(1);});

@@ -11,7 +11,7 @@
   function sanitizeErrorDetail(value){return String(value||'').replace(/Bearer\s+[A-Za-z0-9._~+\/-]+=*/gi,'Bearer [redacted]').replace(/(password|senha|token|jwt|authorization)\s*[:=]\s*[^\s,;}]+/gi,'$1=[redacted]');}
   function normalizeApiError(error,fallbackMessage='Não foi possível processar sua solicitação agora. Tente novamente em instantes.'){
     const message=sanitizeErrorDetail(error?.message||error?.error||'');
-    return {ok:false,message:message||fallbackMessage,status:error?.status||error?.statusCode||0,code:error?.code||'API_ERROR',correlationId:error?.correlationId||error?.traceId||''};
+    return {ok:false,message:message||fallbackMessage,status:error?.status||error?.statusCode||0,code:error?.code||'API_ERROR',traceId:error?.traceId||'',correlationId:error?.correlationId||''};
   }
   async function apiFetch(path,options={}){
     const base=baseUrl();

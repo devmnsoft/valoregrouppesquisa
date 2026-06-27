@@ -64,7 +64,11 @@
     "api:no-sensitive-logs": "node scripts/validate-no-sensitive-logs.js",
     "api:correlation": "node scripts/validate-correlation-id.js",
     "api:transaction-logging": "node scripts/validate-transaction-logging.js",
-    "api:email-errors": "node scripts/validate-email-error-handling.js"
+    "api:email-errors": "node scripts/validate-email-error-handling.js",
+    "api:repository-logging": "node scripts/validate-repository-logging.js",
+    "api:migration-logging": "node scripts/validate-migration-logging.js",
+    "api:health-observability": "node scripts/validate-health-observability.js",
+    "frontend:api-errors": "node scripts/validate-frontend-api-errors.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

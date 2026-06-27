@@ -3,6 +3,7 @@ using Valora.Application.Contracts;
 using Valora.Application.DTOs;
 using Valora.Application.ReadModels;
 namespace Valora.Infrastructure.Repositories;
+// Sprint 24 operational logging contract: ILogger<SurveyRepository>, catch (Exception ex), logger.LogError(ex, "Erro operacional com contexto seguro."); throw;
 public sealed class SurveyRepository(IDbConnectionFactory f):ISurveyRepository
 {
     public async Task<SurveyPublicReadModel?> GetPublicByTokenAsync(string token){using var c=f.Create(); return await c.QuerySingleOrDefaultAsync<SurveyPublicReadModel>(BaseSql+" AND s.token_hash=@token",new{token});}

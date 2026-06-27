@@ -1,4 +1,4 @@
-# Correlation Id Policy
+# Healthchecks And Diagnostics
 
 Sprint 24 — Homologação Operacional.
 

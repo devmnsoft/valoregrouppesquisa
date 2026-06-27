@@ -1,4 +1,9 @@
 #!/usr/bin/env node
+'use strict';
+const migrationLogger=require('../migration/migration-logger');
+async function main(){
+const done=migrationLogger.time();
+migrationLogger.step('validate-real-migration-dry-run.js started');
 const {spawnSync}=require('child_process');const fs=require('fs');
 function run(cmd,args){const r=spawnSync(cmd,args,{encoding:'utf8'});if(r.status!==0)throw new Error(`${cmd} ${args.join(' ')} falhou: ${r.stderr||r.stdout}`);return r.stdout;}
 run('node',['migration/export-firestore.js','--dry-run']);
@@ -9,3 +14,7 @@ if(!fs.existsSync('reports/migration-comparison.json'))throw new Error('reports/
 const leaked=/"password"\s*:\s*"(?!\*\*\*|\[redacted\]|)[^"]{3,}"|senha\s*[:=]/i.test(JSON.stringify(fs.existsSync('migration/out/users.json')?JSON.parse(fs.readFileSync('migration/out/users.json','utf8')):[]));
 if(leaked)throw new Error('possível senha em texto puro encontrada em migration/out/users.json');
 console.log('validate-real-migration-dry-run: PASS');
+
+migrationLogger.success('validate-real-migration-dry-run.js completed',{durationMs:done()});
+}
+main().catch(error=>{migrationLogger.fail('validate-real-migration-dry-run.js failed',{durationMs:0,error:migrationLogger.sanitize(error&&error.message||error)});process.exit(1);});

@@ -1,24 +1,12 @@
-# RESULT_TOKEN_SECURITY
+# Result Token Security
 
-Atualizado na Sprint 19 para manter produção em Firebase por padrão e permitir API/PostgreSQL apenas em ambiente local/controlado.
+Sprint 24 — Homologação Operacional.
 
-## Pontos principais
-- Produção permanece com `DATA_PROVIDER='firebase'` e `ALLOW_API_PRODUCTION_CUTOVER=false`.
-- Jornada pública real usa `POST /public/surveys/{surveyId}/validate`, `POST /public/surveys/{surveyId}/responses` e `POST /public/results/{responseId}`.
-- Submissão pública grava dados transacionais em `valorapesquisa.responses`, `response_answers`, `result_scores`, `dimension_scores`, `certificates`, `email_jobs`, `communications` e `audit_logs`.
-- `resultToken` é retornado uma única vez no submit; o banco armazena somente `result_token_hash`.
-- Frontend continua Bootstrap + JavaScript puro, sem secrets e sem remover Firebase.
-- Docker usa `docker compose`; Windows fora do Docker usa `dotnet build backend\Valora.sln` e os validadores em `tools/windows/59-validar-jornada-publica-real-api-postgres.bat`.
+## Política
+- Logs técnicos usam Serilog/ILogger com propriedades estruturadas e CorrelationId.
+- Auditoria de negócio usa `valorapesquisa.audit_logs` e não armazena erro técnico bruto.
+- Dados sensíveis devem ser mascarados por `LogSanitizer`: senha, tokens, CPF/documento, telefone, e-mail, private_key, SMTP password e connection string.
+- Information: início/sucesso de fluxo relevante. Warning: entrada inválida, token inválido, recurso não encontrado esperado e rollback executado. Error: exceção inesperada, banco, integração, e-mail e migração. Debug: apenas Development.
 
-
-## Sprint 21
-
-Jornada pública refatorada com read models tipados, services pequenos, resultToken com hash e submissão transacional em PostgreSQL para ambiente local/controlado. Produção permanece Firebase.
-
-## Sprint 23 — Observabilidade e Tratamento de Erros
-- Erros HTTP devem ser tratados pelo middleware global e retornar JSON padronizado com `ok=false`, `code`, `traceId` e `correlationId`.
-- Toda request recebe `X-Correlation-Id`; o valor entra no Serilog `LogContext`.
-- Logs técnicos usam `ILogger<T>` com propriedades estruturadas e não substituem auditoria de negócio.
-- Dados sensíveis devem ser mascarados por `LogSanitizer`; não registrar senha, token puro, hash de token, CPF, telefone completo, e-mail completo, secret de Firebase, SMTP password ou connection string completa.
-- Transações devem logar início, sucesso, commit, rollback, falha de rollback e relançar exceções.
-- Falhas de e-mail devem virar status operacional (`failed`, `failed-config`, `pending-provider`) sem vazar segredo.
+## Homologação
+Executar validadores npm, `dotnet build backend/Valora.sln`, `dotnet test backend/Valora.sln`, `npm run build:prod` e `npm run prod:health`.

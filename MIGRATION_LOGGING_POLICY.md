@@ -1,4 +1,4 @@
-# Correlation Id Policy
+# Migration Logging Policy
 
 Sprint 24 — Homologação Operacional.
 

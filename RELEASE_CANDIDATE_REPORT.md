@@ -1,8 +1,99 @@
-# RELEASE_CANDIDATE_REPORT.md
+# Release Candidate Report
 
-## Sprint 28 - Homologação funcional SaaS
+- Data/hora: 2026-06-27T23:08:00.342Z
+- Ambiente: local
+- Commit: 1c50dc3
+- Status final: FAIL
+- Risco residual: Sem promessa de zero bug; release bloqueado por qualquer gate falho. Homologação funcional e cutover controlado continuam obrigatórios.
 
-- Produção permanece com Firebase preservado e `DATA_PROVIDER=firebase`; cutover para API exige aprovação e flag explícita.
-- PostgreSQL local usa exclusivamente o schema `valorapesquisa`.
-- Gates finais reforçados: SaaS readiness, certificado, e-mail, billing, cobertura frontend, E2E SaaS, cutover dry-run, rollback readiness e release candidate com relatório.
-- Limitação conhecida: ambientes sem API/PostgreSQL ativos executam validação estática/contratual; validação viva é feita com `VALORA_E2E_LIVE=1 npm run prod:saas-e2e`.
+## Gates executados
+- PASS check (410ms)
+- PASS frontend:bootstrap (281ms)
+- PASS frontend:api-errors (288ms)
+- PASS security:check (740ms)
+- PASS validate:data-contracts (288ms)
+- PASS validate:render-resilience (291ms)
+- PASS audit:data-shapes (325ms)
+- PASS api:no-fake-validator-comments (309ms)
+- PASS api:error-handling (273ms)
+- PASS api:logging (274ms)
+- PASS api:repository-logging (286ms)
+- PASS api:migration-logging (275ms)
+- PASS api:no-sensitive-logs (481ms)
+- PASS api:correlation (270ms)
+- PASS api:transaction-logging (283ms)
+- PASS api:email-errors (284ms)
+- PASS api:health-observability (280ms)
+- PASS api:provider (284ms)
+- PASS journey:provider (282ms)
+- PASS api:routes (303ms)
+- PASS api:public-real (287ms)
+- PASS api:typed-services (303ms)
+- PASS api:service-size (297ms)
+- PASS api:result-token (286ms)
+- PASS api:transactional-submit (285ms)
+- PASS api:repository-transaction (287ms)
+- PASS architecture:warnings (290ms)
+- PASS cutover:ready (294ms)
+- PASS backend:implementation (278ms)
+- PASS backend:clean (293ms)
+- PASS postgres:schema (294ms)
+- PASS runtime:docker-windows (269ms)
+- PASS prod:saas-readiness (285ms)
+- PASS prod:no-legacy (261ms)
+- PASS prod:no-pending (264ms)
+- PASS prod:saas-features (290ms)
+- PASS prod:auth-flow (268ms)
+- PASS prod:certificate-flow (292ms)
+- PASS prod:email-flow (293ms)
+- PASS prod:billing (327ms)
+- PASS prod:security-gate (290ms)
+- PASS prod:frontend-saas (329ms)
+- FAIL backend:build (219ms)
+
+## Gates aprovados: 42
+- check
+- frontend:bootstrap
+- frontend:api-errors
+- security:check
+- validate:data-contracts
+- validate:render-resilience
+- audit:data-shapes
+- api:no-fake-validator-comments
+- api:error-handling
+- api:logging
+- api:repository-logging
+- api:migration-logging
+- api:no-sensitive-logs
+- api:correlation
+- api:transaction-logging
+- api:email-errors
+- api:health-observability
+- api:provider
+- journey:provider
+- api:routes
+- api:public-real
+- api:typed-services
+- api:service-size
+- api:result-token
+- api:transactional-submit
+- api:repository-transaction
+- architecture:warnings
+- cutover:ready
+- backend:implementation
+- backend:clean
+- postgres:schema
+- runtime:docker-windows
+- prod:saas-readiness
+- prod:no-legacy
+- prod:no-pending
+- prod:saas-features
+- prod:auth-flow
+- prod:certificate-flow
+- prod:email-flow
+- prod:billing
+- prod:security-gate
+- prod:frontend-saas
+ 
+## Gates falhos: 1
+- backend:build

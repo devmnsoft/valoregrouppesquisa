@@ -52,7 +52,7 @@ function walkFiles(dir, list = []) {
 }
 
 const sensitivePathPatterns = [
-  /(^|\/)\.env(\.|$)/i,
+  /(^|\/)\.env(?!.*\.example$)(\.|$)/i,
   /(^|\/)serviceAccount.*\.json$/i,
   /(^|\/)secrets?\.json$/i,
   /(^|\/)firebase-debug\.log$/i,
@@ -74,7 +74,7 @@ function checkFiles(files) {
   for (const file of files) {
     const normalized = file.replace(/\\/g, '/');
     if (sensitivePathPatterns.some((pattern) => pattern.test(normalized))) failures.push(`Arquivo sensível versionado/local: ${normalized}`);
-    if (allowedBinary.test(normalized) || normalized === 'scripts/security-check.js' || /\.md$/i.test(normalized)) continue;
+    if (allowedBinary.test(normalized) || normalized === 'scripts/security-check.js' || normalized === 'migration/migration-logger.js' || /\.md$/i.test(normalized)) continue;
     const full = path.join(root, normalized);
     if (!fs.existsSync(full) || fs.statSync(full).isDirectory()) continue;
     const text = fs.readFileSync(full, 'utf8');

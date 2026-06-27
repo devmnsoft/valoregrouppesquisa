@@ -9,3 +9,7 @@ Atualizado na Sprint 19 para manter produção em Firebase por padrão e permiti
 - `resultToken` é retornado uma única vez no submit; o banco armazena somente `result_token_hash`.
 - Frontend continua Bootstrap + JavaScript puro, sem secrets e sem remover Firebase.
 - Docker usa `docker compose`; Windows fora do Docker usa `dotnet build backend\Valora.sln` e os validadores em `tools/windows/59-validar-jornada-publica-real-api-postgres.bat`.
+
+## Sprint 29 - Rollback operacional
+- Chave operacional de retorno imediato: DATA_PROVIDER=firebase.
+- Se o cutover API/PostgreSQL falhar, reverter flag de provider, validar Firebase, restaurar backup PostgreSQL se houver apply e registrar incidente com correlationId.

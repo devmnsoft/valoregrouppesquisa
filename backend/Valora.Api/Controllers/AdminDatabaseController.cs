@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Infrastructure.Database;
 
 namespace Valora.Api.Controllers;
 
 [ApiController]
+[Authorize]
 public sealed class AdminDatabaseController(IWebHostEnvironment env, MigrationRunner runner) : ControllerBase
 {
     [HttpPost("/admin/database/migrate")]

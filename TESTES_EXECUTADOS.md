@@ -9,3 +9,20 @@ Atualizado na Sprint 19 para manter produção em Firebase por padrão e permiti
 - `resultToken` é retornado uma única vez no submit; o banco armazena somente `result_token_hash`.
 - Frontend continua Bootstrap + JavaScript puro, sem secrets e sem remover Firebase.
 - Docker usa `docker compose`; Windows fora do Docker usa `dotnet build backend\Valora.sln` e os validadores em `tools/windows/59-validar-jornada-publica-real-api-postgres.bat`.
+
+
+## Sprint 21
+
+Jornada pública refatorada com read models tipados, services pequenos, resultToken com hash e submissão transacional em PostgreSQL para ambiente local/controlado. Produção permanece Firebase.
+
+## Sprint 21 - comandos executados
+
+- npm run api:typed-services
+- npm run api:service-size
+- npm run api:repository-transaction
+- node scripts/validate-result-token-security.js
+- node scripts/validate-transactional-public-submit.js
+- npm run check
+- npm run build:prod
+- dotnet build backend/Valora.sln (indisponível: dotnet não instalado no ambiente)
+- dotnet test backend/Valora.sln (indisponível: dotnet não instalado no ambiente)

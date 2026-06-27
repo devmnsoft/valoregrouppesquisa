@@ -19,7 +19,16 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<AuthService>();
         services.AddScoped<AuditService>();
         services.AddScoped<PlanEntitlementService>();
+        services.AddScoped<IPlanEntitlementService>(sp => sp.GetRequiredService<PlanEntitlementService>());
+        services.AddScoped<PublicAnswerNormalizer>();
+        services.AddScoped<PublicAnswerScorer>();
+        services.AddScoped<PublicSurveyValidator>();
+        services.AddScoped<PublicSurveyAssembler>();
+        services.AddScoped<PublicResponseTransactionService>();
+        services.AddScoped<PublicSurveySubmitter>();
         services.AddScoped<IPublicSurveyService, PublicSurveyService>();
+        services.AddScoped<PublicResultValidator>();
+        services.AddScoped<PublicResultAssembler>();
         services.AddScoped<IPublicResultService, PublicResultService>();
         services.AddSingleton<IResultTokenService, ResultTokenService>();
         return services;

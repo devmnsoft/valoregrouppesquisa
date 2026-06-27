@@ -1,0 +1,4 @@
+const fs=require('fs');const path=require('path');const roots=['backend/Valora.Application/Services/PublicSurveys','backend/Valora.Application/Services/PublicResults'];let errors=[];
+function files(d){return fs.readdirSync(d).flatMap(n=>{const p=path.join(d,n);return fs.statSync(p).isDirectory()?files(p):(p.endsWith('.cs')?[p]:[]);});}
+for(const f of roots.flatMap(files)){const lines=fs.readFileSync(f,'utf8').split(/\r?\n/);if(lines.length>140)errors.push(`${f}: arquivo com ${lines.length} linhas (>140)`);let depth=0,start=0;for(let i=0;i<lines.length;i++){for(const ch of lines[i]){if(ch=='{'){if(depth==1)start=i;depth++;} if(ch=='}'){if(depth==2&&i-start>80)errors.push(`${f}: método/bloco com ${i-start+1} linhas (>80)`);depth--;}}}}
+if(errors.length){console.error(errors.join('\n'));process.exit(1)}console.log('validate-service-method-size: PASS');

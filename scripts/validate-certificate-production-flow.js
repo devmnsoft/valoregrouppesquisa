@@ -1,3 +1,14 @@
-const {exists,assert,pass}=require('./validate-sprint27-utils');
-['SPRINT_27_SAAS_PRODUCTION_READINESS_AUDIT.md','SAAS_PLANS_AND_BILLING_READINESS.md','SECURITY_PRODUCTION_READINESS.md','LGPD_PRODUCTION_READINESS.md','AUDIT_LOG_POLICY.md'].forEach(file=>assert(exists(file), file+' missing'));
+const {assert,requireFile,requirePattern,readIf,allFiles,pass}=require('./production-gate-utils');
+const cs=allFiles(['backend'],['.cs']); const sql=allFiles(['database/postgresql'],['.sql']);
+requireFile('backend/Valora.Api/Controllers/CertificatesController.cs');
+requireFile('backend/Valora.Application/Certificates/CertificateService.cs');
+requireFile('backend/Valora.Infrastructure/Repositories/CertificateRepository.cs');
+requirePattern('certificates table',sql,/CREATE TABLE IF NOT EXISTS valorapesquisa\.certificates/i);
+const ctl=readIf('backend/Valora.Api/Controllers/CertificatesController.cs');
+assert(/certificate\.pdf/.test(ctl)&&/certificate\.png/.test(ctl)&&/certificates\/\{certificateCode/.test(ctl),'certificate endpoints pdf/png/validate missing');
+const body=cs.map(readIf).join('\n');
+const runtimeBody=cs.filter(f=>!f.includes('Valora.Tests')).map(readIf).join('\n');
+assert(!/Empresa Exemplo|undefined|NaN|\[object Object\]/.test(runtimeBody),'unsafe certificate placeholder/render marker found');
+assert(/CreateMetadataAsync/.test(body)&&/PublicSurveySubmitter|SubmitResponseAsync|SubmitAsync/.test(body),'certificate metadata is not wired to public submit flow');
+assert(cs.some(f=>/Certificate.*Test|Certificates.*Test/i.test(f)) || /certificate/i.test(readIf('backend/Valora.Tests/Valora.Tests.csproj')),'certificate test missing');
 pass('validate-certificate-production-flow');

@@ -1,3 +1,10 @@
-const {exists,assert,pass}=require('./validate-sprint27-utils');
-['SPRINT_27_SAAS_PRODUCTION_READINESS_AUDIT.md','SAAS_PLANS_AND_BILLING_READINESS.md','SECURITY_PRODUCTION_READINESS.md','LGPD_PRODUCTION_READINESS.md','AUDIT_LOG_POLICY.md'].forEach(file=>assert(exists(file), file+' missing'));
+const {assert,requireFile,requirePattern,readIf,allFiles,pass}=require('./production-gate-utils');
+const cs=allFiles(['backend'],['.cs']); const sql=allFiles(['database/postgresql'],['.sql']); const body=cs.map(readIf).join('\n');
+['plans','plan_limits','plan_capabilities','subscriptions','usage_monthly'].forEach(t=>requirePattern(`${t} table`,sql,new RegExp(`valorapesquisa\\.${t}`,'i')));
+requireFile('backend/Valora.Application/Services/Plans/PlanEntitlementService.cs');
+assert(/free/i.test(body)&&/Create.*Organization|RegisterCompany/i.test(body),'company registration does not assign free plan');
+['activeSurveys','responsesPerMonth','managers'].forEach(k=>assert(new RegExp(k,'i').test(body),`${k} entitlement not enforced`));
+assert(/PLAN_LIMIT_REACHED/.test(body)&&/Este recurso está disponível em um plano superior/.test(body),'commercial plan limit response missing');
+assert(/Planos comerciais|Plano contratado|#plans|plans/i.test(readIf('app.js')+readIf('index.html')),'frontend plans screen missing');
+assert(cs.some(f=>/Plan.*Test|Entitlement.*Test|Billing.*Test/i.test(f)),'plan limit test missing');
 pass('validate-billing-entitlements');

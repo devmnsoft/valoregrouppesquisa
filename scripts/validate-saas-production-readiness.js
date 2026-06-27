@@ -1,3 +1,13 @@
-const {exists,assert,pass}=require('./validate-sprint27-utils');
-['SPRINT_27_SAAS_PRODUCTION_READINESS_AUDIT.md','SAAS_PRODUCT_COMPLETION_STATUS.md','PRODUCTION_READINESS_CHECKLIST.md','KNOWN_LIMITATIONS_BEFORE_PRODUCTION.md'].forEach(f=>assert(exists(f),`${f} missing`));
+const {assert,requireFile,readIf,exists,allFiles,pass}=require('./production-gate-utils');
+const pkg=JSON.parse(requireFile('package.json')); const scripts=pkg.scripts||{};
+['prod:saas-readiness','prod:no-legacy','prod:no-pending','prod:saas-features','prod:auth-flow','prod:certificate-flow','prod:email-flow','prod:billing','prod:security-gate','prod:saas-e2e','prod:frontend-saas','prod:cutover-dry-run','prod:rollback-ready','prod:final-gate'].forEach(s=>assert(scripts[s],`package script ${s} missing`));
+const rc=readIf('scripts/validate-release-candidate.js'); ['prod:saas-e2e','prod:frontend-saas','prod:cutover-dry-run','prod:rollback-ready'].forEach(g=>assert(rc.includes(g),`release candidate does not execute ${g}`));
+['Dockerfile','docker-compose.yml','docker-compose.postgres.yml','backend/Valora.sln'].forEach(p=>assert(exists(p),`${p} missing`));
+const prod=readIf('backend/Valora.Api/appsettings.Production.json')+readIf('backend/Valora.Api/appsettings.json'); assert(!/(Password|Secret|PrivateKey|ConnectionStrings)"\s*:\s*"(?!\$\{|CHANGE_ME|__|trocar|localhost|Host=localhost|$)[^"]{12,}/i.test(prod),'production appsettings contains possible real secret');
+const cfg=readIf('config.js'); assert(/DATA_PROVIDER:\s*['"]firebase['"]/.test(cfg),'DATA_PROVIDER firebase default missing'); assert(/ALLOW_API_PRODUCTION_CUTOVER:\s*false/.test(cfg),'ALLOW_API_PRODUCTION_CUTOVER=false missing'); assert(/API_BASE_URL/.test(cfg),'API_BASE_URL not configurable');
+assert(/\/health/.test(readIf('backend/Valora.Api/Controllers/HealthController.cs')),'health checks missing');
+['migration/export-firestore.js','migration/transform-firestore-to-postgres.js','migration/import-postgres.js','migration/compare-firebase-postgres.js','migration/validate-migration.js'].forEach(p=>assert(exists(p),`${p} missing`));
+assert(/dry-run/i.test(readIf('migration/import-postgres.js'))&&/apply/i.test(readIf('migration/import-postgres.js'))&&/compare/i.test(readIf('migration/compare-firebase-postgres.js')),'migration dry-run/apply/compare incomplete');
+assert(exists('PRODUCTION_ROLLBACK_CHECKLIST.md')&&exists('PRODUCTION_CUTOVER_CHECKLIST.md'),'rollback/cutover docs missing');
+const markers=/StatusCode\(501|NotImplementedException|NotSupportedException|TODO CRITICAL|MOCK_PRODUCTION/i; const offenders=allFiles(['backend'],['.cs']).filter(f=>markers.test(readIf(f))); assert(!offenders.length,`forbidden production markers: ${offenders.join(', ')}`);
 pass('validate-saas-production-readiness');

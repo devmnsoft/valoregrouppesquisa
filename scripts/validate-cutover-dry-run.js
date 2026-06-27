@@ -1,0 +1,4 @@
+const {assert,exists,readIf,pass}=require('./production-gate-utils');
+['migration/export-firestore.js','migration/transform-firestore-to-postgres.js','migration/import-postgres.js','migration/compare-firebase-postgres.js','migration/validate-migration.js'].forEach(p=>assert(exists(p),`${p} missing`));
+assert(/dry-run/i.test(readIf('migration/import-postgres.js')),'import dry-run missing'); assert(/apply/i.test(readIf('migration/import-postgres.js')),'import apply missing'); assert(/backup/i.test(readIf('migration/import-postgres.js')+readIf('PRODUCTION_CUTOVER_CHECKLIST.md')),'backup before apply missing'); assert(/ALLOW_API_PRODUCTION_CUTOVER.*false/s.test(readIf('config.js')),'API cutover flag is not safely disabled'); assert(/Firebase/i.test(readIf('PRODUCTION_CUTOVER_CHECKLIST.md')),'Firebase preservation not documented');
+pass('validate-cutover-dry-run');

@@ -1,1 +1,3 @@
+using Xunit;
+
 namespace Valora.Tests; public class DatabaseConnectionTests { [Fact] public void Connection_string_uses_postgres_port_5434(){ var json=System.IO.File.ReadAllText("../../../../backend/Valora.Api/appsettings.json"); Assert.Contains("Port=5434",json); } }

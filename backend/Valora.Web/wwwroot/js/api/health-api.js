@@ -1,0 +1,1 @@
+window.HealthApi={all:()=>AjaxClient.get('/health'),database:()=>AjaxClient.get('/health/database'),logging:()=>AjaxClient.get('/health/logging'),migration:()=>AjaxClient.get('/health/migration'),version:()=>AjaxClient.get('/health/version')};

@@ -62,3 +62,5 @@ release-prd-report-*.md
 publish/
 backups/
 exports/
+
+reports/playwright/

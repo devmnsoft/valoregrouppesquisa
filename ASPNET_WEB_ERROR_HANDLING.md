@@ -1,8 +1,3 @@
-# ASPNET_WEB_ERROR_HANDLING.md
+# Tratamento de erros
 
-Sprint 34 criou o Valora.Web ASP.NET Core MVC API-first sem assets binários.
-
-- Frontend consome Valora.Api via HTTP e jQuery AJAX.
-- Sem acesso direto a banco, repositories ou Firebase.
-- Identidade visual textual: Valora Pulse™ em HTML/CSS.
-- Porta local: http://localhost:5088.
+Erros da API são normalizados em `ajax-client.js`, com mensagens amigáveis, status HTTP e correlationId. Telas não exibem stack trace, token, JSON bruto ou marcadores técnicos inseguros.

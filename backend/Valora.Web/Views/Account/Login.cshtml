@@ -1,3 +1,13 @@
-@{ ViewData["Title"] = "Account - Login"; }
-<section class="page-card" data-page="login-page"><div class="d-flex justify-content-between align-items-start gap-3 flex-wrap"><div><p class="eyebrow">Valora Web</p><h1>Account - Login</h1><p class="text-muted">Tela Bootstrap API-first com estados de carregamento, vazio e erro.</p></div><span class="badge text-bg-secondary" data-status-badge>Pronto para homologação</span></div><form class="needs-validation valora-form mt-3" novalidate><div class="row g-3"><div class="col-md-6"><label class="form-label">E-mail ou código</label><input class="form-control" name="email" required value=""></div><div class="col-md-6"><label class="form-label">Identificador</label><input class="form-control" name="id" value="@(ViewBag.SurveyId ?? ViewBag.ResponseId ?? ViewBag.CertificateCode ?? "")"></div></div><button class="btn btn-primary mt-3" type="submit">Executar ação</button></form><div class="alert alert-info mt-3 empty-state">Nenhum dado carregado ainda. A tela consumirá a Valora.Api via jQuery AJAX.</div><div class="alert alert-danger mt-3 d-none error-state"></div><div class="row g-3 mt-2" data-results></div></section>
+@{ ViewData["Title"] = "Entrar"; }
+<section class="page-card auth-card" data-page="login-page">
+  <p class="eyebrow">Acesso seguro</p><h1>Entrar no Valora Pulse</h1>
+  <p class="text-muted">Use seu e-mail corporativo e senha para acessar o painel SaaS.</p>
+  <form class="needs-validation valora-form" novalidate>
+    <label class="form-label" for="email">E-mail</label><input id="email" class="form-control form-control-lg" type="email" name="email" autocomplete="email" required>
+    <label class="form-label mt-3" for="password">Senha</label><input id="password" class="form-control form-control-lg" type="password" name="password" autocomplete="current-password" required minlength="6">
+    <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">Entrar</button>
+  </form>
+  <div class="alert alert-danger d-none mt-3 error-state" role="alert"></div><div class="d-flex justify-content-between gap-3 flex-wrap mt-3"><a href="/Account/ForgotPassword">Esqueci minha senha</a><a href="/Account/Register">Criar conta da empresa</a></div>
+  <p class="small text-muted mt-3">Ambiente protegido por token de sessão, correlação de requisições e logs sem senha.</p>
+</section>
 @section Scripts { <script src="/js/pages/login-page.js"></script> }

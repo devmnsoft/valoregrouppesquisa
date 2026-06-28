@@ -1,8 +1,8 @@
-# ASPNET_WEB_ROUTES.md
+# Rotas Valora.Web
 
-Sprint 34 criou o Valora.Web ASP.NET Core MVC API-first sem assets binários.
-
-- Frontend consome Valora.Api via HTTP e jQuery AJAX.
-- Sem acesso direto a banco, repositories ou Firebase.
-- Identidade visual textual: Valora Pulse™ em HTML/CSS.
-- Porta local: http://localhost:5088.
+- `/Account/Login`, `/Account/Register`, `/Account/ForgotPassword`, `/Account/ResetPassword`
+- `/Dashboard`, `/Plans`, `/EnvironmentStatus`
+- `/s/{surveyId}` para pesquisa pública
+- `/r/{responseId}` para resultado público
+- `/Certificates/Details/{id}` e `/Certificates/Validate/{certificateCode}`
+- `/Communications`, `/Audit`, `/Migration`, `/Settings`, `/Forms`, `/Users`, `/Organization`, `/Surveys`

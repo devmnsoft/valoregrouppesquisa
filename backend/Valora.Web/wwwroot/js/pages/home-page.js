@@ -1,1 +1,1 @@
-// Página inicial sem chamadas automáticas.
+$(function(){if(!$('[data-page="home-page"]').length)return;});

@@ -1,12 +1,6 @@
-# ASPNET_WEB_API_GAPS.md
+# Gaps de API para Valora.Web
 
-Sprint 34 criou o Valora.Web ASP.NET Core MVC API-first sem assets binários.
-
-- Frontend consome Valora.Api via HTTP e jQuery AJAX.
-- Sem acesso direto a banco, repositories ou Firebase.
-- Identidade visual textual: Valora Pulse™ em HTML/CSS.
-- Porta local: http://localhost:5088.
-
-## Gaps registrados
-
-- Alguns endpoints administrativos de auditoria, usuários, formulários e links públicos podem exigir confirmação de contrato na Valora.Api antes da homologação funcional completa.
+- Métricas do dashboard: pesquisas ativas, respostas do mês e limites do plano autenticado.
+- CRUD dedicado para Forms, Users, Settings e Organization no contrato web.
+- Contrato estável de dimensões/recomendações do resultado.
+- Metadados de disponibilidade de certificado PDF/PNG.

@@ -80,10 +80,21 @@
     "prod:billing": "node scripts/validate-billing-entitlements.js",
     "prod:security-gate": "node scripts/validate-security-production-gate.js",
     "prod:final-gate": "node scripts/validate-release-candidate.js",
-    "prod:saas-e2e": "node scripts/validate-saas-end-to-end-flow.js",
+    "prod:saas-e2e": "node scripts/validate-saas-end-to-end-flow.js --live",
     "prod:frontend-saas": "node scripts/validate-saas-frontend-coverage.js",
     "prod:cutover-dry-run": "node scripts/validate-cutover-dry-run.js",
-    "prod:rollback-ready": "node scripts/validate-rollback-readiness.js"
+    "prod:rollback-ready": "node scripts/validate-rollback-readiness.js",
+    "prod:saas-e2e:contract": "node scripts/validate-saas-end-to-end-flow.js --contract",
+    "test:e2e": "playwright test --config=playwright.e2e.config.js",
+    "test:e2e:headed": "playwright test --config=playwright.e2e.config.js --headed",
+    "prod:browser-e2e": "playwright test --config=playwright.e2e.config.js",
+    "prod:bug-bash": "node scripts/validate-bug-bash-readiness.js",
+    "prod:performance": "node scripts/validate-performance-baseline.js",
+    "prod:security-live": "node scripts/validate-security-live.js",
+    "local:live:up": "node scripts/start-local-live-environment.js",
+    "local:live:down": "node scripts/stop-local-live-environment.js",
+    "local:postgres:reset": "node scripts/reset-local-postgres.js",
+    "local:migrations:apply": "node scripts/apply-local-migrations.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

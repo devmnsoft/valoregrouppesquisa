@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-06-27T23:32:46.487Z",
+  "status": "PASS",
+  "mode": "safe-local",
+  "steps": [
+    {
+      "name": "fixture export",
+      "status": "PASS"
+    },
+    {
+      "name": "transform",
+      "status": "PASS"
+    },
+    {
+      "name": "backup local",
+      "status": "PASS"
+    },
+    {
+      "name": "import dry-run",
+      "status": "PASS"
+    },
+    {
+      "name": "compare",
+      "status": "PASS"
+    },
+    {
+      "name": "rollback local",
+      "status": "PASS"
+    }
+  ],
+  "residualRisk": "Fixture local não substitui export real aprovado."
+}

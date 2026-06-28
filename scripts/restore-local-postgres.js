@@ -1,0 +1,1 @@
+const {assert,run}=require('./live-gate-utils'); const f=process.env.VALORA_RESTORE_FILE||process.argv[2]; assert(f,'informe arquivo de restore'); const r=run('bash',['-lc',`cat ${JSON.stringify(f)} | docker exec -i valora-postgres psql -U valora -d valoradb`]); if(r.status!==0){console.error(r.stderr||r.stdout);process.exit(r.status)} console.log('restore local postgres: PASS');

@@ -1,0 +1,1 @@
+window.FilterPanel={value:function(root){return String($(root||document).find('[data-filter-text]').val()||'').trim().toLowerCase();},matches:function(text,term){return !term||String(text||'').toLowerCase().indexOf(term)>=0;}};

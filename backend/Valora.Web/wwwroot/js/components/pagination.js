@@ -1,0 +1,1 @@
+window.Pagination={summary:function(total,pageSize){var pages=Math.max(1,Math.ceil((total||0)/(pageSize||10)));return pages+' página'+(pages>1?'s':'');},render:function(target,total,pageSize){$(target||'[data-pagination]').text(this.summary(total,pageSize));}};

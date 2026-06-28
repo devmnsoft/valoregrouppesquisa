@@ -1,0 +1,1 @@
+(function(){ window.PublicLinksApi={ normalize:r=>r&&r.data?r.data:r,list:sid=>AjaxClient.get('/surveys/'+encodeURIComponent(sid)+'/links'),create:(sid,d)=>AjaxClient.post('/surveys/'+encodeURIComponent(sid)+'/links',d),setStatus:(id,s)=>AjaxClient.patch('/survey-links/'+encodeURIComponent(id)+'/status',{status:s}) }; }());

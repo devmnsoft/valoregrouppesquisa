@@ -1,0 +1,1 @@
+window.CommunicationsApi={sendResultEmail:id=>AjaxClient.post(`/communications/result/${encodeURIComponent(id)}/send-email`,{}),jobs:()=>AjaxClient.get('/admin/email-jobs'),process:()=>AjaxClient.post('/admin/email-jobs/process',{})};

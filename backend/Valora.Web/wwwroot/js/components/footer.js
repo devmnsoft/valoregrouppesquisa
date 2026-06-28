@@ -1,0 +1,1 @@
+window.ValoraComponents=window.ValoraComponents||{};

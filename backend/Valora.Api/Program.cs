@@ -22,6 +22,7 @@ app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseSerilogRequestLogging();
+app.UseCors("ValoraWebCors");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

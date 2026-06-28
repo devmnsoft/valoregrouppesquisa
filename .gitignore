@@ -62,3 +62,12 @@ release-prd-report-*.md
 publish/
 backups/
 exports/
+
+reports/playwright/test-results/
+playwright-report/
+reports/playwright/
+*.png
+*.jpg
+*.jpeg
+*.webm
+*.zip

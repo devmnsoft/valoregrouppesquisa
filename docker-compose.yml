@@ -28,5 +28,19 @@ services:
       - "5080:8080"
     depends_on:
       - valora-postgres
+  valora-web:
+    build:
+      context: .
+      dockerfile: backend/Valora.Web/Dockerfile
+    container_name: valora-web
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Api__BaseUrl: http://valora-api:8080
+      WebApp__PublicUrl: http://localhost:5088
+    ports:
+      - "5088:8080"
+    depends_on:
+      - valora-api
 volumes:
   valora_postgres_data:

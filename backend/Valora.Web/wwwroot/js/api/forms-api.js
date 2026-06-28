@@ -1,0 +1,1 @@
+(function(){ window.FormsApi={ normalize:r=>r&&r.data?r.data:r,list:()=>AjaxClient.get('/forms'),get:id=>AjaxClient.get('/forms/'+encodeURIComponent(id)),create:d=>AjaxClient.post('/forms',d),update:(id,d)=>AjaxClient.put('/forms/'+encodeURIComponent(id),d) }; }());

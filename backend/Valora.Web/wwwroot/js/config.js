@@ -1,0 +1,1 @@
+window.ValoraWebConfig = Object.freeze({APP_NAME:'Valora Pulse',APP_VERSION:'1.0.0-web',ENVIRONMENT:'local',API_BASE_URL:'http://localhost:5080',API_TIMEOUT_MS:20000,PUBLIC_URL:'http://localhost:5088',ENABLE_DEBUG_LOGS:true});

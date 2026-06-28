@@ -74,6 +74,9 @@ public sealed class WebAdminModulesController(ILogger<WebAdminModulesController>
     [HttpGet("/responses/{responseId:guid}")]
     public IActionResult Response(Guid responseId) => Safe(() => new { ok = true, id = responseId, status = "received" });
 
+    [HttpGet("/responses/{responseId:guid}/result")]
+    public IActionResult ResponseResult(Guid responseId) => Safe(() => new { ok = true, id = responseId, score = 0, level = "controlado", certificateAvailable = false });
+
     [HttpGet("/audit/events")]
     public IActionResult AuditEvents() => Safe(() => new { ok = true, items = Array.Empty<object>() });
 

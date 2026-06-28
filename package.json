@@ -120,7 +120,8 @@
     "web:auth-guards": "node scripts/validate-aspnet-web-auth-guards.js",
     "web:no-json-dump": "node scripts/validate-aspnet-web-no-json-dump.js",
     "web:admin-ux": "node scripts/validate-aspnet-web-admin-ux.js",
-    "web:api-endpoints": "node scripts/validate-api-endpoints-for-web.js"
+    "web:api-endpoints": "node scripts/validate-api-endpoints-for-web.js",
+    "web:admin-security": "node scripts/validate-aspnet-web-admin-security.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

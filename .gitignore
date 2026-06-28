@@ -71,3 +71,11 @@ reports/playwright/
 *.jpeg
 *.webm
 *.zip
+*.webp
+*.gif
+*.bmp
+*.ico
+*.pdf
+*.docx
+*.xlsx
+*.pptx

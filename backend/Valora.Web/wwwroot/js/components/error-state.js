@@ -1,0 +1,1 @@
+window.ErrorState={message:function(error){var cid=error&&error.correlationId?' CorrelationId: '+error.correlationId:'';return (error&&error.message?error.message:'Falha controlada ao carregar dados.')+cid;},render:function(error){return '<div class="error-state alert alert-danger" role="alert">'+$('<div>').text(this.message(error)).html()+'</div>';}};

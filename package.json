@@ -109,7 +109,12 @@
     "web:no-binaries": "node scripts/validate-no-binary-assets.js",
     "web:functional-flow": "node scripts/validate-aspnet-web-functional-flow.js",
     "web:e2e": "playwright test tests/e2e-web",
-    "web:e2e:headed": "playwright test tests/e2e-web --headed"
+    "web:e2e:headed": "playwright test tests/e2e-web --headed",
+    "web:no-placeholders": "node scripts/validate-aspnet-web-no-placeholders.js",
+    "web:real-forms": "node scripts/validate-aspnet-web-real-forms.js",
+    "web:real-api-usage": "node scripts/validate-aspnet-web-real-api-usage.js",
+    "web:result-token-safety": "node scripts/validate-aspnet-web-result-token-safety.js",
+    "web:certificate-binary": "node scripts/validate-aspnet-web-certificate-binary-handling.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

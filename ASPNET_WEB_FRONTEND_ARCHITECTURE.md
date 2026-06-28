@@ -1,8 +1,3 @@
-# ASPNET_WEB_FRONTEND_ARCHITECTURE.md
+# Arquitetura Frontend ASP.NET
 
-Sprint 34 criou o Valora.Web ASP.NET Core MVC API-first sem assets binários.
-
-- Frontend consome Valora.Api via HTTP e jQuery AJAX.
-- Sem acesso direto a banco, repositories ou Firebase.
-- Identidade visual textual: Valora Pulse™ em HTML/CSS.
-- Porta local: http://localhost:5088.
+Valora.Web é MVC/Razor, sem acesso direto a banco, repositories, Dapper, EF ou Firebase. O navegador consome somente Valora.Api por jQuery AJAX através de `ajax-client.js`, com token em `sessionStorage`, `X-Correlation-Id`, `requestJson` e `requestBinary`.

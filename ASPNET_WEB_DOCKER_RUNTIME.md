@@ -1,8 +1,3 @@
-# ASPNET_WEB_DOCKER_RUNTIME.md
+# Runtime Docker
 
-Sprint 34 criou o Valora.Web ASP.NET Core MVC API-first sem assets binários.
-
-- Frontend consome Valora.Api via HTTP e jQuery AJAX.
-- Sem acesso direto a banco, repositories ou Firebase.
-- Identidade visual textual: Valora Pulse™ em HTML/CSS.
-- Porta local: http://localhost:5088.
+Executar via compose existente após `docker compose build`. O Web deve receber URL da Valora.Api por configuração e continuar sem dependência direta de banco ou Firebase.

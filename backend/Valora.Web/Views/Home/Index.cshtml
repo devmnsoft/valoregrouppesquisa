@@ -1,3 +1,13 @@
-@{ ViewData["Title"] = "Home - Index"; }
-<section class="page-card" data-page="home-page"><div class="d-flex justify-content-between align-items-start gap-3 flex-wrap"><div><p class="eyebrow">Valora Web</p><h1>Home - Index</h1><p class="text-muted">Tela Bootstrap API-first com estados de carregamento, vazio e erro.</p></div><span class="badge text-bg-secondary" data-status-badge>Pronto para homologação</span></div><form class="needs-validation valora-form mt-3" novalidate><div class="row g-3"><div class="col-md-6"><label class="form-label">E-mail ou código</label><input class="form-control" name="email" required value=""></div><div class="col-md-6"><label class="form-label">Identificador</label><input class="form-control" name="id" value="@(ViewBag.SurveyId ?? ViewBag.ResponseId ?? ViewBag.CertificateCode ?? "")"></div></div><button class="btn btn-primary mt-3" type="submit">Executar ação</button></form><div class="alert alert-info mt-3 empty-state">Nenhum dado carregado ainda. A tela consumirá a Valora.Api via jQuery AJAX.</div><div class="alert alert-danger mt-3 d-none error-state"></div><div class="row g-3 mt-2" data-results></div></section>
+@{ ViewData["Title"] = "Valora Pulse"; }
+<section class="page-card" data-page="home-page">
+  <div class="row align-items-center g-4">
+    <div class="col-lg-7">
+      <p class="eyebrow">Valora Group</p>
+      <h1>Valora Pulse™ para diagnósticos corporativos SaaS</h1>
+      <p class="lead text-muted">Acesse pesquisas, resultados, certificados e operação integrada à Valora.Api com rastreabilidade e segurança.</p>
+      <div class="d-flex gap-2 flex-wrap"><a class="btn btn-primary btn-lg" href="/Account/Login">Entrar</a><a class="btn btn-outline-primary btn-lg" href="/Plans">Ver planos</a></div>
+    </div>
+    <div class="col-lg-5"><div class="card card-body"><h2>Operação API-first</h2><p>Frontend ASP.NET Core MVC consumindo contratos HTTP, sem acesso direto a dados internos.</p></div></div>
+  </div>
+</section>
 @section Scripts { <script src="/js/pages/home-page.js"></script> }

@@ -1,8 +1,15 @@
-# ASPNET_WEB_API_CONTRACT.md
+# Contrato API usado pelo Valora.Web
 
-Sprint 34 criou o Valora.Web ASP.NET Core MVC API-first sem assets binários.
-
-- Frontend consome Valora.Api via HTTP e jQuery AJAX.
-- Sem acesso direto a banco, repositories ou Firebase.
-- Identidade visual textual: Valora Pulse™ em HTML/CSS.
-- Porta local: http://localhost:5088.
+- POST `/auth/login`
+- POST `/auth/register-company`
+- POST `/auth/forgot-password`
+- POST `/auth/reset-password`
+- GET `/me`
+- GET `/plans/public`
+- POST `/public/surveys/{surveyId}/validate`
+- POST `/public/surveys/{surveyId}/responses`
+- POST `/public/results/{responseId}`
+- GET `/certificates/{certificateCode}/validate`
+- GET `/responses/{responseId}/certificate.pdf`
+- GET `/responses/{responseId}/certificate.png`
+- GET `/health`, `/health/database`, `/health/logging`, `/health/migration`, `/health/version`

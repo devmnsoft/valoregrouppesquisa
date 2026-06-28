@@ -1,8 +1,3 @@
-# ASPNET_WEB_MOBILE_READINESS.md
+# Prontidão Mobile
 
-Sprint 34 criou o Valora.Web ASP.NET Core MVC API-first sem assets binários.
-
-- Frontend consome Valora.Api via HTTP e jQuery AJAX.
-- Sem acesso direto a banco, repositories ou Firebase.
-- Identidade visual textual: Valora Pulse™ em HTML/CSS.
-- Porta local: http://localhost:5088.
+A sidebar usa offcanvas no mobile, links fecham o menu após toque, cards empilham, tabelas têm rolagem horizontal controlada, campos e botões têm altura mínima adequada para toque.

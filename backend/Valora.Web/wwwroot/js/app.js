@@ -1,0 +1,1 @@
+$(function(){$('#environmentBadge').text(window.ValoraWebConfig.ENVIRONMENT);$('#logoutButton').on('click',()=>{Session.clear();Toast.info('Sessão encerrada.');window.location.href='/Account/Login';});});

@@ -1,0 +1,1 @@
+window.AuthApi={registerCompany:p=>AjaxClient.post('/auth/register-company',p),login:p=>AjaxClient.post('/auth/login',p),forgotPassword:p=>AjaxClient.post('/auth/forgot-password',p),resetPassword:p=>AjaxClient.post('/auth/reset-password',p),me:()=>AjaxClient.get('/me')};

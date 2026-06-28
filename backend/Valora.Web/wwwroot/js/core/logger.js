@@ -1,0 +1,1 @@
+window.AppLogger={sanitize:e=>{const c={...(e||{})};delete c.token;delete c.password;delete c.resultToken;delete c.stack;return c;},debug:(m,d)=>{if(window.ValoraWebConfig?.ENABLE_DEBUG_LOGS)console.debug(m,AppLogger.sanitize(d));},error:(m,e)=>console.error(m,AppLogger.sanitize(e))};

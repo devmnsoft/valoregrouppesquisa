@@ -1,0 +1,1 @@
+window.ResultsApi={public:id=>AjaxClient.post(`/public/results/${encodeURIComponent(id)}`,{}),certificatePdf:id=>AjaxClient.get(`/responses/${encodeURIComponent(id)}/certificate.pdf`),certificatePng:id=>AjaxClient.get(`/responses/${encodeURIComponent(id)}/certificate.png`)};

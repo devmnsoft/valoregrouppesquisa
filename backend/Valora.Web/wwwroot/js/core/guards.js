@@ -1,0 +1,1 @@
+window.Guards=window.Guards||{};

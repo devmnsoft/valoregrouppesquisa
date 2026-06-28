@@ -95,7 +95,20 @@
     "local:live:down": "node scripts/stop-local-live-environment.js",
     "local:postgres:reset": "node scripts/reset-local-postgres.js",
     "local:migrations:apply": "node scripts/apply-local-migrations.js",
-    "prod:e2e-fixture-safety": "node scripts/validate-e2e-fixture-safety.js"
+    "prod:e2e-fixture-safety": "node scripts/validate-e2e-fixture-safety.js",
+    "web:build": "dotnet build backend/Valora.Web/Valora.Web.csproj",
+    "web:run": "dotnet run --project backend/Valora.Web/Valora.Web.csproj --urls http://localhost:5088",
+    "web:validate": "node scripts/validate-aspnet-web-project.js",
+    "web:jquery": "node scripts/validate-aspnet-web-jquery-ajax.js",
+    "web:api-contract": "node scripts/validate-aspnet-web-api-contract.js",
+    "web:screens": "node scripts/validate-aspnet-web-screens.js",
+    "web:errors": "node scripts/validate-aspnet-web-error-handling.js",
+    "web:mobile": "node scripts/validate-aspnet-web-mobile-readiness.js",
+    "web:cors": "node scripts/validate-aspnet-web-cors-readiness.js",
+    "web:docker": "node scripts/validate-aspnet-web-docker.js",
+    "web:no-binaries": "node scripts/validate-no-binary-assets.js",
+    "web:e2e": "playwright test tests/e2e-web",
+    "web:e2e:headed": "playwright test tests/e2e-web --headed"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

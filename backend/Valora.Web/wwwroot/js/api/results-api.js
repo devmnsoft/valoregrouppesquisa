@@ -1,1 +1,5 @@
-window.ResultsApi={public:id=>AjaxClient.post(`/public/results/${encodeURIComponent(id)}`,{}),certificatePdf:id=>AjaxClient.get(`/responses/${encodeURIComponent(id)}/certificate.pdf`),certificatePng:id=>AjaxClient.get(`/responses/${encodeURIComponent(id)}/certificate.png`)};
+window.ResultsApi={
+  public:(id,resultToken)=>AjaxClient.post(`/public/results/${encodeURIComponent(id)}`,resultToken?{resultToken}:{}),
+  certificatePdf:id=>AjaxClient.requestBinary('GET',`/responses/${encodeURIComponent(id)}/certificate.pdf`),
+  certificatePng:id=>AjaxClient.requestBinary('GET',`/responses/${encodeURIComponent(id)}/certificate.png`)
+};

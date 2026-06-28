@@ -1,0 +1,1 @@
+(function(){ window.ResponsesApi={ normalize:r=>r&&r.data?r.data:r,list:q=>AjaxClient.get('/responses'+(q?'?'+$.param(q):'')),get:id=>AjaxClient.get('/responses/'+encodeURIComponent(id)),result:id=>AjaxClient.get('/responses/'+encodeURIComponent(id)+'/result'),sendEmail:id=>AjaxClient.post('/communications/result/'+encodeURIComponent(id)+'/send-email',{}) }; }());

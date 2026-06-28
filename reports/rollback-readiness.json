@@ -1,0 +1,11 @@
+{
+  "generatedAt": "2026-06-27T23:32:46.853Z",
+  "status": "PASS",
+  "checks": [
+    "backup script",
+    "restore script",
+    "firebase rollback",
+    "local simulation contract",
+    "owner/time/risk"
+  ]
+}

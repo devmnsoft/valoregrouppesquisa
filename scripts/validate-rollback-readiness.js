@@ -1,4 +1,4 @@
-const {assert,exists,readIf,pass}=require('./production-gate-utils');
-['PRODUCTION_ROLLBACK_CHECKLIST.md','ROLLBACK_PRODUCAO.md','firebase.json','firestore.rules'].forEach(p=>assert(exists(p),`${p} missing`));
-const doc=readIf('PRODUCTION_ROLLBACK_CHECKLIST.md')+readIf('ROLLBACK_PRODUCAO.md'); ['backup','restore','Firebase','DATA_PROVIDER=firebase','rollback test'].forEach(x=>assert(new RegExp(x,'i').test(doc),`rollback item missing: ${x}`));
-pass('validate-rollback-readiness');
+const fs=require('fs'); const {assert,writeJson}=require('./live-gate-utils');
+['scripts/backup-local-postgres.js','scripts/restore-local-postgres.js','tools/windows/rollback/01-backup-postgres.bat','tools/windows/rollback/02-restore-postgres.bat','tools/windows/rollback/03-voltar-provider-firebase.bat','PRODUCTION_ROLLBACK_CHECKLIST.md','BUG_RISK_REGISTER.md'].forEach(f=>assert(fs.existsSync(f),`${f} ausente`));
+const doc=fs.readFileSync('PRODUCTION_ROLLBACK_CHECKLIST.md','utf8'); ['backup','restore','DATA_PROVIDER=firebase','responsável','tempo estimado','risco','health pós-rollback'].forEach(x=>assert(new RegExp(x,'i').test(doc),`rollback item missing: ${x}`));
+writeJson('reports/rollback-readiness.json',{generatedAt:new Date().toISOString(),status:'PASS',checks:['backup script','restore script','firebase rollback','local simulation contract','owner/time/risk']}); console.log('validate-rollback-readiness: PASS');

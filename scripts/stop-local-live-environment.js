@@ -1,0 +1,1 @@
+const {run}=require('./live-gate-utils'); const r=run('docker',['compose','-f','docker-compose.postgres.yml','down']); if(r.status!==0){console.error(r.stderr||r.stdout);process.exit(r.status||1)} console.log('local live down: PASS');

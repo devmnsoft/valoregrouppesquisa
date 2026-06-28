@@ -114,7 +114,13 @@
     "web:real-forms": "node scripts/validate-aspnet-web-real-forms.js",
     "web:real-api-usage": "node scripts/validate-aspnet-web-real-api-usage.js",
     "web:result-token-safety": "node scripts/validate-aspnet-web-result-token-safety.js",
-    "web:certificate-binary": "node scripts/validate-aspnet-web-certificate-binary-handling.js"
+    "web:certificate-binary": "node scripts/validate-aspnet-web-certificate-binary-handling.js",
+    "web:authenticated-modules": "node scripts/validate-aspnet-web-authenticated-modules.js",
+    "web:crud-api-gaps": "node scripts/validate-aspnet-web-crud-api-gaps.js",
+    "web:auth-guards": "node scripts/validate-aspnet-web-auth-guards.js",
+    "web:no-json-dump": "node scripts/validate-aspnet-web-no-json-dump.js",
+    "web:admin-ux": "node scripts/validate-aspnet-web-admin-ux.js",
+    "web:api-endpoints": "node scripts/validate-api-endpoints-for-web.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

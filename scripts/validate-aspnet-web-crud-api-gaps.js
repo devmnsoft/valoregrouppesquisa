@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('ASPNET_WEB_API_GAPS.md','utf8').toLowerCase();const terms=['existentes e já consumidos','existentes e ainda não consumidos','faltantes','bloqueia produção'];const miss=terms.filter(t=>!s.includes(t)); if(miss.length){console.error('missing sections',miss);process.exit(1);} console.log('API gaps CRUD documentado.');

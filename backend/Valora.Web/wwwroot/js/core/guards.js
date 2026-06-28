@@ -5,20 +5,23 @@
     if (normalized === '/') return true;
     return publicPrefixes.some(function (prefix) { return normalized === prefix || normalized.indexOf(prefix) === 0; });
   }
-  function requireAuth() {
-    if (!isPublicPath(window.location.pathname) && window.Session && !Session.isAuthenticated()) {
-      window.location.href = '/Account/Login?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
+  function requireAuth(options) {
+    const redirectTo = (options && options.redirectTo) || '/Account/Login';
+    if (!isPublicPath(window.location.pathname) && window.Session && !Session.token()) {
+      window.location.href = redirectTo + '?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
       return false;
     }
     return true;
   }
+  function handleForbidden(message) { Toast.error(message || 'Você não tem permissão para acessar este recurso.'); }
   function logout() {
     if (window.Session) Session.clear();
+    if (window.AjaxClient) AjaxClient.clearToken();
     window.location.href = '/Account/Login';
   }
-  window.Guards = { isPublicPath: isPublicPath, requireAuth: requireAuth, logout: logout };
+  window.Guards = { isPublicPath: isPublicPath, requireAuth: requireAuth, handleForbidden: handleForbidden, logout: logout };
   $(function () {
     $('[data-logout]').on('click', function (event) { event.preventDefault(); logout(); });
-    requireAuth();
+    requireAuth({ redirectTo: '/Account/Login' });
   });
 }());

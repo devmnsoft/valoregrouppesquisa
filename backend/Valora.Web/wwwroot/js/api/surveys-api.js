@@ -1,1 +1,1 @@
-window.SurveysApi={list:()=>AjaxClient.get('/surveys'),links:()=>AjaxClient.get('/surveys/public-links')};
+(function(){ window.SurveysApi={ normalize:r=>r&&r.data?r.data:r,list:()=>AjaxClient.get('/surveys'),get:id=>AjaxClient.get('/surveys/'+encodeURIComponent(id)),create:d=>AjaxClient.post('/surveys',d),update:(id,d)=>AjaxClient.put('/surveys/'+encodeURIComponent(id),d),setStatus:(id,s)=>AjaxClient.patch('/surveys/'+encodeURIComponent(id)+'/status',{status:s}) }; }());

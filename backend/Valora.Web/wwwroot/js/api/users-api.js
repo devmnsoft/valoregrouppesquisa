@@ -1,0 +1,1 @@
+(function(){ window.UsersApi={ normalize:r=>r&&r.data?r.data:r,list:()=>AjaxClient.get('/users'),create:d=>AjaxClient.post('/users',d),update:(id,d)=>AjaxClient.put('/users/'+encodeURIComponent(id),d),setStatus:(id,s)=>AjaxClient.patch('/users/'+encodeURIComponent(id)+'/status',{status:s}) }; }());

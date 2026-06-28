@@ -107,6 +107,7 @@
     "web:cors": "node scripts/validate-aspnet-web-cors-readiness.js",
     "web:docker": "node scripts/validate-aspnet-web-docker.js",
     "web:no-binaries": "node scripts/validate-no-binary-assets.js",
+    "web:functional-flow": "node scripts/validate-aspnet-web-functional-flow.js",
     "web:e2e": "playwright test tests/e2e-web",
     "web:e2e:headed": "playwright test tests/e2e-web --headed"
   },

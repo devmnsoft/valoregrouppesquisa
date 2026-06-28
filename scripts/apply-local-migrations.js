@@ -1,1 +1,3 @@
-const {run}=require('./live-gate-utils'); const r=run('node',['scripts/run-postgres-migrations.js']); if(r.status!==0){console.error(r.stderr||r.stdout); process.exit(r.status||1)} console.log('local migrations apply: PASS');
+#!/usr/bin/env node
+const r=require('child_process').spawnSync(process.execPath,['scripts/run-postgres-migrations.js'],{stdio:'inherit'});
+process.exit(r.status||0);

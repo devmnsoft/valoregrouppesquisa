@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-06-28T01:06:50.993Z",
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "controller blocks Production",
+      "status": "PASS"
+    },
+    {
+      "name": "controller allows only Development Local Test or explicit flag",
+      "status": "PASS"
+    },
+    {
+      "name": "seed uses local fixture email only",
+      "status": "PASS"
+    },
+    {
+      "name": "seed stores password_hash not clear password column",
+      "status": "PASS"
+    },
+    {
+      "name": "production defaults preserved",
+      "status": "PASS"
+    }
+  ]
+}

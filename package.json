@@ -94,7 +94,8 @@
     "local:live:up": "node scripts/start-local-live-environment.js",
     "local:live:down": "node scripts/stop-local-live-environment.js",
     "local:postgres:reset": "node scripts/reset-local-postgres.js",
-    "local:migrations:apply": "node scripts/apply-local-migrations.js"
+    "local:migrations:apply": "node scripts/apply-local-migrations.js",
+    "prod:e2e-fixture-safety": "node scripts/validate-e2e-fixture-safety.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

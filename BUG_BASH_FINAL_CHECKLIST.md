@@ -1,26 +1,29 @@
 # Bug Bash Final Checklist
 
-Status: checklist operacional obrigatório para homologação manual Sprint 31.
-
 - [ ] cadastro de empresa
 - [ ] login
 - [ ] logout
-- [ ] recuperar senha
+- [ ] forgot password / recuperar senha
+- [ ] reset password
+- [ ] dashboard
+- [ ] planos
 - [ ] criar pesquisa
+- [ ] link público
 - [ ] responder pesquisa no celular
-- [ ] ver resultado
-- [ ] baixar certificado
-- [ ] enviar e-mail de resultado
-- [ ] ver dashboard
-- [ ] ver respostas
-- [ ] ver auditoria
-- [ ] ver planos
-- [ ] bloquear limite do plano
-- [ ] testar erro de API offline com mensagem amigável e correlationId
-- [ ] testar erro de token inválido
-- [ ] testar refresh da página
-- [ ] testar navegação mobile
-- [ ] testar menu mobile
-- [ ] testar link público expirado
-- [ ] testar submissão duplicada
-- [ ] testar rollback de submissão com falha simulada
+- [ ] resultado / ver resultado
+- [ ] certificado / baixar certificado
+- [ ] e-mail / enviar e-mail
+- [ ] auditoria
+- [ ] migração
+- [ ] status ambiente
+- [ ] erro API offline
+- [ ] token inválido
+- [ ] refresh página
+- [ ] mobile menu
+- [ ] limite do plano
+- [ ] rollback simulado
+- [ ] link público expirado
+- [ ] submissão duplicada
+- [ ] menu mobile
+- [ ] API offline
+- [ ] recuperar senha

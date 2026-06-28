@@ -1,18 +1,21 @@
 {
-  "generatedAt": "2026-06-27T23:32:46.487Z",
+  "generatedAt": "2026-06-28T01:06:33.266Z",
   "status": "PASS",
-  "mode": "safe-local",
-  "steps": [
+  "phases": [
     {
-      "name": "fixture export",
+      "name": "garantir Firebase preservado",
       "status": "PASS"
     },
     {
-      "name": "transform",
+      "name": "export fixture seguro",
       "status": "PASS"
     },
     {
-      "name": "backup local",
+      "name": "transform fixture",
+      "status": "PASS"
+    },
+    {
+      "name": "backup PostgreSQL local",
       "status": "PASS"
     },
     {
@@ -20,13 +23,29 @@
       "status": "PASS"
     },
     {
+      "name": "import apply local",
+      "status": "PASS"
+    },
+    {
       "name": "compare",
       "status": "PASS"
     },
     {
-      "name": "rollback local",
+      "name": "divergências registradas",
+      "status": "PASS"
+    },
+    {
+      "name": "rollback local simulado",
+      "status": "PASS"
+    },
+    {
+      "name": "confirmar DATA_PROVIDER=firebase",
+      "status": "PASS"
+    },
+    {
+      "name": "confirmar ALLOW_API_PRODUCTION_CUTOVER=false",
       "status": "PASS"
     }
   ],
-  "residualRisk": "Fixture local não substitui export real aprovado."
+  "residualRisk": "Dry-run local usa fixture segura salvo confirmação explícita de Firebase real."
 }

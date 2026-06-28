@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-06-28T01:06:32.851Z",
+  "status": "PASS",
+  "checks": [
+    "backup local script exists",
+    "restore local script exists",
+    "health pós-restore documented",
+    "DATA_PROVIDER=firebase documented",
+    "owner/time/risk documented"
+  ],
+  "residualRisk": "Backup/restore real exige Docker local ativo; este gate valida prontidão e scripts."
+}

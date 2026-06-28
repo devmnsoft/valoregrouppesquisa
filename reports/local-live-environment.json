@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-06-28T01:06:54.902Z",
+  "apiBaseUrl": "http://localhost:5080",
+  "steps": [
+    {
+      "name": "docker compose up -d --build",
+      "cmd": "docker compose up -d --build",
+      "status": null,
+      "durationMs": 8,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "status": "FAIL",
+  "error": ""
+}

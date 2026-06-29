@@ -1,4 +1,4 @@
-# Limitações conhecidas antes de produção
+# Auditoria Sprint 49 — CSP, deploy Firebase e e-mail real
 
 Sprint 49 consolidou validações de CSP publicada, readiness do Firebase Hosting e fluxo de e-mail com responseId/resultToken reais. Bootstrap da home legada foi movido para assets locais de texto em `vendor/bootstrap/`, evitando dependência de `cdn.jsdelivr.net` na home antiga.
 

@@ -44,6 +44,9 @@ jobs:
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID_PROD || secrets.FIREBASE_PROJECT_ID }}
+          VALORA_PUBLIC_URL: ${{ vars.VALORA_PUBLIC_URL || 'https://valoragroup.mnsoft.com.br' }}
+          VALORA_WEB_URL: ${{ vars.VALORA_PUBLIC_URL || 'https://valoragroup.mnsoft.com.br' }}
+          VALORA_API_URL: ${{ vars.VALORA_API_URL || 'https://api.valoragroup.mnsoft.com.br' }}
         run: |
           set -euo pipefail
           if [ -z "${FIREBASE_TOKEN:-}" ] || [ -z "${FIREBASE_PROJECT_ID:-}" ]; then
@@ -51,3 +54,9 @@ jobs:
             exit 1
           fi
           npx firebase deploy --only hosting --project "$FIREBASE_PROJECT_ID"
+          if [ -n "${VALORA_PUBLIC_URL:-}" ]; then
+            npm run security:csp-live
+          else
+            echo "VALORA_PUBLIC_URL não definido; validação live de CSP ignorada."
+          fi
+          npm run prod:smoke

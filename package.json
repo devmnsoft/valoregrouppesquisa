@@ -182,7 +182,12 @@
     "operations:panel": "node scripts/validate-operations-panel.js",
     "operations:api": "node scripts/validate-operations-api.js",
     "prod:bug-bash-checklist": "node scripts/validate-bug-bash-checklist.js",
-    "prod:final-evidence": "node scripts/validate-final-release-evidence.js"
+    "prod:final-evidence": "node scripts/validate-final-release-evidence.js",
+    "security:csp-live": "node scripts/validate-live-csp-headers.js",
+    "deploy:firebase-readiness": "node scripts/validate-firebase-hosting-deploy-readiness.js",
+    "email:no-demo-response": "node scripts/validate-no-demo-response-email-flow.js",
+    "email:real-response-flow": "node scripts/validate-result-email-real-response-flow.js",
+    "e2e:csp-email-live": "playwright test tests/e2e/free-survey-csp-email-live.spec.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

@@ -1,0 +1,1 @@
+window.EmptyState={render:function(message){return '<div class="empty-state alert alert-secondary" role="status">'+$('<div>').text(message||'Sem registros para os filtros atuais.').html()+'</div>';}};

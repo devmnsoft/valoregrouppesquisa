@@ -1,0 +1,1 @@
+window.PlanLimitAlert={show:function(message){$('.plan-limit-alert').removeClass('d-none').text(message||'PLAN_LIMIT_REACHED: limite do plano atingido.');},hide:function(){$('.plan-limit-alert').addClass('d-none').text('');}};

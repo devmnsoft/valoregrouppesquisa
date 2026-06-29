@@ -1,0 +1,1 @@
+window.TableToolbar={bindRefresh:function(selector,handler){$(selector||'[data-primary-action]').off('click.tableToolbar').on('click.tableToolbar',function(e){e.preventDefault();handler&&handler();});}};

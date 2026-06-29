@@ -1,19 +1,16 @@
-# Sprint 37 — Valora.Web Área Autenticada SaaS
+# Sprint 38 — Valora.Web ASP.NET oficial
 
-## Diagnóstico real
-Valora.Web passou a operar como frontend administrativo API-first via jQuery AJAX e Valora.Api. O frontend legado e Firebase permanecem preservados; produção continua sem cutover automático.
+## Diagnóstico
+O front oficial é `backend/Valora.Web`, ASP.NET Core MVC net8.0 com Bootstrap, JavaScript, jQuery e consumo HTTP da Valora.Api via `AjaxClient`. Não há acesso direto a banco, Dapper, EF, repositories ou Firebase no projeto web. O frontend legado foi preservado e produção continua com `DATA_PROVIDER: firebase` e `ALLOW_API_PRODUCTION_CUTOVER: false`.
 
-## Módulos
-Dashboard, Organização, Usuários, Formulários, Pesquisas, Links públicos, Respostas, Comunicações, Auditoria, Migração, Status do ambiente, Configurações e Planos/limites.
+## Módulos oficializados
+Dashboard, Organização, Usuários, Formulários, Pesquisas, Links públicos, Respostas, Comunicações, Auditoria, Migração, Ambiente, Configurações e Planos possuem view MVC e JavaScript específico por página.
 
-## Endpoints usados/criados
-GET /me; GET/PUT /organization/current; GET /organization/current/usage; GET /organization/current/limits; CRUD mínimo de /users, /forms, /surveys; links públicos; /responses; /audit/events; GET/PUT /settings; health checks; comunicações e migração administrativas.
+## Endpoints consumidos
+`GET /me`, `/health`, `/health/database`, `/organization/current`, `/organization/current/usage`, `/organization/current/limits`, `/users`, `/forms`, `/surveys`, `/surveys/{surveyId}/links`, `/responses`, `/audit/events`, `/settings`, `/admin/email-jobs`, `/admin/migration/status` e `/plans/public`.
 
-## Segurança e LGPD
-Token fica em sessionStorage, logout limpa sessão, 401 redireciona para login, 403 é mensagem amigável, telas não exibem token, senha, stack trace, connection string ou JSON bruto.
+## Segurança e operação
+Gaps são apresentados somente com `data-gap-controlled="true"`; erros exibem mensagem segura e correlationId quando fornecido pela API. Não há arquivos binários novos.
 
-## Gaps controlados
-Edição profunda de perguntas, trilhas avançadas de auditoria, certificados binários e preferências avançadas ficam para sprint futura quando o domínio final for homologado. Bloqueia produção: sim para CRUD completo transacional e RBAC granular.
-
-## Operação
-Windows: tools/windows/70-validar-valora-web-area-autenticada.bat. Docker: docker compose build e scripts local:live. IIS: publicar backend/Valora.Web com API_BASE_URL apontando para Valora.Api e manter ALLOW_API_PRODUCTION_CUTOVER=false.
+## Documento
+Este arquivo registra o artefato `ASPNET_WEB_COMPONENTS.md` da industrialização Sprint 38.

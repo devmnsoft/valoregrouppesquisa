@@ -16,6 +16,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<CertificateService>();
         services.AddSingleton<EmailService>();
         services.AddSingleton<EmailJobService>();
+        services.AddScoped<ResultEmailService>();
+        services.AddScoped<EmailQueueProcessor>();
         services.AddScoped<AuthService>();
         services.AddScoped<AuditService>();
         services.AddScoped<PlanEntitlementService>();

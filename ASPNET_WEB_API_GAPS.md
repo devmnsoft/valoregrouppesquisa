@@ -11,3 +11,7 @@ OrganizationRepository, UserRepository, FormRepository, SurveyRepository, Survey
 - `resultToken` não deve ser persistido em localStorage.
 - `result_token_hash`, `password_hash` e `token_hash` não devem aparecer na UI.
 - Escopo por `organizationId`, permissões por role e módulos por plano continuam obrigatórios.
+
+## Sprint 44
+
+O Valora.Web permanece como frontend oficial ASP.NET Core e usa `/communications/result/{responseId}/send-email`, `/admin/email-jobs`, `/admin/email-jobs/process` e `/admin/email/config/status`.

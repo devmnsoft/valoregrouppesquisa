@@ -8,3 +8,9 @@ Documento atualizado na Sprint 43.
 - Swagger corrigido sem `ConflictingActionsResolver`.
 - Endpoint oficial de resultado: `GET /responses/{responseId}/result`.
 - Gaps operacionais restantes estão centralizados em `ASPNET_WEB_API_GAPS.md`.
+
+## Sprint 44 — SMTP e CSP
+
+- Aplicar `database/postgresql/044_email_jobs_smtp_real.sql` antes do go-live SMTP.
+- Configurar variáveis `Email__Smtp__*` no IIS/Windows sem commitar senha.
+- Remover rota compatível obsoleta `/communication/result/send` após clientes migrarem.

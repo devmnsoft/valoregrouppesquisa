@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-06-29T12:35:58.466Z",
+  "webUrl": null,
+  "apiUrl": null,
+  "checks": [
+    {
+      "name": "env",
+      "status": "SKIP"
+    }
+  ],
+  "status": "SKIPPED"
+}

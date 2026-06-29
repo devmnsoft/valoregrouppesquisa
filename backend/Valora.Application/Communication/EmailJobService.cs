@@ -10,7 +10,7 @@ public sealed class EmailJobService(ILogger<EmailJobService> logger)
         try
         {
             logger.LogInformation("Email job enqueue plan requested. Status={Status}", "pending");
-            return new { queue = "valorapesquisa.email_jobs", status = "pending", allowedStatuses = new[] { "pending", "processing", "sent", "failed", "pending-provider", "failed-config" } };
+            return new { queue = "valorapesquisa.email_jobs", status = "pending", allowedStatuses = new[] { "pending", "processing", "sent", "failed", "failed-config" } };
         }
         catch (Exception ex)
         {

@@ -153,7 +153,15 @@
     "web:journey-parity": "node scripts/validate-valora-web-journey-parity.js",
     "web:ui-parity": "node scripts/validate-valora-web-ui-parity.js",
     "web:no-fake-admin-data": "node scripts/validate-valora-web-no-fake-admin-data.js",
-    "web:business-rules": "node scripts/validate-valora-web-business-rules.js"
+    "web:business-rules": "node scripts/validate-valora-web-business-rules.js",
+    "security:csp": "node scripts/validate-csp-production.js",
+    "email:smtp-config": "node scripts/validate-email-smtp-configuration.js",
+    "email:real-sender": "node scripts/validate-email-real-sender.js",
+    "email:jobs-schema": "node scripts/validate-email-jobs-schema.js",
+    "email:no-placeholder-provider": "node scripts/validate-email-no-placeholder-provider.js",
+    "email:endpoints-security": "node scripts/validate-email-endpoints-security.js",
+    "email:web-flow": "node scripts/validate-email-web-flow.js",
+    "api:communication-contract": "node scripts/validate-communication-endpoint-contract.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

@@ -121,7 +121,13 @@
     "web:no-json-dump": "node scripts/validate-aspnet-web-no-json-dump.js",
     "web:admin-ux": "node scripts/validate-aspnet-web-admin-ux.js",
     "web:api-endpoints": "node scripts/validate-api-endpoints-for-web.js",
-    "web:admin-security": "node scripts/validate-aspnet-web-admin-security.js"
+    "web:admin-security": "node scripts/validate-aspnet-web-admin-security.js",
+    "web:aspnet-only": "node scripts/validate-valora-web-is-aspnet.js",
+    "web:no-generic-admin": "node scripts/validate-aspnet-web-no-generic-admin.js",
+    "web:controlled-gaps": "node scripts/validate-aspnet-web-controlled-gaps.js",
+    "web:page-specific-js": "node scripts/validate-aspnet-web-page-specific-js.js",
+    "web:mvc-logging": "node scripts/validate-aspnet-web-mvc-controllers-logging.js",
+    "web:official-release": "node scripts/validate-aspnet-web-official-release.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

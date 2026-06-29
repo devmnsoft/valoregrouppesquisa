@@ -20,6 +20,8 @@
     PUBLIC_SUBMISSION_PROVIDER: 'external-api', PUBLIC_SURVEY_VALIDATION_PROVIDER: 'external-api', RESULT_PROVIDER: 'external-api',
     EMAIL_TRANSPORT: 'external-api',
     WHATSAPP_TRANSPORT: 'manual',
+    WHATSAPP_CONTACT_URL: 'https://wa.me/5591992545353?text=Ol%C3%A1%2C%20quero%20conhecer%20os%20planos%20completos%20da%20Valora.',
+    FREE_SURVEY_LINK_EXPIRATION_DAYS: 3650,
     EXTERNAL_API_BASE_URL: 'https://api.valoragroup.mnsoft.com.br',
     COMMUNICATION_GATEWAY: {
       enabled: true,

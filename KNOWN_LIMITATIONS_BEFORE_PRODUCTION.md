@@ -1,16 +1,13 @@
-# KNOWN LIMITATIONS BEFORE PRODUCTION.md
+# Limitações Conhecidas antes da Produção
 
-Documento atualizado na Sprint 43.
+- Validar credenciais SMTP reais no ambiente final.
+- Executar homologação E2E com e-mail real e evidências operacionais sem commitar anexos.
+- Remover rota compatível obsoleta em sprint futura.
 
-- Front oficial: `backend/Valora.Web`.
-- Stack permitida: ASP.NET Core MVC/Razor Pages, Bootstrap 5, JavaScript puro, jQuery e AJAX.
-- Node permitido apenas para scripts, validadores, automação, Playwright e gates.
-- Swagger corrigido sem `ConflictingActionsResolver`.
-- Endpoint oficial de resultado: `GET /responses/{responseId}/result`.
-- Gaps operacionais restantes estão centralizados em `ASPNET_WEB_API_GAPS.md`.
-
-## Sprint 44 — SMTP e CSP
-
-- Aplicar `database/postgresql/044_email_jobs_smtp_real.sql` antes do go-live SMTP.
-- Configurar variáveis `Email__Smtp__*` no IIS/Windows sem commitar senha.
-- Remover rota compatível obsoleta `/communication/result/send` após clientes migrarem.
+## Evidências Sprint 46
+- Home pública: sem cards comerciais; CTA principal é Diagnóstico gratuito Valora Insight.
+- Link público: padrão `index.html?survey={surveyId}&token={token}&org={slug}`, sem login, com expiração de 3650 dias.
+- E-mail: resultado obrigatório por job e SMTP real via `SmtpEmailSender`; falha mantém fila.
+- Certificado: conteúdo rico, código/link de validação, LGPD e CTA discreto.
+- WhatsApp: CTA comercial pós-resultado configurado por `WHATSAPP_CONTACT_URL`.
+- Valora.Web: ASP.NET Core API-first, consumindo Valora.Api por HTTP.

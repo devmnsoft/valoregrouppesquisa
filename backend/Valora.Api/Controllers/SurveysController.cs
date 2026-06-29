@@ -6,7 +6,7 @@ using Valora.Application.Services;
 namespace Valora.Api.Controllers;
 
 [ApiController]
-public sealed class SurveysController(ISurveyRepository surveys, IResponseRepository responses, AuditService audit) : ControllerBase
+public sealed class SurveysController(ISurveyRepository surveys, AuditService audit) : ControllerBase
 {
     [HttpGet("/surveys/public/{token}")]
     public async Task<IActionResult> Public(string token)
@@ -21,12 +21,5 @@ public sealed class SurveysController(ISurveyRepository surveys, IResponseReposi
         var id = await surveys.SaveResponseAsync(surveyId, request);
         await audit.LogAsync(new(null, null, "survey.submit_response", "response", id.ToString(), "Resposta recebida pela API."));
         return Created($"/responses/{id}/result", new { id });
-    }
-
-    [HttpGet("/responses/{responseId:guid}/result")]
-    public async Task<IActionResult> Result(Guid responseId)
-    {
-        var result = await responses.GetResultAsync(responseId);
-        return result is null ? NotFound(new { ok = false }) : Ok(result);
     }
 }

@@ -1,5 +1,10 @@
-# Checklist Final de Aceite SaaS
+# SAAS FINAL ACCEPTANCE CHECKLIST.md
 
-Marcar cada item com evidência: cadastro, login, logout, forgot password, reset password, dashboard, planos, organização, usuários, formulários, pesquisas, links públicos, pesquisa pública, respostas, resultado, certificado, e-mail, auditoria, migração, status ambiente, mobile, erro API offline, erro token inválido, erro 403, reload de página, IIS, Docker, rollback e cutover.
+Documento atualizado na Sprint 43.
 
-Nenhum bloqueante pode ser aceito sem owner, prazo, plano de mitigação e critério de rollback.
+- Front oficial: `backend/Valora.Web`.
+- Stack permitida: ASP.NET Core MVC/Razor Pages, Bootstrap 5, JavaScript puro, jQuery e AJAX.
+- Node permitido apenas para scripts, validadores, automação, Playwright e gates.
+- Swagger corrigido sem `ConflictingActionsResolver`.
+- Endpoint oficial de resultado: `GET /responses/{responseId}/result`.
+- Gaps operacionais restantes estão centralizados em `ASPNET_WEB_API_GAPS.md`.

@@ -25,6 +25,16 @@ app.UseSerilogRequestLogging();
 app.UseCors("ValoraWebCors");
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapGet("/", () => Results.Json(new
+{
+    ok = true,
+    service = "Valora.Api",
+    message = "Valora API operacional.",
+    swagger = "/swagger",
+    health = "/health"
+}));
+
 app.MapControllers();
 
 app.Run();

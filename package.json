@@ -143,7 +143,17 @@
     "web:docker-smoke": "node scripts/validate-aspnet-web-docker-smoke.js",
     "web:production-security": "node scripts/validate-aspnet-web-production-security.js",
     "web:observability": "node scripts/validate-aspnet-web-observability.js",
-    "prod:smoke": "node scripts/validate-saas-production-smoke.js"
+    "prod:smoke": "node scripts/validate-saas-production-smoke.js",
+    "api:no-duplicate-routes": "node scripts/validate-no-duplicate-api-routes.js",
+    "api:no-route-conflicts": "node scripts/validate-api-no-route-conflicts.js",
+    "api:root-swagger": "node scripts/validate-api-root-and-swagger.js",
+    "api:swagger-health": "node scripts/validate-swagger-openapi-health.js",
+    "web:permission-parity": "node scripts/validate-valora-web-permission-parity.js",
+    "web:module-parity": "node scripts/validate-valora-web-module-parity.js",
+    "web:journey-parity": "node scripts/validate-valora-web-journey-parity.js",
+    "web:ui-parity": "node scripts/validate-valora-web-ui-parity.js",
+    "web:no-fake-admin-data": "node scripts/validate-valora-web-no-fake-admin-data.js",
+    "web:business-rules": "node scripts/validate-valora-web-business-rules.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

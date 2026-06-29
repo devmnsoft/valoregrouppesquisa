@@ -46,12 +46,21 @@ public sealed class CertificatesController(IResponseRepository responses, ICerti
     }
 
     [HttpGet("/certificates/{certificateCode}/validate")]
-    public IActionResult Validate(string certificateCode)
+    [HttpGet("/certificates/validate/{certificateCode}")]
+    public async Task<IActionResult> Validate(string certificateCode)
     {
         if (string.IsNullOrWhiteSpace(certificateCode) || certificateCode.Length < 8)
             return BadRequest(new { ok = false, code = "INVALID_CERTIFICATE_CODE", message = "Código de validação inválido.", correlationId = HttpContext.TraceIdentifier });
         logger.LogInformation("Certificate validation requested. CodeHash={CodeHash} CorrelationId={CorrelationId}", LogSanitizer.HashForLog(certificateCode), HttpContext.TraceIdentifier);
-        return Ok(new { ok = true, status = "metadata-validation-ready", certificateCode = certificateCode.Trim(), correlationId = HttpContext.TraceIdentifier });
+        var normalized = certificateCode.Trim();
+        var rawGuid = normalized.StartsWith("VALORA-", StringComparison.OrdinalIgnoreCase) ? normalized[7..] : normalized.StartsWith("VAL-", StringComparison.OrdinalIgnoreCase) ? normalized[4..] : normalized;
+        if (!Guid.TryParse(rawGuid, out var responseId) && rawGuid.Length == 32) Guid.TryParseExact(rawGuid, "N", out responseId);
+        if (responseId == Guid.Empty) return Ok(new { ok = true, valid = false, correlationId = HttpContext.TraceIdentifier });
+        var response = await responses.GetByIdAsync(responseId);
+        if (response is null) return Ok(new { ok = true, valid = false, correlationId = HttpContext.TraceIdentifier });
+        var cert = await certificates.GetByResponseAsync(responseId);
+        var result = await HttpContext.RequestServices.GetRequiredService<IResultRepository>().GetByResponseAsync(responseId);
+        return Ok(new { ok = true, valid = true, participantName = cert?.ParticipantName ?? response.ParticipantName ?? "Participante", participantEmailMasked = LogSanitizer.MaskEmail(response.ParticipantEmail), surveyTitle = cert?.SurveyName ?? "Diagnóstico Valora Insight", completedAt = response.CompletedAt, score = result?.Percentage ?? result?.TotalScore ?? 0, maturityLevel = cert?.MaturityLabel ?? result?.MaturityLabel ?? "Em estruturação", correlationId = HttpContext.TraceIdentifier });
     }
 
     private object BuildSafeCertificatePayload(Guid responseId, Valora.Application.ReadModels.ResponseReadModel response, Valora.Application.ReadModels.CertificateReadModel? certificate, string format)

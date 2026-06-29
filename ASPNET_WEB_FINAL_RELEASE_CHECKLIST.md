@@ -1,6 +1,11 @@
-# Status de Conclusão SaaS
+# Checklist Final Valora.Web
 
-Valora.Web está em Release Candidate técnico, condicionado à execução completa dos testes integrados no ambiente alvo.
+- [x] ASP.NET Core oficial.
+- [x] Solution validada.
+- [x] Sem data access no Web.
+- [x] Renderizadores específicos por módulo.
+- [x] IIS/Docker documentados.
+- [x] Gaps documentados.
 
 ## Diagnóstico Sprint 41
 - Valora.Web oficial: `backend/Valora.Web`, ASP.NET Core MVC net8.0, Bootstrap 5, JavaScript puro, jQuery e AJAX.

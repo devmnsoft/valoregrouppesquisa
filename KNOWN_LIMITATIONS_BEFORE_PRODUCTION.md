@@ -1,5 +1,12 @@
-# Known Limitations Before Production
+# Limitações Conhecidas Antes de Produção
 
-- Não há promessa de zero bug.
-- Cutover PostgreSQL depende de aprovação formal.
-- Gates live exigem Docker, API, PostgreSQL e Playwright disponíveis.
+- Endpoints mínimos existem; persistência/relatórios avançados devem evoluir por módulo.
+- E2E completo requer ambiente local com API, Web, banco e browsers Playwright instalados.
+
+## Diagnóstico Sprint 41
+- Valora.Web oficial: `backend/Valora.Web`, ASP.NET Core MVC net8.0, Bootstrap 5, JavaScript puro, jQuery e AJAX.
+- Solution oficial: `backend/Valora.sln`.
+- Integração: Valora.Web consome Valora.Api via HTTP configurável por `Api:BaseUrl`/`Api__BaseUrl`.
+- Proibições mantidas: sem acesso direto a banco, repositories, Dapper, EF, Valora.Infrastructure ou Firebase no Valora.Web.
+- Front legado preservado; produção continua com `DATA_PROVIDER: 'firebase'` e `ALLOW_API_PRODUCTION_CUTOVER: false` até cutover aprovado.
+- Gaps permitidos somente com fallback controlado documentado e `data-gap-controlled="true"`.

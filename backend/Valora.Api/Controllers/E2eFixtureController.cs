@@ -1,7 +1,6 @@
 using Dapper;
 using Microsoft.AspNetCore.Mvc;
-using Valora.Application.Contracts;
-using Valora.Application.Contracts.Services;
+using Valora.Application.Contracts; 
 
 namespace Valora.Api.Controllers;
 

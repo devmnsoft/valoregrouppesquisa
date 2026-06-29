@@ -45,4 +45,15 @@ for (const file of officialWebFiles) {
 }
 if (hits.length) fail(`Framework SPA indevido no Valora.Web oficial:\n${hits.join('\n')}`);
 
+
+const dataAccessForbidden = [/Dapper/i, /Npgsql/i, /DbConnection/i, /Valora\.Infrastructure/i, /EntityFramework/i, /Firebase/i];
+const dataHits = [];
+for (const file of walk('backend/Valora.Web').filter((file) => /\.(cs|csproj)$/.test(file))) {
+  const text = read(file);
+  for (const marker of dataAccessForbidden) {
+    if (marker.test(text)) dataHits.push(`${file}: ${marker}`);
+  }
+}
+if (dataHits.length) fail(`Valora.Web não pode referenciar infraestrutura/acesso direto a dados:\n${dataHits.join('\n')}`);
+
 console.log('validate-valora-web-is-aspnet: PASS');

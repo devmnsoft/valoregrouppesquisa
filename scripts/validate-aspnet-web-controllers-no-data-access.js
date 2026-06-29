@@ -1,0 +1,3 @@
+const fs=require('fs'),path=require('path'); function walk(d){return fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>{const p=path.join(d,e.name);return e.isDirectory()?walk(p):[p]})}
+const files=walk('backend/Valora.Web').filter(f=>/\.(cs|csproj)$/.test(f)); const bad=[/Dapper/i,/Npgsql/i,/DbConnection/i,/Valora\.Infrastructure/i,/Repository/i,/Firebase/i,/EntityFramework/i]; const hits=[];
+for(const f of files){const s=fs.readFileSync(f,'utf8'); bad.forEach(r=>{if(r.test(s))hits.push(`${f}: ${r}`)});} if(hits.length){console.error('Acesso direto a dados indevido:\n'+hits.join('\n'));process.exit(1)} console.log('validate-aspnet-web-controllers-no-data-access: PASS');

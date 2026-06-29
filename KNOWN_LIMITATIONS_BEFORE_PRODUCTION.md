@@ -1,12 +1,7 @@
 # Limitações Conhecidas Antes de Produção
 
-- Endpoints mínimos existem; persistência/relatórios avançados devem evoluir por módulo.
-- E2E completo requer ambiente local com API, Web, banco e browsers Playwright instalados.
-
-## Diagnóstico Sprint 41
-- Valora.Web oficial: `backend/Valora.Web`, ASP.NET Core MVC net8.0, Bootstrap 5, JavaScript puro, jQuery e AJAX.
-- Solution oficial: `backend/Valora.sln`.
-- Integração: Valora.Web consome Valora.Api via HTTP configurável por `Api:BaseUrl`/`Api__BaseUrl`.
-- Proibições mantidas: sem acesso direto a banco, repositories, Dapper, EF, Valora.Infrastructure ou Firebase no Valora.Web.
-- Front legado preservado; produção continua com `DATA_PROVIDER: 'firebase'` e `ALLOW_API_PRODUCTION_CUTOVER: false` até cutover aprovado.
-- Gaps permitidos somente com fallback controlado documentado e `data-gap-controlled="true"`.
+| Limitação | Bloqueante | Plano |
+|---|---:|---|
+| Cutover Firebase/API continua dependente de aprovação explícita. | Não | Manter `DATA_PROVIDER: 'firebase'` e `ALLOW_API_PRODUCTION_CUTOVER: false` até janela aprovada. |
+| Smoke remoto depende de `VALORA_WEB_URL` e `VALORA_API_URL`. | Não | Executar em homologação e anexar evidências antes do go/no-go. |
+| Não há promessa de zero bug. | Não | Gates bloqueiam falhas críticas conhecidas; bug bash manual complementa automação. |

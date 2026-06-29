@@ -135,7 +135,15 @@
     "web:no-data-access": "node scripts/validate-aspnet-web-controllers-no-data-access.js",
     "web:final-release-gate": "node scripts/validate-aspnet-web-final-release-gate.js",
     "web:iis-readiness": "node scripts/validate-aspnet-web-iis-readiness.js",
-    "web:docker-runtime": "node scripts/validate-aspnet-web-docker-runtime.js"
+    "web:docker-runtime": "node scripts/validate-aspnet-web-docker-runtime.js",
+    "web:dynamic-config": "node scripts/validate-aspnet-web-dynamic-config.js",
+    "web:health": "node scripts/validate-aspnet-web-health-endpoints.js",
+    "web:iis-publish-dry": "node scripts/validate-aspnet-web-iis-publish-dry-run.js",
+    "web:published-smoke": "node scripts/validate-aspnet-web-published-smoke.js",
+    "web:docker-smoke": "node scripts/validate-aspnet-web-docker-smoke.js",
+    "web:production-security": "node scripts/validate-aspnet-web-production-security.js",
+    "web:observability": "node scripts/validate-aspnet-web-observability.js",
+    "prod:smoke": "node scripts/validate-saas-production-smoke.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

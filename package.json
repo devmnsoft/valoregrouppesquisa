@@ -175,7 +175,14 @@
     "free-diagnostics:lgpd-audit": "node scripts/validate-free-diagnostics-lgpd-audit.js",
     "free-diagnostics:sensitive-data": "node scripts/validate-free-diagnostics-sensitive-data.js",
     "free-diagnostics:certificate-operations": "node scripts/validate-free-diagnostics-certificate-operations.js",
-    "free-diagnostics:whatsapp-audit": "node scripts/validate-free-diagnostics-whatsapp-audit.js"
+    "free-diagnostics:whatsapp-audit": "node scripts/validate-free-diagnostics-whatsapp-audit.js",
+    "free-survey:security": "node scripts/validate-free-survey-security.js",
+    "certificate:public-validation": "node scripts/validate-certificate-public-validation.js",
+    "email:deliverability": "node scripts/validate-email-deliverability.js",
+    "operations:panel": "node scripts/validate-operations-panel.js",
+    "operations:api": "node scripts/validate-operations-api.js",
+    "prod:bug-bash-checklist": "node scripts/validate-bug-bash-checklist.js",
+    "prod:final-evidence": "node scripts/validate-final-release-evidence.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

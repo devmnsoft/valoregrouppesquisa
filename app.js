@@ -279,17 +279,35 @@ async function init(){
 }
 function isPublicSurveyPage(){const url=new URL(location.href);return !!url.searchParams.get('survey')&&!!url.searchParams.get('token');}
 function isPublicResultPage(){const url=new URL(location.href);return !!url.searchParams.get('result')&&!!url.searchParams.get('rt');}
-function isPublicJourneyPage(){return isPublicSurveyPage()||isPublicResultPage();}
+function isPublicCertificateValidationPage(){const url=new URL(location.href);return !!url.searchParams.get('certificate');}
+function isPublicJourneyPage(){return isPublicSurveyPage()||isPublicResultPage()||isPublicCertificateValidationPage();}
 
 function routeFromLocation(){
-  const u=new URL(location.href);const hash=(location.hash||'').slice(1);const sid=u.searchParams.get('survey'),token=u.searchParams.get('token'),result=u.searchParams.get('result'),resultToken=u.searchParams.get('rt');
+  const u=new URL(location.href);const hash=(location.hash||'').slice(1);const sid=u.searchParams.get('survey'),token=u.searchParams.get('token'),result=u.searchParams.get('result'),resultToken=u.searchParams.get('rt'),certificate=u.searchParams.get('certificate');
   // Rotas internas sempre têm prioridade. Assim, Minha área, logo, LGPD e Planos
   // continuam funcionando mesmo depois de abrir um link seguro com query string.
   if(hash)return route(hash);
   if(sid&&token)return renderTakeSurvey(sid,token,u.searchParams.get('org'));
   if(result)return renderResult(result,false,resultToken);
+  if(certificate)return renderCertificateValidation(certificate);
   route('home');
 }
+
+function renderCertificateValidation(validationCode=''){
+  renderPublicSurveyShell();
+  $('#app').innerHTML=`<section class="section"><div class="container"><div class="card"><span class="badge success">Validar certificado</span><h1>Validar certificado</h1><p>Informe o código público do certificado Valora para consultar a validade sem expor e-mail completo, token ou dados internos.</p><form class="form-grid" data-form="certificateValidation"><div class="field"><label>Código de validação</label><input name="certificate" value="${esc(validationCode)}" required></div><button class="btn btn-primary">Validar certificado</button></form><div class="result-notice" id="certificateValidationResult">Aguardando validação.</div></div></div></section>`;
+  if(validationCode)validateCertificatePublic(validationCode);
+}
+async function validateCertificatePublic(code){
+  const box=$('#certificateValidationResult');
+  try{
+    const base=(APP_CONFIG.API_BASE_URL||'').replace(/\/$/,'');
+    if(!base){box.textContent='Validação pública disponível no Valora.Web ou na Valora.Api configurada.';return;}
+    const data=await safeFetchJson(`${base}/certificates/validate/${encodeURIComponent(code)}`,{},'validação pública de certificado');
+    box.innerHTML=data.valid?`Certificado válido para <b>${esc(data.participantName)}</b> (${esc(data.participantEmailMasked||'e-mail mascarado')}). Pesquisa: ${esc(data.surveyTitle)}. Nível: ${esc(data.maturityLevel)}.`:'Certificado não confirmado.';
+  }catch(error){box.textContent='Falha controlada ao validar certificado. Tente novamente.';}
+}
+
 function route(path){
   currentRoute=path||'home';renderShell();
   const [view,tab]=currentRoute.split('/');
@@ -1507,7 +1525,7 @@ async function saveOnboardingWizard(form){
   closeModal?.();rerenderPortal?.();return true;
 }
 function createFormHandlers(){return {
-  login,signup,actionPlan:saveActionPlan,bot(form){const msg=form.message.value.trim();if(!msg)return;form.reset();handleBotMessage(msg);},publicSupport:savePublicSupport,loggedSupport:saveLoggedSupport,knowledgeArticle:saveKnowledgeArticle,supportMessage:saveSupportMessage,supportInternalNote:saveSupportInternalNote,supportRating:saveSupportRating,
+  login,signup,certificateValidation(form){const code=form.certificate.value.trim();if(code)validateCertificatePublic(code);},actionPlan:saveActionPlan,bot(form){const msg=form.message.value.trim();if(!msg)return;form.reset();handleBotMessage(msg);},publicSupport:savePublicSupport,loggedSupport:saveLoggedSupport,knowledgeArticle:saveKnowledgeArticle,supportMessage:saveSupportMessage,supportInternalNote:saveSupportInternalNote,supportRating:saveSupportRating,
   resendResultEmail:resendResultEmail,apiKey:saveApiKey,webhook:saveWebhook,employeeImport:saveEmployeeImport,dataExport:exportData,user:saveUser,company:saveCompany,invoice:saveInvoice,plan:savePlan,module:saveModule,survey:saveSurvey,quickSurvey:saveQuickSurvey,takeSurvey:submitSurvey,inviteEmail:sendInviteEmail,bulkInvite:sendBulkInvite,resultEmail:submitResultEmail,settings:saveSettings,companySettings:saveCompanySettings,onboardingWizard:saveOnboardingWizard,importBackup
 };}
 

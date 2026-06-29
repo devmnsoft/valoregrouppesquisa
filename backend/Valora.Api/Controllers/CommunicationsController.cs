@@ -51,6 +51,14 @@ public sealed class CommunicationsController(ICommunicationRepository communicat
     [HttpGet("/admin/email/config/status")]
     public IActionResult EmailConfigStatus() => Ok(EmailConfigurationValidator.Validate(emailOptions.Value));
 
+    [Authorize]
+    [HttpGet("/admin/email/deliverability/status")]
+    public IActionResult EmailDeliverabilityStatus()
+    {
+        var cfg = EmailConfigurationValidator.Validate(emailOptions.Value);
+        return Ok(new { ok = true, fromEmailConfigured = cfg.FromEmailConfigured, smtpConfigured = cfg.SmtpHostConfigured && cfg.SmtpUserConfigured && cfg.SmtpPasswordConfigured, spfDocumented = true, dkimDocumented = true, dmarcDocumented = true, canSend = cfg.CanSend });
+    }
+
     public sealed record LegacySendResultEmailRequest(string ResponseId, string? ResultToken, string? To, string? Subject, string? Message);
     public sealed record ProcessEmailJobsRequest(int BatchSize);
 }

@@ -11,6 +11,8 @@ builder.Host.UseSerilog((context, logger) => logger
     .Enrich.FromLogContext()
     .WriteTo.Console());
 
+builder.Services.AddMemoryCache();
+builder.Services.Configure<Valora.Api.Configuration.FreeSurveySecurityOptions>(builder.Configuration.GetSection("FreeSurveySecurity"));
 builder.Services.AddApiServices(builder.Configuration);
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);

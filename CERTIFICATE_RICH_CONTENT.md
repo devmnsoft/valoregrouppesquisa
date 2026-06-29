@@ -1,6 +1,4 @@
-# Contrato de Endpoint de Comunicação
-
-Oficial: POST /communications/result/{responseId}/send-email. Compatível temporário: POST /communication/result/send apenas delegando.
+# Certificado Enriquecido
 
 ## Evidências Sprint 46
 - Home pública: sem cards comerciais; CTA principal é Diagnóstico gratuito Valora Insight.

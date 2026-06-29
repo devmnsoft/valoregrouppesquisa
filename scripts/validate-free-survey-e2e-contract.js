@@ -1,0 +1,1 @@
+const {execFileSync}=require('child_process');['validate-home-no-plan-cards.js','validate-free-survey-shareable-link.js','validate-free-survey-whatsapp-cta.js','validate-free-survey-result-email-required.js','validate-certificate-rich-content.js'].forEach(s=>execFileSync(process.execPath,[`scripts/${s}`],{stdio:'inherit'}));console.log('validate-free-survey-e2e-contract: PASS')

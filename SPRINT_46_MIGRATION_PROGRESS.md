@@ -1,6 +1,19 @@
-# Contrato de Endpoint de Comunicação
+# Sprint 46 — Progresso de Migração
 
-Oficial: POST /communications/result/{responseId}/send-email. Compatível temporário: POST /communication/result/send apenas delegando.
+## Migrado
+- Jornada pública, certificados, comunicação transacional, resultados e LGPD em contrato API-first.
+
+## Parcialmente migrado
+- Perfis, permissões, módulos, jornada empresa e admin Valora.
+
+## Pendente
+- Homologação com SMTP real de produção, carga e cutover.
+
+## Bloqueante
+- Credenciais SMTP reais e validação operacional sem simulação.
+
+## Não bloqueante
+- Remover rota compatível obsoleta em sprint futura.
 
 ## Evidências Sprint 46
 - Home pública: sem cards comerciais; CTA principal é Diagnóstico gratuito Valora Insight.

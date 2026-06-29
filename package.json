@@ -161,7 +161,14 @@
     "email:no-placeholder-provider": "node scripts/validate-email-no-placeholder-provider.js",
     "email:endpoints-security": "node scripts/validate-email-endpoints-security.js",
     "email:web-flow": "node scripts/validate-email-web-flow.js",
-    "api:communication-contract": "node scripts/validate-communication-endpoint-contract.js"
+    "api:communication-contract": "node scripts/validate-communication-endpoint-contract.js",
+    "home:no-plan-cards": "node scripts/validate-home-no-plan-cards.js",
+    "home:free-survey-link": "node scripts/validate-free-survey-shareable-link.js",
+    "home:whatsapp-cta": "node scripts/validate-free-survey-whatsapp-cta.js",
+    "home:result-email-required": "node scripts/validate-free-survey-result-email-required.js",
+    "certificate:rich-content": "node scripts/validate-certificate-rich-content.js",
+    "web:free-survey-parity": "node scripts/validate-aspnet-web-free-survey-parity.js",
+    "home:free-survey-e2e-contract": "node scripts/validate-free-survey-e2e-contract.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

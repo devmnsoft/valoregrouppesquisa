@@ -24,6 +24,7 @@ function minifyCss(source) {
 
 fs.rmSync(dist, { recursive: true, force: true });
 fs.mkdirSync(distAssets, { recursive: true });
+fs.mkdirSync(path.join(dist, 'vendor', 'bootstrap'), { recursive: true });
 
 const index = fs.readFileSync(indexPath, 'utf8');
 const localScripts = [...index.matchAll(/<script\s+src="([^"]+\.js)(?:\?v=[^"]*)?"\s+defer><\/script>/g)]
@@ -37,6 +38,12 @@ fs.writeFileSync(path.join(distAssets, jsFile), jsBundle, 'utf8');
 const cssBundle = minifyCss(fs.readFileSync(cssPath, 'utf8'));
 const cssFile = `style.${hash(cssBundle)}.css`;
 fs.writeFileSync(path.join(distAssets, cssFile), cssBundle, 'utf8');
+
+for (const file of ['bootstrap.min.css', 'bootstrap.bundle.min.js']) {
+  const src = path.join(root, 'vendor', 'bootstrap', file);
+  if (!fs.existsSync(src)) throw new Error(`Bootstrap local não encontrado: vendor/bootstrap/${file}`);
+  fs.copyFileSync(src, path.join(dist, 'vendor', 'bootstrap', file));
+}
 
 for (const file of assetFiles) {
   const src = path.join(root, 'assets', file);

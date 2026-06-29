@@ -1,7 +1,10 @@
-# Limitações Conhecidas Antes de Produção
+# KNOWN LIMITATIONS BEFORE PRODUCTION.md
 
-| Limitação | Bloqueante | Plano |
-|---|---:|---|
-| Cutover Firebase/API continua dependente de aprovação explícita. | Não | Manter `DATA_PROVIDER: 'firebase'` e `ALLOW_API_PRODUCTION_CUTOVER: false` até janela aprovada. |
-| Smoke remoto depende de `VALORA_WEB_URL` e `VALORA_API_URL`. | Não | Executar em homologação e anexar evidências antes do go/no-go. |
-| Não há promessa de zero bug. | Não | Gates bloqueiam falhas críticas conhecidas; bug bash manual complementa automação. |
+Documento atualizado na Sprint 43.
+
+- Front oficial: `backend/Valora.Web`.
+- Stack permitida: ASP.NET Core MVC/Razor Pages, Bootstrap 5, JavaScript puro, jQuery e AJAX.
+- Node permitido apenas para scripts, validadores, automação, Playwright e gates.
+- Swagger corrigido sem `ConflictingActionsResolver`.
+- Endpoint oficial de resultado: `GET /responses/{responseId}/result`.
+- Gaps operacionais restantes estão centralizados em `ASPNET_WEB_API_GAPS.md`.

@@ -1,0 +1,6 @@
+#!/usr/bin/env node
+const fs=require('fs'); const files=['role-definitions.js','backend/Valora.Web/wwwroot/js/security/role-definitions.js','backend/Valora.Web/wwwroot/js/security/permissions.js']; const txt=files.map(f=>fs.readFileSync(f,'utf8')).join('\n');
+const roles=['admin_valora','consultor_valora','empresa_admin','gestor_pesquisa','analista_resultados','gestor_area','participante','convidado_externo'];
+const perms=['canAccessPortal','canManageCompanies','canManagePlans','canManageModules','canManageGlobalSettings','canManageCompanyUsers','canCreateForms','canCreateSurveys','canSendInvites','canViewResponses','canViewReports','canViewFinance','canViewLogs','canBackup','canAnswerSurveys','canHandleSupport','canHandleGlobalSupport','restrictedToDepartment'];
+const funcs=['ValoraWebPermissions','canAccessCompany','canUseModule','canCreateRole','availableRolesForCurrentUser','resolveResponsePermissions','canViewResponse','canEditResponse','canDownloadResponseCertificate'];
+const missing=[...roles,...perms,...funcs].filter(x=>!txt.includes(x)); if(missing.length){console.error('permission parity missing: '+missing.join(', '));process.exit(1);} console.log('validate-valora-web-permission-parity: PASS');

@@ -25,6 +25,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ICommunicationRepository, CommunicationRepository>();
         services.AddScoped<IMigrationRepository, MigrationRepository>();
         services.AddScoped<IAuditRepository, AuditRepository>();
+        services.AddScoped<IFreeDiagnosticsRepository, FreeDiagnosticsRepository>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();

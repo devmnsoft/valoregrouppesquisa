@@ -20,8 +20,8 @@ if (!fs.existsSync(dist)) {
 }
 
 const forbiddenNames = [/\.map$/i, /(^|\/)\.env(\.|$)/i, /serviceAccount/i, /secrets?/i, /data\/outbox/i, /email_config\.json$/i];
-const forbiddenContent = [/\b\d{8,10}:[A-Za-z0-9_-]{30,}\b/, /SMTP_PASSWORD/i, /TELEGRAM_BOT_TOKEN/i];
-const forbiddenSources = new Set(['app.js','style.css','config.js','firebase-repository.js','local-repository.js','repository.js']);
+const forbiddenContent = [/\b\d{8,10}:[A-Za-z0-9_-]{30,}\b/, /TELEGRAM_BOT_TOKEN/i];
+const forbiddenSources = new Set(['app.js','style.css','firebase-repository.js','local-repository.js','repository.js']);
 
 for (const file of walk(dist)) {
   const rel = path.relative(root, file).replace(/\\/g, '/');

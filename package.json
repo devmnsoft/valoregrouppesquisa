@@ -215,7 +215,9 @@
     "home:submission-auto-provider": "node scripts/validate-public-submission-auto-provider.js",
     "home:free-survey-never-expires": "node scripts/validate-free-survey-never-expires.js",
     "home:email-after-submit": "node scripts/validate-public-survey-email-after-submit.js",
-    "legacy:environment-diagnostics": "node scripts/validate-legacy-environment-diagnostics-panel.js"
+    "legacy:environment-diagnostics": "node scripts/validate-legacy-environment-diagnostics-panel.js",
+    "config:cache-busting": "node scripts/validate-config-cache-busting.js",
+    "functions:production-deployment": "node scripts/validate-functions-production-deployment.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

@@ -29,11 +29,12 @@ fs.mkdirSync(path.join(dist, 'vendor', 'bootstrap'), { recursive: true });
 const index = fs.readFileSync(indexPath, 'utf8');
 const localScripts = [...index.matchAll(/<script\s+src="([^"]+\.js)(?:\?v=[^"]*)?"\s+defer><\/script>/g)]
   .map((match) => match[1])
-  .filter((src) => !src.startsWith('http'));
+  .filter((src) => !src.startsWith('http') && src !== 'config.js');
 
 const jsBundle = localScripts.map((script) => `;\n/* ${script} */\n${cleanJs(read(script))}`).join('\n');
 const jsFile = `app.${hash(jsBundle)}.js`;
 fs.writeFileSync(path.join(distAssets, jsFile), jsBundle, 'utf8');
+fs.copyFileSync(path.join(root, 'config.js'), path.join(dist, 'config.js'));
 
 const cssBundle = minifyCss(fs.readFileSync(cssPath, 'utf8'));
 const cssFile = `style.${hash(cssBundle)}.css`;
@@ -54,7 +55,7 @@ for (const file of assetFiles) {
 let html = index
   .replace(/<link rel="stylesheet" href="style\.css(?:\?v=[^"]*)?">/, `<link rel="stylesheet" href="assets/${cssFile}">`)
   .replace(/<script\s+src="(?!https?:)[^"]+\.js(?:\?v=[^"]*)?"\s+defer><\/script>\n?/g, '')
-  .replace('</body>', `  <script src="assets/${jsFile}" defer></script>\n</body>`);
+  .replace('</body>', `  <script src="config.js?v=8.7.0" defer></script>\n  <script src="assets/${jsFile}" defer></script>\n</body>`);
 fs.writeFileSync(path.join(dist, 'index.html'), html, 'utf8');
 const webConfig=path.join(root,'templates','iis','web.config');
 if(fs.existsSync(webConfig))fs.copyFileSync(webConfig,path.join(dist,'web.config'));

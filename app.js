@@ -177,6 +177,21 @@ const publicResultCache=new Map();
 let actions={};
 let formHandlers={};
 let globalHandlersRegistered=false;
+function safeAction(name,handler){
+  if(typeof handler==='function')return handler;
+  return function missingActionHandler(){
+    console.error(`[Valora Pulse] Action handler ausente: ${name}`);
+    toast(`Ação indisponível: ${name}`,'error');
+    return false;
+  };
+}
+function getFunctionIfDefined(name){
+  try{
+    const root=typeof globalThis!=='undefined'?globalThis:(typeof window!=='undefined'?window:{});
+    const fn=root?.[name]||window?.[name];
+    return typeof fn==='function'?fn:null;
+  }catch(_){return null;}
+}
 function missingAction(actionName){
   console.warn(`[Valora Pulse] Ação não registrada: ${actionName}`);
   toast('Esta ação ainda não está disponível neste ambiente.','warn');
@@ -226,11 +241,23 @@ function registerGlobalHandlers(){
   globalHandlersRegistered=true;
 }
 function bootstrapApp(){
-  actions=createActions();
-  formHandlers=createFormHandlers();
-  registerGlobalHandlers();
-  run('a inicialização',init);
+  try{
+    actions=createActions();
+    formHandlers=createFormHandlers();
+    registerGlobalHandlers();
+    run('a inicialização',init);
+  }catch(error){
+    recordPublicBootError(error,'bootstrapApp');
+    releasePublicUi('bootstrap_error');
+    if(isPublicRoute(currentRoute,routeParamsFromLocation())||!currentUserSafe()){
+      try{renderHomeFallback();}catch(_){renderHome();}
+      return;
+    }
+    renderFatalAdminError(error);
+  }
 }
+function renderHomeFallback(){return renderHome();}
+function renderFatalAdminError(error){const app=$('#app');if(app)app.innerHTML=`<section class="empty-state error-state"><h3>Não foi possível iniciar a área administrativa</h3><p>${esc(error?.message||'Falha de inicialização')}</p><button class="btn btn-secondary" data-action="reloadApp">Atualizar</button></section>`;}
 
 function legacyTraceEnabled(){return window.ValoraConfig?.observability?.legacyTraceEnabled===true;}
 function safeRun(label,category,action,fn,options={}){
@@ -280,7 +307,7 @@ function renderFatalStartupError(error){
   app.querySelector('#startupResetBtn')?.addEventListener('click',()=>{try{localStorage.removeItem(STORE_KEY);}catch(_){ } location.reload();});
 }
 
-window.addEventListener('error',e=>{const err=e.error||new Error(e.message);window.ValoraLogger?.critical({category:'system',action:'global_error',message:'Erro global capturado.',error:err,route:currentRoute,user:currentUser?.()});if(!currentUserSafe()||isPublicRoute(currentRoute,routeParamsFromLocation())){recordPublicBootError(err,'window.error');releasePublicUi('window.error');return;}handleError('a operação',err);});
+window.addEventListener('error',e=>{if(isExternalBrowserNoise(e)){console.debug?.('[Valora Pulse] Ruído externo ignorado',e.message||e.reason);return;}const err=e.error||new Error(e.message);window.ValoraLogger?.critical({category:'system',action:'global_error',message:'Erro global capturado.',error:err,route:currentRoute,user:currentUser?.()});if(!currentUserSafe()||isPublicRoute(currentRoute,routeParamsFromLocation())){recordPublicBootError(err,'window.error');releasePublicUi('window.error');return;}handleError('a operação',err);});
 window.addEventListener('unhandledrejection',e=>{if(isExternalBrowserNoise(e))return;const err=e.reason||new Error('Falha desconhecida');window.ValoraLogger?.critical({category:'system',action:'unhandled_rejection',message:'Promise rejeitada sem tratamento.',error:err,route:currentRoute,user:currentUser?.()});if(!currentUserSafe()||isPublicRoute(currentRoute,routeParamsFromLocation())){recordPublicBootError(err,'window.unhandledrejection');releasePublicUi('window.unhandledrejection');return;}handleError('a operação assíncrona',err);});
 document.addEventListener('DOMContentLoaded',bootstrapApp);
 
@@ -1335,6 +1362,44 @@ function collectBuilder(){
   });
   builderDraft.resultBands=$$('.band-card',root).map(card=>({id:builderDraft.resultBands[Number(card.dataset.bandIndex)]?.id||uid('band'),label:$('[data-band-field="label"]',card)?.value.trim()||'Nível',from:Number($('[data-band-field="from"]',card)?.value||0),to:Number($('[data-band-field="to"]',card)?.value||5),color:$('[data-band-field="color"]',card)?.value||'#0b3d4d',description:$('[data-band-field="description"]',card)?.value.trim()||'',recommendation:$('[data-band-field="recommendation"]',card)?.value.trim()||''}));
 }
+
+function addDimension(){
+  collectBuilder();
+  if(!builderDraft){toast('Abra um formulário antes de adicionar dimensão.','warning');return false;}
+  builderDraft.dimensions=Array.isArray(builderDraft.dimensions)?builderDraft.dimensions:[];
+  const dimension={id:uid('dim'),name:'Nova dimensão',description:'',weight:1};
+  builderDraft.dimensions.push(dimension);
+  renderBuilder();
+  return true;
+}
+function removeDimension(id){
+  collectBuilder();
+  if(!builderDraft||!id)return false;
+  if((builderDraft.dimensions||[]).length<=1){toast('Mantenha ao menos uma dimensão.','warn');return false;}
+  const fallback=builderDraft.dimensions.find(d=>d.id!==id)||builderDraft.dimensions[0];
+  builderDraft.dimensions=builderDraft.dimensions.filter(d=>d.id!==id);
+  builderDraft.questions=(builderDraft.questions||[]).map(q=>q.dimensionId===id?{...q,dimensionId:fallback?.id||'',dimensionName:fallback?.name||'Geral'}:q);
+  renderBuilder();
+  return true;
+}
+function addQuestion(type='scale'){
+  collectBuilder();
+  if(!builderDraft){toast('Abra um formulário antes de adicionar pergunta.','warning');return false;}
+  builderDraft.dimensions=Array.isArray(builderDraft.dimensions)&&builderDraft.dimensions.length?builderDraft.dimensions:[{id:uid('dim'),name:'Geral',description:'',weight:1}];
+  builderDraft.questions=Array.isArray(builderDraft.questions)?builderDraft.questions:[];
+  builderDraft.questions.push(blankQuestion(type,builderDraft.dimensions[0]));
+  renderBuilder();
+  return true;
+}
+function removeQuestion(id){collectBuilder();if(!builderDraft||!id)return false;builderDraft.questions=(builderDraft.questions||[]).filter(q=>q.id!==id);renderBuilder();return true;}
+function moveQuestion(id,direction){collectBuilder();if(!builderDraft||!id)return false;const list=builderDraft.questions||[];const i=list.findIndex(q=>q.id===id);const j=direction==='up'?i-1:i+1;if(i<0||j<0||j>=list.length)return false;[list[i],list[j]]=[list[j],list[i]];renderBuilder();return true;}
+function duplicateQuestion(id){collectBuilder();if(!builderDraft||!id)return false;const list=builderDraft.questions||[];const i=list.findIndex(q=>q.id===id);if(i<0)return false;const copy=deepClone(list[i]);copy.id=uid('q');copy.text=`${copy.text||'Pergunta'} (cópia)`;copy.options=(copy.options||[]).map(o=>({...o,id:uid('opt')}));list.splice(i+1,0,copy);renderBuilder();return true;}
+function addOption(questionId){collectBuilder();const q=(builderDraft?.questions||[]).find(x=>x.id===questionId);if(!q)return false;q.options=Array.isArray(q.options)?q.options:[];q.options.push({id:uid('opt'),text:'Nova alternativa',score:0,correct:false});renderBuilder();return true;}
+function removeOption(questionId,optionId){collectBuilder();const q=(builderDraft?.questions||[]).find(x=>x.id===questionId);if(!q)return false;if((q.options||[]).length<=2){toast('Mantenha ao menos duas alternativas.','warn');return false;}q.options=q.options.filter(o=>o.id!==optionId);renderBuilder();return true;}
+function addBand(){collectBuilder();if(!builderDraft)return false;builderDraft.resultBands=Array.isArray(builderDraft.resultBands)?builderDraft.resultBands:[];builderDraft.resultBands.push({id:uid('band'),label:'Novo nível',from:0,to:5,color:'#0b3d4d',description:'',recommendation:''});renderBuilder();return true;}
+function removeBand(index){collectBuilder();if(!builderDraft)return false;if((builderDraft.resultBands||[]).length<=1){toast('Mantenha ao menos uma faixa.','warn');return false;}builderDraft.resultBands.splice(Number(index),1);renderBuilder();return true;}
+function previewBuilder(){collectBuilder();if(!builderDraft)return false;previewFormObject(builderDraft);return true;}
+
 function validateBuilder(){
   const errors=[],warnings=[];if(!builderDraft.name.trim())errors.push('Informe o nome do formulário.');if(!builderDraft.questions.length)errors.push('Adicione ao menos uma pergunta.');builderDraft.questions.forEach((q,i)=>{if(!q.text.trim())errors.push(`Pergunta ${i+1}: informe o texto.`);if(q.weight<0)errors.push(`Pergunta ${i+1}: o peso não pode ser negativo.`);if(q.maxScore<0)errors.push(`Pergunta ${i+1}: a pontuação máxima não pode ser negativa.`);if(['single','multiple','singleCorrect'].includes(q.type)){if(q.options.length<2)errors.push(`Pergunta ${i+1}: adicione ao menos duas alternativas.`);if(q.options.some(o=>!o.text.trim()))errors.push(`Pergunta ${i+1}: há alternativa sem texto.`);}if(q.type==='singleCorrect'&&q.options.filter(o=>o.correct).length!==1)errors.push(`Pergunta ${i+1}: marque exatamente uma resposta correta.`);const spelling=spellReview(q.text);warnings.push(...spelling.map(x=>`Pergunta ${i+1}: ${x}`));});
   const sorted=[...builderDraft.resultBands].sort((a,b)=>a.from-b.from);sorted.forEach((b,i)=>{if(b.from>b.to)errors.push(`Faixa “${b.label}”: o início é maior que o fim.`);if(i&&b.from<sorted[i-1].to)warnings.push(`As faixas “${sorted[i-1].label}” e “${b.label}” se sobrepõem.`);});return {errors,warnings};
@@ -1926,7 +1991,7 @@ function adminMobileToggleEl(){return document.querySelector('[data-action="togg
 function bindAdminMobileMenuEvents(){if(window.__valoraAdminMobileMenuBound)return;window.__valoraAdminMobileMenuBound=true;document.addEventListener('click',function(event){const action=event.target.closest('[data-action]');if(action&&action.dataset.action==='toggleAdminMobileMenu'){event.preventDefault();toggleAdminMobileMenu();return;}if(event.target.closest('.admin-mobile-overlay')){closeAdminMobileMenu();return;}if(event.target.closest('.admin-sidebar a, .admin-sidebar button[data-route], .admin-nav a, .admin-nav button')){if(isMobileAdminViewport())closeAdminMobileMenu();}});document.addEventListener('keydown',event=>{if(event.key==='Escape')closeAdminMobileMenu();});window.addEventListener('resize',()=>{if(!isMobileAdminViewport())closeAdminMobileMenu();});}
 bindAdminMobileMenuEvents();
 function createActions(){return {
-  reloadApp(){location.reload();},revalidateAssistedOperation(){toast('Operação assistida revalidada.','success');},copyFreeSurveyPublicLink(){toast('Link público copiado com token mascarado.','success');},repairFreeSurveyPublicLink(){if(confirm('Confirmar reparo seguro da pesquisa gratuita?'))toast('Reparo seguro solicitado via Function.','success');},promptResendResultEmail(){const id=prompt('responseId real para reenvio');if(id)return resendResultEmail(id);},viewEmailJobs(){navigate('admin/communications');},viewSanitizedOperationalLogs(){navigate('admin/logs');},viewConfigLiveReport(){toast('Relatório de config live disponível nos artefatos.','info');},viewFreeSurveySmokeReport(){toast('Relatório de smoke da pesquisa disponível.','info');},viewEmailSmokeReport(){toast('Relatório de smoke de e-mail disponível.','info');},resendResultEmail(el){return resendResultEmail(el.dataset.id);},resolveCommunication(el){return resolveCommunication(el.dataset.id);},
+  reloadApp(){location.reload();},revalidateAssistedOperation(){toast('Operação assistida revalidada.','success');},copyFreeSurveyPublicLink(){toast('Link público copiado com token mascarado.','success');},repairFreeSurveyPublicLink(){if(confirm('Confirmar reparo seguro da pesquisa gratuita?'))toast('Reparo seguro solicitado via Function.','success');},promptResendResultEmail(){const id=prompt('responseId real para reenvio');if(id)return resendResultEmail(id);},viewEmailJobs(){navigate('admin/communications');},viewSanitizedOperationalLogs(){navigate('admin/logs');},viewConfigLiveReport(){toast('Relatório de config live disponível nos artefatos.','info');},viewFreeSurveySmokeReport(){toast('Relatório de smoke da pesquisa disponível.','info');},viewEmailSmokeReport(){toast('Relatório de smoke de e-mail disponível.','info');},resendResultEmail(el){return resendResultEmail(el.dataset.id);},resolveCommunication(el){return resolveCommunication(el.dataset.id);},processEmailQueue(){toast('Processamento da fila de e-mail deve ser executado pelas rotinas de backend.','info');},resendPendingResults(){toast('Reenvio de resultados pendentes deve ser executado pelas rotinas de backend.','info');},
   goHome,closeModal,closeConfirm,openManual,openManualRoute,openSupportChat,openSupportConversation,assignSupportConversation,resolveSupportConversation,closeSupportConversation,rateSupportConversation,
   confirmOk(){const cb=confirmCallback;closeConfirm(false);if(cb)cb();},
   toggleMenu(el){return toggleMenu();},toggleAdminMobileMenu(el){return toggleAdminMobileMenu();},closeAdminMobileMenu(el){return closeAdminMobileMenu();},

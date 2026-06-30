@@ -1,0 +1,1 @@
+window.ValoraApi={base:'/'}; function showToast(m){$('#toast').text(m).removeClass('d-none');setTimeout(()=>$('#toast').addClass('d-none'),3500)} $(document).ajaxError(()=>showToast('Não foi possível concluir a operação.'));

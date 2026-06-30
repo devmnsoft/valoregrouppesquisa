@@ -527,7 +527,7 @@ async function getOfficialFreeSurveyUrl() {
     return text;
   } catch (error) {
     window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
-    window.ValoraRuntimeDiagnostics.officialFreeSurveyHome = { code: publicErrorCode(error), message: sanitizePublicError(error) };
+    window.ValoraRuntimeDiagnostics.lastHomeFreeSurvey = { provider: 'firestore-or-cache', status: 'error', reason: publicErrorCode(error), surveyId: OFFICIAL_FREE_SURVEY_ID, org: OFFICIAL_FREE_ORG_SLUG, error: sanitizePublicError(error) };
     return '';
   }
 }
@@ -559,6 +559,7 @@ async function resolveOfficialFreeSurveyPayload(payload = {}) {
   publicSurveyCache.set(OFFICIAL_FREE_SURVEY_ID, { survey: resolved.survey, form, company, lgpd: { text: form.lgpdText || linked.lgpdText || state.settings?.lgpdText || LGPD_TEXT } });
   window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
   window.ValoraRuntimeDiagnostics.lastDemoLinkRedirect = { fromSurvey: payload.survey || payload.surveyId || '', fromOrg: payload.org || '', redirected: false, resolved: true, targetSurveyId: OFFICIAL_FREE_SURVEY_ID, targetOrg: OFFICIAL_FREE_ORG_SLUG };
+  window.ValoraRuntimeDiagnostics.lastOfficialFreeSurvey = { provider: 'cache-or-firestore', status: 'resolved', reason: 'official_free_survey_payload_resolved', surveyId: OFFICIAL_FREE_SURVEY_ID, org: OFFICIAL_FREE_ORG_SLUG, redirectedFromDemo: isDemoPublicSurveyLink(payload), usedFallback: false, savedResponse: false };
   return resolved;
 }
 
@@ -589,7 +590,7 @@ function renderDemoLinkRepairScreen() {
 }
 async function resolveProductionPublicSurveyLink(params) {
   const isDemoLink = isDemoPublicSurveyLink(params);
-  if (window.ValoraConfig?.RUNTIME_ENV !== 'production' || !isDemoLink) return { redirected: false, isDemoLink };
+  if (!isDemoLink) return { redirected: false, isDemoLink };
   window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
   window.ValoraRuntimeDiagnostics.lastPublicSubmit = { surveyId: params?.survey || params?.surveyId || '', org: params?.org || params?.organization || '', isDemoLink: true, redirectedFromDemo: false, providersAttempted: [], finalProvider: '', errors: [] };
   const handled = await handleDemoPublicSurveyLink(params);
@@ -1378,7 +1379,7 @@ async function submitPublicSurveyViaFirestoreFallback(payload){
 async function submitPublicSurveyAuto(payload){
   let safePayload=ensurePublicSubmitIdempotencyKey({...payload});
   const originalIsDemoLink=isDemoPublicSurveyLink(safePayload);
-  if(window.ValoraConfig?.RUNTIME_ENV==='production'&&originalIsDemoLink) safePayload=ensurePublicSubmitIdempotencyKey(await resolveOfficialFreeSurveyPayload(safePayload));
+  if(originalIsDemoLink) safePayload=ensurePublicSubmitIdempotencyKey(await resolveOfficialFreeSurveyPayload(safePayload));
   const diagnostics={surveyId:safePayload.surveyId,org:safePayload.org||'',isDemoLink:originalIsDemoLink,redirectedFromDemo:false,providersAttempted:[],errors:[],provider:'auto',attempts:[],finalProvider:'',errorCode:'',payloadSurveyIdSanitized:String(safePayload.surveyId||'').replace(/demo/gi,'[demo]'),resolvedSurveyId:safePayload.surveyId,resolvedOrg:safePayload.org||'',cloudFunctionErrorCode:'',firestoreFallbackErrorCode:'',externalApiErrorCode:''};
   const survey=safePayload?.survey||safePayload?.surveyData||publicSurveyCache.get(safePayload.surveyId)?.survey||{};
   const isFree=isFreeOfficialSurvey(survey);
@@ -1391,7 +1392,7 @@ async function submitPublicSurveyAuto(payload){
       if(provider==='firestore')result=await submitPublicSurveyViaFirestoreFallback(safePayload);
       if(provider==='external-api')result=await submitPublicSurveyViaExternalApi(safePayload);
       const normalized=normalizePublicSubmitResult(result);
-      if(normalized&&normalized.responseId&&normalized.resultToken){diagnostics.finalProvider=provider;diagnostics.attempts[diagnostics.attempts.length-1].status='success';window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicSubmit=diagnostics;return normalized;}
+      if(normalized&&normalized.responseId&&normalized.resultToken){diagnostics.finalProvider=provider;diagnostics.status='success';diagnostics.usedFallback=provider==='firestore';diagnostics.savedResponse=true;diagnostics.attempts[diagnostics.attempts.length-1].status='success';window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicSubmit=diagnostics;return normalized;}
       diagnostics.attempts[diagnostics.attempts.length-1].status='invalid-result';
     }catch(error){diagnostics.attempts[diagnostics.attempts.length-1].status='failed';diagnostics.attempts[diagnostics.attempts.length-1].code=publicErrorCode(error);diagnostics.attempts[diagnostics.attempts.length-1].message=sanitizePublicError(error);diagnostics.errors.push({provider,code:publicErrorCode(error),message:sanitizePublicError(error)});}
   }
@@ -1483,6 +1484,7 @@ async function submitSurvey(form){
     try{
       let submitPayload={surveyId:fd.surveyId,token:fd.token,participant,answers,lgpdConsent:!!fd.lgpdConsent,communicationConsent:!!fd.sendEmail,survey:cached.survey,org:new URL(location.href).searchParams.get('org')||''};
       if(isDemoPublicSurveyLink(submitPayload)) submitPayload=await resolveOfficialFreeSurveyPayload(submitPayload);
+      if(isDemoPublicSurveyLink(submitPayload)){const e=new Error('Payload legado bloqueado antes do envio.');e.code='legacy_demo_payload_blocked';throw e;}
       const res=await submitPublicSurveyResponse(submitPayload);
       toast('Respostas enviadas com segurança.','success');
       const clean=location.href.split('?')[0].split('#')[0];

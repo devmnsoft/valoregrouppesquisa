@@ -1,9 +1,3 @@
 # LEGACY_FIRESTORE_EMERGENCY_FALLBACK
 
-Documento operacional da Sprint 69.
-
-- Pesquisa gratuita oficial: ordem de providers Cloud Functions -> Firestore emergencial -> API externa.
-- provider_unavailable só pode ocorrer após todos os providers falharem ou retornarem resultado inválido.
-- Diagnósticos runtime ficam em window.ValoraRuntimeDiagnostics.lastPublicSubmit com mensagens sanitizadas.
-- E-mail pós-submit é best-effort e não bloqueia a renderização do resultado/certificado.
-- Deploy: npm run functions:deploy e npm run hosting:deploy após os validadores obrigatórios.
+Sprint 73 define que links públicos demonstrativos não são processados em produção. A pesquisa gratuita oficial deve ser localizada por status ativo/publicado/aberto, visibilidade pública e critério gratuito, usando somente token público na URL. O submit público gratuito segue a ordem Cloud Functions, Firestore emergencial e API externa. Resultado, e-mail e certificado usam IDs reais e logs/diagnósticos sanitizados. Hosting deve publicar somente após build em dist e validação sem artefatos proibidos.

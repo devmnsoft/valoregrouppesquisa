@@ -303,7 +303,8 @@
     "functions:secrets-readiness": "node scripts/validate-functions-secrets-readiness.js",
     "seed:official-free-survey": "node scripts/ensure-official-free-survey.js",
     "home:official-free-survey": "node scripts/validate-home-official-free-survey.js",
-    "home:featured-free-survey": "node scripts/validate-home-featured-free-survey.js"
+    "home:featured-free-survey": "node scripts/validate-home-featured-free-survey.js",
+    "home:old-featured-survey": "node scripts/validate-old-home-featured-survey.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

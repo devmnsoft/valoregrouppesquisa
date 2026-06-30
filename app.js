@@ -16,6 +16,7 @@ const OFFICIAL_FREE_SURVEY_ID='official_free_survey';
 const OFFICIAL_FREE_FORM_ID='form_valora_insight_oficial';
 const OFFICIAL_FREE_COMPANY_ID='valora-oficial';
 const OFFICIAL_FREE_ORG_SLUG='valora-group';
+const OFFICIAL_FREE_PUBLIC_TOKEN=APP_CONFIG.OFFICIAL_FREE_PUBLIC_TOKEN||'';
 const DataNorm=window.ValoraDataNormalization||{};
 const asArray=DataNorm.asArray||((value,fallback=[])=>Array.isArray(value)?value:(Array.isArray(fallback)?fallback:[]));
 const asObject=DataNorm.asObject||((value,fallback={})=>value&&typeof value==='object'&&!Array.isArray(value)?value:{...fallback});
@@ -435,6 +436,34 @@ function ensureSurveyPublicLink(survey){
   survey.publicLink=survey.publicUrl;
   return survey;
 }
+
+function featuredHomeFallbackSurvey(){
+  return {id:OFFICIAL_FREE_SURVEY_ID,surveyId:OFFICIAL_FREE_SURVEY_ID,companyId:OFFICIAL_FREE_COMPANY_ID,organizationId:OFFICIAL_FREE_COMPANY_ID,formId:OFFICIAL_FREE_FORM_ID,title:'Diagnóstico gratuito Valora Insight',status:'active',visibility:'public',isFree:true,planId:'free',publicToken:OFFICIAL_FREE_PUBLIC_TOKEN,token:OFFICIAL_FREE_PUBLIC_TOKEN,allowRepeat:true,showResult:true,requireIdentification:true,lgpdRequired:true};
+}
+function safeFeaturedSurveyUrlFromParts(survey,company={}){
+  const token=survey?.publicToken||survey?.token||survey?.accessToken||'';
+  if(!survey?.id||!token||token===String(survey?.tokenHash||''))return '';
+  const base=window.ValoraConfig?.APP_PUBLIC_URL||location.href.split('?')[0].split('#')[0];
+  const url=new URL(base);
+  url.searchParams.set('survey',survey.id||survey.surveyId);
+  url.searchParams.set('token',token);
+  url.searchParams.set('org',company.slug||company.publicSlug||(String(survey.id||survey.surveyId)===OFFICIAL_FREE_SURVEY_ID?OFFICIAL_FREE_ORG_SLUG:''));
+  const text=url.toString();
+  return /survey_demo|empresa-exemplo|tokenHash=|demo-token/i.test(text)?'':text;
+}
+async function resolveFeaturedHomeSurvey(){
+  const local=resolveHomeFeaturedSurvey(state)?.survey;
+  if(local){const company=companyById(local.companyId)||companyById(local.organizationId)||{};const url=safeFeaturedSurveyUrlFromParts(local,company)||buildHomeFeaturedSurveyUrl(local);if(url&&!/survey_demo|empresa-exemplo|tokenHash=/i.test(url))return {survey:local,company,url,source:'state.featured'};}
+  if(window.ValoraRepository?.resolveFeaturedHomeSurvey){
+    try{const remote=await window.ValoraRepository.resolveFeaturedHomeSurvey();if(remote?.survey&&remote?.url&&!/survey_demo|empresa-exemplo|tokenHash=/i.test(remote.url)){return remote;}}catch(error){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastHomeFeaturedSurveyError=publicErrorCode(error);}
+  }
+  const official=await loadOfficialFreeSurvey().catch(()=>null);
+  if(official){const linked=await ensureOfficialFreeSurveyPublicLink(official).catch(()=>official);const company=companyById(linked?.companyId)||companyById(linked?.organizationId)||{};const url=safeFeaturedSurveyUrlFromParts(linked,company)||buildOfficialFreeSurveyUrl(linked);if(url)return {survey:linked,company,url,source:'official_free_survey'};}
+  const fallback=featuredHomeFallbackSurvey();
+  return {survey:fallback,company:{id:OFFICIAL_FREE_COMPANY_ID,slug:OFFICIAL_FREE_ORG_SLUG,name:'Valora Group'},url:safeFeaturedSurveyUrlFromParts(fallback,{slug:OFFICIAL_FREE_ORG_SLUG}),source:'hard-fallback'};
+}
+async function getFeaturedHomeSurveyUrl(){const resolved=await resolveFeaturedHomeSurvey();return resolved?.url||'';}
+
 function resolveFeaturedFreeSurvey(store=state){return resolveHomeFeaturedSurvey(store).survey;}
 function resolveFeaturedSurveyLink(survey){return buildHomeFeaturedSurveyUrl(survey);}
 function getFeaturedFreeSurvey(){return resolveFeaturedFreeSurvey(state);}
@@ -545,6 +574,23 @@ async function getOfficialFreeSurveyUrl() {
   }
 }
 
+
+async function resolveFeaturedHomeSurveyPayload(payload = {}) {
+  const resolved=await resolveFeaturedHomeSurvey();
+  const linked=resolved?.survey;
+  const token=linked?.publicToken||linked?.token||linked?.accessToken||'';
+  if(!linked||!token||token===String(linked.tokenHash||'')){const e=new Error('Pesquisa gratuita oficial indisponível.');e.code='official_free_survey_unavailable';throw e;}
+  let form=formById(linked.formId);
+  let company=resolved.company||companyById(linked.companyId||linked.organizationId)||findOrganizationBySlug(OFFICIAL_FREE_ORG_SLUG);
+  if((!form||!company)&&window.ValoraRepository?.validatePublicSurvey){
+    try{const validated=await window.ValoraRepository.validatePublicSurvey({surveyId:linked.id,token,org:company?.slug||OFFICIAL_FREE_ORG_SLUG});form=form||validated.form;company=company||validated.company;}catch(_){}
+  }
+  if(!form){const e=new Error('Formulário da pesquisa gratuita indisponível.');e.code='official_free_survey_unavailable';throw e;}
+  const org=company?.slug||company?.publicSlug||OFFICIAL_FREE_ORG_SLUG;
+  publicSurveyCache.set(linked.id,{survey:linked,form,company,lgpd:{text:state.settings?.lgpdText||LGPD_TEXT}});
+  return {...payload,surveyId:linked.id,token,org,survey:linked,form,company};
+}
+
 async function resolveOfficialFreeSurveyPayload(payload = {}) {
   const official = await loadOfficialFreeSurvey();
   const linked = await ensureOfficialFreeSurveyPublicLink(official);
@@ -621,9 +667,9 @@ function renderHome(){
   if(!faqItems.length)faqItems=normalizeFaqItems(null,defaultFaq());
   const featuredResolution=resolveHomeFeaturedSurvey(state);
   const featuredSurvey=featuredResolution.survey;
-  const featuredSurveyUrlPromise=getOfficialFreeSurveyUrl();
-  const featuredSurveyUrl=window.ValoraRuntimeDiagnostics?.lastOfficialFreeSurveyUrl||buildOfficialFreeSurveyUrl(featuredSurvey);
-  featuredSurveyUrlPromise.then(url=>{ if(url){ window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{}; window.ValoraRuntimeDiagnostics.lastOfficialFreeSurveyUrl=url; const app=$('#app'); if(app&&app.innerHTML.includes('Aguardar diagnóstico grátis')) renderHome(); }}).catch(()=>{});
+  const featuredSurveyUrlPromise=getFeaturedHomeSurveyUrl();
+  const featuredSurveyUrl=window.ValoraRuntimeDiagnostics?.lastFeaturedHomeSurveyUrl||buildHomeFeaturedSurveyUrl(featuredSurvey)||buildOfficialFreeSurveyUrl(featuredSurvey);
+  featuredSurveyUrlPromise.then(url=>{ if(url){ window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{}; window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurveyUrl=url; const app=$('#app'); if(app&&app.innerHTML.includes('Aguardar diagnóstico grátis')) renderHome(); }}).catch(()=>{});
   const hasFeaturedSurvey=Boolean(featuredSurvey&&featuredSurveyUrl);
   const adminWarning=currentUser()?.role==='admin_valora'&&!hasFeaturedSurvey?'<div class="warning-box">Pesquisa destaque não configurada. Defina uma pesquisa ativa com link público em Admin &gt; Pesquisas.</div>':'';
   const primaryCta=hasFeaturedSurvey?`<a href="${esc(featuredSurveyUrl)}" class="btn btn-primary">Responder diagnóstico grátis</a>`:`<a href="#plans" class="btn btn-primary">Aguardar diagnóstico grátis</a>`;
@@ -1393,7 +1439,7 @@ async function submitPublicSurveyViaFirestoreFallback(payload){
 async function submitPublicSurveyAuto(payload){
   let safePayload=ensurePublicSubmitIdempotencyKey({...payload});
   const originalIsDemoLink=isDemoPublicSurveyLink(safePayload);
-  if(originalIsDemoLink) safePayload=ensurePublicSubmitIdempotencyKey(await resolveOfficialFreeSurveyPayload(safePayload));
+  if(originalIsDemoLink) safePayload=ensurePublicSubmitIdempotencyKey(await resolveFeaturedHomeSurveyPayload(safePayload));
   const diagnostics={surveyId:safePayload.surveyId,org:safePayload.org||'',isDemoLink:originalIsDemoLink,redirectedFromDemo:false,providersAttempted:[],errors:[],provider:'auto',attempts:[],finalProvider:'',errorCode:'',payloadSurveyIdSanitized:String(safePayload.surveyId||'').replace(/demo/gi,'[demo]'),resolvedSurveyId:safePayload.surveyId,resolvedOrg:safePayload.org||'',cloudFunctionErrorCode:'',firestoreFallbackErrorCode:'',externalApiErrorCode:''};
   const survey=safePayload?.survey||safePayload?.surveyData||publicSurveyCache.get(safePayload.surveyId)?.survey||{};
   const isFree=isFreeOfficialSurvey(survey);
@@ -1448,7 +1494,7 @@ async function renderTakeSurvey(sid,token,orgSlug='',resolvedPayload=null){
   $('#app').innerHTML='<section class="section"><div class="container"><div class="card"><h1>Validando link seguro…</h1><p>Aguarde enquanto confirmamos a pesquisa.</p></div></div></section>';
   try{
     let payload=resolvedPayload;
-    if(!payload&&isDemoPublicSurveyLink({surveyId:sid,token,org:orgSlug})) payload=await resolveOfficialFreeSurveyPayload({surveyId:sid,token,org:orgSlug});
+    if(!payload&&isDemoPublicSurveyLink({surveyId:sid,token,org:orgSlug})) payload=await resolveFeaturedHomeSurveyPayload({surveyId:sid,token,org:orgSlug});
     if(!payload) payload=await validatePublicSurveyLink({surveyId:sid,token,org:orgSlug});
     sid=payload.survey?.id||payload.surveyId||sid; token=payload.survey?.publicToken||payload.survey?.token||payload.survey?.accessToken||payload.token||token; orgSlug=payload.org||orgSlug;
     publicSurveyCache.set(sid,{survey:payload.survey,form:payload.form,company:payload.company,lgpd:{text:payload.lgpd?.text||lgpdText}});
@@ -1497,7 +1543,7 @@ async function submitSurvey(form){
     const participant={personType:fd.personType,name:fd.name,email:fd.email,phone:fd.phone||'',isWhatsapp:!!fd.isWhatsapp,document:fd.document||'',cep:fd.cep||'',address:fd.address||'',sendEmail:!!fd.sendEmail};
     try{
       let submitPayload={surveyId:fd.surveyId,token:fd.token,participant,answers,lgpdConsent:!!fd.lgpdConsent,communicationConsent:!!fd.sendEmail,survey:cached.survey,org:new URL(location.href).searchParams.get('org')||''};
-      if(isDemoPublicSurveyLink(submitPayload)) submitPayload=await resolveOfficialFreeSurveyPayload(submitPayload);
+      if(isDemoPublicSurveyLink(submitPayload)) submitPayload=await resolveFeaturedHomeSurveyPayload(submitPayload);
       if(isDemoPublicSurveyLink(submitPayload)){const e=new Error('Payload legado bloqueado antes do envio.');e.code='legacy_demo_payload_blocked';throw e;}
       const res=await submitPublicSurveyResponse(submitPayload);
       toast('Respostas enviadas com segurança.','success');

@@ -27,7 +27,9 @@ fs.mkdirSync(distAssets, { recursive: true });
 fs.mkdirSync(path.join(dist, 'vendor', 'bootstrap'), { recursive: true });
 
 const index = fs.readFileSync(indexPath, 'utf8');
-const configSource = read('config.js');
+const productionConfigPath = path.join(root, 'config', 'config.production.js');
+const configFileForDist = fs.existsSync(productionConfigPath) ? 'config/config.production.js' : 'config.js';
+const configSource = read(configFileForDist);
 const versionMatch = configSource.match(/APP_VERSION:\s*'([^']+)'/);
 const appVersion = versionMatch ? versionMatch[1] : '0.0.0';
 // Bundles legacy-admin-mobile-menu-bridge.js when referenced by index.html.
@@ -38,7 +40,8 @@ const localScripts = [...index.matchAll(/<script\s+src="([^"]+\.js)(?:\?v=[^"]*)
 const jsBundle = localScripts.map((script) => `;\n/* ${script} */\n${cleanJs(read(script))}`).join('\n');
 const jsFile = `app.${hash(jsBundle)}.js`;
 fs.writeFileSync(path.join(distAssets, jsFile), jsBundle, 'utf8');
-fs.copyFileSync(path.join(root, 'config.js'), path.join(dist, 'config.js'));
+fs.copyFileSync(path.join(root, configFileForDist), path.join(dist, 'config.js'));
+fs.copyFileSync(indexPath, path.join(dist, 'index.source.html')); // evidência do index.html de origem usado no build
 
 const cssBundle = minifyCss(fs.readFileSync(cssPath, 'utf8'));
 const cssFile = `style.${hash(cssBundle)}.css`;

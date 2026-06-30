@@ -1,70 +1,24 @@
 #!/usr/bin/env node
-'use strict';
-
-const crypto = require('crypto');
-
-function token(bytes = 24) { return crypto.randomBytes(bytes).toString('base64url'); }
-function sha256(value) { return crypto.createHash('sha256').update(String(value)).digest('hex'); }
-
-async function main() {
-  let admin;
-  try { admin = require('firebase-admin'); } catch (_) {
-    console.error('firebase-admin não instalado. Rode dentro do ambiente com dependências do projeto/Firebase.');
-    process.exit(1);
-  }
-  if (!admin.apps.length) admin.initializeApp();
-  const db = admin.firestore();
-  const now = admin.firestore.FieldValue.serverTimestamp();
-
-  const orgId = process.env.OFFICIAL_FREE_SURVEY_ORG_ID || 'valora-group-oficial';
-  const formId = process.env.OFFICIAL_FREE_SURVEY_FORM_ID || 'form_valora_insight_gratuito';
-  const surveyId = process.env.OFFICIAL_FREE_SURVEY_ID || 'survey_valora_insight_gratuito';
-  const existing = await db.collection('surveys').doc(surveyId).get();
-  const publicToken = existing.get('publicToken') || existing.get('token') || existing.get('accessToken') || token(24);
-
-  const org = {
-    id: orgId,
-    name: 'Valora Group',
-    publicName: 'Valora Group',
-    slug: 'valora-group',
-    status: 'active',
-    planId: 'free',
-    updatedAt: now,
-    createdAt: existing.exists ? (existing.get('createdAt') || now) : now
-  };
-  const questions = [
-    { id: 'governanca', text: 'A empresa possui rituais claros de governança e tomada de decisão?', type: 'scale', required: true, weight: 1 },
-    { id: 'lideranca', text: 'As lideranças comunicam prioridades de forma consistente?', type: 'scale', required: true, weight: 1 },
-    { id: 'pessoas', text: 'Os times têm clareza sobre papéis, metas e responsabilidades?', type: 'scale', required: true, weight: 1 },
-    { id: 'crescimento', text: 'A operação está preparada para crescer com controles e indicadores?', type: 'scale', required: true, weight: 1 }
-  ];
-  const form = { id: formId, companyId: orgId, title: 'Valora Insight — Diagnóstico Gratuito', status: 'active', isFree: true, questions, updatedAt: now, createdAt: now };
-  const survey = {
-    id: surveyId,
-    companyId: orgId,
-    organizationId: orgId,
-    formId,
-    title: 'Valora Insight — Diagnóstico Gratuito',
-    status: 'active',
-    visibility: 'public',
-    isFree: true,
-    planId: 'free',
-    publicToken,
-    tokenHash: sha256(publicToken),
-    publicUrl: `https://valoragroup.mnsoft.com.br/?survey=${encodeURIComponent(surveyId)}&token=${encodeURIComponent(publicToken)}&org=valora-group`,
-    publicLink: `https://valoragroup.mnsoft.com.br/?survey=${encodeURIComponent(surveyId)}&token=${encodeURIComponent(publicToken)}&org=valora-group`,
-    visibleOnHome: true,
-    featuredOnHome: true,
-    revoked: false,
-    updatedAt: now,
-    createdAt: existing.exists ? (existing.get('createdAt') || now) : now
-  };
-  const batch = db.batch();
-  batch.set(db.collection('organizations').doc(orgId), org, { merge: true });
-  batch.set(db.collection('forms').doc(formId), form, { merge: true });
-  batch.set(db.collection('surveys').doc(surveyId), survey, { merge: true });
-  await batch.commit();
-  console.log(JSON.stringify({ ok: true, orgId, formId, surveyId, publicUrl: survey.publicUrl.replace(publicToken, '[redacted]') }, null, 2));
-}
-
-main().catch(err => { console.error(err && err.message ? err.message : err); process.exit(1); });
+const crypto=require('crypto');
+const admin=require('firebase-admin');
+const {getFirestore,validateFirebaseAdminCredentials,projectId}=require('./firebase-admin-client');
+const args=process.argv.slice(2);
+const nowIso=()=>new Date().toISOString();
+const publicToken=()=>crypto.randomBytes(32).toString('base64url');
+const sha256=v=>crypto.createHash('sha256').update(String(v||''),'utf8').digest('hex');
+const ts=()=>admin.firestore.FieldValue.serverTimestamp();
+const officialIds={org:'valora-oficial',company:'valora-oficial',form:'form_valora_insight_oficial',survey:'official_free_survey'};
+function tokenFromSurvey(s){const t=String(s?.publicToken||s?.token||s?.accessToken||'').trim();return t&&t!==String(s?.tokenHash||'')?t:'';}
+function formPayload(){return {id:officialIds.form,companyId:officialIds.company,name:'Valora Insight™',title:'Diagnóstico Gratuito Valora Insight™',description:'Diagnóstico gratuito de maturidade organizacional para identificar oportunidades de evolução em gestão, pessoas, clientes, tecnologia e resultados.',status:'active',timeMin:5,scoringMethod:'weightedAverage',lgpdText:'Ao participar, você autoriza a Valora Group a tratar os dados informados para calcular e disponibilizar seu diagnóstico, conforme a LGPD. Os dados serão usados para gerar resultado, histórico e eventual contato solicitado.',questions:[
+{id:'q1',text:'A empresa possui processos internos bem definidos?',dimensionId:'gestao',dimensionName:'Gestão e Processos',type:'scale',required:true,weight:1,maxScore:5},
+{id:'q2',text:'As metas e indicadores são acompanhados com frequência pela liderança?',dimensionId:'estrategia',dimensionName:'Estratégia e Indicadores',type:'scale',required:true,weight:1,maxScore:5},
+{id:'q3',text:'A equipe recebe feedbacks, treinamentos e orientações claras para melhorar a performance?',dimensionId:'pessoas',dimensionName:'Pessoas e Cultura',type:'scale',required:true,weight:1,maxScore:5},
+{id:'q4',text:'A empresa utiliza ferramentas digitais para organizar informações e reduzir retrabalho?',dimensionId:'tecnologia',dimensionName:'Tecnologia e Dados',type:'scale',required:true,weight:1,maxScore:5},
+{id:'q5',text:'A experiência do cliente é monitorada e usada para melhorar produtos ou serviços?',dimensionId:'clientes',dimensionName:'Clientes e Mercado',type:'scale',required:true,weight:1,maxScore:5},
+{id:'q6',text:'Os resultados financeiros são analisados antes de decisões importantes?',dimensionId:'resultados',dimensionName:'Resultados e Sustentabilidade',type:'scale',required:true,weight:1,maxScore:5}
+],resultBands:[{id:'inicial',label:'Maturidade inicial',min:0,max:39,description:'Há oportunidades relevantes de estruturação e priorização.'},{id:'em_evolucao',label:'Maturidade em evolução',min:40,max:69,description:'A empresa já possui práticas importantes e pode acelerar ganhos com foco.'},{id:'avancado',label:'Maturidade avançada',min:70,max:100,description:'A empresa demonstra práticas consistentes e pode aprofundar diferenciais competitivos.'}],createdAt:ts(),updatedAt:ts()};}
+(async()=>{const cred=validateFirebaseAdminCredentials({args});if(!cred.ok)throw new Error(cred.message);const db=getFirestore({args});const now=ts();const org={id:officialIds.org,companyId:officialIds.company,organizationId:officialIds.org,name:'Valora Group',publicName:'Valora Group',slug:'valora-group',status:'active',planId:'free',isDeleted:false,createdAt:now,updatedAt:now};
+const existing=await db.collection('surveys').doc(officialIds.survey).get();const existingData=existing.exists?existing.data():{};const token=tokenFromSurvey(existingData)||publicToken();const survey={id:officialIds.survey,companyId:officialIds.company,organizationId:officialIds.org,formId:officialIds.form,title:'Diagnóstico Gratuito Valora Insight™',description:'Pesquisa oficial gratuita da Valora Group para diagnóstico inicial de maturidade organizacional.',status:'published',visibility:'public',isFree:true,planId:'free',requireIdentification:true,lgpdRequired:true,allowRepeat:true,anonymous:false,showResult:true,revoked:false,revokedAt:null,publicToken:token,token,tokenHash:sha256(token),responseCount:Number(existingData.responseCount||0),startsAt:existingData.startsAt||nowIso(),expiresAt:'2099-12-31T23:59:59.999Z',createdAt:existingData.createdAt||now,updatedAt:now,featuredOnHome:true,visibleOnHome:true,isFeatured:true};
+const batch=db.batch();batch.set(db.collection('organizations').doc(officialIds.org),org,{merge:true});batch.set(db.collection('companies').doc(officialIds.company),{...org,organizationId:officialIds.org},{merge:true});batch.set(db.collection('forms').doc(officialIds.form),formPayload(),{merge:true});batch.set(db.collection('surveys').doc(officialIds.survey),survey,{merge:true});await batch.commit();
+console.log(`Pesquisa oficial garantida no projeto ${projectId({args})||cred.projectId||'(default)'}.`);console.log(`URL oficial domínio:\nhttps://valoragroup.mnsoft.com.br/?survey=official_free_survey&token=${token}&org=valora-group`);console.log(`URL oficial Firebase:\nhttps://gestordepesquisa.web.app/?survey=official_free_survey&token=${token}&org=valora-group`);
+})().catch(e=>{console.error(e.message);process.exit(1);});

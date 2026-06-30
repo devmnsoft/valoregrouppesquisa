@@ -1,5 +1,11 @@
 const fs=require('fs');
 const app=fs.readFileSync('app.js','utf8');
-['loadOfficialFreeSurvey','ensureOfficialFreeSurveyPublicLink','isOfficialFreeSurvey','buildOfficialFreeSurveyUrl','publicToken||survey.token||survey.accessToken'].forEach(x=>{if(!app.includes(x))throw new Error('ausente: '+x)});
-if(app.includes("url.searchParams.set('token',survey.tokenHash)"))throw new Error('tokenHash usado como token público');
+const repo=fs.readFileSync('firebase-repository.js','utf8');
+const seed=fs.readFileSync('scripts/ensure-official-free-survey.js','utf8');
+const pkg=require('../package.json');
+['loadOfficialFreeSurvey','ensureOfficialFreeSurveyPublicLink','isOfficialFreeSurvey','buildOfficialFreeSurveyUrl','official_free_survey'].forEach(x=>{if(!app.includes(x))throw new Error('app ausente: '+x)});
+['getDoc(\'surveys\',\'official_free_survey\')','survey_demo','publicTokenFromSurvey'].forEach(x=>{if(!repo.includes(x))throw new Error('repository ausente: '+x)});
+['organizations','companies','forms','surveys','valora-oficial','form_valora_insight_oficial','official_free_survey','tokenHash:sha256(token)','URL oficial domínio','URL oficial Firebase'].forEach(x=>{if(!seed.includes(x))throw new Error('seed ausente: '+x)});
+if(pkg.scripts['seed:official-free-survey']!=='node scripts/ensure-official-free-survey.js')throw new Error('script npm seed:official-free-survey ausente');
+if(app.includes("url.searchParams.set('token',survey.tokenHash)")||seed.includes('token:sha256(token)'))throw new Error('tokenHash usado como token público');
 console.log('legacy official free link: PASS');

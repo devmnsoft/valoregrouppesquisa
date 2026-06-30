@@ -435,11 +435,15 @@ function isDemoPublicSurveyLink(params) {
 }
 function isOfficialFreeSurvey(survey) {
   if (!survey) return false;
+  const id = String(survey.id || survey.surveyId || '').toLowerCase();
+  if (id === 'survey_demo' || id.includes('demo') || id.includes('exemplo') || id.includes('example')) return false;
   const title = String(survey.title || survey.name || '').toLowerCase();
   const status = String(survey.status || '').toLowerCase();
   const visibility = String(survey.visibility || survey.publicVisibility || 'public').toLowerCase();
   const freeByTitle = title.includes('valora insight') || title.includes('diagnóstico gratuito') || title.includes('diagnostico gratuito') || title.includes('pesquisa gratuita');
-  return (survey.isFree === true || survey.planId === 'free' || freeByTitle) &&
+  const hasRealPublicToken = !!(survey.publicToken || survey.token || survey.accessToken) && String(survey.publicToken || survey.token || survey.accessToken) !== String(survey.tokenHash || '');
+  return hasRealPublicToken &&
+    (id === 'official_free_survey' || survey.organizationId === 'valora-oficial' || survey.companyId === 'valora-oficial' || survey.official === true || survey.isOfficial === true || survey.isFree === true || survey.planId === 'free' || freeByTitle) &&
     ['active', 'published', 'open'].includes(status) &&
     !['private', 'restricted', 'internal'].includes(visibility) &&
     survey.revoked !== true && !survey.revokedAt;
@@ -452,9 +456,11 @@ function officialFreeSurveyDiagnostics(reason, candidates = []) {
 async function loadOfficialFreeSurvey() {
   const surveys = Array.isArray(state?.surveys) ? state.surveys : [];
   const candidates = [];
+  const byOfficialId = surveys.find(s => String(s?.id || s?.surveyId || '') === 'official_free_survey');
+  if (byOfficialId) candidates.push(byOfficialId);
   const byHome = resolveHomeFeaturedSurvey(state)?.survey;
-  if (byHome) candidates.push(byHome);
-  candidates.push(...surveys.filter(s => s && s !== byHome));
+  if (byHome && byHome !== byOfficialId) candidates.push(byHome);
+  candidates.push(...surveys.filter(s => s && s !== byHome && s !== byOfficialId));
   const local = candidates.find(isOfficialFreeSurvey);
   if (local) { window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {}; window.ValoraRuntimeDiagnostics.lastOfficialFreeSurvey = officialFreeSurveyDiagnostics('local_candidate_found', [local]); return local; }
   if (window.ValoraRepository?.loadOfficialFreeSurvey) {
@@ -513,9 +519,9 @@ async function handleDemoPublicSurveyLink(params) {
   }
 
   renderPublicSurveyError({
-    code: 'official_free_survey_unavailable',
+    code: 'Diagnóstico gratuito',
     title: 'Diagnóstico gratuito indisponível',
-    message: 'A pesquisa gratuita oficial ainda não está disponível. Acesse novamente em instantes ou fale com a Valora Group.',
+    message: 'A pesquisa gratuita oficial ainda não está disponível. Tente novamente em instantes ou fale com a Valora Group.',
     showWhatsapp: true
   });
 
@@ -1390,9 +1396,11 @@ function publicApiFriendlyError(error){
   const normalized=window.ValoraApiClient?.normalizeApiError?window.ValoraApiClient.normalizeApiError(error):{message:error?.message||'Falha no provedor público.',correlationId:error?.correlationId||''};
   const code=publicApiErrorCode(normalized.code||normalized.status||normalized.correlationId||normalized.message||error);
   window.ValoraLastPublicSubmissionError=code;
-  const messages={official_free_survey_unavailable:'A pesquisa gratuita oficial ainda não está disponível. Acesse novamente em instantes ou fale com a Valora Group.',provider_unavailable:'Não conseguimos registrar sua resposta agora. Tente novamente em instantes.'};
+  const messages={official_free_survey_unavailable:'A pesquisa gratuita oficial ainda não está disponível. Tente novamente em instantes ou fale com a Valora Group.',provider_unavailable:'Não conseguimos registrar sua resposta agora. Tente novamente em instantes.'};
   const message=messages[code]||'Não conseguimos concluir sua pesquisa agora. Tente novamente em instantes.';
-  return `<section class="section"><div class="container"><div class="danger-box"><b>Não conseguimos concluir sua pesquisa agora.</b><br><br>${esc(message)}<br><br>Código: ${esc(code)}</div><div class="confirm-actions"><button class="btn btn-primary" type="button" data-action="goHome">Voltar ao diagnóstico gratuito</button><button class="btn btn-soft" type="button" data-action="reloadApp">Tentar novamente</button></div></div></section>`;
+  const codeLine = code === 'official_free_survey_unavailable' ? '' : `<br><br>Código: ${esc(code)}`;
+  const title = code === 'official_free_survey_unavailable' ? 'Pesquisa gratuita indisponível.' : 'Não conseguimos concluir sua pesquisa agora.';
+  return `<section class="section"><div class="container"><div class="danger-box"><b>${esc(title)}</b><br><br>${esc(message)}${codeLine}</div><div class="confirm-actions"><button class="btn btn-primary" type="button" data-action="goHome">Voltar ao diagnóstico gratuito</button><button class="btn btn-soft" type="button" data-action="reloadApp">Tentar novamente</button></div></div></section>`;
 }
 function invalidLink(title='Não conseguimos abrir este link de pesquisa.',message='Ele pode ter sido revogado, digitado incorretamente ou estar indisponível no momento. Volte para a página inicial e acesse o diagnóstico gratuito novamente.'){return `<section class="section"><div class="container"><div class="danger-box"><b>${esc(title)}</b><br>${esc(message)}</div><div class="confirm-actions"><button class="btn btn-primary" data-action="goHome">Voltar ao diagnóstico gratuito</button><button class="btn btn-soft" data-action="reloadApp">Tentar novamente</button></div></div></section>`;}
 function takeQuestion(q,i){

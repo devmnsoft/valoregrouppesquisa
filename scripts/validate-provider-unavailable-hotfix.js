@@ -1,0 +1,12 @@
+const {assert,has,regex,done}=require('./_legacy-validator-lib');
+assert(has('config.js',"APP_VERSION: '8.7.6'"),'APP_VERSION 8.7.6 missing');
+["DATA_PROVIDER: 'firebase'","ALLOW_API_PRODUCTION_CUTOVER: false","FIREBASE_PLAN: 'blaze'","ENABLE_CLOUD_FUNCTIONS: true","PUBLIC_SUBMISSION_PROVIDER: 'auto'","PUBLIC_SURVEY_VALIDATION_PROVIDER: 'auto'","RESULT_PROVIDER: 'auto'","EMAIL_TRANSPORT: 'auto'","PUBLIC_SUBMISSION_FALLBACKS","RESULT_FALLBACKS","EMAIL_FALLBACKS"].forEach(x=>assert(has('config.js',x),`config missing ${x}`));
+['getFirebaseFunctionsSafe','window.ValoraFirebase','window.firebaseFunctions','lastFunctionsError'].forEach(x=>assert(has('firebase-init.js',x),`firebase init missing ${x}`));
+['submitPublicSurveyAuto','preferredProviders','cloud-functions','external-api','lastPublicSubmit','provider_unavailable','normalizePublicSubmitResult','responseId','resultToken','idempotencyKey','submitPublicSurveyViaCloudFunction','submitPublicSurveyViaExternalApi','callFirebaseFunction'].forEach(x=>assert(has('app.js',x),`app missing ${x}`));
+assert(regex('app.js',/isFree[\s\S]{0,220}\['cloud-functions','external-api'\]/),'free survey must prefer Cloud Functions');
+assert(!regex('app.js',/resp_demo|response_demo/),'demo response id forbidden');
+assert(has('functions/index.js','exports.submitSurveyResponse=onCall'),'submitSurveyResponse missing');
+assert(has('functions/index.js','exports.getPublicResult=onCall'),'getPublicResult missing');
+assert(has('functions/index.js','exports.sendResultEmail=onCall'),'sendResultEmail missing');
+assert(!has('functions/index.js','legacyHashValid'),'tokenHash fallback must not be accepted');
+done('provider unavailable hotfix');

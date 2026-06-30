@@ -281,7 +281,9 @@
     "scripts:required": "node scripts/validate-required-npm-scripts.js",
     "lint": "node --check app.js && node --check config.js",
     "firebase:live-public-link": "node scripts/validate-legacy-free-token-never-expires.js",
-    "prod:config-live": "node scripts/validate-legacy-environment-diagnostics-complete.js"
+    "prod:config-live": "node scripts/validate-legacy-environment-diagnostics-complete.js",
+    "legacy:provider-hotfix": "node scripts/validate-provider-unavailable-hotfix.js",
+    "e2e:legacy-provider-hotfix": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-public-survey-provider-hotfix.spec.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

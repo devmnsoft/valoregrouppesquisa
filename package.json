@@ -206,7 +206,8 @@
     "user:runtime-contract": "node scripts/validate-user-create-runtime-contract.js",
     "auth:friendly-errors": "node scripts/validate-firebase-auth-friendly-errors.js",
     "admin:mobile-menu-runtime-contract": "node scripts/validate-admin-mobile-menu-runtime-contract.js",
-    "web:correction-parity": "node scripts/validate-aspnet-web-correction-parity.js"
+    "web:correction-parity": "node scripts/validate-aspnet-web-correction-parity.js",
+    "legacy:email-real-response-flow": "node scripts/validate-legacy-email-real-response-flow.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

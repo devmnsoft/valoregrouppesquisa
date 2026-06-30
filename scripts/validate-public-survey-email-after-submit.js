@@ -1,0 +1,2 @@
+const {read,assert,finish}=require('./validate-utils-s57');const a=read('app.js');
+assert(/sendResultEmailAuto\(res\.responseId,res\.resultToken,participant\.email\)/.test(a),'email sent after real submit');assert(/Seu resultado foi gerado com sucesso/.test(a),'success message');assert(/não conseguimos enviar o e-mail/.test(a),'failure message');assert(/responseId real obrigatório/.test(a),'demo response guard');finish();

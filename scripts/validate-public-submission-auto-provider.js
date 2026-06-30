@@ -1,0 +1,3 @@
+const {read,assert,finish}=require('./validate-utils-s57');const a=read('app.js'),api=read('api-repository.js'),g=read('gateway-client.js'),fb=read('firebase-repository.js');
+['submitPublicSurveyAuto','submitPublicSurveyViaApi','submitPublicSurveyViaFunctions','getPublicResultAuto','sendResultEmailAuto'].forEach(n=>assert(a.includes(n),n+' exists'));
+assert(/idempotencyKey/.test(a)&&/idempotencyKey/.test(api),'idempotencyKey supported');assert(/PUBLIC_SUBMISSION_PROVIDER:\s*'auto'/.test(read('config.js')),'config provider auto');assert(/fallbackToCloudFunctions:\s*true/.test(read('config.js')),'gateway fallback enabled');assert(g.includes('callGatewayJson'),'gateway client retained');assert(fb.includes('callFunction'),'firebase functions repository available');finish();

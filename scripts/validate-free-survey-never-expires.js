@@ -1,0 +1,3 @@
+const {read,assert,finish}=require('./validate-utils-s57');const a=read('app.js'),f=read('functions/index.js');
+['normalizeDateLike','isFreeOfficialSurvey','isSurveyExpired','resolveHomeFeaturedSurvey','buildHomeFeaturedSurveyUrl','ensureSurveyPublicLink','renderTakeSurvey','loadPublicSurvey','validatePublicSurveyToken'].forEach(n=>assert(a.includes(n),n+' referenced'));
+assert(/options\.strict===true/.test(a),'front free strict expiration only');assert(/isFreeOfficialSurvey\(s\).*options\.strict===true/.test(f),'function free strict expiration only');assert(/loadValidSurvey/.test(f)&&/revoked/.test(f),'loadValidSurvey keeps revoked block');finish();

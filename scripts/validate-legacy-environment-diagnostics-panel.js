@@ -1,0 +1,3 @@
+const {read,assert,finish}=require('./validate-utils-s57');const a=read('app.js');
+['FIREBASE_PLAN atual','Blaze ativo no config','ENABLE_CLOUD_FUNCTIONS','SMTP configurado','SMTP_PASSWORD secret esperado','sendEmail disponível','getEmailStatus disponível','publicToken','expiresAt','Último erro de submissão','Último erro de e-mail','Último erro Auth'].forEach(x=>assert(a.includes(x),x));
+const diag=a.slice(a.indexOf('function adminEnvironmentStatusCard'),a.indexOf('function adminDashboard'));['private_key','service account','API key completa','resultToken','tokenHash'].forEach(x=>assert(!diag.includes(x),x+' hidden in diagnostics panel'));finish();

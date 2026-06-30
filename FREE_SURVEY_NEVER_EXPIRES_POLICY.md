@@ -1,4 +1,4 @@
-# KNOWN LIMITATIONS BEFORE PRODUCTION
+# FREE SURVEY NEVER EXPIRES POLICY
 
 Documento da Sprint 57. As correções foram aplicadas no projeto legado da raiz e documentadas para paridade com backend/Valora.Web.
 

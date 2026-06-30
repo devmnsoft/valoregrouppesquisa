@@ -1,0 +1,10 @@
+{
+  "createdAt": "2026-06-30T12:04:47.249Z",
+  "allowed": false,
+  "to": "",
+  "subject": "Teste controlado Valora Pulse — produção",
+  "sent": false,
+  "errors": [
+    "ALLOW_PRODUCTION_EMAIL_TEST diferente de true; nenhum envio realizado."
+  ]
+}

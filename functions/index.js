@@ -138,7 +138,7 @@ exports.sendSurveyInvitations=onCall({secrets:[SMTP_PASSWORD]},async req=>{
   const user=await authedUser(req), data=asObject(req.data,'payload');
   if(!['admin_valora','empresa_admin','gestor_pesquisa'].includes(user.role))throw new HttpsError('permission-denied','Seu perfil não pode enviar convites.');
   const survey=await assertSurveyCompany(required(data,'surveyId'),user);
-  if(survey.status!=='active'||!isBetween(survey))throw new HttpsError('failed-precondition','Pesquisa inativa ou expirada.');
+  if(survey.status!=='active'||!isBetween(survey,{strict:false}))throw new HttpsError('failed-precondition','Pesquisa inativa ou expirada.');
   const orgSnap=await db.collection('organizations').doc(survey.companyId).get(), legacyCompanySnap=await db.collection('companies').doc(survey.companyId).get();
   const companySnap=orgSnap.exists?orgSnap:legacyCompanySnap;
   if(!companySnap.exists||!['active','trial'].includes(companySnap.data().status))throw new HttpsError('failed-precondition','Empresa indisponível.');

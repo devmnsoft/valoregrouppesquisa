@@ -499,32 +499,49 @@ function buildOfficialFreeSurveyUrl(survey) {
     return u.toString();
   } catch (_) { return ''; }
 }
-async function handleDemoPublicSurveyLink(params) {
+
+async function resolveOfficialFreeSurveyPayload(payload = {}) {
   const official = await loadOfficialFreeSurvey();
   const linked = await ensureOfficialFreeSurveyPublicLink(official);
-
-  if (linked && (linked.publicToken || linked.token || linked.accessToken)) {
-    const url = buildOfficialFreeSurveyUrl(linked);
-    if (url) {
-      window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
-      window.ValoraRuntimeDiagnostics.lastDemoLinkRedirect = {
-        fromSurvey: params.survey || params.surveyId || '',
-        fromOrg: params.org || '',
-        redirected: true,
-        targetSurveyId: linked.id || linked.surveyId || ''
-      };
-      window.location.replace(url);
-      return true;
-    }
+  const token = linked?.publicToken || linked?.token || linked?.accessToken || '';
+  if (!linked || String(linked.id || linked.surveyId || '') !== 'official_free_survey' || !token || token === String(linked.tokenHash || '')) {
+    const e = new Error('Pesquisa gratuita oficial indisponível.');
+    e.code = 'official_free_survey_unavailable';
+    throw e;
   }
+  let form = formById(linked.formId);
+  let company = companyById(linked.companyId || linked.organizationId) || findOrganizationBySlug('valora-group');
+  if ((!form || !company) && window.ValoraRepository?.validatePublicSurvey) {
+    try {
+      const loaded = await window.ValoraRepository.validatePublicSurvey({ surveyId: 'official_free_survey', token, org: 'valora-group' });
+      form = form || loaded?.form;
+      company = company || loaded?.company;
+      Object.assign(linked, loaded?.survey || {});
+    } catch (_) {}
+  }
+  if (!form && window.ValoraRepository?.loadOfficialFreeSurveyForm) {
+    try { form = await window.ValoraRepository.loadOfficialFreeSurveyForm(); } catch (_) {}
+  }
+  if (!form) { const e = new Error('Formulário oficial indisponível.'); e.code = 'official_form_unavailable'; throw e; }
+  const resolved = { ...payload, surveyId: 'official_free_survey', token, org: 'valora-group', survey: { ...linked, id: 'official_free_survey' }, surveyData: { ...linked, id: 'official_free_survey' }, form, company };
+  publicSurveyCache.set('official_free_survey', { survey: resolved.survey, form, company, lgpd: { text: form.lgpdText || linked.lgpdText || state.settings?.lgpdText || LGPD_TEXT } });
+  window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
+  window.ValoraRuntimeDiagnostics.lastDemoLinkRedirect = { fromSurvey: payload.survey || payload.surveyId || '', fromOrg: payload.org || '', redirected: false, resolved: true, targetSurveyId: 'official_free_survey', targetOrg: 'valora-group' };
+  return resolved;
+}
 
-  renderPublicSurveyError({
-    code: 'Diagnóstico gratuito',
-    title: 'Diagnóstico gratuito indisponível',
-    message: 'A pesquisa gratuita oficial ainda não está disponível. Tente novamente em instantes ou fale com a Valora Group.',
-    showWhatsapp: true
-  });
-
+async function handleDemoPublicSurveyLink(params) {
+  try {
+    const resolved = await resolveOfficialFreeSurveyPayload(params);
+    await renderTakeSurvey(resolved.surveyId, resolved.token, resolved.org, resolved);
+  } catch (_) {
+    renderPublicSurveyError({
+      code: 'Diagnóstico gratuito',
+      title: 'Diagnóstico gratuito indisponível',
+      message: 'A pesquisa gratuita oficial ainda não está disponível. Tente novamente em instantes ou fale com a Valora Group.',
+      showWhatsapp: true
+    });
+  }
   return true;
 }
 
@@ -1307,6 +1324,7 @@ async function submitPublicSurveyViaCloudFunction(payload){
 }
 async function hashPublicValue(value){const text=String(value||'');if(window.crypto?.subtle){const bytes=await window.crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));return Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');}let h=0;for(let i=0;i<text.length;i++)h=((h<<5)-h+text.charCodeAt(i))|0;return `legacy-${Math.abs(h)}`;}
 async function submitPublicSurveyViaFirestoreFallback(payload){
+  if(isDemoPublicSurveyLink(payload)) payload=await resolveOfficialFreeSurveyPayload(payload);
   const db=window.ValoraGetFirestoreSafe?window.ValoraGetFirestoreSafe():(window.ValoraFirebase?.db||window.ValoraFirebaseServices?.db);
   if(!db||typeof db.collection!=='function'){const e=new Error('Firestore indisponível para fallback.');e.code='firestore_unavailable';throw e;}
   const cached=publicSurveyCache.get(payload.surveyId)||{};let survey=payload.survey||payload.surveyData||cached.survey||state.surveys.find(s=>String(s.id)===String(payload.surveyId));let form=cached.form||formById(survey?.formId);
@@ -1324,8 +1342,10 @@ async function submitPublicSurveyViaFirestoreFallback(payload){
   return {ok:true,responseId:ref.id,resultToken,accessToken:resultToken,score:{rawScore:result.rawScore,maxScore:result.maxScore,normalized5:result.normalized5,percentage:result.percentage},level:result.level};
 }
 async function submitPublicSurveyAuto(payload){
-  const safePayload=ensurePublicSubmitIdempotencyKey({...payload});
-  const diagnostics={surveyId:safePayload.surveyId,org:safePayload.org||'',isDemoLink:isDemoPublicSurveyLink(safePayload),redirectedFromDemo:false,providersAttempted:[],errors:[],provider:'auto',attempts:[],finalProvider:'',errorCode:''};
+  let safePayload=ensurePublicSubmitIdempotencyKey({...payload});
+  const originalIsDemoLink=isDemoPublicSurveyLink(safePayload);
+  if(window.ValoraConfig?.RUNTIME_ENV==='production'&&originalIsDemoLink) safePayload=ensurePublicSubmitIdempotencyKey(await resolveOfficialFreeSurveyPayload(safePayload));
+  const diagnostics={surveyId:safePayload.surveyId,org:safePayload.org||'',isDemoLink:originalIsDemoLink,redirectedFromDemo:false,providersAttempted:[],errors:[],provider:'auto',attempts:[],finalProvider:'',errorCode:'',payloadSurveyIdSanitized:String(safePayload.surveyId||'').replace(/demo/gi,'[demo]'),resolvedSurveyId:safePayload.surveyId,resolvedOrg:safePayload.org||'',cloudFunctionErrorCode:'',firestoreFallbackErrorCode:'',externalApiErrorCode:''};
   const survey=safePayload?.survey||safePayload?.surveyData||publicSurveyCache.get(safePayload.surveyId)?.survey||{};
   const isFree=isFreeOfficialSurvey(survey);
   const providers=isFree?['cloud-functions','firestore','external-api']:['external-api','cloud-functions','firestore'];
@@ -1341,7 +1361,7 @@ async function submitPublicSurveyAuto(payload){
       diagnostics.attempts[diagnostics.attempts.length-1].status='invalid-result';
     }catch(error){diagnostics.attempts[diagnostics.attempts.length-1].status='failed';diagnostics.attempts[diagnostics.attempts.length-1].code=publicErrorCode(error);diagnostics.attempts[diagnostics.attempts.length-1].message=sanitizePublicError(error);diagnostics.errors.push({provider,code:publicErrorCode(error),message:sanitizePublicError(error)});}
   }
-  diagnostics.errorCode='provider_unavailable';window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicSubmit=diagnostics;const error=new Error('Nenhum provider disponível para processar a pesquisa.');error.code='provider_unavailable';error.diagnostics=diagnostics;throw error;
+  diagnostics.errorCode='provider_unavailable';diagnostics.payloadSurveyIdSanitized=String(safePayload.surveyId||'').replace(/demo/gi,'[demo]');diagnostics.resolvedSurveyId=safePayload.surveyId;diagnostics.resolvedOrg=safePayload.org||'';diagnostics.cloudFunctionErrorCode=diagnostics.errors.find(e=>e.provider==='cloud-functions')?.code||'';diagnostics.firestoreFallbackErrorCode=diagnostics.errors.find(e=>e.provider==='firestore')?.code||'';diagnostics.externalApiErrorCode=diagnostics.errors.find(e=>e.provider==='external-api')?.code||'';window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicSubmit=diagnostics;const error=new Error('Nenhum provider disponível para processar a pesquisa.');error.code='provider_unavailable';error.diagnostics=diagnostics;throw error;
 }
 async function submitPublicSurveyResponse(payload){return submitPublicSurveyAuto(payload);}
 async function getPublicResultAuto(responseId,resultToken){
@@ -1372,13 +1392,16 @@ async function sendResultEmailViaFunction(payload){if(!payload?.responseId||Stri
 function renderEmailDeliveryStatus(status){const ok=status?.sent||status?.status==='sent'||status?.ok===true;return ok?'Resultado gerado com sucesso. Enviamos uma cópia para o e-mail informado. Verifique também spam ou lixo eletrônico.':'Resultado gerado com sucesso, mas não conseguimos enviar o e-mail neste momento. A resposta ficou registrada e poderá ser reenviada pelo painel administrativo.';}
 function loadPublicResultLocally(responseId,resultToken){const response=state.responses.find(x=>String(x.id)===String(responseId));if(!response)throw new Error('Resultado não encontrado.');if(response.resultToken&&response.resultToken!==resultToken)throw new Error('Token de resultado inválido.');const survey=state.surveys.find(x=>x.id===response.surveyId)||{};const company=companyById(response.companyId)||{};return {ok:true,response,survey,company,result:response,certificate:{responseId:response.id,resultToken}};}
 
-async function renderTakeSurvey(sid,token,orgSlug=''){
+async function renderTakeSurvey(sid,token,orgSlug='',resolvedPayload=null){
   renderShell();
   audit('Pesquisa pública aberta','jornada_publica',sid,'Abertura por link seguro');
   let s,f,companyLabel,lgpdText=state.settings.lgpdText||LGPD_TEXT;
   $('#app').innerHTML='<section class="section"><div class="container"><div class="card"><h1>Validando link seguro…</h1><p>Aguarde enquanto confirmamos a pesquisa.</p></div></div></section>';
   try{
-    const payload=await validatePublicSurveyLink({surveyId:sid,token,org:orgSlug});
+    let payload=resolvedPayload;
+    if(!payload&&isDemoPublicSurveyLink({surveyId:sid,token,org:orgSlug})) payload=await resolveOfficialFreeSurveyPayload({surveyId:sid,token,org:orgSlug});
+    if(!payload) payload=await validatePublicSurveyLink({surveyId:sid,token,org:orgSlug});
+    sid=payload.survey?.id||payload.surveyId||sid; token=payload.survey?.publicToken||payload.survey?.token||payload.survey?.accessToken||payload.token||token; orgSlug=payload.org||orgSlug;
     publicSurveyCache.set(sid,{survey:payload.survey,form:payload.form,company:payload.company,lgpd:{text:payload.lgpd?.text||lgpdText}});
     s=payload.survey;f=payload.form;companyLabel=payload.company?.publicName||payload.company?.name||'Valora Group';lgpdText=payload.lgpd?.text||lgpdText;
   }catch(err){return $('#app').innerHTML=publicApiFriendlyError(err);}
@@ -1397,7 +1420,9 @@ function publicApiFriendlyError(error){
   const code=publicApiErrorCode(normalized.code||normalized.status||normalized.correlationId||normalized.message||error);
   window.ValoraLastPublicSubmissionError=code;
   const messages={official_free_survey_unavailable:'A pesquisa gratuita oficial ainda não está disponível. Tente novamente em instantes ou fale com a Valora Group.',provider_unavailable:'Não conseguimos registrar sua resposta agora. Tente novamente em instantes.'};
-  const message=messages[code]||'Não conseguimos concluir sua pesquisa agora. Tente novamente em instantes.';
+  const lastDiag=window.ValoraRuntimeDiagnostics?.lastPublicSubmit||{};
+  const demoProviderUnavailable=code==='provider_unavailable'&&(lastDiag.isDemoLink||lastDiag.resolvedSurveyId==='survey_demo'||lastDiag.surveyId==='survey_demo');
+  const message=demoProviderUnavailable?'O link demonstrativo foi atualizado. Recarregue a página para acessar o diagnóstico oficial.':(messages[code]||'Não conseguimos concluir sua pesquisa agora. Tente novamente em instantes.');
   const codeLine = code === 'official_free_survey_unavailable' ? '' : `<br><br>Código: ${esc(code)}`;
   const title = code === 'official_free_survey_unavailable' ? 'Pesquisa gratuita indisponível.' : 'Não conseguimos concluir sua pesquisa agora.';
   return `<section class="section"><div class="container"><div class="danger-box"><b>${esc(title)}</b><br><br>${esc(message)}${codeLine}</div><div class="confirm-actions"><button class="btn btn-primary" type="button" data-action="goHome">Voltar ao diagnóstico gratuito</button><button class="btn btn-soft" type="button" data-action="reloadApp">Tentar novamente</button></div></div></section>`;
@@ -1422,7 +1447,9 @@ async function submitSurvey(form){
     const answers={};for(const q of f.questions){const key=`q_${q.id}`,value=fd[key];if(q.required&&(!value||(Array.isArray(value)&&!value.length)))return toast(`Responda a pergunta: ${q.text}`,'error');answers[q.id]=value??(q.type==='multiple'?[]:'');}
     const participant={personType:fd.personType,name:fd.name,email:fd.email,phone:fd.phone||'',isWhatsapp:!!fd.isWhatsapp,document:fd.document||'',cep:fd.cep||'',address:fd.address||'',sendEmail:!!fd.sendEmail};
     try{
-      const res=await submitPublicSurveyResponse({surveyId:fd.surveyId,token:fd.token,participant,answers,lgpdConsent:!!fd.lgpdConsent,communicationConsent:!!fd.sendEmail,survey:cached.survey,org:new URL(location.href).searchParams.get('org')||''});
+      let submitPayload={surveyId:fd.surveyId,token:fd.token,participant,answers,lgpdConsent:!!fd.lgpdConsent,communicationConsent:!!fd.sendEmail,survey:cached.survey,org:new URL(location.href).searchParams.get('org')||''};
+      if(isDemoPublicSurveyLink(submitPayload)) submitPayload=await resolveOfficialFreeSurveyPayload(submitPayload);
+      const res=await submitPublicSurveyResponse(submitPayload);
       toast('Respostas enviadas com segurança.','success');
       const clean=location.href.split('?')[0].split('#')[0];
       history.replaceState({},'',`${clean}?result=${encodeURIComponent(res.responseId)}&rt=${encodeURIComponent(res.resultToken)}`);

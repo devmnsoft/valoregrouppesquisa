@@ -273,7 +273,7 @@
     "functions:install": "npm install --prefix functions",
     "functions:lint": "npm run lint --prefix functions",
     "functions:node22-readiness": "node scripts/validate-functions-node22-deploy-readiness.js",
-    "functions:deploy": "npm run functions:install && npm run functions:lint && firebase deploy --only functions --project gestordepesquisa",
+    "functions:deploy": "npm run functions:install && npm run functions:node22-readiness && npm run functions:lint && firebase deploy --only functions --project gestordepesquisa",
     "hosting:build": "npm run build:prod",
     "hosting:deploy": "npm run hosting:build && npm run hosting:dist-build && firebase deploy --only hosting --project gestordepesquisa",
     "hosting:dist-build": "node scripts/validate-hosting-dist-build.js",
@@ -285,7 +285,8 @@
     "legacy:provider-hotfix": "node scripts/validate-provider-unavailable-hotfix.js",
     "e2e:legacy-provider-hotfix": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-public-survey-provider-hotfix.spec.js",
     "legacy:provider-final-hotfix": "node scripts/validate-provider-unavailable-final-hotfix.js",
-    "e2e:legacy-provider-final-hotfix": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-provider-unavailable-final-hotfix.spec.js"
+    "e2e:legacy-provider-final-hotfix": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-provider-unavailable-final-hotfix.spec.js",
+    "legacy:provider-final-fix": "node scripts/validate-provider-unavailable-final-fix.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

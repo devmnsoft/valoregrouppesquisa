@@ -1,23 +1,13 @@
-# FUNCTIONS_NODE22_DEPLOY
+# Functions Node 22 Deploy
 
-Sprint 67 mantém a SPA legada em produção com Firebase Hosting, Cloud Functions v2 em Node 22 e Firebase Secret para SMTP.
+As Functions estão configuradas para Node.js 22 em dois pontos obrigatórios:
 
-## Deploy correto
+- `firebase.json`: `functions.runtime = nodejs22`
+- `functions/package.json`: `engines.node = 22`
 
-- Functions: `npm run functions:deploy`
-- Hosting: `npm run hosting:deploy`
-- Fluxo completo Firebase: `npm run deploy:firebase`
-
-## Segurança SMTP
-
-A senha SMTP não deve ser commitada, documentada ou exibida em logs. Use somente o Firebase Secret `SMTP_PASSWORD`.
-
-Se a senha SMTP foi compartilhada em chat, print, log ou repositório, rotacione imediatamente e configure a nova senha apenas com:
+O gate de prontidão valida runtime, dependências Firebase/Admin/Nodemailer e o lint Windows-safe.
 
 ```bash
-firebase functions:secrets:set SMTP_PASSWORD --project gestordepesquisa
+npm run functions:node22-readiness
+npm run functions:deploy
 ```
-
-## Validações Sprint 67
-
-Execute `npm run security:no-secrets`, `npm run scripts:required`, `npm run functions:node22-readiness`, `npm run legacy:public-submit-flow`, `npm run legacy:result-email-send`, `npm run legacy:plans-tab`, `npm run legacy:free-token-never-expires` e `npm run hosting:dist-build` antes do deploy.

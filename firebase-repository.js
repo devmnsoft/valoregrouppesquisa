@@ -106,7 +106,7 @@ async function syncSettings(){if(!changed(session.store.settings,session.cache.s
 
 function makeSlugBase(value){return String(value||'empresa').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)||'empresa';}
 async function uniqueOrganizationSlug(base){let slug=makeSlugBase(base),candidate=slug,i=2;while(true){const rows=await queryCollection('organizations',[["slug","==",candidate]],null,1).catch(()=>[]);if(!rows.length)return candidate;candidate=`${slug}-${i++}`;}}
-async function registerCompany(data={}){
+async function registerCompanyProfile(data={}){
   const s=ensureFirebase();
   const name=String(data.name||data.legalName||data.companyName||'').trim();
   if(!name)throw Object.assign(new Error('Informe o nome da empresa.'),{code:'company_name_required'});
@@ -123,6 +123,19 @@ async function registerCompany(data={}){
   batch.set(s.db.collection('companies').doc(ref.id),company,{merge:true});
   await batch.commit();
   return {ok:true,id:ref.id,companyId:ref.id,organizationId:ref.id,slug,status};
+}
+
+
+function registerCompany(data){
+  return registerCompanyAccount(data).then(profile=>({
+    ok:true,
+    id:profile.companyId,
+    companyId:profile.companyId,
+    organizationId:profile.companyId,
+    slug:profile.slug||'',
+    status:'active',
+    profile
+  }));
 }
 
 async function registerCompanyAccount(data){
@@ -205,10 +218,19 @@ async function resolveFeaturedHomeSurveyPublic(){
   try{
     attempted.push('callable.getFeaturedHomeSurvey');
     const remote=await callFunction('getFeaturedHomeSurvey',{});
-    if(remote?.ok&&remote?.url&&!/survey_demo|empresa-exemplo|tokenHash=/i.test(remote.url)){
+    if(remote?.ok&&remote?.survey&&remote?.form&&remote?.company&&remote?.url&&!/survey_demo|empresa-exemplo|tokenHash=/i.test(remote.url)){
+      const survey={...remote.survey,publicToken:remote.token,token:remote.token};
+      const form={...remote.form};
+      const company={...remote.company};
+      if(session.store){
+        session.store.surveys=[...new Map([...(session.store.surveys||[]),survey].map(x=>[x.id,x])).values()];
+        session.store.forms=[...new Map([...(session.store.forms||[]),form].map(x=>[x.id,x])).values()];
+        session.store.companies=[...new Map([...(session.store.companies||[]),company].map(x=>[x.id,x])).values()];
+      }
+      if(window.publicSurveyCache&&survey.id)window.publicSurveyCache.set(survey.id,{survey,form,company,token:remote.token,url:remote.url,org:remote.org||company.slug||''});
       window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
-      window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_candidate_found',surveyId:remote.survey?.id||'',hasPublicToken:!!remote.token,org:remote.org||remote.company?.slug||'',source:'cloud-function'};
-      return {survey:remote.survey,company:remote.company,form:remote.form,url:remote.url,token:remote.token,org:remote.org,source:'cloud-function'};
+      window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_candidate_found',surveyId:survey.id||'',hasPublicToken:!!remote.token,org:remote.org||company.slug||'',source:remote.source||'cloud-function'};
+      return {survey,company,form,url:remote.url,token:remote.token,org:remote.org,source:remote.source||'cloud-function'};
     }
   }catch(err){recordFirestoreError('functions.getFeaturedHomeSurvey',err);}
   if(!session.authUser){

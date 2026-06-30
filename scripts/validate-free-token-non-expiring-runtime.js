@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+const fs=require('fs');const f=fs.readFileSync('functions/index.js','utf8'),a=fs.readFileSync('app.js','utf8');if(!f.includes('isFreeOfficialSurvey(s)&&!s.revoked&&!s.revokedAt'))throw new Error('isBetween não protege pesquisa gratuita');if(!a.includes('isSurveyExpired(survey)&&!isFreeOfficialSurvey(survey)'))throw new Error('legado não prioriza gratuita');if(/tokenHash.*URL|URL.*tokenHash/i.test(a))throw new Error('tokenHash em URL');console.log('OK token gratuito sem expiração indevida.');

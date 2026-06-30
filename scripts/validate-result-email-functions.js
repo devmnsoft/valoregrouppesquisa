@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+const fs=require('fs');const s=fs.readFileSync('functions/index.js','utf8');['exports.getEmailStatus','exports.sendEmail','exports.sendResultEmail','exports.queueResultEmail','exports.retryEmailJob','nodemailer.createTransport','SMTP_PASSWORD.value()','resultTokenHash','idempotencyKey'].forEach(x=>{if(!s.includes(x))throw new Error('Ausente: '+x)});console.log('OK Functions e-mail resultado.');

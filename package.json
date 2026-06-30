@@ -233,7 +233,19 @@
     "admin:mobile-bridge-runtime": "playwright test --config=playwright.e2e.config.js tests/e2e/admin-mobile-menu-bridge-runtime.spec.js",
     "admin:mobile-bridge-standalone": "playwright test --config=playwright.e2e.config.js tests/e2e/admin-mobile-menu-bridge-standalone.spec.js",
     "admin:mobile-bridge-cache": "node scripts/validate-legacy-mobile-menu-cache-busting.js",
-    "admin:mobile-click-runtime": "npm run admin:mobile-menu-runtime"
+    "admin:mobile-click-runtime": "npm run admin:mobile-menu-runtime",
+    "security:no-secrets": "node scripts/validate-no-secrets-committed.js",
+    "email:google-smtp-config": "node scripts/validate-google-smtp-production-config.js",
+    "email:functions-result": "node scripts/validate-result-email-functions.js",
+    "legacy:result-email-flow": "node scripts/validate-legacy-result-email-flow.js",
+    "legacy:certificate-flow": "node scripts/validate-legacy-certificate-flow.js",
+    "home:free-token-runtime": "node scripts/validate-free-token-non-expiring-runtime.js",
+    "admin:mobile-final": "node scripts/validate-legacy-mobile-menu-final-runtime.js",
+    "admin:mobile-final-runtime": "playwright test --config=playwright.e2e.config.js tests/e2e/admin-mobile-menu-final-runtime.spec.js",
+    "prod:cache-final": "node scripts/validate-cache-busting-final-runtime.js",
+    "prod:email-final": "node scripts/test-production-email-send.js",
+    "prod:mobile-final": "playwright test --config=playwright.e2e.config.js tests/e2e/admin-mobile-menu-production-final.spec.js",
+    "prod:free-survey-final": "node scripts/smoke-production-free-survey-final.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

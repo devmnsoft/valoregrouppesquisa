@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8');['sendResultEmailAuto','sendResultEmailViaApi','sendResultEmailViaFunction','renderEmailDeliveryStatus','responseId:res.responseId','resultToken:res.resultToken','Resultado gerado com sucesso. Enviamos'].forEach(x=>{if(!s.includes(x))throw new Error('Ausente: '+x)});if(/resp_demo/.test(s.match(/sendResultEmailAuto[\s\S]{0,900}/)?.[0]||''))throw new Error('Fluxo de envio contém demo');console.log('OK fluxo e-mail legado.');

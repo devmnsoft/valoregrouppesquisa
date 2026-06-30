@@ -1,9 +1,8 @@
 # LEGACY_PUBLIC_SURVEY_SUBMIT_FLOW
 
-Documento operacional da Sprint 69.
+Sprint 72 define que links demo nunca são processados em produção. O fluxo oficial usa pesquisa gratuita real com token público, submit via Cloud Functions, fallback Firestore e API externa por último. Tokens completos e segredos não devem ser documentados.
 
-- Pesquisa gratuita oficial: ordem de providers Cloud Functions -> Firestore emergencial -> API externa.
-- provider_unavailable só pode ocorrer após todos os providers falharem ou retornarem resultado inválido.
-- Diagnósticos runtime ficam em window.ValoraRuntimeDiagnostics.lastPublicSubmit com mensagens sanitizadas.
-- E-mail pós-submit é best-effort e não bloqueia a renderização do resultado/certificado.
-- Deploy: npm run functions:deploy e npm run hosting:deploy após os validadores obrigatórios.
+Deploy correto:
+
+- `npm run functions:deploy`
+- `npm run hosting:deploy`

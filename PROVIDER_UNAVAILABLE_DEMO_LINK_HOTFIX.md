@@ -1,4 +1,4 @@
-# HOSTING_DIST_DEPLOY
+# PROVIDER_UNAVAILABLE_DEMO_LINK_HOTFIX
 
 Sprint 72 define que links demo nunca são processados em produção. O fluxo oficial usa pesquisa gratuita real com token público, submit via Cloud Functions, fallback Firestore e API externa por último. Tokens completos e segredos não devem ser documentados.
 

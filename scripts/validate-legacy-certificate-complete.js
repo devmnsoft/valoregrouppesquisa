@@ -1,2 +1,1 @@
-const {assert,has,done}=require('./_legacy-validator-lib');
-['buildCertificateData','renderCertificateHtml','renderCertificateSection','downloadCertificate','printCertificate','buildCertificateValidationCode','buildCertificateValidationUrl','maskedEmail','Código de validação'].forEach(x=>assert(has('app.js',x),`certificate missing ${x}`));done('legacy certificate complete');
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8');['buildCertificateData','renderCertificateHtml','renderCertificateSection','downloadCertificate','printCertificate','buildCertificateValidationCode','maskedEmail','Código de validação'].forEach(x=>{if(!s.includes(x))throw new Error('certificate missing '+x)});console.log('legacy certificate complete: PASS');

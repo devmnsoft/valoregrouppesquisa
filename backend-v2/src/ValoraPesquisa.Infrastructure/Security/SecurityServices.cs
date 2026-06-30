@@ -1,0 +1,4 @@
+using System.Security.Cryptography; using System.Text; using ValoraPesquisa.Application.Contracts;
+namespace ValoraPesquisa.Infrastructure.Security;
+public sealed class BCryptPasswordHasher:IPasswordHasher{ public string Hash(string password)=>BCrypt.Net.BCrypt.HashPassword(password,12); public bool Verify(string password,string hash)=>BCrypt.Net.BCrypt.Verify(password,hash); }
+public sealed class Sha256TokenHasher:ITokenHasher{ public string NewToken()=>Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).Replace("+","-").Replace("/","_").TrimEnd('='); public string Hash(string token)=>Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))); public bool Verify(string token,string hash)=>CryptographicOperations.FixedTimeEquals(Encoding.UTF8.GetBytes(Hash(token)),Encoding.UTF8.GetBytes(hash)); }

@@ -1,0 +1,1 @@
+using Microsoft.AspNetCore.Mvc; namespace ValoraPesquisa.Web.Controllers; public class SurveyController:Controller{ public IActionResult Responder()=>View(); public IActionResult Resultado()=>View(); }

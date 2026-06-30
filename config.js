@@ -2,7 +2,7 @@
   'use strict';
 
   window.ValoraConfig = Object.freeze({
-    APP_VERSION: '8.7.5',
+    APP_VERSION: '8.7.6',
     RUNTIME_ENV: 'production',
 
     APP_PUBLIC_URL: 'https://valoragroup.mnsoft.com.br',
@@ -28,6 +28,10 @@
     PUBLIC_SURVEY_VALIDATION_PROVIDER: 'auto',
     RESULT_PROVIDER: 'auto',
     EMAIL_TRANSPORT: 'auto',
+
+    PUBLIC_SUBMISSION_FALLBACKS: ['cloud-functions', 'external-api'],
+    RESULT_FALLBACKS: ['cloud-functions', 'external-api'],
+    EMAIL_FALLBACKS: ['cloud-functions', 'external-api'],
 
     WHATSAPP_TRANSPORT: 'manual',
     WHATSAPP_CONTACT_URL: 'https://wa.me/5591992545353?text=Ol%C3%A1%2C%20fiz%20o%20diagn%C3%B3stico%20gratuito%20Valora%20e%20quero%20entender%20os%20planos.',

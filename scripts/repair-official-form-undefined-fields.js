@@ -1,0 +1,5 @@
+'use strict';
+const admin=require('firebase-admin');
+function clean(v){if(v===undefined||typeof v==='function')return undefined;if(v===null||typeof v!=='object')return v;if(Array.isArray(v))return v.map(clean).filter(x=>x!==undefined);const o={};for(const [k,val] of Object.entries(v)){const c=clean(val);if(c!==undefined)o[k]=c;}return o;}
+async function main(){if(!admin.apps.length)admin.initializeApp();const db=admin.firestore();const ref=db.collection('forms').doc('form_valora_insight_oficial');const snap=await ref.get();const before=snap.exists?snap.data():{};const after=clean({...before,id:'form_valora_insight_oficial',isGlobal:true,global:false,companyId:'valora-oficial',organizationId:'valora-oficial',status:'active',updatedAt:admin.firestore.FieldValue.serverTimestamp()});console.log('before',JSON.stringify(clean(before),null,2));await ref.set(after,{merge:true});const now=await ref.get();console.log('after',JSON.stringify(clean(now.data()),null,2));}
+main().catch(e=>{console.error(e);process.exit(1);});

@@ -13,8 +13,6 @@ admin.initializeApp();
 const db=admin.firestore();
 const SMTP_PASSWORD=defineSecret('SMTP_PASSWORD');
 const DEFAULT_SMTP_SENDER_EMAIL='valoragroup@mnsoft.com.br';
-const TELEGRAM_BOT_TOKEN=defineSecret('TELEGRAM_BOT_TOKEN');
-const TELEGRAM_CHAT_ID=defineSecret('TELEGRAM_CHAT_ID');
 const TS=admin.firestore.FieldValue.serverTimestamp;
 
 const EMAIL_RE=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -65,7 +63,7 @@ exports.logServerEvent=onCall(async req=>{
   return logServerEvent(db,admin,{...data,userId:user.uid,userEmail:user.email,userRole:user.role,companyId:user.role==='admin_valora'?cleanText(data.companyId||'',160):user.companyId});
 });
 
-exports.sendTelegramAlert=onCall({secrets:[TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID]},async req=>{
+exports.sendTelegramAlert=onCall(async req=>{
   const user=await authedUser(req);
   const data=asObject(req.data||{},'payload');
   const manualTest=data.isTest===true||data.category==='test'||data.title==='telegram_test';
@@ -73,14 +71,13 @@ exports.sendTelegramAlert=onCall({secrets:[TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID]}
   const level=cleanText(data.level||'critical',40), category=cleanText(data.category||'system',80), action=cleanText(data.title||data.action||'alert',120), companyId=cleanText(data.companyId||user.companyId||'',160);
   const key=`telegram:${level}:${category}:${action}:${companyId||'global'}`;
   if(telegram.shouldLimit(key,10,5*60*1000)){await logServerEvent(db,admin,{level:'warn',category:'system',action:'telegram_rate_limited',message:'Alerta Telegram suprimido por rate limit.',companyId,metadata:{level,category,action},telegramSent:false});return {sent:false,rateLimited:true};}
-  const token=TELEGRAM_BOT_TOKEN.value(), chatId=TELEGRAM_CHAT_ID.value();
-  if(!token||!chatId)throw new HttpsError('failed-precondition','Telegram não configurado. Defina TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID.');
   const text=telegram.formatTelegramMessage({...data,level,category,userEmail:user.email});
-  try{const result=await telegram.sendTelegram({token,chatId,text});await logServerEvent(db,admin,{level,category,action,message:cleanText(data.message||'',1000),companyId,route:data.route,metadata:data.metadata||{},telegramSent:true,telegramSentAt:new Date().toISOString()});return {sent:true,messageId:result.result?.message_id||null};}
-  catch(err){await logServerEvent(db,admin,{level:'error',category:'integration',action:'telegram_failed',message:err.message,companyId,metadata:{sourceAction:action},telegramSent:false});throw new HttpsError('internal','Não foi possível enviar alerta Telegram.');}
+  const result=await telegram.sendTelegramNotification(text);
+  await logServerEvent(db,admin,{level:result.sent?level:'warn',category:result.sent?category:'telegram',action:result.sent?action:'telegram_skipped',message:result.sent?cleanText(data.message||'',1000):`Telegram não enviado: ${result.reason}`,companyId,route:data.route,metadata:{...(data.metadata||{}),telegramReason:result.reason||''},telegramSent:result.sent===true,telegramSentAt:result.sent?new Date().toISOString():null});
+  return {sent:result.sent===true,skipped:result.skipped===true,reason:result.reason||null,messageId:result.messageId||null};
 });
 
-exports.notifyCriticalError=onCall({secrets:[TELEGRAM_BOT_TOKEN,TELEGRAM_CHAT_ID]},async req=>{
+exports.notifyCriticalError=onCall(async req=>{
   const user=await authedUser(req);
   const data=asObject(req.data||{},'payload');
   if(!['admin_valora','consultor_valora'].includes(user.role))throw new HttpsError('permission-denied','Sem permissão para notificar erro crítico.');

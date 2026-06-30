@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+const {read,ok,done}=require('./validate-helper');const app=read('app.js'),css=read('style.css');['data-action="toggleAdminMobileMenu"','admin-sidebar','admin-mobile-overlay','aria-expanded','aria-controls','Escape','closeAdminMobileMenu'].forEach(t=>ok(app.includes(t),`app ausente: ${t}`));['body.mobile-menu-open','.admin-sidebar.open','.admin-mobile-overlay.active'].forEach(t=>ok(css.includes(t),`css ausente: ${t}`));done('validate-admin-mobile-menu');

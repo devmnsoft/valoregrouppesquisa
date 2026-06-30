@@ -678,3 +678,18 @@ html,body{max-width:100%;overflow-x:hidden}
   .nav-actions .btn, .nav-actions a { width: 100%; justify-content: center; }
   body.menu-open { overflow: hidden; }
 }
+
+
+/* Sprint 50 — menu administrativo mobile */
+.admin-mobile-menu-toggle,.admin-mobile-overlay{display:none}
+@media (max-width: 980px){
+  .app-shell{position:relative}
+  .admin-mobile-menu-toggle{display:inline-flex!important;position:sticky;top:86px;z-index:1002;margin:12px 16px;align-items:center;gap:8px;width:auto}
+  .admin-sidebar{position:fixed!important;top:0;left:0;bottom:0;width:min(84vw,320px);height:100vh!important;max-height:none!important;overflow:auto;z-index:1004;transform:translateX(-105%);transition:transform .22s ease;box-shadow:22px 0 46px rgba(5,52,68,.24)}
+  .admin-sidebar.open{transform:translateX(0)}
+  .admin-mobile-overlay{display:none;position:fixed;inset:0;background:rgba(8,42,55,.48);z-index:1003}
+  .admin-mobile-overlay.active{display:block}
+  body.mobile-menu-open{overflow:hidden}
+  body.mobile-menu-open .content{pointer-events:none}
+}
+@media (min-width: 981px){.admin-sidebar{transform:none!important}.admin-mobile-menu-toggle,.admin-mobile-overlay{display:none!important}}

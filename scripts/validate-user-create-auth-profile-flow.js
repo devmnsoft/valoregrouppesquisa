@@ -1,0 +1,3 @@
+#!/usr/bin/env node
+const {read,ok,done}=require('./validate-helper');const fn=read('functions/index.js'),repo=read('firebase-repository.js');
+ok(/exports\.createCompanyUser=onCall/.test(fn),'Cloud Function createCompanyUser ausente');ok(/admin\.auth\(\)\.createUser/.test(fn),'Admin SDK não cria Auth user');ok(/collection\('users'\)\.doc\(authUser\.uid\)\.set/.test(fn),'users/{uid} não criado');ok(/setCustomUserClaims/.test(fn),'custom claims ausentes');ok(/generatePasswordResetLink/.test(fn),'convite/reset ausente');ok(/createUserProfile\(data\).*createCompanyUser/s.test(repo),'front não chama createCompanyUser');done('validate-user-create-auth-profile-flow');

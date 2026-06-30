@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+const {read,ok,done}=require('./validate-helper');const fn=read('functions/index.js'),repo=read('firebase-repository.js');ok(/exports\.repairUserProfile=onCall/.test(fn),'repairUserProfile ausente');ok(/admin\.auth\(\)\.getUser\(uid\)/.test(fn),'reparo não consulta Auth');ok(/collection\('users'\)\.doc\(uid\)\.set/.test(fn),'reparo não grava users/{uid}');ok(/repairUserProfile/.test(repo),'repository não expõe reparo');done('validate-user-profile-repair-flow');

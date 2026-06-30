@@ -255,23 +255,28 @@ async function resolveFeaturedHomeSurveyPublic(){
 async function getFeaturedHomeSurveyUrlPublic(){const r=await resolveFeaturedHomeSurveyPublic();return r?.url||'';}
 
 async function validatePublicSurveyPublic({surveyId,token,org}={}){
-  let survey;
-  try{survey=await getDoc('surveys',surveyId);}catch(err){
-    const code=err?.code||'';
-    if(code.includes('permission-denied')||code.includes('unauthenticated')){
-      return callFunction('validateSurveyLink',{surveyId,token,org});
+  try{
+    const remote=await callFunction('validateSurveyLink',{surveyId,token,org});
+    if(remote?.survey){
+      publicSurveyCache.set(remote.survey.id,{survey:remote.survey,form:remote.form,company:remote.company,token});
+      return {...remote,ok:remote.ok!==false};
     }
-    throw err;
+  }catch(err){
+    recordFirestoreError('functions.validateSurveyLink',err);
+    if(!session.authUser)throw err;
   }
+  if(!session.authUser)throw Object.assign(new Error('Validação pública indisponível.'),{code:'public_validation_unavailable'});
+  const survey=await getDoc('surveys',surveyId);
   if(!survey)throw Object.assign(new Error('Pesquisa não encontrada.'),{code:'survey_not_found'});
   const expected=publicTokenFromSurvey(survey);
   if(!expected||String(token)!==String(expected))throw Object.assign(new Error('Token público inválido.'),{code:'invalid_public_token'});
   if(!isOfficialFreeSurveyDoc(survey)&&!['active','published','open'].includes(String(survey.status||'').toLowerCase()))throw Object.assign(new Error('Pesquisa encerrada ou expirada.'),{code:'survey_inactive'});
   const form=await getDoc('forms',survey.formId);
   if(!form)throw Object.assign(new Error('Formulário não encontrado.'),{code:'form_not_found'});
-  const company=survey.companyId||survey.organizationId?await getDoc('organizations',survey.companyId||survey.organizationId).catch(()=>null):null;
+  const company=survey.companyId||survey.organizationId?await getDoc('organizations',survey.companyId||survey.organizationId).catch(()=>null)||await getDoc('companies',survey.companyId||survey.organizationId).catch(()=>null):null;
   if(org&&company?.slug&&String(org).toLowerCase()!==String(company.slug).toLowerCase())throw Object.assign(new Error('Organização pública não confere.'),{code:'org_mismatch'});
-  return {ok:true,survey,form,company,lgpd:{text:''}};
+  publicSurveyCache.set(survey.id,{survey,form,company,token});
+  return {ok:true,survey,form,company,lgpd:{text:form.lgpdText||''}};
 }
 
 window.ValoraFirebaseAuth={getCurrentAuthUser,getCurrentUserProfile,waitUntilReady};

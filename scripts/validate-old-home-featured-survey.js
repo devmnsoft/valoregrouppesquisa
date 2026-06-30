@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const fs=require('fs');
 const read=f=>fs.existsSync(f)?fs.readFileSync(f,'utf8'):'';
 const app=read('app.js');

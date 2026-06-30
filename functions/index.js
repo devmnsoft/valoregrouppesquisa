@@ -91,7 +91,7 @@ exports.notifyCriticalError=onCall(async req=>{
 
 exports.validateSurveyLink=onCall(async req=>{const surveyId=required(req.data,'surveyId'),token=required(req.data,'token');const ctx=await loadValidSurvey({surveyId,token,req,action:'validate'});await auditLog(db,{action:'validateSurveyLink',actorType:'public',companyId:ctx.survey.companyId,entity:'survey',entityId:surveyId,ip:ip(req),userAgent:ua(req)});return publicPayload(ctx);});
 exports.getFeaturedHomeSurvey=onCall(async req=>{
-  await rateLimit(`featuredHome:${ip(req)||'anon'}`,60,15*60*1000);
+  await rateLimit(`featuredHomeSurvey:${ip(req)||'anon'}`,60,15*60*1000);
   const rows=[];
   for(const field of ['featuredOnHome','isFeatured','homeFeatured']){
     const qs=await db.collection('surveys').where(field,'==',true).limit(20).get();
@@ -104,7 +104,7 @@ exports.getFeaturedHomeSurvey=onCall(async req=>{
     const official=await db.collection('surveys').doc('official_free_survey').get();
     if(official.exists&&validHomeSurvey({id:official.id,...official.data()})){survey={id:official.id,...official.data()};source='official_free_survey';}
   }
-  if(!survey)throw new HttpsError('not-found','Pesquisa grátis em destaque indisponível.');
+  if(!survey){const e=new HttpsError('not-found','Pesquisa gratuita em destaque não configurada.');e.details={code:'featured_free_survey_not_configured'};throw e;}
   const [formSnap,company]=await Promise.all([db.collection('forms').doc(survey.formId).get(),loadCompanyForSurvey(survey)]);
   if(!formSnap.exists)throw new HttpsError('failed-precondition','Formulário da pesquisa em destaque indisponível.');
   if(!company)throw new HttpsError('failed-precondition','Empresa da pesquisa em destaque indisponível.');

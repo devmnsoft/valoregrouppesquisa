@@ -689,6 +689,28 @@ function renderHome(){
   <section id="how-it-works" class="free-diagnostic-strip"><div><span>Comece pela leitura essencial</span><strong>Responda ao diagnóstico gratuito e receba uma visão resumida do estágio atual da organização.</strong>${hasFeaturedSurvey?`<small>Pesquisa gratuita da Home: ${esc(featuredSurvey.title||featuredSurvey.id)}</small>`:'<small>Sem pesquisa gratuita ativa no momento; o CTA será habilitado após configuração da pesquisa pública.</small>'}</div>${hasFeaturedSurvey?`<a class="btn btn-primary" href="${esc(featuredSurveyUrl)}">Responder diagnóstico grátis</a>`:`<a class="btn btn-primary" href="${esc(whatsappLink)}" ${whatsappLink.startsWith('https://wa.me/')?'target="_blank" rel="noopener"':''}>Falar com a Valora Group</a>`}</section>
   <section class="section"><div class="container"><h2 class="section-title">Jornadas separadas por responsabilidade.</h2><div class="grid grid-3"><div class="card icon-card" data-icon="◆"><h3>Administrador Valora</h3><p>Controla clientes, planos, financeiro, módulos, pesquisa da home, e-mail, LGPD, backup e logs globais.</p></div><div class="card icon-card" data-icon="▦"><h3>Empresa cliente</h3><p>Gerencia equipe, formulários, pesquisas, links, respostas e relatórios apenas do próprio ambiente.</p></div><div class="card icon-card" data-icon="✓"><h3>Participante</h3><p>Responde com consentimento, acompanha histórico, consulta resultados e baixa certificados.</p></div></div></div></section>
   <section class="home-faq-section"><div class="container"><div class="section-heading"><span class="eyebrow">Dúvidas comuns</span><h2>Perguntas frequentes</h2><p>Entenda como funciona o diagnóstico e como começar com segurança.</p></div><div class="faq-list">${faqItems.map(item=>`<details class="faq-item"><summary>${esc(item.question)}</summary><p>${esc(item.answer)}</p></details>`).join('')}</div></div></section>`;
+  getFeaturedHomeSurveyUrl().then(url=>{
+    const safe=url&&!/survey_demo|empresa-exemplo|tokenHash=|demo-token/i.test(url)?url:'';
+    window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
+    window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurveyUrl=safe;
+    document.querySelectorAll('[data-home-featured-cta]').forEach(a=>{
+      if(safe){a.href=safe;a.textContent='Responder diagnóstico gratuito';a.removeAttribute('aria-disabled');}
+      else{a.href=whatsappLink||'#public-help';a.textContent='Falar com especialista';a.removeAttribute('aria-disabled');}
+    });
+    const diag=window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey||{};
+    const title=document.querySelector('[data-home-featured-title]');
+    if(title&&diag.surveyId)title.textContent='Diagnóstico gratuito Valora Insight™';
+    const status=document.querySelector('[data-home-featured-status]');
+    if(status)status.textContent=safe?'Disponível agora':'Disponível por contato';
+    const helper=document.querySelector('[data-home-featured-helper]');
+    if(helper)helper.textContent=safe?'Pesquisa gratuita pública pronta para responder.':'Diagnóstico gratuito indisponível no momento; fale com a Valora Group.';
+    const warning=document.querySelector('[data-home-featured-admin-warning]');
+    if(warning)warning.classList.toggle('hidden',!!safe);
+  }).catch(()=>{
+    document.querySelectorAll('[data-home-featured-cta]').forEach(a=>{a.href=whatsappLink||'#public-help';a.textContent='Falar com especialista';a.removeAttribute('aria-disabled');});
+    const warning=document.querySelector('[data-home-featured-admin-warning]');
+    if(warning)warning.classList.remove('hidden');
+  });
 }
 
 function officialPublicPricingPlans(){

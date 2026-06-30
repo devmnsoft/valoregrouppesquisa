@@ -302,6 +302,7 @@
     "e2e:legacy-admin-client-user-regression": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-admin-client-user-regression.spec.js",
     "functions:secrets-readiness": "node scripts/validate-functions-secrets-readiness.js",
     "seed:official-free-survey": "node scripts/ensure-official-free-survey.js",
+    "admin:featured-survey-flow": "node scripts/validate-admin-featured-survey-flow.js",
     "home:official-free-survey": "node scripts/validate-home-official-free-survey.js",
     "home:featured-free-survey": "node scripts/validate-home-featured-free-survey.js",
     "home:old-featured-survey": "node scripts/validate-old-home-featured-survey.js"

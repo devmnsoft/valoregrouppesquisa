@@ -22,3 +22,34 @@ create index if not exists ix_responses_organization_id on valorapesquisa.respon
 create index if not exists ix_responses_survey_id on valorapesquisa.responses(survey_id);
 create index if not exists ix_responses_result_token_hash on valorapesquisa.responses(result_token_hash);
 create index if not exists ix_audit_logs_organization_created_at on valorapesquisa.audit_logs(organization_id, created_at desc);
+
+-- Sprint 03 local development seed. Passwords are documented in backend-v2/README.md and stored only as BCrypt hashes for non-production use.
+insert into valorapesquisa.organizations(id,name,public_name,slug,document,email,phone,status,plan_code,created_at,is_deleted)
+values
+('00000000-0000-0000-0000-000000000001','Valora Group','Valora','valora','00000000000100','admin@valoragroup.com',null,'active','internal',now(),false),
+('00000000-0000-0000-0000-000000000002','Empresa Demonstração','Empresa Demo','empresa-demo','00000000000200','gestor@empresa.com',null,'active','free',now(),false)
+on conflict(id) do update set name=excluded.name, public_name=excluded.public_name, slug=excluded.slug, email=excluded.email, status='active', is_deleted=false;
+
+insert into valorapesquisa.users(id,organization_id,name,email,password_hash,role,status,phone,created_at,is_deleted)
+values
+('00000000-0000-0000-0000-000000000011','00000000-0000-0000-0000-000000000001','Admin Valora','admin@valoragroup.com','$2a$12$developmentHashReplaceInRealEnvironmentValora2026xx','admin_valora','active',null,now(),false),
+('00000000-0000-0000-0000-000000000012','00000000-0000-0000-0000-000000000002','Gestor Empresa Demo','gestor@empresa.com','$2a$12$developmentHashReplaceInRealEnvironmentEmpresa2026x','empresa_admin','active',null,now(),false)
+on conflict(id) do update set name=excluded.name, email=excluded.email, role=excluded.role, status='active', is_deleted=false;
+
+insert into valorapesquisa.forms(id,organization_id,title,description,status,created_at,is_deleted)
+values('00000000-0000-0000-0000-000000000021','00000000-0000-0000-0000-000000000002','Diagnóstico demo','Formulário mínimo para validação local.','active',now(),false)
+on conflict(id) do update set title=excluded.title, description=excluded.description, status='active', is_deleted=false;
+insert into valorapesquisa.questions(id,form_id,text,type,position,required,weight,max_score)
+values
+('00000000-0000-0000-0000-000000000031','00000000-0000-0000-0000-000000000021','Como você avalia o processo atual?','scale',1,true,1,5),
+('00000000-0000-0000-0000-000000000032','00000000-0000-0000-0000-000000000021','Qual opção representa melhor sua área?','single_choice',2,true,1,5)
+on conflict(id) do update set text=excluded.text, type=excluded.type, position=excluded.position, required=excluded.required;
+insert into valorapesquisa.question_options(id,question_id,text,score,position)
+values
+('00000000-0000-0000-0000-000000000041','00000000-0000-0000-0000-000000000032','Inicial',1,1),
+('00000000-0000-0000-0000-000000000042','00000000-0000-0000-0000-000000000032','Intermediário',3,2),
+('00000000-0000-0000-0000-000000000043','00000000-0000-0000-0000-000000000032','Avançado',5,3)
+on conflict(id) do update set text=excluded.text, score=excluded.score, position=excluded.position;
+insert into valorapesquisa.surveys(id,organization_id,form_id,title,description,status,show_result,allow_repeat,created_at,is_deleted)
+values('00000000-0000-0000-0000-000000000051','00000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000021','Pesquisa demo publicada','Pesquisa local para validar o fluxo vertical.','published',true,false,now(),false)
+on conflict(id) do update set title=excluded.title, description=excluded.description, status='published', show_result=true, is_deleted=false;

@@ -1,0 +1,79 @@
+# Valora Pesquisa backend-v2
+
+Fundação .NET 8 paralela para o fluxo vertical mínimo: organização, usuário, autenticação JWT, formulário, pesquisa, link público, resposta, resultado e auditoria.
+
+## Pré-requisitos
+- .NET SDK 8
+- Docker / Docker Compose
+- PostgreSQL 16 ou container equivalente
+- Node.js apenas para o validador local
+
+## Subir banco
+```bash
+cd backend-v2
+docker compose up -d postgres
+```
+
+## Aplicar script
+```bash
+psql postgresql://postgres:postgres@localhost:5432/valorapesquisa -f database/postgresql/scriptbd_completo.sql
+```
+
+## Rodar API
+```bash
+cd backend-v2
+dotnet run --project src/ValoraPesquisa.Api/ValoraPesquisa.Api.csproj
+```
+API local: http://localhost:5000
+
+## Rodar Web MVC
+```bash
+cd backend-v2
+dotnet run --project src/ValoraPesquisa.Web/ValoraPesquisa.Web.csproj
+```
+Web local: http://localhost:5001
+
+## Credenciais demo
+Seeds de desenvolvimento são criados por `scriptbd_completo.sql`. As senhas sugeridas para ambientes locais são:
+- `admin@valoragroup.com` / `Valora@2026`
+- `gestor@empresa.com` / `Empresa@2026`
+
+Os hashes versionados são apenas de desenvolvimento e devem ser substituídos em qualquer ambiente compartilhado ou produtivo.
+
+## Testes
+```bash
+dotnet build ValoraPesquisa.sln
+dotnet test ValoraPesquisa.sln
+node tools/validate-backend-v2-foundation.js
+```
+
+## Docker Compose completo
+```bash
+cd backend-v2
+docker compose up --build
+```
+- PostgreSQL: localhost:5432
+- API: http://localhost:5000
+- Web: http://localhost:5001
+
+## Fluxo vertical manual
+1. Entrar no Web MVC.
+2. Criar organização e usuário.
+3. Fazer login.
+4. Criar formulário com perguntas/opções.
+5. Criar pesquisa vinculada ao formulário.
+6. Publicar pesquisa.
+7. Criar link público.
+8. Abrir a URL pública e enviar resposta.
+9. Conferir resultado público.
+10. Conferir eventos em Auditoria.
+
+## Scripts
+Scripts Windows ficam em `tools/windows`; scripts Linux ficam em `tools/linux`.
+
+## Troubleshooting
+- PostgreSQL: confira host, porta, usuário, senha e se o schema `valorapesquisa` foi criado.
+- JWT: use chave de desenvolvimento com pelo menos 32 caracteres e refaça login após troca da chave.
+- CORS: em execução separada, ajuste a origem permitida da API antes de publicar.
+- Build: instale o .NET SDK 8 e restaure pacotes com acesso à internet.
+- Migrations: nesta fundação, o script SQL idempotente é a fonte local; migrations EF ainda não são usadas.

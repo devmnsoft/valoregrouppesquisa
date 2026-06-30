@@ -1,18 +1,2 @@
 namespace ValoraPesquisa.Application.DTOs;
-public record OrganizationDto(Guid Id,string Name,string PublicName,string Slug,string? Document,string Email,string? Phone,string Status,string PlanCode,DateTimeOffset CreatedAt,DateTimeOffset? UpdatedAt);
-public record UserDto(Guid Id,Guid? OrganizationId,string Name,string Email,string Role,string Status,string? Phone,DateTimeOffset? LastLoginAt,DateTimeOffset CreatedAt,DateTimeOffset? UpdatedAt);
-public record QuestionOptionDto(Guid Id,Guid QuestionId,string Text,decimal Score,int Position);
-public record QuestionDto(Guid Id,string Text,string Type,int Position,bool Required,decimal Weight,decimal MaxScore,IReadOnlyList<QuestionOptionDto> Options);
-public record FormDto(Guid Id,Guid OrganizationId,string Title,string? Description,string Status,DateTimeOffset CreatedAt,DateTimeOffset? UpdatedAt,IReadOnlyList<QuestionDto> Questions);
-public record SurveyDto(Guid Id,Guid OrganizationId,Guid FormId,string Title,string? Description,string Status,DateTimeOffset? StartsAt,DateTimeOffset? ExpiresAt,bool ShowResult,bool AllowRepeat,DateTimeOffset CreatedAt,DateTimeOffset? UpdatedAt);
-public record SurveyLinkDto(Guid Id,Guid SurveyId,Guid OrganizationId,string PublicUrl,string Status,DateTimeOffset? ExpiresAt,DateTimeOffset? RevokedAt,DateTimeOffset CreatedAt,DateTimeOffset? UpdatedAt);
-public record CreatedSurveyLinkDto(Guid Id,Guid SurveyId,Guid OrganizationId,string PublicUrl,string Token,string Status,DateTimeOffset? ExpiresAt);
-public record PublicQuestionDto(Guid Id,string Text,string Type,int Position,bool Required,IReadOnlyList<QuestionOptionDto> Options);
-public record PublicSurveyDto(Guid Id,string Title,string? Description,bool ShowResult,IReadOnlyList<PublicQuestionDto> Questions);
-public record PublicSurveyValidationDto(bool Ok,Guid SurveyId,string OrganizationSlug,PublicSurveyDto Survey);
-public record SubmitSurveyResponseRequest(string Token,string Org,string? ParticipantName,string? ParticipantEmail,IReadOnlyList<SubmitAnswerDto> Answers);
-public record SubmitAnswerDto(Guid QuestionId,string? AnswerValue,string? AnswerText);
-public record SubmitSurveyResponseResult(Guid ResponseId,string ResultToken,decimal TotalScore,decimal Percentage,decimal Normalized5,string Level);
-public record PublicResultDto(Guid ResponseId,Guid SurveyId,decimal TotalScore,decimal MaxScore,decimal Percentage,decimal Normalized5,string Level,string ResultJson,DateTimeOffset CreatedAt);
-public record AuditEventDto(Guid Id,Guid? OrganizationId,Guid? UserId,string Action,string Entity,Guid? EntityId,string CorrelationId,string Metadata,DateTimeOffset CreatedAt);
-public record ResponseDto(Guid Id,Guid OrganizationId,Guid SurveyId,Guid FormId,string? ParticipantName,string? ParticipantEmail,string Status,DateTimeOffset CompletedAt,DateTimeOffset CreatedAt);
+// Sprint 03: DTOs moved to module folders while preserving this namespace for compatibility.

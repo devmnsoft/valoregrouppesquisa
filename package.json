@@ -269,7 +269,19 @@
     "e2e:legacy-plans": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-plans-tab.spec.js",
     "e2e:legacy-admin-mobile": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-admin-mobile-functional.spec.js",
     "prod:legacy-public-flow": "node scripts/smoke-production-legacy-public-flow.js",
-    "prod:email-test": "node scripts/test-production-email-send.js"
+    "prod:email-test": "node scripts/test-production-email-send.js",
+    "functions:install": "npm install --prefix functions",
+    "functions:lint": "npm run lint --prefix functions",
+    "functions:node22-readiness": "node scripts/validate-functions-node22-deploy-readiness.js",
+    "functions:deploy": "npm run functions:install && npm run functions:lint && firebase deploy --only functions --project gestordepesquisa",
+    "hosting:build": "npm run build:prod",
+    "hosting:deploy": "npm run hosting:build && firebase deploy --only hosting --project gestordepesquisa",
+    "hosting:dist-build": "node scripts/validate-hosting-dist-build.js",
+    "deploy:firebase": "npm run functions:deploy && npm run hosting:deploy",
+    "scripts:required": "node scripts/validate-required-npm-scripts.js",
+    "lint": "node --check app.js && node --check config.js",
+    "firebase:live-public-link": "node scripts/validate-legacy-free-token-never-expires.js",
+    "prod:config-live": "node scripts/validate-legacy-environment-diagnostics-complete.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

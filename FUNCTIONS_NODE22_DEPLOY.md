@@ -1,4 +1,4 @@
-# LEGACY_ADMIN_MOBILE_FINAL_FIX
+# FUNCTIONS_NODE22_DEPLOY
 
 Sprint 67 mantém a SPA legada em produção com Firebase Hosting, Cloud Functions v2 em Node 22 e Firebase Secret para SMTP.
 

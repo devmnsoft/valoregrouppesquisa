@@ -1,26 +1,23 @@
-# Google SMTP em produção
+# GOOGLE_SMTP_PRODUCTION_SETUP
 
-Remetente: valoragroup@mnsoft.com.br
+Sprint 67 mantém a SPA legada em produção com Firebase Hosting, Cloud Functions v2 em Node 22 e Firebase Secret para SMTP.
 
-Variáveis esperadas nas Cloud Functions:
+## Deploy correto
 
-```env
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURITY=starttls
-SMTP_USERNAME=valoragroup@mnsoft.com.br
-SMTP_SENDER_EMAIL=valoragroup@mnsoft.com.br
-SMTP_SENDER_NAME=Valora Group
-```
+- Functions: `npm run functions:deploy`
+- Hosting: `npm run hosting:deploy`
+- Fluxo completo Firebase: `npm run deploy:firebase`
 
-Secret: `SMTP_PASSWORD` configurado via Firebase Secrets.
+## Segurança SMTP
 
-Comandos:
+A senha SMTP não deve ser commitada, documentada ou exibida em logs. Use somente o Firebase Secret `SMTP_PASSWORD`.
+
+Se a senha SMTP foi compartilhada em chat, print, log ou repositório, rotacione imediatamente e configure a nova senha apenas com:
 
 ```bash
 firebase functions:secrets:set SMTP_PASSWORD --project gestordepesquisa
-firebase deploy --only functions --project gestordepesquisa
-firebase deploy --only hosting --project gestordepesquisa
 ```
 
-Use senha de app do Google/Workspace ou credencial SMTP autorizada. Não use senha normal da conta. Rotacione a senha se ela foi compartilhada em chat, print ou repositório.
+## Validações Sprint 67
+
+Execute `npm run security:no-secrets`, `npm run scripts:required`, `npm run functions:node22-readiness`, `npm run legacy:public-submit-flow`, `npm run legacy:result-email-send`, `npm run legacy:plans-tab`, `npm run legacy:free-token-never-expires` e `npm run hosting:dist-build` antes do deploy.

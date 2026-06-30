@@ -1113,7 +1113,13 @@ function cloudFunctionsAvailable(){
 }
 function getFirebaseFunctionsSafe(){if(window.getFirebaseFunctionsSafe&&window.getFirebaseFunctionsSafe!==getFirebaseFunctionsSafe)return window.getFirebaseFunctionsSafe();const vf=window.ValoraFirebase;if(vf?.functions)return vf.functions;const services=window.ValoraFirebaseServices;if(services?.functions)return services.functions;if(window.firebase&&typeof window.firebase.functions==='function'){try{return window.firebase.functions();}catch(error){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastFunctionsError={code:publicErrorCode(error),message:sanitizePublicError(error)};return null;}}return null;}
 function firebaseCallable(name){if(!cloudFunctionsAvailable())throw new Error('Recurso indisponível no plano Spark. Configure Cloud Functions ao migrar para Blaze.');const functions=getFirebaseFunctionsSafe();if(!functions)throw new Error('Firebase Functions indisponível.');if(typeof functions.httpsCallable==='function')return functions.httpsCallable(name);if(window.firebase&&typeof window.firebase.functions==='function'){const compat=window.firebase.functions();if(typeof compat.httpsCallable==='function')return compat.httpsCallable(name);}throw new Error('Firebase Callable indisponível.');}
-async function callFirebaseFunction(name,payload={}){const callable=firebaseCallable(name);const result=await callable(payload);return result&&result.data?result.data:result;}
+async function callFirebaseFunction(name,data={}){
+  if(window.firebase&&window.firebase.functions&&typeof window.firebase.functions==='function'){const callable=window.firebase.functions().httpsCallable(name);const response=await callable(data);return response&&response.data?response.data:response;}
+  if(window.ValoraFirebase&&window.ValoraFirebase.functions&&window.firebaseFunctionsModular&&typeof window.firebaseFunctionsModular.httpsCallable==='function'){const callable=window.firebaseFunctionsModular.httpsCallable(window.ValoraFirebase.functions,name);const response=await callable(data);return response&&response.data?response.data:response;}
+  const functions=getFirebaseFunctionsSafe();
+  if(functions&&typeof functions.httpsCallable==='function'){const response=await functions.httpsCallable(name)(data);return response&&response.data?response.data:response;}
+  const error=new Error(`Cloud Function indisponível: ${name}`);error.code='functions_unavailable';throw error;
+}
 async function callPublicFunction(name,payload){return callFirebaseFunction(name,payload);}
 function isFirebaseMode(){return APP_CONFIG.STORAGE_MODE==='firebase';}
 
@@ -1153,20 +1159,46 @@ function normalizePublicSubmitResult(result){const responseId=result?.responseId
 async function submitPublicSurveyViaExternalApi(payload){if(!window.ValoraApiRepository?.submitPublicSurveyResponse)throw new Error('API pública indisponível.');return window.ValoraApiRepository.submitPublicSurveyResponse(payload);}
 async function submitPublicSurveyViaApi(payload){return submitPublicSurveyViaExternalApi(payload);}
 async function submitPublicSurveyViaFunctions(payload){return submitPublicSurveyViaCloudFunction(payload);}
-async function submitPublicSurveyViaCloudFunction(payload){const functions=getFirebaseFunctionsSafe();if(!functions){const error=new Error('Cloud Functions não inicializadas.');error.code='functions_unavailable';throw error;}return callFirebaseFunction('submitSurveyResponse',{payload:{surveyId:payload.surveyId,token:payload.token,participant:payload.participant,answers:payload.answers,lgpdConsent:payload.lgpdConsent,communicationConsent:payload.communicationConsent,idempotencyKey:payload.idempotencyKey}});}
+async function submitPublicSurveyViaCloudFunction(payload){
+  if(!payload?.surveyId){const e=new Error('surveyId obrigatório.');e.code='invalid_payload';throw e;}
+  if(!payload?.token||String(payload.token)===String(payload?.survey?.tokenHash||'')){const e=new Error('token público obrigatório.');e.code='invalid_public_token';throw e;}
+  if(!payload?.participant?.email){const e=new Error('participant.email obrigatório.');e.code='invalid_participant';throw e;}
+  if(!payload?.answers||typeof payload.answers!=='object'){const e=new Error('answers obrigatório.');e.code='invalid_answers';throw e;}
+  const data={surveyId:payload.surveyId,token:payload.token,participant:payload.participant,answers:payload.answers,lgpdConsent:payload.lgpdConsent,communicationConsent:payload.communicationConsent,idempotencyKey:payload.idempotencyKey||ensureSubmissionIdempotencyKey(payload).idempotencyKey};
+  return callFirebaseFunction('submitSurveyResponse',{payload:data});
+}
+async function hashPublicValue(value){const text=String(value||'');if(window.crypto?.subtle){const bytes=await window.crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));return Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');}let h=0;for(let i=0;i<text.length;i++)h=((h<<5)-h+text.charCodeAt(i))|0;return `legacy-${Math.abs(h)}`;}
+async function submitPublicSurveyViaFirestoreFallback(payload){
+  const db=window.ValoraGetFirestoreSafe?window.ValoraGetFirestoreSafe():(window.ValoraFirebase?.db||window.ValoraFirebaseServices?.db);
+  if(!db||typeof db.collection!=='function'){const e=new Error('Firestore indisponível para fallback.');e.code='firestore_unavailable';throw e;}
+  const cached=publicSurveyCache.get(payload.surveyId)||{};const survey=payload.survey||payload.surveyData||cached.survey||state.surveys.find(s=>String(s.id)===String(payload.surveyId));const form=cached.form||formById(survey?.formId);
+  if(!survey||!form){const e=new Error('Pesquisa pública não carregada para fallback.');e.code='fallback_survey_missing';throw e;}
+  if(!isFreeOfficialSurvey(survey)&&window.ValoraConfig?.ALLOW_LEGACY_FIRESTORE_PUBLIC_FALLBACK!==true){const e=new Error('Fallback Firestore permitido apenas para pesquisa gratuita oficial.');e.code='fallback_not_allowed';throw e;}
+  const expected=survey.publicToken||survey.token||survey.accessToken||'';if(!expected||payload.token!==expected||payload.token===survey.tokenHash){const e=new Error('Token público inválido no fallback Firestore.');e.code='invalid_public_token';throw e;}
+  if(survey.lgpdRequired!==false&&!payload.lgpdConsent){const e=new Error('Aceite LGPD obrigatório.');e.code='lgpd_required';throw e;}
+  const resultToken=secureToken(),resultTokenHash=await hashPublicValue(resultToken),result=calculateResult(form,payload.answers||{});const ref=db.collection('responses').doc();const now=nowIso();
+  const response={id:ref.id,surveyId:survey.id,formId:form.id,companyId:survey.companyId||survey.organizationId||'',participant:payload.participant||{},answers:payload.answers||{},lgpdConsent:{accepted:!!payload.lgpdConsent,acceptedAt:now,textVersion:survey.lgpdVersion||'legacy'},communicationConsent:!!payload.communicationConsent,resultTokenHash,createdAt:now,completedAt:now,source:'legacy_firestore_fallback',idempotencyKeyHash:await hashPublicValue(payload.idempotencyKey||''),...result};
+  await ref.set(response);
+  try{await db.collection('surveys').doc(survey.id).set({responseCount:(Number(survey.responseCount||0)+1),updatedAt:now},{merge:true});}catch(_){/* Rules may block counters; response remains registered. */}
+  if(payload.participant?.email){try{await db.collection('email_jobs').doc().set({type:'result',status:'pending',responseId:ref.id,surveyId:survey.id,to:payload.participant.email,participantName:payload.participant.name||'',includeCertificate:true,source:'legacy_firestore_fallback',createdAt:now,updatedAt:now});}catch(_){}}
+  const local={...response,resultToken};state.responses=Array.isArray(state.responses)?state.responses:[];if(!state.responses.some(r=>r.id===ref.id))state.responses.push(local);publicResultCache.set(ref.id,{ok:true,response:local,survey,company:companyById(response.companyId),result:local,certificate:{responseId:ref.id,resultToken}});try{save();}catch(_){}
+  return {ok:true,responseId:ref.id,resultToken,score:{rawScore:result.rawScore,maxScore:result.maxScore,normalized5:result.normalized5,percentage:result.percentage},level:result.level};
+}
 async function submitPublicSurveyAuto(payload){
   const safePayload=ensureSubmissionIdempotencyKey({...payload});
   const diagnostics={provider:'auto',attempts:[],finalProvider:'',errorCode:''};
-  const isFree=isFreeOfficialSurvey(safePayload?.survey||safePayload?.surveyData||publicSurveyCache.get(safePayload.surveyId)?.survey||{});
-  const configured=window.ValoraConfig?.PUBLIC_SUBMISSION_PROVIDER||'auto';
-  const preferredProviders=configured==='external-api'?['external-api']:(configured==='firebase'||configured==='cloud-functions'?['cloud-functions']:(isFree?['cloud-functions','external-api']:['external-api','cloud-functions']));
-  for(const provider of preferredProviders){
+  const survey=safePayload?.survey||safePayload?.surveyData||publicSurveyCache.get(safePayload.surveyId)?.survey||{};
+  const isFree=isFreeOfficialSurvey(survey);
+  const providers=isFree?['cloud-functions','firestore','external-api']:['external-api','cloud-functions','firestore'];
+  for(const provider of providers){
     diagnostics.attempts.push({provider,status:'started'});
     try{
-      const result=provider==='cloud-functions'?await submitPublicSurveyViaCloudFunction(safePayload):await submitPublicSurveyViaExternalApi(safePayload);
-      if(result&&(result.responseId||result.id)&&(result.resultToken||result.accessToken)){
-        diagnostics.finalProvider=provider;diagnostics.attempts[diagnostics.attempts.length-1].status='success';window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicSubmit=diagnostics;return normalizePublicSubmitResult(result);
-      }
+      let result=null;
+      if(provider==='cloud-functions')result=await submitPublicSurveyViaCloudFunction(safePayload);
+      if(provider==='firestore')result=await submitPublicSurveyViaFirestoreFallback(safePayload);
+      if(provider==='external-api')result=await submitPublicSurveyViaExternalApi(safePayload);
+      const normalized=normalizePublicSubmitResult(result);
+      if(normalized&&normalized.responseId&&normalized.resultToken){diagnostics.finalProvider=provider;diagnostics.attempts[diagnostics.attempts.length-1].status='success';window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicSubmit=diagnostics;return normalized;}
       diagnostics.attempts[diagnostics.attempts.length-1].status='invalid-result';
     }catch(error){diagnostics.attempts[diagnostics.attempts.length-1].status='failed';diagnostics.attempts[diagnostics.attempts.length-1].code=publicErrorCode(error);diagnostics.attempts[diagnostics.attempts.length-1].message=sanitizePublicError(error);}
   }
@@ -1289,7 +1321,7 @@ async function renderResult(id,afterSubmit=false,publicToken=''){
   renderShell();audit('Resultado público aberto','jornada_publica',id,'Abertura por link seguro');let r,s,companyLabel;
   if(publicToken){
     $('#app').innerHTML='<section class="section"><div class="container"><div class="card"><h1>Carregando resultado seguro…</h1></div></div></section>';
-    try{const payload=await loadPublicResult(id,publicToken);r=payload.response||payload.result||payload;s=payload.survey||{};companyLabel=payload.company?.publicName||payload.company?.name||'Valora Group';publicResultCache.set(id,payload);}
+    try{const cachedPublic=publicResultCache.get(id);const payload=cachedPublic||(await loadPublicResult(id,publicToken));r=payload.response||payload.result||payload;s=payload.survey||{};companyLabel=payload.company?.publicName||payload.company?.name||'Valora Group';publicResultCache.set(id,payload);}
     catch(err){return $('#app').innerHTML=invalidLink('Resultado não encontrado',err?.message||'O registro solicitado não está disponível.');}
   }else{
     r=state.responses.find(x=>x.id===id);if(!r)return $('#app').innerHTML=invalidLink('Resultado não encontrado','O registro solicitado não está disponível.');if(!canAccessResult(r,currentUserSafe(),publicToken))return $('#app').innerHTML=invalidLink('Acesso negado','Entre com o perfil participante ou gestor autorizado.');s=state.surveys.find(x=>x.id===r.surveyId);companyLabel=companyName(r.companyId);

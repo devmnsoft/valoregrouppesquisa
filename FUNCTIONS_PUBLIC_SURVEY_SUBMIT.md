@@ -1,4 +1,4 @@
-# HOSTING_DIST_DEPLOY
+# FUNCTIONS_PUBLIC_SURVEY_SUBMIT
 
 Documento operacional da Sprint 69.
 

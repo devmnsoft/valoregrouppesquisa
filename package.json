@@ -217,7 +217,18 @@
     "home:email-after-submit": "node scripts/validate-public-survey-email-after-submit.js",
     "legacy:environment-diagnostics": "node scripts/validate-legacy-environment-diagnostics-panel.js",
     "config:cache-busting": "node scripts/validate-config-cache-busting.js",
-    "functions:production-deployment": "node scripts/validate-functions-production-deployment.js"
+    "functions:production-deployment": "node scripts/validate-functions-production-deployment.js",
+    "ops:assisted-panel": "node scripts/validate-assisted-operation-panel.js",
+    "blaze:cost-guardrails": "node scripts/validate-blaze-cost-guardrails.js",
+    "email:queue-resilience": "node scripts/validate-email-queue-resilience.js",
+    "email:scheduled-retry": "node scripts/validate-scheduled-email-retry.js",
+    "ops:log-sanitization": "node scripts/validate-operational-log-sanitization.js",
+    "ops:free-survey-repair": "node scripts/validate-admin-free-survey-repair-flow.js",
+    "admin:no-dashboard-only": "node scripts/validate-no-mobile-dashboard-only-regression.js",
+    "home:no-expiration-regression": "node scripts/validate-no-free-survey-expiration-regression.js",
+    "prod:backup-rollback": "node scripts/validate-production-backup-rollback-runbook.js",
+    "ops:daily-report": "node scripts/generate-daily-operation-report.js",
+    "web:operation-parity": "node scripts/validate-aspnet-web-operation-parity.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

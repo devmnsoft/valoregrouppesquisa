@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-06-30T12:34:56.052Z",
+  "checks": [
+    "config live",
+    "Functions",
+    "SMTP",
+    "fila de e-mail",
+    "dead-letter",
+    "pesquisa gratuita",
+    "link público",
+    "erros públicos",
+    "menu mobile",
+    "custo/uso Blaze",
+    "backups",
+    "logs LGPD"
+  ],
+  "status": "manual_review_required"
+}

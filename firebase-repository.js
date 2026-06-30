@@ -127,6 +127,45 @@ async function registerCompanyAccount(data){
 }
 function mapAuthError(err){const code=err?.code||'';/* auth/invalid-login-credentials auth/user-not-found auth/wrong-password auth/invalid-email auth/user-disabled auth/too-many-requests auth/network-request-failed auth/api-key-not-valid auth/operation-not-allowed */if(code.includes('invalid-credential')||code.includes('invalid-login-credentials')||code.includes('wrong-password')||code.includes('user-not-found'))return 'E-mail ou senha inválidos.';if(code.includes('invalid-email'))return 'E-mail inválido.';if(code.includes('user-disabled'))return 'Usuário desativado.';if(code.includes('operation-not-allowed')||code.includes('api-key-not-valid')||code.includes('configuration-not-found'))return 'Serviço de autenticação indisponível.';if(code.includes('too-many-requests'))return 'Muitas tentativas. Aguarde alguns minutos.';if(code.includes('network-request-failed')||code==='unavailable')return 'Serviço de autenticação indisponível.';if(code==='inactive-user')return 'Usuário inativo. Solicite liberação ao administrador.';if(code==='profile-missing')return PROFILE_MISSING_MESSAGE;if(code==='inactive-company')return 'Sua empresa está inativa. Contate o administrador.';return 'Não foi possível entrar. Verifique seus dados ou solicite redefinição de senha.';}
 
+
+function isOfficialFreeSurveyDoc(survey){
+  if(!survey)return false;
+  const title=String(survey.title||survey.name||'').toLowerCase();
+  const status=String(survey.status||'').toLowerCase();
+  const visibility=String(survey.visibility||survey.publicVisibility||'public').toLowerCase();
+  const freeByTitle=title.includes('valora insight')||title.includes('diagnóstico gratuito')||title.includes('diagnostico gratuito')||title.includes('pesquisa gratuita');
+  return ['active','published','open'].includes(status)&&survey.revoked!==true&&!survey.revokedAt&&!['private','restricted','internal'].includes(visibility)&&(survey.isFree===true||survey.planId==='free'||freeByTitle);
+}
+function publicTokenFromSurvey(survey){const t=survey?.publicToken||survey?.token||survey?.accessToken||'';return t&&String(t)!==String(survey?.tokenHash||'')?t:'';}
+async function loadOfficialFreeSurveyPublic(){
+  const attempted=[];let rows=[];
+  async function tryQuery(label,filters){attempted.push(label);try{rows=rows.concat(await queryCollection('surveys',filters,null,25));}catch(err){recordFirestoreError(`surveys.${label}`,err);}}
+  await tryQuery('isFree', [['isFree','==',true]]);
+  await tryQuery('planIdFree', [['planId','==','free']]);
+  if(session.store?.surveys?.length)rows=rows.concat(session.store.surveys);
+  const unique=[...new Map(rows.filter(Boolean).map(x=>[x.id,x])).values()];
+  const candidates=unique.filter(isOfficialFreeSurveyDoc);
+  let selected=candidates.find(publicTokenFromSurvey)||candidates[0]||null;
+  if(selected&&!publicTokenFromSurvey(selected)&&selected.id){
+    try{const repaired=await callFunction('repairFreeSurveyPublicLink',{surveyId:selected.id});selected={...selected,...(repaired?.survey||repaired?.after||repaired||{})};}catch(err){recordFirestoreError('surveys.repairFreeSurveyPublicLink',err);}
+  }
+  window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
+  window.ValoraRuntimeDiagnostics.lastOfficialFreeSurvey={attemptedSources:attempted.concat(['session.store','repairFreeSurveyPublicLink']),reason:selected?'candidate_found':'no_valid_official_free_survey',foundCandidatesCount:candidates.length,hasPublicToken:!!publicTokenFromSurvey(selected),status:selected?.status||'',visibility:selected?.visibility||selected?.publicVisibility||'',isFree:selected?.isFree===true||selected?.planId==='free'};
+  return selected&&publicTokenFromSurvey(selected)?selected:null;
+}
+async function validatePublicSurveyPublic({surveyId,token,org}={}){
+  const survey=await getDoc('surveys',surveyId);
+  if(!survey)throw Object.assign(new Error('Pesquisa não encontrada.'),{code:'survey_not_found'});
+  const expected=publicTokenFromSurvey(survey);
+  if(!expected||String(token)!==String(expected))throw Object.assign(new Error('Token público inválido.'),{code:'invalid_public_token'});
+  if(!isOfficialFreeSurveyDoc(survey)&&!['active','published','open'].includes(String(survey.status||'').toLowerCase()))throw Object.assign(new Error('Pesquisa encerrada ou expirada.'),{code:'survey_inactive'});
+  const form=await getDoc('forms',survey.formId);
+  if(!form)throw Object.assign(new Error('Formulário não encontrado.'),{code:'form_not_found'});
+  const company=survey.companyId||survey.organizationId?await getDoc('organizations',survey.companyId||survey.organizationId).catch(()=>null):null;
+  if(org&&company?.slug&&String(org).toLowerCase()!==String(company.slug).toLowerCase())throw Object.assign(new Error('Organização pública não confere.'),{code:'org_mismatch'});
+  return {ok:true,survey,form,company,lgpd:{text:''}};
+}
+
 window.ValoraFirebaseAuth={getCurrentAuthUser,getCurrentUserProfile,waitUntilReady};
 window.ValoraFirebaseRepository={
   mode:'firebase',
@@ -137,6 +176,8 @@ window.ValoraFirebaseRepository={
   async logout(){const s=ensureFirebase();session.profile=null;session.claims={};session.loaded=false;cleanFirebaseLocalState();await s.auth.signOut();},
   currentUser(){return session.profile;},
   async loadStoreFromFirestore(){await hydrateStore();return session.store;},
+  loadOfficialFreeSurvey:loadOfficialFreeSurveyPublic,
+  validatePublicSurvey:validatePublicSurveyPublic,
   loadCompanies({state}={}){return state?.companies||[];},loadOrganizations:loadOrganizations,loadUsers({state}={}){return state?.users||[];},loadPlans({state}={}){return state?.plans||[];},loadModules({state}={}){return state?.modules||[];},loadForms({state}={}){return state?.forms||[];},loadSurveys({state}={}){return state?.surveys||[];},loadResponses({state}={}){return state?.responses||[];},loadInvitations({state}={}){return state?.invitations||[];},loadActionPlans({state}={}){return state?.actionPlans||[];},loadSupportTickets({state}={}){return state?.supportTickets||[];},loadKnowledgeBase({state}={}){return state?.knowledgeBase||[];},loadNotifications({state}={}){return state?.notifications||[];},loadInvoices({state}={}){return state?.invoices||[];},loadIntegrations({state}={}){return state?.integrations||[];},loadApiKeys({state}={}){return (state?.apiKeys||[]).map(x=>({...x,keyHash:x.keyHash?'[protected]':''}));},loadWebhooks({state}={}){return (state?.webhooks||[]).map(x=>({...x,secretHash:x.secretHash?'[protected]':''}));},loadSettings({state}={}){return state?.settings||{};},
   listOrganizations:loadOrganizations,getOrganization(id){return getDoc('organizations',id);},createOrganization(data){return createDoc('organizations',data);},createClient(data){return callFunction('createClient',{payload:data}).catch(()=>createDoc('organizations',data));},updateClient(id,data){return callFunction('updateClient',{id,payload:data}).catch(()=>updateDoc('organizations',id,data));},updateOrganization(id,data){return updateDoc('organizations',id,data);},updateOrganizationBrand(id,brand){return updateDoc('organizations',id,{brand});},updateOrganizationSubscription(id,subscription){return updateDoc('organizations',id,{subscription,planId:subscription?.planId});},updateOrganizationSettings(id,settings){return updateDoc('organizations',id,{settings});},updateOrganizationLimits(id,limitsOverride){return updateDoc('organizations',id,{limitsOverride});},async getOrganizationBySlug(slug){const rows=await queryCollection('organizations',[["slug","==",slug]],null,1);return rows[0]||null;},async checkSlugAvailability(slug){const rows=await queryCollection('organizations',[["slug","==",slug]],null,1);return !rows.length;},deleteOrganization(id){return deleteDoc('organizations',id);},
   listUsers:loadUsers,async createUser(data){return callFunction('createUser',{payload:data}).catch(()=>createDoc('users',{...data,status:data.status||'pending_invite',inviteStatus:'pending_invite'}));},async createUserProfile(data){if(!data.uid&&!data.id){return callFunction('createUser',{payload:data}).catch(()=>callFunction('createCompanyUser',{payload:data}));}return updateDoc('users',data.uid||data.id,{...data,uid:data.uid||data.id});},repairUserProfile(uid,profile={}){return callFunction('repairUserProfile',{uid,profile});},updateUserProfile(id,data){return updateDoc('users',id,data);},deactivateUser(id){return updateDoc('users',id,{status:'inactive'});},reactivateUser(id){return updateDoc('users',id,{status:'active'});},

@@ -1,2 +1,6 @@
 @media (max-width: 991.98px){.app-shell{display:block}.content-wrapper{padding:1rem}.page-card{border-radius:18px;padding:1rem}.topbar{position:sticky;top:0;z-index:1030}.topbar .brand-text small{display:none}.row>[class*="col-"]{margin-bottom:.25rem}.card{border-radius:16px}.btn{width:100%;margin-bottom:.5rem}.d-flex .btn{width:auto}.table{min-width:720px}body{overflow-x:hidden}}
 @media (max-width: 575.98px){h1{font-size:1.7rem}.brand-symbol{width:36px;height:36px}.content-wrapper{padding:.75rem}.page-card{padding:.85rem}.form-control-lg,.btn-lg{font-size:1rem}}
+
+/* Sprint 50 — offcanvas admin mobile */
+body.web-mobile-menu-open{overflow:hidden}
+@media (max-width: 991.98px){#mobileSidebar.offcanvas{max-width:min(86vw,320px)}#mobileSidebar .nav-link{min-height:44px;display:flex;align-items:center}.offcanvas-backdrop.show{opacity:.48}}

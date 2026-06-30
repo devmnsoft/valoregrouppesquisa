@@ -187,7 +187,15 @@
     "deploy:firebase-readiness": "node scripts/validate-firebase-hosting-deploy-readiness.js",
     "email:no-demo-response": "node scripts/validate-no-demo-response-email-flow.js",
     "email:real-response-flow": "node scripts/validate-result-email-real-response-flow.js",
-    "e2e:csp-email-live": "playwright test tests/e2e/free-survey-csp-email-live.spec.js"
+    "e2e:csp-email-live": "playwright test tests/e2e/free-survey-csp-email-live.spec.js",
+    "home:validate-public-link": "node scripts/validate-public-survey-link-runtime.js",
+    "home:repair-free-survey-link": "node scripts/repair-free-survey-public-link.js",
+    "client:create-flow": "node scripts/validate-client-create-flow.js",
+    "user:create-auth-profile-flow": "node scripts/validate-user-create-auth-profile-flow.js",
+    "auth:firebase-errors": "node scripts/validate-firebase-auth-error-handling.js",
+    "user:profile-repair": "node scripts/validate-user-profile-repair-flow.js",
+    "admin:mobile-menu": "node scripts/validate-admin-mobile-menu.js",
+    "web:mobile-admin-menu": "node scripts/validate-aspnet-web-mobile-admin-menu.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

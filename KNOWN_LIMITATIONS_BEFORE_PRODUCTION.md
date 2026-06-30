@@ -51,3 +51,9 @@ Sprint 49 consolidou validações de CSP publicada, readiness do Firebase Hostin
 - O validador live confirma o header publicado no domínio informado; ele não executa deploy por conta própria.
 - O smoke remoto depende de disponibilidade da API pública e DNS.
 - O teste Playwright live evita screenshots, vídeo e trace; a simulação de envio só ocorre quando há resposta real disponível no estado carregado.
+
+## Sprint 50 — Link público, Firebase Auth e menu mobile
+- Scripts que acessam Firestore exigem credenciais Firebase Admin no ambiente.
+- A validação de domínio autorizado do Firebase Auth precisa ser confirmada no Console Firebase.
+- O reparo de links deve ser executado primeiro em `--dry-run` e revisado antes de `--apply`.
+- Testes Playwright criados são contratos iniciais; recomenda-se suíte live com fixtures reais na próxima sprint.

@@ -517,10 +517,10 @@ function getAdminMenuItems(user){
     {id:'backup',label:'Backup',route:'admin/backup',permission:'canBackup'},
     {id:'support',label:'Atendimento',route:'admin/support',permission:'canHandleSupport'},
     {id:'settings',label:'Configurações',route:'admin/settings',permission:'canManageGlobalSettings'},
-    {id:'status',label:'Status do Ambiente',route:'admin/status',permission:'canViewLogs'},
+    {id:'environment',label:'Status do Ambiente',route:'admin/environment',permission:'canViewLogs'},
     {id:'diagnostics',label:'Diagnóstico do Ambiente',route:'admin/diagnostics',permission:'canViewLogs'},
     {id:'freeDiagnostics',label:'Diagnósticos gratuitos',route:'admin/free-diagnostics',permission:'canViewResponses'},
-    {id:'operations',label:'Operação',route:'admin/operations',permission:'canViewLogs',disabled:true}
+    {id:'operations',label:'Operação',route:'admin/operations',permission:'canViewLogs'}
   ];
   return items.filter(item=>can(user,item.permission)).map(item=>({...item,disabled:item.disabled||(item.module?!moduleEnabled(item.module):false)}));
 }

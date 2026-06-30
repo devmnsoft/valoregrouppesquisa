@@ -1,0 +1,23 @@
+const fs=require('fs');
+const read=f=>fs.readFileSync(f,'utf8');
+const app=read('app.js'),repo=read('firebase-repository.js'),fns=read('functions/index.js');
+const fail=[];const ok=(cond,msg)=>{if(!cond)fail.push(msg)};
+const save=(app.match(/function saveSurvey\(form\)[\s\S]*?function openQuickSurvey/)||[''])[0];
+const home=(app.match(/function renderHome\(\)[\s\S]*?function officialPublicPricingPlans/)||[''])[0];
+const featured=(fns.match(/exports\.getFeaturedHomeSurvey=onCall[\s\S]*?exports\.submitSurveyResponse/)||[''])[0];
+const repair=(fns.match(/exports\.repairFreeSurveyPublicLink=onCall[\s\S]*?exports\./)||[''])[0];
+const submit=(fns.match(/exports\.submitSurveyResponse=onCall[\s\S]*?exports\.getPublicResult/)||[''])[0];
+ok(/<input\s+type="checkbox"\s+name="featuredOnHome"|markSurveyAsHomeFeatured/.test(app),'admin sem input name="featuredOnHome" ou ação equivalente');
+ok(/featuredOnHome\s*:\s*true/.test(save),'saveSurvey não salva featuredOnHome');
+ok(/isFeatured\s*:\s*true/.test(save),'saveSurvey não salva isFeatured');
+ok(/isFree\s*:\s*true/.test(save)&&/planId\s*:\s*'free'/.test(save)&&/visibility\s*:\s*'public'/.test(save),'saveSurvey não força grátis/público quando destacado');
+ok(/publicToken|ensureSurveyPublicLink|secureToken/.test(save),'saveSurvey não gera publicToken');
+ok(/token\s*===\s*existing\.tokenHash|tokenHash/.test(save+app)&&!/tokenHash=.*url/i.test(save),'saveSurvey pode usar tokenHash como token público');
+['featuredOnHome','isFeatured','homeFeatured','visibleOnHome'].forEach(x=>ok(featured.includes(x),`getFeaturedHomeSurvey não procura ${x}`));
+ok(/diagnostics/.test(featured)&&/rejected/.test(featured),'getFeaturedHomeSurvey não retorna diagnostics de rejeição');
+ok(/getFeaturedHomeSurveyUrl\(\)/.test(home)&&/const hasFeaturedSurvey=Boolean\(featuredSurveyUrl\)/.test(home),'renderHome depende apenas de featuredSurvey local');
+ok(/callFunction\('getFeaturedHomeSurvey'/.test(repo),'firebase-repository não chama getFeaturedHomeSurvey');
+ok(/exports\.repairFreeSurveyPublicLink=onCall/.test(fns)&&/surveyId=required\(req\.data,'surveyId'\)/.test(fns)&&/isFeatured:true/.test(fns),'repairFreeSurveyPublicLink não aceita pesquisa destacada');
+ok(/responseId/.test(submit)&&/resultToken/.test(submit)&&/accessToken/.test(submit),'submitSurveyResponse não retorna responseId/resultToken');
+if(fail.length){console.error(fail.join('\n'));process.exit(1)}
+console.log('validate-admin-featured-survey-flow: PASS');

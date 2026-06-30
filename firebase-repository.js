@@ -229,10 +229,10 @@ async function resolveFeaturedHomeSurveyPublic(){
       }
       if(window.publicSurveyCache&&survey.id)window.publicSurveyCache.set(survey.id,{survey,form,company,token:remote.token,url:remote.url,org:remote.org||company.slug||''});
       window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
-      window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_candidate_found',surveyId:survey.id||'',hasPublicToken:!!remote.token,org:remote.org||company.slug||'',source:remote.source||'cloud-function'};
+      window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_candidate_found',surveyId:survey.id||'',hasPublicToken:!!remote.token,org:remote.org||company.slug||'',source:remote.source||'cloud-function',diagnostics:remote.diagnostics||null,rejected:remote.diagnostics?.rejected||[]};
       return {survey,company,form,url:remote.url,token:remote.token,org:remote.org,source:remote.source||'cloud-function'};
     }
-  }catch(err){recordFirestoreError('functions.getFeaturedHomeSurvey',err);}
+  }catch(err){recordFirestoreError('functions.getFeaturedHomeSurvey',err);if(err?.details?.diagnostics){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_rejected',diagnostics:err.details.diagnostics,rejected:err.details.diagnostics.rejected||[]};}}
   if(!session.authUser){
     window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
     window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_failed_public_firestore_blocked',surveyId:'',hasPublicToken:false,org:'',source:'none'};

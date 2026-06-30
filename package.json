@@ -195,7 +195,12 @@
     "auth:firebase-errors": "node scripts/validate-firebase-auth-error-handling.js",
     "user:profile-repair": "node scripts/validate-user-profile-repair-flow.js",
     "admin:mobile-menu": "node scripts/validate-admin-mobile-menu.js",
-    "web:mobile-admin-menu": "node scripts/validate-aspnet-web-mobile-admin-menu.js"
+    "web:mobile-admin-menu": "node scripts/validate-aspnet-web-mobile-admin-menu.js",
+    "firebase:admin-credentials": "node scripts/validate-firebase-admin-credentials.js",
+    "home:free-survey-expiration": "node scripts/validate-free-survey-expiration-robustness.js",
+    "firebase:repair-safety": "node scripts/validate-firebase-repair-safety.js",
+    "admin:mobile-menu-runtime": "playwright test --config=playwright.e2e.config.js tests/e2e/admin-mobile-menu-runtime.spec.js",
+    "web:mobile-menu-runtime": "playwright test --config=playwright.web.config.js tests/e2e-web/aspnet-web-mobile-menu-runtime.spec.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

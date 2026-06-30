@@ -12,6 +12,10 @@ const RESERVED_ORG_SLUGS=Object.freeze(['admin','login','valora','api','firebase
 const RESERVED_ORG_SLUG_SET=new Set(RESERVED_ORG_SLUGS);
 const VALORA_THEME={logoUrl:LOGO_FULL,primaryColor:'#0b3d4d',secondaryColor:'#d7a94b',accentColor:'#18a0fb',backgroundColor:'#eef7f9',textColor:'#082a37'};
 const COMMERCIAL_BLOCK_MESSAGE='Este recurso está temporariamente indisponível devido ao status da assinatura. Fale com a Valora Group para regularizar.';
+const OFFICIAL_FREE_SURVEY_ID='official_free_survey';
+const OFFICIAL_FREE_FORM_ID='form_valora_insight_oficial';
+const OFFICIAL_FREE_COMPANY_ID='valora-oficial';
+const OFFICIAL_FREE_ORG_SLUG='valora-group';
 const DataNorm=window.ValoraDataNormalization||{};
 const asArray=DataNorm.asArray||((value,fallback=[])=>Array.isArray(value)?value:(Array.isArray(fallback)?fallback:[]));
 const asObject=DataNorm.asObject||((value,fallback={})=>value&&typeof value==='object'&&!Array.isArray(value)?value:{...fallback});
@@ -456,7 +460,7 @@ function officialFreeSurveyDiagnostics(reason, candidates = []) {
 async function loadOfficialFreeSurvey() {
   const surveys = Array.isArray(state?.surveys) ? state.surveys : [];
   const candidates = [];
-  const byOfficialId = surveys.find(s => String(s?.id || s?.surveyId || '') === 'official_free_survey');
+  const byOfficialId = surveys.find(s => String(s?.id || s?.surveyId || '') === OFFICIAL_FREE_SURVEY_ID);
   if (byOfficialId) candidates.push(byOfficialId);
   const byHome = resolveHomeFeaturedSurvey(state)?.survey;
   if (byHome && byHome !== byOfficialId) candidates.push(byHome);
@@ -489,31 +493,59 @@ async function ensureOfficialFreeSurveyPublicLink(survey) {
   return ensureSurveyPublicLink(survey);
 }
 function buildOfficialFreeSurveyUrl(survey) {
-  const url = buildHomeFeaturedSurveyUrl(survey);
-  if (!url) return '';
-  if (/survey_demo|empresa-exemplo|tokenHash=/i.test(url)) return '';
+  if (!isOfficialFreeSurvey(survey)) return '';
+  const token = survey.publicToken || survey.token || survey.accessToken || '';
+  if (!token || token === String(survey.tokenHash || '')) return '';
   try {
-    const u = new URL(url, location.href);
-    const token = u.searchParams.get('token') || '';
-    if (!token || token === String(survey?.tokenHash || '')) return '';
-    return u.toString();
+    const base = window.ValoraConfig?.APP_PUBLIC_URL || location.href.split('?')[0].split('#')[0];
+    const u = new URL(base);
+    u.searchParams.set('survey', OFFICIAL_FREE_SURVEY_ID);
+    u.searchParams.set('token', token);
+    u.searchParams.set('org', OFFICIAL_FREE_ORG_SLUG);
+    const url = u.toString();
+    if (/survey_demo|empresa-exemplo|tokenHash=/i.test(url)) return '';
+    return url;
   } catch (_) { return ''; }
+}
+
+
+async function getOfficialFreeSurveyUrl() {
+  try {
+    const official = await loadOfficialFreeSurvey();
+    const linked = await ensureOfficialFreeSurveyPublicLink(official);
+    const token = linked?.publicToken || linked?.token || linked?.accessToken || '';
+    const status = String(linked?.status || '').toLowerCase();
+    const free = linked?.isFree === true || linked?.planId === 'free';
+    if (!linked || String(linked.id || linked.surveyId || '') !== OFFICIAL_FREE_SURVEY_ID || !['active','published','open'].includes(status) || !free || !token || token === String(linked.tokenHash || '')) throw new Error('official_free_survey_unavailable');
+    const base = window.ValoraConfig?.APP_PUBLIC_URL || location.href.split('?')[0].split('#')[0];
+    const url = new URL(base);
+    url.searchParams.set('survey', OFFICIAL_FREE_SURVEY_ID);
+    url.searchParams.set('token', token);
+    url.searchParams.set('org', OFFICIAL_FREE_ORG_SLUG);
+    const text = url.toString();
+    if (/survey_demo|empresa-exemplo|tokenHash=/i.test(text)) return '';
+    return text;
+  } catch (error) {
+    window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
+    window.ValoraRuntimeDiagnostics.officialFreeSurveyHome = { code: publicErrorCode(error), message: sanitizePublicError(error) };
+    return '';
+  }
 }
 
 async function resolveOfficialFreeSurveyPayload(payload = {}) {
   const official = await loadOfficialFreeSurvey();
   const linked = await ensureOfficialFreeSurveyPublicLink(official);
   const token = linked?.publicToken || linked?.token || linked?.accessToken || '';
-  if (!linked || String(linked.id || linked.surveyId || '') !== 'official_free_survey' || !token || token === String(linked.tokenHash || '')) {
+  if (!linked || String(linked.id || linked.surveyId || '') !== OFFICIAL_FREE_SURVEY_ID || !token || token === String(linked.tokenHash || '')) {
     const e = new Error('Pesquisa gratuita oficial indisponível.');
     e.code = 'official_free_survey_unavailable';
     throw e;
   }
   let form = formById(linked.formId);
-  let company = companyById(linked.companyId || linked.organizationId) || findOrganizationBySlug('valora-group');
+  let company = companyById(linked.companyId || linked.organizationId) || findOrganizationBySlug(OFFICIAL_FREE_ORG_SLUG);
   if ((!form || !company) && window.ValoraRepository?.validatePublicSurvey) {
     try {
-      const loaded = await window.ValoraRepository.validatePublicSurvey({ surveyId: 'official_free_survey', token, org: 'valora-group' });
+      const loaded = await window.ValoraRepository.validatePublicSurvey({ surveyId: OFFICIAL_FREE_SURVEY_ID, token, org: OFFICIAL_FREE_ORG_SLUG });
       form = form || loaded?.form;
       company = company || loaded?.company;
       Object.assign(linked, loaded?.survey || {});
@@ -523,10 +555,10 @@ async function resolveOfficialFreeSurveyPayload(payload = {}) {
     try { form = await window.ValoraRepository.loadOfficialFreeSurveyForm(); } catch (_) {}
   }
   if (!form) { const e = new Error('Formulário oficial indisponível.'); e.code = 'official_form_unavailable'; throw e; }
-  const resolved = { ...payload, surveyId: 'official_free_survey', token, org: 'valora-group', survey: { ...linked, id: 'official_free_survey' }, surveyData: { ...linked, id: 'official_free_survey' }, form, company };
-  publicSurveyCache.set('official_free_survey', { survey: resolved.survey, form, company, lgpd: { text: form.lgpdText || linked.lgpdText || state.settings?.lgpdText || LGPD_TEXT } });
+  const resolved = { ...payload, surveyId: OFFICIAL_FREE_SURVEY_ID, token, org: OFFICIAL_FREE_ORG_SLUG, survey: { ...linked, id: OFFICIAL_FREE_SURVEY_ID }, surveyData: { ...linked, id: OFFICIAL_FREE_SURVEY_ID }, form, company };
+  publicSurveyCache.set(OFFICIAL_FREE_SURVEY_ID, { survey: resolved.survey, form, company, lgpd: { text: form.lgpdText || linked.lgpdText || state.settings?.lgpdText || LGPD_TEXT } });
   window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
-  window.ValoraRuntimeDiagnostics.lastDemoLinkRedirect = { fromSurvey: payload.survey || payload.surveyId || '', fromOrg: payload.org || '', redirected: false, resolved: true, targetSurveyId: 'official_free_survey', targetOrg: 'valora-group' };
+  window.ValoraRuntimeDiagnostics.lastDemoLinkRedirect = { fromSurvey: payload.survey || payload.surveyId || '', fromOrg: payload.org || '', redirected: false, resolved: true, targetSurveyId: OFFICIAL_FREE_SURVEY_ID, targetOrg: OFFICIAL_FREE_ORG_SLUG };
   return resolved;
 }
 
@@ -575,7 +607,9 @@ function renderHome(){
   if(!faqItems.length)faqItems=normalizeFaqItems(null,defaultFaq());
   const featuredResolution=resolveHomeFeaturedSurvey(state);
   const featuredSurvey=featuredResolution.survey;
-  const featuredSurveyUrl=buildHomeFeaturedSurveyUrl(featuredSurvey);
+  const featuredSurveyUrlPromise=getOfficialFreeSurveyUrl();
+  const featuredSurveyUrl=window.ValoraRuntimeDiagnostics?.lastOfficialFreeSurveyUrl||buildOfficialFreeSurveyUrl(featuredSurvey);
+  featuredSurveyUrlPromise.then(url=>{ if(url){ window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{}; window.ValoraRuntimeDiagnostics.lastOfficialFreeSurveyUrl=url; const app=$('#app'); if(app&&app.innerHTML.includes('Aguardar diagnóstico grátis')) renderHome(); }}).catch(()=>{});
   const hasFeaturedSurvey=Boolean(featuredSurvey&&featuredSurveyUrl);
   const adminWarning=currentUser()?.role==='admin_valora'&&!hasFeaturedSurvey?'<div class="warning-box">Pesquisa destaque não configurada. Defina uma pesquisa ativa com link público em Admin &gt; Pesquisas.</div>':'';
   const primaryCta=hasFeaturedSurvey?`<a href="${esc(featuredSurveyUrl)}" class="btn btn-primary">Responder diagnóstico grátis</a>`:`<a href="#plans" class="btn btn-primary">Aguardar diagnóstico grátis</a>`;

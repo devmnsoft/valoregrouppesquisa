@@ -9,7 +9,7 @@
 Para executar:
 PowerShell:
 $env:GOOGLE_APPLICATION_CREDENTIALS="C:\FirebaseKeys\gestordepesquisa-firebase-adminsdk.json"
-npm run home:repair-free-survey-link -- --dry-run --project gestordepesquisa
+npm run home:repair-free-survey-link -- --dry-run --backup --project gestordepesquisa
 
 Ou:
-npm run home:repair-free-survey-link -- --dry-run --project gestordepesquisa --credentials "C:\FirebaseKeys\gestordepesquisa-firebase-adminsdk.json"
+npm run home:repair-free-survey-link -- --dry-run --backup --project gestordepesquisa --credentials "C:\FirebaseKeys\gestordepesquisa-firebase-adminsdk.json"

@@ -1,3 +1,13 @@
 # Reparo de link público da pesquisa gratuita
 
-A correção impede que `tokenHash` seja exposto como token público, prioriza `publicToken`, gera token seguro para a pesquisa gratuita ativa sem token e monta `index.html?survey={id}&token={token}&org={slug}`. Use `npm run home:repair-free-survey-link -- --dry-run` para validar e `-- --apply` para aplicar no Firestore com backup em `backups/`.
+## Status Sprint 53
+- Projeto antigo da raiz preservado e mantido com Firebase como provedor principal.
+- Pesquisa gratuita oficial deve usar `publicToken` em URL pública e nunca `tokenHash` como token compartilhável.
+- Expiração da pesquisa gratuita é tolerante no runtime e corrigida para longo prazo pelo repair seguro.
+- Cadastro de cliente e usuário possui contratos estruturais validados.
+- Menu administrativo mobile possui funções explícitas, overlay, ARIA e fechamento por ESC/resize/item.
+- Valora.Web permanece ASP.NET Core MVC/Razor Pages com Bootstrap, JavaScript, jQuery e AJAX.
+
+## Riscos restantes
+- Execução com dados reais depende de credenciais Firebase Admin e homologação em ambiente controlado.
+- Cloud Functions precisam ser implantadas após aprovação.

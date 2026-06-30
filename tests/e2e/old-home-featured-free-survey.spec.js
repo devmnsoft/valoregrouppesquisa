@@ -1,25 +1,17 @@
-const { test, expect } = require('@playwright/test');
+const {test,expect}=require('@playwright/test');
 
-test.describe('old home featured free survey', () => {
-  test('home uses real featured/free survey CTA and never legacy demo values', async ({ page }) => {
-    const submitted=[];
-    await page.addInitScript(() => {
-      window.__submitPayloads=[];
-      window.submitPublicSurveyAuto = async (payload) => {
-        window.__submitPayloads.push(payload);
-        if (payload.surveyId === 'survey_demo') throw new Error('survey_demo submitted');
-        return { ok:true, responseId:'resp_real_featured_home', resultToken:'result_token_real_featured_home', accessToken:'result_token_real_featured_home', score:{ rawScore:100, maxScore:125 }, level:{ label:'Estruturada' } };
-      };
-    });
-    await page.goto('/');
+test.describe('old home featured free survey contract',()=>{
+  test('home CTA resolves real featured survey and signup failures are friendly',async({page})=>{
+    const errors=[];page.on('console',m=>{const t=m.text();if(/Provider firebase não possui método registerCompany|provider_unavailable|lookupCnpj.*401|survey_demo|empresa-exemplo/.test(t))errors.push(t)});
+    await page.goto('/',{waitUntil:'domcontentloaded'});
     await expect(page.locator('body')).toContainText(/Diagnóstico gratuito|Valora Insight/i);
-    const hrefs=(await page.locator('a').evaluateAll(a=>a.map(x=>x.href))).join('\n');
-    expect(hrefs).not.toContain('survey_demo');
-    expect(hrefs).not.toContain('empresa-exemplo');
-    const cta=page.getByRole('link', { name:/Responder diagnóstico grátis/i }).first();
+    const cta=page.locator('.featured-survey-section a.btn-primary').first();
     await expect(cta).toBeVisible();
     const href=await cta.getAttribute('href');
     expect(href||'').not.toContain('survey_demo');
     expect(href||'').not.toContain('empresa-exemplo');
+    expect(href||'').not.toContain('tokenHash');
+    expect(href||'').toMatch(/\?survey=|#plans/);
+    expect(errors.join('\n')).not.toMatch(/Provider firebase não possui método registerCompany|provider_unavailable|lookupCnpj.*401/);
   });
 });

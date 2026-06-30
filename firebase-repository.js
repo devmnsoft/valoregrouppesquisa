@@ -103,6 +103,28 @@ function changed(a,b){return JSON.stringify(a||null)!==JSON.stringify(b||null);}
 async function syncCollectionFromState(key){const name=collectionNameForStateKey(key);const before=new Map((session.cache[key]||[]).map(x=>[x.id,x]));const now=new Map((session.store[key]||[]).map(x=>[x.id,x]));const writes=[];now.forEach((row,id)=>{if(key==='users'&&(!row.uid||row.uid!==id)&&!before.has(id)){console.warn('[Valora Pulse] TODO seguro: criação de usuário Firebase Auth deve ocorrer via Cloud Function/Admin SDK antes de gravar users/{uid}.',row.email);return;}if(!before.has(id))writes.push(createDoc(name,row));else if(changed(row,before.get(id)))writes.push(updateDoc(name,id,row));});before.forEach((_row,id)=>{if(!now.has(id))writes.push(deleteDoc(name,id));});await Promise.all(writes);session.cache[key]=clone(session.store[key]||[]);}
 async function syncSettings(){if(!changed(session.store.settings,session.cache.settings))return;const value=session.store.settings||{};if(value.public||Object.keys(value).some(k=>typeof value[k]==='object'))await Promise.all(Object.entries(value).map(([id,data])=>updateDoc('settings',id,data)));else await updateDoc('settings','public',value);session.cache.settings=clone(value);}
 
+
+function makeSlugBase(value){return String(value||'empresa').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)||'empresa';}
+async function uniqueOrganizationSlug(base){let slug=makeSlugBase(base),candidate=slug,i=2;while(true){const rows=await queryCollection('organizations',[["slug","==",candidate]],null,1).catch(()=>[]);if(!rows.length)return candidate;candidate=`${slug}-${i++}`;}}
+async function registerCompany(data={}){
+  const s=ensureFirebase();
+  const name=String(data.name||data.legalName||data.companyName||'').trim();
+  if(!name)throw Object.assign(new Error('Informe o nome da empresa.'),{code:'company_name_required'});
+  const email=String(data.email||data.responsibleEmail||'').trim().toLowerCase();
+  const responsibleEmail=String(data.responsibleEmail||data.email||'').trim().toLowerCase();
+  const document=String(data.document||data.cnpj||'').trim();
+  const now=new Date().toISOString();
+  const ref=s.db.collection('organizations').doc();
+  const slug=await uniqueOrganizationSlug(data.slug||name);
+  const status=data.status||'active', planId=data.planId||'free';
+  const company={id:ref.id,companyId:ref.id,organizationId:ref.id,type:data.type||'juridica',name,publicName:data.publicName||name,legalName:data.legalName||name,document,email,phone:data.phone||'',responsibleName:data.responsibleName||data.name||'',responsibleEmail,slug,planId,status,subscription:data.subscription||{planId,status,billingStatus:'free',startedAt:now},createdAt:now,updatedAt:now,source:data.source||'public_register_company'};
+  const batch=s.db.batch();
+  batch.set(ref,company,{merge:true});
+  batch.set(s.db.collection('companies').doc(ref.id),company,{merge:true});
+  await batch.commit();
+  return {ok:true,id:ref.id,companyId:ref.id,organizationId:ref.id,slug,status};
+}
+
 async function registerCompanyAccount(data){
   const s=ensureFirebase();
   const email=String(data.email||'').trim().toLowerCase();
@@ -215,6 +237,7 @@ window.ValoraFirebaseRepository={
   saveStore(){return this.saveChanges({state:session.store});},
   async login({email,password}){const s=ensureFirebase();try{const cred=await s.auth.signInWithEmailAndPassword(email,password);await cred.user.getIdToken(true);const profile=await loadProfile(cred.user);await hydrateStore();return profile;}catch(err){throw Object.assign(new Error(mapAuthError(err)),{code:err?.code});}},
   registerCompanyAccount,
+  registerCompany,
   async logout(){const s=ensureFirebase();session.profile=null;session.claims={};session.loaded=false;cleanFirebaseLocalState();await s.auth.signOut();},
   currentUser(){return session.profile;},
   async loadStoreFromFirestore(){await hydrateStore();return session.store;},

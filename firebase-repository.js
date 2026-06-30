@@ -232,7 +232,7 @@ async function resolveFeaturedHomeSurveyPublic(){
       window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_candidate_found',surveyId:survey.id||'',hasPublicToken:!!remote.token,org:remote.org||company.slug||'',source:remote.source||'cloud-function',diagnostics:remote.diagnostics||null,rejected:remote.diagnostics?.rejected||[]};
       return {survey,company,form,url:remote.url,token:remote.token,org:remote.org,source:remote.source||'cloud-function'};
     }
-  }catch(err){recordFirestoreError('functions.getFeaturedHomeSurvey',err);if(err?.details?.diagnostics){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_rejected',diagnostics:err.details.diagnostics,rejected:err.details.diagnostics.rejected||[]};}}
+  }catch(err){recordFirestoreError('functions.getFeaturedHomeSurvey',err);if(err?.details?.diagnostics){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_rejected',diagnostics:err.details.diagnostics,acceptedCandidates:err.details.diagnostics.acceptedCandidates||[],rejectedCandidates:err.details.diagnostics.rejectedCandidates||[],rejected:err.details.diagnostics.rejectedCandidates||[]};}}
   if(!session.authUser){
     window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
     window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_failed_public_firestore_blocked',surveyId:'',hasPublicToken:false,org:'',source:'none'};

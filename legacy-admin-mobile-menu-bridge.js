@@ -97,6 +97,7 @@
 
     window.__valoraLegacyMobileMenuBridgeBound = true;
 
+    // event delegation with capture=true for legacy SPA rerenders
     document.addEventListener('click', function (event) {
       var target = event.target;
       var btn = target && target.closest ? target.closest(TOGGLE_SELECTOR) : null;

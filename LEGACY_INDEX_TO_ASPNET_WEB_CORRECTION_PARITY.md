@@ -11,3 +11,7 @@
 ## Riscos restantes
 - Execução com dados reais depende de credenciais Firebase Admin e homologação em ambiente controlado.
 - Cloud Functions precisam ser implantadas após aprovação.
+
+## Sprint 54
+
+Paridade validada para Home pública, pesquisa gratuita, link público, expiração robusta, resultado, e-mail, certificado, cadastro de cliente, cadastro de usuário, login, erro Firebase amigável, menu mobile e Diagnóstico do Ambiente.

@@ -1,23 +1,23 @@
 @echo off
 cd /d C:\MNSOFT\valoregrouppesquisa
 
-echo [1/5] Instalando dependencias das Functions...
+echo [1/4] Instalando dependencias das Functions...
 call npm run functions:install
 if errorlevel 1 goto erro
 
-echo [2/5] Validando runtime Node 22...
+echo [2/4] Validando Node 22...
 call npm run functions:node22-readiness
 if errorlevel 1 goto erro
 
-echo [3/5] Validando sintaxe das Functions...
+echo [3/4] Lint Functions...
 call npm run functions:lint
 if errorlevel 1 goto erro
 
-echo [4/5] Publicando Functions...
+echo [4/4] Deploy Functions...
 call firebase deploy --only functions --project gestordepesquisa
 if errorlevel 1 goto erro
 
-echo [5/5] Functions publicadas.
+echo Functions publicadas com sucesso.
 pause
 exit /b 0
 

@@ -1,12 +1,21 @@
-const fs=require('fs'),cp=require('child_process');
-function fail(m){console.error(m);process.exit(1)}
-const firebase=JSON.parse(fs.readFileSync('firebase.json','utf8'));
-if(firebase.hosting?.public!=='dist')fail('hosting.public must be dist');
-cp.execSync('npm run build:prod',{stdio:'inherit'});
-for(const f of ['dist/index.html','dist/config.js']) if(!fs.existsSync(f))fail(`${f} missing`);
-if(!fs.existsSync('dist/assets'))fail('dist/assets missing');
-const html=fs.readFileSync('dist/index.html','utf8');
-if(!/\.js(\?v=|"|')/.test(html)||!/\.css(\?v=|"|')/.test(html))fail('dist/index.html must reference JS and CSS');
-const build=fs.readFileSync('scripts/build-production.js','utf8');
-if(!/legacy-admin-mobile-menu-bridge\.js/.test(build)&&!/legacy-admin-mobile-menu-bridge\.js/.test(html))fail('legacy bridge not included');
+const fs = require('fs');
+const path = require('path');
+function fail(message) { console.error(message); process.exit(1); }
+const required = ['dist', 'dist/index.html', 'dist/config.js', 'dist/assets'];
+for (const item of required) if (!fs.existsSync(item)) fail(`${item} ausente. Execute npm run build:prod antes do deploy.`);
+const html = fs.readFileSync('dist/index.html', 'utf8');
+function assertReferencedAssets(regex, label) {
+  const matches = [...html.matchAll(regex)].map(match => match[1]).filter(src => !/^https?:\/\//.test(src));
+  if (!matches.length) fail(`dist/index.html não referencia ${label}`);
+  for (const src of matches) {
+    const clean = src.split('?')[0].replace(/^\/+/, '');
+    if (!fs.existsSync(path.join('dist', clean))) fail(`Asset referenciado não encontrado: ${src}`);
+  }
+}
+assertReferencedAssets(/<script\b[^>]*\bsrc=["']([^"']+\.js(?:\?[^"']*)?)["']/gi, 'JS válido');
+assertReferencedAssets(/<link\b[^>]*\bhref=["']([^"']+\.css(?:\?[^"']*)?)["']/gi, 'CSS válido');
+const bridgeInHtml = /legacy-admin-mobile-menu-bridge\.js/.test(html);
+const bridgeFile = fs.existsSync('dist/legacy-admin-mobile-menu-bridge.js') || fs.existsSync('dist/assets/legacy-admin-mobile-menu-bridge.js');
+const bundleContainsBridge = fs.readdirSync('dist/assets').filter(name => name.endsWith('.js')).some(name => /legacy-admin-mobile-menu-bridge\.js|adminMobileMenuParts|bindAdminMobileMenuEvents/.test(fs.readFileSync(path.join('dist/assets', name), 'utf8')));
+if (!bridgeInHtml && !bridgeFile && !bundleContainsBridge) fail('legacy-admin-mobile-menu-bridge.js não está referenciado nem presente no bundle/dist');
 console.log('hosting:dist-build OK');

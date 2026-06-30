@@ -79,3 +79,6 @@ reports/playwright/
 *.docx
 *.xlsx
 *.pptx
+functions/.env
+functions/.env.*
+!functions/.env.gestordepesquisa.example

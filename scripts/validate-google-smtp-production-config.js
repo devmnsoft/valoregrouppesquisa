@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+const fs=require('fs');function has(f,s){if(!fs.existsSync(f)||!fs.readFileSync(f,'utf8').includes(s))throw new Error(`${f} sem ${s}`)};has('GOOGLE_SMTP_PRODUCTION_SETUP.md','valoragroup@mnsoft.com.br');has('GOOGLE_SMTP_PRODUCTION_SETUP.md','firebase functions:secrets:set SMTP_PASSWORD --project gestordepesquisa');has('functions/.env.gestordepesquisa.example','SMTP_HOST=smtp.gmail.com');has('.gitignore','!functions/.env.gestordepesquisa.example');console.log('OK SMTP Google produção.');

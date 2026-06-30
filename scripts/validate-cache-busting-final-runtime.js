@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+const fs=require('fs');const i=fs.readFileSync('index.html','utf8'),f=fs.readFileSync('firebase.json','utf8');['config.js?v=8.7.3','style.css?v=8.7.3','app.js?v=8.7.3','legacy-admin-mobile-menu-bridge.js?v=8.7.3'].forEach(x=>{if(!i.includes(x))throw new Error('Ausente '+x)});['no-store','config.js','legacy-admin-mobile-menu-bridge.js'].forEach(x=>{if(!f.includes(x))throw new Error('firebase.json sem '+x)});console.log('OK cache busting final.');

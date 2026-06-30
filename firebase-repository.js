@@ -130,22 +130,26 @@ function mapAuthError(err){const code=err?.code||'';/* auth/invalid-login-creden
 
 function isOfficialFreeSurveyDoc(survey){
   if(!survey)return false;
+  const id=String(survey.id||survey.surveyId||'').toLowerCase();
+  if(id==='survey_demo'||id.includes('demo')||id.includes('exemplo')||id.includes('example'))return false;
   const title=String(survey.title||survey.name||'').toLowerCase();
   const status=String(survey.status||'').toLowerCase();
   const visibility=String(survey.visibility||survey.publicVisibility||'public').toLowerCase();
   const freeByTitle=title.includes('valora insight')||title.includes('diagnóstico gratuito')||title.includes('diagnostico gratuito')||title.includes('pesquisa gratuita');
-  return ['active','published','open'].includes(status)&&survey.revoked!==true&&!survey.revokedAt&&!['private','restricted','internal'].includes(visibility)&&(survey.isFree===true||survey.planId==='free'||freeByTitle);
+  return publicTokenFromSurvey(survey)&&['active','published','open'].includes(status)&&survey.revoked!==true&&!survey.revokedAt&&!['private','restricted','internal'].includes(visibility)&&(id==='official_free_survey'||survey.organizationId==='valora-oficial'||survey.companyId==='valora-oficial'||survey.official===true||survey.isOfficial===true||survey.isFree===true||survey.planId==='free'||freeByTitle);
 }
 function publicTokenFromSurvey(survey){const t=survey?.publicToken||survey?.token||survey?.accessToken||'';return t&&String(t)!==String(survey?.tokenHash||'')?t:'';}
 async function loadOfficialFreeSurveyPublic(){
   const attempted=[];let rows=[];
   async function tryQuery(label,filters){attempted.push(label);try{rows=rows.concat(await queryCollection('surveys',filters,null,25));}catch(err){recordFirestoreError(`surveys.${label}`,err);}}
+  attempted.push('official_free_survey');
+  try{const official=await getDoc('surveys','official_free_survey');if(official)rows.push(official);}catch(err){recordFirestoreError('surveys.official_free_survey',err);}
   await tryQuery('isFree', [['isFree','==',true]]);
   await tryQuery('planIdFree', [['planId','==','free']]);
   if(session.store?.surveys?.length)rows=rows.concat(session.store.surveys);
   const unique=[...new Map(rows.filter(Boolean).map(x=>[x.id,x])).values()];
   const candidates=unique.filter(isOfficialFreeSurveyDoc);
-  let selected=candidates.find(publicTokenFromSurvey)||candidates[0]||null;
+  let selected=candidates.find(s=>String(s.id)==='official_free_survey')||candidates.find(publicTokenFromSurvey)||candidates[0]||null;
   if(selected&&!publicTokenFromSurvey(selected)&&selected.id){
     try{const repaired=await callFunction('repairFreeSurveyPublicLink',{surveyId:selected.id});selected={...selected,...(repaired?.survey||repaired?.after||repaired||{})};}catch(err){recordFirestoreError('surveys.repairFreeSurveyPublicLink',err);}
   }

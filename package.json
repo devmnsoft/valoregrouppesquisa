@@ -300,7 +300,8 @@
     "e2e:legacy-client-create": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-client-create.spec.js",
     "e2e:legacy-user-create": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-user-create.spec.js",
     "e2e:legacy-admin-client-user-regression": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-admin-client-user-regression.spec.js",
-    "functions:secrets-readiness": "node scripts/validate-functions-secrets-readiness.js"
+    "functions:secrets-readiness": "node scripts/validate-functions-secrets-readiness.js",
+    "seed:official-free-survey": "node scripts/ensure-official-free-survey.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

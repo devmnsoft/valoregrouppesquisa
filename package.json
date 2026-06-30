@@ -328,7 +328,14 @@
     "forms:linked-delete-flow": "node scripts/validate-linked-form-delete-flow.js",
     "admin:form-survey-actions": "node scripts/validate-admin-form-survey-actions.js",
     "admin:functions-exported": "node scripts/validate-admin-functions-exported.js",
-    "backend-v2:validate": "node backend-v2/tools/validate-backend-v2-foundation.js"
+    "backend-v2:validate": "node backend-v2/tools/validate-backend-v2-foundation.js",
+    "data:soft-delete-filtering": "node scripts/validate-soft-delete-filtering.js",
+    "routes:public-params": "node scripts/validate-public-params-not-on-admin.js",
+    "lgpd:text": "node scripts/validate-lgpd-text.js",
+    "app:syntax": "node --check app.js && node --check data-normalization.js && node --check firebase-repository.js",
+    "actions:handlers": "node scripts/validate-admin-form-survey-actions.js",
+    "public:boot-no-reference": "node scripts/validate-public-boot-no-auth.js",
+    "dist:actions": "node scripts/validate-admin-form-survey-actions.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

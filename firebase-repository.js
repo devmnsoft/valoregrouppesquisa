@@ -279,6 +279,42 @@ async function validatePublicSurveyPublic({surveyId,token,org}={}){
   return {ok:true,survey,form,company,lgpd:{text:form.lgpdText||''}};
 }
 
+
+function mapPublicFunctionError(err){
+  const code=String(err?.code||err?.details?.code||'').replace(/^functions\//,'')||'unknown';
+  const message=String(err?.message||'Falha ao processar solicitação pública.');
+  const details=err?.details||{};
+  let userMessage=message;
+  if(code==='invalid-argument'&&/Nome e e-mail são obrigatórios/i.test(message))userMessage='Informe nome e e-mail para concluir o diagnóstico.';
+  else if(code==='failed-precondition'&&/LGPD|Aceite/i.test(message))userMessage='Aceite o termo de consentimento para enviar suas respostas.';
+  else if(code==='invalid-argument'&&/Pergunta obrigatória/i.test(message))userMessage='Responda todas as perguntas obrigatórias antes de enviar.';
+  else if(code==='permission-denied'&&/Token|token/i.test(message))userMessage='O link da pesquisa está inválido ou expirado.';
+  else if(code==='not-found')userMessage='Pesquisa não encontrada.';
+  else if(code==='resource-exhausted')userMessage='Muitas tentativas. Aguarde alguns minutos e tente novamente.';
+  else if(code==='unavailable')userMessage='Serviço temporariamente indisponível. Tente novamente em instantes.';
+  const mapped=new Error(userMessage);
+  mapped.code=code; mapped.originalCode=err?.code; mapped.details=details; mapped.originalMessage=message; mapped.userMessage=userMessage;
+  return mapped;
+}
+function normalizePublicFunctionResult(result){
+  const responseId=result?.responseId||result?.id;
+  const resultToken=result?.resultToken||result?.accessToken;
+  if(!responseId||!resultToken){const e=new Error('Resposta pública sem responseId/resultToken.');e.code='invalid_function_response';throw e;}
+  return {ok:result.ok!==false,responseId,resultToken,accessToken:resultToken,score:result.score,level:result.level,message:result.message||result.level?.recommendation||'',resultEmail:result.resultEmail||{attempted:false,status:'not_requested'}};
+}
+async function submitPublicSurveyResponseFirebase(payload){
+  try{return normalizePublicFunctionResult(await callFunction('submitSurveyResponse',{payload}));}
+  catch(err){throw mapPublicFunctionError(err);}
+}
+async function loadPublicResultFirebase(responseId,resultToken){
+  try{return await callFunction('getPublicResult',{responseId,resultToken});}
+  catch(err){throw mapPublicFunctionError(err);}
+}
+async function sendResultEmailFirebase(responseId,payload={}){
+  try{return await callFunction('sendResultEmail',{responseId,...payload});}
+  catch(err){throw mapPublicFunctionError(err);}
+}
+
 window.ValoraFirebaseAuth={getCurrentAuthUser,getCurrentUserProfile,waitUntilReady};
 window.ValoraFirebaseRepository={
   mode:'firebase',
@@ -294,6 +330,9 @@ window.ValoraFirebaseRepository={
   resolveFeaturedHomeSurvey:resolveFeaturedHomeSurveyPublic,
   getFeaturedHomeSurveyUrl:getFeaturedHomeSurveyUrlPublic,
   validatePublicSurvey:validatePublicSurveyPublic,
+  submitPublicSurveyResponse:submitPublicSurveyResponseFirebase,
+  loadPublicResult:loadPublicResultFirebase,
+  sendResultEmail:sendResultEmailFirebase,
   loadCompanies({state}={}){return state?.companies||[];},loadOrganizations:loadOrganizations,loadUsers({state}={}){return state?.users||[];},loadPlans({state}={}){return state?.plans||[];},loadModules({state}={}){return state?.modules||[];},loadForms({state}={}){return state?.forms||[];},loadSurveys({state}={}){return state?.surveys||[];},loadResponses({state}={}){return state?.responses||[];},loadInvitations({state}={}){return state?.invitations||[];},loadActionPlans({state}={}){return state?.actionPlans||[];},loadSupportTickets({state}={}){return state?.supportTickets||[];},loadKnowledgeBase({state}={}){return state?.knowledgeBase||[];},loadNotifications({state}={}){return state?.notifications||[];},loadInvoices({state}={}){return state?.invoices||[];},loadIntegrations({state}={}){return state?.integrations||[];},loadApiKeys({state}={}){return (state?.apiKeys||[]).map(x=>({...x,keyHash:x.keyHash?'[protected]':''}));},loadWebhooks({state}={}){return (state?.webhooks||[]).map(x=>({...x,secretHash:x.secretHash?'[protected]':''}));},loadSettings({state}={}){return state?.settings||{};},
   listOrganizations:loadOrganizations,getOrganization(id){return getDoc('organizations',id);},createOrganization(data){return createDoc('organizations',data);},createClient(data){return callFunction('createClient',{payload:data}).catch(()=>createDoc('organizations',data));},updateClient(id,data){return callFunction('updateClient',{id,payload:data}).catch(()=>updateDoc('organizations',id,data));},updateOrganization(id,data){return updateDoc('organizations',id,data);},updateOrganizationBrand(id,brand){return updateDoc('organizations',id,{brand});},updateOrganizationSubscription(id,subscription){return updateDoc('organizations',id,{subscription,planId:subscription?.planId});},updateOrganizationSettings(id,settings){return updateDoc('organizations',id,{settings});},updateOrganizationLimits(id,limitsOverride){return updateDoc('organizations',id,{limitsOverride});},async getOrganizationBySlug(slug){const rows=await queryCollection('organizations',[["slug","==",slug]],null,1);return rows[0]||null;},async checkSlugAvailability(slug){const rows=await queryCollection('organizations',[["slug","==",slug]],null,1);return !rows.length;},deleteOrganization(id){return deleteDoc('organizations',id);},
   listUsers:loadUsers,async createUser(data){return callFunction('createUser',{payload:data}).catch(()=>createDoc('users',{...data,status:data.status||'pending_invite',inviteStatus:'pending_invite'}));},async createUserProfile(data){if(!data.uid&&!data.id){return callFunction('createUser',{payload:data}).catch(()=>callFunction('createCompanyUser',{payload:data}));}return updateDoc('users',data.uid||data.id,{...data,uid:data.uid||data.id});},repairUserProfile(uid,profile={}){return callFunction('repairUserProfile',{uid,profile});},updateUserProfile(id,data){return updateDoc('users',id,data);},deactivateUser(id){return updateDoc('users',id,{status:'inactive'});},reactivateUser(id){return updateDoc('users',id,{status:'active'});},

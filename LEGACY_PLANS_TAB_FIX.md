@@ -1,19 +1,23 @@
-# Sprint 66 — Documento operacional legado
+# LEGACY_PLANS_TAB_FIX
 
-Este documento registra o ajuste do projeto antigo na Sprint 66.
+Sprint 67 mantém a SPA legada em produção com Firebase Hosting, Cloud Functions v2 em Node 22 e Firebase Secret para SMTP.
 
-- O legado permanece em Firebase/Cloud Functions com produção sem cutover automático para API.
-- Segredos de SMTP devem ser configurados somente como Firebase Secret `SMTP_PASSWORD`.
-- O e-mail remetente operacional é `valoragroup@mnsoft.com.br`.
-- O fluxo público usa provider automático com fallback para Cloud Functions.
-- O resultado exige `responseId` real e token de resultado válido.
-- O certificado exibe código de validação, URL pública, e-mail mascarado e ações de download/impressão.
-- Planos usam Firestore com fallback oficial: free, essential, professional, corporate e enterprise.
-- O link gratuito oficial não expira por data vencida quando não estiver revogado.
-- O menu mobile administrativo usa bridge independente carregado depois de `app.js`.
-- Smoke de produção só roda com variáveis explícitas de autorização e participante de teste.
+## Deploy correto
 
-## Publicação
-1. Configurar secret: `firebase functions:secrets:set SMTP_PASSWORD`.
-2. Publicar Functions: `firebase deploy --only functions`.
-3. Publicar Hosting: `npm run build:prod` e `firebase deploy --only hosting`.
+- Functions: `npm run functions:deploy`
+- Hosting: `npm run hosting:deploy`
+- Fluxo completo Firebase: `npm run deploy:firebase`
+
+## Segurança SMTP
+
+A senha SMTP não deve ser commitada, documentada ou exibida em logs. Use somente o Firebase Secret `SMTP_PASSWORD`.
+
+Se a senha SMTP foi compartilhada em chat, print, log ou repositório, rotacione imediatamente e configure a nova senha apenas com:
+
+```bash
+firebase functions:secrets:set SMTP_PASSWORD --project gestordepesquisa
+```
+
+## Validações Sprint 67
+
+Execute `npm run security:no-secrets`, `npm run scripts:required`, `npm run functions:node22-readiness`, `npm run legacy:public-submit-flow`, `npm run legacy:result-email-send`, `npm run legacy:plans-tab`, `npm run legacy:free-token-never-expires` e `npm run hosting:dist-build` antes do deploy.

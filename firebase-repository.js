@@ -202,9 +202,24 @@ function featuredHomeSurveyUrl(survey,company={}){
 }
 async function resolveFeaturedHomeSurveyPublic(){
   const attempted=[];let rows=[];
+  try{
+    attempted.push('callable.getFeaturedHomeSurvey');
+    const remote=await callFunction('getFeaturedHomeSurvey',{});
+    if(remote?.ok&&remote?.url&&!/survey_demo|empresa-exemplo|tokenHash=/i.test(remote.url)){
+      window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
+      window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_candidate_found',surveyId:remote.survey?.id||'',hasPublicToken:!!remote.token,org:remote.org||remote.company?.slug||'',source:'cloud-function'};
+      return {survey:remote.survey,company:remote.company,form:remote.form,url:remote.url,token:remote.token,org:remote.org,source:'cloud-function'};
+    }
+  }catch(err){recordFirestoreError('functions.getFeaturedHomeSurvey',err);}
+  if(!session.authUser){
+    window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
+    window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_failed_public_firestore_blocked',surveyId:'',hasPublicToken:false,org:'',source:'none'};
+    return null;
+  }
   async function tryQuery(label,filters){attempted.push(label);try{rows=rows.concat(await queryCollection('surveys',filters,null,25));}catch(err){recordFirestoreError(`surveys.${label}`,err);}}
   await tryQuery('featuredOnHome',[['featuredOnHome','==',true]]);
   await tryQuery('isFeatured',[['isFeatured','==',true]]);
+  await tryQuery('homeFeatured',[['homeFeatured','==',true]]);
   if(session.store?.surveys?.length)rows=rows.concat(session.store.surveys);
   let unique=[...new Map(rows.filter(Boolean).map(x=>[x.id,x])).values()];
   let selected=unique.filter(isFeaturedHomeSurveyDoc).sort((a,b)=>Date.parse(b.updatedAt||b.createdAt||0)-Date.parse(a.updatedAt||a.createdAt||0))[0]||null;
@@ -218,7 +233,14 @@ async function resolveFeaturedHomeSurveyPublic(){
 async function getFeaturedHomeSurveyUrlPublic(){const r=await resolveFeaturedHomeSurveyPublic();return r?.url||'';}
 
 async function validatePublicSurveyPublic({surveyId,token,org}={}){
-  const survey=await getDoc('surveys',surveyId);
+  let survey;
+  try{survey=await getDoc('surveys',surveyId);}catch(err){
+    const code=err?.code||'';
+    if(code.includes('permission-denied')||code.includes('unauthenticated')){
+      return callFunction('validateSurveyLink',{surveyId,token,org});
+    }
+    throw err;
+  }
   if(!survey)throw Object.assign(new Error('Pesquisa não encontrada.'),{code:'survey_not_found'});
   const expected=publicTokenFromSurvey(survey);
   if(!expected||String(token)!==String(expected))throw Object.assign(new Error('Token público inválido.'),{code:'invalid_public_token'});

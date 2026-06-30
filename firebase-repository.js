@@ -236,7 +236,7 @@ async function resolveFeaturedHomeSurveyPublic(){
   if(!session.authUser){
     window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
     window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_failed_public_firestore_blocked',surveyId:'',hasPublicToken:false,org:'',source:'none'};
-    return null;
+    return {ok:false,url:'',errorCode:'featured_unavailable',message:'Diagnóstico gratuito indisponível no momento.',diagnostics:window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey};
   }
   async function tryQuery(label,filters){attempted.push(label);try{rows=rows.concat(await queryCollection('surveys',filters,null,25));}catch(err){recordFirestoreError(`surveys.${label}`,err);}}
   await tryQuery('featuredOnHome',[['featuredOnHome','==',true]]);
@@ -252,7 +252,7 @@ async function resolveFeaturedHomeSurveyPublic(){
   window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted.concat(['session.store','official_free_survey']),reason:url?'candidate_found':'no_valid_featured_home_survey',surveyId:selected?.id||'',hasPublicToken:!!publicTokenFromSurvey(selected),org:company?.slug||''};
   return url?{survey:selected,company,url,source:selected?.featuredOnHome||selected?.isFeatured?'firestore.featured':'official_free_survey'}:null;
 }
-async function getFeaturedHomeSurveyUrlPublic(){const r=await resolveFeaturedHomeSurveyPublic();return r?.url||'';}
+async function getFeaturedHomeSurveyUrlPublic(){try{const r=await resolveFeaturedHomeSurveyPublic();return r?.url||'';}catch(err){recordFirestoreError('functions.getFeaturedHomeSurvey.controlled',err);return '';}}
 
 async function validatePublicSurveyPublic({surveyId,token,org}={}){
   try{
@@ -263,9 +263,9 @@ async function validatePublicSurveyPublic({surveyId,token,org}={}){
     }
   }catch(err){
     recordFirestoreError('functions.validateSurveyLink',err);
-    if(!session.authUser)throw err;
+    if(!session.authUser)return {ok:false,errorCode:err?.code||'public_validation_unavailable',message:'Não foi possível validar esta pesquisa agora. Tente novamente em instantes.'};
   }
-  if(!session.authUser)throw Object.assign(new Error('Validação pública indisponível.'),{code:'public_validation_unavailable'});
+  if(!session.authUser)return {ok:false,errorCode:'public_validation_unavailable',message:'Validação pública indisponível.'};
   const survey=await getDoc('surveys',surveyId);
   if(!survey)throw Object.assign(new Error('Pesquisa não encontrada.'),{code:'survey_not_found'});
   const expected=publicTokenFromSurvey(survey);

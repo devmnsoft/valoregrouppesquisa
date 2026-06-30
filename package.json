@@ -309,7 +309,11 @@
     "functions:map": "node scripts/validate-functions-public-survey-map.js",
     "survey:public-contract": "node scripts/validate-public-survey-contract.js",
     "survey:instant-link-flow": "node scripts/validate-instant-survey-link-flow.js",
-    "home:no-featured-crash": "node scripts/validate-home-no-featured-crash.js"
+    "home:no-featured-crash": "node scripts/validate-home-no-featured-crash.js",
+    "public:boot": "node scripts/validate-public-boot-no-auth.js",
+    "public:no-private-firestore": "node scripts/validate-no-private-firestore-before-auth.js",
+    "public:survey-route": "node scripts/validate-public-survey-route.js",
+    "public:result-route": "node scripts/validate-public-result-route.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

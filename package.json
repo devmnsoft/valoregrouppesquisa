@@ -324,7 +324,10 @@
     "admin:survey-crud": "node scripts/validate-admin-survey-crud.js",
     "admin:form-crud": "node scripts/validate-admin-form-crud.js",
     "admin:no-global-save-for-crud": "node scripts/validate-no-savechanges-for-single-crud.js",
-    "audit:no-save-loop": "node scripts/validate-audit-no-save-loop.js"
+    "audit:no-save-loop": "node scripts/validate-audit-no-save-loop.js",
+    "forms:linked-delete-flow": "node scripts/validate-linked-form-delete-flow.js",
+    "admin:form-survey-actions": "node scripts/validate-admin-form-survey-actions.js",
+    "admin:functions-exported": "node scripts/validate-admin-functions-exported.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

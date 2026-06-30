@@ -1,4 +1,1 @@
-const {read,fail,between}=require('./validate-admin-crud-common');const app=read('app.js');
-if(/function audit[\s\S]{0,800}(save\(|saveChanges\(|persist\()/.test(between(app,'function audit','function mapLogCategory')))fail('audit persiste estado geral');
-if(!app.includes('isHandlingError'))fail('sem guarda isHandlingError');
-process.exit(process.exitCode||0);
+const fs=require('fs');const app=fs.readFileSync('app.js','utf8');function body(name){const i=app.indexOf('function '+name);const j=app.indexOf('\nfunction ',i+10);return app.slice(i,j<0?app.length:j)}['audit','handleError'].forEach(n=>{if(/saveChanges\s*\(|save\s*\(|persist\s*\(/.test(body(n)))throw new Error(n+' pode causar loop de save')});if(!app.includes('isHandlingError')||!app.includes('isSavingAudit'))throw new Error('Flags anti-loop ausentes');console.log('Audit no save loop OK');

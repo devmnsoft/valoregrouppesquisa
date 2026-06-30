@@ -305,7 +305,10 @@
     "admin:featured-survey-flow": "node scripts/validate-admin-featured-survey-flow.js",
     "home:official-free-survey": "node scripts/validate-home-official-free-survey.js",
     "home:featured-free-survey": "node scripts/validate-home-featured-free-survey.js",
-    "home:old-featured-survey": "node scripts/validate-old-home-featured-survey.js"
+    "home:old-featured-survey": "node scripts/validate-old-home-featured-survey.js",
+    "functions:map": "node scripts/validate-functions-public-survey-map.js",
+    "survey:public-contract": "node scripts/validate-public-survey-contract.js",
+    "survey:instant-link-flow": "node scripts/validate-instant-survey-link-flow.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

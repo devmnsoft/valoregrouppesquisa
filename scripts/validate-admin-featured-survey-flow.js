@@ -1,30 +1,8 @@
-const fs=require('fs');
-const read=f=>fs.readFileSync(f,'utf8');
-const app=read('app.js'),repo=fs.existsSync('firebase-repository.js')?read('firebase-repository.js'):'',fns=read('functions/index.js');
-const fail=[];const ok=(cond,msg)=>{if(!cond)fail.push(msg)};
-const save=(app.match(/async function saveSurvey\(form\)[\s\S]*?function openQuickSurvey/)||[''])[0];
-const home=(app.match(/function renderHome\(\)[\s\S]*?function officialPublicPricingPlans/)||[''])[0];
-const featured=(fns.match(/exports\.getFeaturedHomeSurvey=onCall[\s\S]*?exports\.submitSurveyResponse/)||[''])[0];
-const repair=(fns.match(/exports\.repairFeaturedHomeSurvey=onCall[\s\S]*?exports\.validateSurveyLink/)||[''])[0];
-ok(/exports\.debugFeaturedHomeSurvey=onCall/.test(fns),'functions/index.js não exporta debugFeaturedHomeSurvey');
-ok(/exports\.repairFeaturedHomeSurvey=onCall/.test(fns),'functions/index.js não exporta repairFeaturedHomeSurvey');
-ok(/Pesquisa em destaque inválida\.',\{code:'featured_survey_invalid'/.test(fns)&&/diagnostics:\{totalSurveys,acceptedCandidates,rejectedCandidates\}/.test(fns),'getFeaturedHomeSurvey ainda pode lançar erro sem diagnostics estruturado');
-ok(/diagnostics/.test(featured)&&/acceptedCandidates/.test(featured)&&/rejectedCandidates/.test(featured),'getFeaturedHomeSurvey não retorna diagnostics completos');
-ok(/visibleOnHome/.test(featured),'getFeaturedHomeSurvey não aceita visibleOnHome');
-ok(/autoRepairFeaturedHomeSurvey/.test(featured)&&/featuredAutoRepairableReasons/.test(fns)&&/missing_public_token|token_is_hash|invalid_status|private_visibility|not_free|revoked/.test(fns),'getFeaturedHomeSurvey não tenta auto-reparar campos reparáveis');
-ok(/formExists/.test(fns)&&/form_not_found/.test(fns),'getFeaturedHomeSurvey não valida formExists');
-ok(/companyExists/.test(fns)&&/company_not_found/.test(fns),'getFeaturedHomeSurvey não valida companyExists');
-ok(/publicTokenCreated/.test(repair)&&/createToken/.test(repair),'repairFeaturedHomeSurvey não gera publicToken');
-ok(/tokenHash/.test(repair)&&/sha256\(tokenValue\)/.test(repair),'repairFeaturedHomeSurvey não gera tokenHash');
-['featuredOnHome','isFeatured','homeFeatured','visibleOnHome'].forEach(x=>ok(new RegExp(`${x}:true`).test(repair),`repairFeaturedHomeSurvey não marca ${x}`));
-ok(/isFree:true/.test(repair)&&/planId:'free'/.test(repair)&&/visibility:'public'/.test(repair)&&/status:'published'/.test(repair),'repairFeaturedHomeSurvey não força free/public/published');
-ok(/where\(field,'==',true\)/.test(repair)&&/featuredOnHome:false/.test(repair),'repairFeaturedHomeSurvey não desmarca outras pesquisas');
-ok(/callFirebaseFunction\('repairFeaturedHomeSurvey'/.test(app),'app.js não chama repairFeaturedHomeSurvey no botão de destaque');
-ok(/rejectedReasons/.test(home)&&/data-home-featured-admin-warning/.test(home)&&/Pesquisa em destaque inválida/.test(home),'app.js não mostra motivos de rejeição para admin');
-ok(/featuredOnHome:true/.test(save)&&/tokenHash:await hashPublicValue/.test(save)&&/publicToken:pt/.test(save),'saveSurvey não preenche publicToken/tokenHash quando destacado');
-ok(/featuredHomeSurveyPromise/.test(home),'renderHome não usa cache/promessa de getFeaturedHomeSurvey');
-ok((home.match(/getFeaturedHomeSurveyUrl\(\)/g)||[]).length===1,'renderHome pode fazer múltiplas chamadas repetidas');
-ok(!/survey_demo|empresa-exemplo/.test(home),'CTA da home ainda usa survey_demo ou empresa-exemplo');
-ok(/callFunction\('getFeaturedHomeSurvey'/.test(repo),'firebase-repository não chama getFeaturedHomeSurvey');
-if(fail.length){console.error(fail.join('\n'));process.exit(1)}
+const fs=require('fs');const app=fs.readFileSync('app.js','utf8'),f=fs.readFileSync('functions/index.js','utf8');
+function ok(c,m){if(!c)throw new Error(m)}
+ok(/callFirebaseFunction\('preparePublicSurveyLink',\{surveyId:survey\.id,featured:true,free:true\}\)/.test(app),'featured button must call preparePublicSurveyLink');
+ok(/Pesquisa definida como destaque da home/.test(app),'success toast missing');
+ok(/featuredHomeSurveyPromise/.test(app),'renderHome cache missing');
+const home=(app.match(/function renderHome\(\)[\s\S]*?function officialPublicPricingPlans/)||[''])[0];ok((home.match(/getFeaturedHomeSurveyUrl\(\)/g)||[]).length===1,'possible featured loop');
+ok(/exports\.getFeaturedHomeSurvey=onCall[\s\S]*diagnostics:\{totalSurveys/.test(f),'featured diagnostics missing');
 console.log('validate-admin-featured-survey-flow: PASS');

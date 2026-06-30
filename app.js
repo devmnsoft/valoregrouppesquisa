@@ -653,7 +653,7 @@ function renderHome(){
   if(!faqItems.length)faqItems=normalizeFaqItems(null,defaultFaq());
   const featuredResolution=resolveHomeFeaturedSurvey(state);
   const featuredSurvey=featuredResolution.survey;
-  const featuredSurveyUrlPromise=window.ValoraRuntimeDiagnostics?.featuredHomeSurveyPromise||getFeaturedHomeSurveyUrl();
+  const featuredSurveyUrlPromise=window.ValoraRuntimeDiagnostics?.featuredHomeSurveyPromise||getFeaturedHomeSurveyUrl().then(url=>url||getOfficialFreeSurveyUrl());
   window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.featuredHomeSurveyPromise=featuredSurveyUrlPromise;
   const featuredSurveyUrl=window.ValoraRuntimeDiagnostics?.lastFeaturedHomeSurveyUrl||buildHomeFeaturedSurveyUrl(featuredSurvey)||buildOfficialFreeSurveyUrl(featuredSurvey);
   featuredSurveyUrlPromise.then(url=>{ if(url){ window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{}; window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurveyUrl=url; const app=$('#app'); if(app&&(app.innerHTML.includes('Carregando diagnóstico gratuito')||app.innerHTML.includes('Configuração pendente')||app.innerHTML.includes('Falar com a Valora Group'))) renderHome(); }}).catch(()=>{});

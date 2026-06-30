@@ -57,7 +57,7 @@ function validHomeSurvey(s,opts){return !homeSurveyRejectReason(s,opts);}
 async function loadCompanyForSurvey(s){const id=s?.companyId||s?.organizationId||'';if(!id)return null;const org=await db.collection('organizations').doc(id).get();if(org.exists)return {id:org.id,...org.data()};const company=await db.collection('companies').doc(id).get();return company.exists?{id:company.id,...company.data()}:null;}
 async function loadFormForSurvey(s){if(!s?.formId)return null;const snap=await db.collection('forms').doc(s.formId).get();return snap.exists?{id:snap.id,...snap.data()}:null;}
 function featuredRules(){return {featuredFields:['featuredOnHome','isFeatured','homeFeatured','visibleOnHome'],requiredStatus:['active','published','open'],requiredVisibility:['public',''],requiredFree:['isFree=true','planId=free']};}
-async function diagnoseFeaturedSurvey(s,{requireFeatured=true}={}){const [form,company]=await Promise.all([loadFormForSurvey(s),loadCompanyForSurvey(s)]);const reasons=homeSurveyRejectReasons(s,{requireFeatured,formExists:!!form,companyExists:!!company,companyStatus:company?.status});const hasPublicToken=Boolean(s.publicToken||s.token||s.accessToken);return {id:s.id,title:s.title||'',status:s.status||'',visibility:s.visibility||'',featuredOnHome:s.featuredOnHome===true,isFeatured:s.isFeatured===true,homeFeatured:s.homeFeatured===true,visibleOnHome:s.visibleOnHome===true,isFree:s.isFree===true,planId:s.planId||'',hasPublicToken,hasToken:!!s.token,hasTokenHash:!!s.tokenHash,tokenEqualsHash:Boolean(s.tokenHash&&(s.token===s.tokenHash||s.publicToken===s.tokenHash||s.accessToken===s.tokenHash)),formId:s.formId||'',formExists:!!form,companyId:s.companyId||'',organizationId:s.organizationId||'',companyExists:!!company,companyStatus:company?.status||'',revoked:s.revoked===true,revokedAt:s.revokedAt||null,accepted:reasons.length===0,rejectedReasons:reasons};}
+async function diagnoseFeaturedSurvey(s,{requireFeatured=true}={}){const [form,company]=await Promise.all([loadFormForSurvey(s),loadCompanyForSurvey(s)]);const reasons=homeSurveyRejectReasons(s,{requireFeatured,formExists:!!form,companyExists:!!company,companyStatus:company?.status});const hasPublicToken=Boolean(s.publicToken||s.token||s.accessToken);return {id:s.id,title:s.title||'',status:s.status||'',visibility:s.visibility||'',featuredAt:s.featuredAt||null,updatedAt:s.updatedAt||null,createdAt:s.createdAt||null,featuredOnHome:s.featuredOnHome===true,isFeatured:s.isFeatured===true,homeFeatured:s.homeFeatured===true,visibleOnHome:s.visibleOnHome===true,isFree:s.isFree===true,planId:s.planId||'',hasPublicToken,hasToken:!!s.token,hasTokenHash:!!s.tokenHash,tokenEqualsHash:Boolean(s.tokenHash&&(s.token===s.tokenHash||s.publicToken===s.tokenHash||s.accessToken===s.tokenHash)),formId:s.formId||'',formExists:!!form,companyId:s.companyId||'',organizationId:s.organizationId||'',companyExists:!!company,companyStatus:company?.status||'',revoked:s.revoked===true,revokedAt:s.revokedAt||null,accepted:reasons.length===0,rejectedReasons:reasons};}
 function featuredAutoRepairableReasons(reasons=[]){const nonRepairable=new Set(['not_featured','missing_form_id','form_not_found','missing_company_id','company_not_found','inactive_company','missing_required_fields']);return reasons.filter(r=>!nonRepairable.has(r));}
 function featuredAutoRepairMissingFields(s={}){const out=[];if(!s.publicToken||!s.token||String(s.token||'')===String(s.tokenHash||''))out.push('missing_public_token');if(String(s.status||'').toLowerCase()!=='published')out.push('invalid_status');if(String(s.visibility||'').toLowerCase()!=='public')out.push('private_visibility');if(s.isFree!==true||s.planId!=='free')out.push('not_free');if(s.revoked===true||s.revokedAt)out.push('revoked');if(s.showResult!==true)out.push('missing_showResult');if(s.allowRepeat!==true)out.push('missing_allowRepeat');return [...new Set(out)];}
 async function autoRepairFeaturedHomeSurvey(s,diagnostic){if(!featuredFlag(s))return {survey:s,repaired:false,diagnostic};const repairable=[...new Set([...featuredAutoRepairableReasons(diagnostic?.rejectedReasons||[]),...featuredAutoRepairMissingFields(s)])];if(!repairable.length)return {survey:s,repaired:false,diagnostic};let tokenValue=publicToken(s);if(!tokenValue)tokenValue=createToken(24);const patch={publicToken:tokenValue,token:tokenValue,tokenHash:sha256(tokenValue),status:'published',visibility:'public',isFree:true,planId:'free',showResult:true,allowRepeat:true,revoked:false,revokedAt:null,updatedAt:TS()};await db.collection('surveys').doc(s.id).set(patch,{merge:true});const repaired={...s,...patch};const nextDiagnostic=await diagnoseFeaturedSurvey(repaired);return {survey:repaired,repaired:true,diagnostic:{...nextDiagnostic,autoRepaired:true,repairedReasons:repairable}};}
@@ -151,8 +151,22 @@ exports.getFeaturedHomeSurvey=onCall(async req=>{
     }
     diagnostics.push(diagnostic);
   }
-  const acceptedCandidates=diagnostics.filter(x=>x.accepted);
+  let acceptedCandidates=diagnostics.filter(x=>x.accepted);
   const rejectedCandidates=diagnostics.filter(x=>!x.accepted);
+  if(!acceptedCandidates.length){
+    const officialSnap=await db.collection('surveys').doc('official_free_survey').get();
+    if(officialSnap.exists){
+      const officialSurvey={id:officialSnap.id,...officialSnap.data()};
+      let officialDiagnostic=await diagnoseFeaturedSurvey(officialSurvey,{requireFeatured:false});
+      if(!officialDiagnostic.accepted||featuredAutoRepairMissingFields(officialSurvey).length){
+        const repaired=await autoRepairFeaturedHomeSurvey({...officialSurvey,featuredOnHome:true,isFeatured:true,homeFeatured:true,visibleOnHome:true},officialDiagnostic);
+        officialDiagnostic={...repaired.diagnostic,source:'official_free_survey_fallback'};
+      }else{
+        officialDiagnostic={...officialDiagnostic,source:'official_free_survey_fallback'};
+      }
+      if(officialDiagnostic.accepted)acceptedCandidates=[officialDiagnostic];
+    }
+  }
   if(!acceptedCandidates.length)throw featuredInvalidError(diagnostics.length,acceptedCandidates,rejectedCandidates.slice(0,50));
   const selected=acceptedCandidates.sort((a,b)=>dateMs(b.featuredAt||b.updatedAt||b.createdAt)-dateMs(a.featuredAt||a.updatedAt||a.createdAt))[0];
   const snap=await db.collection('surveys').doc(selected.id).get();
@@ -162,7 +176,7 @@ exports.getFeaturedHomeSurvey=onCall(async req=>{
     const rejected=[...rejectedCandidates,{...selected,accepted:false,rejectedReasons:[!form?'form_not_found':'company_not_found']}];
     throw featuredInvalidError(diagnostics.length,[],rejected.slice(0,50));
   }
-  const payload=sanitizeFeaturedPayload({survey,company,form,source:'featured'});
+  const payload=sanitizeFeaturedPayload({survey,company,form,source:selected.source||'featured'});
   if(/survey_demo|empresa-exemplo|tokenHash=/i.test(payload.url)){
     throw featuredInvalidError(diagnostics.length,[],[...rejectedCandidates,{...selected,accepted:false,rejectedReasons:['missing_required_fields']}].slice(0,50));
   }

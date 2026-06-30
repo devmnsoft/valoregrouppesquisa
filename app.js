@@ -287,7 +287,7 @@ function routeFromLocation(){
   // Rotas internas sempre têm prioridade. Assim, Minha área, logo, LGPD e Planos
   // continuam funcionando mesmo depois de abrir um link seguro com query string.
   if(hash)return route(hash);
-  if(sid&&token)return renderTakeSurvey(sid,token,u.searchParams.get('org'));
+  if(sid&&token){ resolveProductionPublicSurveyLink({survey:sid,token,org:u.searchParams.get('org')}).then(r=>{ if(!r?.redirected&&!r?.blocked) renderTakeSurvey(sid,token,u.searchParams.get('org')); }).catch(()=>renderTakeSurvey(sid,token,u.searchParams.get('org'))); return; }
   if(result)return renderResult(result,false,resultToken);
   if(certificate)return renderCertificateValidation(certificate);
   route('home');
@@ -424,6 +424,90 @@ function resolveFeaturedFreeSurvey(store=state){return resolveHomeFeaturedSurvey
 function resolveFeaturedSurveyLink(survey){return buildHomeFeaturedSurveyUrl(survey);}
 function getFeaturedFreeSurvey(){return resolveFeaturedFreeSurvey(state);}
 function buildPublicSurveyUrl(survey){return buildHomeFeaturedSurveyUrl(survey)||'#plans';}
+
+function isDemoPublicSurveyLink(params) {
+  const surveyId = String(params?.survey || params?.surveyId || '').toLowerCase();
+  const org = String(params?.org || params?.organization || '').toLowerCase();
+  const token = String(params?.token || '').toLowerCase();
+
+  return surveyId === 'survey_demo' ||
+    surveyId.includes('demo') ||
+    org === 'empresa-exemplo' ||
+    org.includes('exemplo') ||
+    token.includes('demo');
+}
+function isOfficialFreeSurvey(survey) {
+  if (!survey) return false;
+  const title = String(survey.title || survey.name || '').toLowerCase();
+  const status = String(survey.status || '').toLowerCase();
+  return (survey.isFree === true || survey.planId === 'free' || title.includes('valora insight') || title.includes('diagnóstico gratuito') || title.includes('diagnostico gratuito')) &&
+    ['active', 'published', 'open'].includes(status) &&
+    survey.visibleOnHome !== false &&
+    survey.revoked !== true &&
+    !survey.revokedAt;
+}
+async function loadOfficialFreeSurvey() {
+  const surveys = Array.isArray(state?.surveys) ? state.surveys : [];
+  const byHome = resolveHomeFeaturedSurvey(state)?.survey;
+  if (isOfficialFreeSurvey(byHome)) return byHome;
+  const local = surveys.find(isOfficialFreeSurvey);
+  if (local) return local;
+  if (window.ValoraRepository?.loadOfficialFreeSurvey) {
+    const remote = await window.ValoraRepository.loadOfficialFreeSurvey();
+    if (remote) return remote;
+  }
+  return null;
+}
+async function ensureOfficialFreeSurveyPublicLink(survey) {
+  if (!survey) return null;
+  const currentToken = survey.publicToken || survey.token || survey.accessToken || '';
+  if (!currentToken || currentToken === survey.tokenHash) {
+    try {
+      const repaired = await callFirebaseFunction('repairFreeSurveyPublicLink', { surveyId: survey.id });
+      Object.assign(survey, repaired?.survey || repaired || {});
+    } catch (error) {
+      window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
+      window.ValoraRuntimeDiagnostics.freeSurveyRepairRequired = { surveyId: survey.id, code: publicErrorCode(error) };
+    }
+  }
+  if (!survey.publicToken && survey.tokenHash && !survey.token && !survey.accessToken) return null;
+  survey.isFree = true; survey.visibleOnHome = true; survey.featuredOnHome = true;
+  return ensureSurveyPublicLink(survey);
+}
+function buildOfficialFreeSurveyUrl(survey) {
+  const url = buildHomeFeaturedSurveyUrl(survey);
+  if (!url) return '';
+  if (/survey_demo|empresa-exemplo|tokenHash=/i.test(url)) return '';
+  try {
+    const u = new URL(url, location.href);
+    const token = u.searchParams.get('token') || '';
+    if (!token || token === String(survey?.tokenHash || '')) return '';
+    return u.toString();
+  } catch (_) { return ''; }
+}
+function renderDemoLinkRepairScreen() {
+  renderPublicSurveyShell({ companyName: 'Valora Group' });
+  $('#app').innerHTML = `<section class="section"><div class="container"><div class="card"><span class="badge danger">Link demo bloqueado</span><h1>Este link de demonstração não é válido em produção.</h1><p>Vamos abrir o diagnóstico gratuito oficial da Valora.</p><p>O diagnóstico gratuito oficial não está disponível no momento. Fale com a Valora Group pelo WhatsApp.</p><div class="confirm-actions"><a class="btn btn-primary" href="${esc(APP_CONFIG.WHATSAPP_CONTACT_URL || 'https://wa.me/5591992545353')}">Falar com a Valora Group pelo WhatsApp</a><button class="btn btn-soft" data-action="goHome">Voltar para Home</button></div></div></div></section>`;
+}
+async function resolveProductionPublicSurveyLink(params) {
+  const isDemoLink = isDemoPublicSurveyLink(params);
+  if (window.ValoraConfig?.RUNTIME_ENV !== 'production' || !isDemoLink) return { redirected: false, isDemoLink };
+  window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
+  window.ValoraRuntimeDiagnostics.lastPublicSubmit = { surveyId: params?.survey || params?.surveyId || '', org: params?.org || params?.organization || '', isDemoLink: true, redirectedFromDemo: false, providersAttempted: [], finalProvider: '', errors: [] };
+  const survey = await loadOfficialFreeSurvey();
+  const linked = await ensureOfficialFreeSurveyPublicLink(survey);
+  const officialUrl = buildOfficialFreeSurveyUrl(linked);
+  if (officialUrl) {
+    window.ValoraRuntimeDiagnostics.lastPublicSubmit.redirectedFromDemo = true;
+    toast('Este link de demonstração não é válido em produção. Vamos abrir o diagnóstico gratuito oficial da Valora.', 'warn');
+    history.replaceState({}, '', officialUrl);
+    setTimeout(() => routeFromLocation(), 0);
+    return { redirected: true, url: officialUrl, isDemoLink: true };
+  }
+  renderDemoLinkRepairScreen();
+  return { redirected: false, blocked: true, isDemoLink: true };
+}
+
 function renderHome(){
   state.settings=normalizeSettings(state.settings);
   let faqItems=normalizeFaqItems(state?.settings?.faq, defaultFaq());
@@ -1187,12 +1271,12 @@ async function submitPublicSurveyViaFirestoreFallback(payload){
 }
 async function submitPublicSurveyAuto(payload){
   const safePayload=ensurePublicSubmitIdempotencyKey({...payload});
-  const diagnostics={provider:'auto',attempts:[],finalProvider:'',errorCode:''};
+  const diagnostics={surveyId:safePayload.surveyId,org:safePayload.org||'',isDemoLink:isDemoPublicSurveyLink(safePayload),redirectedFromDemo:false,providersAttempted:[],errors:[],provider:'auto',attempts:[],finalProvider:'',errorCode:''};
   const survey=safePayload?.survey||safePayload?.surveyData||publicSurveyCache.get(safePayload.surveyId)?.survey||{};
   const isFree=isFreeOfficialSurvey(survey);
   const providers=isFree?['cloud-functions','firestore','external-api']:['external-api','cloud-functions','firestore'];
   for(const provider of providers){
-    diagnostics.attempts.push({provider,status:'started'});
+    diagnostics.providersAttempted.push(provider);diagnostics.attempts.push({provider,status:'started'});
     try{
       let result=null;
       if(provider==='cloud-functions')result=await submitPublicSurveyViaCloudFunction(safePayload);
@@ -1201,7 +1285,7 @@ async function submitPublicSurveyAuto(payload){
       const normalized=normalizePublicSubmitResult(result);
       if(normalized&&normalized.responseId&&normalized.resultToken){diagnostics.finalProvider=provider;diagnostics.attempts[diagnostics.attempts.length-1].status='success';window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicSubmit=diagnostics;return normalized;}
       diagnostics.attempts[diagnostics.attempts.length-1].status='invalid-result';
-    }catch(error){diagnostics.attempts[diagnostics.attempts.length-1].status='failed';diagnostics.attempts[diagnostics.attempts.length-1].code=publicErrorCode(error);diagnostics.attempts[diagnostics.attempts.length-1].message=sanitizePublicError(error);}
+    }catch(error){diagnostics.attempts[diagnostics.attempts.length-1].status='failed';diagnostics.attempts[diagnostics.attempts.length-1].code=publicErrorCode(error);diagnostics.attempts[diagnostics.attempts.length-1].message=sanitizePublicError(error);diagnostics.errors.push({provider,code:publicErrorCode(error),message:sanitizePublicError(error)});}
   }
   diagnostics.errorCode='provider_unavailable';window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicSubmit=diagnostics;const error=new Error('Nenhum provider disponível para processar a pesquisa.');error.code='provider_unavailable';error.diagnostics=diagnostics;throw error;
 }
@@ -1219,10 +1303,16 @@ async function sendResultEmailAuto(input,resultTokenArg,toArg){
   if(!responseId||String(responseId).includes('demo'))throw new Error('responseId real obrigatório para envio de resultado.');
   if(!resultToken)throw new Error('resultToken real obrigatório para envio de resultado.');
   if(!to||/pending-provider@local\.invalid/i.test(String(to)))throw new Error('E-mail real obrigatório para envio de resultado.');
-  try{return await sendResultEmailViaCloudFunction(payload);}catch(cloudError){try{return await sendResultEmailViaExternalApi(payload);}catch(apiError){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastResultEmailError={cloudFunctions:publicErrorCode(cloudError),externalApi:publicErrorCode(apiError)};return {sent:false,queued:false,status:'failed'};}}
+  try{return await sendResultEmailViaCloudFunction(payload);}catch(cloudError){try{return await sendResultEmailViaExternalApi(payload);}catch(apiError){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastResultEmailError={cloudFunctions:publicErrorCode(cloudError),externalApi:publicErrorCode(apiError)};try{return await createEmailJobFallback(payload);}catch(jobError){window.ValoraRuntimeDiagnostics.lastResultEmailError.emailJob=publicErrorCode(jobError);return {sent:false,queued:false,status:'failed'};}}}
 }
 async function sendResultEmailViaCloudFunction(payload){return sendResultEmailViaFunction(payload);}
 async function sendResultEmailViaExternalApi(payload){return sendResultEmailViaApi(payload);}
+async function createEmailJobFallback(payload){
+  const db=window.ValoraGetFirestoreSafe?window.ValoraGetFirestoreSafe():(window.ValoraFirebase?.db||window.ValoraFirebaseServices?.db);
+  if(!db||typeof db.collection!=='function')return {sent:false,queued:false,status:'unavailable'};
+  await db.collection('email_jobs').doc().set({type:'result',status:'pending',responseId:payload.responseId,to:payload.to,participantName:payload.participantName||'',includeCertificate:payload.includeCertificate!==false,source:'legacy_email_job_fallback',createdAt:nowIso(),updatedAt:nowIso()});
+  return {sent:false,queued:true,status:'pending'};
+}
 async function sendResultEmailViaApi(payload){if(!payload?.responseId||String(payload.responseId).includes('demo'))throw new Error('responseId real obrigatório.');if(!window.ValoraApiRepository?.sendResultEmail)throw new Error('API de e-mail indisponível.');return window.ValoraApiRepository.sendResultEmail(payload.responseId,{resultToken:payload.resultToken,to:payload.to,participantName:payload.participantName,includeCertificate:payload.includeCertificate!==false,idempotencyKey:payload.idempotencyKey||`result-email-${payload.responseId}`});}
 async function sendResultEmailViaFunction(payload){if(!payload?.responseId||String(payload.responseId).includes('demo'))throw new Error('responseId real obrigatório.');if(!payload.resultToken)throw new Error('resultToken real obrigatório.');const call=await firebaseCallable('sendResultEmail');const result=await call({responseId:payload.responseId,resultToken:payload.resultToken,to:payload.to,participantName:payload.participantName,includeCertificate:payload.includeCertificate!==false,idempotencyKey:payload.idempotencyKey||`result-email-${payload.responseId}`});return result?.data||result;}
 function renderEmailDeliveryStatus(status){const ok=status?.sent||status?.status==='sent'||status?.ok===true;return ok?'Resultado gerado com sucesso. Enviamos uma cópia para o e-mail informado. Verifique também spam ou lixo eletrônico.':'Resultado gerado com sucesso, mas não conseguimos enviar o e-mail neste momento. A resposta ficou registrada e poderá ser reenviada pelo painel administrativo.';}
@@ -1274,7 +1364,7 @@ async function submitSurvey(form){
     const answers={};for(const q of f.questions){const key=`q_${q.id}`,value=fd[key];if(q.required&&(!value||(Array.isArray(value)&&!value.length)))return toast(`Responda a pergunta: ${q.text}`,'error');answers[q.id]=value??(q.type==='multiple'?[]:'');}
     const participant={personType:fd.personType,name:fd.name,email:fd.email,phone:fd.phone||'',isWhatsapp:!!fd.isWhatsapp,document:fd.document||'',cep:fd.cep||'',address:fd.address||'',sendEmail:!!fd.sendEmail};
     try{
-      const res=await submitPublicSurveyResponse({surveyId:fd.surveyId,token:fd.token,participant,answers,lgpdConsent:!!fd.lgpdConsent,communicationConsent:!!fd.sendEmail});
+      const res=await submitPublicSurveyResponse({surveyId:fd.surveyId,token:fd.token,participant,answers,lgpdConsent:!!fd.lgpdConsent,communicationConsent:!!fd.sendEmail,survey:cached.survey,org:new URL(location.href).searchParams.get('org')||''});
       toast('Respostas enviadas com segurança.','success');
       const clean=location.href.split('?')[0].split('#')[0];
       history.replaceState({},'',`${clean}?result=${encodeURIComponent(res.responseId)}&rt=${encodeURIComponent(res.resultToken)}`);

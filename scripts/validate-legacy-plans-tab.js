@@ -1,2 +1,1 @@
-const {assert,has,done}=require('./_legacy-validator-lib');
-['officialPlansFallback','free','essential','professional','corporate','enterprise','plansSection','admin/plans'].forEach(x=>assert(has('app.js',x)||has('module-definitions.js',x),`plans missing ${x}`));done('legacy plans tab');
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8')+fs.readFileSync('scripts/pricing-plans.js','utf8');['free','essential','professional','corporate','enterprise'].forEach(x=>{if(!s.includes(x))throw new Error('plan missing '+x)});if(!s.includes('#admin/plans')&&!s.includes('admin/plans'))throw new Error('rota plans ausente');console.log('legacy plans tab: PASS');

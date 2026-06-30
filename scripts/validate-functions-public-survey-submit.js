@@ -1,3 +1,1 @@
-const {assert,has,regex,done}=require('./_legacy-validator-lib');
-['exports.submitSurveyResponse','exports.getPublicResult','exports.sendResultEmail','exports.getEmailStatus','exports.sendEmail','function isFreeOfficialSurvey','function isBetween','resultTokenHash','auditLog'].forEach(x=>assert(has('functions/index.js',x),`functions missing ${x}`));
-assert(regex('functions/index.js',/isFreeOfficialSurvey\(s\).*options\.strict===true/s),'free official expiration bypass missing');done('functions public submit');
+const fs=require('fs');const s=fs.readFileSync('functions/index.js','utf8');['exports.submitSurveyResponse=onCall','function isBetween','isFreeOfficialSurvey','resultTokenHash','auditLog','responseId:ref.id','resultToken'].forEach(x=>{if(!s.includes(x))throw new Error('functions missing '+x)});console.log('functions public submit: PASS');

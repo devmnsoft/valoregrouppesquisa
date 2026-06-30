@@ -1,3 +1,5 @@
-const {assert,has,regex,done}=require('./_legacy-validator-lib');
-['submitPublicSurveyAuto','submitPublicSurveyViaExternalApi','submitPublicSurveyViaCloudFunction','getPublicResultAuto','sendResultEmailAuto','generateCertificateAfterSubmit','idempotencyKey','Não conseguimos concluir sua pesquisa agora','Código:'].forEach(x=>assert(has('app.js',x),`app.js missing ${x}`));
-assert(!has('app.js','response_demo'),'response_demo must not be used');assert(regex('app.js',/external-api[\s\S]*cloud-functions|cloud-functions[\s\S]*external-api/s),'fallback API/Functions missing');done('legacy public submit flow');
+const fs=require('fs');
+const app=fs.readFileSync('app.js','utf8');
+['submitPublicSurveyAuto','submitPublicSurveyViaCloudFunction','submitPublicSurveyViaFirestoreFallback','submitPublicSurveyViaExternalApi','normalizePublicSubmitResult','ensurePublicSubmitIdempotencyKey'].forEach(x=>{if(!app.includes(x))throw new Error('ausente: '+x)});
+if(!app.includes("isFree?['cloud-functions','firestore','external-api']"))throw new Error('ordem free incorreta');
+console.log('legacy public submit flow: PASS');

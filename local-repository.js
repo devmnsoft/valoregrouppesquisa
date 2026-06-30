@@ -1,6 +1,7 @@
 (function(){
 'use strict';
 
+function deepCleanForFirestore(value,seen=new WeakSet()){if(value===undefined||typeof value==='function')return undefined;if(value===null||typeof value!=='object')return value;if(seen.has(value))return undefined;seen.add(value);if(Array.isArray(value))return value.map(v=>deepCleanForFirestore(v,seen)).filter(v=>v!==undefined);const out={};Object.keys(value).forEach(k=>{if(['__collection','__dirty','__temp','_ui','_local','_editing','_selected','_expanded','_cache','_diagnostics'].includes(k))return;const v=deepCleanForFirestore(value[k],seen);if(v!==undefined)out[k]=v;});return out;}
 function clone(v){return JSON.parse(JSON.stringify(v));}
 
 window.ValoraLocalRepository={
@@ -99,6 +100,6 @@ window.ValoraLocalRepository={
   importEmployees(rows,{state}={}){(state.users||(state.users=[])).push(...rows);return Promise.resolve({created:rows.length,updated:0,ignored:0,errors:[]});},
   exportData(type,filters={}, {state}={}){return Promise.resolve(clone((state?.[type]||[]).filter(x=>!filters.companyId||x.companyId===filters.companyId)));},
 
-  saveChanges({storeKey,state}){this.saveStore({storeKey,state});return clone(state);}
+  saveChanges({storeKey,state}){state=deepCleanForFirestore(state);this.saveStore({storeKey,state});return clone(state);}
 };
 })();

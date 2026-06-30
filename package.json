@@ -319,7 +319,12 @@
     "public:no-external-api-submit": "node scripts/validate-no-external-api-public-submit.js",
     "admin:survey-edit-save": "node scripts/validate-admin-survey-edit-save.js",
     "forms:linked-edit-delete": "node scripts/validate-form-linked-edit-vs-delete.js",
-    "csp:effective": "node scripts/validate-csp-effective-config.js"
+    "csp:effective": "node scripts/validate-csp-effective-config.js",
+    "firestore:no-undefined": "node scripts/validate-no-undefined-firestore-writes.js",
+    "admin:survey-crud": "node scripts/validate-admin-survey-crud.js",
+    "admin:form-crud": "node scripts/validate-admin-form-crud.js",
+    "admin:no-global-save-for-crud": "node scripts/validate-no-savechanges-for-single-crud.js",
+    "audit:no-save-loop": "node scripts/validate-audit-no-save-loop.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

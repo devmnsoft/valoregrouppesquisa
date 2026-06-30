@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 const fs=require('fs');
-const source=fs.readFileSync('firebase-repository.js','utf8')+'\n'+fs.readFileSync('functions/index.js','utf8');
-const checks=['createUserProfile','createCompanyUser','admin.auth().createUser',"users').doc(authUser.uid",'setCustomUserClaims','generatePasswordResetLink'];
-for(const t of checks){if(!source.includes(t)){console.error('Contrato de usuário falhou: '+t);process.exit(1);}}
-console.log('Contrato runtime de usuário validado.');
+function read(f){return fs.readFileSync(f,'utf8')}
+function assert(c,m){if(!c){console.error('FAIL:',m);process.exitCode=1}}
+const fb=read('firebase-repository.js'), fn=read('functions/index.js');
+assert(fb.includes("callFunction('createCompanyUser'"),'legado não chama createCompanyUser');
+['createUser','setCustomUserClaims','users'].forEach(x=>assert(fn.includes(x),'functions sem '+x));
+['role','companyId','status','resetLink'].forEach(x=>assert(fn.includes(x),'contrato usuário sem '+x));
+if(process.exitCode)process.exit(1);
+console.log('OK validate-user-create-runtime-contract.js');

@@ -390,7 +390,7 @@ function resolveHomeFeaturedSurvey(store=state){
   return{survey:null,source:'',reasons};
 }
 function buildHomeFeaturedSurveyUrl(survey){
-  if(!survey||isSurveyExpired(survey))return '';
+  if(!survey||(isSurveyExpired(survey)&&!isFreeOfficialSurvey(survey)))return '';
   if(survey.publicUrl)return survey.publicUrl;
   if(survey.publicLink)return survey.publicLink;
   const token=survey.publicToken||survey.token||survey.accessToken||'';
@@ -497,11 +497,40 @@ function renderLogin(message=''){ $('#app').innerHTML=`<section class="auth-shel
 function renderSignup(){ $('#app').innerHTML=`<section class="auth-shell"><div class="auth-card"><span class="badge">Planos comerciais</span><h1 class="section-title">Criar ambiente</h1><p class="section-lead">Cadastre uma empresa ou pessoa física. Para CNPJ e CEP, use as buscas integradas.</p><form class="grid" data-form="signup"><div class="form-grid"><div class="field"><label>Tipo</label><select name="type"><option value="juridica">Empresa / CNPJ</option><option value="fisica">Pessoa física</option></select></div><div class="field"><label>Plano</label><select name="planId">${publicPlans().map(p=>`<option value="${p.id}" ${p.default?'selected':''}>${esc(p.name)} — ${p.price?money(p.price)+'/mês':'Grátis'}</option>`).join('')}</select></div><div class="field"><label>CNPJ ou CPF</label><div class="inline-field"><input name="document"><button type="button" class="btn btn-soft btn-mini" data-action="lookupCnpj">Buscar CNPJ</button></div></div><div class="field"><label>Empresa ou nome</label><input name="companyName" required></div><div class="field"><label>Nome do gestor</label><input name="name" required></div><div class="field"><label>E-mail</label><input name="email" type="email" required></div><div class="field"><label>Telefone</label><input name="phone"></div><div class="field"><label>CEP</label><div class="inline-field"><input name="cep"><button type="button" class="btn btn-soft btn-mini" data-action="lookupCep">Buscar CEP</button></div></div><div class="field span-2"><label>Endereço</label><input name="address"></div><div class="field"><label>Senha</label><input name="password" type="password" minlength="6" required></div><div class="field"><label>Confirmar senha</label><input name="password2" type="password" minlength="6" required></div></div><details class="legal-box"><summary>Ler o termo LGPD</summary><div>${nl2br((state.settings.lgpdText||LGPD_TEXT).slice(0,2500))}</div></details><label class="checkline"><input name="lgpd" type="checkbox" required><span>Li e aceito o tratamento dos dados para criação e administração do ambiente.</span></label><button class="btn btn-primary btn-block">Criar ambiente</button></form></div></section>`; }
 function renderNoAccess(){try{logSecurityEvent({action:'access_denied',message:'Tentativa de acesso a rota proibida.',route:currentRoute});}catch(_){ } $('#app').innerHTML=`<section class="section"><div class="container"><div class="danger-box"><b>Acesso não permitido.</b><br>Seu perfil não possui autorização para esta área.</div><button class="btn btn-primary" data-action="goMyArea">Ir para minha área</button></div></section>`; }
 
+function renderAdminUserCard(user){return `<div class="who"><b>${esc(user.name)}</b><span>${esc(ROLE_LABELS[user.role]||user.role)}</span><span>${esc(user.companyId?companyName(user.companyId):'Valora Group')}</span></div>`;}
+function renderAdminMenuItem(item,currentRoute){const disabled=item.disabled?'disabled aria-disabled="true"':'';const badge=item.disabled?'<span class="badge">em implantação</span>':'';return `<button class="${item.id===currentRoute?'active':''}" data-action="portalTab" data-scope="admin" data-route="${esc(item.route||`admin/${item.id}`)}" data-tab="${esc(item.id)}" ${disabled}>${esc(item.label)}${badge}</button>`;}
+function getAdminMenuItems(user){
+  const items=[
+    {id:'dashboard',label:'Dashboard',route:'admin/dashboard',permission:'canAccessPortal'},
+    {id:'notifications',label:'Notificações',route:'admin/notifications',permission:'canAccessPortal'},
+    {id:'clients',label:'Clientes',route:'admin/clients',permission:'canManageCompanies'},
+    {id:'finance',label:'Financeiro',route:'admin/finance',permission:'canViewFinance',module:'financeiro'},
+    {id:'plans',label:'Planos',route:'admin/plans',permission:'canManagePlans'},
+    {id:'surveys',label:'Pesquisas',route:'admin/surveys',permission:'canCreateSurveys',module:'pesquisas'},
+    {id:'forms',label:'Formulários',route:'admin/forms',permission:'canCreateForms',module:'formularios'},
+    {id:'users',label:'Usuários',route:'admin/users',permission:'canManageCompanyUsers'},
+    {id:'responses',label:'Respostas',route:'admin/responses',permission:'canViewResponses'},
+    {id:'reports',label:'Relatórios',route:'admin/reports',permission:'canViewReports',module:'relatorios'},
+    {id:'certificates',label:'Certificados',route:'admin/certificates',permission:'canViewReports',disabled:true},
+    {id:'communications',label:'Comunicações',route:'admin/communications',permission:'canSendInvites'},
+    {id:'logs',label:'Logs',route:'admin/logs',permission:'canViewLogs'},
+    {id:'backup',label:'Backup',route:'admin/backup',permission:'canBackup'},
+    {id:'support',label:'Atendimento',route:'admin/support',permission:'canHandleSupport'},
+    {id:'settings',label:'Configurações',route:'admin/settings',permission:'canManageGlobalSettings'},
+    {id:'status',label:'Status do Ambiente',route:'admin/status',permission:'canViewLogs'},
+    {id:'diagnostics',label:'Diagnóstico do Ambiente',route:'admin/diagnostics',permission:'canViewLogs',disabled:true},
+    {id:'freeDiagnostics',label:'Diagnósticos gratuitos',route:'admin/free-diagnostics',permission:'canViewResponses',disabled:true},
+    {id:'operations',label:'Operação',route:'admin/operations',permission:'canViewLogs',disabled:true}
+  ];
+  return items.filter(item=>can(user,item.permission)).map(item=>({...item,disabled:item.disabled||(item.module?!moduleEnabled(item.module):false)}));
+}
+function renderAdminSidebar(user,currentRoute){const items=getAdminMenuItems(user);return `<aside id="adminSidebar" class="sidebar admin-sidebar" aria-label="Menu administrativo">${renderAdminUserCard(user)}<nav class="side-menu admin-nav" aria-label="Menu da área">${items.map(item=>renderAdminMenuItem(item,currentRoute)).join('')}</nav></aside>`;}
 function renderPortal(scope,tab){
   const user=currentUser();if(!user)return renderLogin('Entre para acessar sua área.');
-  const menu=menuFor(scope);const selected=menu.some(x=>x.id===tab&&!x.disabled)?tab:(menu.find(x=>!x.disabled)?.id||'dashboard');
-  $('#app').innerHTML=`<div class="app-shell"><button class="btn btn-primary admin-mobile-menu-toggle admin-mobile-toggle" type="button" data-action="toggleAdminMobileMenu" aria-expanded="false" aria-controls="adminSidebar" aria-label="Abrir menu administrativo">☰ Menu</button><div class="admin-mobile-overlay" data-action="closeAdminMobileMenu" tabindex="-1"></div><aside class="sidebar admin-sidebar" id="adminSidebar"><div class="who"><b>${esc(user.name)}</b><span>${esc(ROLE_LABELS[user.role]||user.role)}</span><span>${esc(user.companyId?companyName(user.companyId):'Valora Group')}</span></div><nav class="side-menu" aria-label="Menu da área">${menu.map(x=>`<button class="${x.id===selected?'active':''}" data-action="portalTab" data-scope="${scope}" data-tab="${x.id}" ${x.disabled?'disabled':''}>${esc(x.label)}</button>`).join('')}</nav></aside><section class="content" id="portalContent"></section></div>`;
-  renderPortalTab(scope,selected);
+  const menu=scope==='admin'?getAdminMenuItems(user):menuFor(scope);const selected=menu.some(x=>x.id===tab&&!x.disabled)?tab:(menu.find(x=>!x.disabled)?.id||'dashboard');
+  const sidebar=scope==='admin'?renderAdminSidebar(user,selected):`<aside class="sidebar admin-sidebar" id="adminSidebar"><div class="who"><b>${esc(user.name)}</b><span>${esc(ROLE_LABELS[user.role]||user.role)}</span><span>${esc(user.companyId?companyName(user.companyId):'Valora Group')}</span></div><nav class="side-menu admin-nav" aria-label="Menu da área">${menu.map(x=>`<button class="${x.id===selected?'active':''}" data-action="portalTab" data-scope="${scope}" data-tab="${x.id}" ${x.disabled?'disabled':''}>${esc(x.label)}</button>`).join('')}</nav></aside>`;
+  $('#app').innerHTML=`<div class="app-shell admin-shell"><button class="btn btn-primary admin-mobile-menu-toggle admin-mobile-toggle" type="button" data-action="toggleAdminMobileMenu" aria-expanded="false" aria-controls="adminSidebar" aria-label="Abrir menu administrativo">☰ Menu</button>${sidebar}<section class="content" id="portalContent"></section></div>`;
+  ensureAdminMobileOverlay();bindAdminMobileMenuEvents();renderPortalTab(scope,selected);
 }
 function menuFor(scope){
   const user=currentUser(),role=user?.role;
@@ -1480,7 +1509,9 @@ function adminMobileMenuParts(){const sidebar=document.getElementById('adminSide
 function openAdminMobileMenu(){const {sidebar,overlay,button}=adminMobileMenuParts();if(!sidebar||!button||!isMobileAdminViewport())return false;sidebar.classList.add('open');overlay?.classList.add('active');document.body.classList.add('mobile-menu-open');button.setAttribute('aria-expanded','true');return true;}
 function closeAdminMobileMenu(){const {sidebar,overlay,button}=adminMobileMenuParts();sidebar?.classList.remove('open');overlay?.classList.remove('active');document.body.classList.remove('mobile-menu-open');button?.setAttribute('aria-expanded','false');return true;}
 function toggleAdminMobileMenu(force){const {sidebar}=adminMobileMenuParts();const shouldOpen=typeof force==='boolean'?force:!sidebar?.classList.contains('open');return shouldOpen?openAdminMobileMenu():closeAdminMobileMenu();}
-function bindAdminMobileMenuEvents(){if(window.__valoraAdminMobileMenuBound)return;window.__valoraAdminMobileMenuBound=true;document.addEventListener('keydown',event=>{if(event.key==='Escape')closeAdminMobileMenu();});document.addEventListener('click',event=>{if(event.target.closest('.admin-mobile-overlay'))closeAdminMobileMenu();if(event.target.closest('.admin-sidebar .side-menu button'))closeAdminMobileMenu();});window.addEventListener('resize',()=>{if(!isMobileAdminViewport())closeAdminMobileMenu();});}
+function adminSidebarEl(){return document.querySelector('#adminSidebar, .admin-sidebar');}
+function adminMobileToggleEl(){return document.querySelector('[data-action="toggleAdminMobileMenu"]');}
+function bindAdminMobileMenuEvents(){if(window.__valoraAdminMobileMenuBound)return;window.__valoraAdminMobileMenuBound=true;document.addEventListener('click',function(event){const action=event.target.closest('[data-action]');if(action&&action.dataset.action==='toggleAdminMobileMenu'){event.preventDefault();toggleAdminMobileMenu();return;}if(event.target.closest('.admin-mobile-overlay')){closeAdminMobileMenu();return;}if(event.target.closest('.admin-sidebar a, .admin-sidebar button[data-route], .admin-nav a, .admin-nav button')){if(isMobileAdminViewport())closeAdminMobileMenu();}});document.addEventListener('keydown',event=>{if(event.key==='Escape')closeAdminMobileMenu();});window.addEventListener('resize',()=>{if(!isMobileAdminViewport())closeAdminMobileMenu();});}
 bindAdminMobileMenuEvents();
 function createActions(){return {
   reloadApp(){location.reload();},resendResultEmail(el){return resendResultEmail(el.dataset.id);},resolveCommunication(el){return resolveCommunication(el.dataset.id);},
@@ -1633,7 +1664,7 @@ function normalizeDateLike(value){
   if(value.seconds)return new Date(value.seconds*1000);
   return null;
 }
-function isFreeOfficialSurvey(survey){return survey?.isFree===true||survey?.planId==='free'||/valora insight|diagn[oó]stico gratuito/i.test(String(survey?.title||''));}
+function isFreeOfficialSurvey(survey){return survey?.isFree===true||survey?.planId==='free'||/valora insight|diagn[oó]stico gratuito|pesquisa gratuita/i.test(String(survey?.title||''));}
 function isSurveyExpired(survey,options={}){
   const isFreeOfficial=isFreeOfficialSurvey(survey);
   const expiresAt=normalizeDateLike(survey?.expiresAt||survey?.endAt||survey?.validUntil);

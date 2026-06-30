@@ -111,10 +111,14 @@ async function registerCompanyAccount(data){
   const uid=cred.user.uid;
   const now=new Date().toISOString();
   const companyRef=s.db.collection('organizations').doc();
+  const legacyCompanyRef=s.db.collection('companies').doc(companyRef.id);
+  const settingsRef=s.db.collection('organizationSettings').doc(companyRef.id);
   const company={id:companyRef.id,type:data.type||'juridica',name:data.companyName||data.name||email,publicName:data.companyName||data.name||email,slug:data.slug||String(data.companyName||email).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),document:data.document||'',email,phone:data.phone||'',cep:data.cep||'',address:data.address||'',planId:data.planId||'free',status:'active',subscription:{planId:data.planId||'free',status:'active',billingStatus:'free',startedAt:now},createdAt:now,updatedAt:now};
   const user={id:uid,uid,name:data.name||data.companyName||email,email,role:'empresa_admin',companyId:company.id,phone:data.phone||'',status:'active',receivesEmail:true,portalAccess:true,createdAt:now,updatedAt:now};
   const batch=s.db.batch();
   batch.set(companyRef,company);
+  batch.set(legacyCompanyRef,{...company,organizationId:company.id});
+  batch.set(settingsRef,{organizationId:company.id,companyId:company.id,planId:company.planId,status:company.status,createdAt:now,updatedAt:now,notifications:{email:true},lgpd:{enabled:true}});
   batch.set(s.db.collection('users').doc(uid),user);
   await batch.commit();
   const profile=await loadProfile(cred.user);

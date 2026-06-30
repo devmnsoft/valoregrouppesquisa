@@ -1,17 +1,3 @@
-# Paridade Index Legado ⇄ Valora.Web
+# Paridade Legacy index.html x Valora.Web
 
-## Status Sprint 53
-- Projeto antigo da raiz preservado e mantido com Firebase como provedor principal.
-- Pesquisa gratuita oficial deve usar `publicToken` em URL pública e nunca `tokenHash` como token compartilhável.
-- Expiração da pesquisa gratuita é tolerante no runtime e corrigida para longo prazo pelo repair seguro.
-- Cadastro de cliente e usuário possui contratos estruturais validados.
-- Menu administrativo mobile possui funções explícitas, overlay, ARIA e fechamento por ESC/resize/item.
-- Valora.Web permanece ASP.NET Core MVC/Razor Pages com Bootstrap, JavaScript, jQuery e AJAX.
-
-## Riscos restantes
-- Execução com dados reais depende de credenciais Firebase Admin e homologação em ambiente controlado.
-- Cloud Functions precisam ser implantadas após aprovação.
-
-## Sprint 54
-
-Paridade validada para Home pública, pesquisa gratuita, link público, expiração robusta, resultado, e-mail, certificado, cadastro de cliente, cadastro de usuário, login, erro Firebase amigável, menu mobile e Diagnóstico do Ambiente.
+Paridade validada para menu mobile, pesquisa gratuita, link público, expiração robusta, e-mail de resultado, cadastro de cliente, cadastro de usuário, login amigável e diagnóstico operacional. O Valora.Web permanece ASP.NET Core MVC/Razor Pages com Bootstrap, JavaScript, jQuery e AJAX.

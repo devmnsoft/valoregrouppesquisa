@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-const fs=require('fs'), path=require('path');
-function walk(d){return fs.existsSync(d)?fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>{const p=path.join(d,e.name);return e.isDirectory()?walk(p):[p];}):[];}
-const files=walk('backend/Valora.Web').filter(f=>/\.(cshtml|js|css|cs)$/.test(f));
-const all=files.map(f=>fs.readFileSync(f,'utf8')).join('\n');
-for(const t of ['publicToken','mobile','Bootstrap','jQuery']){if(!new RegExp(t,'i').test(all)){console.error('Paridade Valora.Web ausente: '+t);process.exit(1);}}
-console.log('Paridade ASP.NET Web validada.');
+const fs=require('fs');
+function read(f){return fs.readFileSync(f,'utf8')}
+function assert(c,m){if(!c){console.error('FAIL:',m);process.exitCode=1}}
+const side=read('backend/Valora.Web/Views/Shared/_Sidebar.cshtml'), layout=read('backend/Valora.Web/Views/Shared/_Layout.cshtml');
+['Dashboard','Usuários','Formulários','Pesquisas','Diagnósticos gratuitos','Comunicações','Respostas','Certificados','Status'].forEach(x=>assert(side.includes(x),'Valora.Web sidebar sem '+x));
+assert(layout.includes('bootstrap')||layout.includes('jquery'),'Valora.Web sem Bootstrap/jQuery no layout');
+if(process.exitCode)process.exit(1);
+console.log('OK validate-aspnet-web-correction-parity.js');

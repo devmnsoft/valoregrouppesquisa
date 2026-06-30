@@ -207,7 +207,8 @@
     "auth:friendly-errors": "node scripts/validate-firebase-auth-friendly-errors.js",
     "admin:mobile-menu-runtime-contract": "node scripts/validate-admin-mobile-menu-runtime-contract.js",
     "web:correction-parity": "node scripts/validate-aspnet-web-correction-parity.js",
-    "legacy:email-real-response-flow": "node scripts/validate-legacy-email-real-response-flow.js"
+    "legacy:email-real-response-flow": "node scripts/validate-legacy-email-real-response-flow.js",
+    "admin:mobile-menu-full-list": "playwright test --config=playwright.e2e.config.js tests/e2e/admin-mobile-menu-full-list.spec.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

@@ -24,14 +24,14 @@
     LOCAL_API_ENABLED: false,
     LOCAL_API_BASE_URL: '',
 
-    PUBLIC_SUBMISSION_PROVIDER: 'auto',
-    PUBLIC_SURVEY_VALIDATION_PROVIDER: 'auto',
-    RESULT_PROVIDER: 'auto',
+    PUBLIC_SUBMISSION_PROVIDER: 'cloud-functions',
+    PUBLIC_SURVEY_VALIDATION_PROVIDER: 'cloud-functions',
+    RESULT_PROVIDER: 'cloud-functions',
     EMAIL_TRANSPORT: 'auto',
 
-    PUBLIC_SUBMISSION_FALLBACKS: ['cloud-functions', 'firestore', 'external-api'],
-    RESULT_FALLBACKS: ['cloud-functions', 'firestore', 'external-api'],
-    EMAIL_FALLBACKS: ['cloud-functions', 'external-api', 'email-job'],
+    PUBLIC_SUBMISSION_FALLBACKS: ['cloud-functions'],
+    RESULT_FALLBACKS: ['cloud-functions'],
+    EMAIL_FALLBACKS: ['cloud-functions', 'email-job'],
 
     WHATSAPP_TRANSPORT: 'manual',
     WHATSAPP_CONTACT_URL: 'https://wa.me/5591992545353?text=Ol%C3%A1%2C%20fiz%20o%20diagn%C3%B3stico%20gratuito%20Valora%20e%20quero%20entender%20os%20planos.',

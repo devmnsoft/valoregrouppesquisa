@@ -313,7 +313,13 @@
     "public:boot": "node scripts/validate-public-boot-no-auth.js",
     "public:no-private-firestore": "node scripts/validate-no-private-firestore-before-auth.js",
     "public:survey-route": "node scripts/validate-public-survey-route.js",
-    "public:result-route": "node scripts/validate-public-result-route.js"
+    "public:result-route": "node scripts/validate-public-result-route.js",
+    "public:submit-firebase-only": "node scripts/validate-public-submit-firebase-only.js",
+    "public:provider-unavailable": "node scripts/validate-provider-unavailable-final-fix.js",
+    "public:no-external-api-submit": "node scripts/validate-no-external-api-public-submit.js",
+    "admin:survey-edit-save": "node scripts/validate-admin-survey-edit-save.js",
+    "forms:linked-edit-delete": "node scripts/validate-form-linked-edit-vs-delete.js",
+    "csp:effective": "node scripts/validate-csp-effective-config.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

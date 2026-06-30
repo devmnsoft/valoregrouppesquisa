@@ -1,0 +1,2 @@
+const {assert,has,regex,done}=require('./_legacy-validator-lib');
+assert(has('app.js','isFreeOfficialSurvey')&&has('functions/index.js','isFreeOfficialSurvey'),'free official detection missing');assert(regex('functions/index.js',/end&&end<now\)return options\.strict===true/),'functions free expiry bypass missing');assert(has('scripts/repair-free-survey-public-link.js','visibleOnHome')&&has('scripts/repair-free-survey-public-link.js','isFree'),'repair free flags missing');done('legacy free token never expires');

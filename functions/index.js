@@ -12,6 +12,7 @@ const telegram=require('./utils/telegram');
 admin.initializeApp();
 const db=admin.firestore();
 const SMTP_PASSWORD=defineSecret('SMTP_PASSWORD');
+const DEFAULT_SMTP_SENDER_EMAIL='valoragroup@mnsoft.com.br';
 const TELEGRAM_BOT_TOKEN=defineSecret('TELEGRAM_BOT_TOKEN');
 const TELEGRAM_CHAT_ID=defineSecret('TELEGRAM_CHAT_ID');
 const TS=admin.firestore.FieldValue.serverTimestamp;
@@ -40,7 +41,7 @@ async function assertSurveyCompany(surveyId,user){
   if(user.role!=='admin_valora'&&s.companyId!==user.companyId)throw new HttpsError('permission-denied','Pesquisa fora da sua empresa.');
   return s;
 }
-function publicEmailConfig(){const hasSecret=!!(SMTP_PASSWORD.value&&SMTP_PASSWORD.value());return {configured:!!(process.env.SMTP_HOST&&process.env.SMTP_USERNAME&&process.env.SMTP_SENDER_EMAIL&&hasSecret),senderName:process.env.SMTP_SENDER_NAME||'Valora Group',senderEmail:maskEmail(process.env.SMTP_SENDER_EMAIL||process.env.SMTP_USERNAME||'')};}
+function publicEmailConfig(){const hasSecret=!!(SMTP_PASSWORD.value&&SMTP_PASSWORD.value());return {configured:!!(process.env.SMTP_HOST&&process.env.SMTP_USERNAME&&process.env.SMTP_SENDER_EMAIL&&hasSecret),senderName:process.env.SMTP_SENDER_NAME||'Valora Group',senderEmail:maskEmail(process.env.SMTP_SENDER_EMAIL||process.env.SMTP_USERNAME||DEFAULT_SMTP_SENDER_EMAIL||'')};}
 function buildEmailHtml(templateType,payload){const title=escHtml(payload.title||payload.subject||'Valora Pulse™').slice(0,140),message=escHtml(payload.message||payload.text||'').slice(0,4000),buttonUrl=safeHttpUrl(payload.buttonUrl||payload.link||''),buttonLabel=escHtml(payload.buttonLabel||'Acessar').slice(0,40);return `<!doctype html><html><body style="font-family:Arial,sans-serif;color:#082a37;background:#eef7f9;padding:24px"><main style="max-width:680px;margin:auto;background:white;border-radius:16px;padding:28px"><h1>${title}</h1><p style="white-space:pre-line;line-height:1.6">${message}</p>${buttonUrl?`<p><a href="${buttonUrl}" style="background:#0b3d4d;color:white;padding:12px 18px;border-radius:999px;text-decoration:none">${buttonLabel}</a></p>`:''}<small>Valora Group • ${escHtml(templateType).slice(0,40)}</small></main></body></html>`;}
 async function callJson(url,msg){const r=await fetch(url,{headers:{'user-agent':'ValoraPulse/1.0'}});const b=await r.json().catch(()=>null);if(!r.ok||!b)throw new Error(msg);return b;}
 function assertWebhookUrl(raw){let u;try{u=new URL(cleanText(raw,1000));}catch(_){throw new HttpsError('invalid-argument','URL de webhook inválida.');}if(u.protocol!=='https:')throw new HttpsError('invalid-argument','Webhook deve usar HTTPS.');const h=u.hostname.toLowerCase();if(['localhost','127.0.0.1','0.0.0.0','::1'].includes(h)||h.endsWith('.local')||/^(10\.|192\.168\.|172\.(1[6-9]|2\d|3[0-1])\.)/.test(h))throw new HttpsError('invalid-argument','Webhook não pode apontar para host local ou IP privado.');return u.toString();}
@@ -133,7 +134,7 @@ async function monthlyCount(collection,companyId,field='createdAt'){
 async function sendOneEmail({to,subject,templateType,payload}){
   const cfg=publicEmailConfig();if(!cfg.configured||!SMTP_PASSWORD.value())throw new HttpsError('failed-precondition','Envio de e-mail não configurado.');
   const transporter=nodemailer.createTransport({host:process.env.SMTP_HOST,port:Number(process.env.SMTP_PORT||587),secure:String(process.env.SMTP_SECURITY||'starttls')==='ssl',auth:{user:process.env.SMTP_USERNAME,pass:SMTP_PASSWORD.value()}});
-  return transporter.sendMail({from:{name:process.env.SMTP_SENDER_NAME||'Valora Group',address:process.env.SMTP_SENDER_EMAIL||process.env.SMTP_USERNAME},to,subject,text:cleanText(payload.text||payload.message,4000),html:buildEmailHtml(templateType,payload)});
+  return transporter.sendMail({from:{name:process.env.SMTP_SENDER_NAME||'Valora Group',address:process.env.SMTP_SENDER_EMAIL||process.env.SMTP_USERNAME||DEFAULT_SMTP_SENDER_EMAIL},to,subject,text:cleanText(payload.text||payload.message,4000),html:buildEmailHtml(templateType,payload)});
 }
 exports.sendSurveyInvitations=onCall({secrets:[SMTP_PASSWORD]},async req=>{
   const user=await authedUser(req), data=asObject(req.data,'payload');
@@ -177,7 +178,7 @@ exports.sendEmail=onCall({secrets:[SMTP_PASSWORD]},async req=>{
   const cfg=publicEmailConfig();if(!cfg.configured||!SMTP_PASSWORD.value())throw new HttpsError('failed-precondition','Envio de e-mail não configurado.');
   const transporter=nodemailer.createTransport({host:process.env.SMTP_HOST,port:Number(process.env.SMTP_PORT||587),secure:String(process.env.SMTP_SECURITY||'starttls')==='ssl',auth:{user:process.env.SMTP_USERNAME,pass:SMTP_PASSWORD.value()}});
   const payload=asObject(data.payload||{},'payload');
-  const info=await transporter.sendMail({from:{name:process.env.SMTP_SENDER_NAME||'Valora Group',address:process.env.SMTP_SENDER_EMAIL||process.env.SMTP_USERNAME},to,subject,text:cleanText(payload.text||data.text||payload.message,4000),html:cleanText(data.html,20000)||buildEmailHtml(templateType,{...payload,subject})});
+  const info=await transporter.sendMail({from:{name:process.env.SMTP_SENDER_NAME||'Valora Group',address:process.env.SMTP_SENDER_EMAIL||process.env.SMTP_USERNAME||DEFAULT_SMTP_SENDER_EMAIL},to,subject,text:cleanText(payload.text||data.text||payload.message,4000),html:cleanText(data.html,20000)||buildEmailHtml(templateType,{...payload,subject})});
   await auditLog(db,{action:'sendEmail',actorId:user.uid,actorType:user.role,companyId:survey?.companyId||user.companyId,entity:'email',entityId:info.messageId,after:{to,templateType,surveyId:data.surveyId||'',responseId:data.responseId||''},ip:ip(req),userAgent:ua(req)});
   return {sent:true,messageId:info.messageId};
 });

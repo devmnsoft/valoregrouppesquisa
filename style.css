@@ -694,3 +694,85 @@ html,body{max-width:100%;overflow-x:hidden}
   body.mobile-menu-open .content{pointer-events:none}
 }
 @media (min-width: 992px){.admin-sidebar{transform:none!important}.admin-mobile-menu-toggle,.admin-mobile-toggle,.admin-mobile-overlay{display:none!important}}
+
+/* Sprint 62 — bridge independente do menu administrativo mobile legado */
+.admin-mobile-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  min-height: 42px;
+  border: 1px solid rgba(8, 42, 55, .16);
+  border-radius: 999px;
+  padding: .55rem .85rem;
+  background: #ffffff;
+  color: #082a37;
+  font-weight: 800;
+  cursor: pointer;
+  position: relative;
+  z-index: 1405;
+  pointer-events: auto;
+}
+
+.admin-mobile-overlay {
+  display: none;
+}
+
+@media (max-width: 991.98px) {
+  .admin-mobile-toggle {
+    display: inline-flex !important;
+    pointer-events: auto !important;
+  }
+
+  .admin-shell {
+    display: block;
+  }
+
+  .admin-sidebar {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: min(88vw, 360px);
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow-y: auto !important;
+    overflow-x: hidden;
+    transform: translateX(-105%);
+    transition: transform .22s ease;
+    z-index: 1400;
+    padding-bottom: 2rem;
+    pointer-events: auto;
+  }
+
+  .admin-sidebar.open {
+    transform: translateX(0) !important;
+  }
+
+  .admin-nav,
+  .side-menu {
+    display: flex;
+    flex-direction: column;
+    gap: .65rem;
+    padding-bottom: 2rem;
+  }
+
+  .admin-mobile-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .45);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .22s ease;
+    z-index: 1390;
+  }
+
+  .admin-mobile-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  body.mobile-menu-open {
+    overflow: hidden;
+  }
+}

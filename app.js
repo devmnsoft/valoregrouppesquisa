@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const APP_CONFIG=window.ValoraConfig||{APP_VERSION:'8.6.8',STORE_KEY:'valoraPulseFinal800',STORAGE_MODE:'local',FIREBASE_ENABLED:false,REQUIRE_AUTH_SERVER_VALIDATION:false};
+const APP_CONFIG=window.ValoraConfig||{APP_VERSION:'8.7.2',STORE_KEY:'valoraPulseFinal800',STORAGE_MODE:'local',FIREBASE_ENABLED:false,REQUIRE_AUTH_SERVER_VALIDATION:false};
 const repository=window.ValoraRepository;
 const VERSION=APP_CONFIG.APP_VERSION;
 const STORE_KEY=APP_CONFIG.STORE_KEY;
@@ -520,16 +520,16 @@ function getAdminMenuItems(user){
     {id:'environment',label:'Status do Ambiente',route:'admin/environment',permission:'canViewLogs'},
     {id:'diagnostics',label:'Diagnóstico do Ambiente',route:'admin/diagnostics',permission:'canViewLogs'},
     {id:'freeDiagnostics',label:'Diagnósticos gratuitos',route:'admin/free-diagnostics',permission:'canViewResponses'},
-    {id:'operations',label:'Operação Assistida',route:'admin/operations',permission:'canViewLogs'}
+    {id:'operations',label:'Operação',route:'admin/operations',permission:'canViewLogs'}
   ];
-  return items.filter(item=>can(user,item.permission)).map(item=>({...item,disabled:item.disabled||(item.module?!moduleEnabled(item.module):false)}));
+  return items.filter(function(item){return isGlobalAdmin(user)||can(user,item.permission);}).map(item=>({...item,disabled:item.disabled||(item.module?!moduleEnabled(item.module):false)}));
 }
-function renderAdminSidebar(user,currentRoute){const items=getAdminMenuItems(user);return `<aside id="adminSidebar" class="sidebar admin-sidebar" aria-label="Menu administrativo">${renderAdminUserCard(user)}<nav class="side-menu admin-nav" aria-label="Menu da área">${items.map(item=>renderAdminMenuItem(item,currentRoute)).join('')}</nav></aside>`;}
+function renderAdminSidebar(user,currentRoute){const items=getAdminMenuItems(user);return `<aside id="adminSidebar" class="sidebar admin-sidebar" aria-label="Menu administrativo" aria-hidden="true" data-admin-sidebar>${renderAdminUserCard(user)}<nav class="side-menu admin-nav" aria-label="Menu da área">${items.map(item=>renderAdminMenuItem(item,currentRoute)).join('')}</nav></aside>`;}
 function renderPortal(scope,tab){
   const user=currentUser();if(!user)return renderLogin('Entre para acessar sua área.');
   const menu=scope==='admin'?getAdminMenuItems(user):menuFor(scope);const selected=menu.some(x=>x.id===tab&&!x.disabled)?tab:(menu.find(x=>!x.disabled)?.id||'dashboard');
-  const sidebar=scope==='admin'?renderAdminSidebar(user,selected):`<aside class="sidebar admin-sidebar" id="adminSidebar"><div class="who"><b>${esc(user.name)}</b><span>${esc(ROLE_LABELS[user.role]||user.role)}</span><span>${esc(user.companyId?companyName(user.companyId):'Valora Group')}</span></div><nav class="side-menu admin-nav" aria-label="Menu da área">${menu.map(x=>`<button class="${x.id===selected?'active':''}" data-action="portalTab" data-scope="${scope}" data-tab="${x.id}" ${x.disabled?'disabled':''}>${esc(x.label)}</button>`).join('')}</nav></aside>`;
-  $('#app').innerHTML=`<div class="app-shell admin-shell"><button class="btn btn-primary admin-mobile-menu-toggle admin-mobile-toggle" type="button" data-action="toggleAdminMobileMenu" aria-expanded="false" aria-controls="adminSidebar" aria-label="Abrir menu administrativo">☰ Menu</button>${sidebar}<section class="content" id="portalContent"></section></div>`;
+  const sidebar=scope==='admin'?renderAdminSidebar(user,selected):`<aside class="sidebar admin-sidebar" id="adminSidebar" aria-label="Menu administrativo" aria-hidden="true" data-admin-sidebar><div class="who"><b>${esc(user.name)}</b><span>${esc(ROLE_LABELS[user.role]||user.role)}</span><span>${esc(user.companyId?companyName(user.companyId):'Valora Group')}</span></div><nav class="side-menu admin-nav" aria-label="Menu da área">${menu.map(x=>`<button class="${x.id===selected?'active':''}" data-action="portalTab" data-scope="${scope}" data-tab="${x.id}" ${x.disabled?'disabled':''}>${esc(x.label)}</button>`).join('')}</nav></aside>`;
+  $('#app').innerHTML=`<div class="app-shell admin-shell"><button type="button" class="btn btn-primary admin-mobile-menu-toggle admin-mobile-toggle" data-action="toggleAdminMobileMenu" data-admin-mobile-toggle aria-label="Abrir menu administrativo" aria-controls="adminSidebar" aria-expanded="false"><span aria-hidden="true">☰</span><span>Menu</span></button>${sidebar}<section class="content" id="portalContent"></section></div>`;
   ensureAdminMobileOverlay();bindAdminMobileMenuEvents();renderPortalTab(scope,selected);
 }
 function menuFor(scope){

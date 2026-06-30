@@ -1,5 +1,7 @@
-# Limitações conhecidas antes de produção
-- Orçamento do Google Cloud Billing precisa ser conferido no console real.
-- Secrets SMTP devem ser validados no ambiente Blaze real.
-- Alertas externos dependem de canais operacionais configurados.
-- Smoke tests live permanecem controlados por ALLOW_PRODUCTION_* para evitar custo e ruído.
+# Limitações conhecidas antes da produção
+
+- A bridge corrige a interação do menu mobile legado, mas não substitui validação live após deploy.
+- Usuários podem manter HTML antigo em cache de navegador/proxy até reabrir a aplicação; `no-store` em `index.html` mitiga esse risco.
+- A publicação precisa confirmar que `dist/` recebeu os arquivos raiz atualizados, pois o Firebase Hosting aponta para `dist`.
+- O teste standalone prova independência do `app.js`, mas não valida autenticação real do Firebase.
+- Recomenda-se smoke pós-deploy em viewport mobile, abrindo `window.ValoraAdminMobileMenuBridge.debug()` no console.

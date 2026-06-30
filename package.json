@@ -228,7 +228,12 @@
     "home:no-expiration-regression": "node scripts/validate-no-free-survey-expiration-regression.js",
     "prod:backup-rollback": "node scripts/validate-production-backup-rollback-runbook.js",
     "ops:daily-report": "node scripts/generate-daily-operation-report.js",
-    "web:operation-parity": "node scripts/validate-aspnet-web-operation-parity.js"
+    "web:operation-parity": "node scripts/validate-aspnet-web-operation-parity.js",
+    "admin:mobile-bridge": "node scripts/validate-legacy-admin-mobile-menu-bridge.js",
+    "admin:mobile-bridge-runtime": "playwright test --config=playwright.e2e.config.js tests/e2e/admin-mobile-menu-bridge-runtime.spec.js",
+    "admin:mobile-bridge-standalone": "playwright test --config=playwright.e2e.config.js tests/e2e/admin-mobile-menu-bridge-standalone.spec.js",
+    "admin:mobile-bridge-cache": "node scripts/validate-legacy-mobile-menu-cache-busting.js",
+    "admin:mobile-click-runtime": "npm run admin:mobile-menu-runtime"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

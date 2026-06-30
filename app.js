@@ -3,6 +3,9 @@
 
 const APP_CONFIG=window.ValoraConfig||{APP_VERSION:'8.8.0',STORE_KEY:'valoraPulseFinal800',STORAGE_MODE:'local',FIREBASE_ENABLED:false,REQUIRE_AUTH_SERVER_VALIDATION:false};
 const repository=window.ValoraRepository;
+window.ValoraRuntimeCache=window.ValoraRuntimeCache||{};
+window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
+console.info('[Valora Pulse] build', window.ValoraBuildInfo||{version:APP_CONFIG.APP_VERSION,hash:'dev',builtAt:''});
 const VERSION=APP_CONFIG.APP_VERSION;
 const STORE_KEY=APP_CONFIG.STORE_KEY;
 const LOGO_FULL='assets/logo-full.jpeg';
@@ -31,7 +34,12 @@ function normalizeSettings(settings={}){return normalizeSettingsContract?normali
 function normalizeAppState(rawState={}){return normalizeAppStateContract?normalizeAppStateContract(rawState):rawState;}
 function buildCertificateViewModel(response){const r=normalizeResponseSafe(response);return {response:r,participant:r.participant,name:responseParticipantLabel(r),email:responseParticipantEmail(r),company:responseCompanyLabel(r)};}
 function normalizeStateInPlace(){if(state&&normalizeAppStateContract)Object.assign(state,normalizeAppStateContract(state));return state;}
-function renderGuard(name,renderer){try{normalizeStateInPlace();return renderer();}catch(error){console.error(`[Valora Pulse] Falha ao renderizar ${name}`,error);const html=`<section class="empty-state error-state"><h3>Não foi possível carregar esta área</h3><p>Encontramos uma inconsistência nos dados. Tente atualizar a página.</p><button class="btn btn-secondary" data-action="reloadApp">Atualizar</button></section>`;const app=$('#app');if(app)app.innerHTML=html;return html;}}
+function routeParamsFromLocation(){try{const u=new URL(location.href);return {survey:u.searchParams.get('survey')||'',token:u.searchParams.get('token')||'',org:u.searchParams.get('org')||'',result:u.searchParams.get('result')||'',rt:u.searchParams.get('rt')||'',certificate:u.searchParams.get('certificate')||''};}catch(_){return {};}}
+function isPublicRoute(route,params={}){const view=String(route||'home').split('/')[0].replace(/^#/,'')||'home';if(params.survey||params.result||params.certificate)return true;return ['','/','home','login','signup','cadastro','register','suporte','support','public-help','lgpd','privacidade','termos','plans'].includes(view);}
+function recordPublicBootError(error,context='public_boot'){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicBootError={context,message:error?.message||String(error),code:error?.code||'',at:new Date().toISOString()};console.warn('[Valora Pulse] Falha controlada no boot público',window.ValoraRuntimeDiagnostics.lastPublicBootError,error);}
+function releasePublicUi(reason='public_route'){try{document.documentElement.classList.remove('loading','app-loading','boot-loading');document.body.classList.remove('loading','app-loading','boot-loading');document.body.style.pointerEvents='';document.body.style.overflow='';['#loadingOverlay','#app-loader','.loadingOverlay','.app-loader','.boot-screen'].forEach(sel=>document.querySelectorAll(sel).forEach(el=>{el.hidden=true;el.style.display='none';}));window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicUiRelease={reason,at:new Date().toISOString()};}catch(e){console.warn('[Valora Pulse] releasePublicUi falhou',e);}}
+function renderLoadingComTimeout(){const app=$('#app');if(app)app.innerHTML='<section class="section"><div class="container"><div class="card">Carregando sessão segura...</div></div></section>';setTimeout(()=>{if(!currentUserSafe()){releasePublicUi('auth_timeout_loading');route('home');}},5000);}
+function renderGuard(name,renderer,params=routeParamsFromLocation()){try{normalizeStateInPlace();if(isPublicRoute(name,params)){releasePublicUi(`public:${name}`);return renderer();}if(!state?.authReady&&repository?.mode==='firebase')return renderLoadingComTimeout();if(!currentUser())return renderLogin('Acesso seguro à plataforma Valora Pulse™.');return renderer();}catch(error){console.error(`[Valora Pulse] Falha ao renderizar ${name}`,error);if(isPublicRoute(name,params)||!currentUserSafe()){recordPublicBootError(error,`render:${name}`);releasePublicUi(`render_error:${name}`);}const html=`<section class="empty-state error-state"><h3>Não foi possível carregar esta área</h3><p>Encontramos uma inconsistência nos dados. Tente atualizar a página.</p><button class="btn btn-secondary" data-action="reloadApp">Atualizar</button></section>`;const app=$('#app');if(app)app.innerHTML=html;return html;}}
 
 class ValoraApiError extends Error{constructor(message,details={}){super(message);this.name='ValoraApiError';this.code=details.code||'api-error';this.status=details.status||0;this.url=details.url||'';this.contentType=details.contentType||'';}}
 function runtimeCapabilities(){return window.ValoraRuntime?.getCapabilities?.()||{email:{transport:'disabled',canSend:false,canReadStatus:false,canConfigureTransport:false,hasOutbox:false},localApi:{enabled:false,baseUrl:''},cloudFunctions:{enabled:false},logs:{canPersistRemote:false},environment:'unknown',storageMode:'local',firebasePlan:'none'};}
@@ -269,14 +277,19 @@ function renderFatalStartupError(error){
   app.querySelector('#startupResetBtn')?.addEventListener('click',()=>{try{localStorage.removeItem(STORE_KEY);}catch(_){ } location.reload();});
 }
 
-window.addEventListener('error',e=>{window.ValoraLogger?.critical({category:'system',action:'global_error',message:'Erro global capturado.',error:e.error||new Error(e.message),route:currentRoute,user:currentUser?.()});handleError('a operação',e.error||new Error(e.message));});
-window.addEventListener('unhandledrejection',e=>{if(isExternalBrowserNoise(e))return;window.ValoraLogger?.critical({category:'system',action:'unhandled_rejection',message:'Promise rejeitada sem tratamento.',error:e.reason||new Error('Falha desconhecida'),route:currentRoute,user:currentUser?.()});handleError('a operação assíncrona',e.reason||new Error('Falha desconhecida'));});
+window.addEventListener('error',e=>{const err=e.error||new Error(e.message);window.ValoraLogger?.critical({category:'system',action:'global_error',message:'Erro global capturado.',error:err,route:currentRoute,user:currentUser?.()});if(!currentUserSafe()||isPublicRoute(currentRoute,routeParamsFromLocation())){recordPublicBootError(err,'window.error');releasePublicUi('window.error');return;}handleError('a operação',err);});
+window.addEventListener('unhandledrejection',e=>{if(isExternalBrowserNoise(e))return;const err=e.reason||new Error('Falha desconhecida');window.ValoraLogger?.critical({category:'system',action:'unhandled_rejection',message:'Promise rejeitada sem tratamento.',error:err,route:currentRoute,user:currentUser?.()});if(!currentUserSafe()||isPublicRoute(currentRoute,routeParamsFromLocation())){recordPublicBootError(err,'window.unhandledrejection');releasePublicUi('window.unhandledrejection');return;}handleError('a operação assíncrona',err);});
 document.addEventListener('DOMContentLoaded',bootstrapApp);
 
 async function init(){
   if(!repository)throw new Error('Camada de repositório não carregada.');
   initializeState();
-  if(repository.mode==='firebase'&&window.ValoraFirebaseAuth?.waitUntilReady)await window.ValoraFirebaseAuth.waitUntilReady();
+  if(repository.mode==='firebase'&&window.ValoraFirebaseAuth?.waitUntilReady){
+    const authTimeout=new Promise(resolve=>setTimeout(()=>{console.warn('[Valora Pulse] Auth demorou mais de 5s; liberando modo público visitante.');resolve(null);},5000));
+    await Promise.race([window.ValoraFirebaseAuth.waitUntilReady(),authTimeout]);
+  }
+  state.authReady=true;state.user=currentUserSafe();state.isPublicMode=!state.user;
+  if(state.isPublicMode)releasePublicUi('init_public_no_auth');
   window.addEventListener('valora:auth-changed',()=>routeFromLocation());
   renderShell();
   routeFromLocation();
@@ -316,8 +329,9 @@ async function validateCertificatePublic(code){
 
 function route(path){
   currentRoute=path||'home';renderShell();
-  const [view,tab]=currentRoute.split('/');
-  if(['admin','empresa','participante'].includes(view)&&!currentUser())return renderLogin('Acesso seguro à plataforma Valora Pulse™.');
+  const [viewRaw,tab]=currentRoute.split('/'); const alias={cadastro:'signup',register:'signup',suporte:'public-help',support:'public-help',privacidade:'lgpd',termos:'lgpd'}; const view=alias[viewRaw]||viewRaw;
+  if(isPublicRoute(view,routeParamsFromLocation()))releasePublicUi(`route:${view}`);
+  if(!isPublicRoute(view,routeParamsFromLocation())&&!currentUser())return renderLogin('Acesso seguro à plataforma Valora Pulse™.');
   if(isGlobalAdmin(currentUser())){}else{
     if(view==='admin'&&getRoleDefinition(currentUser()?.role).scope!=='valora')return renderNoAccess();
     if(view==='empresa'&&!['valora','empresa'].includes(getRoleDefinition(currentUser()?.role).scope))return renderNoAccess();
@@ -446,8 +460,8 @@ async function resolveFeaturedHomeSurvey(){
   const official=await loadOfficialFreeSurvey();
   return official?ensureOfficialFreeSurveyPublicLink(official):null;
 }
-async function getFeaturedHomeSurvey(){return resolveFeaturedHomeSurvey();}
-async function getFeaturedHomeSurveyUrl(){const resolved=await getFeaturedHomeSurvey();if(resolved?.url&&!/survey_demo|empresa-exemplo|tokenHash=/i.test(resolved.url))return resolved.url;const survey=resolved?.survey||resolved;return buildHomeFeaturedSurveyUrl(survey)||buildOfficialFreeSurveyUrl(survey)||'';}
+async function getFeaturedHomeSurvey(){try{return await resolveFeaturedHomeSurvey();}catch(error){recordPublicBootError(error,'getFeaturedHomeSurvey');return {ok:false,url:'',errorCode:error?.code||'featured_unavailable',message:sanitizePublicError?.(error)||'Diagnóstico indisponível no momento.',diagnostics:window.ValoraRuntimeDiagnostics?.lastFeaturedHomeSurvey||{}};}}
+async function getFeaturedHomeSurveyUrl(){const r=window.ValoraRuntimeCache; if(r.featuredHomeSurveyResult)return r.featuredHomeSurveyResult.url||''; if(!r.featuredHomeSurveyPromise){r.featuredHomeSurveyPromise=Promise.race([getFeaturedHomeSurvey(),new Promise(resolve=>setTimeout(()=>resolve({ok:false,url:'',errorCode:'timeout',message:'Tempo excedido'}),5000))]).then(res=>{const url=res?.url&&!/survey_demo|empresa-exemplo|tokenHash=/i.test(res.url)?res.url:'';r.featuredHomeSurveyResult={...(res||{}),url};return r.featuredHomeSurveyResult;}).catch(error=>{r.featuredHomeSurveyError=error;recordPublicBootError(error,'getFeaturedHomeSurveyUrl');return {ok:false,url:'',errorCode:error?.code||'featured_error',message:'Diagnóstico indisponível'};});} const resolved=await r.featuredHomeSurveyPromise; return resolved?.url||'';}
 function resolveFeaturedFreeSurvey(store=state){return resolveHomeFeaturedSurvey(store).survey;}
 function resolveFeaturedSurveyLink(survey){return buildHomeFeaturedSurveyUrl(survey);}
 function getFeaturedFreeSurvey(){return resolveFeaturedFreeSurvey(state);}
@@ -651,19 +665,18 @@ function renderHome(){
   state.settings=normalizeSettings(state.settings);
   let faqItems=normalizeFaqItems(state?.settings?.faq, defaultFaq());
   if(!faqItems.length)faqItems=normalizeFaqItems(null,defaultFaq());
-  const featuredResolution=resolveHomeFeaturedSurvey(state);
-  const featuredSurvey=featuredResolution.survey;
-  const featuredSurveyUrlPromise=window.ValoraRuntimeDiagnostics?.featuredHomeSurveyPromise||getFeaturedHomeSurveyUrl().then(url=>url||getOfficialFreeSurveyUrl());
-  window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.featuredHomeSurveyPromise=featuredSurveyUrlPromise;
-  const featuredSurveyUrl=window.ValoraRuntimeDiagnostics?.lastFeaturedHomeSurveyUrl||buildHomeFeaturedSurveyUrl(featuredSurvey)||buildOfficialFreeSurveyUrl(featuredSurvey);
-  featuredSurveyUrlPromise.then(url=>{ if(url){ window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{}; window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurveyUrl=url; const app=$('#app'); if(app&&(app.innerHTML.includes('Carregando diagnóstico gratuito')||app.innerHTML.includes('Configuração pendente')||app.innerHTML.includes('Falar com a Valora Group'))) renderHome(); }}).catch(()=>{});
+  releasePublicUi('renderHome');
+  const featuredSurvey=null;
+  const featuredSurveyUrlPromise=getFeaturedHomeSurveyUrl();
+  const featuredSurveyUrl=window.ValoraRuntimeCache?.featuredHomeSurveyResult?.url||window.ValoraRuntimeDiagnostics?.lastFeaturedHomeSurveyUrl||'';
+  featuredSurveyUrlPromise.then(url=>{ if(url){ window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{}; window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurveyUrl=url; const app=$('#app'); if(app&&app.innerHTML.includes('Carregando diagnóstico gratuito')) renderHome(); }}).catch(error=>{recordPublicBootError(error,'renderHome.featured');releasePublicUi('featured_failed');});
   const hasFeaturedSurvey=Boolean(featuredSurveyUrl);
   const whatsappLink=state.settings.whatsappEnabled&&onlyDigits(state.settings.whatsappNumber)?`https://wa.me/${onlyDigits(state.settings.whatsappNumber)}?text=${encodeURIComponent('Olá! Quero falar com um especialista sobre o Valora Insight™.')}`:'#public-help';
   const isFeaturedAdmin=['admin_valora','consultor_valora'].includes(currentUser()?.role);
   const lastFeaturedDiag=window.ValoraRuntimeDiagnostics?.lastFeaturedHomeSurvey||{};
   const rejectedList=(lastFeaturedDiag.rejectedCandidates||lastFeaturedDiag.rejected||[]).slice(0,8).map(x=>`<li><code>${esc(x.id||x.surveyId||'—')}</code>: ${esc((x.rejectedReasons||[x.reason]).filter(Boolean).join(', ')||'sem motivo')}</li>`).join('');
   const adminWarning=isFeaturedAdmin&&!hasFeaturedSurvey?`<div class="warning-box" data-home-featured-admin-warning><b>Pesquisa em destaque inválida.</b><ul>${rejectedList||'<li>Aguardando diagnóstico técnico da Function.</li>'}</ul></div>`:'';
-  const primaryCta=hasFeaturedSurvey?`<a href="${esc(featuredSurveyUrl)}" class="btn btn-primary">Responder diagnóstico gratuito</a>`:`<a href="${esc(whatsappLink)}" ${whatsappLink.startsWith('https://wa.me/')?'target="_blank" rel="noopener"':''} class="btn btn-primary">Carregando diagnóstico gratuito...</a>`;
+  const primaryCta=hasFeaturedSurvey?`<a href="${esc(featuredSurveyUrl)}" class="btn btn-primary">Responder diagnóstico gratuito</a>`:`<a href="${esc(whatsappLink)}" ${whatsappLink.startsWith('https://wa.me/')?'target="_blank" rel="noopener"':''} class="btn btn-primary">Falar com a Valora Group</a>`;
   $('#app').innerHTML=`
   <section class="home-hero-v3" aria-labelledby="homeHeroTitle">
     <div class="home-hero-inner">
@@ -689,8 +702,8 @@ function renderHome(){
     </div>
   </section>
   ${adminWarning}
-  <section class="featured-survey-section"><div class="featured-survey-card"><div class="featured-survey-copy"><span class="eyebrow">Diagnóstico gratuito</span><h2>Diagnóstico gratuito Valora Insight</h2><p>Descubra o nível de maturidade da sua organização.</p><ul><li>Receba seu resultado no e-mail</li><li>Ganhe um certificado inicial</li><li>Fale com a Valora para conhecer os planos completos</li></ul></div><div class="featured-survey-action"><strong>${esc(featuredSurvey?.title||'Diagnóstico Valora Insight™')}</strong><span>${hasFeaturedSurvey?'Disponível agora':'Carregando diagnóstico gratuito...'}</span><a class="btn btn-primary" data-home-featured-cta href="${hasFeaturedSurvey?esc(featuredSurveyUrl):'#'}">${hasFeaturedSurvey?'Responder diagnóstico gratuito':'Carregando diagnóstico gratuito...'}</a></div></div></section>
-  <section id="how-it-works" class="free-diagnostic-strip"><div><span>Comece pela leitura essencial</span><strong>Responda ao diagnóstico gratuito e receba uma visão resumida do estágio atual da organização.</strong>${hasFeaturedSurvey?`<small>Pesquisa gratuita da Home: ${esc(featuredSurvey.title||featuredSurvey.id)}</small>`:'<small>Sem pesquisa gratuita ativa no momento; o CTA será habilitado após configuração da pesquisa pública.</small>'}</div>${hasFeaturedSurvey?`<a class="btn btn-primary" href="${esc(featuredSurveyUrl)}">Responder diagnóstico grátis</a>`:`<a class="btn btn-primary" href="${esc(whatsappLink)}" ${whatsappLink.startsWith('https://wa.me/')?'target="_blank" rel="noopener"':''}>Falar com a Valora Group</a>`}</section>
+  <section class="featured-survey-section"><div class="featured-survey-card"><div class="featured-survey-copy"><span class="eyebrow">Diagnóstico gratuito</span><h2>Diagnóstico gratuito Valora Insight</h2><p>Descubra o nível de maturidade da sua organização.</p><ul><li>Receba seu resultado no e-mail</li><li>Ganhe um certificado inicial</li><li>Fale com a Valora para conhecer os planos completos</li></ul></div><div class="featured-survey-action"><strong>${esc(featuredSurvey?.title||'Diagnóstico Valora Insight™')}</strong><span>${hasFeaturedSurvey?'Disponível agora':'Falar com a Valora Group'}</span><a class="btn btn-primary" data-home-featured-cta href="${hasFeaturedSurvey?esc(featuredSurveyUrl):'#'}">${hasFeaturedSurvey?'Responder diagnóstico gratuito':'Falar com a Valora Group'}</a></div></div></section>
+  <section id="how-it-works" class="free-diagnostic-strip"><div><span>Comece pela leitura essencial</span><strong>Responda ao diagnóstico gratuito e receba uma visão resumida do estágio atual da organização.</strong>${hasFeaturedSurvey?`<small>Pesquisa gratuita da Home: ${esc(featuredSurvey?.title||featuredSurvey?.id||'diagnóstico público')}</small>`:'<small>Sem pesquisa gratuita ativa no momento; o CTA será habilitado após configuração da pesquisa pública.</small>'}</div>${hasFeaturedSurvey?`<a class="btn btn-primary" href="${esc(featuredSurveyUrl)}">Responder diagnóstico grátis</a>`:`<a class="btn btn-primary" href="${esc(whatsappLink)}" ${whatsappLink.startsWith('https://wa.me/')?'target="_blank" rel="noopener"':''}>Falar com a Valora Group</a>`}</section>
   <section class="section"><div class="container"><h2 class="section-title">Jornadas separadas por responsabilidade.</h2><div class="grid grid-3"><div class="card icon-card" data-icon="◆"><h3>Administrador Valora</h3><p>Controla clientes, planos, financeiro, módulos, pesquisa da home, e-mail, LGPD, backup e logs globais.</p></div><div class="card icon-card" data-icon="▦"><h3>Empresa cliente</h3><p>Gerencia equipe, formulários, pesquisas, links, respostas e relatórios apenas do próprio ambiente.</p></div><div class="card icon-card" data-icon="✓"><h3>Participante</h3><p>Responde com consentimento, acompanha histórico, consulta resultados e baixa certificados.</p></div></div></div></section>
   <section class="home-faq-section"><div class="container"><div class="section-heading"><span class="eyebrow">Dúvidas comuns</span><h2>Perguntas frequentes</h2><p>Entenda como funciona o diagnóstico e como começar com segurança.</p></div><div class="faq-list">${faqItems.map(item=>`<details class="faq-item"><summary>${esc(item.question)}</summary><p>${esc(item.answer)}</p></details>`).join('')}</div></div></section>`;
   featuredSurveyUrlPromise.then(url=>{

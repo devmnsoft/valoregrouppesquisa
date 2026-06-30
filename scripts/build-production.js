@@ -37,8 +37,13 @@ const localScripts = [...index.matchAll(/<script\s+src="([^"]+\.js)(?:\?v=[^"]*)
   .map((match) => match[1])
   .filter((src) => !src.startsWith('http') && src !== 'config.js');
 
-const jsBundle = localScripts.map((script) => `;\n/* ${script} */\n${cleanJs(read(script))}`).join('\n');
-const jsFile = `app.${hash(jsBundle)}.js`;
+let jsBundle = localScripts.map((script) => `;\n/* ${script} */\n${cleanJs(read(script))}`).join('\n');
+const preliminaryHash = hash(jsBundle);
+const buildInfo = { version: appVersion, hash: preliminaryHash, builtAt: new Date().toISOString() };
+jsBundle = `;window.ValoraBuildInfo=${JSON.stringify(buildInfo)};\nif('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs=>rs.forEach(r=>r.update())).catch(()=>{});}\nif(window.caches){caches.keys().then(keys=>Promise.all(keys.filter(k=>/valora|firebase|app/i.test(k)).map(k=>caches.delete(k)))).catch(()=>{});}\n` + jsBundle;
+const finalHash = hash(jsBundle);
+jsBundle = jsBundle.replace(`\"hash\":\"${preliminaryHash}\"`, `\"hash\":\"${finalHash}\"`);
+const jsFile = `app.${finalHash}.js`;
 fs.writeFileSync(path.join(distAssets, jsFile), jsBundle, 'utf8');
 fs.copyFileSync(path.join(root, configFileForDist), path.join(dist, 'config.js'));
 fs.copyFileSync(indexPath, path.join(dist, 'index.source.html')); // evidência do index.html de origem usado no build
@@ -69,4 +74,5 @@ if(fs.existsSync(webConfig))fs.copyFileSync(webConfig,path.join(dist,'web.config
 else console.warn('templates/iis/web.config não encontrado; dist/web.config não foi gerado.');
 
 require('./postbuild-security-check');
+fs.writeFileSync(path.join(dist,'build-info.json'), JSON.stringify({version:appVersion,hash:finalHash,builtAt:buildInfo.builtAt,jsFile,cssFile}, null, 2));
 console.log(`Build de produção gerado em dist/ com ${jsFile} e ${cssFile}.`);

@@ -1,8 +1,9 @@
-# Legacy Public Survey Submit Flow
+# LEGACY_PUBLIC_SURVEY_SUBMIT_FLOW
 
-1. `submitSurvey` valida identificação, LGPD e respostas.
-2. `submitPublicSurveyResponse` chama `submitPublicSurveyAuto`.
-3. Pesquisa gratuita usa `cloud-functions` primeiro.
-4. Falha em Functions aciona fallback `external-api`.
-5. O erro final só é `provider_unavailable` quando todos os providers falham ou retornam payload inválido.
-6. O estado de diagnóstico registra providers, status, código e mensagem sanitizada.
+Documento operacional da Sprint 69.
+
+- Pesquisa gratuita oficial: ordem de providers Cloud Functions -> Firestore emergencial -> API externa.
+- provider_unavailable só pode ocorrer após todos os providers falharem ou retornarem resultado inválido.
+- Diagnósticos runtime ficam em window.ValoraRuntimeDiagnostics.lastPublicSubmit com mensagens sanitizadas.
+- E-mail pós-submit é best-effort e não bloqueia a renderização do resultado/certificado.
+- Deploy: npm run functions:deploy e npm run hosting:deploy após os validadores obrigatórios.

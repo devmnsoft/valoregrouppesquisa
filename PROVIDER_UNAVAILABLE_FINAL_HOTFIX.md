@@ -1,4 +1,4 @@
-# HOSTING_DIST_DEPLOY
+# PROVIDER_UNAVAILABLE_FINAL_HOTFIX
 
 Documento operacional da Sprint 69.
 

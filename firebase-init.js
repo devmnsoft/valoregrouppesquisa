@@ -7,7 +7,7 @@ const firebaseConfig=config.FIREBASE_CONFIG||{};
 function hasFirebaseConfig(cfg){return !!(cfg.apiKey&&cfg.authDomain&&cfg.projectId&&cfg.appId);}
 function hasFirebaseSdk(){return !!(window.firebase&&typeof window.firebase.initializeApp==='function'&&typeof window.firebase.auth==='function'&&typeof window.firebase.firestore==='function');}
 function sanitizeError(error){return {code:String(error?.code||'firebase_functions_init_error').slice(0,80),message:String(error?.message||error||'Falha ao inicializar Functions.').replace(/[A-Za-z0-9_-]{20,}/g,'[redacted]').slice(0,240)};}
-function recordFunctionsError(error){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastFunctionsError=sanitizeError(error);}
+function recordFunctionsError(error){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastFunctionsError=sanitizeError(error);window.ValoraRuntimeDiagnostics.lastFirebaseInitError=sanitizeError(error);}
 function getFirebaseFunctionsSafe(){const vf=window.ValoraFirebase; if(vf?.functions)return vf.functions; const legacy=window.ValoraFirebaseServices; if(legacy?.functions)return legacy.functions; if(window.firebase&&typeof window.firebase.functions==='function'){try{return window.firebase.functions();}catch(error){recordFunctionsError(error);return null;}} return null;}
 
 let services={app:null,auth:null,db:null,functions:null,initialized:false,available:false,error:null};
@@ -31,12 +31,17 @@ try{
   }
 }catch(err){
   services.error=err?.message||String(err);
-  console.error('[Valora Pulse] Falha ao inicializar Firebase.',err);
+  window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
+  window.ValoraRuntimeDiagnostics.lastFirebaseInitError=sanitizeError(err);
+  console.error('[Valora Pulse] Falha ao inicializar Firebase.',sanitizeError(err));
 }
 
 window.ValoraFirebaseConfig=firebaseConfig;
 window.ValoraFirebaseServices=services;
 window.firebaseFunctions=services.functions;
+window.ValoraFirebaseReady=function(){return services.initialized===true&&services.available===true;};
+window.ValoraGetFirestoreSafe=function(){if(window.ValoraFirebase?.db)return window.ValoraFirebase.db;if(services.db)return services.db;try{return window.firebase&&typeof window.firebase.firestore==='function'?window.firebase.firestore():null;}catch(error){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastFirebaseInitError=sanitizeError(error);return null;}};
+window.ValoraGetFunctionsSafe=getFirebaseFunctionsSafe;
 window.getFirebaseFunctionsSafe=getFirebaseFunctionsSafe;
 window.ValoraFirebase={app:services.app,auth:services.auth,db:services.db,functions:services.functions,ready:services.initialized===true};
 })();

@@ -1,4 +1,4 @@
-# HOSTING_DIST_DEPLOY
+# LEGACY_FIRESTORE_EMERGENCY_FALLBACK
 
 Documento operacional da Sprint 69.
 

@@ -1,7 +1,7 @@
 (function(){
 'use strict';
 
-const APP_CONFIG=window.ValoraConfig||{APP_VERSION:'8.7.4',STORE_KEY:'valoraPulseFinal800',STORAGE_MODE:'local',FIREBASE_ENABLED:false,REQUIRE_AUTH_SERVER_VALIDATION:false};
+const APP_CONFIG=window.ValoraConfig||{APP_VERSION:'8.8.0',STORE_KEY:'valoraPulseFinal800',STORAGE_MODE:'local',FIREBASE_ENABLED:false,REQUIRE_AUTH_SERVER_VALIDATION:false};
 const repository=window.ValoraRepository;
 const VERSION=APP_CONFIG.APP_VERSION;
 const STORE_KEY=APP_CONFIG.STORE_KEY;
@@ -433,6 +433,7 @@ function isDemoPublicSurveyLink(params) {
   return surveyId === 'survey_demo' ||
     surveyId.includes('demo') ||
     org === 'empresa-exemplo' ||
+    org.includes('empresa-exemplo') ||
     org.includes('exemplo') ||
     token.includes('demo');
 }
@@ -485,6 +486,41 @@ function buildOfficialFreeSurveyUrl(survey) {
     return u.toString();
   } catch (_) { return ''; }
 }
+async function handleDemoPublicSurveyLink(params) {
+  const official = await loadOfficialFreeSurvey();
+  const linked = await ensureOfficialFreeSurveyPublicLink(official);
+
+  if (linked && (linked.publicToken || linked.token || linked.accessToken)) {
+    const url = buildOfficialFreeSurveyUrl(linked);
+    if (url) {
+      window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
+      window.ValoraRuntimeDiagnostics.lastDemoLinkRedirect = {
+        fromSurvey: params.survey || params.surveyId || '',
+        fromOrg: params.org || '',
+        redirected: true,
+        targetSurveyId: linked.id || linked.surveyId || ''
+      };
+      window.location.replace(url);
+      return true;
+    }
+  }
+
+  renderPublicSurveyError({
+    code: 'official_free_survey_unavailable',
+    title: 'Diagnóstico gratuito indisponível',
+    message: 'Este link de demonstração não é válido em produção e não encontramos uma pesquisa gratuita oficial ativa no momento.',
+    showWhatsapp: true
+  });
+
+  return true;
+}
+
+function renderPublicSurveyError(options = {}) {
+  renderPublicSurveyShell({ companyName: 'Valora Group' });
+  const wa = APP_CONFIG.WHATSAPP_CONTACT_URL || 'https://wa.me/5591992545353';
+  $('#app').innerHTML = `<section class="section"><div class="container"><div class="card"><span class="badge danger">${esc(options.code || 'public_survey_error')}</span><h1>${esc(options.title || 'Pesquisa indisponível')}</h1><p>${esc(options.message || 'Não conseguimos abrir este link de pesquisa agora.')}</p>${options.showWhatsapp ? `<div class="confirm-actions"><a class="btn btn-primary" href="${esc(wa)}">Falar com a Valora Group pelo WhatsApp</a><button class="btn btn-soft" data-action="goHome">Voltar para Home</button></div>` : ''}</div></div></section>`;
+}
+
 function renderDemoLinkRepairScreen() {
   renderPublicSurveyShell({ companyName: 'Valora Group' });
   $('#app').innerHTML = `<section class="section"><div class="container"><div class="card"><span class="badge danger">Link demo bloqueado</span><h1>Este link de demonstração não é válido em produção.</h1><p>Vamos abrir o diagnóstico gratuito oficial da Valora.</p><p>O diagnóstico gratuito oficial não está disponível no momento. Fale com a Valora Group pelo WhatsApp.</p><div class="confirm-actions"><a class="btn btn-primary" href="${esc(APP_CONFIG.WHATSAPP_CONTACT_URL || 'https://wa.me/5591992545353')}">Falar com a Valora Group pelo WhatsApp</a><button class="btn btn-soft" data-action="goHome">Voltar para Home</button></div></div></div></section>`;
@@ -494,15 +530,10 @@ async function resolveProductionPublicSurveyLink(params) {
   if (window.ValoraConfig?.RUNTIME_ENV !== 'production' || !isDemoLink) return { redirected: false, isDemoLink };
   window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
   window.ValoraRuntimeDiagnostics.lastPublicSubmit = { surveyId: params?.survey || params?.surveyId || '', org: params?.org || params?.organization || '', isDemoLink: true, redirectedFromDemo: false, providersAttempted: [], finalProvider: '', errors: [] };
-  const survey = await loadOfficialFreeSurvey();
-  const linked = await ensureOfficialFreeSurveyPublicLink(survey);
-  const officialUrl = buildOfficialFreeSurveyUrl(linked);
-  if (officialUrl) {
-    window.ValoraRuntimeDiagnostics.lastPublicSubmit.redirectedFromDemo = true;
-    toast('Este link de demonstração não é válido em produção. Vamos abrir o diagnóstico gratuito oficial da Valora.', 'warn');
-    history.replaceState({}, '', officialUrl);
-    setTimeout(() => routeFromLocation(), 0);
-    return { redirected: true, url: officialUrl, isDemoLink: true };
+  const handled = await handleDemoPublicSurveyLink(params);
+  if (handled) {
+    window.ValoraRuntimeDiagnostics.lastPublicSubmit.redirectedFromDemo = !!window.ValoraRuntimeDiagnostics.lastDemoLinkRedirect?.redirected;
+    return { redirected: !!window.ValoraRuntimeDiagnostics.lastDemoLinkRedirect?.redirected, blocked: !window.ValoraRuntimeDiagnostics.lastDemoLinkRedirect?.redirected, isDemoLink: true };
   }
   renderDemoLinkRepairScreen();
   return { redirected: false, blocked: true, isDemoLink: true };

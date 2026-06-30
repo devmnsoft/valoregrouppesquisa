@@ -2,7 +2,7 @@
   'use strict';
 
   window.ValoraConfig = Object.freeze({
-    APP_VERSION: '8.7.9',
+    APP_VERSION: '8.8.0',
     RUNTIME_ENV: 'production',
 
     APP_PUBLIC_URL: 'https://valoragroup.mnsoft.com.br',

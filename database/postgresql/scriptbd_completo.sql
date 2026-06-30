@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.organization_settings (
     is_deleted boolean not null default false,
     deleted_at timestamptz null,
     deleted_by uuid null,
-    organization_id uuid not null, settings jsonb not null default '{}'::jsonb
+    organization_id uuid not null unique, settings jsonb not null default '{}'::jsonb
 );
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.organization_branding (
@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.users (
     is_deleted boolean not null default false,
     deleted_at timestamptz null,
     deleted_by uuid null,
-    organization_id uuid null, email citext not null unique, password_hash text null, role_id uuid null, status text not null default 'active', last_login_at timestamptz null
+    organization_id uuid null, name text null, email citext not null unique, password_hash text null, role text not null default 'empresa_admin', role_id uuid null, status text not null default 'active', phone text null, last_login_at timestamptz null
 );
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.user_profiles (
@@ -1152,9 +1152,9 @@ INSERT INTO valorapesquisa.permissions(code,name) VALUES
 INSERT INTO valorapesquisa.role_permissions(role_id,permission_id) SELECT r.id,p.id FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p WHERE r.code='admin_valora' ON CONFLICT DO NOTHING;
 
 
-INSERT INTO valorapesquisa.users(organization_id,email,password_hash,role_id,status)
-SELECT o.id,'admin@valoragroup.local','$2a$11$xk8e7Bq6S9JKpClQ9Yz0IOO6fHy0p0c3Q2sFI6T5VxOoD5xvDeA5K',r.id,'active' FROM valorapesquisa.organizations o, valorapesquisa.roles r WHERE o.slug='valora' AND r.code='admin_valora'
-ON CONFLICT (email) DO UPDATE SET status='active',role_id=EXCLUDED.role_id,updated_at=now();
+INSERT INTO valorapesquisa.users(organization_id,name,email,password_hash,role,role_id,status)
+SELECT o.id,'Administrador Valora','admin@valoragroup.local','$2a$11$xk8e7Bq6S9JKpClQ9Yz0IOO6fHy0p0c3Q2sFI6T5VxOoD5xvDeA5K',r.code,r.id,'active' FROM valorapesquisa.organizations o, valorapesquisa.roles r WHERE o.slug='valora' AND r.code='admin_valora'
+ON CONFLICT (email) DO UPDATE SET status='active',role=EXCLUDED.role,role_id=EXCLUDED.role_id,updated_at=now();
 -- Senha local temporária: Valora@123Local! Alterar imediatamente. Nunca usar em produção.
 
 

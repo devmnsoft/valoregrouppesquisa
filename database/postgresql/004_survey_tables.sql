@@ -6,3 +6,6 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.surveys (id uuid PRIMARY KEY DEFAULT g
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.survey_links (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), survey_id uuid NOT NULL REFERENCES valorapesquisa.surveys(id), token_hash text NOT NULL, public_url text NOT NULL, status text NOT NULL DEFAULT 'active', starts_at timestamptz, expires_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), created_by uuid, updated_by uuid, is_deleted boolean NOT NULL DEFAULT false);
 CREATE INDEX IF NOT EXISTS ix_survey_links_survey ON valorapesquisa.survey_links(survey_id);
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS revoked_at timestamptz;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS plan_id text;
+ALTER TABLE valorapesquisa.survey_links ADD COLUMN IF NOT EXISTS revoked_at timestamptz;

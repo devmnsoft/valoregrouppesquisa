@@ -128,4 +128,33 @@ public sealed class UserRepository(IDbConnectionFactory f, ILogger<UserRepositor
             throw;
         }
     }
+
+
+    public async Task<IReadOnlyList<dynamic>> ListByOrganizationAsync(Guid organizationId, bool includeGlobal = false)
+    {
+        try
+        {
+            using var c = f.Create();
+            var sql = "SELECT u.id,u.organization_id,u.name,u.email,COALESCE(u.role,r.code) AS role,u.status,u.phone,u.last_login_at,u.created_at FROM valorapesquisa.users u LEFT JOIN valorapesquisa.roles r ON r.id=u.role_id WHERE u.is_deleted=false AND (u.organization_id=@organizationId OR @includeGlobal=true) ORDER BY u.created_at DESC";
+            return (await c.QueryAsync(sql, new { organizationId, includeGlobal })).ToList();
+        }
+        catch (Exception ex) { logger.LogError(ex, "Erro ao listar usuários. OrganizationId={OrganizationId}", organizationId); throw; }
+    }
+
+    public async Task UpdateAsync(Guid organizationId, Guid id, string? name, string? email, string? role, string? phone)
+    {
+        try
+        {
+            using var c = f.Create();
+            await c.ExecuteAsync("UPDATE valorapesquisa.users SET name=COALESCE(@name,name), email=COALESCE(@email,email), role=COALESCE(@role,role), phone=COALESCE(@phone,phone), updated_at=now() WHERE id=@id AND organization_id=@organizationId AND is_deleted=false", new { organizationId, id, name, email, role, phone });
+        }
+        catch (Exception ex) { logger.LogError(ex, "Erro ao atualizar usuário. UserId={UserId} OrganizationId={OrganizationId} Email={Email}", id, organizationId, LogSanitizer.MaskEmail(email)); throw; }
+    }
+
+    public async Task UpdateStatusAsync(Guid organizationId, Guid id, string status)
+    {
+        try { using var c = f.Create(); await c.ExecuteAsync("UPDATE valorapesquisa.users SET status=@status, updated_at=now() WHERE id=@id AND organization_id=@organizationId AND is_deleted=false", new { organizationId, id, status }); }
+        catch (Exception ex) { logger.LogError(ex, "Erro ao atualizar status de usuário. UserId={UserId} OrganizationId={OrganizationId}", id, organizationId); throw; }
+    }
+
 }

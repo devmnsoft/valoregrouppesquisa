@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: valorapesquisa
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports: ["5432:5432"]
+    volumes:
+      - ./database/postgresql/scriptbd_completo.sql:/docker-entrypoint-initdb.d/001-scriptbd-completo.sql:ro
+      - valorapesquisa_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d valorapesquisa"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+  api:
+    build:
+      context: .
+      dockerfile: src/ValoraPesquisa.Api/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Postgres: Host=postgres;Database=valorapesquisa;Username=postgres;Password=postgres
+      Jwt__Key: dev-only-change-this-key-with-32-chars
+    ports: ["5000:8080"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+  web:
+    build:
+      context: .
+      dockerfile: src/ValoraPesquisa.Web/Dockerfile
+    environment:
+      ASPNETCORE_URLS: http://+:8080
+      Api__BaseUrl: http://localhost:5000
+    ports: ["5001:8080"]
+    depends_on: [api]
+volumes:
+  valorapesquisa_pgdata:

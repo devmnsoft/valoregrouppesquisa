@@ -328,10 +328,7 @@
     "forms:linked-delete-flow": "node scripts/validate-linked-form-delete-flow.js",
     "admin:form-survey-actions": "node scripts/validate-admin-form-survey-actions.js",
     "admin:functions-exported": "node scripts/validate-admin-functions-exported.js",
-    "app:syntax": "node --check app.js",
-    "actions:handlers": "node scripts/validate-action-handlers.js",
-    "public:boot-no-reference": "node scripts/validate-public-boot-no-reference-error.js",
-    "dist:actions": "node scripts/validate-dist-action-handlers.js"
+    "backend-v2:validate": "node backend-v2/tools/validate-backend-v2-foundation.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

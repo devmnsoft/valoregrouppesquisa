@@ -1,0 +1,1 @@
+const {read,ok,report}=require('./sprint60-utils');const a=read('app.js');let f=[];['sanitizeOperationalLog','maskEmail','maskSensitiveToken','tokenHash','private_key','SMTP_PASSWORD','slice(0,500)','Operação Assistida › Logs'].forEach(x=>ok(a.includes(x),`missing ${x}`,f));report('validate-operational-log-sanitization',f);

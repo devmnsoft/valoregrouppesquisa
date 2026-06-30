@@ -1,0 +1,1 @@
+const {read,ok,report}=require('./sprint60-utils');const fns=read('functions/index.js');let f=[];['scheduledProcessEmailRetries','every 30 minutes','pending_retry','nextAttemptAt','limit(10)','maxAttempts','auditLog','SMTP_PASSWORD','try{await processEmailJobDocument'].forEach(x=>ok(fns.includes(x),`missing ${x}`,f));report('validate-scheduled-email-retry',f);

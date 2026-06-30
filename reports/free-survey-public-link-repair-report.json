@@ -1,0 +1,5 @@
+{
+  "status": "SKIPPED_CREDENTIALS_MISSING",
+  "mode": "DRY_RUN",
+  "message": "Credenciais Firebase Admin ausentes.\n\nPara executar:\nPowerShell:\n$env:GOOGLE_APPLICATION_CREDENTIALS=\"C:\\FirebaseKeys\\gestordepesquisa-firebase-adminsdk.json\"\nnpm run home:repair-free-survey-link -- --dry-run --project gestordepesquisa\n\nOu:\nnpm run home:repair-free-survey-link -- --dry-run --project gestordepesquisa --credentials \"C:\\FirebaseKeys\\gestordepesquisa-firebase-adminsdk.json\""
+}

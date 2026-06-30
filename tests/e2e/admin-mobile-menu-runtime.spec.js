@@ -1,0 +1,20 @@
+const { test, expect } = require('@playwright/test');
+test('admin mobile menu runtime', async ({ page }) => {
+  const errors=[]; page.on('console',m=>{ if(m.type()==='error') errors.push(m.text()); }); page.on('pageerror',e=>errors.push(e.message));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('index.html#admin/dashboard');
+  const button=page.locator('[data-action="toggleAdminMobileMenu"]').first();
+  await expect(button).toBeVisible();
+  const sidebar=page.locator('.admin-sidebar').first();
+  await expect(sidebar).not.toHaveClass(/open/);
+  await button.click();
+  await expect(sidebar).toHaveClass(/open/);
+  await expect(page.locator('.admin-mobile-overlay').first()).toHaveClass(/active/);
+  await expect(button).toHaveAttribute('aria-expanded','true');
+  await page.locator('.admin-sidebar .side-menu button:not([disabled])').first().click();
+  await expect(sidebar).not.toHaveClass(/open/);
+  await button.click();
+  await page.keyboard.press('Escape');
+  await expect(sidebar).not.toHaveClass(/open/);
+  expect(errors).toEqual([]);
+});

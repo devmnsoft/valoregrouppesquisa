@@ -1473,9 +1473,13 @@ function toggleMenu(force){
   return true;
 }
 function closeMobileMenu(){toggleMenu(false);}
-function toggleAdminMobileMenu(force){const sidebar=document.getElementById('adminSidebar')||document.querySelector('.admin-sidebar');const overlay=document.querySelector('.admin-mobile-overlay');const button=document.querySelector('[data-action=\"toggleAdminMobileMenu\"]');if(!sidebar||!button)return false;const shouldOpen=typeof force==='boolean'?force:!sidebar.classList.contains('open');sidebar.classList.toggle('open',shouldOpen);overlay?.classList.toggle('active',shouldOpen);document.body.classList.toggle('mobile-menu-open',shouldOpen);button.setAttribute('aria-expanded',shouldOpen?'true':'false');if(shouldOpen)setTimeout(()=>sidebar.querySelector('button:not([disabled])')?.focus(),30);else button.focus?.();return true;}
-function closeAdminMobileMenu(){return toggleAdminMobileMenu(false);}
-document.addEventListener('keydown',event=>{if(event.key==='Escape')closeAdminMobileMenu();});
+function isMobileAdminViewport(){return window.matchMedia?window.matchMedia('(max-width: 991.98px)').matches:window.innerWidth<=991;}
+function adminMobileMenuParts(){return {sidebar:document.getElementById('adminSidebar')||document.querySelector('.admin-sidebar'),overlay:document.querySelector('.admin-mobile-overlay'),button:document.querySelector('[data-action="toggleAdminMobileMenu"]')};}
+function openAdminMobileMenu(){const {sidebar,overlay,button}=adminMobileMenuParts();if(!sidebar||!button||!isMobileAdminViewport())return false;sidebar.classList.add('open');overlay?.classList.add('active');document.body.classList.add('mobile-menu-open');button.setAttribute('aria-expanded','true');return true;}
+function closeAdminMobileMenu(){const {sidebar,overlay,button}=adminMobileMenuParts();sidebar?.classList.remove('open');overlay?.classList.remove('active');document.body.classList.remove('mobile-menu-open');button?.setAttribute('aria-expanded','false');return true;}
+function toggleAdminMobileMenu(force){const {sidebar}=adminMobileMenuParts();const shouldOpen=typeof force==='boolean'?force:!sidebar?.classList.contains('open');return shouldOpen?openAdminMobileMenu():closeAdminMobileMenu();}
+function bindAdminMobileMenuEvents(){if(window.__valoraAdminMobileMenuBound)return;window.__valoraAdminMobileMenuBound=true;document.addEventListener('keydown',event=>{if(event.key==='Escape')closeAdminMobileMenu();});document.addEventListener('click',event=>{if(event.target.closest('.admin-mobile-overlay'))closeAdminMobileMenu();if(event.target.closest('.admin-sidebar .side-menu button'))closeAdminMobileMenu();});window.addEventListener('resize',()=>{if(!isMobileAdminViewport())closeAdminMobileMenu();});}
+bindAdminMobileMenuEvents();
 function createActions(){return {
   reloadApp(){location.reload();},resendResultEmail(el){return resendResultEmail(el.dataset.id);},resolveCommunication(el){return resolveCommunication(el.dataset.id);},
   goHome,closeModal,closeConfirm,openManual,openManualRoute,openSupportChat,openSupportConversation,assignSupportConversation,resolveSupportConversation,closeSupportConversation,rateSupportConversation,

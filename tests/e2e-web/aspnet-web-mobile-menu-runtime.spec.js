@@ -1,0 +1,6 @@
+const { test, expect } = require('@playwright/test');
+test('Valora.Web mobile menu contract runtime-ready', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.setContent(`<button data-action="toggleWebMobileAdminMenu" aria-expanded="false" aria-controls="mobileSidebar">☰</button><div id="mobileSidebar" class="offcanvas"><a class="nav-link" href="#x">X</a></div><script src="https://code.jquery.com/jquery-3.7.1.min.js"></script><script>window.bootstrap={Offcanvas:{getOrCreateInstance:(el)=>({show(){el.classList.add('show');el.dispatchEvent(new Event('shown.bs.offcanvas'))},hide(){el.classList.remove('show');el.dispatchEvent(new Event('hidden.bs.offcanvas'))}}),getInstance:(el)=>({hide(){el.classList.remove('show');el.dispatchEvent(new Event('hidden.bs.offcanvas'))}})}};</script><script>${require('fs').readFileSync('backend/Valora.Web/wwwroot/js/components/sidebar.js','utf8')}</script>`);
+  const btn=page.locator('[data-action="toggleWebMobileAdminMenu"]'); await btn.click(); await expect(btn).toHaveAttribute('aria-expanded','true'); await expect(page.locator('body')).toHaveClass(/web-mobile-menu-open/); await page.keyboard.press('Escape'); await expect(btn).toHaveAttribute('aria-expanded','false');
+});

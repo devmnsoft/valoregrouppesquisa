@@ -1,4 +1,4 @@
-# Política de expiração da pesquisa gratuita
+# Paridade Index Legado ⇄ Valora.Web
 
 ## Status Sprint 53
 - Projeto antigo da raiz preservado e mantido com Firebase como provedor principal.

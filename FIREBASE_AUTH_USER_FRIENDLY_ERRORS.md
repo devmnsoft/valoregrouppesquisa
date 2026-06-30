@@ -1,4 +1,6 @@
-# Política de expiração da pesquisa gratuita
+# Erros amigáveis Firebase Auth
+
+Mapeia erros brutos como `auth/invalid-login-credentials`, `auth/user-not-found` e `auth/wrong-password` para mensagens seguras ao usuário.
 
 ## Status Sprint 53
 - Projeto antigo da raiz preservado e mantido com Firebase como provedor principal.

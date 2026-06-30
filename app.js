@@ -377,7 +377,7 @@ function resolveHomeFeaturedSurvey(store=state){
     if(!survey)return false;
     if(!['active','published','open'].includes(String(survey.status||'').toLowerCase())){reasons.push({id:survey.id,reason:`status inválido: ${survey.status||'vazio'}`});return false;}
     if(survey.visibleOnHome===false){reasons.push({id:survey.id,reason:'visibleOnHome=false'});return false;}
-    if(survey.expiresAt&&new Date(survey.expiresAt)<new Date()){reasons.push({id:survey.id,reason:'pesquisa expirada'});return false;}
+    if(isSurveyExpired(survey)){reasons.push({id:survey.id,reason:'pesquisa expirada'});return false;}
     return true;
   }
   function hasPublicAccess(survey){return Boolean(survey.publicUrl||survey.publicLink||survey.token||survey.publicToken||survey.accessToken);}
@@ -390,7 +390,7 @@ function resolveHomeFeaturedSurvey(store=state){
   return{survey:null,source:'',reasons};
 }
 function buildHomeFeaturedSurveyUrl(survey){
-  if(!survey)return '';
+  if(!survey||isSurveyExpired(survey))return '';
   if(survey.publicUrl)return survey.publicUrl;
   if(survey.publicLink)return survey.publicLink;
   const token=survey.publicToken||survey.token||survey.accessToken||'';
@@ -406,6 +406,7 @@ function buildHomeFeaturedSurveyUrl(survey){
 }
 function ensureSurveyPublicLink(survey){
   if(!survey)return survey;
+  if(isSurveyExpired(survey)&&!isFreeOfficialSurvey(survey))return survey;
   if(!survey.publicToken&&!survey.token&&!survey.accessToken)survey.publicToken=secureToken();
   if(survey.tokenHash&&!survey.publicToken&&!survey.token&&!survey.accessToken)survey.publicToken=secureToken();
   const token=survey.publicToken||survey.token||survey.accessToken;
@@ -1141,7 +1142,7 @@ function publicApiFriendlyError(error){
   const supportCode=normalized.correlationId?`<p class="muted"><b>Código de atendimento:</b> ${esc(normalized.correlationId)}</p>`:'';
   return `<section class="section"><div class="container"><div class="danger-box"><b>Não foi possível concluir a operação.</b><br>${esc(normalized.message||'Tente novamente em instantes.')}${supportCode}</div><button class="btn btn-primary" type="button" data-action="reloadApp">Tentar novamente</button></div></section>`;
 }
-function invalidLink(title,message){return `<section class="section"><div class="container"><div class="danger-box"><b>${esc(title)}</b><br>${esc(message)}</div><button class="btn btn-primary" data-action="goHome">Voltar à página inicial</button></div></section>`;}
+function invalidLink(title,message){return `<section class="section"><div class="container"><div class="danger-box"><b>${esc(title)}</b><br>${esc(message)}</div><div class="confirm-actions"><button class="btn btn-primary" data-action="goHome">Voltar ao diagnóstico gratuito</button><button class="btn btn-soft" data-action="reloadApp">Tentar novamente</button></div></div></section>`;}
 function takeQuestion(q,i){
   const name=`q_${q.id}`,req=q.required?'<span class="required-mark">*</span>':'';let control='';
   if(q.type==='scale')control=`<div class="scale-row">${[1,2,3,4,5].map(n=>`<label><input type="radio" name="${name}" value="${n}"><span>${n}</span><small>${n===1?'Discordo totalmente':n===5?'Concordo totalmente':''}</small></label>`).join('')}</div>`;
@@ -1623,7 +1624,23 @@ function responsesForUser(u){if(!u)return[];return loadResponses().filter(r=>res
 function activeSurveysForParticipant(){const u=currentUser();return loadSurveys().filter(s=>surveyIsActive(s)&&(!u?.companyId||s.companyId===u.companyId)).sort((a,b)=>new Date(a.expiresAt)-new Date(b.expiresAt));}
 function moduleEnabled(id){const c=currentCompany();window.ValoraState=state;return window.ValoraModules?.canUseModule(currentUser(),c,id)??state.modules.find(m=>m.id===id)?.enabled!==false;}
 function isExpired(s){return !s?.expiresAt||new Date(s.expiresAt)<new Date();}
-function surveyIsActive(s){return ['active','published','open'].includes(String(s?.status||'').toLowerCase())&&!isExpired(s)&&(!s.startsAt||new Date(s.startsAt)<=new Date());}
+function normalizeDateLike(value){
+  if(!value)return null;
+  if(value instanceof Date)return value;
+  if(typeof value==='string'){const d=new Date(value);return Number.isNaN(d.getTime())?null:d;}
+  if(typeof value.toDate==='function')return value.toDate();
+  if(value.seconds)return new Date(value.seconds*1000);
+  return null;
+}
+function isFreeOfficialSurvey(survey){return survey?.isFree===true||survey?.planId==='free'||/valora insight|diagn[oó]stico gratuito/i.test(String(survey?.title||''));}
+function isSurveyExpired(survey,options={}){
+  const isFreeOfficial=isFreeOfficialSurvey(survey);
+  const expiresAt=normalizeDateLike(survey?.expiresAt||survey?.endAt||survey?.validUntil);
+  if(isFreeOfficial&&!expiresAt)return false;
+  if(isFreeOfficial&&expiresAt&&expiresAt.getTime()<Date.now())return options.strict===true;
+  return !!(expiresAt&&expiresAt.getTime()<Date.now());
+}
+function surveyIsActive(s){const startsAt=normalizeDateLike(s?.startsAt);return ['active','published','open'].includes(String(s?.status||'').toLowerCase())&&!isSurveyExpired(s)&&(!startsAt||startsAt<=new Date());}
 function daysUntil(v){const d=Math.ceil((new Date(v)-new Date())/86400000);return d<0?`${Math.abs(d)} dia(s) expirada`:d===0?'Expira hoje':`${d} dia(s) restantes`;}
 function featuredSurvey(){const configured=loadSurveys().find(s=>s.id===state.settings.featuredSurveyId&&surveyIsActive(s));return configured||loadSurveys().find(s=>surveyIsActive(s))||null;}
 function responsesThisMonth(companyId=''){const now=new Date();return loadResponses().filter(r=>(!companyId||r.companyId===companyId)&&new Date(r.createdAt).getMonth()===now.getMonth()&&new Date(r.createdAt).getFullYear()===now.getFullYear()).length;}

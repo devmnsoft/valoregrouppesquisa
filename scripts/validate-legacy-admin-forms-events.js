@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+'use strict';const fs=require('fs');const s=fs.readFileSync('app.js','utf8');['data-action="newCompany"','data-action="newUser"','data-form="company"','data-form="user"','newCompany(){openCompanyEditor();}','newUser(){openUserEditor();}','user:saveUser','company:saveCompany'].forEach(x=>{if(!s.includes(x))throw new Error('evento admin ausente: '+x)});console.log('validate-legacy-admin-forms-events: PASS');

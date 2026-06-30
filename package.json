@@ -291,7 +291,15 @@
     "legacy:official-free-link": "node scripts/validate-official-free-survey-link.js",
     "legacy:provider-demo-hotfix": "node scripts/validate-provider-unavailable-demo-hotfix.js",
     "e2e:legacy-demo-link": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-demo-link-redirect.spec.js",
-    "e2e:legacy-official-submit": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-official-free-survey-submit.spec.js"
+    "e2e:legacy-official-submit": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-official-free-survey-submit.spec.js",
+    "legacy:client-create-flow": "node scripts/validate-legacy-client-create-flow.js",
+    "legacy:user-create-flow": "node scripts/validate-legacy-user-create-flow.js",
+    "functions:client-user-admin": "node scripts/validate-functions-client-user-admin.js",
+    "rules:client-user": "node scripts/validate-firestore-client-user-rules.js",
+    "legacy:admin-forms-events": "node scripts/validate-legacy-admin-forms-events.js",
+    "e2e:legacy-client-create": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-client-create.spec.js",
+    "e2e:legacy-user-create": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-user-create.spec.js",
+    "e2e:legacy-admin-client-user-regression": "playwright test --config=playwright.e2e.config.js tests/e2e/legacy-admin-client-user-regression.spec.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

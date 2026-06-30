@@ -45,6 +45,42 @@ public sealed class CertificatesController(IResponseRepository responses, ICerti
         }
     }
 
+
+    [HttpGet("/certificates/{id:guid}")]
+    public async Task<IActionResult> Get(Guid id)
+    {
+        try
+        {
+            var certificate = await certificates.GetByResponseAsync(id);
+            if (certificate is null) return NotFound(new { ok = false, message = "Certificado não encontrado.", correlationId = HttpContext.TraceIdentifier });
+            return Ok(new { ok = true, certificate, correlationId = HttpContext.TraceIdentifier });
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Certificate fetch failed. Id={Id} Error={Error}", id, LogSanitizer.SanitizeError(ex));
+            throw;
+        }
+    }
+
+    [HttpPost("/certificates/{responseId:guid}/generate")]
+    public async Task<IActionResult> Generate(Guid responseId)
+    {
+        try
+        {
+            var response = await responses.GetByIdAsync(responseId);
+            if (response is null) return NotFound(new { ok = false, message = "Resposta não encontrada.", correlationId = HttpContext.TraceIdentifier });
+            var certificate = await certificates.GetByResponseAsync(responseId);
+            var payload = BuildSafeCertificatePayload(responseId, response, certificate, "json");
+            logger.LogInformation("Certificate metadata generated. ResponseId={ResponseId} CorrelationId={CorrelationId}", responseId, HttpContext.TraceIdentifier);
+            return Ok(payload);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Certificate generation failed. ResponseId={ResponseId} Error={Error}", responseId, LogSanitizer.SanitizeError(ex));
+            throw;
+        }
+    }
+
     [HttpGet("/certificates/{certificateCode}/validate")]
     [HttpGet("/certificates/validate/{certificateCode}")]
     public async Task<IActionResult> Validate(string certificateCode)

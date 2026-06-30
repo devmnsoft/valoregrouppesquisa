@@ -245,7 +245,14 @@
     "prod:cache-final": "node scripts/validate-cache-busting-final-runtime.js",
     "prod:email-final": "node scripts/test-production-email-send.js",
     "prod:mobile-final": "playwright test --config=playwright.e2e.config.js tests/e2e/admin-mobile-menu-production-final.spec.js",
-    "prod:free-survey-final": "node scripts/smoke-production-free-survey-final.js"
+    "prod:free-survey-final": "node scripts/smoke-production-free-survey-final.js",
+    "db:scriptbd-completo": "node scripts/validate-scriptbd-completo.js",
+    "db:local-bootstrap": "node scripts/validate-postgres-local-bootstrap.js",
+    "migration:api-parity": "node scripts/validate-api-legacy-parity.js",
+    "migration:web-parity": "node scripts/validate-web-legacy-parity.js",
+    "migration:certificate-parity": "node scripts/validate-certificate-migration-parity.js",
+    "migration:email-parity": "node scripts/validate-email-migration-parity.js",
+    "web:mobile-menu-parity": "node scripts/validate-aspnet-mobile-menu-parity.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

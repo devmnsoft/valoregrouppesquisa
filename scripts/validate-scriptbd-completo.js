@@ -1,0 +1,10 @@
+const fs=require('fs'); const a='scriptbd_completo.sql', b='database/postgresql/scriptbd_completo.sql';
+for (const f of [a,b]) if(!fs.existsSync(f)) throw new Error(`Arquivo ausente: ${f}`);
+const sql=fs.readFileSync(a,'utf8'); if(sql!==fs.readFileSync(b,'utf8')) throw new Error('Scripts SQL não são idênticos.');
+const required=['CREATE SCHEMA IF NOT EXISTS valorapesquisa','CREATE EXTENSION IF NOT EXISTS pgcrypto','CREATE EXTENSION IF NOT EXISTS citext','valorapesquisa.set_updated_at'];
+for (const r of required) if(!sql.includes(r)) throw new Error(`Requisito ausente: ${r}`);
+const tables='schema_migrations organizations organization_settings organization_branding units departments employees roles permissions role_permissions users user_profiles user_sessions password_reset_tokens plans plan_limits plan_capabilities subscriptions usage_monthly modules organization_modules forms form_dimensions questions question_options surveys survey_links survey_invites survey_participants responses response_answers result_scores dimension_scores certificates certificate_validations communications email_jobs whatsapp_jobs email_templates notifications support_tickets support_ticket_messages audit_logs operational_logs system_events api_keys webhooks integration_events import_batches import_errors compare_reports backup_runs repair_runs'.split(' ');
+for (const t of tables) if(!sql.includes(`CREATE TABLE IF NOT EXISTS valorapesquisa.${t}`)) throw new Error(`Tabela ausente: ${t}`);
+for (const seed of ['Valora Group','admin@valoragroup.local','Valora Insight','Diagnóstico gratuito Valora Insight','valoragroup@mnsoft.com.br']) if(!sql.includes(seed)) throw new Error(`Seed ausente: ${seed}`);
+if(/^\s*(DROP|TRUNCATE)\b/im.test(sql.replace(/DROP TRIGGER/gi,''))) throw new Error('DROP/TRUNCATE destrutivo não comentado encontrado.');
+console.log('scriptbd_completo validado.');

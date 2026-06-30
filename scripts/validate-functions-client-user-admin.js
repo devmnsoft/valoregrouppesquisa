@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+'use strict';const fs=require('fs');const s=fs.readFileSync('functions/index.js','utf8');['exports.createClient','exports.updateClient','exports.createUser','exports.updateUserProfile','exports.sendUserInvite','admin.auth().createUser','setCustomUserClaims','auditLog'].forEach(x=>{if(!s.includes(x))throw new Error('functions ausente: '+x)});if(/console\.log\([^)]*SMTP_PASSWORD|resetLink.*console/.test(s))throw new Error('log sensível em functions');console.log('validate-functions-client-user-admin: PASS');

@@ -353,7 +353,8 @@
     "prod:purge-credentials": "node scripts/validate-purge-demo-credentials-handling.js",
     "home:fallback-never-invalid": "node scripts/validate-home-fallback-never-invalid-final.js",
     "root:no-demo-seed": "node scripts/validate-root-index-no-demo-seed.js",
-    "admin:demo-purge-panel": "node scripts/validate-admin-demo-purge-panel.js"
+    "admin:demo-purge-panel": "node scripts/validate-admin-demo-purge-panel.js",
+    "backend:reports-email-validate": "node tools/validate-backend-official-reports-email.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

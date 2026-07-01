@@ -12,3 +12,10 @@ Documento atualizado na Sprint 43.
 ## Rotas oficiais após consolidação
 
 As rotas oficiais da nova versão .NET devem ser servidas por `backend/Valora.Api` e consumidas por `backend/Valora.Web`. `backend-v2` não é fonte oficial de rotas. Rotas públicas existentes de pesquisa e resultado não devem ser quebradas durante a consolidação.
+
+## Rotas operacionais oficiais
+- `/reports`, `/reports/generated`, `/reports/surveys/{surveyId}`, `/reports/responses/{responseId}`, `/reports/organization`
+- `/certificates`, `/certificates/responses/{responseId}/generate`, `/public/certificates/validate`
+- `/exports`, `/exports/{id}/download`
+- `/public/lgpd/requests`, `/lgpd/consents`, `/lgpd/privacy-requests`
+- `/email/templates`, `/email/jobs`, `/email/status`, `/email/jobs/process`

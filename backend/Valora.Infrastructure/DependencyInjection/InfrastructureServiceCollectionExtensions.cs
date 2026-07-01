@@ -26,6 +26,15 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IMigrationRepository, MigrationRepository>();
         services.AddScoped<IAuditRepository, AuditRepository>();
         services.AddScoped<IFreeDiagnosticsRepository, FreeDiagnosticsRepository>();
+        services.AddScoped<IModuleRepository, ModuleRepository>();
+        services.AddScoped<ISubscriptionRepository, SubscriptionRepository>();
+        services.AddScoped<IUsageRepository, UsageRepository>();
+        services.AddScoped<IDashboardMetricsRepository, DashboardMetricsRepository>();
+        services.AddScoped<IReportRepository, ReportRepository>();
+        services.AddScoped<ICertificateOperationalRepository, CertificateOperationalRepository>();
+        services.AddScoped<IExportRepository, ExportRepository>();
+        services.AddScoped<ILgpdRepository, LgpdRepository>();
+        services.AddScoped<IEmailOperationalRepository, EmailOperationalRepository>();
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();

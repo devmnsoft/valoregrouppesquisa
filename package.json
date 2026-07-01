@@ -346,9 +346,14 @@
     "home:featured-consistency": "node scripts/validate-featured-home-survey-form-consistency.js",
     "prod:no-demo-data-flow": "node scripts/validate-no-demo-production-data-flow.js",
     "home:selected-survey-link": "node scripts/validate-featured-link-selected-survey.js",
-    "admin:secure-links-no-demo": "node scripts/validate-admin-secure-links-no-demo.js",
+    "admin:secure-links-no-demo": "node scripts/validate-secure-links-no-demo.js",
     "public:url-no-demo": "node scripts/validate-public-url-no-demo.js",
-    "prod:demo-purge-safety": "node scripts/validate-production-demo-purge-safety.js"
+    "prod:demo-purge-safety": "node scripts/validate-production-demo-purge-safety.js",
+    "prod:no-legacy-demo": "node scripts/validate-no-legacy-demo-production.js",
+    "prod:purge-credentials": "node scripts/validate-purge-demo-credentials-handling.js",
+    "home:fallback-never-invalid": "node scripts/validate-home-fallback-never-invalid-final.js",
+    "root:no-demo-seed": "node scripts/validate-root-index-no-demo-seed.js",
+    "admin:demo-purge-panel": "node scripts/validate-admin-demo-purge-panel.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

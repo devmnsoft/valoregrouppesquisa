@@ -18,6 +18,11 @@ function cleanJs(source) {
     .replace(/\/\*[\s\S]*?sourceMappingURL=[\s\S]*?\*\//g, '')
     .trim();
 }
+
+function assertNoLegacyDemoProductionArtifact(label, content) {
+  const forbidden = /survey_demo|empresa-exemplo|demo-token|tokenHash=/i;
+  if (forbidden.test(content)) throw new Error(`${label} contém demo/legado proibido em produção.`);
+}
 function minifyCss(source) {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\s+/g, ' ').replace(/\s*([{}:;,>+~])\s*/g, '$1').trim();
 }
@@ -68,6 +73,7 @@ let html = index
   .replace(/<link rel="stylesheet" href="style\.css(?:\?v=[^"]*)?">/, `<link rel="stylesheet" href="assets/${cssFile}">`)
   .replace(/<script\s+src="(?!https?:)[^"]+\.js(?:\?v=[^"]*)?"\s+defer><\/script>\n?/g, '')
   .replace('</body>', `  <script src="config.js?v=${appVersion}" defer></script>\n  <script src="assets/${jsFile}" defer></script>\n</body>`);
+assertNoLegacyDemoProductionArtifact('dist/index.html', html);
 fs.writeFileSync(path.join(dist, 'index.html'), html, 'utf8');
 const webConfig=path.join(root,'templates','iis','web.config');
 if(fs.existsSync(webConfig))fs.copyFileSync(webConfig,path.join(dist,'web.config'));

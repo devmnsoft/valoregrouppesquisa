@@ -4,11 +4,22 @@
 function deepCleanForFirestore(value,seen=new WeakSet()){if(value===undefined||typeof value==='function')return undefined;if(value===null||typeof value!=='object')return value;if(seen.has(value))return undefined;seen.add(value);if(Array.isArray(value))return value.map(v=>deepCleanForFirestore(v,seen)).filter(v=>v!==undefined);const out={};Object.keys(value).forEach(k=>{if(['__collection','__dirty','__temp','_ui','_local','_editing','_selected','_expanded','_cache','_diagnostics'].includes(k))return;const v=deepCleanForFirestore(value[k],seen);if(v!==undefined)out[k]=v;});return out;}
 function clone(v){return JSON.parse(JSON.stringify(v));}
 function productionMode(){return window.ValoraDataNormalization?.isProductionEnvironment?.()===true;}
+
+function purgeLegacyLocalStorageKeys(){
+  if(!productionMode()||typeof localStorage==='undefined')return [];
+  const forbidden=/valoraPulseFinal800|survey_demo|empresa-exemplo|demo|antigo|local seed/i;
+  const keep=/firebase|firestore|auth|token|session|credential/i;
+  const removed=[];
+  for(let i=localStorage.length-1;i>=0;i--){const key=localStorage.key(i)||'';if(forbidden.test(key)&&!keep.test(key)){localStorage.removeItem(key);removed.push(key);}}
+  return removed;
+}
 function withoutProductionDemoRows(rows){return productionMode()?Array.from(rows||[]).filter(row=>!window.ValoraDataNormalization?.isBlockedInProduction?.(row)&&!window.ValoraDataNormalization?.isDeletedRecord?.(row)&&row?.revoked!==true&&row?.removed!==true):Array.from(rows||[]);}
 
 window.ValoraLocalRepository={
   mode:'local',
   loadStore({storeKey,seedStore,normalizeState}){
+    purgeLegacyLocalStorageKeys();
+    const firebaseProvider=String(window.ValoraConfig?.DATA_PROVIDER||'').toLowerCase()==='firebase';
     const resetCorruptedLocalStore=reason=>{
       console.warn('[Valora Pulse] Base local incompatível. Recriando seed.',reason);
       try{localStorage.removeItem(storeKey);}catch(_){ }
@@ -20,9 +31,9 @@ window.ValoraLocalRepository={
     };
     try{
       const raw=localStorage.getItem(storeKey);
-      if(raw){const obj=JSON.parse(raw);normalizeState(obj);return obj;}
+      if(raw&&!firebaseProvider){const obj=JSON.parse(raw);normalizeState(obj);if(productionMode()){['companies','organizations','forms','surveys','responses','invitations'].forEach(k=>{obj[k]=withoutProductionDemoRows(obj[k]);});}return obj;}
     }catch(err){return resetCorruptedLocalStore(err);}
-    return resetCorruptedLocalStore('Base local ausente.');
+    return resetCorruptedLocalStore(firebaseProvider?'Firebase em produção: seed local filtrado apenas como contingência.':'Base local ausente.');
   },
   saveStore({storeKey,state}={}){if(!state)return;try{localStorage.setItem(storeKey,JSON.stringify(state));}catch(err){console.warn('[Valora Pulse] Não foi possível salvar base local.',err);}},
   login({state,email,password,nowIso}={}){

@@ -15,19 +15,22 @@ function asArray(value,fallback=[]){
 function asObject(value,fallback={}){return value&&typeof value==='object'&&!Array.isArray(value)?value:{...fallback};}
 
 
-function isDemoRecord(row){
+function isLegacyOrDemoRecord(row){
   const id=String(row?.id||row?.surveyId||row?.formId||row?.companyId||row?.organizationId||'').toLowerCase();
   const slug=String(row?.slug||row?.publicSlug||row?.org||'').toLowerCase();
   const title=String(row?.title||row?.name||row?.publicName||row?.legalName||'').toLowerCase();
   const token=String(row?.token||row?.publicToken||row?.accessToken||'').toLowerCase();
   return row?.isDemo===true||row?.demo===true||row?.fixture===true||row?.sample===true||row?.seeded===true||id.includes('demo')||id.includes('exemplo')||id.includes('example')||slug.includes('empresa-exemplo')||slug.includes('demo')||slug.includes('example')||title.includes('empresa exemplo')||title.includes('demo')||token.includes('demo-token');
 }
-function isProductionEnvironment(){
+function isProductionRuntime(){
   const runtime=String((typeof window!=='undefined'&&window.ValoraConfig?.RUNTIME_ENV)||'').toLowerCase();
   const host=String((typeof location!=='undefined'&&location.hostname)||'').toLowerCase();
-  return runtime==='production'||host.includes('valoragroup.mnsoft.com.br');
+  return runtime==='production'||host.includes('valoragroup.mnsoft.com.br')||host.includes('gestordepesquisa.web.app');
 }
-function isBlockedInProduction(row){return isProductionEnvironment()&&isDemoRecord(row);}
+function shouldBlockLegacyDemo(row){return isProductionRuntime()&&isLegacyOrDemoRecord(row);}
+const isDemoRecord=isLegacyOrDemoRecord;
+const isProductionEnvironment=isProductionRuntime;
+const isBlockedInProduction=shouldBlockLegacyDemo;
 function isProductionVisibleRecord(row){return !(isBlockedInProduction(row)||isDeletedRecord(row)||row?.revoked===true||row?.removed===true);}
 
 function isDeletedRecord(row){const status=String(row?.status||'').toLowerCase();return row?.deleted===true||row?.isDeleted===true||row?.removed===true||row?.archived===true||status==='deleted'||status==='removed'||status==='archived';}
@@ -100,7 +103,7 @@ function normalizeFormSafe(form={}){const f=asObject(form);return {...f,dimensio
 function normalizeSurveySafe(survey={}){const s=asObject(survey);return {...s,questions:asArray(s.questions),status:asString(s.status,'draft')};}
 function normalizeResponseSafe(response={}){const r=asObject(response),participant=asObject(r.participant);return {...r,participant:{...participant,name:asString(participant.name,'Participante'),email:asString(participant.email,'')},answers:Array.isArray(r.answers)?r.answers:asObject(r.answers),normalized5:asNumber(r.normalized5??r.average,0),percentage:asNumber(r.percentage,0),rawScore:asNumber(r.rawScore??r.totalScore,0),maxScore:asNumber(r.maxScore??r.totalMax,0)};}
 function normalizeAppState(rawState={}){const raw=asObject(rawState);const normalized={...raw};normalized.settings=normalizeSettings(raw.settings);['modules','plans','companies','organizations','users','forms','surveys','responses','invitations','invoices','actionPlans','notifications','knowledgeBase','supportCategories','supportSlaPolicies','supportTickets','supportMessages','integrations','webhooks','apiKeys','logs','integrationLogs','chatbotConversations','chatbotUnansweredQuestions'].forEach(k=>{normalized[k]=asArray(raw[k]);});normalized.plans=normalized.plans.map(normalizePlanSafe);normalized.companies=normalized.companies.map(normalizeOrganizationSafe);normalized.organizations=normalized.organizations.map(normalizeOrganizationSafe);normalized.forms=normalized.forms.map(normalizeFormSafe);normalized.surveys=normalized.surveys.map(normalizeSurveySafe);normalized.responses=normalized.responses.map(normalizeResponseSafe);return normalized;}
-const api={asArray,asObject,isDemoRecord,isProductionEnvironment,isBlockedInProduction,isProductionVisibleRecord,isDeletedRecord,isActiveSurvey,isPublicSelectableSurvey,isActiveForm,asString,asNumber,asBoolean,defaultFaq,parseFaq,normalizeFaqItems,normalizeEmailSettings,normalizeSettings,normalizePlanSafe,normalizeOrganizationSafe,normalizeFormSafe,normalizeSurveySafe,normalizeResponseSafe,normalizeAppState};
+const api={asArray,asObject,isLegacyOrDemoRecord,isProductionRuntime,shouldBlockLegacyDemo,isDemoRecord,isProductionEnvironment,isBlockedInProduction,isProductionVisibleRecord,isDeletedRecord,isActiveSurvey,isPublicSelectableSurvey,isActiveForm,asString,asNumber,asBoolean,defaultFaq,parseFaq,normalizeFaqItems,normalizeEmailSettings,normalizeSettings,normalizePlanSafe,normalizeOrganizationSafe,normalizeFormSafe,normalizeSurveySafe,normalizeResponseSafe,normalizeAppState};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.ValoraDataNormalization=api;
 })(typeof window!=='undefined'?window:globalThis);

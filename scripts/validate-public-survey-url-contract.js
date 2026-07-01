@@ -1,0 +1,10 @@
+const fs=require('fs');const app=fs.readFileSync('app.js','utf8');const fail=[];
+if(!/function\s+publicSurveyRouteContract/.test(app))fail.push('contrato de URL pública ausente.');
+if(!/missing_token/.test(app)||!/Link incompleto/.test(app))fail.push('tela amigável para token ausente ausente.');
+if(!/isTokenHashLike/.test(app)||!/token_hash_not_allowed/.test(app))fail.push('tokenHash não bloqueado no front.');
+if(!/if\(sid\)\{const contract=publicSurveyRouteContract[\s\S]{0,180}!contract\.ok[\s\S]{0,80}renderIncompletePublicSurveyLink/.test(app))fail.push('routeFromLocation não valida contrato antes da function.');
+if(!/async function renderTakeSurvey[\s\S]{0,260}publicSurveyRouteContract[\s\S]{0,120}renderIncompletePublicSurveyLink/.test(app))fail.push('renderTakeSurvey pode validar sem token.');
+if(!/Esta pesquisa não está mais disponível/.test(app)||!/survey_not_found/.test(app)||!/invalid_public_token/.test(app)||!/survey_unavailable/.test(app))fail.push('link antigo/deletado sem tratamento amigável.');
+if(!/history\.replaceState\(\{\},'',APP_CONFIG\.APP_PUBLIC_URL\|\|location\.origin\)/.test(app))fail.push('query antiga não é removida em link indisponível.');
+if(!/redirectToFeaturedHomeSurvey/.test(app)||!/getFeaturedHomeSurveyUrl/.test(app))fail.push('ação para gerar/abrir diagnóstico atual ausente.');
+if(fail.length){console.error(fail.join('\n'));process.exit(1)}console.log('validate-public-survey-url-contract: PASS');

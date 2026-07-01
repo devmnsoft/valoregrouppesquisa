@@ -1,0 +1,1 @@
+const fs=require('fs');const a=fs.readFileSync('app.js','utf8');function ok(c,m){if(!c)throw new Error(m)}ok(/Limpar dados demo de produção/.test(a),'botão limpeza demo ausente');ok(/dryRunDemoPurge/.test(a)&&/purgeProductionDemoData/.test(a),'ação dry-run purge ausente');console.log('validate-admin-demo-purge-panel: PASS');

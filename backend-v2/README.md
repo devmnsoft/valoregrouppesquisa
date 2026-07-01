@@ -77,3 +77,44 @@ Scripts Windows ficam em `tools/windows`; scripts Linux ficam em `tools/linux`.
 - CORS: em execução separada, ajuste a origem permitida da API antes de publicar.
 - Build: instale o .NET SDK 8 e restaure pacotes com acesso à internet.
 - Migrations: nesta fundação, o script SQL idempotente é a fonte local; migrations EF ainda não são usadas.
+
+## Sprint 04 — SaaS: planos, módulos, limites e dashboard
+
+A camada SaaS do `backend-v2` usa PostgreSQL/Dapper no schema `valorapesquisa` e mantém `organizations.plan_code` como compatibilidade enquanto a assinatura real fica em `subscriptions`.
+
+### Planos disponíveis
+
+| Plano | Código | Limites principais |
+| --- | --- | --- |
+| Free | `free` | 1 pesquisa ativa, 30 respostas/mês, 1 usuário/gestor, 1 formulário, 1 link público. |
+| Essential | `essential` | 3 pesquisas ativas, 150 respostas/mês, 3 usuários, 3 formulários, 5 links públicos e convite/exportação básica. |
+| Growth | `growth` | 12 pesquisas ativas, 1000 respostas/mês, 10 usuários, 20 formulários, 50 links, relatórios, certificados, benchmark e white label básico. |
+| Enterprise | `enterprise` | Limites ilimitados via `-1`, API, suporte, LGPD, white label e auditoria avançada. |
+
+### Módulos disponíveis
+
+`clientes`, `planos`, `modulos`, `usuarios`, `formularios`, `pesquisas`, `links_publicos`, `respostas`, `relatorios`, `certificados`, `convites_email`, `auditoria`, `lgpd`, `suporte`, `white_label`, `benchmark`, `exportacoes`, `integracoes`, `dashboard` e `configuracoes`.
+
+### Assinatura e bloqueio comercial
+
+* `GET /organizations/{organizationId}/subscription` consulta a assinatura atual.
+* `PUT /organizations/{organizationId}/subscription` altera o plano; nesta sprint apenas `admin_valora` deve executar.
+* `PATCH /organizations/{organizationId}/subscription/status` suspende/reativa a assinatura.
+* `GET /organizations/{organizationId}/can-create-survey`, `/can-create-form`, `/can-create-user`, `/can-create-link` e `/can-use/{moduleCode}` validam entitlements.
+
+Os endpoints de criação de formulários, pesquisas, links, respostas públicas e usuários validam assinatura, módulo e limite antes de persistir. Bloqueios retornam `MODULE_NOT_ENABLED`, `PLAN_LIMIT_REACHED` ou `SUBSCRIPTION_INACTIVE` e registram auditoria comercial.
+
+### Dashboard e menu
+
+* `GET /dashboard/global` retorna indicadores reais globais para `admin_valora`.
+* `GET /dashboard/organization` retorna plano, assinatura, uso, módulos, respostas e auditoria da organização.
+* `GET /me/menu` retorna menu dinâmico por perfil, plano, módulo e assinatura.
+
+### Validação Sprint 04
+
+```bash
+dotnet build backend-v2/ValoraPesquisa.sln
+dotnet test backend-v2/ValoraPesquisa.sln
+npm run backend-v2:validate
+npm run backend-v2:saas-validate
+```

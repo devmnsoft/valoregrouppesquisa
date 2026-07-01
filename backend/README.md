@@ -26,3 +26,13 @@ dotnet build backend/Valora.sln
 dotnet test backend/Valora.sln
 npm run backend:official-validate
 ```
+
+## Operacional pós-resposta
+A solução oficial inclui contratos iniciais para relatórios, certificados, exportações, LGPD e e-mail. Use:
+
+```bash
+npm run backend:official-validate
+npm run backend:reports-email-validate
+```
+
+SMTP real deve ser configurado por `VALORA_SMTP_HOST`, `VALORA_SMTP_PORT`, `VALORA_SMTP_SECURITY`, `VALORA_SMTP_USERNAME`, `VALORA_SMTP_PASSWORD`, `VALORA_SMTP_FROM_EMAIL` e `VALORA_SMTP_FROM_NAME`. Em desenvolvimento, a fila pode operar como `DevelopmentOutbox` sem expor senha na Web.

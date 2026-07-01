@@ -23,3 +23,8 @@ O Valora.Web permanece como frontend oficial ASP.NET Core e usa `/communications
 - Gaps administrativos só podem permanecer se retornarem erro controlado e estiverem descritos neste documento.
 - `WEB_ADMIN_REAL_REPOSITORY_REQUIRED` continua permitido apenas para endpoints ainda sem repository real, sem dados fake e com mensagem operacional segura.
 - Próximas remoções de gap: módulos, assinatura, uso, dashboard e menu dinâmico com repositories/services oficiais.
+
+## Sprint SaaS + Reports/Certificates/LGPD/E-mail
+- Gaps de módulos, assinatura, uso, dashboard e menu foram endereçados com repositories/services oficiais em `backend`.
+- `WEB_ADMIN_REAL_REPOSITORY_REQUIRED` permanece apenas como marcador documental/validador; nenhum endpoint novo deve retornar dados fake.
+- Gaps restantes: validação em ambiente com SDK .NET e implementação futura de PDF binário real (`pdf_pending` quando aplicável).

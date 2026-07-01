@@ -1,0 +1,3 @@
+using Microsoft.AspNetCore.Mvc; using Valora.Application.Contracts;
+namespace Valora.Api.Controllers;
+[ApiController] public sealed class PublicCertificatesController(ICertificateValidationService validation):ControllerBase{ [HttpGet("/public/certificates/validate")] public async Task<IActionResult> Get([FromQuery]string code){var r=await validation.ValidateAsync(code,null,Request.Headers.UserAgent.ToString()); return r is null?NotFound(new{ok=false,code="CERTIFICATE_NOT_FOUND"}):Ok(new{ok=true,certificate=r});} [HttpPost("/public/certificates/validate")] public async Task<IActionResult> Post([FromBody]Dictionary<string,string> body)=>await Get(body.GetValueOrDefault("code")??"");}

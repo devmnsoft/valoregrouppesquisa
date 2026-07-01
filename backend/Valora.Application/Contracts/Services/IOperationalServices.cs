@@ -1,0 +1,15 @@
+using Valora.Application.DTOs;
+namespace Valora.Application.Contracts;
+public interface IModuleService { Task<IReadOnlyList<ModuleDto>> ListAsync(Guid? organizationId=null); }
+public interface ISubscriptionService { Task<SubscriptionDto?> GetAsync(Guid organizationId); Task SetStatusAsync(Guid organizationId,string status); }
+public interface IUsageService { Task<UsageDto> GetMonthlyAsync(Guid organizationId,DateTime month); }
+public interface IReportService { Task<GeneratedReportDto> GenerateSurveyAsync(Guid organizationId,Guid surveyId,string format,Guid? userId); Task<GeneratedReportDto> GenerateResponseAsync(Guid organizationId,Guid responseId,string format,Guid? userId); Task<GeneratedReportDto> GenerateOrganizationAsync(Guid organizationId,string format,Guid? userId); Task<IReadOnlyList<GeneratedReportDto>> ListGeneratedAsync(Guid organizationId); Task<GeneratedReportDto?> GetGeneratedAsync(Guid organizationId,Guid id); }
+public interface ICertificateOperationalService { Task<CertificateDto> GenerateAsync(Guid organizationId,Guid responseId); Task<IReadOnlyList<CertificateDto>> ListAsync(Guid organizationId); Task<CertificateDto?> GetAsync(Guid organizationId,Guid id); Task<string?> DownloadHtmlAsync(Guid organizationId,Guid id); Task RevokeAsync(Guid organizationId,Guid id); }
+public interface ICertificateValidationService { Task<CertificateValidationDto?> ValidateAsync(string code,string? ipHash,string? userAgent); }
+public interface IExportService { Task<ExportJobDto> RequestAsync(Guid organizationId,Guid? userId,ExportRequest request); Task<IReadOnlyList<ExportJobDto>> ListAsync(Guid organizationId); Task<ExportJobDto?> GetAsync(Guid organizationId,Guid id); }
+public interface ILgpdConsentService { Task<LgpdConsentDto> RegisterAsync(RegisterLgpdConsentRequest request,string? ipHash,string? userAgent); Task<IReadOnlyList<LgpdConsentDto>> ListAsync(Guid organizationId); }
+public interface IPrivacyRequestService { Task<PrivacyRequestDto> CreatePublicAsync(CreatePrivacyRequestRequest request); Task<PrivacyRequestDto?> GetPublicAsync(Guid protocol); Task<IReadOnlyList<PrivacyRequestDto>> ListAsync(Guid organizationId); Task UpdateStatusAsync(Guid organizationId,Guid id,string status,Guid? handledBy); Task CompleteAsync(Guid organizationId,Guid id,string resultJson,Guid? handledBy); }
+public interface IEmailTemplateService { Task<IReadOnlyList<EmailTemplateDto>> ListAsync(Guid? organizationId); Task<EmailTemplateDto> UpsertAsync(Guid? id,UpsertEmailTemplateRequest request); }
+public interface IEmailQueueService { Task<EmailJobDto> QueueResultAsync(Guid organizationId,Guid responseId,string toEmail); Task<EmailJobDto> QueueCertificateAsync(Guid organizationId,Guid certificateId,string toEmail); Task<EmailJobDto> QueueInviteAsync(Guid organizationId,Guid surveyId,string toEmail); Task<EmailJobDto?> RetryAsync(Guid id); }
+public interface IEmailSenderService { Task<int> ProcessAsync(int batchSize=20); }
+public interface IEmailStatusService { Task<EmailStatusDto> GetAsync(Guid? organizationId); }

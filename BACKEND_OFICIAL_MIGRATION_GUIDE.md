@@ -42,3 +42,6 @@ Quando houver SDK .NET disponível, execute também:
 dotnet build backend/Valora.sln
 dotnet test backend/Valora.sln
 ```
+
+## Sprint SaaS + relatórios + certificados + LGPD + e-mail
+A evolução oficial permanece em `backend/Valora.sln`. Novos recursos operacionais usam Dapper/PostgreSQL no schema `valorapesquisa`, controllers oficiais da API e Web MVC/Razor. SMTP real deve usar apenas variáveis `VALORA_SMTP_*`; a UI não expõe senha SMTP.

@@ -17,3 +17,11 @@ Documento atualizado na Sprint 43.
 - [x] DTOs oficiais de consolidação não incluem `password_hash`, `token_hash` ou `result_token_hash`.
 - [ ] Implementar repositories/services completos para módulos, assinatura, uso, dashboard e menu dinâmico.
 - [ ] Executar `dotnet build backend/Valora.sln` e `dotnet test backend/Valora.sln` em ambiente com SDK .NET instalado.
+
+## Sprint operacional oficial
+- [x] Repositories/services SaaS oficiais declarados para módulos, assinatura, uso, entitlements, dashboard e menu.
+- [x] SQL oficial para relatórios, certificados, exportações, LGPD e e-mail.
+- [x] DTOs seguros sem senha/hash/token/segredo SMTP.
+- [x] Web MVC/Razor com telas operacionais.
+- [x] Validador `backend:reports-email-validate`.
+- [ ] Build/test .NET em ambiente com SDK disponível.

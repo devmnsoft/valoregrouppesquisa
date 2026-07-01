@@ -34,6 +34,24 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<PublicResultValidator>();
         services.AddScoped<PublicResultAssembler>();
         services.AddScoped<IPublicResultService, PublicResultService>();
+        services.AddScoped<IEntitlementService, EntitlementService>();
+        services.AddScoped<IModuleService, ModuleService>();
+        services.AddScoped<ISubscriptionService, SubscriptionService>();
+        services.AddScoped<IUsageService, UsageService>();
+        services.AddScoped<IPermissionService, PermissionService>();
+        services.AddScoped<IDashboardMetricsService, DashboardMetricsService>();
+        services.AddScoped<IMenuService, MenuService>();
+        services.AddScoped<ReportBuilderService>();
+        services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<ICertificateOperationalService, CertificateOperationalService>();
+        services.AddScoped<ICertificateValidationService, CertificateValidationService>();
+        services.AddScoped<IExportService, ExportService>();
+        services.AddScoped<ILgpdConsentService, LgpdConsentService>();
+        services.AddScoped<IPrivacyRequestService, PrivacyRequestService>();
+        services.AddScoped<IEmailTemplateService, OperationalEmailTemplateService>();
+        services.AddScoped<IEmailQueueService, EmailQueueService>();
+        services.AddScoped<IEmailSenderService, EmailSenderService>();
+        services.AddScoped<IEmailStatusService, EmailStatusService>();
         services.AddSingleton<IResultTokenService, ResultTokenService>();
         return services;
     }

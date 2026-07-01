@@ -343,7 +343,12 @@
     "backend-v2:saas-validate": "node backend-v2/tools/validate-backend-v2-saas.js",
     "backend:official-validate": "node tools/validate-backend-official-migration.js",
     "check:critical": "node scripts/validate-regression-critical-gate.js",
-    "home:featured-consistency": "node scripts/validate-featured-home-survey-form-consistency.js"
+    "home:featured-consistency": "node scripts/validate-featured-home-survey-form-consistency.js",
+    "prod:no-demo-data-flow": "node scripts/validate-no-demo-production-data-flow.js",
+    "home:selected-survey-link": "node scripts/validate-featured-link-selected-survey.js",
+    "admin:secure-links-no-demo": "node scripts/validate-admin-secure-links-no-demo.js",
+    "public:url-no-demo": "node scripts/validate-public-url-no-demo.js",
+    "prod:demo-purge-safety": "node scripts/validate-production-demo-purge-safety.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

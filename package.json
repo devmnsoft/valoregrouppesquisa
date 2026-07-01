@@ -353,7 +353,11 @@
     "prod:purge-credentials": "node scripts/validate-purge-demo-credentials-handling.js",
     "home:fallback-never-invalid": "node scripts/validate-home-fallback-never-invalid-final.js",
     "root:no-demo-seed": "node scripts/validate-root-index-no-demo-seed.js",
-    "admin:demo-purge-panel": "node scripts/validate-admin-demo-purge-panel.js"
+    "admin:demo-purge-panel": "node scripts/validate-admin-demo-purge-panel.js",
+    "admin:delete-form-linked-flow": "node scripts/validate-admin-delete-form-linked-flow.js",
+    "admin:function-id-aliases": "node scripts/validate-admin-function-id-aliases.js",
+    "home:featured-invalid-admin-only": "node scripts/validate-featured-invalid-admin-only.js",
+    "admin:diagnostics-panel": "node scripts/validate-admin-diagnostics-panel.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

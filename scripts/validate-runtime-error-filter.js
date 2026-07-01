@@ -1,0 +1,11 @@
+const fs=require('fs');const app=fs.readFileSync('app.js','utf8');const fail=[];
+if(!/function\s+isExternalBrowserNoise/.test(app))fail.push('isExternalBrowserNoise ausente.');
+if(!/A listener indicated an asynchronous response by returning true/.test(app))fail.push('mensagem de extensão não detectada.');
+if(!/function\s+shouldReportRuntimeError\s*\([^)]*\)\s*\{\s*return\s+!isExternalBrowserNoise/.test(app))fail.push('shouldReportRuntimeError deve delegar para isExternalBrowserNoise.');
+if(!/addEventListener\('error',[\s\S]{0,220}isExternalBrowserNoise\(e\.error\|\|e\.message\|\|e\)[\s\S]{0,160}preventDefault/.test(app))fail.push('window error não filtra ruído externo com preventDefault.');
+if(!/addEventListener\('unhandledrejection',[\s\S]{0,260}isExternalBrowserNoise\(reason\)[\s\S]{0,160}preventDefault/.test(app))fail.push('unhandledrejection não filtra ruído externo com preventDefault.');
+if(!/recordExternalBrowserNoise/.test(app)||!/lastExternalBrowserNoise/.test(app))fail.push('diagnóstico controlado de ruído externo ausente.');
+['app.','firebase-repository','functions.','submitSurveyResponse','validateSurveyLink','createActions','bootstrapApp','renderTakeSurvey'].forEach(m=>{if(!app.includes(m))fail.push(`erro real com stack ${m} pode ser ignorado.`)});
+const rec=app.slice(app.indexOf('function recordExternalBrowserNoise'),app.indexOf('const $='));
+['handleError','saveChanges','logServerEvent'].forEach(m=>{if(rec.includes(m))fail.push(`ruído externo pode chamar ${m}.`)});
+if(fail.length){console.error(fail.join('\n'));process.exit(1)}console.log('validate-runtime-error-filter: PASS');

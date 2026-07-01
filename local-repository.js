@@ -3,6 +3,8 @@
 
 function deepCleanForFirestore(value,seen=new WeakSet()){if(value===undefined||typeof value==='function')return undefined;if(value===null||typeof value!=='object')return value;if(seen.has(value))return undefined;seen.add(value);if(Array.isArray(value))return value.map(v=>deepCleanForFirestore(v,seen)).filter(v=>v!==undefined);const out={};Object.keys(value).forEach(k=>{if(['__collection','__dirty','__temp','_ui','_local','_editing','_selected','_expanded','_cache','_diagnostics'].includes(k))return;const v=deepCleanForFirestore(value[k],seen);if(v!==undefined)out[k]=v;});return out;}
 function clone(v){return JSON.parse(JSON.stringify(v));}
+function productionMode(){return window.ValoraDataNormalization?.isProductionEnvironment?.()===true;}
+function withoutProductionDemoRows(rows){return productionMode()?Array.from(rows||[]).filter(row=>!window.ValoraDataNormalization?.isBlockedInProduction?.(row)&&!window.ValoraDataNormalization?.isDeletedRecord?.(row)&&row?.revoked!==true&&row?.removed!==true):Array.from(rows||[]);}
 
 window.ValoraLocalRepository={
   mode:'local',
@@ -11,6 +13,7 @@ window.ValoraLocalRepository={
       console.warn('[Valora Pulse] Base local incompatível. Recriando seed.',reason);
       try{localStorage.removeItem(storeKey);}catch(_){ }
       const seeded=seedStore();
+      if(productionMode()){['companies','organizations','forms','surveys','responses','invitations'].forEach(k=>{seeded[k]=withoutProductionDemoRows(seeded[k]);});}
       normalizeState(seeded);
       try{localStorage.setItem(storeKey,JSON.stringify(seeded));}catch(err){console.warn('[Valora Pulse] Não foi possível salvar seed local.',err);}
       return seeded;
@@ -43,20 +46,20 @@ window.ValoraLocalRepository={
   updatePlan(id,data,{state}={}){const item=(state?.plans||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
   listModules({state}={}){return Promise.resolve(clone(state?.modules||[]));},
   updateModule(data,{state}={}){const item=(state?.modules||[]).find(x=>x.id===data.id);if(item)Object.assign(item,data);return Promise.resolve(clone(item));},
-  listForms(companyId,{state}={}){const rows=state?.forms||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
+  listForms(companyId,{state}={}){const rows=withoutProductionDemoRows(state?.forms||[]);return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
   createForm(data,{state}={}){const item={id:data.id||`form_${Date.now().toString(36)}`,...data};state?.forms?.push(item);return Promise.resolve(clone(item));},
   updateForm(id,data,{state}={}){const item=(state?.forms||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
-  listSurveys(companyId,{state}={}){const rows=state?.surveys||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
+  listSurveys(companyId,{state}={}){const rows=withoutProductionDemoRows(state?.surveys||[]);return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
   createSurvey(data,{state}={}){const item={id:data.id||`survey_${Date.now().toString(36)}`,...data};state?.surveys?.push(item);return Promise.resolve(clone(item));},
   updateSurvey(id,data,{state}={}){const item=(state?.surveys||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
   listResponses(companyId,{state}={}){const rows=state?.responses||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
   listInvitations(companyId,{state}={}){const rows=state?.invitations||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
   createInvitation(data,{state}={}){const item={id:data.id||`invite_${Date.now().toString(36)}`,...data};state?.invitations?.push(item);return Promise.resolve(clone(item));},
   updateInvitation(id,data,{state}={}){const item=(state?.invitations||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
-  loadCompanies({state}={}){return state?.companies||[];},
+  loadCompanies({state}={}){return withoutProductionDemoRows(state?.companies||[]);},
   loadUsers({state}={}){return state?.users||[];},
-  loadForms({state}={}){return state?.forms||[];},
-  loadSurveys({state}={}){return state?.surveys||[];},
+  loadForms({state}={}){return withoutProductionDemoRows(state?.forms||[]);},
+  loadSurveys({state}={}){return withoutProductionDemoRows(state?.surveys||[]);},
   loadResponses({state}={}){return state?.responses||[];},
   listNotifications(filters={}, {state}={}){let rows=state?.notifications||[];Object.entries(filters||{}).forEach(([k,v])=>{if(v)rows=rows.filter(x=>String(x[k]||'')===String(v));});return Promise.resolve(clone(rows));},
   listUserNotifications(userId,{state}={}){return Promise.resolve(clone((state?.notifications||[]).filter(x=>x.userId===userId)));},

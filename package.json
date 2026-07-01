@@ -340,7 +340,8 @@
     "auth:public-timeout": "node scripts/validate-public-auth-timeout.js",
     "public:survey-url-contract": "node scripts/validate-public-survey-url-contract.js",
     "build:info-log": "node scripts/validate-build-info-log.js",
-    "backend-v2:saas-validate": "node backend-v2/tools/validate-backend-v2-saas.js"
+    "backend-v2:saas-validate": "node backend-v2/tools/validate-backend-v2-saas.js",
+    "backend:official-validate": "node tools/validate-backend-official-migration.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

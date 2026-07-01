@@ -8,3 +8,7 @@ Documento atualizado na Sprint 43.
 - Swagger corrigido sem `ConflictingActionsResolver`.
 - Endpoint oficial de resultado: `GET /responses/{responseId}/result`.
 - Gaps operacionais restantes estão centralizados em `ASPNET_WEB_API_GAPS.md`.
+
+## Rotas oficiais após consolidação
+
+As rotas oficiais da nova versão .NET devem ser servidas por `backend/Valora.Api` e consumidas por `backend/Valora.Web`. `backend-v2` não é fonte oficial de rotas. Rotas públicas existentes de pesquisa e resultado não devem ser quebradas durante a consolidação.

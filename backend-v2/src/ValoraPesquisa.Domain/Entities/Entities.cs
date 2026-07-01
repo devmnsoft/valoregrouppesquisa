@@ -10,3 +10,10 @@ public record SurveyResponse(Guid Id,Guid OrganizationId,Guid SurveyId,Guid Form
 public record ResponseAnswer(Guid Id,Guid ResponseId,Guid QuestionId,string? AnswerValue,string? AnswerText);
 public record ResultScore(Guid Id,Guid ResponseId,decimal TotalScore,decimal MaxScore,decimal Percentage,decimal Normalized5,string Level,string ResultJson,DateTimeOffset CreatedAt);
 public record AuditLog(Guid Id,Guid? OrganizationId,Guid? UserId,string Action,string Entity,Guid? EntityId,string CorrelationId,string Metadata,DateTimeOffset CreatedAt);
+public record Plan(Guid Id,string Code,string Name,string? Description,decimal MonthlyPrice,decimal AnnualPrice,string Status,int DisplayOrder,DateTimeOffset CreatedAt,DateTimeOffset? UpdatedAt,bool IsDeleted);
+public record PlanLimit(Guid Id,Guid PlanId,int ActiveSurveys,int ResponsesPerMonth,int Users,int Managers,int Forms,int PublicLinks,int EmailInvitesPerMonth,int StorageMb,DateTimeOffset CreatedAt,DateTimeOffset? UpdatedAt);
+public record PlanCapability(Guid Id,Guid PlanId,string CapabilityCode,bool Enabled);
+public record Module(Guid Id,string Code,string Name,string? Description,string Category,string Status,int DisplayOrder,string? MinimumPlanCode,DateTimeOffset CreatedAt,DateTimeOffset? UpdatedAt,bool IsDeleted);
+public record OrganizationModule(Guid Id,Guid OrganizationId,Guid ModuleId,bool Enabled,string Source,DateTimeOffset CreatedAt,DateTimeOffset? UpdatedAt);
+public record Subscription(Guid Id,Guid OrganizationId,Guid PlanId,string Status,string BillingStatus,DateTimeOffset StartsAt,DateTimeOffset? ExpiresAt,DateTimeOffset? TrialEndsAt,DateTimeOffset? CancelledAt,DateTimeOffset CreatedAt,DateTimeOffset? UpdatedAt);
+public record UsageMonthly(Guid Id,Guid OrganizationId,DateTime Month,int ActiveSurveysCount,int ResponsesCount,int UsersCount,int ManagersCount,int FormsCount,int PublicLinksCount,int EmailInvitesCount,int StorageMbUsed,DateTimeOffset UpdatedAt);

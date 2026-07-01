@@ -237,6 +237,7 @@ async function resolveFeaturedHomeSurveyPublic(){
     attempted.push('callable.getFeaturedHomeSurvey');
     const remote=await callFunction('getFeaturedHomeSurvey',{});
     if(remote?.ok&&remote?.survey&&remote?.form&&remote?.company&&remote?.url&&!/survey_demo|empresa-exemplo|tokenHash=/i.test(remote.url)){
+      if(remote.survey.formId!==remote.form.id){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'survey_form_mismatch',surveyId:remote.survey.id,surveyFormId:remote.survey.formId,returnedFormId:remote.form.id};if(window.clearFeaturedHomeSurveyCache)window.clearFeaturedHomeSurveyCache('repository_featured_mismatch');throw Object.assign(new Error('A pesquisa em destaque retornou formulário incompatível.'),{code:'survey_form_mismatch'});}
       const survey={...remote.survey,publicToken:remote.token,token:remote.token};
       const form={...remote.form};
       const company={...remote.company};
@@ -245,10 +246,10 @@ async function resolveFeaturedHomeSurveyPublic(){
         session.store.forms=[...new Map([...(session.store.forms||[]),form].map(x=>[x.id,x])).values()];
         session.store.companies=[...new Map([...(session.store.companies||[]),company].map(x=>[x.id,x])).values()];
       }
-      if(window.publicSurveyCache&&survey.id)window.publicSurveyCache.set(survey.id,{survey,form,company,token:remote.token,url:remote.url,org:remote.org||company.slug||''});
+      if(window.publicSurveyCache&&survey.id)window.publicSurveyCache.set(survey.id,{survey,form,company,token:remote.token,url:remote.url,org:remote.org||company.slug||'',consistency:remote.consistency});
       window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
       window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_candidate_found',surveyId:survey.id||'',hasPublicToken:!!remote.token,org:remote.org||company.slug||'',source:remote.source||'cloud-function',diagnostics:remote.diagnostics||null,rejected:remote.diagnostics?.rejected||[]};
-      return {survey,company,form,url:remote.url,token:remote.token,org:remote.org,source:remote.source||'cloud-function'};
+      return {survey,company,form,url:remote.url,token:remote.token,org:remote.org,source:remote.source||'cloud-function',consistency:remote.consistency};
     }
   }catch(err){recordFirestoreError('functions.getFeaturedHomeSurvey',err);if(err?.details?.diagnostics){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey={attemptedSources:attempted,reason:'callable_rejected',diagnostics:err.details.diagnostics,acceptedCandidates:err.details.diagnostics.acceptedCandidates||[],rejectedCandidates:err.details.diagnostics.rejectedCandidates||[],rejected:err.details.diagnostics.rejectedCandidates||[]};}}
   if(!session.authUser){
@@ -276,7 +277,7 @@ async function validatePublicSurveyPublic({surveyId,token,org}={}){
   try{
     const remote=await callFunction('validateSurveyLink',{surveyId,token,org});
     if(remote?.survey){
-      publicSurveyCache.set(remote.survey.id,{survey:remote.survey,form:remote.form,company:remote.company,token});
+      if(remote.survey.formId!==remote.form?.id)throw Object.assign(new Error('Formulário incompatível com a pesquisa.'),{code:'survey_form_mismatch'});publicSurveyCache.set(remote.survey.id,{survey:remote.survey,form:remote.form,company:remote.company,token,url:remote.url,org:remote.org,consistency:remote.consistency});
       return {...remote,ok:remote.ok!==false};
     }
   }catch(err){

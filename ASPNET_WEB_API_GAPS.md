@@ -15,3 +15,11 @@ OrganizationRepository, UserRepository, FormRepository, SurveyRepository, Survey
 ## Sprint 44
 
 O Valora.Web permanece como frontend oficial ASP.NET Core e usa `/communications/result/{responseId}/send-email`, `/admin/email-jobs`, `/admin/email-jobs/process` e `/admin/email/config/status`.
+
+## Consolidação oficial `backend` x `backend-v2`
+
+- A base oficial passa a ser exclusivamente `backend/Valora.sln`.
+- `backend-v2` permanece apenas como referência temporária e não deve receber novas features.
+- Gaps administrativos só podem permanecer se retornarem erro controlado e estiverem descritos neste documento.
+- `WEB_ADMIN_REAL_REPOSITORY_REQUIRED` continua permitido apenas para endpoints ainda sem repository real, sem dados fake e com mensagem operacional segura.
+- Próximas remoções de gap: módulos, assinatura, uso, dashboard e menu dinâmico com repositories/services oficiais.

@@ -341,8 +341,7 @@
     "public:survey-url-contract": "node scripts/validate-public-survey-url-contract.js",
     "build:info-log": "node scripts/validate-build-info-log.js",
     "backend-v2:saas-validate": "node backend-v2/tools/validate-backend-v2-saas.js",
-    "home:featured-consistency": "node scripts/validate-featured-home-survey-form-consistency.js",
-    "check:critical": "node scripts/validate-regression-critical-gate.js"
+    "backend:official-validate": "node tools/validate-backend-official-migration.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

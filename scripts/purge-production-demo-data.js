@@ -10,13 +10,29 @@ const dryRun=has('--dry-run')||!apply;
 const confirm=value('--confirm','');
 if(has('--dry-run')&&has('--apply')){console.error('Use apenas um modo: --dry-run ou --apply.');process.exit(1);}
 if(apply&&confirm!==project){console.error(`Aplicação bloqueada. Use --apply --confirm ${project} --project ${project}.`);process.exit(1);}
+if(has('--callable-help')){console.log(`Use a Function purgeProductionDemoData pelo painel admin ou no console autenticado:
+
+window.ValoraFirebaseServices.functions
+  .httpsCallable('purgeProductionDemoData')({ dryRun: true })
+
+Para aplicar:
+
+window.ValoraFirebaseServices.functions
+  .httpsCallable('purgeProductionDemoData')({ apply: true })`);process.exit(0);}
 function hasLocalCredentials(){
   if(process.env.GOOGLE_APPLICATION_CREDENTIALS&&fs.existsSync(process.env.GOOGLE_APPLICATION_CREDENTIALS))return true;
   if(process.env.FIREBASE_CONFIG)return true;
   const home=process.env.HOME||process.env.USERPROFILE||'';
   return !!home&&fs.existsSync(`${home}/.config/gcloud/application_default_credentials.json`);
 }
-function adcHelp(){return `Credenciais locais do Google Cloud não encontradas.\nOpções:\n\n1. Rode: gcloud auth application-default login\n\n2. Ou execute a limpeza pelo painel admin usando a Function purgeProductionDemoData.\n\n3. Ou defina GOOGLE_APPLICATION_CREDENTIALS apontando para uma service account.`;}
+function adcHelp(){return `Credenciais locais não encontradas.
+Use uma das opções:
+
+1. gcloud auth application-default login
+2. set GOOGLE_CLOUD_PROJECT=gestordepesquisa
+3. ou use a Function purgeProductionDemoData pelo painel admin.
+
+Ajuda callable: node scripts/purge-production-demo-data.js --callable-help`; }
 function isDemoRecord(row){const text=JSON.stringify(row||{}).toLowerCase();return row?.isDemo===true||row?.demo===true||row?.fixture===true||row?.sample===true||row?.seeded===true||text.includes('survey_demo')||text.includes('empresa-exemplo')||text.includes('empresa exemplo')||text.includes('demo-token')||text.includes('projeto antigo')||(text.includes('maturidade organizacional 2026')&&text.includes('empresa exemplo'));}
 const forbidden=url=>/survey_demo|empresa-exemplo|demo-token|tokenHash=/i.test(String(url||''));
 async function main(){

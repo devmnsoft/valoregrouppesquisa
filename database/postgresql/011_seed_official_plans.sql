@@ -1,10 +1,10 @@
-INSERT INTO valorapesquisa.plans(code,name,badge,public_subtitle,description,monthly_price,annual_price,price_complement,cta_label,display_order,highlight,recommended,visible_on_public_pricing,internal_only,status) VALUES
-('free','Free',NULL,NULL,'1 pesquisa ativa, 10 respostas/mês, 1 gestor, resultado básico, certificado simples, e-mail de resultado',0,0,NULL,'Começar grátis',10,false,false,true,false,'active'),
-('essential','Essential',NULL,NULL,'3 pesquisas ativas, 150 respostas/mês, 2 gestores',0,0,'Sob consulta','Falar com vendas',20,false,false,true,false,'active'),
-('professional','Professional',NULL,NULL,'12 pesquisas ativas, 1000 respostas/mês, 8 gestores',0,0,'Sob consulta','Falar com vendas',30,false,true,true,false,'active'),
-('corporate','Corporate',NULL,NULL,'Pesquisas ilimitadas, 10000 respostas/mês, 50 gestores, múltiplas unidades, relatórios consolidados',0,0,'Sob consulta','Falar com vendas',40,true,false,true,false,'active'),
-('enterprise','Enterprise',NULL,NULL,'Limites ilimitados, white label, múltiplas organizações, acompanhamento executivo',0,0,'Sob consulta','Falar com vendas',50,false,false,true,false,'active')
-ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name,badge=EXCLUDED.badge,public_subtitle=EXCLUDED.public_subtitle,description=EXCLUDED.description,monthly_price=EXCLUDED.monthly_price,annual_price=EXCLUDED.annual_price,price_complement=EXCLUDED.price_complement,cta_label=EXCLUDED.cta_label,display_order=EXCLUDED.display_order,highlight=EXCLUDED.highlight,recommended=EXCLUDED.recommended,visible_on_public_pricing=EXCLUDED.visible_on_public_pricing,internal_only=EXCLUDED.internal_only,status=EXCLUDED.status,updated_at=now();
+INSERT INTO valorapesquisa.plans(code,name,description,monthly_price,annual_price,display_order,status) VALUES
+('free','Free','1 pesquisa ativa, 10 respostas/mês, 1 gestor, resultado básico, certificado simples, e-mail de resultado',0,0,10,'active'),
+('essential','Essential','3 pesquisas ativas, 150 respostas/mês, 2 gestores',0,0,20,'active'),
+('professional','Professional','12 pesquisas ativas, 1000 respostas/mês, 8 gestores',0,0,30,'active'),
+('corporate','Corporate','Pesquisas ilimitadas, 10000 respostas/mês, 50 gestores, múltiplas unidades, relatórios consolidados',0,0,40,'active'),
+('enterprise','Enterprise','Limites ilimitados, white label, múltiplas organizações, acompanhamento executivo',0,0,50,'active')
+ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,monthly_price=EXCLUDED.monthly_price,annual_price=EXCLUDED.annual_price,display_order=EXCLUDED.display_order,status=EXCLUDED.status,updated_at=now();
 INSERT INTO valorapesquisa.plan_limits(plan_id,active_surveys,responses_per_month,users,managers,forms,public_links,email_invites_per_month,storage_mb)
 SELECT p.id,v.active_surveys,v.responses_per_month,v.users,v.managers,v.forms,v.public_links,v.email_invites_per_month,v.storage_mb FROM valorapesquisa.plans p JOIN (VALUES
 ('free',1,10,1,1,1,1,10,100),

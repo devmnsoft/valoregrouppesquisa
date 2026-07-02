@@ -1,0 +1,1 @@
+const {read,must}=require('./legacy-public-submit-validator-common');const all=read('app.js')+read('firebase-repository.js');must('provider_unavailable is not used in submit mapping',!/provider_unavailable|public_submit_provider_unavailable/.test(all));

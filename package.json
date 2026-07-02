@@ -373,7 +373,16 @@
     "dotnet:no-cloud-functions-public": "node scripts/validate-no-cloud-functions-public-flow.js",
     "ux:loading-all-actions": "node scripts/validate-loading-ux-all-actions.js",
     "web:result-page": "node scripts/validate-valora-web-result-page.js",
-    "email:job-postgres-flow": "node scripts/validate-email-job-postgres-flow.js"
+    "email:job-postgres-flow": "node scripts/validate-email-job-postgres-flow.js",
+    "legacy:submit-error-details": "node scripts/validate-legacy-public-submit-error-details.js",
+    "legacy:submit-loading": "node scripts/validate-legacy-public-submit-loading.js",
+    "legacy:submit-payload": "node scripts/validate-legacy-public-submit-payload-contract.js",
+    "legacy:submit-no-provider-mask": "node scripts/validate-legacy-public-submit-no-provider-unavailable-mask.js",
+    "legacy:submit-result-route": "node scripts/validate-legacy-public-submit-success-result-route.js",
+    "legacy:submit-email-status": "node scripts/validate-legacy-public-submit-email-status.js",
+    "legacy:submit-whatsapp": "node scripts/validate-legacy-public-submit-whatsapp-cta.js",
+    "functions:submit-details": "node scripts/validate-submit-survey-response-function-details.js",
+    "dotnet:public-submit-parity": "node scripts/validate-dotnet-public-submit-contract-parity.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

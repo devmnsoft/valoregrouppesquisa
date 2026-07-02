@@ -1,0 +1,1 @@
+const {read,must}=require('./legacy-public-submit-validator-common');const a=read('app.js');must('success handler exists',/function handlePublicSubmitSuccess/.test(a));must('result route has responseId and resultToken',/\?result=.*rt=/.test(a));must('renderResult called after success',/renderResult\(result\.responseId,true,result\.resultToken/.test(a));

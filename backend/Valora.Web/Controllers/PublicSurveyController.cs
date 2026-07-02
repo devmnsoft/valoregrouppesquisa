@@ -5,6 +5,7 @@ namespace Valora.Web.Controllers;
 public sealed class PublicSurveyController(ILogger<PublicSurveyController> logger) : Controller
 {
     [Route("s/{surveyId}")]
+    [Route("public/surveys/{surveyId}")]
     public IActionResult Take(string surveyId)
     {
         try

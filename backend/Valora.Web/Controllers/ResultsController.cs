@@ -5,6 +5,7 @@ namespace Valora.Web.Controllers;
 public sealed class ResultsController(ILogger<ResultsController> logger) : Controller
 {
     [Route("r/{responseId}")]
+    [Route("public/results/{responseId}")]
     public IActionResult Public(string responseId)
     {
         try

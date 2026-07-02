@@ -8,6 +8,15 @@ CREATE EXTENSION IF NOT EXISTS citext;
 
 CREATE OR REPLACE FUNCTION valorapesquisa.set_updated_at() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN NEW.updated_at = now(); RETURN NEW; END; $$;
 
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS trigger AS $$
+BEGIN
+NEW.updated_at = now();
+RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+
 CREATE TABLE IF NOT EXISTS valorapesquisa.schema_migrations (version text primary key, applied_at timestamptz not null default now());
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.organizations (
@@ -1200,3 +1209,50 @@ CREATE INDEX IF NOT EXISTS idx_report_definitions_code ON report_definitions(cod
 CREATE INDEX IF NOT EXISTS idx_plans_code ON plans(code); CREATE INDEX IF NOT EXISTS idx_plans_status ON plans(status); CREATE INDEX IF NOT EXISTS idx_modules_code ON modules(code); CREATE INDEX IF NOT EXISTS idx_modules_status ON modules(status); CREATE INDEX IF NOT EXISTS idx_organization_modules_organization_id ON organization_modules(organization_id); CREATE INDEX IF NOT EXISTS idx_subscriptions_organization_id ON subscriptions(organization_id); CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status); CREATE INDEX IF NOT EXISTS idx_usage_monthly_organization_month ON usage_monthly(organization_id, month);
 INSERT INTO report_definitions(code,name,description,report_type,required_module_code,minimum_plan_code) VALUES ('response_summary','Relatório por resposta','Resumo seguro por resposta','response','relatorios','free'),('survey_summary','Relatório por pesquisa','Resumo agregado por pesquisa','survey','relatorios','essential'),('organization_executive','Relatório executivo','Resumo executivo da organização','organization','relatorios','growth') ON CONFLICT (code) DO NOTHING;
 INSERT INTO email_templates(code,name,subject,body_html,body_text,status) VALUES ('survey_invite','Convite de pesquisa','Convite para pesquisa','<p>Você recebeu um convite.</p>','Você recebeu um convite.','active'),('result_available','Resultado disponível','Seu resultado está disponível','<p>Seu resultado está disponível.</p>','Seu resultado está disponível.','active'),('certificate_issued','Certificado emitido','Seu certificado foi emitido','<p>Seu certificado foi emitido.</p>','Seu certificado foi emitido.','active'),('password_reset','Redefinição de senha','Redefinição de senha','<p>Redefina sua senha.</p>','Redefina sua senha.','active'),('privacy_request_received','Solicitação recebida','Solicitação LGPD recebida','<p>Recebemos sua solicitação.</p>','Recebemos sua solicitação.','active'),('privacy_request_completed','Solicitação concluída','Solicitação LGPD concluída','<p>Sua solicitação foi concluída.</p>','Sua solicitação foi concluída.','active') ON CONFLICT (code, organization_id) DO NOTHING;
+
+-- Public survey result/email/certificate compatibility additions (idempotent).
+CREATE TABLE IF NOT EXISTS valorapesquisa.email_job_attempts (
+    id uuid primary key default gen_random_uuid(),
+    email_job_id uuid not null,
+    status varchar(40),
+    error_message text,
+    provider_response text,
+    created_at timestamptz default now()
+);
+
+ALTER TABLE valorapesquisa.certificates ADD COLUMN IF NOT EXISTS certificate_number text;
+ALTER TABLE valorapesquisa.certificates ADD COLUMN IF NOT EXISTS title text;
+ALTER TABLE valorapesquisa.certificates ADD COLUMN IF NOT EXISTS result_summary text;
+ALTER TABLE valorapesquisa.certificates ADD COLUMN IF NOT EXISTS pdf_path text;
+ALTER TABLE valorapesquisa.certificates ADD COLUMN IF NOT EXISTS image_path text;
+ALTER TABLE valorapesquisa.certificates ADD COLUMN IF NOT EXISTS public_token_hash text;
+
+CREATE INDEX IF NOT EXISTS ix_email_job_attempts_job ON valorapesquisa.email_job_attempts(email_job_id);
+
+DO $$
+BEGIN
+IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'uq_certificates_certificate_number') THEN
+ALTER TABLE valorapesquisa.certificates ADD CONSTRAINT uq_certificates_certificate_number UNIQUE (certificate_number);
+END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.support_messages (
+    id uuid primary key default gen_random_uuid(),
+    ticket_id uuid,
+    organization_id uuid,
+    user_id uuid,
+    message text,
+    created_at timestamptz default now(),
+    updated_at timestamptz default now()
+);
+CREATE INDEX IF NOT EXISTS ix_support_messages_ticket ON valorapesquisa.support_messages(ticket_id, created_at);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.settings (
+    id uuid primary key default gen_random_uuid(),
+    organization_id uuid,
+    key text not null,
+    value jsonb not null default '{}'::jsonb,
+    created_at timestamptz default now(),
+    updated_at timestamptz default now()
+);
+CREATE INDEX IF NOT EXISTS ix_settings_org_key ON valorapesquisa.settings(organization_id, key);

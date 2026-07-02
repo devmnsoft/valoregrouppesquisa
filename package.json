@@ -363,7 +363,17 @@
     "notifications:actions-loading": "node scripts/validate-notification-actions-loading.js",
     "notifications:white-label-suppression": "node scripts/validate-white-label-notification-suppression.js",
     "notifications:onboarding-suppression": "node scripts/validate-onboarding-notification-suppression.js",
-    "notifications:dotnet-plan": "node scripts/validate-dotnet-notification-migration-plan.js"
+    "notifications:dotnet-plan": "node scripts/validate-dotnet-notification-migration-plan.js",
+    "dotnet:public-survey-result": "node scripts/validate-dotnet-public-survey-result-flow.js",
+    "dotnet:result-email": "node scripts/validate-dotnet-result-email-flow.js",
+    "dotnet:certificate-downloads": "node scripts/validate-dotnet-certificate-downloads.js",
+    "dotnet:whatsapp-result": "node scripts/validate-dotnet-whatsapp-result-cta.js",
+    "dotnet:postgres-crud-only": "node scripts/validate-dotnet-postgres-crud-only.js",
+    "postgres:idempotent-script": "node scripts/validate-postgres-idempotent-full-script.js",
+    "dotnet:no-cloud-functions-public": "node scripts/validate-no-cloud-functions-public-flow.js",
+    "ux:loading-all-actions": "node scripts/validate-loading-ux-all-actions.js",
+    "web:result-page": "node scripts/validate-valora-web-result-page.js",
+    "email:job-postgres-flow": "node scripts/validate-email-job-postgres-flow.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

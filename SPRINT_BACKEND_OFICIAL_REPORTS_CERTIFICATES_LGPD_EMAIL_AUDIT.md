@@ -4,7 +4,7 @@
 Implementação oficial inicial em `backend` para SaaS real, relatórios, certificados, exportações, LGPD, templates/fila/status de e-mail, Web MVC e validação estática.
 
 ## 2. Diagnóstico inicial
-Registrado em `SPRINT_BACKEND_OFICIAL_SAAS_REPORTS_EMAIL_DIAGNOSTIC.md`; `dotnet` não está disponível no ambiente.
+Registrado em `SPRINT_BACKEND_OFICIAL_REPORTS_CERTIFICATES_LGPD_EMAIL_DIAGNOSTIC.md`; `dotnet` não está disponível no ambiente.
 
 ## 3. Gaps SaaS fechados
 Criados repositories/services para módulos, assinatura, uso, entitlements, permissões, dashboard e menu dinâmico.
@@ -13,7 +13,7 @@ Criados repositories/services para módulos, assinatura, uso, entitlements, perm
 `ReportDefinition`, `GeneratedReport`, `CertificateValidation`, `ExportJob`, `LgpdConsent`, `PrivacyRequest` e `EmailTemplate`.
 
 ## 5. DTOs criados
-DTOs operacionais seguros para relatórios, certificados, exportações, LGPD, privacidade, templates, jobs e status de e-mail.
+DTOs operacionais seguros para relatórios, certificados, exportações, LGPD com protocolo público, privacidade, templates, jobs e status de e-mail.
 
 ## 6. Services criados
 Services operacionais para SaaS, relatórios, certificados, validação pública, exportações, LGPD, privacidade, e-mail e menu.

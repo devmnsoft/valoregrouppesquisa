@@ -1,12 +1,12 @@
 WITH org AS (
-  INSERT INTO valorapesquisa.organizations(name, public_name, slug, email, plan_id)
+  INSERT INTO valorapesquisa.organizations(name, public_name, slug, email, plan_code)
   VALUES ('Valora Group Demo','Valora Group Demo','valora-demo','demo@valoragroup.com.br','professional')
-  ON CONFLICT (slug) DO UPDATE SET name=EXCLUDED.name, plan_id=EXCLUDED.plan_id, updated_at=now()
+  ON CONFLICT (slug) DO UPDATE SET name=EXCLUDED.name, plan_code=EXCLUDED.plan_code, updated_at=now()
   RETURNING id
 ), sub AS (
   INSERT INTO valorapesquisa.subscriptions(organization_id, plan_id, status)
-  SELECT id, 'professional', 'active' FROM org
-  ON CONFLICT DO NOTHING
+  SELECT org.id, plans.id, 'active' FROM org JOIN valorapesquisa.plans plans ON plans.code='professional'
+  ON CONFLICT (organization_id) DO UPDATE SET plan_id=EXCLUDED.plan_id,status='active',updated_at=now()
 ), form AS (
   INSERT INTO valorapesquisa.forms(organization_id,name,description,category,time_min,scoring_method,status,is_global)
   SELECT id,'Diagnóstico Valora Insight™','Pesquisa demo oficial com 5 dimensões e 25 perguntas.','valora-insight',8,'sum','published',false FROM org

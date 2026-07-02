@@ -304,23 +304,27 @@ async function validatePublicSurveyPublic({surveyId,token,org}={}){
 }
 
 
-function mapPublicFunctionError(err){
-  const code=String(err?.code||err?.details?.code||'').replace(/^functions\//,'')||'unknown';
-  const message=String(err?.message||'Falha ao processar solicitação pública.');
+function normalizeCallablePublicError(err){
+  const rawCode=String(err?.code||'').replace(/^functions\//,'');
   const details=err?.details||{};
-  let userMessage=message;
-  if(details.code==='survey_not_found'||details.code==='survey_unavailable')userMessage=details.friendlyMessage||'Esta pesquisa não está mais disponível.';
-  else if(details.code==='participant_required'||(code==='invalid-argument'&&/Nome e e-mail são obrigatórios/i.test(message)))userMessage='Informe nome e e-mail para concluir o diagnóstico.';
-  else if(code==='failed-precondition'&&/LGPD|Aceite/i.test(message))userMessage='Aceite o termo de consentimento para enviar suas respostas.';
-  else if(code==='invalid-argument'&&/Pergunta obrigatória/i.test(message))userMessage='Responda todas as perguntas obrigatórias antes de enviar.';
-  else if(code==='permission-denied'&&/Token|token/i.test(message))userMessage='O link da pesquisa está inválido ou expirado.';
-  else if(code==='not-found')userMessage='Pesquisa não encontrada.';
+  const detailCode=String(details.code||'').trim();
+  const message=String(err?.message||details.message||'').trim();
+  const code=detailCode||rawCode||'unknown';
+  let userMessage=details.friendlyMessage||message||'Não conseguimos concluir sua pesquisa agora.';
+  if(code==='participant_required')userMessage='Informe seu nome e e-mail para concluir o diagnóstico.';
+  else if(code==='lgpd_required')userMessage='Aceite o termo de consentimento LGPD para enviar suas respostas.';
+  else if(code==='required_question_missing')userMessage='Responda todas as perguntas obrigatórias antes de enviar.';
+  else if(code==='invalid_public_token'||code==='invalid_token'||code==='token_is_hash')userMessage='O link da pesquisa está inválido ou expirado. Solicite um novo link.';
+  else if(code==='survey_unavailable')userMessage=details.friendlyMessage||'Esta pesquisa foi encerrada ou não está mais disponível.';
+  else if(code==='survey_not_found')userMessage='Pesquisa não encontrada.';
   else if(code==='resource-exhausted')userMessage='Muitas tentativas. Aguarde alguns minutos e tente novamente.';
-  else if(code==='unavailable')userMessage='Serviço temporariamente indisponível. Tente novamente em instantes.';
+  else if(rawCode==='unavailable')userMessage='Serviço temporariamente indisponível. Tente novamente em instantes.';
+  else if(!detailCode&&rawCode==='invalid-argument'&&/Nome e e-mail/i.test(message)){userMessage='Informe seu nome e e-mail para concluir o diagnóstico.';}
   const mapped=new Error(userMessage);
-  mapped.code=code; mapped.originalCode=err?.code; mapped.details=details; mapped.originalMessage=message; mapped.userMessage=userMessage;
+  mapped.code=code; mapped.rawCode=rawCode; mapped.originalCode=err?.code; mapped.details=details; mapped.originalMessage=message; mapped.userMessage=userMessage;
   return mapped;
 }
+function mapPublicFunctionError(err){return normalizeCallablePublicError(err);}
 function normalizePublicFunctionResult(result){
   const responseId=result?.responseId||result?.id;
   const resultToken=result?.resultToken||result?.accessToken;

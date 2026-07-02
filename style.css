@@ -776,3 +776,37 @@ html,body{max-width:100%;overflow-x:hidden}
     overflow: hidden;
   }
 }
+
+.global-loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 23, 31, .28);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999;
+  backdrop-filter: blur(2px);
+}
+.global-loading-overlay.is-active { display: flex; }
+.global-loading-card {
+  background: #fff;
+  color: #0b3d4d;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 20px 80px rgba(0,0,0,.22);
+  max-width: 360px;
+  text-align: center;
+}
+.spinner,
+.spinner-inline {
+  display: inline-block;
+  border: 3px solid rgba(11,61,77,.15);
+  border-top-color: #0b3d4d;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+.spinner { width: 36px; height: 36px; margin-bottom: 12px; }
+.spinner-inline { width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px; }
+.field-error { outline: 2px solid #b5262b; outline-offset: 2px; border-radius: 10px; }
+.question-card-error { border: 2px solid #b5262b; border-radius: 18px; padding: 12px; background: #fff5f6; }
+@keyframes spin { to { transform: rotate(360deg); } }

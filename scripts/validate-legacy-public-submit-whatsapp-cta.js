@@ -1,0 +1,1 @@
+const {read,must}=require('./legacy-public-submit-validator-common');const a=read('app.js');must('publicWhatsappContactUrl exists',/function publicWhatsappContactUrl/.test(a));must('result has WhatsApp CTA',/Falar com especialista Valora|Falar com a Valora no WhatsApp/.test(a));must('error has WhatsApp CTA',/publicWhatsappContactUrl\(\)/.test(a));

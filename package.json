@@ -394,7 +394,9 @@
     "legacy:public-state-machine": "node scripts/validate-legacy-public-state-machine.js",
     "legacy:no-form-without-context": "node scripts/validate-legacy-form-not-rendered-without-context.js",
     "legacy:submit-no-surveyid-mask": "node scripts/validate-legacy-submit-error-does-not-mask-surveyid.js",
-    "legacy:result-after-submit": "node scripts/validate-legacy-result-after-submit.js"
+    "legacy:result-after-submit": "node scripts/validate-legacy-result-after-submit.js",
+    "legacy:no-unavailable-with-form": "node scripts/validate-legacy-no-unavailable-with-form.js",
+    "legacy:submit-hidden-context": "node scripts/validate-legacy-submit-hidden-context-fields.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

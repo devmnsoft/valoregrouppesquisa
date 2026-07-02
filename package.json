@@ -5,7 +5,7 @@
   "scripts": {
     "check": "npm run app:syntax && node --check functions/index.js && npm run actions:handlers && npm run public:boot-no-reference",
     "security:check": "node scripts/security-check.js",
-    "build:prod": "npm run check && npm run check:critical && node scripts/build-production.js && npm run dist:actions",
+    "build:prod": "npm run check && npm run check:critical-runner && npm run check:critical && node scripts/build-production.js && npm run dist:actions",
     "test:rules": "npx firebase emulators:exec --only firestore \"npx mocha tests/rules/**/*.test.js --timeout 20000\"",
     "test:functions": "npx firebase emulators:exec --only firestore,functions \"npx mocha tests/functions/**/*.test.js --timeout 30000\"",
     "test:security": "npm run test:rules && npm run test:functions",

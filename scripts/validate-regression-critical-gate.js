@@ -29,19 +29,40 @@ for (const scriptName of criticalScripts) {
   }
 }
 
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+function runNpmScript(scriptName) {
+  const root = join(__dirname, '..');
+  const npmExecPath = process.env.npm_execpath;
+
+  if (npmExecPath) {
+    return spawnSync(process.execPath, [npmExecPath, 'run', scriptName], {
+      cwd: root,
+      stdio: 'inherit',
+      shell: false,
+      env: process.env
+    });
+  }
+
+  const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+
+  return spawnSync(npmCommand, ['run', scriptName], {
+    cwd: root,
+    stdio: 'inherit',
+    shell: process.platform === 'win32',
+    env: process.env
+  });
+}
 
 for (const scriptName of criticalScripts) {
   console.log(`\ncheck:critical > npm run ${scriptName}`);
-  const result = spawnSync(npmCommand, ['run', scriptName], {
-    cwd: join(__dirname, '..'),
-    stdio: 'inherit',
-    shell: false
-  });
+  const result = runNpmScript(scriptName);
 
   if (result.error) {
     console.error(`Falha ao executar validador crítico: ${scriptName}`);
-    console.error(result.error.message);
+    console.error(`Erro: ${result.error.code || ''} ${result.error.message}`);
+    console.error(`Node: ${process.version}`);
+    console.error(`Platform: ${process.platform}`);
+    console.error(`npm_execpath: ${process.env.npm_execpath || '(não informado)'}`);
+    console.error(`Tente rodar manualmente: npm run ${scriptName}`);
     process.exit(1);
   }
 

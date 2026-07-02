@@ -35,7 +35,7 @@ function normalizeSettings(settings={}){return normalizeSettingsContract?normali
 function normalizeAppState(rawState={}){return normalizeAppStateContract?normalizeAppStateContract(rawState):rawState;}
 function buildCertificateViewModel(response){const r=normalizeResponseSafe(response);return {response:r,participant:r.participant,name:responseParticipantLabel(r),email:responseParticipantEmail(r),company:responseCompanyLabel(r)};}
 function normalizeStateInPlace(){if(state&&normalizeAppStateContract)Object.assign(state,normalizeAppStateContract(state));return state;}
-window.ValoraPublicSurveyState=window.ValoraPublicSurveyState||{status:'idle',route:{surveyId:'',token:'',org:''},context:null,error:null,answersDraft:{},lastUpdatedAt:''};
+window.ValoraPublicSurveyState=window.ValoraPublicSurveyState||{status:'idle',route:{surveyId:'',token:'',org:''},context:null,renderedQuestionIds:[],answersDraft:{},error:null,lastUpdatedAt:''};
 function setPublicSurveyState(patch) {
   window.ValoraPublicSurveyState = { ...(window.ValoraPublicSurveyState || {}), ...patch, lastUpdatedAt: new Date().toISOString() };
 }
@@ -50,24 +50,31 @@ function isDemoOrInvalidPublicRoute(params) {
   return text.includes('survey_demo') || text.includes('empresa-exemplo') || text.includes('demo-token') || text.includes('tokenhash');
 }
 function setPublicSurveyContext(context = {}) {
-  const normalized = { surveyId: context.surveyId || context.survey?.id || '', token: context.token || '', org: context.org || '', survey: context.survey || null, form: context.form || null, company: context.company || null, lgpd: context.lgpd || null };
-  window.ValoraPublicSurveyContext = { ...normalized, validatedAt: new Date().toISOString() };
-  setPublicSurveyState({status: normalized.surveyId && normalized.token && normalized.survey && normalized.form ? 'ready' : 'invalid_link', context: normalized, error: null});
+  if (!context?.surveyId || !context?.token || !context?.survey || !context?.form) {
+    throw Object.assign(new Error('Contexto público incompleto.'), { code: 'public_survey_context_incomplete' });
+  }
+  if (context.survey.formId !== context.form.id) {
+    throw Object.assign(new Error('Formulário incompatível com a pesquisa.'), { code: 'survey_form_mismatch', details: { surveyId: context.surveyId, surveyFormId: context.survey.formId, formId: context.form.id } });
+  }
+  const normalized = { surveyId: context.surveyId, token: context.token, org: context.org || '', survey: context.survey, form: context.form, company: context.company || null, lgpd: context.lgpd || null };
+  setPublicSurveyState({ status: 'ready', context: normalized, error: null, renderedQuestionIds: (normalized.form.questions || []).map(q => q.id) });
+  window.ValoraPublicSurveyContext = normalized;
   window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
-  window.ValoraRuntimeDiagnostics.lastPublicSurveyContext = { surveyId: normalized.surveyId, hasToken: !!normalized.token, org: normalized.org, formId: normalized.form?.id || '', surveyFormId: normalized.survey?.formId || '', formMatchesSurvey: !!(normalized.survey?.formId && normalized.form?.id && normalized.survey.formId===normalized.form.id) };
+  window.ValoraRuntimeDiagnostics.lastPublicSurveyContext = { surveyId: normalized.surveyId, hasToken: !!normalized.token, org: normalized.org, formId: normalized.form?.id || '', surveyFormId: normalized.survey?.formId || '', questionsCount: normalized.form?.questions?.length || 0, formMatchesSurvey: true };
 }
 function getPublicSurveyContext(formEl = null) {
-  const state = window.ValoraPublicSurveyState || {};
+  const state = getPublicSurveyState();
   const current = state.context || window.ValoraPublicSurveyContext || {};
   const route = getPublicSurveyRouteParams();
   return {
-    surveyId: current.surveyId || current.survey?.id || formEl?.querySelector('[name="surveyId"]')?.value || formEl?.dataset?.surveyId || route.surveyId || '',
+    surveyId: current.surveyId || formEl?.querySelector('[name="surveyId"]')?.value || formEl?.dataset?.surveyId || route.surveyId || '',
     token: current.token || formEl?.querySelector('[name="token"]')?.value || route.token || '',
     org: current.org || formEl?.querySelector('[name="org"]')?.value || formEl?.dataset?.org || route.org || '',
     survey: current.survey || null,
     form: current.form || null,
     company: current.company || null,
-    lgpd: current.lgpd || null
+    lgpd: current.lgpd || null,
+    renderedQuestionIds: state.renderedQuestionIds || []
   };
 }
 function clearPublicSurveyDomArtifacts(reason) {
@@ -801,7 +808,7 @@ function renderHome(){
   const adminHomeDiagnostic=isFeaturedAdmin&&homeDiag?.surveyId||isFeaturedAdmin&&homeDiag?.selectedSurveyId?`<div class="info-box" data-home-featured-diagnostic><b>Pesquisa da home:</b> ${esc(homeDiag.selectedSurveyTitle||homeDiag.surveyTitle||homeDiag.surveyId||homeDiag.selectedSurveyId||'—')}<br><b>Formulário:</b> ${esc(homeDiag.formTitle||homeDiag.surveyFormId||homeDiag.formId||'—')}<br><b>Origem:</b> ${esc(homeDiag.source||lastFeaturedDiag.source||'—')}<br><b>IDs:</b> survey=${esc(homeDiag.surveyId||homeDiag.selectedSurveyId||'—')} | form=${esc(homeDiag.surveyFormId||homeDiag.formId||homeDiag.returnedFormId||'—')}</div>`:'';
   const adminWarning=isFeaturedAdmin&&!hasFeaturedSurvey?`<div class="warning-box" data-home-featured-admin-warning><details><summary><b>Detalhes técnicos</b></summary><ul>${rejectedList||'<li>Diagnóstico temporariamente indisponível.</li>'}</ul><div class="confirm-actions"><button class="btn btn-soft" data-action="debugFeaturedHomeSurvey">Rodar diagnóstico</button><button class="btn btn-soft" data-action="repairFeaturedSurvey">Reparar destaque</button><button class="btn btn-soft" data-action="repairOfficialFallback">Reparar diagnóstico oficial</button><button class="btn btn-danger" data-action="applyDemoPurge">Limpar dados demo</button><button class="btn btn-secondary" data-action="copyFeaturedDiagnostic">Copiar diagnóstico</button></div></details></div>`:'';
   const loggedOperationalFallback=currentUser()&&!isFeaturedAdmin&&!hasFeaturedSurvey?`<div class="info-box" data-home-featured-operational><b>Nenhuma pesquisa pública em destaque configurada.</b><p>Escolha uma pesquisa ativa para destacar na home ou use o diagnóstico gratuito oficial.</p><div class="confirm-actions"><button class="btn btn-secondary" data-action="goSurveys">Ver pesquisas</button><button class="btn btn-soft" data-action="goSurveys">Configurar destaque</button><button class="btn btn-primary" data-action="redirectToFeaturedHomeSurvey">Usar diagnóstico gratuito oficial</button></div></div>`:'';
-  const publicFeaturedFallback=!currentUser()&&!hasFeaturedSurvey?`<div class="info-box" data-home-featured-public-fallback><b>Diagnóstico temporariamente indisponível.</b><div class="confirm-actions"><a class="btn btn-primary" href="${esc(whatsappLink)}">Falar com a Valora Group</a><button class="btn btn-soft" data-action="goHome">Tentar novamente</button></div></div>`:'';
+  const publicFeaturedFallback=!currentUser()&&!hasFeaturedSurvey?`<div class="info-box" data-home-featured-public-fallback><b>Carregando diagnóstico gratuito...</b><div class="spinner" aria-hidden="true"></div><p>Estamos preparando o diagnóstico. Tente novamente em instantes ou fale com a Valora.</p><div class="confirm-actions"><a class="btn btn-primary" href="${esc(whatsappLink)}">Falar com a Valora Group</a><button class="btn btn-soft" data-action="goHome">Tentar novamente</button></div></div>`:'';
   const primaryCta=hasFeaturedSurvey?`<a href="${esc(featuredSurveyUrl)}" class="btn btn-primary">Responder diagnóstico gratuito</a>`:`<a href="${esc(whatsappLink)}" ${whatsappLink.startsWith('https://wa.me/')?'target="_blank" rel="noopener"':''} class="btn btn-primary">Falar com a Valora Group</a>`;
   $('#app').innerHTML=`
   <section class="home-hero-v3" aria-labelledby="homeHeroTitle">
@@ -1663,18 +1670,41 @@ function publicWhatsappContactUrl(){return window.ValoraConfig?.WHATSAPP_CONTACT
 function sanitizePublicSubmitDiagnostics(payload){const p=payload||{};return {surveyId:p.surveyId||'',hasToken:!!p.token,answersCount:Object.keys(p.answers||{}).length,participant:{hasName:!!p.participant?.name,hasEmail:!!p.participant?.email},lgpdConsent:!!p.lgpdConsent,communicationConsent:!!p.communicationConsent,invitationId:!!p.invitationId,participantId:!!p.participantId};}
 function markPublicSubmitDiagnostic(stage,payload,extra={}){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};const now=new Date().toISOString();const safe=sanitizePublicSubmitDiagnostics(payload);window.ValoraRuntimeDiagnostics.lastPublicSubmit={...(window.ValoraRuntimeDiagnostics.lastPublicSubmit||{}),stage,startedAt:window.ValoraRuntimeDiagnostics.lastPublicSubmit?.startedAt||now,finishedAt:stage==='success'||stage==='error'?now:'',...safe,errorCode:extra.errorCode||''};return safe;}
 function clearPublicValidationErrors(form){form?.querySelectorAll('.field-error,.question-card-error').forEach(el=>el.classList.remove('field-error','question-card-error'));}
-function showPublicSubmitError(err){const normalized=normalizePublicSubmitError(err);const app=$('#app');if(app)app.innerHTML=publicApiFriendlyError(normalized);else toast(normalized.message,'error');}
+function showPublicSubmitError(error, options = {}) {
+  const normalized = normalizePublicSubmitError(error);
+  if (normalized.questionId || normalized.details?.questionId) document.querySelector(`[data-question-id="${CSS.escape(normalized.questionId || normalized.details.questionId)}"]`)?.classList.add('question-card-error');
+  const form = document.querySelector('[data-public-survey-form]');
+  if (options.keepForm && form) {
+    let box = document.getElementById('publicSubmitInlineError');
+    if (!box) { box = document.createElement('div'); box.id = 'publicSubmitInlineError'; box.className = 'danger-box public-submit-inline-error'; form.prepend(box); }
+    box.innerHTML = `<b>Não conseguimos enviar ainda.</b><br>${esc(normalized.message)}<br><small>Código: ${esc(normalized.code)}</small>`;
+    box.scrollIntoView({ behavior: 'smooth', block: 'center' }); return;
+  }
+  const app=$('#app'); if(app)app.innerHTML=publicApiFriendlyError(normalized); else toast(normalized.message,'error');
+}
+function debugPublicSubmitState(label, payload = null) {
+  window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
+  const form = document.querySelector('[data-public-survey-form]'); const ctx = getPublicSurveyContext(form);
+  const diagnostic = { label, stateStatus: getPublicSurveyState().status, surveyId: ctx.surveyId, hasToken: !!ctx.token, formId: ctx.form?.id || '', surveyFormId: ctx.survey?.formId || '', questionsCount: ctx.form?.questions?.length || 0, renderedQuestionsCount: form ? form.querySelectorAll('[data-question-id]').length : 0, payloadSurveyId: payload?.surveyId || '', payloadAnswersCount: Object.keys(payload?.answers || {}).length, at: new Date().toISOString() };
+  window.ValoraRuntimeDiagnostics.lastPublicSubmitDebug = diagnostic; console.info('[Valora] public submit debug', diagnostic); return diagnostic;
+}
 function focusPublicField(form,name){const el=form?.querySelector(`[name="${name}"]`)||form?.querySelector(`[data-question-id="${name}"] input, [data-question-id="${name}"] textarea`);if(el){el.focus?.();el.scrollIntoView?.({behavior:'smooth',block:'center'});}}
 function getFormValue(formEl, name) { const el=formEl?.querySelector(`[name="${CSS.escape(name)}"]`); return String(el?.value || '').trim(); }
 function collectPublicSurveyAnswers(formEl, formDefinition = {}) {
-  const answers = {};
-  for (const q of formDefinition.questions || []) {
-    const name = `q_${q.id}`; const fields = Array.from(formEl?.querySelectorAll(`[name="${CSS.escape(name)}"]`) || []);
+  if (!Array.isArray(formDefinition.questions) || !formDefinition.questions.length) {
+    const e = new Error('Formulário público sem perguntas carregadas.'); e.code = 'public_form_questions_missing'; throw e;
+  }
+  const answers = {}; const missingDom = [];
+  for (const q of formDefinition.questions) {
+    const wrapper = formEl?.querySelector(`[data-question-id="${CSS.escape(q.id)}"]`);
+    if (!wrapper) { missingDom.push(q.id); continue; }
+    const name = `q_${q.id}`; const fields = Array.from(formEl.querySelectorAll(`[name="${CSS.escape(name)}"]`));
     if (!fields.length) { answers[q.id] = q.type === 'multiple' ? [] : ''; continue; }
     if (fields[0].type === 'checkbox') answers[q.id] = fields.filter(el => el.checked).map(el => el.value);
     else if (fields[0].type === 'radio') answers[q.id] = fields.find(el => el.checked)?.value || '';
     else answers[q.id] = fields[0].value || '';
   }
+  if (missingDom.length) { const e = new Error('Algumas perguntas não foram renderizadas corretamente.'); e.code = 'public_question_dom_missing'; e.details = { questionIds: missingDom }; throw e; }
   return answers;
 }
 function ensureStablePublicSubmitIdempotencyKey(surveyId='', participantEmail='') {
@@ -1687,26 +1717,33 @@ function ensureStablePublicSubmitIdempotencyKey(surveyId='', participantEmail=''
 function buildPublicSurveySubmitPayload(formEl) {
   const ctx = getPublicSurveyContext(formEl); const fd = data(formEl);
   const surveyId = ctx.surveyId || fd.surveyId || ''; const token = ctx.token || fd.token || ''; const org = ctx.org || fd.org || '';
+  if (!ctx.form || !Array.isArray(ctx.form.questions) || !ctx.form.questions.length) { const e = new Error('Formulário não carregado para envio.'); e.code = 'public_form_questions_missing'; throw e; }
   const participant = { name: getFormValue(formEl, 'name') || getFormValue(formEl, 'participant.name') || '', email: getFormValue(formEl, 'email') || getFormValue(formEl, 'participant.email') || '', phone: getFormValue(formEl, 'phone') || '', company: getFormValue(formEl, 'company') || getFormValue(formEl, 'personType') || '', department: getFormValue(formEl, 'department') || '' };
-  const formDefinition = ctx.form || publicSurveyCache.get(surveyId)?.form || {};
-  const answers = collectPublicSurveyAnswers(formEl, formDefinition);
+  const answers = collectPublicSurveyAnswers(formEl, ctx.form);
+  const missingRequiredPreview = (ctx.form.questions || []).filter(q => q.required && (answers[q.id] === undefined || answers[q.id] === null || answers[q.id] === '' || (Array.isArray(answers[q.id]) && !answers[q.id].length))).map(q => q.id);
   const payload = { surveyId, token, org, participant, answers, lgpdConsent: !!formEl.querySelector('[name="lgpdConsent"]')?.checked, communicationConsent: !!formEl.querySelector('[name="communicationConsent"]')?.checked || !!formEl.querySelector('[name="sendEmail"]')?.checked, department: participant.department, idempotencyKey: ensureStablePublicSubmitIdempotencyKey(surveyId, participant.email) };
-  window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {}; window.ValoraRuntimeDiagnostics.lastSubmitPayload = { surveyId: payload.surveyId, hasToken: !!payload.token, org: payload.org, answersCount: Object.keys(payload.answers || {}).length, hasParticipantName: !!payload.participant.name, hasParticipantEmail: !!payload.participant.email, lgpdConsent: payload.lgpdConsent, communicationConsent: payload.communicationConsent };
+  const answersCount = Object.keys(payload.answers || {}).length;
+  window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {}; window.ValoraRuntimeDiagnostics.lastSubmitPayload = { surveyId, hasToken: !!token, formId: ctx.form.id, questionsCount: ctx.form.questions.length, renderedQuestionsCount: formEl.querySelectorAll('[data-question-id]').length, answersCount, missingRequiredPreview };
+  console.info('[Valora] submitSurveyResponse payload', window.ValoraRuntimeDiagnostics.lastSubmitPayload);
   return payload;
 }
 
+
 function validatePublicAnswers(formDefinition,answers){const missing=[];for(const q of formDefinition?.questions||[]){if(q.required){const value=answers?.[q.id];const empty=value===undefined||value===null||value===''||(Array.isArray(value)&&value.length===0);if(empty)missing.push(q);}}return missing;}
 function validatePublicSubmitPayload(payload, context = {}, formEl = null) {
-  clearPublicValidationErrors(formEl); const state=getPublicSurveyState(); context=context?.survey?context:(state.context||context||{}); const survey=context?.survey||{}; const formDefinition=context?.form||publicSurveyCache.get(payload?.surveyId)?.form||{};
+  clearPublicValidationErrors(formEl); const state=getPublicSurveyState(); const formDefinition=context?.form; const survey=context?.survey||null;
   const mark=(selector,cls='field-error')=>{const el=formEl?.querySelector(selector);if(el)el.classList.add(cls);};
   if (!payload.surveyId) return { code: 'missing_survey_id', message: 'Link da pesquisa incompleto. Volte ao diagnóstico gratuito e abra a pesquisa novamente.', field: 'surveyId' };
   if (!payload.token) return { code: 'missing_public_token', message: 'Link da pesquisa sem token de acesso. Volte ao diagnóstico gratuito e abra a pesquisa novamente.', field: 'token' };
   if (state.status !== 'ready') return { code: 'public_survey_not_ready', message: 'A pesquisa ainda não foi carregada. Aguarde e tente novamente.', field: 'surveyId' };
+  if (!formDefinition || !Array.isArray(formDefinition.questions) || !formDefinition.questions.length) return { code: 'public_form_questions_missing', message: 'O formulário não foi carregado corretamente. Reabra o diagnóstico gratuito.', field: 'surveyId' };
+  const renderedIds = new Set(Array.from(formEl?.querySelectorAll('[data-question-id]') || []).map(el => el.dataset.questionId));
+  for (const q of formDefinition.questions) if (!renderedIds.has(String(q.id))) return { code: 'public_question_dom_missing', message: 'Algumas perguntas não foram renderizadas corretamente.', field: `q_${q.id}`, questionId: q.id };
   if (!payload.participant?.name || !payload.participant?.email) { mark('[name="name"]'); mark('[name="email"]'); return { code: 'participant_required', message: 'Informe seu nome e e-mail para concluir o diagnóstico.', field: 'name' }; }
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(payload.participant.email))) { mark('[name="email"]'); return { code: 'invalid_email', message: 'Informe um e-mail válido.', field: 'email' }; }
   if (survey?.lgpdRequired !== false && !payload.lgpdConsent) { mark('[name="lgpdConsent"]'); return { code: 'lgpd_required', message: 'Aceite o termo de consentimento LGPD para enviar suas respostas.', field: 'lgpdConsent' }; }
-  const missing = validatePublicAnswers(formDefinition, payload.answers || {});
-  if (missing.length) { for (const q of missing) formEl?.querySelector(`[data-question-id="${q.id}"]`)?.classList.add('question-card-error'); return { code: 'required_question_missing', message: 'Responda todas as perguntas obrigatórias antes de enviar.', field: `q_${missing[0].id}`, questionId: missing[0].id }; }
+  const missing=[]; for (const q of formDefinition.questions) { if (!q.required) continue; const value=payload.answers?.[q.id]; if (value===undefined||value===null||value===''||(Array.isArray(value)&&value.length===0)) missing.push(q); }
+  if (missing.length) { for (const q of missing) formEl?.querySelector(`[data-question-id="${CSS.escape(q.id)}"]`)?.classList.add('question-card-error'); return { code:'required_question_missing', questionId:missing[0].id, message:'Responda todas as perguntas obrigatórias antes de enviar.', field:`q_${missing[0].id}` }; }
   return null;
 }
 function normalizePublicSubmitError(err) {
@@ -1714,7 +1751,8 @@ function normalizePublicSubmitError(err) {
   const msg = String(err?.message || details.message || details.friendlyMessage || '');
   if (code === 'invalid-argument' && /surveyId.*obrigat/i.test(msg)) code = 'missing_survey_id';
   if (code === 'invalid-argument' && /token.*obrigat/i.test(msg)) code = 'missing_public_token';
-  const byCode = {missing_survey_id:'Link da pesquisa incompleto. Volte ao diagnóstico gratuito e abra a pesquisa novamente.',missing_public_token:'Link da pesquisa sem token de acesso. Volte ao diagnóstico gratuito e abra a pesquisa novamente.',public_survey_not_ready:'A pesquisa ainda não foi carregada. Aguarde e tente novamente.',demo_or_invalid_public_link:'Este link de pesquisa não está disponível em produção.',survey_form_mismatch:'Formulário incompatível com a pesquisa.',participant_required:'Informe seu nome e e-mail para concluir o diagnóstico.',invalid_email:'Informe um e-mail válido.',lgpd_required:'Aceite o termo de consentimento LGPD para enviar suas respostas.',required_question_missing:'Responda todas as perguntas obrigatórias antes de enviar.',invalid_public_token:'O link da pesquisa está inválido ou expirado. Solicite um novo link.',invalid_token:'O link da pesquisa está inválido ou expirado. Solicite um novo link.',survey_unavailable:'Esta pesquisa foi encerrada ou não está mais disponível.',survey_not_found:'Pesquisa não encontrada.',form_not_found:'Formulário não encontrado.',resource_exhausted:'Muitas tentativas. Aguarde alguns minutos e tente novamente.'};
+  if (code === 'required_question_missing' || details.questionId || (code === 'invalid-argument' && /Pergunta obrigat/i.test(msg))) code = 'required_question_missing';
+  const byCode = {missing_survey_id:'Link da pesquisa incompleto. Volte ao diagnóstico gratuito e abra a pesquisa novamente.',missing_public_token:'Link da pesquisa sem token de acesso. Volte ao diagnóstico gratuito e abra a pesquisa novamente.',public_survey_not_ready:'A pesquisa ainda não foi carregada. Aguarde e tente novamente.',demo_or_invalid_public_link:'Este link de pesquisa não está disponível em produção.',survey_form_mismatch:'Formulário incompatível com a pesquisa.',participant_required:'Informe seu nome e e-mail para concluir o diagnóstico.',invalid_email:'Informe um e-mail válido.',lgpd_required:'Aceite o termo de consentimento LGPD para enviar suas respostas.',required_question_missing:'Responda todas as perguntas obrigatórias antes de enviar.',invalid_public_token:'O link da pesquisa está inválido ou expirado. Solicite um novo link.',invalid_token:'O link da pesquisa está inválido ou expirado. Solicite um novo link.',survey_unavailable:'Esta pesquisa foi encerrada ou não está mais disponível.',survey_not_found:'Pesquisa não encontrada.',form_not_found:'Formulário não encontrado.',resource_exhausted:'Muitas tentativas. Aguarde alguns minutos e tente novamente.',public_form_questions_missing:'O formulário não foi carregado corretamente. Reabra o diagnóstico gratuito.',public_question_dom_missing:'Algumas perguntas não foram renderizadas corretamente.'};
   return {code,rawCode,message:byCode[code]||details.friendlyMessage||err?.userMessage||err?.message||'Não conseguimos registrar sua resposta agora. Tente novamente em instantes.',details};
 }
 
@@ -1845,9 +1883,9 @@ async function renderTakeSurvey(sid=null,token=null,orgSlug='',resolvedPayload=n
   }
   const stateNow=getPublicSurveyState();
   const contextReady=stateNow.context;
-  if (stateNow.status !== 'ready' || !contextReady || !contextReady.surveyId || !contextReady.token || !contextReady.survey || !contextReady.form || contextReady.survey.formId !== contextReady.form.id) {
+  if (stateNow.status !== 'ready' || !contextReady || !contextReady.surveyId || !contextReady.token || !contextReady.survey || !contextReady.form || !Array.isArray(contextReady.form.questions) || !contextReady.form.questions.length || contextReady.survey.formId !== contextReady.form.id) {
     clearPublicSurveyDomArtifacts('not_ready_before_render');
-    return renderPublicSurveyUnavailable({code:'missing_public_survey_context',message:'Não encontramos um link válido para esta pesquisa.'});
+    return renderPublicSurveyUnavailable({code:'public_survey_context_incomplete',message:'Não encontramos um link válido para esta pesquisa.'});
   }
   const {survey:s,form:f,company,lgpd}=stateNow.context; sid=stateNow.context.surveyId; token=stateNow.context.token; orgSlug=stateNow.context.org;
   publicSurveyCache.set(sid,{survey:s,form:f,company,lgpd});
@@ -1901,23 +1939,23 @@ async function submitSurvey(form){
   const fd=data(form);
   if(isFirebaseMode()){
     if(publicSubmitInProgress){toast('Sua resposta já está sendo enviada. Aguarde...','info');return;}
-    const ctxNow=getPublicSurveyContext(form);
-    const cached=publicSurveyCache.get(ctxNow.surveyId||fd.surveyId)||{};
-    const context={survey:ctxNow.survey||cached.survey||{},form:ctxNow.form||cached.form||{},token:ctxNow.token||fd.token,surveyId:ctxNow.surveyId||fd.surveyId,org:ctxNow.org};
-    if(!context.form?.questions)return toast('Valide o link novamente antes de enviar.','error');
+    const context=getPublicSurveyContext(form);
+    if(!context.form||!Array.isArray(context.form.questions)||!context.form.questions.length){showPublicSubmitError({code:'public_form_questions_missing',message:'O formulário não foi carregado corretamente. Reabra o diagnóstico gratuito.'},{keepForm:true});return false;}
     const button=form.querySelector('[type="submit"]')||form.querySelector('button');
     publicSubmitInProgress=true;
     try{
       return await withLoading('Aguarde, estamos processando sua requisição...',async()=>{
         let submitPayload=buildPublicSurveySubmitPayload(form);
+        debugPublicSubmitState('before_local_validation', submitPayload);
         const validationError=validatePublicSubmitPayload(submitPayload,getPublicSurveyContext(form),form);
-        if(validationError){focusPublicField(form,validationError.field);const normalized=normalizePublicSubmitError(validationError);showPublicSubmitError(normalized);return false;}
+        if(validationError){focusPublicField(form,validationError.field);showPublicSubmitError(validationError,{keepForm:true});return false;}
         if(!submitPayload.surveyId || !submitPayload.token){const err={code:!submitPayload.surveyId?'missing_survey_id':'missing_public_token',message:!submitPayload.surveyId?'Link da pesquisa incompleto. Volte ao diagnóstico gratuito e abra a pesquisa novamente.':'Link da pesquisa sem token de acesso. Volte ao diagnóstico gratuito e abra a pesquisa novamente.'};showPublicSubmitError(err);return false;}
         if(isDemoPublicSurveyLink(submitPayload)) submitPayload=await resolveFeaturedHomeSurveyPayload(submitPayload);
         if(isDemoPublicSurveyLink(submitPayload)){const e=new Error('Payload legado bloqueado antes do envio.');e.code='legacy_demo_payload_blocked';throw e;}
         window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
         window.ValoraRuntimeDiagnostics.lastSubmitPayload=sanitizePublicSubmitDiagnostics(submitPayload);
         window.ValoraRuntimeDiagnostics.lastSubmitStartedAt=new Date().toISOString();
+        debugPublicSubmitState('before_function', submitPayload);
         markPublicSubmitDiagnostic('calling_function',submitPayload);
         if(window.ValoraConfig?.ENVIRONMENT!=='production')console.info('[Valora] submitSurveyResponse payload',sanitizePublicSubmitDiagnostics(submitPayload));
         const res=await submitPublicSurveyResponse(submitPayload);
@@ -1929,8 +1967,9 @@ async function submitSurvey(form){
       window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
       window.ValoraRuntimeDiagnostics.lastSubmitError={code,rawCode,message:err?.userMessage||err?.message||'',details:err?.details||{},at:new Date().toISOString()};
       markPublicSubmitDiagnostic('error',{surveyId:fd.surveyId,token:fd.token,answers:{}},{errorCode:code});
-      const validationCodes=['participant_required','lgpd_required','required_question_missing'];
-      if(validationCodes.includes(code))toast(err?.userMessage||err?.message,'error');else $('#app').innerHTML=publicApiFriendlyError(err);
+      const normalized=normalizePublicSubmitError(err);
+      const validationCodes=['required_question_missing','participant_required','lgpd_required','invalid_email','public_form_questions_missing','public_question_dom_missing','missing_survey_id','missing_public_token'];
+      showPublicSubmitError(normalized,{keepForm:validationCodes.includes(normalized.code||code)});
       return false;
     }finally{publicSubmitInProgress=false;}
   }

@@ -36,3 +36,7 @@ npm run backend:reports-email-validate
 ```
 
 SMTP real deve ser configurado por `VALORA_SMTP_HOST`, `VALORA_SMTP_PORT`, `VALORA_SMTP_SECURITY`, `VALORA_SMTP_USERNAME`, `VALORA_SMTP_PASSWORD`, `VALORA_SMTP_FROM_EMAIL` e `VALORA_SMTP_FROM_NAME`. Em desenvolvimento, a fila pode operar como `DevelopmentOutbox` sem expor senha na Web.
+
+## Importação do legado
+
+Use `POST /migration/batches`, `POST /migration/batches/{batchId}/dry-run`, `POST /migration/batches/{batchId}/apply`, `POST /migration/batches/{batchId}/rollback` e `GET /migration/batches/{batchId}/cutover-readiness`. Toda fonte deve ser JSON exportado; não há chamada ao Firebase real.

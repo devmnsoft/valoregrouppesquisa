@@ -396,7 +396,9 @@
     "legacy:submit-no-surveyid-mask": "node scripts/validate-legacy-submit-error-does-not-mask-surveyid.js",
     "legacy:result-after-submit": "node scripts/validate-legacy-result-after-submit.js",
     "legacy:no-unavailable-with-form": "node scripts/validate-legacy-no-unavailable-with-form.js",
-    "legacy:submit-hidden-context": "node scripts/validate-legacy-submit-hidden-context-fields.js"
+    "legacy:submit-hidden-context": "node scripts/validate-legacy-submit-hidden-context-fields.js",
+    "backend:homologation-cutover-validate": "node tools/validate-backend-official-homologation-cutover.js",
+    "backend:migration-import-validate": "node tools/validate-backend-official-migration-import.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

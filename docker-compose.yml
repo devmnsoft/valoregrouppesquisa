@@ -1,46 +1,22 @@
 services:
-  valora-postgres:
-    image: postgres:16
-    container_name: valora-postgres
+  postgres-hml:
+    image: postgres:16-alpine
+    container_name: valora-postgres-hml
     restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      POSTGRES_DB: valoradb
-      POSTGRES_USER: valora
-      POSTGRES_PASSWORD: valora_dev_123
+      POSTGRES_DB: ${VALORA_POSTGRES_DB:-valora_hml}
+      POSTGRES_USER: ${VALORA_POSTGRES_USER:-valora_hml}
+      POSTGRES_PASSWORD: ${VALORA_POSTGRES_PASSWORD:-change-me-local-only}
     ports:
-      - "5434:5432"
+      - "${VALORA_POSTGRES_PORT:-5432}:5432"
     volumes:
-      - valora_postgres_data:/var/lib/postgresql/data
-  valora-api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: valora-api
-    restart: unless-stopped
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=valora-postgres;Port=5432;Database=valoradb;Username=valora;Password=valora_dev_123;Pooling=true;Maximum Pool Size=50;Timeout=30;Command Timeout=60;Application Name=ValoraPulse
-      Jwt__Issuer: ValoraPulse
-      Jwt__Audience: ValoraPulse
-      Jwt__Secret: trocar-por-segredo-forte-em-producao
-      Jwt__ExpiresMinutes: 480
-    ports:
-      - "5080:8080"
-    depends_on:
-      - valora-postgres
-  valora-web:
-    build:
-      context: .
-      dockerfile: backend/Valora.Web/Dockerfile
-    container_name: valora-web
-    restart: unless-stopped
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      Api__BaseUrl: http://valora-api:8080
-      WebApp__PublicUrl: http://localhost:5088
-    ports:
-      - "5088:8080"
-    depends_on:
-      - valora-api
+      - valora_postgres_hml_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${VALORA_POSTGRES_USER:-valora_hml} -d ${VALORA_POSTGRES_DB:-valora_hml}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 volumes:
-  valora_postgres_data:
+  valora_postgres_hml_data:

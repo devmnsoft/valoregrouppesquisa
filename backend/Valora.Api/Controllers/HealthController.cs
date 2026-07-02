@@ -42,8 +42,14 @@ public sealed class HealthController(
     [HttpGet("/health/migration")]
     public IActionResult Migration() => Ok(Base(new { migration = MigrationInfo() }));
 
+    [HttpGet("/health/email")]
+    public IActionResult Email() => Ok(Base(new { email = string.IsNullOrWhiteSpace(configuration["Smtp:Host"]) ? "not_configured" : "configured" }));
+
+    [HttpGet("/health/storage")]
+    public IActionResult Storage() => Ok(Base(new { storage = "local_or_database", backupDirConfigured = !string.IsNullOrWhiteSpace(configuration["VALORA_BACKUP_DIR"]) }));
+
     [HttpGet("/health/version")]
-    public IActionResult Version() => Ok(Base(new { version = VersionValue() }));
+    public IActionResult Version() => Ok(Base(new { version = VersionValue(), build = configuration["Build:Sha"] ?? "local" }));
 
     [HttpGet("/health/config")]
     public IActionResult Config() => Ok(Base(new { postgresConfigured = !string.IsNullOrWhiteSpace(configuration.GetConnectionString("DefaultConnection")) }));
@@ -57,7 +63,7 @@ public sealed class HealthController(
             ["environment"] = environment.EnvironmentName,
             ["version"] = VersionValue(),
             ["correlationId"] = CorrelationId(),
-            ["time"] = DateTimeOffset.UtcNow
+            ["timestamp"] = DateTimeOffset.UtcNow
         };
         foreach (var p in extra.GetType().GetProperties()) basePayload[p.Name] = p.GetValue(extra);
         return basePayload;

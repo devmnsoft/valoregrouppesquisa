@@ -1,0 +1,1 @@
+const fs=require('fs');const a=fs.readFileSync('app.js','utf8');['function setGlobalLoading','async function withLoading','function setButtonLoading','pendingActions','actionKey'].forEach(x=>{if(!a.includes(x))throw Error(x+' ausente')});console.log('validate-global-loading-ux: PASS');

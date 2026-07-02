@@ -1,0 +1,1 @@
+const fs=require('fs');const n=fs.readFileSync('notification-service.js','utf8');if(!/RUNTIME_ENV[\s\S]{0,80}production[\s\S]{0,80}generateNotifications/.test(n))throw Error('listForUser não bloqueia geração em produção');console.log('validate-notification-no-frontend-generation-production: PASS');

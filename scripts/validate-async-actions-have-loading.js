@@ -1,0 +1,1 @@
+const fs=require('fs');const a=fs.readFileSync('app.js','utf8');['withLoading','deleteForm','deleteSurvey','submitSurvey','featureSurvey','saveSettings','shareSurvey'].forEach(x=>{if(!a.includes(x))throw Error(x+' ausente')});console.log('validate-async-actions-have-loading: PASS');

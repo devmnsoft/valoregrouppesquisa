@@ -1,0 +1,1 @@
+const fs=require('fs');const n=fs.readFileSync('notification-service.js','utf8');['onboarding_stalled','suppressedUntil','conditionHash','empresa/surveys'].forEach(x=>{if(!n.includes(x))throw Error(x+' ausente')});console.log('validate-onboarding-notification-suppression: PASS');

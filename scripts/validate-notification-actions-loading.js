@@ -1,0 +1,1 @@
+const fs=require('fs');const a=fs.readFileSync('app.js','utf8');['markNotificationRead(el){return withLoading','dismissNotification(el){return withLoading','actNotification(el){return withLoading'].forEach(x=>{if(!a.includes(x))throw Error(x+' ausente')});console.log('validate-notification-actions-loading: PASS');

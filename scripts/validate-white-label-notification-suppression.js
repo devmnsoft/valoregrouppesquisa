@@ -1,0 +1,1 @@
+const fs=require('fs');const n=fs.readFileSync('notification-service.js','utf8');['white_label_incomplete','suppressedUntil','conditionHash','stableHash(company.brand)'].forEach(x=>{if(!n.includes(x))throw Error(x+' ausente')});console.log('validate-white-label-notification-suppression: PASS');

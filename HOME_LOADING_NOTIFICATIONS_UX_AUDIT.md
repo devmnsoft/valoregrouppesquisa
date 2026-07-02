@@ -1,6 +1,6 @@
 # Auditoria — Home, Loading, Notificações e UX
 
-Data: 2026-07-01.
+Data: 2026-07-02.
 
 ## Escopo auditado
 - `app.js`: renderização da home pública/logada, ações, central de notificações, wrappers de loading.
@@ -48,3 +48,10 @@ Campos: `id`, `organization_id`, `user_id`, `role`, `audience`, `type`, `severit
 - `POST /admin/notifications/generate`
 
 Até a migração terminar, o front legado não gera notificações automaticamente em produção.
+
+
+## Validação executada em 2026-07-02
+- Build de produção gerado: `app.fdabdba9e030.js` e `style.47a7893dbecb.css`.
+- Deploy seletivo solicitado: `firebase deploy --only functions:dedupeNotifications,getFeaturedHomeSurvey,repairOfficialFormDocument --project gestordepesquisa`.
+- Deploy de hosting solicitado: `firebase deploy --only hosting --project gestordepesquisa`.
+- Observação: o ambiente local não possui Firebase CLI (`firebase: command not found`), então os comandos de deploy foram documentados e não executados neste container.

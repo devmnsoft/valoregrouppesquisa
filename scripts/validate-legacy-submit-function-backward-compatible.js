@@ -1,5 +1,6 @@
-const {read,assert,ok}=require('./legacy-public-submit-validator-lib');const fn=read('functions/index.js');
-assert(fn.includes('function publicSubmitPayloadFromRequest(req)'),'helper publicSubmitPayloadFromRequest ausente');
-assert(fn.includes('raw.payload')&&fn.includes('data.payload'),'não aceita payload flat/aninhado/duplo');
-assert(fn.includes("data.surveyId||data.survey")&&fn.includes("data.token||data.publicToken||data.accessToken"),'aliases survey/token ausentes');
-assert(fn.includes("code:'missing_survey_id'")&&fn.includes("code:'missing_public_token'"),'erros claros ausentes');ok('function compatível com contratos legado/novo');
+const {read,must}=require('./legacy-public-final-validator-common');const f=read('functions/index.js');
+must('publicSubmitPayloadFromRequest helper exists',/function publicSubmitPayloadFromRequest\(req\)/.test(f));
+must('nested payload accepted',/raw\.payload[\s\S]*data\.payload/.test(f));
+must('legacy survey alias accepted',/data\.surveyId\|\|data\.survey/.test(f));
+must('legacy token aliases accepted',/data\.token\|\|data\.publicToken\|\|data\.accessToken/.test(f));
+must('clear missing details',/code:'missing_survey_id'/.test(f)&&/code:'missing_public_token'/.test(f));

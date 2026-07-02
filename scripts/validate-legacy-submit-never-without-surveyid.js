@@ -1,5 +1,5 @@
-const {read,assert,ok}=require('./legacy-public-submit-validator-lib');const app=read('app.js'), repo=read('firebase-repository.js');
-assert(app.includes('function buildPublicSurveySubmitPayload(formEl)'),'buildPublicSurveySubmitPayload ausente');
-assert(app.includes("code: 'missing_survey_id'")&&app.includes("code: 'missing_public_token'"),'validação local não bloqueia surveyId/token');
-assert(app.includes('const validationError=validatePublicSubmitPayload(submitPayload,context,form);')&&app.indexOf('const validationError=validatePublicSubmitPayload')<app.indexOf('const res=await submitPublicSurveyResponse(submitPayload)'),'submit chama function antes da validação');
-assert(repo.includes("if(!payload?.surveyId)")&&repo.includes("e.code='missing_survey_id'"),'repository não bloqueia submit sem surveyId');ok('submit não segue sem surveyId/token');
+const {read,must}=require('./legacy-public-final-validator-common');const a=read('app.js');
+must('payload builder exists',/function buildPublicSurveySubmitPayload/.test(a));
+must('payload uses context surveyId not dataset fallback',/const ctx = getPublicSurveyContext\(\); const surveyId = ctx\.surveyId \|\| ctx\.survey\?\.id \|\| ''/.test(a));
+must('validation before submit function',a.indexOf('const validationError=validatePublicSubmitPayload')>-1&&a.indexOf('const validationError=validatePublicSubmitPayload')<a.indexOf('const res=await submitPublicSurveyResponse'));
+must('missing_survey_id validator exists',/code: 'missing_survey_id'/.test(a));

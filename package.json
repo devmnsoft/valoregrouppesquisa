@@ -412,7 +412,8 @@
     "legacy:result-no-referenceerror": "node scripts/validate-legacy-result-render-no-referenceerror.js",
     "legacy:calculate-result-recommendation": "node scripts/validate-legacy-calculate-result-recommendation.js",
     "legacy:result-fallback-after-submit": "node scripts/validate-legacy-result-fallback-after-submit.js",
-    "dist:no-undefined-result-helpers": "node scripts/validate-dist-no-undefined-result-helpers.js"
+    "dist:no-undefined-result-helpers": "node scripts/validate-dist-no-undefined-result-helpers.js",
+    "backend:official-sql-schema": "node tools/validate-backend-official-sql-schema.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

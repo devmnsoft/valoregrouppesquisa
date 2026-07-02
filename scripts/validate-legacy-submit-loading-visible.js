@@ -1,4 +1,4 @@
-const {read,assert,ok}=require('./legacy-public-submit-validator-lib');const app=read('app.js'), css=read('style.css');
-assert(app.includes('withLoading(\'Aguarde, estamos processando sua requisição...\'')||app.includes('withLoading("Aguarde, estamos processando sua requisição..."'),'submit sem withLoading correto');
-assert(app.includes('globalLoadingOverlay')&&css.includes('.global-loading-overlay')&&css.includes('global-loading-card'),'overlay loading ausente');
-assert(css.includes('valoraSpin')&&css.includes('.btn-spinner'),'spinner loading ausente');ok('loading visível no submit');
+const {read,must}=require('./legacy-public-final-validator-common');const a=read('app.js'),c=read('style.css');
+must('loading helpers exist',/function setGlobalLoading/.test(a)&&/function setButtonLoading/.test(a)&&/async function withLoading/.test(a));
+must('submit loading message exists',/Aguarde, estamos processando sua requisição/.test(a));
+must('loading css exists',/\.global-loading-overlay/.test(c)&&/\.global-loading-overlay\.is-active/.test(c)&&/\.global-loading-card/.test(c)&&/\.global-loading-spinner/.test(c)&&/\.btn-spinner/.test(c)&&/@keyframes valoraSpin/.test(c));

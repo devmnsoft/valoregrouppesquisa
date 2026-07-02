@@ -390,7 +390,11 @@
     "legacy:submit-error-buttons-safe": "node scripts/validate-legacy-submit-error-buttons-safe.js",
     "legacy:submit-success-result": "node scripts/validate-legacy-submit-success-result-redirect.js",
     "check:critical-runner": "node scripts/validate-critical-gate-runner.js",
-    "backend:migration-import-validate": "node tools/validate-backend-official-migration-import.js"
+    "dist:actions-windows-path": "node scripts/validate-dist-action-handlers-windows-path.js",
+    "legacy:public-state-machine": "node scripts/validate-legacy-public-state-machine.js",
+    "legacy:no-form-without-context": "node scripts/validate-legacy-form-not-rendered-without-context.js",
+    "legacy:submit-no-surveyid-mask": "node scripts/validate-legacy-submit-error-does-not-mask-surveyid.js",
+    "legacy:result-after-submit": "node scripts/validate-legacy-result-after-submit.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

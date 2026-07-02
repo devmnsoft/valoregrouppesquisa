@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+set -euo pipefail
+[ -f .env ] || cp .env.example .env
+docker compose up -d postgres-hml
+docker compose ps postgres-hml

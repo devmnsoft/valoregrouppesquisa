@@ -1,0 +1,82 @@
+{
+  "collections": {
+    "organizations": [
+      {
+        "id": "org_sample_001",
+        "name": "Empresa Ficticia HML",
+        "document": "00000000000191",
+        "status": "active"
+      }
+    ],
+    "users": [
+      {
+        "id": "user_sample_001",
+        "organizationId": "org_sample_001",
+        "name": "Admin Ficticio",
+        "email": "admin.hml@example.test",
+        "role": "admin_valora"
+      }
+    ],
+    "forms": [
+      {
+        "id": "form_sample_001",
+        "organizationId": "org_sample_001",
+        "title": "Formulario HML"
+      }
+    ],
+    "surveys": [
+      {
+        "id": "survey_sample_001",
+        "organizationId": "org_sample_001",
+        "formId": "form_sample_001",
+        "title": "Pesquisa HML"
+      }
+    ],
+    "surveyLinks": [
+      {
+        "id": "link_sample_001",
+        "surveyId": "survey_sample_001",
+        "publicCode": "sample-public-code"
+      }
+    ],
+    "responses": [
+      {
+        "id": "response_sample_001",
+        "surveyId": "survey_sample_001",
+        "participantName": "Pessoa Ficticia",
+        "participantEmail": "pessoa@example.test"
+      }
+    ],
+    "results": [
+      {
+        "id": "result_sample_001",
+        "responseId": "response_sample_001",
+        "score": 85
+      }
+    ],
+    "certificates": [
+      {
+        "id": "cert_sample_001",
+        "responseId": "response_sample_001",
+        "validationCode": "VALORA-SAMPLE-001"
+      }
+    ],
+    "auditLogs": [
+      {
+        "id": "audit_sample_001",
+        "action": "sample.imported",
+        "entityType": "sample",
+        "message": "Evento ficticio sanitizado"
+      }
+    ],
+    "consents": [
+      {
+        "id": "consent_sample_001",
+        "responseId": "response_sample_001",
+        "consentType": "lgpd_public_survey",
+        "accepted": true
+      }
+    ]
+  },
+  "sourceType": "manual"
+}

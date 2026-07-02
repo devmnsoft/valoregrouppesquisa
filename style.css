@@ -810,3 +810,15 @@ html,body{max-width:100%;overflow-x:hidden}
 .field-error { outline: 2px solid #b5262b; outline-offset: 2px; border-radius: 10px; }
 .question-card-error { border: 2px solid #b5262b; border-radius: 18px; padding: 12px; background: #fff5f6; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+.global-loading-spinner,
+.btn-spinner {
+  display: inline-block;
+  border-radius: 999px;
+  border: 3px solid rgba(11, 61, 77, .16);
+  border-top-color: #0b3d4d;
+  animation: valoraSpin .8s linear infinite;
+}
+.global-loading-spinner { width: 38px; height: 38px; margin-bottom: 12px; }
+.btn-spinner { width: 16px; height: 16px; margin-right: 8px; vertical-align: -3px; }
+@keyframes valoraSpin { to { transform: rotate(360deg); } }

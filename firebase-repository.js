@@ -8,6 +8,14 @@ const FRIENDLY_LOAD_ERROR='Não foi possível carregar as informações. Tente n
 const REQUIRED_FRONTEND_COLLECTIONS=['settings','modules','plans','organizations','companies','users','forms','surveys','responses','invitations','invoices','actionPlans','notifications','knowledgeBase','supportCategories','supportSlaPolicies','supportTickets','supportMessages','integrations','webhooks','apiKeys','communications','units','serviceDeliverables'];
 const session={authUser:null,profile:null,claims:{},ready:false,readyPromise:null,unsubscribe:null,store:null,normalizeState:null,loaded:false,loading:false,lastError:null,cache:{},authDebug:null};
 
+function assertPublicSubmitPayloadReady(payload){
+  const guard=window.ValoraPublicSubmitGuard?.assertPublicSubmitPayloadReady;
+  if(typeof guard==='function')return guard(payload);
+  if(!payload||typeof payload!=='object'){const e=new Error('Payload de pesquisa inválido.');e.code='invalid_public_submit_payload';throw e;}
+  if(!payload.surveyId){const e=new Error('Link da pesquisa incompleto. Volte ao diagnóstico gratuito e abra a pesquisa novamente.');e.code='missing_survey_id';e.details={code:'missing_survey_id'};throw e;}
+  if(!payload.token){const e=new Error('Link da pesquisa sem token de acesso. Volte ao diagnóstico gratuito e abra a pesquisa novamente.');e.code='missing_public_token';e.details={code:'missing_public_token'};throw e;}
+  return true;
+}
 function services(){return window.ValoraFirebaseServices||{};}
 function ensureFirebase(){const s=services();if(!s.initialized||!s.auth||!s.db)throw Object.assign(new Error('Serviço de autenticação indisponível. Tente novamente mais tarde.'),{code:'network'});return s;}
 function firestore(){return ensureFirebase().db;}
@@ -334,6 +342,7 @@ function normalizePublicFunctionResult(result){
   return {ok:result.ok!==false,responseId,resultToken,accessToken:resultToken,score:result.score,level:result.level,message:result.message||result.level?.recommendation||'',resultEmail:result.resultEmail||{attempted:false,status:'not_requested'}};
 }
 async function submitPublicSurveyResponseFirebase(payload){
+  assertPublicSubmitPayloadReady(payload);
   if(!payload?.surveyId){const e=new Error('Link da pesquisa incompleto. Volte ao diagnóstico gratuito e abra a pesquisa novamente.');e.code='missing_survey_id';throw e;}
   if(!payload?.token){const e=new Error('Link da pesquisa sem token de acesso. Volte ao diagnóstico gratuito e abra a pesquisa novamente.');e.code='missing_public_token';throw e;}
   try{return normalizePublicFunctionResult(await callFunction('submitSurveyResponse',{payload}));}

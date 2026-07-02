@@ -1,0 +1,1 @@
+const fs=require('fs');const a=fs.readFileSync('app.js','utf8');const m=a.match(/async function retryPublicSurvey\(\)\{[\s\S]*?\n\}/);if(!m){console.error('retry ausente');process.exit(1)}if(/submitSurvey|submitPublicSurveyResponse|submitSurveyResponse/.test(m[0])){console.error('retry chama submit');process.exit(1)}console.log('validate-legacy-retry-never-submits: PASS');

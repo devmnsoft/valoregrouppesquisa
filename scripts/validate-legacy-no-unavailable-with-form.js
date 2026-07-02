@@ -1,6 +1,4 @@
-const {read,must}=require('./legacy-public-final-validator-common');const a=read('app.js');
-must('clearPublicSurveyDomArtifacts helper exists',/function clearPublicSurveyDomArtifacts\(reason\)/.test(a));
-must('unavailable clears DOM artifacts',/function renderPublicSurveyUnavailable[\s\S]*clearPublicSurveyDomArtifacts\('render_unavailable'\)/.test(a));
-must('unavailable sets state unavailable with null context',/setPublicSurveyState\(\{status:'unavailable',context:null/.test(a));
-must('unavailable replaces app HTML',/const app=\$\('#app'\); if\(app\)app\.innerHTML=html/.test(a));
-must('runtime assert detects stale public form',/BUG: formulário público renderizado durante estado indisponível/.test(a));
+const fs=require('fs');const a=fs.readFileSync('app.js','utf8');function ok(c,m){if(!c){console.error(m);process.exit(1)}}
+const f=a.slice(a.indexOf('function renderPublicSurveyUnavailable'),a.indexOf('function publicApiErrorCode'));
+ok(f.includes("setPublicSurveyState({status:'unavailable',context:null"),'state unavailable ausente');ok(f.includes("clearPublicSurveyDomArtifacts('render_unavailable')"),'clear ausente');ok(/if\(app\)app\.innerHTML=html/.test(f),'não substitui #app');ok(f.includes("document.querySelector('[data-public-survey-form]')"),'validação pós-render ausente');
+console.log('validate-legacy-no-unavailable-with-form: PASS');

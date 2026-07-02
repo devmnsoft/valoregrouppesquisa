@@ -45,3 +45,11 @@ dotnet test backend/Valora.sln
 
 ## Sprint SaaS + relatórios + certificados + LGPD + e-mail
 A evolução oficial permanece em `backend/Valora.sln`. Novos recursos operacionais usam Dapper/PostgreSQL no schema `valorapesquisa`, controllers oficiais da API e Web MVC/Razor. SMTP real deve usar apenas variáveis `VALORA_SMTP_*`; a UI não expõe senha SMTP.
+
+## Importação controlada legado/Firebase/localStorage
+
+A importação oficial ocorre apenas em `backend/Valora.sln` e usa PostgreSQL. Fontes aceitas: export Firestore em JSON, export localStorage/database.sample e JSON manual. O Firebase real não é chamado.
+
+Fluxo operacional: registrar fonte, criar batch, executar dry-run, revisar divergências/conflitos, reconciliar, aplicar com `confirmApply=true` e perfil `admin_valora`, validar prontidão, e manter rollback por batch. Rollback exige `confirmRollback=true`.
+
+Nenhuma tela ou API exibe senha, hash, token, refresh token, connection string, segredo SMTP, stack trace ou payload bruto sensível. Tokens públicos legados devem ser mascarados/regenerados.

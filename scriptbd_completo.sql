@@ -180,64 +180,13 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.password_reset_tokens (
 );
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.plans (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE, name text NOT NULL, badge text, public_subtitle text, description text, monthly_price numeric(12,2) NOT NULL DEFAULT 0, annual_price numeric(12,2) NOT NULL DEFAULT 0, price_complement text, cta_label text, display_order int NOT NULL DEFAULT 0, highlight boolean NOT NULL DEFAULT false, recommended boolean NOT NULL DEFAULT false, visible_on_public_pricing boolean NOT NULL DEFAULT true, internal_only boolean NOT NULL DEFAULT false, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.plan_limits (plan_id uuid PRIMARY KEY REFERENCES valorapesquisa.plans(id) ON DELETE CASCADE, active_surveys int NOT NULL DEFAULT 0, responses_per_month int NOT NULL DEFAULT 0, users int NOT NULL DEFAULT 0, managers int NOT NULL DEFAULT 0, forms int NOT NULL DEFAULT 0, public_links int NOT NULL DEFAULT 0, email_invites_per_month int NOT NULL DEFAULT 0, storage_mb int NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.plan_capabilities (plan_id uuid NOT NULL REFERENCES valorapesquisa.plans(id) ON DELETE CASCADE, capability_code text NOT NULL, enabled boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(plan_id, capability_code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.subscriptions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL UNIQUE REFERENCES valorapesquisa.organizations(id), plan_id uuid NOT NULL REFERENCES valorapesquisa.plans(id), status text NOT NULL DEFAULT 'active', started_at timestamptz NOT NULL DEFAULT now(), trial_ends_at timestamptz, cancelled_at timestamptz, billing_status text NOT NULL DEFAULT 'ok', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
 
-    id text primary key,
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now(),
-    name text not null, badge text null, public_subtitle text null, description text null, price_label text not null default '', price_complement text null, cta_label text null, display_order int not null default 0, highlight boolean not null default false, recommended boolean not null default false, visible_on_public_pricing boolean not null default true, internal_only boolean not null default false, status text not null default 'active'
-);
+CREATE TABLE IF NOT EXISTS valorapesquisa.usage_monthly (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), period_month date NOT NULL, metric_key text NOT NULL, metric_value int NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), created_by uuid, updated_by uuid, is_deleted boolean NOT NULL DEFAULT false, UNIQUE(organization_id, period_month, metric_key));
 
-CREATE TABLE IF NOT EXISTS valorapesquisa.plan_limits (
-
-    id uuid primary key default gen_random_uuid(),
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now(),
-    created_by uuid null,
-    updated_by uuid null,
-    is_deleted boolean not null default false,
-    deleted_at timestamptz null,
-    deleted_by uuid null,
-    plan_id text not null, limit_key text not null, limit_value int not null default 0, unique(plan_id,limit_key)
-);
-
-CREATE TABLE IF NOT EXISTS valorapesquisa.plan_capabilities (
-
-    id uuid primary key default gen_random_uuid(),
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now(),
-    created_by uuid null,
-    updated_by uuid null,
-    is_deleted boolean not null default false,
-    deleted_at timestamptz null,
-    deleted_by uuid null,
-    plan_id text not null, capability_key text not null, capability_level text not null default 'enabled', capability_type text not null default 'feature', unique(plan_id,capability_key)
-);
-
-CREATE TABLE IF NOT EXISTS valorapesquisa.subscriptions (
-
-    id uuid primary key default gen_random_uuid(),
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now(),
-    created_by uuid null,
-    updated_by uuid null,
-    is_deleted boolean not null default false,
-    deleted_at timestamptz null,
-    deleted_by uuid null,
-    organization_id uuid not null, plan_id text not null, status text not null default 'active', started_at timestamptz default now(), trial_ends_at timestamptz, cancelled_at timestamptz, billing_status text not null default 'ok'
-);
-
-CREATE TABLE IF NOT EXISTS valorapesquisa.usage_monthly (
-
-    id uuid primary key default gen_random_uuid(),
-    created_at timestamptz not null default now(),
-    updated_at timestamptz not null default now(),
-    created_by uuid null,
-    updated_by uuid null,
-    is_deleted boolean not null default false,
-    deleted_at timestamptz null,
-    deleted_by uuid null,
-    organization_id uuid not null, month date not null, responses_count int not null default 0, active_surveys_count int not null default 0, unique(organization_id,month)
-);
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.modules (
 
@@ -1074,27 +1023,33 @@ CREATE INDEX IF NOT EXISTS ix_repair_runs_status ON valorapesquisa.repair_runs (
 CREATE INDEX IF NOT EXISTS ix_repair_runs_created_at ON valorapesquisa.repair_runs (created_at);
 
 
-INSERT INTO valorapesquisa.plans(id,name,description,price_label,display_order,status) VALUES
-('free','Free','1 pesquisa ativa, 10 respostas/mês, 1 gestor, resultado básico, certificado simples, e-mail de resultado','Grátis',10,'active'),
-('essential','Essential','3 pesquisas ativas, 150 respostas/mês, 2 gestores','Sob consulta',20,'active'),
-('professional','Professional','12 pesquisas ativas, 1000 respostas/mês, 8 gestores','Sob consulta',30,'active'),
-('corporate','Corporate','Pesquisas ilimitadas, 10000 respostas/mês, 50 gestores, múltiplas unidades, relatórios consolidados','Sob consulta',40,'active'),
-('enterprise','Enterprise','Limites ilimitados, white label, múltiplas organizações, acompanhamento executivo','Sob consulta',50,'active')
-ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,price_label=EXCLUDED.price_label,display_order=EXCLUDED.display_order,status=EXCLUDED.status,updated_at=now();
-INSERT INTO valorapesquisa.plan_limits(plan_id,limit_key,limit_value) VALUES
-('free','active_surveys',1),('free','responses_per_month',10),('free','managers',1),
-('essential','active_surveys',3),('essential','responses_per_month',150),('essential','managers',2),
-('professional','active_surveys',12),('professional','responses_per_month',1000),('professional','managers',8),
-('corporate','active_surveys',2147483647),('corporate','responses_per_month',10000),('corporate','managers',50),
-('enterprise','active_surveys',2147483647),('enterprise','responses_per_month',2147483647),('enterprise','managers',2147483647)
-ON CONFLICT (plan_id,limit_key) DO UPDATE SET limit_value=EXCLUDED.limit_value,updated_at=now();
-INSERT INTO valorapesquisa.plan_capabilities(plan_id,capability_key,capability_level,capability_type) VALUES
-('free','basic_result','enabled','feature'),('free','simple_certificate','enabled','feature'),('free','result_email','enabled','feature'),
-('corporate','multi_units','enabled','feature'),('corporate','consolidated_reports','enabled','feature'),
-('enterprise','white_label','enabled','feature'),('enterprise','multi_organizations','enabled','feature'),('enterprise','executive_followup','enabled','feature')
-ON CONFLICT (plan_id,capability_key) DO UPDATE SET capability_level=EXCLUDED.capability_level,capability_type=EXCLUDED.capability_type,updated_at=now();
-INSERT INTO valorapesquisa.organizations(name,public_name,slug,status,plan_id) VALUES ('Valora Group','Valora Group','valora','active','enterprise') ON CONFLICT (slug) DO UPDATE SET name=EXCLUDED.name,public_name=EXCLUDED.public_name,status='active',plan_id='enterprise',updated_at=now();
-
+INSERT INTO valorapesquisa.plans(code,name,badge,public_subtitle,description,monthly_price,annual_price,price_complement,cta_label,display_order,highlight,recommended,visible_on_public_pricing,internal_only,status) VALUES
+('free','Free',NULL,NULL,'1 pesquisa ativa, 10 respostas/mês, 1 gestor, resultado básico, certificado simples, e-mail de resultado',0,0,NULL,'Começar grátis',10,false,false,true,false,'active'),
+('essential','Essential',NULL,NULL,'3 pesquisas ativas, 150 respostas/mês, 2 gestores',0,0,'Sob consulta','Falar com vendas',20,false,false,true,false,'active'),
+('professional','Professional',NULL,NULL,'12 pesquisas ativas, 1000 respostas/mês, 8 gestores',0,0,'Sob consulta','Falar com vendas',30,false,true,true,false,'active'),
+('corporate','Corporate',NULL,NULL,'Pesquisas ilimitadas, 10000 respostas/mês, 50 gestores, múltiplas unidades, relatórios consolidados',0,0,'Sob consulta','Falar com vendas',40,true,false,true,false,'active'),
+('enterprise','Enterprise',NULL,NULL,'Limites ilimitados, white label, múltiplas organizações, acompanhamento executivo',0,0,'Sob consulta','Falar com vendas',50,false,false,true,false,'active')
+ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name,badge=EXCLUDED.badge,public_subtitle=EXCLUDED.public_subtitle,description=EXCLUDED.description,monthly_price=EXCLUDED.monthly_price,annual_price=EXCLUDED.annual_price,price_complement=EXCLUDED.price_complement,cta_label=EXCLUDED.cta_label,display_order=EXCLUDED.display_order,highlight=EXCLUDED.highlight,recommended=EXCLUDED.recommended,visible_on_public_pricing=EXCLUDED.visible_on_public_pricing,internal_only=EXCLUDED.internal_only,status=EXCLUDED.status,updated_at=now();
+INSERT INTO valorapesquisa.plan_limits(plan_id,active_surveys,responses_per_month,users,managers,forms,public_links,email_invites_per_month,storage_mb)
+SELECT p.id,v.active_surveys,v.responses_per_month,v.users,v.managers,v.forms,v.public_links,v.email_invites_per_month,v.storage_mb FROM valorapesquisa.plans p JOIN (VALUES
+('free',1,10,1,1,1,1,10,100),
+('essential',3,150,3,2,3,3,150,512),
+('professional',12,1000,10,8,12,12,1000,2048),
+('corporate',2147483647,10000,60,50,2147483647,2147483647,10000,10240),
+('enterprise',2147483647,2147483647,2147483647,2147483647,2147483647,2147483647,2147483647,51200)
+) AS v(code,active_surveys,responses_per_month,users,managers,forms,public_links,email_invites_per_month,storage_mb) ON v.code=p.code
+ON CONFLICT (plan_id) DO UPDATE SET active_surveys=EXCLUDED.active_surveys,responses_per_month=EXCLUDED.responses_per_month,users=EXCLUDED.users,managers=EXCLUDED.managers,forms=EXCLUDED.forms,public_links=EXCLUDED.public_links,email_invites_per_month=EXCLUDED.email_invites_per_month,storage_mb=EXCLUDED.storage_mb,updated_at=now();
+INSERT INTO valorapesquisa.plan_capabilities(plan_id,capability_code,enabled)
+SELECT p.id,v.capability_code,v.enabled FROM valorapesquisa.plans p JOIN (VALUES
+('free','basic_result',true),('free','simple_certificate',true),('free','result_email',true),
+('corporate','multi_units',true),('corporate','consolidated_reports',true),
+('enterprise','white_label',true),('enterprise','multi_organizations',true),('enterprise','executive_followup',true)
+) AS v(code,capability_code,enabled) ON v.code=p.code
+ON CONFLICT (plan_id,capability_code) DO UPDATE SET enabled=EXCLUDED.enabled,updated_at=now();
+INSERT INTO valorapesquisa.organizations(name,public_name,slug,status,plan_code) VALUES ('Valora Group','Valora Group','valora','active','enterprise') ON CONFLICT (slug) DO UPDATE SET name=EXCLUDED.name,public_name=EXCLUDED.public_name,status='active',plan_code='enterprise',updated_at=now();
+INSERT INTO valorapesquisa.subscriptions(organization_id,plan_id,status,billing_status)
+SELECT o.id,p.id,'active','ok' FROM valorapesquisa.organizations o JOIN valorapesquisa.plans p ON p.code='enterprise' WHERE o.slug='valora'
+ON CONFLICT (organization_id) DO UPDATE SET plan_id=EXCLUDED.plan_id,status='active',billing_status='ok',updated_at=now();
 
 INSERT INTO valorapesquisa.modules(code,name) VALUES
 ('dashboard','dashboard'),

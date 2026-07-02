@@ -12,21 +12,21 @@ DECLARE
   i int;
   d int;
 BEGIN
-  INSERT INTO valorapesquisa.plans(id,name,price_label,display_order,status)
-  VALUES ('free','Free','R$ 0',1,'active')
-  ON CONFLICT (id) DO UPDATE SET name=excluded.name,status='active',updated_at=now();
+  INSERT INTO valorapesquisa.plans(code,name,monthly_price,annual_price,display_order,status)
+  VALUES ('free','Free',0,0,1,'active')
+  ON CONFLICT (code) DO UPDATE SET name=excluded.name,monthly_price=excluded.monthly_price,annual_price=excluded.annual_price,status='active',updated_at=now();
 
-  INSERT INTO valorapesquisa.plan_limits(plan_id,limit_key,limit_value)
-  VALUES ('free','active_surveys',1),('free','monthly_responses',25)
-  ON CONFLICT (plan_id,limit_key) DO UPDATE SET limit_value=excluded.limit_value;
+  INSERT INTO valorapesquisa.plan_limits(plan_id,active_surveys,responses_per_month,users,managers,forms,public_links,email_invites_per_month,storage_mb)
+  SELECT id,1,25,1,1,1,1,25,100 FROM valorapesquisa.plans WHERE code='free'
+  ON CONFLICT (plan_id) DO UPDATE SET active_surveys=excluded.active_surveys,responses_per_month=excluded.responses_per_month,updated_at=now();
 
-  INSERT INTO valorapesquisa.organizations(id,name,public_name,slug,email,status,plan_id,settings_json)
+  INSERT INTO valorapesquisa.organizations(id,name,public_name,slug,email,status,plan_code,settings_json)
   VALUES (v_org,'Valora E2E Organization','Valora E2E Organization','valora-e2e-organization','e2e-admin@valoragroup.local','active','free','{"fixture":"sprint32-e2e"}'::jsonb)
-  ON CONFLICT (id) DO UPDATE SET name=excluded.name,public_name=excluded.public_name,status='active',plan_id='free',updated_at=now();
+  ON CONFLICT (id) DO UPDATE SET name=excluded.name,public_name=excluded.public_name,status='active',plan_code='free',updated_at=now();
 
   INSERT INTO valorapesquisa.subscriptions(organization_id,plan_id,status,billing_status)
-  VALUES (v_org,'free','active','ok')
-  ON CONFLICT DO NOTHING;
+  SELECT v_org,id,'active','ok' FROM valorapesquisa.plans WHERE code='free'
+  ON CONFLICT (organization_id) DO UPDATE SET plan_id=excluded.plan_id,status='active',billing_status='ok',updated_at=now();
 
   INSERT INTO valorapesquisa.users(id,organization_id,name,email,password_hash,role,status)
   VALUES (v_user,v_org,'Valora E2E Admin','e2e-admin@valoragroup.local','$2a$11$vI8aWBnDgP7Qj3G4bq6g2uC1bYwzFjz9WbG4Y1fT6P.nQk8fPZg5G','admin','active')

@@ -407,7 +407,8 @@
     "legacy:submit-provider-guard": "node scripts/validate-legacy-submit-provider-guard.js",
     "legacy:retry-never-submits": "node scripts/validate-legacy-retry-never-submits.js",
     "legacy:submit-debug-expanded": "node scripts/validate-legacy-submit-debug-expanded.js",
-    "functions:submit-missing-surveyid-code": "node scripts/validate-functions-submit-missing-surveyid-code.js"
+    "functions:submit-missing-surveyid-code": "node scripts/validate-functions-submit-missing-surveyid-code.js",
+    "backend:sql-schema-validate": "node tools/validate-backend-official-sql-schema.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

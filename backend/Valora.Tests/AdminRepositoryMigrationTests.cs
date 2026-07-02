@@ -49,16 +49,22 @@ public sealed class AdminRepositoryMigrationTests
     }
 
     [Fact]
-    public void CompleteDatabaseScriptUsesTextPlanLimitShapeExpectedByPlanRepository()
+    public void CompleteDatabaseScriptUsesOfficialCodeBasedPlanSchema()
     {
         var sql = File.ReadAllText(Path.Combine("..", "..", "..", "..", "scriptbd_completo.sql"));
-        Assert.Contains("id text primary key", sql);
+        Assert.Contains("id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE", sql);
+        Assert.Contains("monthly_price numeric", sql);
+        Assert.Contains("annual_price numeric", sql);
         Assert.Contains("visible_on_public_pricing boolean", sql);
-        Assert.Contains("plan_id text not null, limit_key text not null, limit_value int not null", sql);
-        Assert.Contains("plan_id text not null, capability_key text not null, capability_level text not null", sql);
-        Assert.Contains("organization_id uuid not null, plan_id text not null", sql);
-        Assert.DoesNotContain("plan_id uuid not null, active_surveys", sql);
-        Assert.DoesNotContain("capability citext not null, enabled boolean", sql);
+        Assert.Contains("plan_id uuid PRIMARY KEY REFERENCES valorapesquisa.plans(id)", sql);
+        Assert.Contains("active_surveys int NOT NULL DEFAULT 0", sql);
+        Assert.Contains("capability_code text NOT NULL", sql);
+        Assert.Contains("enabled boolean NOT NULL DEFAULT true", sql);
+        Assert.Contains("plan_code text not null default 'free'", sql);
+        Assert.DoesNotContain("price_label", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("limit_key", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("capability_key", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("organizations(name,public_name,slug,status,plan_id)", sql, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

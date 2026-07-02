@@ -399,7 +399,10 @@
     "legacy:submit-hidden-context": "node scripts/validate-legacy-submit-hidden-context-fields.js",
     "backend:homologation-cutover-validate": "node tools/validate-backend-official-homologation-cutover.js",
     "backend:migration-import-validate": "node tools/validate-backend-official-migration-import.js",
-    "backend:release-candidate-validate": "node tools/validate-backend-official-release-candidate.js"
+    "legacy:submit-real-form-context": "node scripts/validate-legacy-submit-requires-real-form-context.js",
+    "legacy:required-before-function": "node scripts/validate-legacy-required-questions-before-function.js",
+    "legacy:submit-inline-error": "node scripts/validate-legacy-submit-inline-error-keeps-form.js",
+    "legacy:submit-no-required-mask": "node scripts/validate-legacy-submit-error-does-not-mask-required.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

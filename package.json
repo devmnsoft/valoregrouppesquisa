@@ -354,7 +354,16 @@
     "home:fallback-never-invalid": "node scripts/validate-home-fallback-never-invalid-final.js",
     "root:no-demo-seed": "node scripts/validate-root-index-no-demo-seed.js",
     "admin:demo-purge-panel": "node scripts/validate-admin-demo-purge-panel.js",
-    "backend:reports-email-validate": "node tools/validate-backend-official-reports-email.js"
+    "backend:reports-email-validate": "node tools/validate-backend-official-reports-email.js",
+    "home:no-technical-featured-error": "node scripts/validate-home-no-technical-featured-error.js",
+    "ux:global-loading": "node scripts/validate-global-loading-ux.js",
+    "ux:async-actions-loading": "node scripts/validate-async-actions-have-loading.js",
+    "notifications:dedupe": "node scripts/validate-notification-deduplication.js",
+    "notifications:no-front-prod-generation": "node scripts/validate-notification-no-frontend-generation-production.js",
+    "notifications:actions-loading": "node scripts/validate-notification-actions-loading.js",
+    "notifications:white-label-suppression": "node scripts/validate-white-label-notification-suppression.js",
+    "notifications:onboarding-suppression": "node scripts/validate-onboarding-notification-suppression.js",
+    "notifications:dotnet-plan": "node scripts/validate-dotnet-notification-migration-plan.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

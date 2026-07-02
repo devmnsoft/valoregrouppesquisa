@@ -1,0 +1,1 @@
+const fs=require('fs');const d=fs.readFileSync('HOME_LOADING_NOTIFICATIONS_UX_AUDIT.md','utf8');['NotificationService','NotificationRepository','notifications','GET /notifications','POST /admin/notifications/dedupe','PostgreSQL'].forEach(x=>{if(!d.includes(x))throw Error(x+' ausente')});console.log('validate-dotnet-notification-migration-plan: PASS');

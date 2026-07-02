@@ -311,7 +311,9 @@ function normalizeCallablePublicError(err){
   const message=String(err?.message||details.message||'').trim();
   const code=detailCode||rawCode||'unknown';
   let userMessage=details.friendlyMessage||message||'Não conseguimos concluir sua pesquisa agora.';
-  if(code==='participant_required')userMessage='Informe seu nome e e-mail para concluir o diagnóstico.';
+  if(code==='missing_survey_id')userMessage='Link da pesquisa incompleto. Volte ao diagnóstico gratuito e abra a pesquisa novamente.';
+  else if(code==='missing_public_token')userMessage='Link da pesquisa sem token de acesso. Volte ao diagnóstico gratuito e abra a pesquisa novamente.';
+  else if(code==='participant_required')userMessage='Informe seu nome e e-mail para concluir o diagnóstico.';
   else if(code==='lgpd_required')userMessage='Aceite o termo de consentimento LGPD para enviar suas respostas.';
   else if(code==='required_question_missing')userMessage='Responda todas as perguntas obrigatórias antes de enviar.';
   else if(code==='invalid_public_token'||code==='invalid_token'||code==='token_is_hash')userMessage='O link da pesquisa está inválido ou expirado. Solicite um novo link.';
@@ -332,6 +334,8 @@ function normalizePublicFunctionResult(result){
   return {ok:result.ok!==false,responseId,resultToken,accessToken:resultToken,score:result.score,level:result.level,message:result.message||result.level?.recommendation||'',resultEmail:result.resultEmail||{attempted:false,status:'not_requested'}};
 }
 async function submitPublicSurveyResponseFirebase(payload){
+  if(!payload?.surveyId){const e=new Error('Link da pesquisa incompleto. Volte ao diagnóstico gratuito e abra a pesquisa novamente.');e.code='missing_survey_id';throw e;}
+  if(!payload?.token){const e=new Error('Link da pesquisa sem token de acesso. Volte ao diagnóstico gratuito e abra a pesquisa novamente.');e.code='missing_public_token';throw e;}
   try{return normalizePublicFunctionResult(await callFunction('submitSurveyResponse',{payload}));}
   catch(err){throw mapPublicFunctionError(err);}
 }

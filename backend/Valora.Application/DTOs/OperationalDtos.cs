@@ -9,7 +9,7 @@ public sealed record ExportJobDto(Guid Id,Guid OrganizationId,Guid? RequestedBy,
 public sealed record ExportRequest(string Entity,string Format = "csv", string? FilterJson = null);
 public sealed record LgpdConsentDto(Guid Id,Guid? OrganizationId,Guid? SurveyId,Guid? ResponseId,string ConsentVersion,bool Accepted,DateTimeOffset? AcceptedAt,DateTimeOffset CreatedAt);
 public sealed record RegisterLgpdConsentRequest(Guid? OrganizationId,Guid? SurveyId,Guid? ResponseId,string? ParticipantEmail,string ConsentText,string ConsentVersion,bool Accepted);
-public sealed record PrivacyRequestDto(Guid Id,Guid? OrganizationId,string RequesterEmailMasked,string RequestType,string Status,string? Description,Guid? ResponseId,DateTimeOffset RequestedAt,DateTimeOffset? CompletedAt,string? ResultJson);
+public sealed record PrivacyRequestDto(Guid Id,Guid? OrganizationId,string RequesterEmailMasked,string RequestType,string Protocol,string Status,string? Description,Guid? ResponseId,DateTimeOffset RequestedAt,DateTimeOffset? CompletedAt,string? ResultJson);
 public sealed record CreatePrivacyRequestRequest(Guid? OrganizationId,string RequesterEmail,string RequestType,string? Description,Guid? ResponseId);
 public sealed record UpdatePrivacyRequestStatusRequest(string Status);
 public sealed record CompletePrivacyRequestRequest(string ResultJson);

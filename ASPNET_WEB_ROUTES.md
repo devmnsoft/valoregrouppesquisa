@@ -19,3 +19,15 @@ As rotas oficiais da nova versão .NET devem ser servidas por `backend/Valora.Ap
 - `/exports`, `/exports/{id}/download`
 - `/public/lgpd/requests`, `/lgpd/consents`, `/lgpd/privacy-requests`
 - `/email/templates`, `/email/jobs`, `/email/status`, `/email/jobs/process`
+
+## Rotas MVC de migração
+
+- `/Migration`
+- `/Migration/Batches`
+- `/Migration/Batch/{id}`
+- `/Migration/Upload`
+- `/Migration/DryRun/{batchId}`
+- `/Migration/Conflicts/{batchId}`
+- `/Migration/Reconciliation/{batchId}`
+- `/Migration/Rollback/{batchId}`
+- `/Migration/CutoverReadiness/{batchId}`

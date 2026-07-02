@@ -562,3 +562,7 @@ tools\windows\Publicar-Valora-PRD.bat
 ```
 
 Também há atalhos para simular, gerar pacote, rodar health check e restaurar backup em `tools/windows/`. Veja `PUBLICADOR_WINDOWS_PRD.md`.
+
+## Backend oficial — importação controlada
+
+A migração real do legado para PostgreSQL fica exclusivamente em `backend/Valora.sln`, com scripts em `database/postgresql`, documentação em `LEGACY_TO_POSTGRES_MAPPING.md` e validação por `npm run backend:migration-import-validate`.

@@ -25,3 +25,12 @@ Documento atualizado na Sprint 43.
 - [x] Web MVC/Razor com telas operacionais.
 - [x] Validador `backend:reports-email-validate`.
 - [ ] Build/test .NET em ambiente com SDK disponível.
+
+## Checklist adicional — importação controlada
+
+- [ ] Dry-run executado antes de qualquer apply.
+- [ ] Conflitos bloqueantes resolvidos ou batch bloqueado.
+- [ ] Relatório de divergências revisado.
+- [ ] Apply confirmado por `admin_valora`.
+- [ ] Rollback por batch planejado e validado.
+- [ ] Cutover readiness sem bloqueadores.

@@ -389,7 +389,8 @@
     "legacy:submit-loading-visible": "node scripts/validate-legacy-submit-loading-visible.js",
     "legacy:submit-error-buttons-safe": "node scripts/validate-legacy-submit-error-buttons-safe.js",
     "legacy:submit-success-result": "node scripts/validate-legacy-submit-success-result-redirect.js",
-    "check:critical-runner": "node scripts/validate-critical-gate-runner.js"
+    "check:critical-runner": "node scripts/validate-critical-gate-runner.js",
+    "backend:migration-import-validate": "node tools/validate-backend-official-migration-import.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

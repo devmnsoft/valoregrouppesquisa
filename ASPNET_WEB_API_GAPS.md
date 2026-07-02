@@ -28,3 +28,7 @@ O Valora.Web permanece como frontend oficial ASP.NET Core e usa `/communications
 - Gaps de módulos, assinatura, uso, dashboard e menu foram endereçados com repositories/services oficiais em `backend`.
 - `WEB_ADMIN_REAL_REPOSITORY_REQUIRED` permanece apenas como marcador documental/validador; nenhum endpoint novo deve retornar dados fake.
 - Gaps restantes: validação em ambiente com SDK .NET e implementação futura de PDF binário real (`pdf_pending` quando aplicável).
+
+## Gap monitorado — importação de legado
+
+A sprint adiciona endpoints administrativos `/migration/*` com dry-run, apply controlado, conciliação, rollback e cutover readiness. Gaps restantes: homologação com base real, tuning de performance em lotes grandes, política final de retenção de snapshots e automação de cutover produtivo (não executada por design).

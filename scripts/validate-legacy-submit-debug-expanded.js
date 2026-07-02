@@ -1,0 +1,1 @@
+const fs=require('fs');const a=fs.readFileSync('app.js','utf8');if(!/submitSurveyResponse payload', JSON\.stringify\(\{ surveyId: payload\.surveyId, hasToken: !!payload\.token/.test(a)||!a.includes('lastPublicSubmitDebug')){console.error('debug expandido ausente');process.exit(1)}console.log('validate-legacy-submit-debug-expanded: PASS');

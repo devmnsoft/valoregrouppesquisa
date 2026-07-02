@@ -1715,16 +1715,19 @@ function ensureStablePublicSubmitIdempotencyKey(surveyId='', participantEmail=''
   return window.ValoraRuntimeCache.publicSubmitIdempotencyKeys[key];
 }
 function buildPublicSurveySubmitPayload(formEl) {
-  const ctx = getPublicSurveyContext(formEl); const fd = data(formEl);
-  const surveyId = ctx.surveyId || fd.surveyId || ''; const token = ctx.token || fd.token || ''; const org = ctx.org || fd.org || '';
+  const ctx = getPublicSurveyContext(formEl); const fd = data(formEl); const route = getPublicSurveyRouteParams();
+  const surveyId = ctx.surveyId || formEl.querySelector('[name="surveyId"]')?.value || formEl.dataset.surveyId || route.surveyId || '';
+  const token = ctx.token || formEl.querySelector('[name="token"]')?.value || route.token || '';
+  const org = ctx.org || formEl.querySelector('[name="org"]')?.value || formEl.dataset.org || route.org || fd.org || '';
   if (!ctx.form || !Array.isArray(ctx.form.questions) || !ctx.form.questions.length) { const e = new Error('Formulário não carregado para envio.'); e.code = 'public_form_questions_missing'; throw e; }
   const participant = { name: getFormValue(formEl, 'name') || getFormValue(formEl, 'participant.name') || '', email: getFormValue(formEl, 'email') || getFormValue(formEl, 'participant.email') || '', phone: getFormValue(formEl, 'phone') || '', company: getFormValue(formEl, 'company') || getFormValue(formEl, 'personType') || '', department: getFormValue(formEl, 'department') || '' };
   const answers = collectPublicSurveyAnswers(formEl, ctx.form);
   const missingRequiredPreview = (ctx.form.questions || []).filter(q => q.required && (answers[q.id] === undefined || answers[q.id] === null || answers[q.id] === '' || (Array.isArray(answers[q.id]) && !answers[q.id].length))).map(q => q.id);
   const payload = { surveyId, token, org, participant, answers, lgpdConsent: !!formEl.querySelector('[name="lgpdConsent"]')?.checked, communicationConsent: !!formEl.querySelector('[name="communicationConsent"]')?.checked || !!formEl.querySelector('[name="sendEmail"]')?.checked, department: participant.department, idempotencyKey: ensureStablePublicSubmitIdempotencyKey(surveyId, participant.email) };
   const answersCount = Object.keys(payload.answers || {}).length;
-  window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {}; window.ValoraRuntimeDiagnostics.lastSubmitPayload = { surveyId, hasToken: !!token, formId: ctx.form.id, questionsCount: ctx.form.questions.length, renderedQuestionsCount: formEl.querySelectorAll('[data-question-id]').length, answersCount, missingRequiredPreview };
-  console.info('[Valora] submitSurveyResponse payload', window.ValoraRuntimeDiagnostics.lastSubmitPayload);
+  window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {}; window.ValoraRuntimeDiagnostics.lastSubmitPayload = { surveyId, hasToken: !!token, org, formId: ctx.form.id, questionsCount: ctx.form.questions.length, renderedQuestionsCount: formEl.querySelectorAll('[data-question-id]').length, answersCount, missingRequiredPreview };
+  window.ValoraRuntimeDiagnostics.lastPublicSubmitDebug = { ...(window.ValoraRuntimeDiagnostics.lastPublicSubmitDebug || {}), surveyId, hasToken: !!token, org, answersCount, hasName: !!participant.name, hasEmail: !!participant.email, lgpdConsent: !!payload.lgpdConsent };
+  console.info('[Valora] submitSurveyResponse payload', JSON.stringify({ surveyId: payload.surveyId, hasToken: !!payload.token, org: payload.org, answersCount: Object.keys(payload.answers || {}).length, hasName: !!payload.participant?.name, hasEmail: !!payload.participant?.email, lgpdConsent: payload.lgpdConsent }, null, 2));
   return payload;
 }
 
@@ -1790,11 +1793,20 @@ async function resolvePublicSurveyContext() {
 function handlePublicSubmitSuccess(result,payload){
   setGlobalLoading(true,'Preparando seu resultado...');setTimeout(()=>setGlobalLoading(false),700);window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastSubmitSuccess={responseId:result.responseId,hasResultToken:!!result.resultToken,resultEmail:result.resultEmail||null,at:new Date().toISOString()};markPublicSubmitDiagnostic('success',payload);const clean=location.href.split('?')[0].split('#')[0];history.replaceState({},'',`${clean}?result=${encodeURIComponent(result.responseId)}&rt=${encodeURIComponent(result.resultToken)}`);return renderResult(result.responseId,true,result.resultToken,result);}
 
+function assertPublicSubmitPayloadReady(payload) {
+  if (!payload || typeof payload !== 'object') { const e = new Error('Payload de pesquisa inválido.'); e.code = 'invalid_public_submit_payload'; throw e; }
+  if (!payload.surveyId) { const e = new Error('Link da pesquisa incompleto. Volte ao diagnóstico gratuito e abra a pesquisa novamente.'); e.code = 'missing_survey_id'; e.details = { code: 'missing_survey_id' }; throw e; }
+  if (!payload.token) { const e = new Error('Link da pesquisa sem token de acesso. Volte ao diagnóstico gratuito e abra a pesquisa novamente.'); e.code = 'missing_public_token'; e.details = { code: 'missing_public_token' }; throw e; }
+  return true;
+}
+window.ValoraPublicSubmitGuard = { assertPublicSubmitPayloadReady };
+
 function normalizePublicSubmitResult(result){const responseId=result?.responseId||result?.id;const resultToken=result?.resultToken||result?.accessToken;if(!responseId||!resultToken)throw new Error('Resultado público sem responseId/resultToken reais.');return {...result,responseId,resultToken,accessToken:resultToken};}
-async function submitPublicSurveyViaExternalApi(payload){if(!window.ValoraApiRepository?.submitPublicSurveyResponse)throw new Error('API pública indisponível.');return window.ValoraApiRepository.submitPublicSurveyResponse(payload);}
-async function submitPublicSurveyViaApi(payload){return submitPublicSurveyViaExternalApi(payload);}
-async function submitPublicSurveyViaFunctions(payload){return submitPublicSurveyViaCloudFunction(payload);}
+async function submitPublicSurveyViaExternalApi(payload){assertPublicSubmitPayloadReady(payload);if(!window.ValoraApiRepository?.submitPublicSurveyResponse)throw new Error('API pública indisponível.');return window.ValoraApiRepository.submitPublicSurveyResponse(payload);}
+async function submitPublicSurveyViaApi(payload){assertPublicSubmitPayloadReady(payload);return submitPublicSurveyViaExternalApi(payload);}
+async function submitPublicSurveyViaFunctions(payload){assertPublicSubmitPayloadReady(payload);return submitPublicSurveyViaCloudFunction(payload);}
 async function submitPublicSurveyViaCloudFunction(payload){
+  assertPublicSubmitPayloadReady(payload);
   if(!payload?.surveyId){const e=new Error('surveyId obrigatório.');e.code='invalid_payload';throw e;}
   if(!payload?.token||String(payload.token)===String(payload?.survey?.tokenHash||'')){const e=new Error('token público obrigatório.');e.code='invalid_public_token';throw e;}
   if(!payload?.participant?.email){const e=new Error('participant.email obrigatório.');e.code='invalid_participant';throw e;}
@@ -1804,6 +1816,7 @@ async function submitPublicSurveyViaCloudFunction(payload){
 }
 async function hashPublicValue(value){const text=String(value||'');if(window.crypto?.subtle){const bytes=await window.crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));return Array.from(new Uint8Array(bytes),b=>b.toString(16).padStart(2,'0')).join('');}let h=0;for(let i=0;i<text.length;i++)h=((h<<5)-h+text.charCodeAt(i))|0;return `legacy-${Math.abs(h)}`;}
 async function submitPublicSurveyViaFirestoreFallback(payload){
+  assertPublicSubmitPayloadReady(payload);
   if(isDemoPublicSurveyLink(payload)) payload=await resolveOfficialFreeSurveyPayload(payload);
   const db=window.ValoraGetFirestoreSafe?window.ValoraGetFirestoreSafe():(window.ValoraFirebase?.db||window.ValoraFirebaseServices?.db);
   if(!db||typeof db.collection!=='function'){const e=new Error('Firestore indisponível para fallback.');e.code='firestore_unavailable';throw e;}
@@ -1822,6 +1835,7 @@ async function submitPublicSurveyViaFirestoreFallback(payload){
   return {ok:true,responseId:ref.id,resultToken,accessToken:resultToken,score:{rawScore:result.rawScore,maxScore:result.maxScore,normalized5:result.normalized5,percentage:result.percentage},level:result.level};
 }
 async function submitPublicSurveyAuto(payload){
+  assertPublicSubmitPayloadReady(payload);
   const safePayload=ensurePublicSubmitIdempotencyKey({...payload});
   const diagnostics={surveyId:safePayload.surveyId,org:safePayload.org||'',providersAttempted:['cloud-functions'],provider:'cloud-functions',finalProvider:'',errors:[],errorCode:''};
   try{
@@ -1829,7 +1843,7 @@ async function submitPublicSurveyAuto(payload){
     const normalized=normalizePublicSubmitResult(result);diagnostics.finalProvider='cloud-functions';diagnostics.status='success';window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicSubmit=diagnostics;return normalized;
   }catch(error){diagnostics.status='failed';diagnostics.errorCode=publicErrorCode(error);diagnostics.errors.push({provider:'cloud-functions',code:publicErrorCode(error),message:sanitizePublicError(error),details:error?.details||null});window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicSubmit=diagnostics;throw error;}
 }
-async function submitPublicSurveyResponse(payload){return submitPublicSurveyAuto(payload);}
+async function submitPublicSurveyResponse(payload){assertPublicSubmitPayloadReady(payload);return submitPublicSurveyAuto(payload);}
 async function getPublicResultAuto(responseId,resultToken){
   const provider=window.ValoraConfig?.RESULT_PROVIDER||'cloud-functions';
   const firebaseOnly=window.ValoraConfig?.DATA_PROVIDER==='firebase'&&window.ValoraConfig?.ALLOW_API_PRODUCTION_CUTOVER!==true;
@@ -1935,44 +1949,39 @@ function takeQuestion(q,i){
   else control=`<textarea name="${name}" placeholder="Digite sua resposta" spellcheck="true"></textarea>`;
   return `<div class="survey-question" data-question-id="${q.id}" data-required="${q.required?'true':'false'}" data-type="${q.type}"><h3>${i+1}. ${esc(q.text)} ${req}</h3>${q.help?`<p class="field-help">${esc(q.help)}</p>`:''}${control}</div>`;
 }
-async function submitSurvey(form){
+async function guardedPublicSurveySubmit(formEl, event = null) {
+  if (event) { event.preventDefault(); event.stopPropagation(); event.stopImmediatePropagation?.(); }
+  if (!formEl || !formEl.matches('[data-public-survey-form]')) { const err = { code: 'invalid_public_form', message: 'Formulário público inválido.' }; showPublicSubmitError(err, { keepForm: true }); return false; }
+  if (window.__valoraPublicSubmitInProgress === true) { toast('Sua resposta já está sendo enviada. Aguarde...', 'info'); return false; }
+  window.__valoraPublicSubmitInProgress = true;
+  const button = event?.submitter || formEl.querySelector('[type="submit"]') || formEl.querySelector('button');
+  try {
+    return await withLoading('Aguarde, estamos processando sua requisição...', async () => {
+      const payload = buildPublicSurveySubmitPayload(formEl);
+      debugPublicSubmitState('before_validation', payload);
+      const validation = validatePublicSubmitPayload(payload, getPublicSurveyContext(formEl), formEl);
+      if (validation) { debugPublicSubmitState('blocked_before_function', payload); focusPublicField(formEl, validation.field); showPublicSubmitError(validation, { keepForm: true }); return false; }
+      if (!payload.surveyId || !payload.token) {
+        const err = { code: !payload.surveyId ? 'missing_survey_id' : 'missing_public_token', message: !payload.surveyId ? 'Link da pesquisa incompleto. Volte ao diagnóstico gratuito e abra a pesquisa novamente.' : 'Link da pesquisa sem token de acesso. Volte ao diagnóstico gratuito e abra a pesquisa novamente.' };
+        debugPublicSubmitState('blocked_missing_context_before_function', payload); showPublicSubmitError(err, { keepForm: true }); return false;
+      }
+      debugPublicSubmitState('calling_function', payload);
+      const result = await submitPublicSurveyResponse(payload);
+      debugPublicSubmitState('success', payload);
+      toast('Respostas enviadas com segurança.', 'success');
+      return handlePublicSubmitSuccess(result, payload);
+    }, { button, buttonText: 'Enviando...' });
+  } catch (err) {
+    const normalized = normalizePublicSubmitError(err); debugPublicSubmitState('error', null);
+    const keepFormCodes = ['missing_survey_id','missing_public_token','public_survey_not_ready','public_form_questions_missing','public_question_dom_missing','participant_required','invalid_email','lgpd_required','required_question_missing'];
+    showPublicSubmitError(normalized, { keepForm: keepFormCodes.includes(normalized.code) });
+    return false;
+  } finally { window.__valoraPublicSubmitInProgress = false; }
+}
+
+async function submitSurvey(form, event = null){
+  if (form?.matches?.('[data-public-survey-form]') || form?.dataset?.form === 'takeSurvey') return guardedPublicSurveySubmit(form, event);
   const fd=data(form);
-  if(isFirebaseMode()){
-    if(publicSubmitInProgress){toast('Sua resposta já está sendo enviada. Aguarde...','info');return;}
-    const context=getPublicSurveyContext(form);
-    if(!context.form||!Array.isArray(context.form.questions)||!context.form.questions.length){showPublicSubmitError({code:'public_form_questions_missing',message:'O formulário não foi carregado corretamente. Reabra o diagnóstico gratuito.'},{keepForm:true});return false;}
-    const button=form.querySelector('[type="submit"]')||form.querySelector('button');
-    publicSubmitInProgress=true;
-    try{
-      return await withLoading('Aguarde, estamos processando sua requisição...',async()=>{
-        let submitPayload=buildPublicSurveySubmitPayload(form);
-        debugPublicSubmitState('before_local_validation', submitPayload);
-        const validationError=validatePublicSubmitPayload(submitPayload,getPublicSurveyContext(form),form);
-        if(validationError){focusPublicField(form,validationError.field);showPublicSubmitError(validationError,{keepForm:true});return false;}
-        if(!submitPayload.surveyId || !submitPayload.token){const err={code:!submitPayload.surveyId?'missing_survey_id':'missing_public_token',message:!submitPayload.surveyId?'Link da pesquisa incompleto. Volte ao diagnóstico gratuito e abra a pesquisa novamente.':'Link da pesquisa sem token de acesso. Volte ao diagnóstico gratuito e abra a pesquisa novamente.'};showPublicSubmitError(err);return false;}
-        if(isDemoPublicSurveyLink(submitPayload)) submitPayload=await resolveFeaturedHomeSurveyPayload(submitPayload);
-        if(isDemoPublicSurveyLink(submitPayload)){const e=new Error('Payload legado bloqueado antes do envio.');e.code='legacy_demo_payload_blocked';throw e;}
-        window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
-        window.ValoraRuntimeDiagnostics.lastSubmitPayload=sanitizePublicSubmitDiagnostics(submitPayload);
-        window.ValoraRuntimeDiagnostics.lastSubmitStartedAt=new Date().toISOString();
-        debugPublicSubmitState('before_function', submitPayload);
-        markPublicSubmitDiagnostic('calling_function',submitPayload);
-        if(window.ValoraConfig?.ENVIRONMENT!=='production')console.info('[Valora] submitSurveyResponse payload',sanitizePublicSubmitDiagnostics(submitPayload));
-        const res=await submitPublicSurveyResponse(submitPayload);
-        toast('Respostas enviadas com segurança.','success');
-        return handlePublicSubmitSuccess(res,submitPayload);
-      },{button,buttonText:'Enviando...',action:'public-submit',id:fd.surveyId});
-    }catch(err){
-      const code=publicErrorCode(err), rawCode=err?.rawCode||err?.code||'';
-      window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
-      window.ValoraRuntimeDiagnostics.lastSubmitError={code,rawCode,message:err?.userMessage||err?.message||'',details:err?.details||{},at:new Date().toISOString()};
-      markPublicSubmitDiagnostic('error',{surveyId:fd.surveyId,token:fd.token,answers:{}},{errorCode:code});
-      const normalized=normalizePublicSubmitError(err);
-      const validationCodes=['required_question_missing','participant_required','lgpd_required','invalid_email','public_form_questions_missing','public_question_dom_missing','missing_survey_id','missing_public_token'];
-      showPublicSubmitError(normalized,{keepForm:validationCodes.includes(normalized.code||code)});
-      return false;
-    }finally{publicSubmitInProgress=false;}
-  }
   const s=state.surveys.find(x=>x.id===fd.surveyId),f=s?formById(s.formId):null;if(!s||!f||s.token!==fd.token)return toast('A pesquisa não está mais disponível.','error');if(!surveyIsActive(s))return toast('A pesquisa expirou ou foi encerrada.','error');if(s.requireIdentification!==false&&(!fd.name||!fd.email))return toast('Informe nome e e-mail para concluir o diagnóstico.','error');if(fd.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(fd.email)))return toast('Informe um e-mail válido para concluir o diagnóstico.','error');if(s.lgpdRequired!==false&&!fd.lgpdConsent)return toast('O aceite LGPD é obrigatório.','error');
   const existingResponses=state.responses.filter(r=>r.surveyId===s.id&&responseParticipantEmail(r).toLowerCase()===fd.email.toLowerCase());if(existingResponses.length&&!s.allowRepeat)return toast('Este e-mail já respondeu e a pesquisa não permite nova tentativa.','error');const company=companyById(s.companyId),plan=planById(company?.planId);if(plan?.maxResponsesMonth>=0&&responsesThisMonth(s.companyId)>=plan.maxResponsesMonth)return toast('O limite mensal de respostas do plano foi atingido.','error');
   const answers={};for(const q of f.questions){const key=`q_${q.id}`,value=fd[key];if(q.required&&(!value||(Array.isArray(value)&&!value.length)))return toast(`Responda a pergunta: ${q.text}`,'error');answers[q.id]=value??(q.type==='multiple'?[]:'');}
@@ -2356,7 +2365,7 @@ function createFormHandlers(){return {
   login:form=>withLoading('Entrando...',()=>login(form),{button:$('[data-login-button]',form)||$('button',form),action:'login',id:data(form).email||'global'}),
   signup:form=>withLoading('Criando ambiente...',()=>signup(form),{button:$('button',form),action:'signup',id:data(form).email||'global'}),
   certificateValidation(form){const code=form.certificate.value.trim();if(code)validateCertificatePublic(code);},actionPlan:form=>withLoading('Salvando plano de ação...',()=>saveActionPlan(form),{button:$('button',form),action:'save-action-plan'}),bot(form){const msg=form.message.value.trim();if(!msg)return;form.reset();handleBotMessage(msg);},publicSupport:form=>withLoading('Enviando atendimento...',()=>savePublicSupport(form),{button:$('button',form),action:'support-public'}),loggedSupport:form=>withLoading('Enviando atendimento...',()=>saveLoggedSupport(form),{button:$('button',form),action:'support-logged'}),knowledgeArticle:form=>withLoading('Salvando artigo...',()=>saveKnowledgeArticle(form),{button:$('button',form),action:'knowledge-article'}),supportMessage:form=>withLoading('Enviando mensagem...',()=>saveSupportMessage(form),{button:$('button',form),action:'support-message'}),supportInternalNote:form=>withLoading('Salvando nota...',()=>saveSupportInternalNote(form),{button:$('button',form),action:'support-note'}),supportRating:form=>withLoading('Salvando avaliação...',()=>saveSupportRating(form),{button:$('button',form),action:'support-rating'}),
-  resendResultEmail:form=>withLoading('Reenviando resultado...',()=>resendResultEmail(form),{button:$('button',form),action:'result-email'}),apiKey:form=>withLoading('Salvando chave...',()=>saveApiKey(form),{button:$('button',form),action:'api-key'}),webhook:form=>withLoading('Salvando webhook...',()=>saveWebhook(form),{button:$('button',form),action:'webhook'}),employeeImport:form=>withLoading('Importando funcionários...',()=>saveEmployeeImport(form),{button:$('button',form),action:'employee-import'}),dataExport:form=>withLoading('Exportando dados...',()=>exportData(form),{button:$('button',form),action:'data-export'}),user:form=>withLoading('Salvando usuário...',()=>saveUser(form),{button:$('button',form),action:'save-user',id:data(form).id||data(form).email}),company:form=>withLoading('Salvando cliente...',()=>saveCompany(form),{button:$('button',form),action:'save-company',id:data(form).id}),invoice:form=>withLoading('Salvando fatura...',()=>saveInvoice(form),{button:$('button',form),action:'save-invoice',id:data(form).id}),plan:form=>withLoading('Salvando plano...',()=>savePlan(form),{button:$('button',form),action:'save-plan',id:data(form).id}),module:form=>withLoading('Salvando módulo...',()=>saveModule(form),{button:$('button',form),action:'save-module',id:data(form).id}),survey:form=>withLoading('Salvando pesquisa...',()=>saveSurvey(form),{button:$('button',form),action:'save-survey',id:data(form).id||data(form).title}),quickSurvey:form=>withLoading('Criando pesquisa...',()=>saveQuickSurvey(form),{button:$('button',form),action:'quick-survey'}),takeSurvey:form=>withLoading('Enviando resposta...',()=>submitSurvey(form),{button:$('button',form),action:'submitSurvey',id:data(form).surveyId}),inviteEmail:form=>withLoading('Enviando convite...',()=>sendInviteEmail(form),{button:$('button',form),action:'invite-email'}),bulkInvite:form=>withLoading('Enviando convites...',()=>sendBulkInvite(form),{button:$('button',form),action:'bulk-invite'}),resultEmail:form=>withLoading('Enviando resultado...',()=>submitResultEmail(form),{button:$('button',form),action:'result-email-submit'}),settings:form=>withLoading('Salvando configurações...',()=>saveSettings(form),{button:$('button',form),action:'saveSettings'}),companySettings:form=>withLoading('Salvando white label...',()=>saveCompanySettings(form),{button:$('button',form),action:'company-settings'}),onboardingWizard:form=>withLoading('Salvando onboarding...',()=>saveOnboardingWizard(form),{button:$('button',form),action:'onboarding'}),importBackup:form=>withLoading('Importando backup...',()=>importBackup(form),{button:$('button',form),action:'import-backup'})
+  resendResultEmail:form=>withLoading('Reenviando resultado...',()=>resendResultEmail(form),{button:$('button',form),action:'result-email'}),apiKey:form=>withLoading('Salvando chave...',()=>saveApiKey(form),{button:$('button',form),action:'api-key'}),webhook:form=>withLoading('Salvando webhook...',()=>saveWebhook(form),{button:$('button',form),action:'webhook'}),employeeImport:form=>withLoading('Importando funcionários...',()=>saveEmployeeImport(form),{button:$('button',form),action:'employee-import'}),dataExport:form=>withLoading('Exportando dados...',()=>exportData(form),{button:$('button',form),action:'data-export'}),user:form=>withLoading('Salvando usuário...',()=>saveUser(form),{button:$('button',form),action:'save-user',id:data(form).id||data(form).email}),company:form=>withLoading('Salvando cliente...',()=>saveCompany(form),{button:$('button',form),action:'save-company',id:data(form).id}),invoice:form=>withLoading('Salvando fatura...',()=>saveInvoice(form),{button:$('button',form),action:'save-invoice',id:data(form).id}),plan:form=>withLoading('Salvando plano...',()=>savePlan(form),{button:$('button',form),action:'save-plan',id:data(form).id}),module:form=>withLoading('Salvando módulo...',()=>saveModule(form),{button:$('button',form),action:'save-module',id:data(form).id}),survey:form=>withLoading('Salvando pesquisa...',()=>saveSurvey(form),{button:$('button',form),action:'save-survey',id:data(form).id||data(form).title}),quickSurvey:form=>withLoading('Criando pesquisa...',()=>saveQuickSurvey(form),{button:$('button',form),action:'quick-survey'}),takeSurvey:(form,e)=>submitSurvey(form,e),inviteEmail:form=>withLoading('Enviando convite...',()=>sendInviteEmail(form),{button:$('button',form),action:'invite-email'}),bulkInvite:form=>withLoading('Enviando convites...',()=>sendBulkInvite(form),{button:$('button',form),action:'bulk-invite'}),resultEmail:form=>withLoading('Enviando resultado...',()=>submitResultEmail(form),{button:$('button',form),action:'result-email-submit'}),settings:form=>withLoading('Salvando configurações...',()=>saveSettings(form),{button:$('button',form),action:'saveSettings'}),companySettings:form=>withLoading('Salvando white label...',()=>saveCompanySettings(form),{button:$('button',form),action:'company-settings'}),onboardingWizard:form=>withLoading('Salvando onboarding...',()=>saveOnboardingWizard(form),{button:$('button',form),action:'onboarding'}),importBackup:form=>withLoading('Importando backup...',()=>importBackup(form),{button:$('button',form),action:'import-backup'})
 };}
 
 async function login(form){const fd=data(form);const btn=$('[data-login-button]',form)||$('button',form);if(btn){btn.disabled=true;btn.textContent='Entrando…';}try{const u=await loginUser(fd.email,fd.password);if(!u)return toast('Credenciais inválidas ou usuário inativo.','error');audit('Login realizado','usuário',u.id||u.uid,u.email);toast(`Bem-vindo(a), ${u.name}.`,'success');actions.goMyArea();}catch(err){toast(err?.message||'Não foi possível entrar agora. Tente novamente.','error');}finally{if(btn){btn.disabled=false;btn.textContent='Entrar';form.password.value='';}}}

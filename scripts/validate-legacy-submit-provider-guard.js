@@ -1,0 +1,4 @@
+const fs=require('fs');const a=fs.readFileSync('app.js','utf8'),f=fs.readFileSync('firebase-repository.js','utf8');function ok(c,m){if(!c){console.error(m);process.exit(1)}}
+['submitPublicSurveyResponse','submitPublicSurveyAuto','submitPublicSurveyViaCloudFunction','submitPublicSurveyViaFunctions','submitPublicSurveyViaExternalApi','submitPublicSurveyViaApi'].forEach(n=>{const i=a.indexOf('async function '+n+'(payload)');ok(i>=0,n+' ausente');ok(a.slice(i,i+220).includes('assertPublicSubmitPayloadReady(payload)'),n+' sem assert');});
+ok(/function assertPublicSubmitPayloadReady\(payload\)/.test(a),'assert ausente em app');ok(/submitPublicSurveyResponseFirebase\(payload\)[\s\S]{0,120}assertPublicSubmitPayloadReady\(payload\)/.test(f),'firebase provider sem assert');
+console.log('validate-legacy-submit-provider-guard: PASS');

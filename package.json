@@ -402,7 +402,12 @@
     "legacy:submit-real-form-context": "node scripts/validate-legacy-submit-requires-real-form-context.js",
     "legacy:required-before-function": "node scripts/validate-legacy-required-questions-before-function.js",
     "legacy:submit-inline-error": "node scripts/validate-legacy-submit-inline-error-keeps-form.js",
-    "legacy:submit-no-required-mask": "node scripts/validate-legacy-submit-error-does-not-mask-required.js"
+    "legacy:submit-no-required-mask": "node scripts/validate-legacy-submit-error-does-not-mask-required.js",
+    "legacy:single-submit-path": "node scripts/validate-legacy-single-public-submit-path.js",
+    "legacy:submit-provider-guard": "node scripts/validate-legacy-submit-provider-guard.js",
+    "legacy:retry-never-submits": "node scripts/validate-legacy-retry-never-submits.js",
+    "legacy:submit-debug-expanded": "node scripts/validate-legacy-submit-debug-expanded.js",
+    "functions:submit-missing-surveyid-code": "node scripts/validate-functions-submit-missing-surveyid-code.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

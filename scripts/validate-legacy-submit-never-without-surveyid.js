@@ -1,6 +1,6 @@
-const {read,must}=require('./legacy-public-final-validator-common');const a=read('app.js');
-must('payload builder exists',/function buildPublicSurveySubmitPayload/.test(a));
-must('payload builder uses form-aware context',/const ctx = getPublicSurveyContext\(formEl\); const fd = data\(formEl\)/.test(a));
-must('payload builder falls back to fd surveyId token',/ctx\.surveyId \|\| fd\.surveyId/.test(a)&&/ctx\.token \|\| fd\.token/.test(a));
-must('validation before submit function',a.indexOf('const validationError=validatePublicSubmitPayload')>-1&&a.indexOf('const validationError=validatePublicSubmitPayload')<a.indexOf('const res=await submitPublicSurveyResponse'));
-must('extra guard blocks missing surveyId token before function',/if\(!submitPayload\.surveyId \|\| !submitPayload\.token\)/.test(a)&&a.indexOf('if(!submitPayload.surveyId || !submitPayload.token)')<a.indexOf('const res=await submitPublicSurveyResponse'));
+const fs=require('fs');const a=fs.readFileSync('app.js','utf8');function ok(c,m){if(!c){console.error(m);process.exit(1)}}
+const g=a.slice(a.indexOf('async function guardedPublicSurveySubmit'),a.indexOf('async function submitSurvey(form, event = null)'));
+const vi=g.indexOf('validatePublicSubmitPayload'), ci=g.lastIndexOf('submitPublicSurveyResponse(payload)');ok(vi>-1&&ci>-1&&vi<ci,'validação não ocorre antes da Function');
+ok(/if \(!payload\.surveyId \|\| !payload\.token\)/.test(g),'guard missing context ausente');
+ok(/assertPublicSubmitPayloadReady\(payload\);return submitPublicSurveyAuto/.test(a),'submitPublicSurveyResponse sem assert');
+console.log('validate-legacy-submit-never-without-surveyid: PASS');

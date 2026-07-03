@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('functions/index.js','utf8');for(const x of ['function createSmtpTransporter','nodemailer.createTransport','connectionTimeout:30000','await transporter.verify()','await transporter.sendMail'])if(!s.includes(x))throw new Error('SMTP real ausente: '+x);console.log('functions send result email real smtp: PASS');

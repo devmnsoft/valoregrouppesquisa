@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('functions/index.js','utf8');for(const x of ['exports.sendTestEmail','Teste SMTP Valora Group','normalizeSendMailResult(info,to)'])if(!s.includes(x))throw new Error('sendTestEmail ausente: '+x);console.log('functions send test email: PASS');

@@ -431,8 +431,11 @@ async function init(){
   window.addEventListener('hashchange',routeFromLocation);
   window.addEventListener('popstate',routeFromLocation);
 }
-function isPublicSurveyPage(){const url=new URL(location.href);return !!url.searchParams.get('survey')&&!!url.searchParams.get('token');}
-function isPublicResultPage(){const url=new URL(location.href);return !!url.searchParams.get('result')&&!!url.searchParams.get('rt');}
+function isPublicSurveyRoute(){const params=new URLSearchParams(location.search);return !!(params.get('survey')&&params.get('token'));}
+function isPublicResultRoute(){const params=new URLSearchParams(location.search);return !!(params.get('result')&&params.get('rt'));}
+function isAnyPublicTokenRoute(){return isPublicResultRoute()||isPublicSurveyRoute();}
+function isPublicSurveyPage(){return isPublicSurveyRoute();}
+function isPublicResultPage(){return isPublicResultRoute();}
 function isPublicCertificateValidationPage(){const url=new URL(location.href);return !!url.searchParams.get('certificate');}
 function isPublicJourneyPage(){return isPublicSurveyPage()||isPublicResultPage()||isPublicCertificateValidationPage();}
 
@@ -441,8 +444,8 @@ function routeFromLocation(){
   // Rotas internas sempre têm prioridade. Assim, Minha área, logo, LGPD e Planos
   // continuam funcionando mesmo depois de abrir um link seguro com query string.
   if(hash)return route(hash);
-  if(sid){const contract=publicSurveyRouteContract({survey:sid,token,org:u.searchParams.get('org')});if(!contract.ok){return renderIncompletePublicSurveyLink(contract);} resolveProductionPublicSurveyLink({survey:sid,token,org:u.searchParams.get('org')}).then(r=>{ if(!r?.redirected&&!r?.blocked) renderTakeSurvey(sid,token,u.searchParams.get('org')); }).catch(()=>renderTakeSurvey(sid,token,u.searchParams.get('org'))); return; }
   if(isPublicResultRoute()){releasePublicUi('public_result_route');return renderPublicResultFromRoute();}
+  if(sid){const contract=publicSurveyRouteContract({survey:sid,token,org:u.searchParams.get('org')});if(!contract.ok){return renderIncompletePublicSurveyLink(contract);} if(isPublicSurveyRoute())releasePublicUi('public_survey_route'); resolveProductionPublicSurveyLink({survey:sid,token,org:u.searchParams.get('org')}).then(r=>{ if(!r?.redirected&&!r?.blocked) renderTakeSurvey(sid,token,u.searchParams.get('org')); }).catch(()=>renderTakeSurvey(sid,token,u.searchParams.get('org'))); return; }
   if(result)return renderResult(result,false,resultToken);
   if(certificate)return renderCertificateValidation(certificate);
   route('home');
@@ -1893,7 +1896,7 @@ async function createEmailJobFallback(payload){
 }
 async function sendResultEmailViaApi(payload){if(!payload?.responseId||String(payload.responseId).includes('demo'))throw new Error('responseId real obrigatório.');if(!window.ValoraApiRepository?.sendResultEmail)throw new Error('API de e-mail indisponível.');return window.ValoraApiRepository.sendResultEmail(payload.responseId,{resultToken:payload.resultToken,to:payload.to,participantName:payload.participantName,includeCertificate:payload.includeCertificate!==false,idempotencyKey:payload.idempotencyKey||`result-email-${payload.responseId}`});}
 async function sendResultEmailViaFunction(payload){if(!payload?.responseId||String(payload.responseId).includes('demo'))throw new Error('responseId real obrigatório.');if(!payload.resultToken)throw new Error('resultToken real obrigatório.');const call=await firebaseCallable('sendResultEmail');const result=await call({responseId:payload.responseId,resultToken:payload.resultToken,to:payload.to,participantName:payload.participantName,includeCertificate:payload.includeCertificate!==false,idempotencyKey:payload.idempotencyKey||`result-email-${payload.responseId}`});return result?.data||result;}
-function renderEmailDeliveryStatus(status){const ok=status?.sent||status?.status==='sent'||status?.ok===true;return ok?'Resultado gerado com sucesso. Enviamos uma cópia para o e-mail informado. Verifique também spam ou lixo eletrônico.':'Resultado gerado, mas o e-mail não foi enviado agora.';}
+function renderEmailDeliveryStatus(status){const value=typeof status==='string'?status:(status?.status||'');if(value==='sent')return 'Resultado enviado para o e-mail informado.';if(value==='queued'||value==='pending'||value==='pending_retry')return 'Seu resultado foi registrado e o envio por e-mail está em processamento.';if(value==='failed_non_blocking')return 'Seu resultado foi registrado, mas o e-mail não foi enviado agora.';if(value==='failed')return 'Não conseguimos enviar o e-mail agora.';if(value==='not_requested')return 'Envio por e-mail não solicitado.';return 'Resultado registrado com segurança.';}
 function loadPublicResultLocally(responseId,resultToken){const response=state.responses.find(x=>String(x.id)===String(responseId));if(!response)throw new Error('Resultado não encontrado.');if(response.resultToken&&response.resultToken!==resultToken)throw new Error('Token de resultado inválido.');const survey=state.surveys.find(x=>x.id===response.surveyId)||{};const company=companyById(response.companyId)||{};return {ok:true,response,survey,company,result:response,certificate:{responseId:response.id,resultToken}};}
 
 async function renderTakeSurvey(sid=null,token=null,orgSlug='',resolvedPayload=null){
@@ -2166,7 +2169,7 @@ function renderImmediateDimensionScores(items = []) {
 function renderImmediateResultAfterSubmit(result = {}, payload = {}) {
   const vm = normalizeImmediateSubmitResultViewModel(result, payload);
   const emailStatus = vm.resultEmailStatus;
-  const emailBox = emailStatus === 'queued' ? '<div class="success-box">Seu resultado também será enviado para o e-mail informado.</div>' : emailStatus === 'failed_non_blocking' ? '<div class="page-help">Seu resultado foi gerado, mas o envio de e-mail não foi concluído agora. Você pode tentar reenviar.</div>' : '<div class="page-help">Resultado registrado com segurança.</div>';
+  const emailBox = `<div class="page-help">${esc(renderEmailDeliveryStatus(emailStatus||'not_requested'))}</div>`;
   const app = document.getElementById('app');
   app.innerHTML = `<section class="section public-result-section"><div class="container"><div class="card result-card"><div class="page-head"><div><div class="breadcrumb">Diagnóstico › Resultado</div><h1>Resultado do Diagnóstico</h1><p>${esc(vm.participantName||'Obrigado por responder.')}</p></div><span class="badge">Resultado registrado</span></div><div class="result-highlight"><h2>${esc(vm.levelTitle)}</h2><p>${esc(vm.recommendation)}</p></div><div class="grid grid-3"><div class="kpi-card"><small>Pontuação</small><strong>${esc(vm.normalized5Text)}</strong></div><div class="kpi-card"><small>Percentual</small><strong>${esc(vm.percentageText)}</strong></div><div class="kpi-card"><small>Status</small><strong>Concluído</strong></div></div>${renderImmediateDimensionScores(vm.byDimension)}${emailBox}<div id="certificateArea" class="page-help">Certificado em preparação. Assim que disponível, os botões de download aparecerão aqui.</div><div class="confirm-actions">${vm.responseId&&vm.resultToken?`<button class="btn btn-primary" data-action="reloadPublicResult" data-response-id="${esc(vm.responseId)}" data-token="${esc(vm.resultToken)}">Carregar resultado completo</button>`:''}${vm.responseId&&vm.resultToken?`<button class="btn btn-secondary" data-action="downloadCertificatePdf" data-response-id="${esc(vm.responseId)}" data-token="${esc(vm.resultToken)}">Baixar certificado PDF</button>`:''}${vm.responseId&&vm.resultToken?`<button class="btn btn-secondary" data-action="downloadCertificatePng" data-response-id="${esc(vm.responseId)}" data-token="${esc(vm.resultToken)}">Baixar certificado imagem</button>`:''}${vm.responseId&&vm.resultToken?`<button class="btn btn-soft" data-action="resendResultEmail" data-response-id="${esc(vm.responseId)}" data-token="${esc(vm.resultToken)}">Reenviar por e-mail</button>`:''}<a class="btn btn-success" href="${esc(publicWhatsappContactUrl())}" target="_blank" rel="noopener">Falar com a Valora no WhatsApp</a></div></div></div></section>`;
 }
@@ -2194,9 +2197,9 @@ async function reloadPublicResult(el) {
     catch (err) { toast('Não conseguimos carregar o resultado completo agora. O resultado registrado permanece disponível nesta tela.', 'warning'); }
   }, { button: el, buttonText: 'Carregando...' });
 }
-async function downloadCertificatePdf(el){return withLoading('Preparando certificado PDF...',async()=>{try{const id=el?.dataset?.responseId||el?.dataset?.id||'';const token=el?.dataset?.token||el?.dataset?.resultToken||'';const data=buildCertificateData(id,token);if(!assertCertificateCanExport(data))return false;window.ValoraPDF.createCertificate(data,`${data.fileBaseName}.pdf`);return true;}catch(err){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastCertificateDownloadError=normalizeResultRenderError(err);toast('Certificado em preparação. Tente novamente em instantes.','warning');return false;}},{button:el,buttonText:'Preparando...'});}
+async function downloadCertificatePdf(el){return withLoading('Preparando certificado PDF...',async()=>{try{const id=el?.dataset?.responseId||el?.dataset?.id||new URLSearchParams(location.search).get('result')||'';const token=el?.dataset?.token||el?.dataset?.resultToken||new URLSearchParams(location.search).get('rt')||'';let bundle=null;try{bundle=await ValoraRepository.loadPublicResult(id,token);}catch(_){bundle=null;}const data=safeBuildCertificateData?safeBuildCertificateData(bundle||buildCertificateData(id,token)):buildCertificateData(id,token);if(!assertCertificateCanExport(data))return false;(window.ValoraPdf||window.ValoraPDF).createCertificate(data,`${data.fileBaseName}.pdf`);return true;}catch(err){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastCertificateDownloadError=normalizeResultRenderError(err);toast('Certificado em preparação. Tente novamente em instantes.','warning');return false;}},{button:el,buttonText:'Preparando...'});}
 async function downloadCertificatePng(el){return withLoading('Preparando certificado imagem...',async()=>{try{const id=el?.dataset?.responseId||el?.dataset?.id||'';const token=el?.dataset?.token||el?.dataset?.resultToken||'';buildCertificateData(id,token);return await exportCertificateImage(id);}catch(err){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastCertificateDownloadError=normalizeResultRenderError(err);toast('Certificado em preparação. Tente novamente em instantes.','warning');return false;}},{button:el,buttonText:'Preparando...'});}
-async function resendPublicResultEmailSafe(el){const responseId=el?.dataset?.responseId||el?.dataset?.id||'';const resultToken=el?.dataset?.token||el?.dataset?.resultToken||'';if(!responseId||!resultToken){toast('Não conseguimos reenviar agora. Fale com a Valora pelo WhatsApp.','warning');return false;}return withLoading('Reenviando resultado por e-mail...',async()=>{try{await ValoraRepository.sendResultEmail(responseId,{resultToken});toast('Solicitação de envio registrada.','success');return true;}catch(err){toast('Não conseguimos reenviar agora. Fale com a Valora pelo WhatsApp.','warning');return false;}},{button:el,buttonText:'Reenviando...'});}
+async function resendPublicResultEmailSafe(el){const responseId=el?.dataset?.responseId||el?.dataset?.id||'';const resultToken=el?.dataset?.token||el?.dataset?.resultToken||'';if(!responseId||!resultToken){toast('Não conseguimos reenviar agora. Fale com a Valora pelo WhatsApp.','warning');return false;}return withLoading('Reenviando resultado por e-mail...',async()=>{try{const res=await ValoraRepository.sendResultEmail(responseId,{resultToken});const st=res?.status||'';toast(st==='sent'?'Resultado reenviado para seu e-mail.':st==='queued'?'Solicitação de envio registrada.':'Não conseguimos enviar agora. Fale com a Valora pelo WhatsApp.',st==='sent'||st==='queued'?'success':'warning');return st==='sent'||st==='queued';}catch(err){toast('Não conseguimos reenviar agora. Fale com a Valora pelo WhatsApp.','warning');return false;}},{button:el,buttonText:'Reenviando...'});}
 
 function readLastPublicResultFromSession(){
   try { return JSON.parse(sessionStorage.getItem('valora:lastPublicResult') || 'null'); }
@@ -2213,14 +2216,11 @@ function renderPublicResultLoading(responseId = '', resultToken = ''){
   setTimeout(()=>{const text=document.body?.innerText||'';if(!text.includes('Carregando resultado seguro'))return;const cached=readLastPublicResultFromSession?.();if(cached?.result){renderImmediateResultAfterSubmit(cached.result,cached.payload||{});return;}renderResultLoadFallback(responseId,resultToken);},6000);
 }
 
-function isPublicResultRoute() {
-  const params = new URLSearchParams(location.search);
-  return !!(params.get('result') && params.get('rt'));
-}
 async function renderPublicResultFromRoute() {
   const params = new URLSearchParams(location.search);
   const responseId = params.get('result') || '';
   const token = params.get('rt') || '';
+  if (!responseId || !token) return renderResultLoadFallback(responseId, token);
   renderPublicResultLoading(responseId, token);
   try {
     const result = await ValoraRepository.loadPublicResult(responseId, token);

@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('functions/index.js','utf8');for(const x of ["collection('email_logs')",'writeResultEmailLog','toMasked','accepted','rejected','resultEmail'])if(!s.includes(x))throw new Error('email logs ausente: '+x);console.log('functions email logs: PASS');

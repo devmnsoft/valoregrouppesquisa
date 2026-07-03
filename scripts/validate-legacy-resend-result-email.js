@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8');for(const x of ['resendPublicResultEmailSafe','ValoraRepository.sendResultEmail(responseId,{resultToken})','Resultado reenviado para seu e-mail.','Não conseguimos enviar agora. Fale com a Valora pelo WhatsApp.'])if(!s.includes(x))throw new Error('resend ausente: '+x);console.log('legacy resend result email: PASS');

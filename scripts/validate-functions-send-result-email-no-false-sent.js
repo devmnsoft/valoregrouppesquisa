@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('functions/index.js','utf8');for(const x of ['function normalizeSendMailResult','messageId&&acceptedTarget&&!rejectedTarget',"status:'failed'",'normalizeSendMailResult(info,to)'])if(!s.includes(x))throw new Error('no false sent ausente: '+x);console.log('functions no false email sent: PASS');

@@ -418,7 +418,13 @@
     "legacy:result-viewmodel-safe": "node scripts/validate-legacy-result-viewmodel-safe.js",
     "legacy:result-enhance-safe": "node scripts/validate-legacy-result-enhance-safe.js",
     "legacy:result-actions-safe": "node scripts/validate-legacy-result-actions-safe.js",
-    "legacy:result-render-error-not-final": "node scripts/validate-legacy-result-render-error-not-final.js"
+    "legacy:result-render-error-not-final": "node scripts/validate-legacy-result-render-error-not-final.js",
+    "legacy:dimension-recommendation": "node scripts/validate-legacy-dimension-recommendation-helper.js",
+    "legacy:certificate-safe-render": "node scripts/validate-legacy-certificate-safe-render.js",
+    "legacy:result-no-direct-certificate": "node scripts/validate-legacy-render-result-no-direct-certificate-html.js",
+    "legacy:result-loading-timeout": "node scripts/validate-legacy-result-loading-timeout.js",
+    "legacy:certificate-download-safe": "node scripts/validate-legacy-certificate-download-safe.js",
+    "dist:no-undefined-certificate-helpers": "node scripts/validate-dist-no-undefined-certificate-helpers.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

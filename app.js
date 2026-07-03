@@ -349,16 +349,26 @@ function renderHomeFallback(){return renderHome();}
 function renderFatalAdminError(error){const app=$('#app');if(app)app.innerHTML=`<section class="empty-state error-state"><h3>Não foi possível iniciar a área administrativa</h3><p>${esc(error?.message||'Falha de inicialização')}</p><button class="btn btn-secondary" data-action="reloadApp">Atualizar</button></section>`;}
 
 function legacyTraceEnabled(){return window.ValoraConfig?.observability?.legacyTraceEnabled===true;}
+function handleActionError(actionName,err){
+  const message=err?.message||String(err);
+  window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
+  window.ValoraRuntimeDiagnostics.lastActionError={actionName,name:err?.name||'',message,stack:String(err?.stack||'').slice(0,2000),at:new Date().toISOString()};
+  window.ValoraLogger?.error?.({category:'system',action:'frontend_action_error',message:`Não foi possível concluir a ação ${actionName}.`,error:err,metadata:{actionName},user:currentUser?.()});
+  if(/dimensionRecommendation is not defined/i.test(message)){toast('Certificado em preparação. Seu resultado continua registrado.','warning');return;}
+  toast(`Não foi possível concluir a ação “${actionName}”. ${message}`,'error');
+}
 function safeRun(label,category,action,fn,options={}){
   try{
     if(legacyTraceEnabled())window.ValoraLogger?.debug({category,action,message:`Iniciando: ${label}`,metadata:options.metadata,user:currentUser?.()});
-    const result=fn();
+    const result=typeof fn==='function'?fn():fn;
+    if(result&&typeof result.then==='function'){
+      return result.then(value=>{if(legacyTraceEnabled())window.ValoraLogger?.info({category,action,message:`Concluído: ${label}`,metadata:options.metadata,user:currentUser?.()});return value;}).catch(err=>{handleActionError(action||label,err);return options.fallback??false;});
+    }
     if(legacyTraceEnabled())window.ValoraLogger?.info({category,action,message:`Concluído: ${label}`,metadata:options.metadata,user:currentUser?.()});
     return result;
   }catch(err){
-    window.ValoraLogger?.error({category,action,message:`Erro em: ${label}`,error:err,metadata:options.metadata,user:currentUser?.()});
-    handleError(label,err);
-    return options.fallback;
+    handleActionError(action||label,err);
+    return options.fallback??false;
   }
 }
 async function safeRunAsync(label,category,action,fn,options={}){
@@ -2183,6 +2193,29 @@ async function downloadCertificatePdf(el){return withLoading('Preparando certifi
 async function downloadCertificatePng(el){return withLoading('Preparando certificado imagem...',async()=>{try{const id=el?.dataset?.responseId||el?.dataset?.id||'';const token=el?.dataset?.token||el?.dataset?.resultToken||'';buildCertificateData(id,token);return await exportCertificateImage(id);}catch(err){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastCertificateDownloadError=normalizeResultRenderError(err);toast('Certificado em preparação. Tente novamente em instantes.','warning');return false;}},{button:el,buttonText:'Preparando...'});}
 async function resendPublicResultEmailSafe(el){const responseId=el?.dataset?.responseId||el?.dataset?.id||'';const resultToken=el?.dataset?.token||el?.dataset?.resultToken||'';if(!responseId||!resultToken){toast('Não conseguimos reenviar agora. Fale com a Valora pelo WhatsApp.','warning');return false;}return withLoading('Reenviando resultado por e-mail...',async()=>{try{await ValoraRepository.sendResultEmail(responseId,{resultToken});toast('Solicitação de envio registrada.','success');return true;}catch(err){toast('Não conseguimos reenviar agora. Fale com a Valora pelo WhatsApp.','warning');return false;}},{button:el,buttonText:'Reenviando...'});}
 
+function readLastPublicResultFromSession(){
+  try { return JSON.parse(sessionStorage.getItem('valora:lastPublicResult') || 'null'); }
+  catch (_) { return null; }
+}
+function renderResultLoadFallback(responseId = '', resultToken = ''){
+  const app=document.getElementById('app'); if(!app)return false;
+  app.innerHTML=`<section class="section"><div class="container"><div class="card"><h1>Resultado em processamento</h1><p>Não conseguimos carregar a devolutiva completa agora, mas seu resultado permanece registrado.</p><div class="confirm-actions"><button class="btn btn-primary" data-action="reloadPublicResult" data-response-id="${esc(responseId)}" data-token="${esc(resultToken)}">Tentar novamente</button><a class="btn btn-success" href="${esc(publicWhatsappContactUrl())}" target="_blank" rel="noopener">Falar com a Valora no WhatsApp</a></div><div id="certificateArea" class="page-help certificate-pending"><b>Certificado em preparação.</b><br>O certificado poderá ser carregado novamente em instantes.</div></div></div></section>`;
+  return false;
+}
+function renderPublicResultLoading(responseId = '', resultToken = ''){
+  const app=document.getElementById('app'); if(!app)return;
+  app.innerHTML=`<section class="section"><div class="container"><div class="card"><h1>Carregando resultado seguro…</h1><p>Estamos preparando sua devolutiva.</p><div class="confirm-actions"><button class="btn btn-primary" data-action="reloadPublicResult" data-response-id="${esc(responseId)}" data-token="${esc(resultToken)}">Tentar novamente</button><a class="btn btn-success" href="${esc(publicWhatsappContactUrl())}" target="_blank" rel="noopener">Falar com a Valora no WhatsApp</a></div></div></div></section>`;
+  setTimeout(()=>{const text=document.body?.innerText||'';if(!text.includes('Carregando resultado seguro'))return;const cached=readLastPublicResultFromSession?.();if(cached?.result){renderImmediateResultAfterSubmit(cached.result,cached.payload||{});return;}renderResultLoadFallback(responseId,resultToken);},6000);
+}
+async function safeRenderResultById(id, token = null){
+  try { return renderResult(id, true, token); }
+  catch (err) { const normalized=normalizeResultRenderError(err); window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{}; window.ValoraRuntimeDiagnostics.lastSafeRenderResultError=normalized; throw err; }
+}
+async function viewResponse(id, token = null){
+  try { return await withLoading('Carregando resultado seguro...', async()=>await safeRenderResultById(id, token)); }
+  catch (err) { window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{}; window.ValoraRuntimeDiagnostics.lastViewResponseError={name:err?.name||'',message:err?.message||String(err),stack:String(err?.stack||'').slice(0,2000),at:new Date().toISOString()}; toast('Não conseguimos carregar o resultado completo agora. Seu resultado registrado permanece disponível.','warning'); const cached=readLastPublicResultFromSession?.(); if(cached?.result){renderImmediateResultAfterSubmit(cached.result,cached.payload||{});return false;} renderResultLoadFallback(id, token); return false; }
+}
+
 async function renderResult(id,afterSubmit=false,publicToken=''){
   renderShell();audit('Resultado público aberto','jornada_publica',id,'Abertura por link seguro');let r,s,companyLabel;
   if(publicToken){
@@ -2252,6 +2285,24 @@ function buildCertificateValidationUrl(validationCode){const clean=location.href
 function buildCertificatePublicValidationUrl(responseId,validationCode){const clean=location.href.split('?')[0].split('#')[0];return buildCertificateValidationUrl(validationCode||buildCertificateValidationCode(responseId,''));}
 function buildCertificateData(responseIdOrResponse,resultToken){const model=buildCertificateViewModel(responseIdOrResponse);const layout=buildCertificateLayout(model);const validationCode=buildCertificateValidationCode(model.responseId,resultToken||responseIdOrResponse?.resultToken||'');const validationUrl=buildCertificatePublicValidationUrl(model.responseId,validationCode);return {...model,layout,response:typeof responseIdOrResponse==='object'?responseIdOrResponse:{},validationCode,validationUrl,maskedEmail:maskEmail(model.participantEmail),surveyTitle:model.surveyName,completedDate:model.formattedDate,companyName:model.issuerName,certificateTitle:layout.eyebrow,certificateSubtitle:'Certificamos que',certificateBody:`Certificamos que ${model.participantName} concluiu o diagnóstico ${model.surveyName} em ${model.formattedDate}.`,institutionalMessage:model.issuedByText,poweredByValora:'Tecnologia Valora Pulse™',logoUrl:LOGO_FULL};}
 function renderCertificateHtml(certificateData){return certificateTemplateHtml(certificateData,{mode:'screen'});}
+function safeBuildCertificateData(result = {}, survey = {}, form = {}, company = {}) {
+  try { return buildCertificateData(result, survey, form, company); }
+  catch (err) {
+    window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
+    window.ValoraRuntimeDiagnostics.lastCertificateDataError = {name: err?.name || '', message: err?.message || String(err), stack: String(err?.stack || '').slice(0, 2000), at: new Date().toISOString()};
+    const score = getCertificateScore(result);
+    return {participantName: result?.participant?.name || result?.response?.participant?.name || 'Participante', surveyTitle: survey?.title || result?.surveyTitle || 'Diagnóstico Valora Group', completedDate: new Date().toLocaleDateString('pt-BR'), scoreShortLabel: score.normalized5Text, scoreLabel: score.percentageText, maturityLabel: result?.level?.title || result?.level?.label || 'Resultado do diagnóstico', institutionalMessage: 'Emitido por Valora Group', issuedByText: 'Emitido por Valora Group', validationText: result?.resultToken ? `Validação: ${String(result.resultToken).slice(0, 10)}` : '', recommendation: score.recommendation, layout: buildCertificateLayout({participantName: result?.participant?.name || 'Participante', surveyName: survey?.title || 'Diagnóstico Valora Group', formattedDate: new Date().toLocaleDateString('pt-BR'), maturityLabel: result?.level?.label || '', issuedByText: 'Emitido por Valora Group', validationText: ''}), logoUrl: LOGO_FULL, productName: 'Valora Pulse™', brandName: 'Valora Pulse™', validationCode: '', validationUrl: '', maskedEmail: '', poweredByValora: 'Tecnologia Valora Pulse™'};
+  }
+}
+function safeCertificateHtml(result = {}, survey = {}, form = {}, company = {}) {
+  try { return certificateHtml(result, survey, form, company); }
+  catch (err) {
+    window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
+    window.ValoraRuntimeDiagnostics.lastCertificateRenderError = {name: err?.name || '', message: err?.message || String(err), stack: String(err?.stack || '').slice(0, 2000), at: new Date().toISOString()};
+    console.warn('[Valora Pulse] Certificado indisponível no momento', window.ValoraRuntimeDiagnostics.lastCertificateRenderError);
+    return `<div id="certificateArea" class="page-help certificate-pending"><b>Certificado em preparação.</b><br>Seu resultado foi registrado. O certificado poderá ser carregado novamente em instantes.</div>`;
+  }
+}
 function certificateTemplateHtml(data,options={}){const d=data||buildCertificateData({});return `<section class="certificate-preview-shell"><article class="certificate-preview"><div class="certificate-export" data-mode="${esc(options.mode||'screen')}"><article class="certificate-sheet certificate-export-page"><div class="certificate-export-border"><header class="certificate-export-header"><div class="certificate-export-logo"><img src="${esc(d.logoUrl)}" alt="Valora Group"><span>Valora Group™</span></div><strong>${esc(d.productName||d.brandName)}</strong></header><p class="certificate-export-kicker">${esc(d.layout.eyebrow)}</p><p class="certificate-export-subtitle">Certificamos que</p><h3 class="certificate-export-name">${esc(d.participantName)}</h3><p class="certificate-export-body">concluiu o diagnóstico<br><b>${esc(d.surveyTitle)}</b><br>em ${esc(d.completedDate)}</p><section class="certificate-export-score"><span>Resultado</span><b>${esc(d.scoreShortLabel)}</b>${d.maturityLabel?`<small>${esc(d.maturityLabel)}</small>`:''}</section><p class="certificate-export-footer">${esc(d.issuedByText)}<br>${esc(d.poweredByValora)}<br>Código de validação: ${esc(d.validationCode||d.certificateCode)}<br>${d.maskedEmail?`E-mail: ${esc(d.maskedEmail)}<br>`:''}<a href="${esc(d.validationUrl||'')}">Validar certificado</a></p></div></article></div></article></section>`;}
 function certificateCompanyLine(r){return buildCertificateData(r).issuedByText;}
 function renderCertificateSection(response,resultToken){return renderCertificateHtml(buildCertificateData(response,resultToken));}
@@ -2513,7 +2564,7 @@ function createActions(){return {
   addDimension,removeDimension(el){removeDimension(el.dataset.id);},addQuestion(el){addQuestion(el.dataset.type||'scale');},removeQuestion(el){removeQuestion(el.dataset.id);},moveQuestion(el){moveQuestion(el.dataset.id,el.dataset.direction);},duplicateQuestion(el){duplicateQuestion(el.dataset.id);},addOption(el){addOption(el.dataset.id);},removeOption(el){removeOption(el.dataset.qid,el.dataset.id);},addBand,removeBand(el){removeBand(el.dataset.index);},reviewBuilder(){showBuilderReview();},previewBuilder,saveBuilder,
   newSurvey(){openSurveyEditor();},editSurvey(el){openSurveyEditor(el.dataset.id);},closeLinkedSurvey(el){window.ValoraRepository?.adminCloseSurvey?.(el.dataset.id).then(()=>{const s=state.surveys.find(x=>x.id===el.dataset.id);if(s)Object.assign(s,{status:'closed',visibility:'private',featuredOnHome:false,isFeatured:false,homeFeatured:false,visibleOnHome:false,revoked:true});clearFeaturedHomeSurveyCache('survey_closed');toast('Pesquisa encerrada.','success');rerenderPortal();}).catch(err=>toast(sanitizePublicError(err)||'Falha ao encerrar pesquisa.','error'));},archiveLinkedSurvey(el){window.ValoraRepository?.adminArchiveSurvey?.(el.dataset.id).then(()=>{const s=state.surveys.find(x=>x.id===el.dataset.id);if(s)Object.assign(s,{status:'archived',archived:true,visibility:'private',featuredOnHome:false,isFeatured:false,homeFeatured:false,visibleOnHome:false,revoked:true});clearFeaturedHomeSurveyCache('survey_archived');toast('Pesquisa arquivada.','success');rerenderPortal();}).catch(err=>toast(sanitizePublicError(err)||'Falha ao arquivar pesquisa.','error'));},closeSurveysByForm(el){closeSurveysByForm(el.dataset.id,el.dataset.mode||'close');},archiveFormAfterClose(el){archiveFormAfterClose(el.dataset.id);},createLinkedFormVersion(el){const f=formById(el.dataset.id);if(f)createFormVersionFromDraft(f,{...f,name:`${f.name} — nova versão`});},deleteSurvey(el){return withLoading('Excluindo pesquisa...',()=>deleteSurvey(el.dataset.id),{button:el,action:'deleteSurvey',id:el.dataset.id});},featureSurvey(el){return withLoading('Destacando na home...',()=>featureSurvey(el.dataset.id),{button:el,action:'featureSurvey',id:el.dataset.id});},removeFeaturedSurvey(el){return withLoading('Removendo destaque...',()=>removeSurveyAsHomeFeatured(),{button:el,action:'featureSurvey',id:'remove'});},shareSurvey(el){return withLoading('Preparando compartilhamento...',()=>Promise.resolve(openShareModal(el.dataset.id)),{button:el,action:'shareSurvey',id:el.dataset.id});},quickSurvey(){openQuickSurvey();},renewSurvey(el){return withLoading('Renovando link...',()=>Promise.resolve(renewSurvey(el.dataset.id)),{button:el,action:'preparePublicSurveyLink',id:el.dataset.id});},openSurvey(el){const s=state.surveys.find(x=>x.id===el.dataset.id);if(s)openSurveyInNewTab({dataset:{link:buildSurveyLink(s)}});},
   copyText(el){copyText(el.dataset.text||el.dataset.link||lastShareLink);},copyLink(el){copyText(el.dataset.link||lastShareLink);},openLink(el){const link=el.dataset.link||lastShareLink;if(link&&link!=='#signup'){if(isPublicSurveyUrl(link))return openSurveyInNewTab(el);openExternal(link);}else navigate('signup');},openSurveyInNewTab,goHomeFromPublicSurvey,openExternal,inviteEmail(el){openInviteEmail(el.dataset.id);},
-  viewResponse(el){renderResult(el.dataset.id);},emailResult(el){openResultEmail(el.dataset.id);},certificatePdf(el){certificatePdf(el.dataset.id);},certificatePng(el){certificatePng(el.dataset.id);},reportResponsePdf(el){reportResponsePdf(el.dataset.id);},deleteResponse(el){deleteResponse(el.dataset.id);},anonymizeResponse(el){anonymizeResponse(el.dataset.id);},
+  viewResponse(el){return viewResponse(el.dataset.id,el.dataset.token||el.dataset.resultToken||null);},emailResult(el){openResultEmail(el.dataset.id);},certificatePdf(el){return certificatePdf(el);},certificatePng(el){return certificatePng(el);},reportResponsePdf(el){reportResponsePdf(el.dataset.id);},deleteResponse(el){deleteResponse(el.dataset.id);},anonymizeResponse(el){anonymizeResponse(el.dataset.id);},
   exportReport(el){exportReport(el.dataset.scope,el.dataset.format);},
   exportExecutiveReport,
   sendTestEmail,openOutbox,refreshEmailStatus:updateEmailStatus,restoreBrandDefaults(){const c=currentCompany();if(!c)return;c.brand={...DEFAULT_BRAND};applyCompanyTheme(c);persist('Marca Valora restaurada.');rerenderPortal();},

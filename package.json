@@ -424,7 +424,15 @@
     "legacy:result-no-direct-certificate": "node scripts/validate-legacy-render-result-no-direct-certificate-html.js",
     "legacy:result-loading-timeout": "node scripts/validate-legacy-result-loading-timeout.js",
     "legacy:certificate-download-safe": "node scripts/validate-legacy-certificate-download-safe.js",
-    "dist:no-undefined-certificate-helpers": "node scripts/validate-dist-no-undefined-certificate-helpers.js"
+    "dist:no-undefined-certificate-helpers": "node scripts/validate-dist-no-undefined-certificate-helpers.js",
+    "legacy:result-company-scope": "node scripts/validate-legacy-render-result-company-scope.js",
+    "legacy:public-result-no-auth": "node scripts/validate-legacy-public-result-no-auth-login.js",
+    "legacy:public-result-route": "node scripts/validate-legacy-public-result-route.js",
+    "legacy:email-secrets-readiness": "node scripts/validate-legacy-email-secrets-readiness.js",
+    "functions:send-result-email-smtp": "node scripts/validate-functions-send-result-email-smtp.js",
+    "legacy:certificate-pdf-safe": "node scripts/validate-legacy-certificate-pdf-safe.js",
+    "legacy:safe-run-async": "node scripts/validate-legacy-safe-run-async.js",
+    "dist:no-undefined-result-certificate": "node scripts/validate-dist-no-undefined-result-certificate-helpers.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

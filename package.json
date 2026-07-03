@@ -422,10 +422,8 @@
     "legacy:dimension-recommendation": "node scripts/validate-legacy-dimension-recommendation-helper.js",
     "legacy:certificate-safe-render": "node scripts/validate-legacy-certificate-safe-render.js",
     "legacy:result-no-direct-certificate": "node scripts/validate-legacy-render-result-no-direct-certificate-html.js",
-    "legacy:certificate-actions-safe": "node scripts/validate-legacy-certificate-actions-safe.js",
-    "legacy:view-response-safe": "node scripts/validate-legacy-view-response-safe.js",
-    "legacy:safe-run-async": "node scripts/validate-legacy-safe-run-async.js",
     "legacy:result-loading-timeout": "node scripts/validate-legacy-result-loading-timeout.js",
+    "legacy:certificate-download-safe": "node scripts/validate-legacy-certificate-download-safe.js",
     "dist:no-undefined-certificate-helpers": "node scripts/validate-dist-no-undefined-certificate-helpers.js"
   },
   "devDependencies": {

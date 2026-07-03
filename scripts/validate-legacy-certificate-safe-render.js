@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8');['function safeBuildCertificateData','function safeCertificateHtml','lastCertificateDataError','lastCertificateRenderError','Certificado em preparação'].forEach(x=>{if(!s.includes(x))throw new Error('Ausente: '+x)});console.log('legacy certificate safe render: PASS');

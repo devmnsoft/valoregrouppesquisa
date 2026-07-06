@@ -82,3 +82,10 @@ reports/playwright/
 functions/.env
 functions/.env.*
 !functions/.env.gestordepesquisa.example
+*firebase-adminsdk*.json
+*service-account*.json
+*.serviceaccount.json
+secrets/
+.env
+.env.*
+!.env.example

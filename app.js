@@ -416,8 +416,15 @@ document.addEventListener('DOMContentLoaded',bootstrapApp);
 async function init(){
   if(!repository)throw new Error('Camada de repositório não carregada.');
   initializeState();
+  if(isAnyPublicTokenRoute()){
+    releasePublicUi('public_token_route');
+    state.authReady=true;state.user=null;state.isPublicMode=true;
+    renderShell();
+    if(isPublicResultAttemptRoute())return renderPublicResultFromRoute();
+    if(isPublicSurveyRoute())return renderTakeSurveyFromRoute();
+  }
   if(repository.mode==='firebase'&&window.ValoraFirebaseAuth?.waitUntilReady){
-    const routeNow=routeFromLocation(),paramsNow=routeParamsFromLocation(),publicNow=isPublicRoute(routeNow,paramsNow);
+    const routeNow=currentRoute,paramsNow=routeParamsFromLocation(),publicNow=isPublicRoute(routeNow,paramsNow);
     const authReadyPromise=window.ValoraFirebaseAuth.waitUntilReady().then(user=>{state.authReady=true;state.user=currentUserSafe();return user;});
     const authTimeout=new Promise(resolve=>setTimeout(()=>{if(publicNow){updateRuntimeDiagnostic('lastPublicAuthTimeout',{route:routeNow,status:'visitor_released'});console.info('[Valora Pulse] Auth ainda carregando; seguindo em modo visitante para rota pública.');releasePublicUi('public_auth_timeout');resolve(null);}else{const app=$('#app');if(app)app.innerHTML='<section class="empty-state"><h3>Carregando sessão segura...</h3><p>Aguarde enquanto validamos seu acesso.</p><div class="confirm-actions"><button class="btn btn-secondary" data-action="retryPublicSurvey">Tentar novamente</button><button class="btn btn-soft" data-action="goLogin">Ir para login</button></div></section>';/* no visitor release for admin/private */}},publicNow?5000:15000));
     await (publicNow?Promise.race([authReadyPromise,authTimeout]):authReadyPromise);
@@ -441,6 +448,7 @@ function isPublicResultPage(){return isPublicResultRoute();}
 function isPublicCertificateValidationPage(){const url=new URL(location.href);return !!url.searchParams.get('certificate');}
 function isPublicJourneyPage(){return isPublicSurveyPage()||isPublicResultPage()||isPublicCertificateValidationPage();}
 
+function renderTakeSurveyFromRoute(){const u=new URL(location.href);return renderTakeSurvey(u.searchParams.get('survey'),u.searchParams.get('token'),u.searchParams.get('org'));}
 function routeFromLocation(){
   const u=new URL(location.href);const hash=(location.hash||'').slice(1);const sid=u.searchParams.get('survey'),token=u.searchParams.get('token'),result=u.searchParams.get('result'),resultToken=u.searchParams.get('rt'),certificate=u.searchParams.get('certificate');
   // Rotas internas sempre têm prioridade. Assim, Minha área, logo, LGPD e Planos

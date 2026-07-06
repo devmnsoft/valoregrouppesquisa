@@ -349,6 +349,8 @@ async function submitPublicSurveyResponseFirebase(payload){
   catch(err){throw mapPublicFunctionError(err);}
 }
 async function loadPublicResultFirebase(responseId,resultToken){
+  if(!responseId){const e=new Error('responseId obrigatório.');e.code='missing_response_id';throw e;}
+  if(!resultToken){const e=new Error('Token de resultado obrigatório.');e.code='missing_result_token';e.details={code:'missing_result_token',friendlyMessage:'Link de resultado incompleto. Abra o link recebido por e-mail ou gere um novo acesso.'};throw e;}
   try{return await callFunction('getPublicResult',{responseId,resultToken});}
   catch(err){throw mapPublicFunctionError(err);}
 }

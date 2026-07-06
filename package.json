@@ -443,7 +443,13 @@
     "functions:send-test-email": "node scripts/validate-functions-send-test-email.js",
     "security:no-secrets-committed": "node scripts/validate-secrets-not-committed.js",
     "legacy:submit-result-trace": "node scripts/validate-legacy-submit-result-trace.js",
-    "legacy:external-browser-noise": "node scripts/validate-legacy-external-browser-noise.js"
+    "legacy:external-browser-noise": "node scripts/validate-legacy-external-browser-noise.js",
+    "functions:submit-result-token": "node scripts/validate-functions-submit-returns-result-token.js",
+    "functions:public-result-url-token": "node scripts/validate-functions-public-result-url-requires-token.js",
+    "functions:get-result-requires-token": "node scripts/validate-functions-get-public-result-requires-token.js",
+    "legacy:result-empty-rt-route": "node scripts/validate-legacy-result-route-catches-empty-rt.js",
+    "legacy:no-empty-rt-write": "node scripts/validate-legacy-submit-does-not-write-empty-rt.js",
+    "legacy:load-result-no-auth": "node scripts/validate-legacy-load-result-no-auth.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

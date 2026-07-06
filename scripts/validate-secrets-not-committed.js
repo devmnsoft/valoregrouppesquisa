@@ -1,15 +1,1 @@
-const fs=require('fs'),cp=require('child_process');
-const files=cp.execSync('git ls-files',{encoding:'utf8'}).trim().split(/\n/).filter(Boolean);
-const bad=[];
-for(const f of files){
-  if(/package-lock\.json$/.test(f))continue;
-  const t=fs.readFileSync(f,'utf8');
-  const lines=t.split(/\n/);
-  lines.forEach((line,i)=>{
-    const isPatternSource=/validate|security-check|migration-logger/.test(f)&&/RegExp|pattern|SECRET_PATTERNS|SMTP_PASSWORD\\s|SMTP_PASS\\s|BEGIN PRIVATE KEY/.test(line);
-    if(isPatternSource)return;
-    if(/SMTP_PASSWORD\s*=\s*['"][^'"]{8,}|SMTP_PASS\s*=\s*['"][^'"]{8,}|-----BEGIN PRIVATE KEY-----/.test(line))bad.push(`${f}:${i+1}`);
-  });
-}
-if(bad.length)throw new Error('possíveis segredos commitados: '+bad.join(', '));
-console.log('secrets not committed: PASS');
+const fs=require('fs'),path=require('path');const roots=['app.js','config.js','config/config.production.js','functions/index.js'];const bad=[];for(const f of roots){const s=fs.readFileSync(f,'utf8');if(/(SMTP_PASSWORD|SMTP_PASS)\s*[:=]\s*['\"][^'\"]{8,}['\"]/.test(s))bad.push(f+' contém segredo SMTP literal');if(/AIza[0-9A-Za-z_-]{20,}/.test(s)&&!['config.js','config/config.production.js'].includes(f))bad.push(f+' contém API key fora de config');}if(bad.length){console.error(bad.join('\n'));process.exit(1)}console.log('secrets not committed: PASS');

@@ -432,7 +432,9 @@ async function init(){
   window.addEventListener('popstate',routeFromLocation);
 }
 function isPublicSurveyRoute(){const params=new URLSearchParams(location.search);return !!(params.get('survey')&&params.get('token'));}
-function isPublicResultRoute(){const params=new URLSearchParams(location.search);return !!(params.get('result')&&params.get('rt'));}
+function getPublicResultRouteParams(){const params=new URLSearchParams(location.search);return {responseId:params.get('result')||'',resultToken:params.get('rt')||params.get('resultToken')||''};}
+function isPublicResultAttemptRoute(){const params=new URLSearchParams(location.search);return params.has('result');}
+function isPublicResultRoute(){const p=getPublicResultRouteParams();return !!(p.responseId&&p.resultToken);}
 function isAnyPublicTokenRoute(){return isPublicResultRoute()||isPublicSurveyRoute();}
 function isPublicSurveyPage(){return isPublicSurveyRoute();}
 function isPublicResultPage(){return isPublicResultRoute();}
@@ -444,12 +446,33 @@ function routeFromLocation(){
   // Rotas internas sempre têm prioridade. Assim, Minha área, logo, LGPD e Planos
   // continuam funcionando mesmo depois de abrir um link seguro com query string.
   if(hash)return route(hash);
-  if(isPublicResultRoute()){releasePublicUi('public_result_route');return renderPublicResultFromRoute();}
+  if(isPublicResultAttemptRoute()){releasePublicUi('public_result_attempt_route');const p=getPublicResultRouteParams();if(!p.responseId||!p.resultToken)return renderIncompletePublicResultLink(p);return renderPublicResultFromRoute();}
   if(sid){const contract=publicSurveyRouteContract({survey:sid,token,org:u.searchParams.get('org')});if(!contract.ok){return renderIncompletePublicSurveyLink(contract);} if(isPublicSurveyRoute())releasePublicUi('public_survey_route'); resolveProductionPublicSurveyLink({survey:sid,token,org:u.searchParams.get('org')}).then(r=>{ if(!r?.redirected&&!r?.blocked) renderTakeSurvey(sid,token,u.searchParams.get('org')); }).catch(()=>renderTakeSurvey(sid,token,u.searchParams.get('org'))); return; }
   if(result)return renderResult(result,false,resultToken);
   if(certificate)return renderCertificateValidation(certificate);
   route('home');
 }
+
+
+function renderIncompletePublicResultLink(params={}){const app=document.getElementById('app');if(!app)return '';const html=`
+    <section class="section">
+      <div class="container">
+        <div class="danger-box">
+          <b>Link de resultado incompleto.</b><br><br>
+          Não encontramos o token seguro para abrir este resultado.
+          Abra o link completo recebido por e-mail ou fale com a Valora Group.
+          <br><br>
+          Código: ${esc(!params.responseId?'missing_response_id':'missing_result_token')}
+        </div>
+        <div class="confirm-actions">
+          <a class="btn btn-success" href="${esc(publicWhatsappContactUrl())}" target="_blank" rel="noopener">
+            Falar com a Valora no WhatsApp
+          </a>
+          <button class="btn btn-soft" data-action="goHome">Voltar ao início</button>
+        </div>
+      </div>
+    </section>
+  `;app.innerHTML=html;return html;}
 
 function renderCertificateValidation(validationCode=''){
   renderPublicSurveyShell();
@@ -1812,8 +1835,9 @@ function handlePublicSubmitSuccess(result,payload){
   window.ValoraRuntimeDiagnostics.lastSubmitSuccess={responseId,hasResultToken:!!resultToken,resultEmail:result?.resultEmail||null,score:result?.score||null,level:result?.level||null,at:new Date().toISOString()};
   markPublicSubmitDiagnostic('success',payload);
   try{sessionStorage.setItem('valora:lastPublicResult',JSON.stringify({responseId,resultToken,result,payload:{surveyId:payload?.surveyId||'',participantName:payload?.participant?.name||'',participantEmail:payload?.participant?.email||''},savedAt:new Date().toISOString()}));}catch(_){}
+  if(!responseId||!resultToken){window.ValoraRuntimeDiagnostics.lastSubmitSuccessMissingResultToken={responseId,hasResultToken:!!resultToken,resultEmail:result?.resultEmail||null,at:new Date().toISOString()};renderImmediateResultAfterSubmit(result,payload,{warning:{code:'result_token_missing',message:'Resultado registrado, mas o link seguro de acesso não foi retornado. Fale com a Valora Group para recuperar o acesso.'}});return false;}
   const clean=location.href.split('?')[0].split('#')[0];
-  if(responseId&&resultToken)history.replaceState({},'',`${clean}?result=${encodeURIComponent(responseId)}&rt=${encodeURIComponent(resultToken)}`);
+  history.replaceState({},'',`${clean}?result=${encodeURIComponent(responseId)}&rt=${encodeURIComponent(resultToken)}`);
   renderImmediateResultAfterSubmit(result,payload);
   setTimeout(()=>{tryEnhancePublicResult(responseId,resultToken,result).catch(err=>{window.ValoraRuntimeDiagnostics.lastResultEnhanceError=normalizeResultRenderError(err);});},250);
   return true;
@@ -1896,7 +1920,7 @@ async function createEmailJobFallback(payload){
 }
 async function sendResultEmailViaApi(payload){if(!payload?.responseId||String(payload.responseId).includes('demo'))throw new Error('responseId real obrigatório.');if(!window.ValoraApiRepository?.sendResultEmail)throw new Error('API de e-mail indisponível.');return window.ValoraApiRepository.sendResultEmail(payload.responseId,{resultToken:payload.resultToken,to:payload.to,participantName:payload.participantName,includeCertificate:payload.includeCertificate!==false,idempotencyKey:payload.idempotencyKey||`result-email-${payload.responseId}`});}
 async function sendResultEmailViaFunction(payload){if(!payload?.responseId||String(payload.responseId).includes('demo'))throw new Error('responseId real obrigatório.');if(!payload.resultToken)throw new Error('resultToken real obrigatório.');const call=await firebaseCallable('sendResultEmail');const result=await call({responseId:payload.responseId,resultToken:payload.resultToken,to:payload.to,participantName:payload.participantName,includeCertificate:payload.includeCertificate!==false,idempotencyKey:payload.idempotencyKey||`result-email-${payload.responseId}`});return result?.data||result;}
-function renderEmailDeliveryStatus(status){const value=typeof status==='string'?status:(status?.status||'unknown');if(value==='sent')return 'Resultado enviado para o e-mail informado.';if(value==='queued'||value==='pending'||value==='pending_retry')return 'Seu resultado foi registrado e o envio por e-mail está em processamento.';if(value==='failed_non_blocking')return 'Seu resultado foi registrado, mas o e-mail não foi enviado agora.';if(value==='failed')return 'Não conseguimos enviar o e-mail agora.';if(value==='not_requested')return 'Envio por e-mail não solicitado.';return 'Resultado registrado. O status do e-mail ainda não foi confirmado.';}
+function renderEmailDeliveryStatus(status,hasResultToken=true){const value=typeof status==='string'?status:(status?.status||'unknown');const errorCode=typeof status==='string'?'':(status?.errorCode||status?.lastErrorCode||'');if(!hasResultToken||errorCode==='result_link_incomplete')return 'Resultado registrado, mas o link de acesso não foi gerado corretamente.';if(value==='sent')return 'Resultado enviado para o e-mail informado.';if(value==='queued'||value==='pending'||value==='pending_retry')return 'Seu resultado foi registrado e o envio por e-mail está em processamento.';if(value==='failed_non_blocking')return 'Seu resultado foi registrado, mas o e-mail não foi enviado agora.';if(value==='failed')return 'Não conseguimos enviar o e-mail agora.';if(value==='not_requested')return 'Envio por e-mail não solicitado.';return 'Resultado registrado. O status do e-mail ainda não foi confirmado.';}
 function logPublicSubmitResult(result){const safe={ok:result?.ok===true,responseId:result?.responseId||result?.id||'',hasResultToken:!!(result?.resultToken||result?.accessToken),resultEmail:{status:result?.resultEmail?.status||result?.emailStatus||'',sent:result?.resultEmail?.sent===true,queued:result?.resultEmail?.queued===true,messageId:result?.resultEmail?.messageId||'',acceptedCount:Array.isArray(result?.resultEmail?.accepted)?result.resultEmail.accepted.length:0,rejectedCount:Array.isArray(result?.resultEmail?.rejected)?result.resultEmail.rejected.length:0,errorCode:result?.resultEmail?.errorCode||result?.resultEmail?.lastErrorCode||'',errorMessage:result?.resultEmail?.errorMessage||result?.resultEmail?.lastErrorMessage||''}};window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastSubmitFunctionResult=safe;console.info('[Valora] submitSurveyResponse result',JSON.stringify(safe,null,2));return safe;}
 function loadPublicResultLocally(responseId,resultToken){const response=state.responses.find(x=>String(x.id)===String(responseId));if(!response)throw new Error('Resultado não encontrado.');if(response.resultToken&&response.resultToken!==resultToken)throw new Error('Token de resultado inválido.');const survey=state.surveys.find(x=>x.id===response.surveyId)||{};const company=companyById(response.companyId)||{};return {ok:true,response,survey,company,result:response,certificate:{responseId:response.id,resultToken}};}
 

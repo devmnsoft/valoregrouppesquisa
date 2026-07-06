@@ -1,3 +1,5 @@
+using Xunit;
+
 namespace Valora.Tests;
 public sealed class OperationalStaticContractTests
 {

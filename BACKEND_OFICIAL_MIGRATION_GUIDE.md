@@ -89,3 +89,6 @@ Não versionar `.env`, dumps, logs sensíveis, dados reais, certificados reais o
 ## Release Candidate 0.9.0-rc2
 
 RC2 registra a homologação real possível neste container: validadores Node oficiais executados, correção de UI sensível nas views operacionais, documentação de diagnóstico/auditoria/paridade/bugs e novo gate `npm run backend:rc2-homologation-validate`. A homologação runtime completa ainda deve ser repetida em ambiente com SDK .NET 8 e PostgreSQL/Docker disponíveis para executar `dotnet restore`, `dotnet build`, `dotnet test`, aplicação SQL idempotente, API/Web, health checks, importação e backup/restore reais.
+
+## Sprint Web Legacy Public Parity
+A migração da Web oficial ASP.NET somente será considerada completa quando houver paridade verificável de layout e jornada pública com o legado da raiz: Home comercial, diagnóstico gratuito, pesquisa pública, resultado, certificado, LGPD, WhatsApp/contato, footer, modal/toast/loading, ValoraBot visual, mobile-first e separação total entre `_PublicLayout` e `_AdminLayout`. A Web oficial deve consumir apenas a API oficial, sem Firebase, sem acesso direto ao banco, sem JSON bruto, sem dados fake e sem exposição de senha, hashes, tokens, segredos, connection strings ou payload sensível.

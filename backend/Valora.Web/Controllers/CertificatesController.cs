@@ -4,6 +4,22 @@ namespace Valora.Web.Controllers;
 
 public sealed class CertificatesController(ILogger<CertificatesController> logger) : Controller
 {
+    [Route("certificado/{certificateId}")]
+    public IActionResult Public(string certificateId)
+    {
+        try
+        {
+            ViewData["Title"] = "Certificado";
+            ViewData["ResponseId"] = certificateId;
+            return View("Details");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Falha ao renderizar CertificatesController.Public no Valora.Web.");
+            throw;
+        }
+    }
+
     public IActionResult Details(string id)
     {
         try
@@ -18,7 +34,9 @@ public sealed class CertificatesController(ILogger<CertificatesController> logge
             throw;
         }
     }
+
     [Route("Certificates/Validate/{certificateCode?}")]
+    [Route("certificado/validar/{certificateCode?}")]
     public IActionResult Validate(string? certificateCode)
     {
         try

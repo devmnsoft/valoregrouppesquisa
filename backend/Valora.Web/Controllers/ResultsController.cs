@@ -6,6 +6,7 @@ public sealed class ResultsController(ILogger<ResultsController> logger) : Contr
 {
     [Route("r/{responseId}")]
     [Route("public/results/{responseId}")]
+    [Route("resultado/{responseId}")]
     public IActionResult Public(string responseId)
     {
         try
@@ -20,6 +21,23 @@ public sealed class ResultsController(ILogger<ResultsController> logger) : Contr
             throw;
         }
     }
+
+    [Route("resultado/{responseId}/email")]
+    public IActionResult Email(string responseId)
+    {
+        try
+        {
+            ViewData["Title"] = "Enviar resultado por e-mail";
+            ViewData["ResponseId"] = responseId;
+            return View("Public");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Falha ao renderizar ResultsController.Email no Valora.Web.");
+            throw;
+        }
+    }
+
     public IActionResult Details(string id)
     {
         try

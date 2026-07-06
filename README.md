@@ -612,3 +612,6 @@ npm run backend:domain-entities-validate
 ```
 
 Em ambiente com SDK .NET instalado, execute também `dotnet format backend/Valora.sln --verify-no-changes`, `dotnet build backend/Valora.sln` e `dotnet test backend/Valora.sln`.
+
+## Sprint Web Legacy Public Parity
+A migração da Web oficial ASP.NET somente será considerada completa quando houver paridade verificável de layout e jornada pública com o legado da raiz: Home comercial, diagnóstico gratuito, pesquisa pública, resultado, certificado, LGPD, WhatsApp/contato, footer, modal/toast/loading, ValoraBot visual, mobile-first e separação total entre `_PublicLayout` e `_AdminLayout`. A Web oficial deve consumir apenas a API oficial, sem Firebase, sem acesso direto ao banco, sem JSON bruto, sem dados fake e sem exposição de senha, hashes, tokens, segredos, connection strings ou payload sensível.

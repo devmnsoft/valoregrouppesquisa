@@ -84,3 +84,6 @@ RC2 registra a homologação real possível neste container: validadores Node of
 ## Fallbacks temporários proibidos
 
 - Firebase na Web oficial, acesso direto ao banco pela Web, dados fake administrativos, dumps JSON sensíveis, stack trace, connection string, senha, hash ou token em UI/log.
+
+## Sprint Web Legacy Public Parity
+A migração da Web oficial ASP.NET somente será considerada completa quando houver paridade verificável de layout e jornada pública com o legado da raiz: Home comercial, diagnóstico gratuito, pesquisa pública, resultado, certificado, LGPD, WhatsApp/contato, footer, modal/toast/loading, ValoraBot visual, mobile-first e separação total entre `_PublicLayout` e `_AdminLayout`. A Web oficial deve consumir apenas a API oficial, sem Firebase, sem acesso direto ao banco, sem JSON bruto, sem dados fake e sem exposição de senha, hashes, tokens, segredos, connection strings ou payload sensível.

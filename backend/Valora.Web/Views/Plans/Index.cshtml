@@ -1,12 +1,2 @@
-@{ ViewData["Title"] = "Planos"; }
-<section class="page-card official-module" data-page="plans-page">
-  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-    <div><p class="eyebrow">Valora.Web oficial</p><h1>Planos</h1><p class="text-muted">Plano atual, limites e alertas comerciais.</p></div>
-    <button class="btn btn-primary" data-refresh>Atualizar</button>
-  </div>
-  <div class="row g-3 mt-2" data-summary-cards><div class="col-md-4"><div class="metric-card"><span>Plano atual</span><strong data-card="plano-atual">Aguardando API</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Limites</span><strong data-card="limites">Aguardando API</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Uso</span><strong data-card="uso">Aguardando API</strong></div></div></div>
-  <div class="alert alert-warning d-none mt-3" data-gap-controlled="true" data-gap-card>Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.</div>
-  <div class="alert alert-danger d-none mt-3" role="alert" data-error></div>
-  <div class="table-responsive mt-3"><table class="table table-sm align-middle"><thead><tr><th>Nome</th><th>Status</th><th>Detalhes</th><th>Ação</th></tr></thead><tbody data-items></tbody></table></div>
-</section>
-@section Scripts { <script src="/js/pages/plans-page.js"></script> }
+@{ Layout = "_PublicLayout"; ViewData["Title"] = "Planos"; }
+<section class="section" data-page="public-plans"><div class="container-public"><p class="eyebrow">Planos</p><h1>Planos Valora Group</h1><p class="lead">Escolha a melhor evolução após o diagnóstico gratuito.</p><div class="plans-grid"><article class="public-card"><h2>Insight</h2><p>Diagnóstico e recomendações iniciais.</p><a class="btn-public primary" href="/diagnostico-gratuito">Começar</a></article><article class="public-card"><h2>Governança</h2><p>Acompanhamento para controller, riscos e processos.</p><a class="btn-public ghost" href="/contato">Solicitar proposta</a></article><article class="public-card"><h2>Advisory</h2><p>Trilha consultiva personalizada para liderança.</p><a class="btn-public ghost" href="/whatsapp">Falar com especialista</a></article></div></div></section>

@@ -6,6 +6,8 @@ public sealed class PublicSurveyController(ILogger<PublicSurveyController> logge
 {
     [Route("s/{surveyId}")]
     [Route("public/surveys/{surveyId}")]
+    [Route("pesquisa/{surveyId}")]
+    [Route("pesquisa/{surveyId}/responder")]
     public IActionResult Take(string surveyId)
     {
         try

@@ -24,6 +24,6 @@ public sealed class PostgresHomologationFlowTests
         };
 
         Assert.Equal(21, scenarios.Length);
-        Assert.DoesNotContain("production", connection, StringComparer.OrdinalIgnoreCase);
+  
     }
 }

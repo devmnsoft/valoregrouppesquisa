@@ -118,3 +118,7 @@ dotnet test backend-v2/ValoraPesquisa.sln
 npm run backend-v2:validate
 npm run backend-v2:saas-validate
 ```
+
+## Pós-Piloto v1.1
+
+A versão v1.1 estabiliza o piloto e adiciona trilhas incrementais para Form Builder avançado, automações configuráveis, anexos avançados, notificações fake/push fake e relatórios exportáveis. A entrega preserva Clean Architecture, isolamento por tenant e RBAC, com migration idempotente em `database/migrations/0013_v11_form_builder_automations_reports.sql` usando somente o schema `integrarp`.

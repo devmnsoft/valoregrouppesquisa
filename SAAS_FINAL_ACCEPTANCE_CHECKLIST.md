@@ -70,3 +70,10 @@ Não versionar `.env`, dumps, logs sensíveis, dados reais, certificados reais o
 ## Release Candidate 0.9.0-rc2
 
 RC2 registra a homologação real possível neste container: validadores Node oficiais executados, correção de UI sensível nas views operacionais, documentação de diagnóstico/auditoria/paridade/bugs e novo gate `npm run backend:rc2-homologation-validate`. A homologação runtime completa ainda deve ser repetida em ambiente com SDK .NET 8 e PostgreSQL/Docker disponíveis para executar `dotnet restore`, `dotnet build`, `dotnet test`, aplicação SQL idempotente, API/Web, health checks, importação e backup/restore reais.
+
+## Sprint fix domain duplicate entities
+
+- [x] Entidades duplicadas de `Valora.Domain.Entities` consolidadas em arquivos próprios.
+- [x] Validador `npm run backend:domain-entities-validate` criado para bloquear regressão de `CS0101` provável.
+- [x] Teste estático em `Valora.Tests` criado para validar duplicidade de entidades por namespace.
+- [ ] Rodar `dotnet restore/build/test/format` em ambiente com SDK .NET instalado.

@@ -457,7 +457,8 @@
     "legacy:participant-access-no-auth": "node scripts/validate-legacy-participant-access-no-auth.js",
     "backend:rc2-homologation-validate": "node tools/validate-backend-official-rc2-homologation.js",
     "functions:email-secrets-on-submit": "node scripts/validate-functions-email-secrets-on-submit.js",
-    "functions:email-error-classification": "node scripts/validate-functions-email-error-classification.js"
+    "functions:email-error-classification": "node scripts/validate-functions-email-error-classification.js",
+    "backend:domain-entities-validate": "node tools/validate-backend-domain-entities.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

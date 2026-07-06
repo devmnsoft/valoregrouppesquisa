@@ -76,3 +76,13 @@ Não versionar `.env`, dumps, logs sensíveis, dados reais, certificados reais o
 ## Release Candidate 0.9.0-rc2
 
 RC2 registra a homologação real possível neste container: validadores Node oficiais executados, correção de UI sensível nas views operacionais, documentação de diagnóstico/auditoria/paridade/bugs e novo gate `npm run backend:rc2-homologation-validate`. A homologação runtime completa ainda deve ser repetida em ambiente com SDK .NET 8 e PostgreSQL/Docker disponíveis para executar `dotnet restore`, `dotnet build`, `dotnet test`, aplicação SQL idempotente, API/Web, health checks, importação e backup/restore reais.
+
+## Validação de entidades de domínio
+
+Use o validador estático para bloquear duplicidades de `class`, `record`, `struct` e `enum` em `Valora.Domain.Entities`:
+
+```bash
+npm run backend:domain-entities-validate
+```
+
+O padrão do domínio oficial é uma entidade principal por arquivo, com o arquivo nomeado como a entidade e sem declarações duplicadas nos agregadores históricos.

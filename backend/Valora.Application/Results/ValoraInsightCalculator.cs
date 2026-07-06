@@ -14,13 +14,14 @@ public sealed class ValoraInsightCalculator
             < 25 => "Crítico",
             _ => "Alta maturidade"
         };
-        return new ValoraInsightResult(
-            total,
-            125,
-            level,
-            byDimension,
-            "Verdade estratégica calculada no backend como fonte final da maturidade Valora Insight™.",
-            level == "Crítico" ? "Risco alto se nada mudar." : "Risco controlado com acompanhamento contínuo.",
-            level == "Alta maturidade" ? "Sustentar excelência e escalar governança." : "Avançar para a próxima faixa oficial da régua Valora Insight™.");
+        var weakest = byDimension.OrderBy(x => x.Value).FirstOrDefault();
+        var strongest = byDimension.OrderByDescending(x => x.Value).FirstOrDefault();
+        var radar = string.Join(" | ", byDimension.OrderBy(x => x.Key).Select(x => $"{x.Key}: {x.Value}/25"));
+        var truth = $"Verdade estratégica central: o crescimento fica limitado por {weakest.Key ?? "dimensão crítica"} enquanto a empresa não transformar intenção em rotina de gestão.";
+        var risk = "Risco se nada mudar: nos próximos 6 a 18 meses, a tendência é mais dependência de pessoas-chave, retrabalho, lentidão decisória e crescimento com desgaste.";
+        var next = level == "Alta maturidade"
+            ? $"Próximo nível: proteger {strongest.Key ?? "as fortalezas"}, reduzir variações entre áreas e escalar governança sem perder velocidade."
+            : $"Próximo nível: priorizar {weakest.Key ?? "o gargalo principal"}, definir responsáveis e criar cadência de acompanhamento.";
+        return new ValoraInsightResult(total, 125, level, radar, truth, risk, next);
     }
 }

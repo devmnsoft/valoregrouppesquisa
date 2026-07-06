@@ -460,7 +460,10 @@
     "functions:email-error-classification": "node scripts/validate-functions-email-error-classification.js",
     "backend:domain-entities-validate": "node tools/validate-backend-domain-entities.js",
     "backend:migration-services-validate": "node tools/validate-backend-migration-services.js",
-    "web:public-legacy-parity": "node tools/validate-aspnet-web-public-legacy-parity.js"
+    "web:public-legacy-parity": "node tools/validate-aspnet-web-public-legacy-parity.js",
+    "security:no-service-account-secrets": "node tools/validate-no-service-account-secrets.js",
+    "web:admin-menu-profile-access": "node tools/validate-admin-menu-profile-access.js",
+    "web:valora-insight-public-journey": "node tools/validate-valora-insight-public-journey.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

@@ -615,3 +615,7 @@ Em ambiente com SDK .NET instalado, execute também `dotnet format backend/Valor
 
 ## Sprint Web Legacy Public Parity
 A migração da Web oficial ASP.NET somente será considerada completa quando houver paridade verificável de layout e jornada pública com o legado da raiz: Home comercial, diagnóstico gratuito, pesquisa pública, resultado, certificado, LGPD, WhatsApp/contato, footer, modal/toast/loading, ValoraBot visual, mobile-first e separação total entre `_PublicLayout` e `_AdminLayout`. A Web oficial deve consumir apenas a API oficial, sem Firebase, sem acesso direto ao banco, sem JSON bruto, sem dados fake e sem exposição de senha, hashes, tokens, segredos, connection strings ou payload sensível.
+
+## Sprint Backend Centralização Valora Insight™
+
+A fonte oficial da evolução Valora Insight™ passa a ser `backend/Valora.sln` e `database/postgresql`. O diagnóstico oficial usa 5 dimensões, 25 perguntas reais extraídas do legado (`app.js`), escala 1 a 5, total máximo 125 e devolutiva determinística no backend. A Web oficial não deve usar Firebase nem acessar banco diretamente; deve consumir a API oficial. Credenciais Firebase/service account devem ficar fora do repositório e a chave compartilhada fora do fluxo seguro deve ser revogada/rotacionada.

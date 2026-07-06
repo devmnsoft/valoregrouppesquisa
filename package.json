@@ -449,7 +449,8 @@
     "functions:get-result-requires-token": "node scripts/validate-functions-get-public-result-requires-token.js",
     "legacy:result-empty-rt-route": "node scripts/validate-legacy-result-route-catches-empty-rt.js",
     "legacy:no-empty-rt-write": "node scripts/validate-legacy-submit-does-not-write-empty-rt.js",
-    "legacy:load-result-no-auth": "node scripts/validate-legacy-load-result-no-auth.js"
+    "legacy:load-result-no-auth": "node scripts/validate-legacy-load-result-no-auth.js",
+    "backend:sql-schema-validate": "node tools/validate-backend-official-sql-schema.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

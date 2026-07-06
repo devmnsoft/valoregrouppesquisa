@@ -45,3 +45,14 @@ A sprint adiciona endpoints administrativos `/migration/*` com dry-run, apply co
 - Health: valide `/health`, `/health/database`, `/health/migration`, `/health/email`, `/health/storage` e `/health/version`; na Web MVC use `/Operations/Health`, `/Operations/Version` e `/Operations/Checks`.
 - Checklist/cutover/rollback: siga `HOMOLOGACAO_CUTOVER_CHECKLIST.md`, `CUTOVER_PLAN.md`, `ROLLBACK_PLAN.md` e `LEGACY_RETIREMENT_PLAN.md`. O cutover não é automático nesta sprint.
 - Validação: execute `npm run backend:homologation-cutover-validate` junto dos validadores oficiais.
+
+## Sprint backend oficial — reality check SQL/schema (2026-07-06)
+
+- Base oficial mantida em `backend/Valora.sln`; `backend-v2` segue apenas como referência histórica e o legado da raiz permanece preservado.
+- O schema oficial de planos é UUID em `plans.id` com chave natural `plans.code`; os seeds oficiais devem usar `ON CONFLICT (code)` e nunca gravar códigos textuais em `plans.id`.
+- Os atributos comerciais legados `price_label`, `badge`, `public_subtitle`, `public_description`, `highlight_text` e `cta_label` não são colunas do schema oficial atual e não devem aparecer em INSERT/UPDATE SQL.
+- `plan_limits` usa colunas estruturadas (`active_surveys`, `responses_per_month`, `users`, `managers`, `forms`, `public_links`, `email_invites_per_month`, `storage_mb`) com lookup por `plans.code` para obter `plan_id`.
+- `plan_capabilities` usa `capability_code` e `enabled`; `capability_key`, `capability_level` e `capability_type` são contratos legados e permanecem bloqueados nos SQL oficiais.
+- A organização Valora deve usar `organizations.plan_code` quando disponível e assinatura ativa em `subscriptions` apontando para `plans.id` resolvido por `plans.code`.
+- O validador `npm run backend:sql-schema-validate` foi adicionado/confirmado como gate obrigatório para bloquear regressões de schema/seeds antes da homologação real.
+- Endpoints ou telas ainda sem implementação real devem permanecer documentados como gap controlado; não é permitido retornar dados fake, JSON bruto sensível, stack trace, senha, hash, token ou secret.

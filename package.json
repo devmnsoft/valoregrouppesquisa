@@ -435,13 +435,15 @@
     "dist:no-undefined-result-certificate": "node scripts/validate-dist-no-undefined-result-certificate-helpers.js",
     "functions:email-secrets-declared": "node scripts/validate-functions-email-secrets-declared.js",
     "functions:send-result-email-real-smtp": "node scripts/validate-functions-send-result-email-real-smtp.js",
-    "functions:no-false-email-sent": "node scripts/validate-functions-send-result-email-no-false-sent.js",
+    "functions:no-false-email-sent": "node scripts/validate-functions-no-false-email-sent.js",
     "functions:email-logs": "node scripts/validate-functions-email-logs.js",
     "legacy:email-status-honest": "node scripts/validate-legacy-email-status-honest.js",
     "legacy:resend-result-email": "node scripts/validate-legacy-resend-result-email.js",
     "functions:debug-email-delivery": "node scripts/validate-functions-debug-email-delivery.js",
     "functions:send-test-email": "node scripts/validate-functions-send-test-email.js",
-    "security:no-secrets-committed": "node scripts/validate-secrets-not-committed.js"
+    "security:no-secrets-committed": "node scripts/validate-secrets-not-committed.js",
+    "legacy:submit-result-trace": "node scripts/validate-legacy-submit-result-trace.js",
+    "legacy:external-browser-noise": "node scripts/validate-legacy-external-browser-noise.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

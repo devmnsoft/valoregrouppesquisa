@@ -77,3 +77,6 @@ RC2 registra a homologação real possível neste container: validadores Node of
 - [x] Validador `npm run backend:domain-entities-validate` criado para bloquear regressão de `CS0101` provável.
 - [x] Teste estático em `Valora.Tests` criado para validar duplicidade de entidades por namespace.
 - [ ] Rodar `dotnet restore/build/test/format` em ambiente com SDK .NET instalado.
+
+## Sprint Web Legacy Public Parity
+A migração da Web oficial ASP.NET somente será considerada completa quando houver paridade verificável de layout e jornada pública com o legado da raiz: Home comercial, diagnóstico gratuito, pesquisa pública, resultado, certificado, LGPD, WhatsApp/contato, footer, modal/toast/loading, ValoraBot visual, mobile-first e separação total entre `_PublicLayout` e `_AdminLayout`. A Web oficial deve consumir apenas a API oficial, sem Firebase, sem acesso direto ao banco, sem JSON bruto, sem dados fake e sem exposição de senha, hashes, tokens, segredos, connection strings ou payload sensível.

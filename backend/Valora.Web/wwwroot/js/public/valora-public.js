@@ -1,0 +1,11 @@
+(function(){
+  'use strict';
+  const $=(s,c=document)=>c.querySelector(s); const $$=(s,c=document)=>Array.from(c.querySelectorAll(s));
+  const apiBase=()=> (window.ValoraConfig && window.ValoraConfig.apiBaseUrl) || window.VALORA_API_BASE_URL || '';
+  function toast(message,type='info'){ const zone=$('#toastZone'); if(!zone) return; const el=document.createElement('div'); el.className='public-toast '+type; el.textContent=message; zone.appendChild(el); setTimeout(()=>el.remove(),4500); }
+  function loading(on,msg){ const el=$('#publicLoading'); if(!el) return; el.hidden=!on; if(msg) el.textContent=msg; }
+  async function api(path, options){ loading(true,'Consultando API oficial...'); try{ const res=await fetch(apiBase()+path,{headers:{'Content-Type':'application/json'},...options}); if(!res.ok) throw new Error('api_error'); return res.status===204?null:await res.json(); }catch(e){ toast('Não foi possível concluir agora. Tente novamente ou chame o atendimento.','error'); throw e; }finally{ loading(false); } }
+  function bindOnce(form, handler){ if(!form || form.dataset.bound) return; form.dataset.bound='true'; form.addEventListener('submit', async e=>{ e.preventDefault(); const btn=form.querySelector('button,[type=submit]'); if(btn) btn.disabled=true; try{ await handler(new FormData(form), form); } finally{ if(btn) btn.disabled=false; } }); }
+  document.addEventListener('click', e=>{ if(e.target.closest('[data-public-menu-toggle]')){ const menu=$('#publicMenu'); menu?.classList.toggle('is-open'); } if(e.target.closest('[data-bot-toggle]')){ const bot=$('#botPanel'); bot?.classList.add('is-open'); bot?.setAttribute('aria-hidden','false'); } if(e.target.closest('[data-bot-close]')){ const bot=$('#botPanel'); bot?.classList.remove('is-open'); bot?.setAttribute('aria-hidden','true'); } if(e.target.closest('[data-copy-link]')){ navigator.clipboard?.writeText(location.href); toast('Link copiado.'); } });
+  window.ValoraPublic={api,toast,loading,bindOnce};
+})();

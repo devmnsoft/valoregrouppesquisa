@@ -108,8 +108,8 @@
     "web:docker": "node scripts/validate-aspnet-web-docker.js",
     "web:no-binaries": "node scripts/validate-no-binary-assets.js",
     "web:functional-flow": "node scripts/validate-aspnet-web-functional-flow.js",
-    "web:e2e": "playwright test tests/e2e-web",
-    "web:e2e:headed": "playwright test tests/e2e-web --headed",
+    "web:e2e": "playwright test --config=playwright.web.config.js",
+    "web:e2e:headed": "playwright test --config=playwright.web.config.js --headed",
     "web:no-placeholders": "node scripts/validate-aspnet-web-no-placeholders.js",
     "web:real-forms": "node scripts/validate-aspnet-web-real-forms.js",
     "web:real-api-usage": "node scripts/validate-aspnet-web-real-api-usage.js",
@@ -459,7 +459,8 @@
     "functions:email-secrets-on-submit": "node scripts/validate-functions-email-secrets-on-submit.js",
     "functions:email-error-classification": "node scripts/validate-functions-email-error-classification.js",
     "backend:domain-entities-validate": "node tools/validate-backend-domain-entities.js",
-    "backend:migration-services-validate": "node tools/validate-backend-migration-services.js"
+    "backend:migration-services-validate": "node tools/validate-backend-migration-services.js",
+    "web:public-legacy-parity": "node tools/validate-aspnet-web-public-legacy-parity.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

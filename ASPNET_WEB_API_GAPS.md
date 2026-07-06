@@ -56,3 +56,31 @@ A sprint adiciona endpoints administrativos `/migration/*` com dry-run, apply co
 - A organização Valora deve usar `organizations.plan_code` quando disponível e assinatura ativa em `subscriptions` apontando para `plans.id` resolvido por `plans.code`.
 - O validador `npm run backend:sql-schema-validate` foi adicionado/confirmado como gate obrigatório para bloquear regressões de schema/seeds antes da homologação real.
 - Endpoints ou telas ainda sem implementação real devem permanecer documentados como gap controlado; não é permitido retornar dados fake, JSON bruto sensível, stack trace, senha, hash, token ou secret.
+
+## Release Candidate 0.9.0-rc2
+
+RC2 registra a homologação real possível neste container: validadores Node oficiais executados, correção de UI sensível nas views operacionais, documentação de diagnóstico/auditoria/paridade/bugs e novo gate `npm run backend:rc2-homologation-validate`. A homologação runtime completa ainda deve ser repetida em ambiente com SDK .NET 8 e PostgreSQL/Docker disponíveis para executar `dotnet restore`, `dotnet build`, `dotnet test`, aplicação SQL idempotente, API/Web, health checks, importação e backup/restore reais.
+
+## Endpoints existentes e consumidos pelo Valora.Web
+
+- Autenticação, dashboard, planos, módulos, pesquisas, respostas, relatórios, certificados, LGPD, e-mail, operações e migração são consumidos pela Web MVC oficial via API oficial.
+
+## Endpoints existentes e ainda não consumidos
+
+- Endpoints administrativos auxiliares podem permanecer disponíveis para operação interna e automação, desde que documentados e protegidos.
+
+## Endpoints faltantes bloqueantes
+
+- Nenhum endpoint bloqueante novo foi identificado pela validação estática RC2; a confirmação final depende de homologação runtime com SDK .NET e PostgreSQL.
+
+## Endpoints faltantes não bloqueantes
+
+- Melhorias de suporte/ValoraBot e relatórios avançados podem evoluir após pilotos, sem criar frontend paralelo.
+
+## Fallbacks temporários permitidos
+
+- Apenas mensagens de erro amigáveis, estados vazios honestos e modo de outbox de desenvolvimento sem segredo SMTP.
+
+## Fallbacks temporários proibidos
+
+- Firebase na Web oficial, acesso direto ao banco pela Web, dados fake administrativos, dumps JSON sensíveis, stack trace, connection string, senha, hash ou token em UI/log.

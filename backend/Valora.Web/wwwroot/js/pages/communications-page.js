@@ -1,1 +1,38 @@
-$(async function(){const page=$('[data-page="communications-page"]');if(!page.length)return;async function load(status){try{Loading.show('Carregando comunicações...');const data=await CommunicationsApi.jobs(status);const jobs=data.jobs||[];$('[data-communications]').html(`<div class='card'><div class='card-body'><div class='d-flex gap-2 mb-3'><select class='form-select w-auto' id='emailStatus'><option value=''>Todos</option><option>pending</option><option>processing</option><option>sent</option><option>failed</option><option>failed-config</option></select><button class='btn btn-primary' id='processEmailQueue'>Processar fila</button></div><table class='table'><thead><tr><th>Criado</th><th>Para</th><th>Assunto</th><th>Status</th><th>Tentativas</th><th>Erro</th></tr></thead><tbody>${jobs.map(j=>`<tr><td>${safe(j.created_at||j.createdAt)}</td><td>${safe(j.to_email||j.recipient_email||j.recipientEmail)}</td><td>${safe(j.subject)}</td><td>${safe(j.status)}</td><td>${safe(j.attempts||0)}</td><td>${safe(j.last_error||j.lastError||'')}</td></tr>`).join('')||'<tr><td colspan="6">Nenhum job encontrado.</td></tr>'}</tbody></table></div></div>`)}catch(e){err(e)}finally{Loading.hide()}}await load();$(document).on('change','#emailStatus',e=>load(e.target.value));$(document).on('click','#processEmailQueue',async()=>{try{await CommunicationsApi.process(10);Toast.success('Processamento solicitado.');await load($('#emailStatus').val())}catch(e){err(e)}})});
+$(async function () {
+  const page = $('[data-page="communications-page"]');
+  if (!page.length) return;
+
+  function safe(value) {
+    return String(value ?? '').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+  }
+
+  function renderEmailJobs(jobs) {
+    $('[data-communications]').html(`<div class='card'><div class='card-body'><div class='d-flex gap-2 mb-3'><select class='form-select w-auto' id='emailStatus'><option value=''>Todos</option><option>pending</option><option>processing</option><option>sent</option><option>failed</option><option>failed-config</option></select><button class='btn btn-primary' id='processEmailQueue'>Processar fila</button></div><table class='table'><thead><tr><th>Criado</th><th>Para</th><th>Assunto</th><th>Status</th><th>Tentativas</th><th>Erro</th></tr></thead><tbody>${jobs.map(j => `<tr><td>${safe(j.created_at || j.createdAt)}</td><td>${safe(j.to_email || j.recipient_email || j.recipientEmail)}</td><td>${safe(j.subject)}</td><td>${safe(j.status)}</td><td>${safe(j.attempts || 0)}</td><td>${safe(j.last_error || j.lastError || '')}</td></tr>`).join('') || '<tr><td colspan="6">Nenhum job encontrado.</td></tr>'}</tbody></table></div></div>`);
+  }
+
+  async function loadEmailJobs(status) {
+    try {
+      Loading.show('Carregando comunicações...');
+      const data = await CommunicationsApi.jobs(status);
+      renderEmailJobs(data.jobs || []);
+    } catch (e) {
+      err(e);
+    } finally {
+      Loading.hide();
+    }
+  }
+
+  async function processEmailQueue() {
+    try {
+      await CommunicationsApi.process(10);
+      Toast.success('Processamento solicitado.');
+      await loadEmailJobs($('#emailStatus').val());
+    } catch (e) {
+      err(e);
+    }
+  }
+
+  await loadEmailJobs();
+  $(document).on('change', '#emailStatus', e => loadEmailJobs(e.target.value));
+  $(document).on('click', '#processEmailQueue', processEmailQueue);
+});

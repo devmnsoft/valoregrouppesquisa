@@ -455,8 +455,7 @@
     "functions:no-queued-without-processor": "node scripts/validate-functions-no-queued-without-processor.js",
     "functions:participant-access-password": "node scripts/validate-functions-participant-access-password.js",
     "legacy:participant-access-no-auth": "node scripts/validate-legacy-participant-access-no-auth.js",
-    "functions:email-secrets-on-submit": "node scripts/validate-functions-email-secrets-on-submit.js",
-    "functions:email-error-classification": "node scripts/validate-functions-email-error-classification.js"
+    "backend:rc2-homologation-validate": "node tools/validate-backend-official-rc2-homologation.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

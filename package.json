@@ -450,7 +450,9 @@
     "legacy:result-empty-rt-route": "node scripts/validate-legacy-result-route-catches-empty-rt.js",
     "legacy:no-empty-rt-write": "node scripts/validate-legacy-submit-does-not-write-empty-rt.js",
     "legacy:load-result-no-auth": "node scripts/validate-legacy-load-result-no-auth.js",
-    "backend:sql-schema-validate": "node tools/validate-backend-official-sql-schema.js"
+    "backend:sql-schema-validate": "node tools/validate-backend-official-sql-schema.js",
+    "functions:submit-email-direct-send": "node scripts/validate-functions-submit-email-direct-send.js",
+    "functions:no-queued-without-processor": "node scripts/validate-functions-no-queued-without-processor.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

@@ -54,3 +54,7 @@ Seguir `ROLLBACK_PLAN.md` e `BACKUP_RESTORE_RUNBOOK.md`; restore exige `CONFIRM_
 - A organização Valora deve usar `organizations.plan_code` quando disponível e assinatura ativa em `subscriptions` apontando para `plans.id` resolvido por `plans.code`.
 - O validador `npm run backend:sql-schema-validate` foi adicionado/confirmado como gate obrigatório para bloquear regressões de schema/seeds antes da homologação real.
 - Endpoints ou telas ainda sem implementação real devem permanecer documentados como gap controlado; não é permitido retornar dados fake, JSON bruto sensível, stack trace, senha, hash, token ou secret.
+
+## Release Candidate 0.9.0-rc2
+
+RC2 registra a homologação real possível neste container: validadores Node oficiais executados, correção de UI sensível nas views operacionais, documentação de diagnóstico/auditoria/paridade/bugs e novo gate `npm run backend:rc2-homologation-validate`. A homologação runtime completa ainda deve ser repetida em ambiente com SDK .NET 8 e PostgreSQL/Docker disponíveis para executar `dotnet restore`, `dotnet build`, `dotnet test`, aplicação SQL idempotente, API/Web, health checks, importação e backup/restore reais.

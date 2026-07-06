@@ -18,5 +18,35 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+
+  valora-api:
+    build:
+      context: .
+      dockerfile: backend/Valora.Api/Dockerfile
+    container_name: valora-api-hml
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Homologation
+      ConnectionStrings__Postgres: Host=postgres-hml;Port=5432;Database=${VALORA_POSTGRES_DB:-valora_hml};Username=${VALORA_POSTGRES_USER:-valora_hml};Password=${VALORA_POSTGRES_PASSWORD:-change-me-local-only}
+    depends_on:
+      postgres-hml:
+        condition: service_healthy
+    ports:
+      - "${VALORA_API_PORT:-5080}:8080"
+
+  valora-web:
+    build:
+      context: .
+      dockerfile: backend/Valora.Web/Dockerfile
+    container_name: valora-web-hml
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Homologation
+      Api__BaseUrl: http://valora-api:8080
+    depends_on:
+      - valora-api
+    ports:
+      - "5088:8080"
+
 volumes:
   valora_postgres_hml_data:

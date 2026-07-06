@@ -420,6 +420,7 @@ async function init(){
     releasePublicUi('public_token_route');
     state.authReady=true;state.user=null;state.isPublicMode=true;
     renderShell();
+    if(isParticipantResultAccessRoute())return renderParticipantResultAccess();
     if(isPublicResultAttemptRoute())return renderPublicResultFromRoute();
     if(isPublicSurveyRoute())return renderTakeSurveyFromRoute();
   }
@@ -442,7 +443,8 @@ function isPublicSurveyRoute(){const params=new URLSearchParams(location.search)
 function getPublicResultRouteParams(){const params=new URLSearchParams(location.search);return {responseId:params.get('result')||'',resultToken:params.get('rt')||params.get('resultToken')||''};}
 function isPublicResultAttemptRoute(){const params=new URLSearchParams(location.search);return params.has('result');}
 function isPublicResultRoute(){const p=getPublicResultRouteParams();return !!(p.responseId&&p.resultToken);}
-function isAnyPublicTokenRoute(){return isPublicResultRoute()||isPublicSurveyRoute();}
+function isParticipantResultAccessRoute(){return (location.hash||'')==='#acessar-resultado';}
+function isAnyPublicTokenRoute(){return isPublicResultRoute()||isPublicSurveyRoute()||isParticipantResultAccessRoute();}
 function isPublicSurveyPage(){return isPublicSurveyRoute();}
 function isPublicResultPage(){return isPublicResultRoute();}
 function isPublicCertificateValidationPage(){const url=new URL(location.href);return !!url.searchParams.get('certificate');}
@@ -453,6 +455,7 @@ function routeFromLocation(){
   const u=new URL(location.href);const hash=(location.hash||'').slice(1);const sid=u.searchParams.get('survey'),token=u.searchParams.get('token'),result=u.searchParams.get('result'),resultToken=u.searchParams.get('rt'),certificate=u.searchParams.get('certificate');
   // Rotas internas sempre têm prioridade. Assim, Minha área, logo, LGPD e Planos
   // continuam funcionando mesmo depois de abrir um link seguro com query string.
+  if(hash==='acessar-resultado'){releasePublicUi('participant_result_access_route');return renderParticipantResultAccess();}
   if(hash)return route(hash);
   if(isPublicResultAttemptRoute()){releasePublicUi('public_result_attempt_route');const p=getPublicResultRouteParams();if(!p.responseId||!p.resultToken)return renderIncompletePublicResultLink(p);return renderPublicResultFromRoute();}
   if(sid){const contract=publicSurveyRouteContract({survey:sid,token,org:u.searchParams.get('org')});if(!contract.ok){return renderIncompletePublicSurveyLink(contract);} if(isPublicSurveyRoute())releasePublicUi('public_survey_route'); resolveProductionPublicSurveyLink({survey:sid,token,org:u.searchParams.get('org')}).then(r=>{ if(!r?.redirected&&!r?.blocked) renderTakeSurvey(sid,token,u.searchParams.get('org')); }).catch(()=>renderTakeSurvey(sid,token,u.searchParams.get('org'))); return; }
@@ -1768,7 +1771,7 @@ function buildPublicSurveySubmitPayload(formEl) {
   const participant = { name: getFormValue(formEl, 'name') || getFormValue(formEl, 'participant.name') || '', email: getFormValue(formEl, 'email') || getFormValue(formEl, 'participant.email') || '', phone: getFormValue(formEl, 'phone') || '', company: getFormValue(formEl, 'company') || getFormValue(formEl, 'personType') || '', department: getFormValue(formEl, 'department') || '' };
   const answers = collectPublicSurveyAnswers(formEl, ctx.form);
   const missingRequiredPreview = (ctx.form.questions || []).filter(q => q.required && (answers[q.id] === undefined || answers[q.id] === null || answers[q.id] === '' || (Array.isArray(answers[q.id]) && !answers[q.id].length))).map(q => q.id);
-  const payload = { surveyId, token, org, participant, answers, lgpdConsent: !!formEl.querySelector('[name="lgpdConsent"]')?.checked, communicationConsent: !!formEl.querySelector('[name="communicationConsent"]')?.checked || !!formEl.querySelector('[name="sendEmail"]')?.checked, department: participant.department, idempotencyKey: ensureStablePublicSubmitIdempotencyKey(surveyId, participant.email) };
+  const payload = { surveyId, token, org, participant, accessPassword: getFormValue(formEl, 'accessPassword') || '', answers, lgpdConsent: !!formEl.querySelector('[name="lgpdConsent"]')?.checked, communicationConsent: !!formEl.querySelector('[name="communicationConsent"]')?.checked || !!formEl.querySelector('[name="sendEmail"]')?.checked, department: participant.department, idempotencyKey: ensureStablePublicSubmitIdempotencyKey(surveyId, participant.email) };
   const answersCount = Object.keys(payload.answers || {}).length;
   window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {}; window.ValoraRuntimeDiagnostics.lastSubmitPayload = { surveyId, hasToken: !!token, org, formId: ctx.form.id, questionsCount: ctx.form.questions.length, renderedQuestionsCount: formEl.querySelectorAll('[data-question-id]').length, answersCount, missingRequiredPreview };
   window.ValoraRuntimeDiagnostics.lastPublicSubmitDebug = { ...(window.ValoraRuntimeDiagnostics.lastPublicSubmitDebug || {}), surveyId, hasToken: !!token, org, answersCount, hasName: !!participant.name, hasEmail: !!participant.email, lgpdConsent: !!payload.lgpdConsent };
@@ -1776,6 +1779,16 @@ function buildPublicSurveySubmitPayload(formEl) {
   return payload;
 }
 
+
+function renderParticipantResultAccess(message=''){
+  releasePublicUi('participant_result_access');
+  const app=$('#app');if(!app)return;
+  app.innerHTML=`<section class="section public-result-access"><div class="container narrow"><div class="card"><h1>Acessar meu resultado</h1><p class="muted">Informe o e-mail e a senha cadastrados ao responder a pesquisa. Este acesso público não usa Firebase Auth.</p>${message?`<div class="page-help">${esc(message)}</div>`:''}<form class="grid" data-form="participantResultAccess"><div class="field"><label>E-mail</label><input name="email" type="email" required autocomplete="email"></div><div class="field"><label>Senha</label><input name="password" type="password" required autocomplete="current-password"></div><button class="btn btn-primary" type="submit">Acessar resultado</button></form><div id="participantResultsList"></div></div></div></section>`;
+}
+async function submitParticipantResultAccess(form){
+  const fd=data(form);const btn=$('button[type="submit"]',form);if(btn){btn.disabled=true;btn.textContent='Consultando…';}
+  try{const res=await ValoraRepository.getParticipantResultsByPassword(fd.email,fd.password);const results=res?.results||[];if(!results.length){renderParticipantResultAccess('Não encontramos resultado para este e-mail e senha.');return false;}if(results.length===1){const r=results[0];location.href=`${location.origin}${location.pathname}?result=${encodeURIComponent(r.responseId)}&rt=${encodeURIComponent(r.resultToken)}`;return false;}const list=$('#participantResultsList');if(list)list.innerHTML=`<div class="card"><h3>Escolha um diagnóstico</h3>${results.map(r=>`<p><a class="btn btn-soft" href="?result=${encodeURIComponent(r.responseId)}&rt=${encodeURIComponent(r.resultToken)}">${esc(r.surveyTitle||'Diagnóstico Valora Group')}</a></p>`).join('')}</div>`;}catch(err){toast(err?.message||'Não foi possível consultar seus resultados agora.','error');}finally{if(btn){btn.disabled=false;btn.textContent='Acessar resultado';}form.password.value='';}return false;
+}
 
 function validatePublicAnswers(formDefinition,answers){const missing=[];for(const q of formDefinition?.questions||[]){if(q.required){const value=answers?.[q.id];const empty=value===undefined||value===null||value===''||(Array.isArray(value)&&value.length===0);if(empty)missing.push(q);}}return missing;}
 function validatePublicSubmitPayload(payload, context = {}, formEl = null) {
@@ -2672,6 +2685,7 @@ async function saveOnboardingWizard(form){
   closeModal?.();rerenderPortal?.();return true;
 }
 function createFormHandlers(){return {
+  participantResultAccess:form=>withLoading('Consultando resultados...',()=>submitParticipantResultAccess(form),{button:$('button',form),action:'participant-result-access'}),
   login:form=>withLoading('Entrando...',()=>login(form),{button:$('[data-login-button]',form)||$('button',form),action:'login',id:data(form).email||'global'}),
   signup:form=>withLoading('Criando ambiente...',()=>signup(form),{button:$('button',form),action:'signup',id:data(form).email||'global'}),
   certificateValidation(form){const code=form.certificate.value.trim();if(code)validateCertificatePublic(code);},actionPlan:form=>withLoading('Salvando plano de ação...',()=>saveActionPlan(form),{button:$('button',form),action:'save-action-plan'}),bot(form){const msg=form.message.value.trim();if(!msg)return;form.reset();handleBotMessage(msg);},publicSupport:form=>withLoading('Enviando atendimento...',()=>savePublicSupport(form),{button:$('button',form),action:'support-public'}),loggedSupport:form=>withLoading('Enviando atendimento...',()=>saveLoggedSupport(form),{button:$('button',form),action:'support-logged'}),knowledgeArticle:form=>withLoading('Salvando artigo...',()=>saveKnowledgeArticle(form),{button:$('button',form),action:'knowledge-article'}),supportMessage:form=>withLoading('Enviando mensagem...',()=>saveSupportMessage(form),{button:$('button',form),action:'support-message'}),supportInternalNote:form=>withLoading('Salvando nota...',()=>saveSupportInternalNote(form),{button:$('button',form),action:'support-note'}),supportRating:form=>withLoading('Salvando avaliação...',()=>saveSupportRating(form),{button:$('button',form),action:'support-rating'}),

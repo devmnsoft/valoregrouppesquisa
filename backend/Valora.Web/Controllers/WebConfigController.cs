@@ -35,7 +35,7 @@ public sealed class WebConfigController : ControllerBase
 
             var payload = new
             {
-                APP_NAME = Safe(_web.Name, "Valora Pulse"),
+                APP_NAME = Safe(_web.Name, "Valora Insight™"),
                 APP_VERSION = Safe(_web.Version, "1.0.0-web"),
                 ENVIRONMENT = Safe(_web.Environment, _environment.EnvironmentName),
                 API_BASE_URL = Safe(_api.BaseUrl, "http://localhost:5080"),
@@ -50,7 +50,7 @@ public sealed class WebConfigController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Falha ao gerar configuração dinâmica do Valora.Web");
-            var fallback = "window.ValoraWebConfig = Object.freeze({APP_NAME:'Valora Pulse',APP_VERSION:'1.0.0-web',ENVIRONMENT:'Unavailable',API_BASE_URL:'',API_TIMEOUT_MS:20000,PUBLIC_URL:'',ENABLE_DEBUG_LOGS:false});";
+            var fallback = "window.ValoraWebConfig = Object.freeze({APP_NAME:'Valora Insight™',APP_VERSION:'1.0.0-web',ENVIRONMENT:'Unavailable',API_BASE_URL:'',API_TIMEOUT_MS:20000,PUBLIC_URL:'',ENABLE_DEBUG_LOGS:false});";
             return Content(fallback, "application/javascript; charset=utf-8");
         }
     }

@@ -11,3 +11,12 @@
 - [ ] Certificado: marca real ou fallback, validação pública e sem token/hash exposto.
 - [ ] LGPD: consentimento antes de responder e links de privacidade.
 - [ ] Assets: sem imagem externa como logo e sem imagem quebrada quando binários faltam.
+
+## Sprint Valora Insight™ — correções de feedback do cliente
+- Produto público padronizado como `Valora Insight™`.
+- Menu público deve exibir `Início`, nunca `HOME`.
+- WhatsApp oficial: `+55 91 99254-5353` / `https://wa.me/5591992545353`.
+- Contato público: `Fale com a Valora Group`.
+- Resultado público com data segura, fallback `Data não informada`, layout mobile sem scroll horizontal e CTAs empilhados.
+- Certificado/relatório com CSS de impressão compacto em `backend/Valora.Web/wwwroot/css/valora-print.css`.
+- Validação: `npm run web:client-feedback-fixes`.

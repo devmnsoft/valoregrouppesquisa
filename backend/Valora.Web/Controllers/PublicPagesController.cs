@@ -11,7 +11,7 @@ public sealed class PublicPagesController(ILogger<PublicPagesController> logger)
     public IActionResult Contact() => PublicView("Contact", "Contato");
 
     [Route("whatsapp")]
-    public IActionResult WhatsApp() => PublicView("WhatsApp", "WhatsApp");
+    public IActionResult WhatsApp() => Redirect("https://wa.me/5591992545353?text=Ol%C3%A1%2C%20quero%20falar%20com%20a%20Valora%20Group%20sobre%20o%20Diagn%C3%B3stico%20Valora%20Insight%E2%84%A2.");
 
     [Route("entrar")]
     public IActionResult LoginRedirect() => Redirect("/Account/Login");

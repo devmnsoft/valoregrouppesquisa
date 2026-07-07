@@ -96,13 +96,13 @@ public sealed class CertificatesController(IResponseRepository responses, ICerti
         if (response is null) return Ok(new { ok = true, valid = false, correlationId = HttpContext.TraceIdentifier });
         var cert = await certificates.GetByResponseAsync(responseId);
         var result = await HttpContext.RequestServices.GetRequiredService<IResultRepository>().GetByResponseAsync(responseId);
-        return Ok(new { ok = true, valid = true, participantName = cert?.ParticipantName ?? response.ParticipantName ?? "Participante", participantEmailMasked = LogSanitizer.MaskEmail(response.ParticipantEmail), surveyTitle = cert?.SurveyName ?? "Diagnóstico Valora Insight", completedAt = response.CompletedAt, score = result?.Percentage ?? result?.TotalScore ?? 0, maturityLevel = cert?.MaturityLabel ?? result?.MaturityLabel ?? "Em estruturação", correlationId = HttpContext.TraceIdentifier });
+        return Ok(new { ok = true, valid = true, participantName = cert?.ParticipantName ?? response.ParticipantName ?? "Participante", participantEmailMasked = LogSanitizer.MaskEmail(response.ParticipantEmail), surveyTitle = cert?.SurveyName ?? "Diagnóstico Valora Insight™", completedAt = response.CompletedAt, score = result?.Percentage ?? result?.TotalScore ?? 0, maturityLevel = cert?.MaturityLabel ?? result?.MaturityLabel ?? "Em estruturação", correlationId = HttpContext.TraceIdentifier });
     }
 
     private object BuildSafeCertificatePayload(Guid responseId, Valora.Application.ReadModels.ResponseReadModel response, Valora.Application.ReadModels.CertificateReadModel? certificate, string format)
     {
         var participant = string.IsNullOrWhiteSpace(certificate?.ParticipantName) ? response.ParticipantName ?? "Participante" : certificate.ParticipantName;
-        var company = string.IsNullOrWhiteSpace(certificate?.IssuerName) ? "Valora Pulse" : certificate.IssuerName;
+        var company = string.IsNullOrWhiteSpace(certificate?.IssuerName) ? "Valora Group" : certificate.IssuerName;
         var survey = string.IsNullOrWhiteSpace(certificate?.SurveyName) ? "Pesquisa Valora" : certificate.SurveyName;
         var level = string.IsNullOrWhiteSpace(certificate?.MaturityLabel) ? "metadata-ready" : certificate.MaturityLabel;
         var code = string.IsNullOrWhiteSpace(certificate?.CertificateCode) ? $"VAL-{responseId:N}" : certificate.CertificateCode;

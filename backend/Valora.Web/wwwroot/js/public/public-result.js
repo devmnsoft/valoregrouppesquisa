@@ -2,10 +2,29 @@
   'use strict';
   const vp=window.ValoraPublic; if(!vp) return;
   const page=document.querySelector('[data-page]')?.dataset.page || '';
-  if(page==='public-diagnostic') vp.bindOnce(document.querySelector('[data-free-diagnostic-form]'), async (fd)=>{ try{ const data=Object.fromEntries(fd.entries()); const created=await vp.api('/api/free-diagnostics',{method:'POST',body:JSON.stringify(data)}); location.href='/pesquisa/'+encodeURIComponent(created?.surveyId || created?.id || 'diagnostico-gratuito')+'/responder'; }catch{ vp.toast('Diagnóstico registrado não pôde avançar automaticamente.','error'); } });
-  if(page==='public-survey'){ const form=document.querySelector('[data-public-survey-form]'); const surveyId=document.querySelector('[name=surveyId]')?.value; if(form){ form.innerHTML='<div class="survey-question"><label>Como você avalia a maturidade atual?<select name="maturity"><option value="3">Em evolução</option><option value="4">Boa</option><option value="5">Excelente</option></select></label></div><button class="btn-public primary" type="submit">Enviar respostas</button>'; vp.bindOnce(form, async fd=>{ const response=await vp.api('/api/public/surveys/'+encodeURIComponent(surveyId)+'/responses',{method:'POST',body:JSON.stringify(Object.fromEntries(fd.entries()))}); location.href='/resultado/'+encodeURIComponent(response?.responseId || response?.id || surveyId); }); }}
-  if(page==='public-result'){ const id=document.querySelector('[name=responseId]')?.value; vp.api('/api/public/results/'+encodeURIComponent(id)).then(r=>{ document.querySelector('[data-result-card]').innerHTML='<h2>Resultado recebido</h2><p>Score: '+(r?.score ?? 'em processamento')+'</p><p>Recomendações disponíveis conforme retorno da API oficial.</p>'; }).catch(()=>{}); document.querySelector('[data-send-result-email]')?.addEventListener('click',()=>vp.toast('Solicitação de envio registrada pela API oficial quando disponível.')); }
-  if(page?.startsWith('public-certificate')) document.querySelector('[data-certificate-card],[data-certificate-validation]')?.insertAdjacentHTML('beforeend','<p>Certificado público pronto para validação segura.</p>');
-  if(page?.startsWith('public-lgpd')) vp.bindOnce(document.querySelector('[data-lgpd-form]'),async()=>vp.toast('Solicitação LGPD encaminhada para processamento.'));
-  if(page==='public-contact') vp.bindOnce(document.querySelector('[data-contact-form]'),async()=>vp.toast('Contato recebido. A equipe comercial retornará pelos canais informados.'));
+  const safe=(value,fallback='')=>String(value ?? fallback).replace(/[<>&]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+  const formatDate=window.formatValoraDate || function formatValoraDate(value){ if(!value) return 'Data não informada'; const date=new Date(value); if(Number.isNaN(date.getTime())) return 'Data não informada'; return date.toLocaleDateString('pt-BR'); };
+  if(page!=='public-result') return;
+  const id=document.querySelector('[name=responseId]')?.value;
+  const token=new URLSearchParams(location.search).get('token') || sessionStorage.getItem('valora.publicResultToken.'+id) || '';
+  const setText=(selector,value)=>{ const el=document.querySelector(selector); if(el) el.textContent=value; };
+  vp.api('/api/public/results/'+encodeURIComponent(id)+(token?'?token='+encodeURIComponent(token):''))
+    .then(r=>{
+      const response=r?.response || r || {};
+      const result=r?.result || r || {};
+      const dims=r?.dimensions || [];
+      setText('[data-result-date]', formatDate(response.completedAt || response.createdAt || result.completedAt));
+      setText('[data-result-score]', safe(result.percentage ?? result.score ?? r?.score ?? '--'));
+      setText('[data-result-level]', safe(result.maturityLabel || result.level || 'Nível de maturidade em processamento'));
+      setText('[data-executive-reading]', safe(result.executiveSummary || result.reading || 'Leitura executiva direta da maturidade organizacional, sem adoçamento e sem repetição visual.'));
+      setText('[data-radar-text]', safe(result.radarText || 'Radar visual textual carregado com fallback seguro.'));
+      if(dims.length){
+        setText('[data-dimensions-text]', dims.map(d=>`${d.dimensionName || d.name}: ${d.percentage ?? d.score ?? 'em análise'}`).join(' • '));
+      }
+    })
+    .catch(()=>{
+      setText('[data-result-date]', 'Data não informada');
+      setText('[data-executive-reading]', 'Resultado em preparação. Tente novamente em instantes ou fale com a Valora Group.');
+    });
+  document.querySelector('[data-send-result-email]')?.addEventListener('click',()=>vp.toast('Solicitação de envio registrada. Se o relatório ainda estiver em preparação, tente novamente em instantes ou fale com a Valora Group.'));
 })();

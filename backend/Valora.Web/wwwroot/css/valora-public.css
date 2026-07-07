@@ -38,3 +38,79 @@
 
 /* Safe institutional brand fallback while official binary assets are manually supplied. */
 .brand-picture{display:inline-grid;place-items:center;flex:0 0 auto}.brand-fallback-text{display:none;align-items:center;justify-content:center;min-height:44px;padding:.55rem .9rem;border-radius:16px;background:linear-gradient(135deg,#0c3448,#17324d 58%,#0e9f92);color:#fff;font-weight:900;letter-spacing:.01em;box-shadow:0 14px 34px rgba(12,52,72,.22);white-space:nowrap}.brand-fallback-text-large{min-height:96px;padding:1.2rem 1.6rem;border-radius:28px;font-size:clamp(1.6rem,4vw,2.7rem)}.brand-fallback-active>.brand-fallback-text,.brand-fallback-active .brand-fallback-text{display:inline-flex}.brand-fallback-active .brand-picture{display:none}.brand-logo-full-img{display:block;width:100%;max-width:420px;object-fit:contain}.brand-page-header.brand-fallback-active{align-items:center}.hero-brand-card.brand-fallback-active{justify-items:center}.hero-brand-card.brand-fallback-active .brand-fallback-text{display:inline-flex}.diagnostic-progress{height:12px;background:#dbe7ef;border-radius:999px;overflow:hidden;margin:1rem 0}.diagnostic-progress span{display:block;width:20%;height:100%;background:linear-gradient(135deg,var(--accent),var(--accent-strong))}.scale-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.5rem}.scale-grid button{border:1px solid var(--line);border-radius:14px;background:#fff;padding:.85rem;font-weight:900}.insight-sections{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:1.5rem}.insight-sections article{background:#fff;border:1px solid var(--line);border-radius:20px;padding:1rem;box-shadow:0 10px 24px rgba(15,36,56,.08)}@media(max-width:860px){.insight-sections{grid-template-columns:1fr}.brand-fallback-text{min-height:40px;padding:.48rem .7rem}.scale-grid{grid-template-columns:repeat(5,minmax(42px,1fr))}}
+
+/* Sprint mobile polish: prevent public result/certificate overflow. */
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.container-public,
+.public-main,
+.section,
+.result-card,
+.insight-sections,
+.certificate-card,
+.hero-brand-card,
+.devolutiva-card {
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+img,
+svg,
+canvas {
+    max-width: 100%;
+    height: auto;
+}
+
+.result-hero { background: linear-gradient(145deg, #0f2438, #17324d); color: #fff; }
+.score-hero { display: grid; grid-template-columns: minmax(132px, 220px) 1fr; gap: 1.25rem; align-items: center; width: 100%; max-width: 100%; }
+.score-box { width: 100%; max-width: 220px; aspect-ratio: 1; border-radius: 28px; display: grid; place-items: center; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.24); text-align: center; padding: 1rem; }
+.score-box span { display: block; font-size: clamp(2.4rem, 12vw, 4.6rem); font-weight: 900; line-height: 1; overflow-wrap: anywhere; }
+.score-box small { display: block; color: #dbe7ef; font-weight: 800; }
+.result-cta-row { margin-bottom: 5.5rem; }
+.insight-section-card { overflow-wrap: anywhere; }
+
+@media (max-width: 576px) {
+    .container-public {
+        width: 100%;
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .result-card,
+    .certificate-card,
+    .public-card,
+    .devolutiva-card,
+    .insight-section-card {
+        width: 100%;
+        max-width: 100%;
+        padding: 18px;
+        border-radius: 18px;
+    }
+
+    .score-hero,
+    .score-box,
+    .radar-card {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .score-hero { grid-template-columns: 1fr; }
+    .score-box { aspect-ratio: auto; min-height: 142px; }
+
+    .cta-row {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cta-row a,
+    .cta-row button {
+        width: 100%;
+    }
+
+    .float-actions { position: static; margin: 1rem 16px; display: grid; grid-template-columns: 1fr; }
+}

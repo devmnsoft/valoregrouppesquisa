@@ -12,7 +12,7 @@ public sealed class ResultEmailService(ICommunicationRepository communications, 
     {
         if (!EmailConfigurationValidator.IsEmail(request.To)) return new(false, null, "failed-validation", "Destinatário inválido.");
         if (string.IsNullOrWhiteSpace(request.ResultToken)) return new(false, null, "failed-token", "Token do resultado obrigatório.");
-        var subject = string.IsNullOrWhiteSpace(request.Subject) ? "Seu resultado Valora Pulse" : request.Subject.Trim();
+        var subject = string.IsNullOrWhiteSpace(request.Subject) ? "Seu resultado Valora Insight™" : request.Subject.Trim();
         var body = EmailTemplateService.BuildResultTemplate(responseId, request.Message, request.IncludeCertificate);
         var jobId = await communications.AddEmailJobAsync(null, responseId, request.To.Trim(), subject, "result-ready", "pending", System.Text.Json.JsonSerializer.Serialize(new { responseId, body }));
         var cfg = EmailConfigurationValidator.Validate(options.Value);

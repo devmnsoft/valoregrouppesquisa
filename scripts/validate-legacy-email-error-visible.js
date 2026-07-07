@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8');for(const x of ['Seu resultado foi registrado, mas o e-mail não foi enviado agora.','Código: ${errorCode}','Detalhe: ${errorMessage}','failed_non_blocking']) if(!s.includes(x)) throw new Error('erro email não visível: '+x);console.log('legacy email error visible: PASS');

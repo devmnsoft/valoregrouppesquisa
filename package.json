@@ -479,7 +479,10 @@
     "legacy:report-response-pdf": "node scripts/validate-legacy-report-response-pdf-action.js",
     "legacy:legacy-run-allowlist": "node scripts/validate-legacy-legacy-run-allowlist.js",
     "legacy:no-undefined-actions": "node scripts/validate-legacy-action-handlers-no-undefined.js",
-    "functions:smtp-gmail": "node scripts/validate-functions-smtp-transporter-gmail.js"
+    "functions:smtp-gmail": "node scripts/validate-functions-smtp-transporter-gmail.js",
+    "legacy:public-bypass-auth": "node scripts/validate-legacy-public-route-bypasses-auth.js",
+    "functions:get-public-result-token": "node scripts/validate-functions-get-public-result-public-token.js",
+    "legacy:empty-action-ignored": "node scripts/validate-legacy-empty-action-ignored.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

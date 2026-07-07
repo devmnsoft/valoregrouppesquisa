@@ -297,9 +297,17 @@ function missingFormHandler(formName){
   console.warn(`[Valora Pulse] Formulário não registrado: ${formName}`);
   toast('Este formulário ainda não está disponível.','warn');
 }
+function normalizeActionName(raw){return String(raw||'').trim();}
 function handleDocumentClick(e){
   const el=e.target.closest('[data-action]'); if(!el)return;
-  const actionName=el.dataset.action;
+  const actionName=normalizeActionName(el?.dataset?.action);
+  if(!actionName){
+    window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
+    window.ValoraRuntimeDiagnostics.lastEmptyActionClick={tag:el?.tagName||'',text:String(el?.textContent||'').slice(0,120),href:el?.getAttribute?.('href')||'',at:new Date().toISOString()};
+    if(el?.tagName==='A'&&el.href)return true;
+    console.warn('[Valora Pulse] Clique sem ação ignorado',window.ValoraRuntimeDiagnostics.lastEmptyActionClick);
+    return false;
+  }
   const action=actions[actionName];
   e.preventDefault();
   if(typeof action!=='function')return missingAction(actionName);
@@ -429,7 +437,11 @@ async function init(){
     state.authReady=true;state.user=null;state.isPublicMode=true;
     renderShell();
     if(isParticipantResultAccessRoute())return renderParticipantResultAccess();
-    if(isPublicResultAttemptRoute())return renderPublicResultFromRoute();
+    if(isPublicResultAttemptRoute()){
+      const p=getPublicRouteParams();
+      if(!p.resultId||!p.resultToken)return renderIncompletePublicResultLink({responseId:p.resultId,resultToken:p.resultToken});
+      return renderPublicResultFromRoute();
+    }
     if(isPublicSurveyRoute())return renderTakeSurveyFromRoute();
   }
   if(repository.mode==='firebase'&&window.ValoraFirebaseAuth?.waitUntilReady){
@@ -447,12 +459,13 @@ async function init(){
   window.addEventListener('hashchange',routeFromLocation);
   window.addEventListener('popstate',routeFromLocation);
 }
-function isPublicSurveyRoute(){const params=new URLSearchParams(location.search);return !!(params.get('survey')&&params.get('token'));}
-function getPublicResultRouteParams(){const params=new URLSearchParams(location.search);return {responseId:params.get('result')||'',resultToken:params.get('rt')||params.get('resultToken')||''};}
+function getPublicRouteParams(){const params=new URLSearchParams(location.search);return {surveyId:params.get('survey')||params.get('surveyId')||'',surveyToken:params.get('token')||'',resultId:params.get('result')||'',resultToken:params.get('rt')||params.get('resultToken')||''};}
+function isPublicSurveyRoute(){const p=getPublicRouteParams();return !!(p.surveyId&&p.surveyToken);}
+function getPublicResultRouteParams(){const p=getPublicRouteParams();return {responseId:p.resultId,resultToken:p.resultToken};}
 function isPublicResultAttemptRoute(){const params=new URLSearchParams(location.search);return params.has('result');}
-function isPublicResultRoute(){const p=getPublicResultRouteParams();return !!(p.responseId&&p.resultToken);}
+function isPublicResultRoute(){const p=getPublicRouteParams();return !!(p.resultId&&p.resultToken);}
 function isParticipantResultAccessRoute(){return (location.hash||'')==='#acessar-resultado';}
-function isAnyPublicTokenRoute(){return isPublicResultRoute()||isPublicSurveyRoute()||isParticipantResultAccessRoute();}
+function isAnyPublicTokenRoute(){return isPublicSurveyRoute()||isPublicResultAttemptRoute()||isParticipantResultAccessRoute();}
 function isPublicSurveyPage(){return isPublicSurveyRoute();}
 function isPublicResultPage(){return isPublicResultRoute();}
 function isPublicCertificateValidationPage(){const url=new URL(location.href);return !!url.searchParams.get('certificate');}
@@ -2040,6 +2053,7 @@ async function guardedPublicSurveySubmit(formEl, event = null) {
   window.__valoraPublicSubmitInProgress = true;
   const button = event?.submitter || formEl.querySelector('[type="submit"]') || formEl.querySelector('button');
   try {
+    if(button)button.disabled=true;
     return await withLoading('Aguarde, estamos processando sua requisição...', async () => {
       const payload = buildPublicSurveySubmitPayload(formEl);
       debugPublicSubmitState('before_validation', payload);
@@ -2061,7 +2075,7 @@ async function guardedPublicSurveySubmit(formEl, event = null) {
     const keepFormCodes = ['missing_survey_id','missing_public_token','public_survey_not_ready','public_form_questions_missing','public_question_dom_missing','participant_required','invalid_email','lgpd_required','required_question_missing'];
     showPublicSubmitError(normalized, { keepForm: keepFormCodes.includes(normalized.code) });
     return false;
-  } finally { window.__valoraPublicSubmitInProgress = false; }
+  } finally { if(button)button.disabled=false; window.__valoraPublicSubmitInProgress = false; }
 }
 
 async function submitSurvey(form, event = null){
@@ -2334,10 +2348,10 @@ function renderPublicResultLoading(responseId = '', resultToken = ''){
 }
 
 async function renderPublicResultFromRoute() {
-  const params = new URLSearchParams(location.search);
-  const responseId = params.get('result') || '';
-  const token = params.get('rt') || '';
-  if (!responseId || !token) return renderResultLoadFallback(responseId, token);
+  const p = getPublicRouteParams();
+  const responseId = p.resultId || '';
+  const token = p.resultToken || '';
+  if (!responseId || !token) return renderIncompletePublicResultLink({responseId,resultToken:token});
   renderPublicResultLoading(responseId, token);
   try {
     const result = await ValoraRepository.loadPublicResult(responseId, token);

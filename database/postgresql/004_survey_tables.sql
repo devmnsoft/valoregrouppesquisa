@@ -9,3 +9,29 @@ CREATE INDEX IF NOT EXISTS ix_survey_links_survey ON valorapesquisa.survey_links
 ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS revoked_at timestamptz;
 ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS plan_id text;
 ALTER TABLE valorapesquisa.survey_links ADD COLUMN IF NOT EXISTS revoked_at timestamptz;
+
+
+-- COMPATIBILIDADE PARA BANCOS EXISTENTES
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS title text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS slug citext;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS category text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS time_min int;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS scoring_method text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS is_global boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS min_score int;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS max_score int;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS score_ranges jsonb;
+ALTER TABLE valorapesquisa.form_dimensions ADD COLUMN IF NOT EXISTS position int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.form_dimensions ADD COLUMN IF NOT EXISTS display_order int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.form_dimensions ADD COLUMN IF NOT EXISTS weight numeric(8,2) DEFAULT 1;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS position int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS display_order int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS min_value int DEFAULT 1;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS max_value int DEFAULT 5;
+ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS label text;
+ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS value int;
+ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS position int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS text text;
+ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS score numeric(10,2);
+ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS display_order int NOT NULL DEFAULT 0;

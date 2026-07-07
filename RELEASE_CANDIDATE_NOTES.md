@@ -96,3 +96,7 @@ Consulte `VALORA_BRAND_ASSETS_MANUAL_SETUP.md` para nomes obrigatórios, testes 
 - Resultado público com data segura, fallback `Data não informada`, layout mobile sem scroll horizontal e CTAs empilhados.
 - Certificado/relatório com CSS de impressão compacto em `backend/Valora.Web/wwwroot/css/valora-print.css`.
 - Validação: `npm run web:client-feedback-fixes`.
+
+## Compatibilidade oficial do `scriptbd_completo.sql`
+
+O bootstrap PostgreSQL oficial deve ser validado com `npm run db:scriptbd-validate` antes de uso em local, homologação ou produção. A seção `-- COMPATIBILIDADE PARA BANCOS EXISTENTES` em `scriptbd_completo.sql` normaliza schemas antigos sem `DROP TABLE` destrutivo de tabelas de negócio, incluindo `plan_limits.users`, `plans.monthly_price`, `organizations.plan_code`, contratos de formulários/perguntas/opções, `email_templates.body_html/body_text` e o índice de `usage_monthly(period_month)`. Consulte `SCRIPTBD_COMPLETO_COMPATIBILITY_GUIDE.md` para o procedimento completo.

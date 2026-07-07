@@ -74,3 +74,12 @@
     STORE_KEY: 'valoraPulseFinal800'
   });
 })();
+
+// Public-result final stabilization constants (kept non-secret; secrets stay in Firebase Functions secrets).
+window.ValoraPublicResultFinalFix = Object.freeze({
+  publicProductName: 'Valora Insight™',
+  platformName: 'Valora Pulse™',
+  companyDisplayName: 'Valora Group',
+  whatsappNumber: '5591992545353',
+  emailProviderDefault: 'http_api'
+});

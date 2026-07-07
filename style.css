@@ -876,3 +876,47 @@ body { width: 100%; max-width: 100%; overflow-x: hidden; }
   .public-result-actions .btn { width: 100%; justify-content: center; text-align: center; }
   .whatsapp-floating { right: 12px; bottom: 12px; width: 48px; height: 48px; }
 }
+
+/* Final public result stabilization: premium contrast and mobile overflow guard. */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html,
+body { width: 100%; max-width: 100%; overflow-x: hidden; }
+
+.public-result-section,
+.public-result-container,
+.public-result-section .container { max-width: 100%; overflow-x: hidden; }
+
+.public-result-container { width: min(100%, 1040px); margin: 0 auto; padding-left: clamp(12px, 4vw, 28px); padding-right: clamp(12px, 4vw, 28px); }
+
+.result-hero { background: linear-gradient(135deg, #073F4D 0%, #042F3A 100%); color: #F7FCFD; border-radius: 28px; padding: clamp(20px, 4vw, 42px); box-shadow: 0 24px 70px rgba(5,52,68,.22); }
+.result-hero h1,
+.result-hero h2,
+.result-hero p,
+.result-hero span { color: #F7FCFD; }
+.result-hero-text { color: #CDEAF0; }
+.result-score-panel,
+.result-score { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.22); color: #FFFFFF; border-radius: 22px; padding: clamp(16px, 3vw, 28px); }
+.result-score-panel strong,
+.result-score strong { color: #FFFFFF; font-size: clamp(42px, 12vw, 88px); line-height: 1; }
+.result-score-panel em { color: #F8E8B8; }
+.result-card,
+.result-score-panel,
+.result-dimension-card,
+.certificate-preview-card,
+.certificate-preview-shell,
+.certificate-preview,
+.certificate-sheet { width: 100%; max-width: 100%; overflow-wrap: anywhere; }
+
+@media (max-width: 640px) {
+  .result-hero,
+  .result-card,
+  .result-score-panel,
+  .certificate-preview-card { padding: 16px; border-radius: 18px; }
+  .result-actions,
+  .confirm-actions { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .result-actions .btn,
+  .confirm-actions .btn { width: 100%; justify-content: center; text-align: center; }
+}

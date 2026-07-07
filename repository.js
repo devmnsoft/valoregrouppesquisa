@@ -57,3 +57,6 @@ window.ValoraRepository=Object.freeze({
   getHybridDiagnostics:()=>window.ValoraHybridDiagnostics||[]
 });
 })();
+
+// Public result final fix: loadPublicResult remains a token-only read operation;
+// Firebase provider is selected without requiring private profile loading.

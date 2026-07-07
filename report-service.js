@@ -28,3 +28,6 @@ function buildOnboardingReport(state,companyId){const o=A().getOnboardingMetrics
 function buildPlanUsageReport(state,companyId){const u=A().getPlanUsageMetrics(state,companyId), c=byId(state.companies,companyId);return {type:'plan-usage',title:`Relatório de Uso do Plano — ${c?.name||'Empresa'}`,subtitle:`Plano contratado: ${u.plan?.name||'Plano não identificado'}`,metrics:{plan:u.plan?.name||'Plano não identificado'},summary:u.items.some(i=>i.nearLimit)?'Há uso acima de 80% em ao menos um limite. Recomenda-se avaliar upgrade ou ajuste contratual.':'Uso dentro dos limites contratados no período.',recommendations:u.items.some(i=>i.nearLimit)?['Recomendação de upgrade por uso superior a 80% em limite contratado.']:['Manter acompanhamento mensal de uso.'],actionPlan:[],sections:{usage:u.items,modules:u.plan?.enabledModules||[]},generatedAt:new Date().toISOString()};}
 global.ValoraReports={buildExecutiveSummary,buildGlobalExecutiveReport,buildCompanyExecutiveReport,buildSurveyReport,buildParticipantReport,buildDimensionReport,buildOnboardingReport,buildPlanUsageReport};
 })(window);
+
+// Public result final fix: reports generated from public actions must prefer cached
+// result bundles and Valora Insight™ naming supplied by app.js.

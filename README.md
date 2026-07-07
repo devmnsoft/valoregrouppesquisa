@@ -631,3 +631,13 @@ Validação:
 - `npm run web:visual-homologation` valida layouts, fallback, documentação, checklist, Home, diagnóstico, resultado, segurança e ausência de logo externa.
 
 Consulte `VALORA_BRAND_ASSETS_MANUAL_SETUP.md` para nomes obrigatórios, testes locais e commit manual dos binários.
+
+## RC2 visual — Valora Brand Assets
+
+- A etapa visual RC2 usa os paths oficiais `/img/brand/valora-logo-full.jpeg` e `/img/brand/valora-symbol.jpeg` no projeto `backend/Valora.Web`.
+- Os binários reais da marca devem ser incluídos manualmente; o Codex não cria, converte nem anexa imagens oficiais.
+- Enquanto os JPEGs não estiverem versionados, as telas públicas e administrativas exibem fallback premium textual `Valora Group`, sem `VG`/`V` solto e sem imagem quebrada.
+- Validação obrigatória após inclusão dos assets: `npm run web:brand-assets`.
+- Validação diagnóstica sem binários: `VALORA_ALLOW_MISSING_BRAND_ASSETS=true npm run web:brand-assets`.
+- Readiness visual RC2: `npm run web:rc2-visual-readiness`.
+- A homologação final ainda deve ser executada com .NET SDK, PostgreSQL e navegador real para validar desktop/mobile antes do pacote `0.9.0-rc2`.

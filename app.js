@@ -2247,6 +2247,137 @@ function normalizeImmediateSubmitResultViewModel(result = {}, payload = {}) {
   const recommendation = level.recommendation || result.recommendation || recommendationFor({ ...level, normalized5 }, null, result);
   return {responseId:result.responseId||result.id||'',resultToken:result.resultToken||result.accessToken||'',participantName:payload?.participant?.name||result?.participant?.name||'',levelTitle:level.title||level.label||result.levelTitle||'Resultado do diagnóstico',recommendation,normalized5,normalized5Text:normalized5?`${normalized5.toFixed(1)} / 5`:'Registrado',percentage,percentageText:percentage?`${Math.round(percentage)}%`:'—',byDimension:result.byDimension||score.byDimension||[],resultEmailStatus:result?.resultEmail?.status||result?.emailStatus||''};
 }
+function renderPremiumDimensionSection(vm = {}) {
+  const items = Array.isArray(vm.byDimension)
+    ? vm.byDimension
+    : Object.entries(vm.byDimension || {}).map(([name, value]) => ({
+        name,
+        percentage: value?.percentage,
+        normalized5: value?.normalized5
+      }));
+
+  if (!items.length) {
+    return `
+      <section class="result-card-premium">
+        <h2>Leitura executiva da realidade</h2>
+        <p>As dimensões detalhadas serão exibidas quando a devolutiva completa estiver disponível.</p>
+      </section>
+    `;
+  }
+
+  return `
+    <section class="result-card-premium">
+      <h2>Dimensões avaliadas</h2>
+      <div class="result-dimension-grid-premium">
+        ${items.map(item => {
+          const name = item.dimensionName || item.name || item.dimensionId || 'Dimensão';
+          const percentage = Number(item.percentage || 0);
+          const label = percentage ? `${Math.round(percentage)}%` : item.normalized5 ? `${Number(item.normalized5).toFixed(1)} / 5` : 'Registrado';
+
+          return `
+            <div class="result-dimension-card-premium">
+              <span>${esc(name)}</span>
+              <strong>${esc(label)}</strong>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    </section>
+  `;
+}
+
+function renderPremiumCertificatePreview(vm = {}) {
+  return `
+    <section class="certificate-preview-card-premium">
+      <div>
+        <h2>Certificado de participação</h2>
+        <p>Seu certificado confirma a participação no diagnóstico e poderá ser baixado em PDF.</p>
+      </div>
+      <button class="btn btn-primary" type="button" data-action="certificatePdf" data-response-id="${esc(vm.responseId || '')}" data-token="${esc(vm.resultToken || '')}">
+        Baixar/Imprimir certificado
+      </button>
+    </section>
+  `;
+}
+
+function renderBasicPublicResult(vm = {}) {
+  return `
+    <section class="section public-result-section">
+      <div class="container public-result-container">
+        <div class="result-card-premium">
+          <h1>${esc(vm.levelTitle || 'Resultado do diagnóstico')}</h1>
+          <p>${esc(vm.recommendation || 'Resultado registrado com segurança.')}</p>
+          <p><b>Pontuação:</b> ${esc(vm.scoreText || vm.normalized5Text || 'Registrado')}</p>
+          <div class="confirm-actions">
+            ${whatsappLink('Fale com a Valora Group')}
+          </div>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderPremiumPublicResult(vm = {}) {
+  const score = vm.scoreText || vm.normalized5Text || 'Registrado';
+  const level = vm.levelTitle || 'Resultado do diagnóstico';
+  const recommendation = vm.executiveSummary || vm.recommendation || 'Resultado registrado com segurança.';
+  const participant = vm.participantName || 'Obrigado por responder.';
+  const date = vm.completedDate || 'Data não informada';
+  const emailStatusHtml = vm.emailStatusHtml || '';
+
+  return `
+    <section class="section public-result-section">
+      <div class="container public-result-container">
+        <article class="result-hero-premium">
+          <div class="result-kicker-premium">Valora Insight™ — Devolutiva estratégica</div>
+
+          <div class="result-hero-grid">
+            <div class="result-hero-copy">
+              <p class="result-thanks">${esc(participant)}</p>
+              <h1>Análise executiva direta da maturidade organizacional.</h1>
+              <p class="result-hero-description">${esc(recommendation)}</p>
+
+              <div class="result-meta-row">
+                <span>Data: ${esc(date)}</span>
+                <span>Status: Concluído</span>
+              </div>
+            </div>
+
+            <div class="result-score-panel-premium">
+              <span class="score-label">Pontuação total</span>
+              <strong>${esc(score)}</strong>
+              <em>${esc(level)}</em>
+            </div>
+          </div>
+        </article>
+
+        ${emailStatusHtml}
+        ${renderPremiumDimensionSection(vm)}
+
+        <section class="result-actions-card">
+          <h2>Próximos passos</h2>
+          <p>Use esta devolutiva como ponto de partida para priorizar melhorias e conversar com a Valora Group.</p>
+          <div class="public-result-actions">
+            <button class="btn btn-primary" type="button" data-action="reportResponsePdf" data-response-id="${esc(vm.responseId || '')}" data-token="${esc(vm.resultToken || '')}">
+              Baixar relatório PDF
+            </button>
+            <button class="btn btn-secondary" type="button" data-action="certificatePdf" data-response-id="${esc(vm.responseId || '')}" data-token="${esc(vm.resultToken || '')}">
+              Baixar/Imprimir certificado
+            </button>
+            <button class="btn btn-soft" type="button" data-action="resendResultEmail" data-response-id="${esc(vm.responseId || '')}" data-token="${esc(vm.resultToken || '')}">
+              Reenviar por e-mail
+            </button>
+            ${whatsappLink('Fale com a Valora Group')}
+          </div>
+        </section>
+
+        ${renderPremiumCertificatePreview(vm)}
+      </div>
+    </section>
+  `;
+}
+if (typeof window !== 'undefined') window.renderPremiumPublicResult = renderPremiumPublicResult;
+
 function renderImmediateDimensionScores(items = []) {
   if (!Array.isArray(items) || !items.length) return '<div class="page-help">As pontuações por dimensão serão carregadas no resultado completo.</div>';
   return `<div class="card subtle-card"><h3>Dimensões avaliadas</h3><div class="grid grid-2">${items.map(item=>`<div class="dimension-card"><b>${esc(item.dimensionName||item.name||item.dimensionId||'Dimensão')}</b><span>${esc(String(Math.round(Number(item.percentage||0))))}%</span></div>`).join('')}</div></div>`;
@@ -2379,9 +2510,18 @@ async function renderResult(id,afterSubmit=false,publicToken='', resultOrPayload
   }else{
     r=state.responses.find(x=>x.id===id);if(!r)return $('#app').innerHTML=invalidLink('Resultado não encontrado','O registro solicitado não está disponível.');if(!canAccessResult(r,currentUserSafe(),publicToken))return $('#app').innerHTML=invalidLink('Acesso negado','Entre com o perfil participante ou gestor autorizado.');s=state.surveys.find(x=>x.id===r.surveyId);company=companyById(r.companyId)||{};companyLabel=companyName(r.companyId);
   }
-  const formForInsight=state.forms.find(x=>x.id===(r.formId||s?.formId))||{};const bundle=normalizePublicResultBundle({response:r,survey:s,form:formForInsight,company},id,publicToken);const resultVm=normalizePublicResultViewModel(bundle,id,publicToken);if(!r.level)r.level={};r.level.recommendation=r.level.recommendation||resultVm.recommendation;r.normalized5=Number(r.normalized5??resultVm.normalized5);r.percentage=Number(r.percentage??resultVm.percentage);const insight=generateValoraInsightDevolutiva(r,formForInsight,r);const resultEmailStatus=r.communication?.resultEmail?.status||r.resultEmail?.status||resultVm.resultEmail?.status||'not_requested';
-  const emailStatusHtml = afterSubmit ? `<div class="success-box result-notice">${esc(renderEmailDeliveryStatus(resultEmailStatus))}</div>` : '';
-  $('#app').innerHTML = renderPremiumPublicResult({...resultVm,responseId:r.id,resultToken:publicToken||r.resultToken||'',scoreText:insight.totalScoreText||resultVm.normalized5Text,completedDate:formatPublicDate(r.completedAt||r.createdAt),emailStatusHtml});
+  try {
+    const formForInsight=state.forms.find(x=>x.id===(r.formId||s?.formId))||{};const bundle=normalizePublicResultBundle({response:r,survey:s,form:formForInsight,company},id,publicToken);const resultVm=normalizePublicResultViewModel(bundle,id,publicToken);if(!r.level)r.level={};r.level.recommendation=r.level.recommendation||resultVm.recommendation;r.normalized5=Number(r.normalized5??resultVm.normalized5);r.percentage=Number(r.percentage??resultVm.percentage);const insight=generateValoraInsightDevolutiva(r,formForInsight,r);const resultEmailStatus=r.communication?.resultEmail?.status||r.resultEmail?.status||resultVm.resultEmail?.status||'not_requested';
+    const emailStatusHtml = afterSubmit ? `<div class="success-box result-notice">${esc(renderEmailDeliveryStatus(resultEmailStatus))}</div>` : '';
+    const vm = {...resultVm,responseId:r.id,resultToken:publicToken||r.resultToken||'',scoreText:insight.totalScoreText||resultVm.normalized5Text,completedDate:formatPublicDate(r.completedAt||r.createdAt),emailStatusHtml};
+    const html = typeof renderPremiumPublicResult === 'function' ? renderPremiumPublicResult(vm) : renderBasicPublicResult(vm);
+    $('#app').innerHTML = html;
+    return $('#app').innerHTML;
+  } catch (err) {
+    window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
+    window.ValoraRuntimeDiagnostics.lastResultRenderError = { name: err?.name || '', message: err?.message || String(err), stack: String(err?.stack || '').slice(0, 2000), at: new Date().toISOString() };
+    return renderResultLoadFallback(id, publicToken, err);
+  }
 }
 function isDemoCompany(company){const name=String(company?.name||company?.publicName||'').trim().toLowerCase(),slugValue=String(company?.slug||'').trim().toLowerCase();return company?.id==='org_demo'||slugValue==='empresa-exemplo'||name==='empresa exemplo'||name==='empresa demonstração'||name==='empresa demonstracao';}
 function safeText(v,fallback=''){const t=String(v??'').replace(/\s+/g,' ').trim();return t||fallback;}

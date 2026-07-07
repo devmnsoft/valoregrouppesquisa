@@ -490,7 +490,11 @@
     "legacy:certificate-premium": "node scripts/validate-legacy-certificate-premium-layout.js",
     "legacy:login-submit-stable": "node scripts/validate-legacy-login-submit-stable.js",
     "functions:email-http-provider": "node scripts/validate-functions-email-http-provider.js",
-    "functions:email-status-honest": "node scripts/validate-functions-email-status-honest.js"
+    "functions:email-status-honest": "node scripts/validate-functions-email-status-honest.js",
+    "legacy:premium-result-defined": "node scripts/validate-legacy-render-premium-result-defined.js",
+    "legacy:result-premium-css": "node scripts/validate-legacy-result-premium-css.js",
+    "legacy:render-result-fallback": "node scripts/validate-legacy-render-result-fallback.js",
+    "dist:no-undefined-result-renderers": "node scripts/validate-dist-no-undefined-result-renderers.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

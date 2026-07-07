@@ -436,7 +436,7 @@ async function init(){
     releasePublicUi('public_token_route');
     state.authReady=true;state.user=null;state.isPublicMode=true;
     renderShell();
-    if(isParticipantResultAccessRoute())return renderParticipantResultAccess();
+    if(isPublicParticipantAccessRoute())return renderParticipantResultAccess();
     if(isPublicResultAttemptRoute()){
       const p=getPublicRouteParams();
       if(!p.resultId||!p.resultToken)return renderIncompletePublicResultLink({responseId:p.resultId,resultToken:p.resultToken});
@@ -464,8 +464,10 @@ function isPublicSurveyRoute(){const p=getPublicRouteParams();return !!(p.survey
 function getPublicResultRouteParams(){const p=getPublicRouteParams();return {responseId:p.resultId,resultToken:p.resultToken};}
 function isPublicResultAttemptRoute(){const params=new URLSearchParams(location.search);return params.has('result');}
 function isPublicResultRoute(){const p=getPublicRouteParams();return !!(p.resultId&&p.resultToken);}
-function isParticipantResultAccessRoute(){return (location.hash||'')==='#acessar-resultado';}
-function isAnyPublicTokenRoute(){return isPublicSurveyRoute()||isPublicResultAttemptRoute()||isParticipantResultAccessRoute();}
+function isPublicParticipantAccessRoute(){const hash=String(location.hash||'').toLowerCase();return hash==='#acessar-resultado'||hash==='#access-result';}
+function isParticipantResultAccessRoute(){return isPublicParticipantAccessRoute();}
+function isAnyPublicRoute(){return isPublicSurveyRoute()||isPublicResultAttemptRoute()||isPublicParticipantAccessRoute();}
+function isAnyPublicTokenRoute(){return isAnyPublicRoute();}
 function isPublicSurveyPage(){return isPublicSurveyRoute();}
 function isPublicResultPage(){return isPublicResultRoute();}
 function isPublicCertificateValidationPage(){const url=new URL(location.href);return !!url.searchParams.get('certificate');}

@@ -7,7 +7,7 @@ namespace Valora.Application.Certificates;
 
 public sealed class CertificateService(IPublicResultService results, ILogger<CertificateService> logger) : ICertificateService
 {
-    public object Plan(Guid responseId, string format) { logger.LogInformation("Certificate plan requested. ResponseId={ResponseId} Format={Format}", responseId, format); return new { product="Valora Pulse™", issuer="Valora Group", title="Certificado de Diagnóstico", responseId, format, status = "implemented" }; }
+    public object Plan(Guid responseId, string format) { logger.LogInformation("Certificate plan requested. ResponseId={ResponseId} Format={Format}", responseId, format); return new { product="Valora Insight™", issuer="Valora Group", title="Certificado de Diagnóstico", responseId, format, status = "implemented" }; }
 
     public async Task<string> BuildCertificateHtmlAsync(Guid responseId, string resultToken)
     {

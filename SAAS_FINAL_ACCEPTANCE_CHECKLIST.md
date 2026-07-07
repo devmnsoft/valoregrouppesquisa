@@ -106,3 +106,12 @@ Consulte `VALORA_BRAND_ASSETS_MANUAL_SETUP.md` para nomes obrigatórios, testes 
 - Validação diagnóstica sem binários: `VALORA_ALLOW_MISSING_BRAND_ASSETS=true npm run web:brand-assets`.
 - Readiness visual RC2: `npm run web:rc2-visual-readiness`.
 - A homologação final ainda deve ser executada com .NET SDK, PostgreSQL e navegador real para validar desktop/mobile antes do pacote `0.9.0-rc2`.
+
+## Sprint Valora Insight™ — correções de feedback do cliente
+- Produto público padronizado como `Valora Insight™`.
+- Menu público deve exibir `Início`, nunca `HOME`.
+- WhatsApp oficial: `+55 91 99254-5353` / `https://wa.me/5591992545353`.
+- Contato público: `Fale com a Valora Group`.
+- Resultado público com data segura, fallback `Data não informada`, layout mobile sem scroll horizontal e CTAs empilhados.
+- Certificado/relatório com CSS de impressão compacto em `backend/Valora.Web/wwwroot/css/valora-print.css`.
+- Validação: `npm run web:client-feedback-fixes`.

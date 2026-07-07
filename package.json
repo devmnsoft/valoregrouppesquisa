@@ -473,7 +473,8 @@
     "legacy:no-duplicate-summary": "node scripts/validate-legacy-no-duplicate-summary-card.js",
     "legacy:whatsapp-links": "node scripts/validate-legacy-whatsapp-links.js",
     "legacy:result-token-required": "node scripts/validate-legacy-result-token-required.js",
-    "functions:email-real-status": "node scripts/validate-functions-email-real-status.js"
+    "functions:email-real-status": "node scripts/validate-functions-email-real-status.js",
+    "web:client-feedback-fixes": "node tools/validate-valora-client-feedback-fixes.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

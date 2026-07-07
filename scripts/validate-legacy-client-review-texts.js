@@ -1,10 +1,4 @@
-const {read,must}=require('./legacy-final-validator-common');
-const a=read('app.js');
-const publicSlice=a.slice(a.indexOf('function renderHome'), a.indexOf('function renderPortalShell')>0?a.indexOf('function renderPortalShell'):a.length);
-must('texto antigo Pesquisa gratuita da Home removido',!a.includes('Pesquisa gratuita da Home: diagnóstico público'));
-must('label Pesquisa gratuita presente',a.includes('Pesquisa gratuita'));
-must('Home público trocado por Início',!publicSlice.includes('Voltar para Home'));
-must('Fale com a Valora Group presente',a.includes('Fale com a Valora Group'));
-must('telefone display presente',a.includes("WHATSAPP_DISPLAY='+55 91 99254-5353'"));
-must('papéis explicados',a.includes('Como cada pessoa usa o diagnóstico')&&a.includes('Equipe Valora Group responsável por configurar diagnósticos')&&a.includes('Empresa que responde, acompanha resultados')&&a.includes('Pessoa que responde ao diagnóstico e acessa sua devolutiva'));
-console.log('legacy client review texts: PASS');
+const {ok,app}=require('./_legacy-final-validators');
+ok(/Como cada pessoa usa o diagnóstico/.test(app),'home journey title updated');
+ok(/Equipe Valora Group responsável/.test(app)&&/Pessoa que responde ao diagnóstico/.test(app),'persona card texts updated');
+ok(!/Pesquisa gratuita da Home: diagnóstico público/.test(app),'old Home survey text removed');

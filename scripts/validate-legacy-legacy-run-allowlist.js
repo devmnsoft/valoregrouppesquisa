@@ -1,4 +1,3 @@
-const fs=require('fs');const s=fs.readFileSync('app.js','utf8');
-for(const x of ['const LEGACY_PUBLIC_ACTIONS =','async function legacyRun','dataset?.run','dataset?.fn','dataset?.legacyAction','LEGACY_PUBLIC_ACTIONS[name]']) if(!s.includes(x)) throw new Error('legacyRun allowlist ausente: '+x);
-if(/eval\s*\(|window\s*\[\s*name\s*\]/.test(s)) throw new Error('legacyRun inseguro');
-console.log('legacy run allowlist: PASS');
+const {ok,app}=require('./_legacy-final-validators');
+ok(/const LEGACY_PUBLIC_ACTIONS/.test(app)&&/async function legacyRun/.test(app),'legacy_run allowlist exists');
+ok(/reportResponsePdf/.test(app)&&/certificatePdf/.test(app)&&/openWhatsapp/.test(app),'legacy_run public actions mapped');

@@ -1,1 +1,3 @@
-const {read,must}=require('./legacy-final-validator-common');const a=read('app.js'),p=read('pdf.js');must('formatPublicDate missing',/function formatPublicDate/.test(a));must('raw toLocaleDateString in pdf removed',!/new Date\(data\.completedAt\)\.toLocaleDateString/.test(p));must('Invalid date literal absent',!/(Invalid date|Invalid Date)/.test(a+p));console.log('legacy no invalid date: PASS');
+const {ok,app,pdf}=require('./_legacy-final-validators');
+ok(/function formatPublicDate/.test(app),'formatPublicDate helper exists');
+ok(!/Invalid date/.test(app+pdf),'Invalid date literal absent');

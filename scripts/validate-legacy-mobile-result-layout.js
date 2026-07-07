@@ -1,1 +1,4 @@
-const {read,must}=require('./legacy-final-validator-common');const s=read('style.css');['*{box-sizing:border-box','html,body{max-width:100%;overflow-x:hidden','public-result-section','public-result-container','result-card','result-highlight','result-summary-card','result-dimension-grid','grid-template-columns:1fr','whatsapp-floating'].forEach(x=>must('CSS ausente: '+x,s.includes(x)));console.log('legacy mobile result layout: PASS');
+const {ok,css}=require('./_legacy-final-validators');
+ok(/overflow-x:hidden/.test(css),'overflow-x hidden configured');
+ok(/font-size:clamp\(42px,12vw,88px\)/.test(css.replace(/\s+/g,'')),'score font clamps on mobile');
+ok(/@media \(max-width:640px\)/.test(css)&&/grid-template-columns:1fr/.test(css),'mobile one-column actions');

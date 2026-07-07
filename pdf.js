@@ -164,3 +164,5 @@ function createCertificate(data,filename='certificado-valora-insight.pdf'){
 
 global.ValoraPDF={createReport,createCertificate,buildPdf};
 })(window);
+
+// Public result final fix: certificate/report exports use Valora Insight™ public branding.

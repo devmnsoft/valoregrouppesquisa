@@ -483,11 +483,14 @@
     "legacy:public-bypass-auth": "node scripts/validate-legacy-public-route-bypasses-auth.js",
     "functions:get-public-result-token": "node scripts/validate-functions-get-public-result-public-token.js",
     "legacy:empty-action-ignored": "node scripts/validate-legacy-empty-action-ignored.js",
-    "functions:email-http-provider": "node scripts/validate-functions-email-http-provider.js",
-    "functions:email-status-honest": "node scripts/validate-functions-email-status-honest.js",
+    "db:scriptbd-validate": "node tools/validate-scriptbd-completo-sql-compat.js",
+    "web:premium-layout": "node tools/validate-valora-premium-layout.js",
     "legacy:result-premium-contrast": "node scripts/validate-legacy-result-premium-contrast.js",
     "legacy:report-fallback-cache": "node scripts/validate-legacy-report-fallback-cache.js",
-    "legacy:certificate-premium": "node scripts/validate-legacy-certificate-premium-layout.js"
+    "legacy:certificate-premium": "node scripts/validate-legacy-certificate-premium-layout.js",
+    "legacy:login-submit-stable": "node scripts/validate-legacy-login-submit-stable.js",
+    "functions:email-http-provider": "node scripts/validate-functions-email-http-provider.js",
+    "functions:email-status-honest": "node scripts/validate-functions-email-status-honest.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

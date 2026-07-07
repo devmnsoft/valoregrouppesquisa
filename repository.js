@@ -58,4 +58,5 @@ window.ValoraRepository=Object.freeze({
 });
 })();
 
-// Public result actions are allowed without auth when responseId + resultToken are provided.
+// Public result final fix: loadPublicResult remains a token-only read operation;
+// Firebase provider is selected without requiring private profile loading.

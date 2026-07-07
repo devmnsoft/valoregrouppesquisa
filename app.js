@@ -464,9 +464,10 @@ function isPublicSurveyRoute(){const p=getPublicRouteParams();return !!(p.survey
 function getPublicResultRouteParams(){const p=getPublicRouteParams();return {responseId:p.resultId,resultToken:p.resultToken};}
 function isPublicResultAttemptRoute(){const params=new URLSearchParams(location.search);return params.has('result');}
 function isPublicResultRoute(){const p=getPublicRouteParams();return !!(p.resultId&&p.resultToken);}
-function isPublicParticipantAccessRoute(){const hash=String(location.hash||'').toLowerCase();return hash==='#acessar-resultado'||hash==='#access-result';}
-function isParticipantResultAccessRoute(){return isPublicParticipantAccessRoute();}
-function isAnyPublicRoute(){return isPublicSurveyRoute()||isPublicResultAttemptRoute()||isPublicParticipantAccessRoute();}
+function isParticipantAccessRoute(){const hash=String(location.hash||'').toLowerCase();return hash==='#acessar-resultado'||hash==='#access-result';}
+function isPublicParticipantAccessRoute(){return isParticipantAccessRoute();}
+function isParticipantResultAccessRoute(){return isParticipantAccessRoute();}
+function isAnyPublicRoute(){return isPublicSurveyRoute()||isPublicResultAttemptRoute()||isParticipantAccessRoute();}
 function isAnyPublicTokenRoute(){return isAnyPublicRoute();}
 function isPublicSurveyPage(){return isPublicSurveyRoute();}
 function isPublicResultPage(){return isPublicResultRoute();}
@@ -2288,21 +2289,7 @@ async function reportResponsePdf(el) {
       const vm = normalizePublicResultViewModel(bundle, bundle.responseId, bundle.resultToken);
       const pdf = window.ValoraPdf || window.ValoraPDF;
       if (!pdf?.createReport) throw Object.assign(new Error('Gerador de relatório PDF indisponível.'), { code: 'pdf_report_unavailable' });
-      pdf.createReport({
-        title: 'Relatório Valora Insight™',
-        subtitle: 'Devolutiva estratégica de maturidade organizacional',
-        metrics: [{ label: 'Pontuação', value: vm.scoreText || vm.normalized5Text || '—' }, { label: 'Percentual', value: vm.percentageText || '—' }, { label: 'Status', value: 'Concluído' }],
-        columns: [{ key: 'item', label: 'Item', width: 1 }, { key: 'value', label: 'Descrição', width: 3 }],
-        rows: [
-          { item: 'Participante', value: vm.participantName || 'Participante' },
-          { item: 'Diagnóstico', value: vm.surveyTitle || PUBLIC_PRODUCT_NAME },
-          { item: 'Empresa', value: vm.companyName || COMPANY_DISPLAY_NAME },
-          { item: 'Data', value: vm.completedDate || formatPublicDate(bundle.response?.completedAt || bundle.response?.createdAt) },
-          { item: 'Pontuação', value: vm.scoreText || vm.normalized5Text || 'Registrado' },
-          { item: 'Enquadramento', value: vm.levelTitle || 'Resultado do diagnóstico' },
-          { item: 'Recomendação', value: vm.recommendation || 'Resultado registrado com segurança.' }
-        ]
-      }, `relatorio-valora-insight-${bundle.responseId || 'resultado'}.pdf`);
+      pdf.createReport({title:'Relatório Valora Insight™',subtitle:'Devolutiva estratégica de maturidade organizacional',metrics:[{label:'Pontuação',value:vm.scoreText||vm.normalized5Text||'—'},{label:'Percentual',value:vm.percentageText||'—'},{label:'Status',value:'Concluído'}],columns:[{key:'item',label:'Item',width:1},{key:'value',label:'Descrição',width:3}],rows:[{item:'Participante',value:vm.participantName||'Participante'},{item:'Diagnóstico',value:vm.surveyTitle||'Valora Insight™'},{item:'Empresa',value:vm.companyName||'Valora Group'},{item:'Data',value:vm.completedDate||formatPublicDate(bundle.response?.completedAt||bundle.response?.createdAt)},{item:'Pontuação',value:vm.scoreText||vm.normalized5Text||'Registrado'},{item:'Enquadramento',value:vm.levelTitle||'Resultado do diagnóstico'},{item:'Recomendação',value:vm.recommendation||'Resultado registrado com segurança.'}]}, `relatorio-valora-insight-${bundle.responseId||'resultado'}.pdf`);
       toast('Relatório gerado com sucesso.', 'success');
     }, { button: el, buttonText: 'Gerando...' });
     return true;
@@ -2332,35 +2319,23 @@ function readLastPublicResultFromSession(){
   try { return JSON.parse(sessionStorage.getItem('valora:lastPublicResult') || 'null'); }
   catch (_) { return null; }
 }
-
-async function loadPublicResultBundleForAction(el = null) {
-  const params = new URLSearchParams(location.search);
-  const responseId = el?.dataset?.responseId || el?.dataset?.id || params.get('result') || window.ValoraRuntimeDiagnostics?.lastSubmitSuccess?.responseId || '';
-  const resultToken = el?.dataset?.token || el?.dataset?.resultToken || params.get('rt') || window.ValoraRuntimeDiagnostics?.lastSubmitSuccess?.resultToken || '';
-  const cached = readLastPublicResultFromSession();
-  if (cached?.responseId === responseId && cached?.result) return normalizePublicResultBundle(cached.result, responseId, resultToken || cached.resultToken || '');
-  if (!responseId || !resultToken) throw Object.assign(new Error('Link seguro de resultado incompleto.'), { code: 'missing_result_token' });
-  try { return normalizePublicResultBundle(await ValoraRepository.loadPublicResult(responseId, resultToken), responseId, resultToken); }
-  catch (err) {
-    if (cached?.result) {
-      window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
-      window.ValoraRuntimeDiagnostics.lastPublicResultActionFallback = { reason: err?.code || err?.message || 'load_failed', at: new Date().toISOString() };
-      return normalizePublicResultBundle(cached.result, cached.responseId || responseId, cached.resultToken || resultToken);
-    }
-    throw err;
-  }
-}
-function renderPremiumPublicResult(vm) {
-  const pct = Math.max(0, Math.min(100, Number(vm.percentage || 0)));
-  const dims = Array.isArray(vm.byDimension) ? vm.byDimension : Object.entries(vm.byDimension || {}).map(([name,v]) => ({ name, percentage: v?.percentage, normalized5: v?.normalized5 }));
-  const waMessage = `Olá, fiz o diagnóstico ${PUBLIC_PRODUCT_NAME} e quero falar com a ${COMPANY_DISPLAY_NAME} sobre meu resultado.`;
-  return `<section class="section public-result-section"><div class="public-result-container"><article class="result-hero result-executive-card"><div class="result-hero-copy"><span class="result-product-badge">${esc(PUBLIC_PRODUCT_NAME)} — Devolutiva estratégica</span><h1>${esc(vm.surveyTitle || 'Resultado do diagnóstico')}</h1><p>${esc(vm.companyName || COMPANY_DISPLAY_NAME)} • ${esc(vm.completedDate || 'Data não informada')}</p><h2>${esc(vm.levelTitle || 'Resultado do diagnóstico')}</h2><p>${esc(vm.recommendation || 'Resultado registrado com segurança.')}</p><span class="result-level-pill">${esc(vm.levelTitle || 'Maturidade registrada')}</span></div><aside class="result-score-panel" aria-label="Pontuação"><small>Pontuação</small><strong>${esc(vm.scoreText || vm.normalized5Text || '—')}</strong><span>${esc(vm.percentageText || '—')}</span><div class="result-progress"><i style="width:${pct}%"></i></div></aside></article>${vm.emailStatusHtml || ''}<section class="result-card"><h2>Recomendação executiva</h2><p>${esc(vm.recommendation || 'Use as dimensões com menor índice como prioridade de evolução.')}</p></section><section class="result-dimensions"><h2>Dimensões avaliadas</h2><div class="result-dimension-grid">${dims.length ? dims.map(d => `<article class="result-dimension-card"><h3>${esc(d.dimensionName || d.name || d.dimensionId || 'Dimensão')}</h3><b>${esc(d.normalized5 ? Number(d.normalized5).toFixed(1) + ' / 5' : Math.round(Number(d.percentage || 0)) + '%')}</b><div class="result-progress light"><i style="width:${Math.max(0, Math.min(100, Number(d.percentage || 0)))}%"></i></div></article>`).join('') : '<article class="result-dimension-card"><p>As dimensões serão exibidas quando a devolutiva completa estiver disponível.</p></article>'}</div></section><div class="result-actions public-result-actions"><button class="btn btn-primary" data-action="reportResponsePdf" data-response-id="${esc(vm.responseId||'')}" data-token="${esc(vm.resultToken||'')}">Baixar relatório PDF</button><button class="btn btn-secondary" data-action="certificatePdf" data-response-id="${esc(vm.responseId||'')}" data-token="${esc(vm.resultToken||'')}">Baixar/Imprimir certificado</button><button class="btn btn-soft" data-action="resendResultEmail" data-response-id="${esc(vm.responseId||'')}" data-token="${esc(vm.resultToken||'')}">Reenviar e-mail</button>${whatsappLink('Fale com a Valora Group no WhatsApp', waMessage)}</div></div></section>`;
-}
-
-function renderResultLoadFallback(responseId = '', resultToken = ''){
+function renderResultLoadFallback(responseId = '', resultToken = '', error = null){
   const app=document.getElementById('app'); if(!app)return false;
-  app.innerHTML=`<section class="section"><div class="container"><div class="card"><h1>Resultado em processamento</h1><p>Não conseguimos carregar a devolutiva completa agora, mas seu resultado permanece registrado.</p><div class="confirm-actions"><button class="btn btn-primary" data-action="reloadPublicResult" data-response-id="${esc(responseId)}" data-token="${esc(resultToken)}">Tentar novamente</button><a class="btn btn-success" href="${esc(publicWhatsappContactUrl())}" target="_blank" rel="noopener">Fale com a Valora Group</a></div><div id="certificateArea" class="page-help certificate-pending"><b>Certificado em preparação.</b><br>O certificado poderá ser carregado novamente em instantes.</div></div></div></section>`;
+  const code=error?.code||error?.details?.code||'';
+  app.innerHTML=`<section class="section public-result-section"><div class="container public-result-container"><div class="result-card"><h1>Resultado em processamento</h1><p>Seu resultado permanece registrado. Estamos tentando carregar a devolutiva completa.</p>${code?`<div class="page-help"><b>Código técnico:</b> ${esc(code)}</div>`:''}<div class="confirm-actions"><button class="btn btn-primary" data-action="reloadPublicResult" data-response-id="${esc(responseId)}" data-token="${esc(resultToken)}">Tentar novamente</button>${whatsappLink('Fale com a Valora Group')}</div><div id="certificateArea" class="page-help certificate-pending"><b>Certificado em preparação.</b><br>O certificado poderá ser carregado novamente em instantes.</div></div></div></section>`;
+  setTimeout(()=>{const cached=readLastPublicResultFromSession?.();if(cached?.result&&document.body?.innerText?.includes('Resultado em processamento'))renderImmediateResultAfterSubmit(cached.result,cached.payload||{});},6000);
   return false;
+}
+
+async function loadPublicResultBundleForAction(el = null){
+  const params=new URLSearchParams(location.search);
+  const responseId=el?.dataset?.responseId||el?.dataset?.id||params.get('result')||window.ValoraRuntimeDiagnostics?.lastSubmitSuccess?.responseId||'';
+  const resultToken=el?.dataset?.token||el?.dataset?.resultToken||params.get('rt')||window.ValoraRuntimeDiagnostics?.lastSubmitSuccess?.resultToken||'';
+  const cached=readLastPublicResultFromSession();
+  if(cached?.result&&(!responseId||cached.responseId===responseId))return normalizePublicResultBundle(cached.result,cached.responseId||responseId,cached.resultToken||resultToken);
+  if(!responseId||!resultToken)throw Object.assign(new Error('Link seguro de resultado incompleto.'),{code:'missing_result_token'});
+  try{return normalizePublicResultBundle(await ValoraRepository.loadPublicResult(responseId,resultToken),responseId,resultToken);}
+  catch(err){if(cached?.result){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicResultActionFallback={reason:err?.code||err?.message||'load_failed',at:new Date().toISOString()};return normalizePublicResultBundle(cached.result,cached.responseId||responseId,cached.resultToken||resultToken);}throw err;}
 }
 function renderPublicResultLoading(responseId = '', resultToken = ''){
   const app=document.getElementById('app'); if(!app)return;
@@ -2494,25 +2469,23 @@ function assertCertificateCanExport(d){const validation=validateCertificateViewM
 function wrapTextByWidth(text,measure,maxWidth,maxLines){const words=String(text||'').replace(/\s+/g,' ').trim().split(' ').filter(Boolean);const lines=[];let line='';for(const word of words){const candidate=line?`${line} ${word}`:word;if(measure(candidate)<=maxWidth)line=candidate;else{if(line)lines.push(line);line=word;}}if(line)lines.push(line);if(lines.length>maxLines){const cut=lines.slice(0,maxLines);let last=cut[maxLines-1]||'';while(last&&measure(`${last}…`)>maxWidth)last=last.slice(0,-1).trim();cut[maxLines-1]=`${last}…`;return cut;}return lines.length?lines:[''];}
 async function certificatePdf(el){
   try{
-    const params=new URLSearchParams(location.search);
-    const responseId=el?.dataset?.responseId||el?.dataset?.id||params.get('result')||'';
-    const token=el?.dataset?.token||el?.dataset?.resultToken||params.get('rt')||'';
     await withLoading('Preparando certificado PDF...',async()=>{
       const bundle=await loadPublicResultBundleForAction(el);
       const data=safeBuildCertificateData(bundle.response,bundle.survey,bundle.form,bundle.company);
       const pdf=window.ValoraPdf||window.ValoraPDF;
       if(!pdf?.createCertificate)throw Object.assign(new Error('Gerador de PDF indisponível.'),{code:'pdf_unavailable'});
-      pdf.createCertificate(data,`certificado-valora-${responseId||'resultado'}.pdf`);
+      pdf.createCertificate(data,`certificado-valora-insight-${bundle.responseId||'resultado'}.pdf`);
       toast('Certificado gerado com sucesso.','success');
     },{button:el,buttonText:'Gerando...'});
     return true;
   }catch(err){
     window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
-    window.ValoraRuntimeDiagnostics.lastCertificatePdfError={name:err?.name||'',message:err?.message||String(err),stack:String(err?.stack||'').slice(0,2000),at:new Date().toISOString()};
+    window.ValoraRuntimeDiagnostics.lastCertificatePdfError={name:err?.name||'',message:err?.message||String(err),code:err?.code||'',stack:String(err?.stack||'').slice(0,2000),at:new Date().toISOString()};
     toast('Certificado em preparação. Tente novamente em instantes ou fale com a Valora Group.','warning');
     return false;
   }
 }
+
 
 function reportRows(scope){
   let rows;if(String(scope).startsWith('response:'))rows=window.ValoraAnalytics.completedResponses(state).filter(r=>r.id===String(scope).split(':')[1]);else if(scope==='admin')rows=window.ValoraAnalytics.completedResponses(state);else if(scope==='company'||scope==='empresa')rows=window.ValoraAnalytics.completedResponses(state,{companyId:currentCompany()?.id});else if(scope==='participant'||scope==='participante')rows=window.ValoraAnalytics.completedResponses({responses:responsesForUser(currentUser())});else rows=window.ValoraAnalytics.completedResponses(state);
@@ -2733,6 +2706,37 @@ function adminSidebarEl(){return document.querySelector('#adminSidebar, .admin-s
 function adminMobileToggleEl(){return document.querySelector('[data-action="toggleAdminMobileMenu"]');}
 function bindAdminMobileMenuEvents(){if(window.__valoraAdminMobileMenuBound)return;window.__valoraAdminMobileMenuBound=true;document.addEventListener('click',function(event){const action=event.target.closest('[data-action]');if(action&&action.dataset.action==='toggleAdminMobileMenu'){event.preventDefault();toggleAdminMobileMenu();return;}if(event.target.closest('.admin-mobile-overlay')){closeAdminMobileMenu();return;}if(event.target.closest('.admin-sidebar a, .admin-sidebar button[data-route], .admin-nav a, .admin-nav button')){if(isMobileAdminViewport())closeAdminMobileMenu();}});document.addEventListener('keydown',event=>{if(event.key==='Escape')closeAdminMobileMenu();});window.addEventListener('resize',()=>{if(!isMobileAdminViewport())closeAdminMobileMenu();});}
 bindAdminMobileMenuEvents();
+function clearPublicRouteParamsBeforePrivateNavigation(){
+  if(!location.search)return;
+  const u=new URL(location.href);
+  ['survey','surveyId','token','org','result','rt','resultToken','response'].forEach(k=>u.searchParams.delete(k));
+  history.replaceState({},'',`${u.pathname}${u.search}${u.hash||'#login'}`);
+}
+async function signInWithEmailAndPasswordSafe(email,password){return {user:await loginUser(email,password)};}
+async function signOutSafe(){try{await repository.logout?.();}catch(_){} state.session=null; state.user=null; save?.();}
+async function loadProfile(user){return user||currentUserSafe()||null;}
+async function handleLoginSubmit(form,event){
+  event?.preventDefault(); event?.stopPropagation();
+  if(window.__valoraLoginInProgress)return false;
+  window.__valoraLoginInProgress=true;
+  const button=event?.submitter||form.querySelector('[type="submit"]')||form.querySelector('button');
+  try{
+    await withLoading('Entrando com segurança...',async()=>{
+      const email=getFormValue(form,'email'); const password=getFormValue(form,'password');
+      if(!email||!password){toast('Informe e-mail e senha.','warning');return false;}
+      const credential=await signInWithEmailAndPasswordSafe(email,password);
+      const profile=await loadProfile(credential.user);
+      if(profile?.status&&profile.status!=='active'){await signOutSafe();toast('Usuário inativo. Fale com o administrador.','error');return false;}
+      clearPublicRouteParamsBeforePrivateNavigation();
+      audit('Login realizado','usuário',profile?.id||profile?.uid||'',profile?.email||email);
+      toast(`Bem-vindo(a), ${profile?.name||email}.`,'success');
+      route('dashboard');
+      return true;
+    },{button,buttonText:'Entrando...'});
+  }catch(err){toast(err?.message||'Não foi possível entrar agora. Tente novamente.','error');return false;}
+  finally{window.__valoraLoginInProgress=false;if(form?.password)form.password.value='';}
+}
+
 function createActions(){return {
   reloadApp(){location.reload();},reloadPublicResult,openOfficialFreeSurveyFromError,retryPublicSurvey,dryRunDemoPurge(){return runDemoPurgeFromAdmin(false);},applyDemoPurge(){return confirmAction('Aplicar limpeza demo?','Dados demo serão arquivados/revogados em produção.',()=>runDemoPurgeFromAdmin(true),true);},debugFeaturedHomeSurvey(){return callFirebaseFunction('debugFeaturedHomeSurveyConsistency',{}).then(r=>{const data=r?.data||r;window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey=data;openModal('Diagnóstico da pesquisa em destaque',`<pre class="debug-box">${esc(JSON.stringify(data,null,2))}</pre>`,'large');toast('Diagnóstico atualizado.','success');});},repairOfficialFallback(){return callFirebaseFunction('repairOfficialFormDocument',{}).then(r=>{openModal('Reparo da pesquisa oficial',`<pre class="debug-box">${esc(JSON.stringify(r?.data||r||{},null,2))}</pre>`,'large');toast('Fallback oficial reparado.','success');});},copyFeaturedDiagnostic(){copyText(JSON.stringify(window.ValoraRuntimeDiagnostics?.lastFeaturedHomeSurvey||{},null,2));},redirectToFeaturedHomeSurvey,goSurveys(){navigate('empresa/surveys');},goLogin(){history.replaceState({},'',location.href.split('?')[0].split('#')[0]+'#login');route('login');},revalidateAssistedOperation(){toast('Operação assistida revalidada.','success');},copyFreeSurveyPublicLink(){toast('Link público copiado com token mascarado.','success');},repairFreeSurveyPublicLink(){if(confirm('Confirmar reparo seguro da pesquisa gratuita?'))toast('Reparo seguro solicitado via Function.','success');},promptResendResultEmail(){const id=prompt('responseId real para reenvio');if(id)return resendResultEmail(id);},viewEmailJobs(){navigate('admin/communications');},viewSanitizedOperationalLogs(){navigate('admin/logs');},viewConfigLiveReport(){toast('Relatório de config live disponível nos artefatos.','info');},viewFreeSurveySmokeReport(){toast('Relatório de smoke da pesquisa disponível.','info');},viewEmailSmokeReport(){toast('Relatório de smoke de e-mail disponível.','info');},resendResultEmail(el){return (el?.dataset?.token||el?.dataset?.resultToken||el?.dataset?.responseId)?resendPublicResultEmailSafe(el):resendResultEmail(el.dataset.id);},reportResponsePdf:el=>reportResponsePdf(el),downloadResultReport:el=>downloadResultReport(el),reportPdf:el=>reportPdf(el),downloadReport:el=>downloadReport(el),certificatePdf:el=>certificatePdf(el),downloadCertificatePdf(el){return certificatePdf(el);},downloadCertificatePng,legacy_run:el=>legacyRun(el),openWhatsapp:el=>openWhatsapp(el),resendPublicResultEmail(el){return resendPublicResultEmailSafe(el);},resolveCommunication(el){return resolveCommunication(el.dataset.id);},processEmailQueue(){toast('Processamento da fila de e-mail deve ser executado pelas rotinas de backend.','info');},resendPendingResults(){toast('Reenvio de resultados pendentes deve ser executado pelas rotinas de backend.','info');},
   goHome,closeModal,closeConfirm,openManual,openManualRoute,openSupportChat,openSupportConversation,assignSupportConversation,resolveSupportConversation,closeSupportConversation,rateSupportConversation,
@@ -2791,7 +2795,7 @@ async function saveOnboardingWizard(form){
 }
 function createFormHandlers(){return {
   participantResultAccess:form=>withLoading('Consultando resultados...',()=>submitParticipantResultAccess(form),{button:$('button',form),action:'participant-result-access'}),
-  login:form=>withLoading('Entrando...',()=>login(form),{button:$('[data-login-button]',form)||$('button',form),action:'login',id:data(form).email||'global'}),
+  login:(form,event)=>handleLoginSubmit(form,event),
   signup:form=>withLoading('Criando ambiente...',()=>signup(form),{button:$('button',form),action:'signup',id:data(form).email||'global'}),
   certificateValidation(form){const code=form.certificate.value.trim();if(code)validateCertificatePublic(code);},actionPlan:form=>withLoading('Salvando plano de ação...',()=>saveActionPlan(form),{button:$('button',form),action:'save-action-plan'}),bot(form){const msg=form.message.value.trim();if(!msg)return;form.reset();handleBotMessage(msg);},publicSupport:form=>withLoading('Enviando atendimento...',()=>savePublicSupport(form),{button:$('button',form),action:'support-public'}),loggedSupport:form=>withLoading('Enviando atendimento...',()=>saveLoggedSupport(form),{button:$('button',form),action:'support-logged'}),knowledgeArticle:form=>withLoading('Salvando artigo...',()=>saveKnowledgeArticle(form),{button:$('button',form),action:'knowledge-article'}),supportMessage:form=>withLoading('Enviando mensagem...',()=>saveSupportMessage(form),{button:$('button',form),action:'support-message'}),supportInternalNote:form=>withLoading('Salvando nota...',()=>saveSupportInternalNote(form),{button:$('button',form),action:'support-note'}),supportRating:form=>withLoading('Salvando avaliação...',()=>saveSupportRating(form),{button:$('button',form),action:'support-rating'}),
   resendResultEmail:form=>withLoading('Reenviando resultado...',()=>resendResultEmail(form),{button:$('button',form),action:'result-email'}),apiKey:form=>withLoading('Salvando chave...',()=>saveApiKey(form),{button:$('button',form),action:'api-key'}),webhook:form=>withLoading('Salvando webhook...',()=>saveWebhook(form),{button:$('button',form),action:'webhook'}),employeeImport:form=>withLoading('Importando funcionários...',()=>saveEmployeeImport(form),{button:$('button',form),action:'employee-import'}),dataExport:form=>withLoading('Exportando dados...',()=>exportData(form),{button:$('button',form),action:'data-export'}),user:form=>withLoading('Salvando usuário...',()=>saveUser(form),{button:$('button',form),action:'save-user',id:data(form).id||data(form).email}),company:form=>withLoading('Salvando cliente...',()=>saveCompany(form),{button:$('button',form),action:'save-company',id:data(form).id}),invoice:form=>withLoading('Salvando fatura...',()=>saveInvoice(form),{button:$('button',form),action:'save-invoice',id:data(form).id}),plan:form=>withLoading('Salvando plano...',()=>savePlan(form),{button:$('button',form),action:'save-plan',id:data(form).id}),module:form=>withLoading('Salvando módulo...',()=>saveModule(form),{button:$('button',form),action:'save-module',id:data(form).id}),survey:form=>withLoading('Salvando pesquisa...',()=>saveSurvey(form),{button:$('button',form),action:'save-survey',id:data(form).id||data(form).title}),quickSurvey:form=>withLoading('Criando pesquisa...',()=>saveQuickSurvey(form),{button:$('button',form),action:'quick-survey'}),takeSurvey:(form,e)=>submitSurvey(form,e),inviteEmail:form=>withLoading('Enviando convite...',()=>sendInviteEmail(form),{button:$('button',form),action:'invite-email'}),bulkInvite:form=>withLoading('Enviando convites...',()=>sendBulkInvite(form),{button:$('button',form),action:'bulk-invite'}),resultEmail:form=>withLoading('Enviando resultado...',()=>submitResultEmail(form),{button:$('button',form),action:'result-email-submit'}),settings:form=>withLoading('Salvando configurações...',()=>saveSettings(form),{button:$('button',form),action:'saveSettings'}),companySettings:form=>withLoading('Salvando white label...',()=>saveCompanySettings(form),{button:$('button',form),action:'company-settings'}),onboardingWizard:form=>withLoading('Salvando onboarding...',()=>saveOnboardingWizard(form),{button:$('button',form),action:'onboarding'}),importBackup:form=>withLoading('Importando backup...',()=>importBackup(form),{button:$('button',form),action:'import-backup'})

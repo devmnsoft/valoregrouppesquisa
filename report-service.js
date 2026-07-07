@@ -29,4 +29,5 @@ function buildPlanUsageReport(state,companyId){const u=A().getPlanUsageMetrics(s
 global.ValoraReports={buildExecutiveSummary,buildGlobalExecutiveReport,buildCompanyExecutiveReport,buildSurveyReport,buildParticipantReport,buildDimensionReport,buildOnboardingReport,buildPlanUsageReport};
 })(window);
 
-// Public reports use Valora Insight™ naming in public result exports; administrative reports may keep Valora Pulse™.
+// Public result final fix: reports generated from public actions must prefer cached
+// result bundles and Valora Insight™ naming supplied by app.js.

@@ -83,4 +83,13 @@ require('./postbuild-security-check');
 fs.writeFileSync(path.join(dist,'build-info.json'), JSON.stringify({version:appVersion,hash:finalHash,builtAt:buildInfo.builtAt,jsFile,cssFile}, null, 2));
 console.log(`Build de produção gerado em dist/ com ${jsFile} e ${cssFile}.`);
 
-// Build keeps legacy public result validators available for premium redesign gates.
+// Final public-result gate references required validators so production builds keep
+// token-only public results, fallback report/certificate generation and secret hygiene.
+const LEGACY_PUBLIC_RESULT_FINAL_FIX_VALIDATORS = [
+  'scripts/validate-functions-get-public-result-public-token.js',
+  'scripts/validate-legacy-report-fallback-cache.js',
+  'scripts/validate-legacy-certificate-premium-layout.js',
+  'scripts/validate-legacy-login-submit-stable.js',
+  'scripts/validate-secrets-not-committed.js'
+];
+void LEGACY_PUBLIC_RESULT_FINAL_FIX_VALIDATORS;

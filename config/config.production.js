@@ -45,4 +45,9 @@
   });
 })();
 
-// Production public result: Valora Insight™ branding and tokenized public routes.
+// Final public result production defaults. No secrets are committed here.
+window.ValoraProductionPublicResultFinalFix = Object.freeze({
+  publicProductName: 'Valora Insight™',
+  whatsappNumber: '5591992545353',
+  emailProviderDefault: 'http_api'
+});

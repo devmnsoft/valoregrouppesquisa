@@ -466,7 +466,14 @@
     "web:valora-insight-public-journey": "node tools/validate-valora-insight-public-journey.js",
     "web:brand-assets": "node tools/validate-valora-brand-assets.js",
     "web:visual-homologation": "node tools/validate-valora-visual-homologation.js",
-    "web:rc2-visual-readiness": "node tools/validate-valora-rc2-visual-readiness.js"
+    "web:rc2-visual-readiness": "node tools/validate-valora-rc2-visual-readiness.js",
+    "legacy:brand-insight": "node scripts/validate-legacy-public-brand-insight.js",
+    "legacy:mobile-result-layout": "node scripts/validate-legacy-mobile-result-layout.js",
+    "legacy:no-invalid-date": "node scripts/validate-legacy-no-invalid-date.js",
+    "legacy:no-duplicate-summary": "node scripts/validate-legacy-no-duplicate-summary-card.js",
+    "legacy:whatsapp-links": "node scripts/validate-legacy-whatsapp-links.js",
+    "legacy:result-token-required": "node scripts/validate-legacy-result-token-required.js",
+    "functions:email-real-status": "node scripts/validate-functions-email-real-status.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

@@ -2283,38 +2283,32 @@ async function reloadPublicResult(el) {
 }
 async function reportResponsePdf(el) {
   try {
-    const params = new URLSearchParams(location.search);
-    const responseId = el?.dataset?.responseId || el?.dataset?.id || params.get('result') || window.ValoraRuntimeDiagnostics?.lastSubmitSuccess?.responseId || '';
-    const resultToken = el?.dataset?.token || el?.dataset?.resultToken || params.get('rt') || window.ValoraRuntimeDiagnostics?.lastSubmitSuccess?.resultToken || '';
-    if (!responseId || !resultToken) { toast('Não encontramos o link seguro do resultado para gerar o relatório.', 'warning'); return false; }
     await withLoading('Preparando relatório em PDF...', async () => {
-      const full = await ValoraRepository.loadPublicResult(responseId, resultToken);
-      const bundle = normalizePublicResultBundle(full, responseId, resultToken);
-      const vm = normalizePublicResultViewModel(full, responseId, resultToken);
-      const rows = [
-        { item: 'Participante', value: vm.participantName || 'Participante' },
-        { item: 'Diagnóstico', value: vm.surveyTitle || 'Valora Insight™' },
-        { item: 'Empresa', value: vm.companyName || 'Valora Group' },
-        { item: 'Data', value: vm.completedDate || formatPublicDate(bundle.response?.completedAt || bundle.response?.createdAt) },
-        { item: 'Pontuação', value: vm.scoreText || vm.normalized5Text || 'Registrado' },
-        { item: 'Enquadramento', value: vm.levelTitle || 'Resultado do diagnóstico' },
-        { item: 'Recomendação', value: vm.recommendation || 'Resultado registrado com segurança.' }
-      ];
+      const bundle = await loadPublicResultBundleForAction(el);
+      const vm = normalizePublicResultViewModel(bundle, bundle.responseId, bundle.resultToken);
       const pdf = window.ValoraPdf || window.ValoraPDF;
-      if (pdf?.createReport) {
-        pdf.createReport({ title: 'Relatório Valora Insight™', subtitle: 'Devolutiva estratégica de maturidade organizacional', metrics: [
-          { label: 'Pontuação', value: vm.scoreText || vm.normalized5Text || '—' },
-          { label: 'Percentual', value: vm.percentageText || '—' },
-          { label: 'Status', value: 'Concluído' }
-        ], columns: [{ key: 'item', label: 'Item', width: 1 }, { key: 'value', label: 'Descrição', width: 3 }], rows }, `relatorio-valora-insight-${responseId}.pdf`);
-        toast('Relatório gerado com sucesso.', 'success'); return true;
-      }
-      throw Object.assign(new Error('Gerador de relatório PDF indisponível.'), { code: 'pdf_report_unavailable' });
+      if (!pdf?.createReport) throw Object.assign(new Error('Gerador de relatório PDF indisponível.'), { code: 'pdf_report_unavailable' });
+      pdf.createReport({
+        title: 'Relatório Valora Insight™',
+        subtitle: 'Devolutiva estratégica de maturidade organizacional',
+        metrics: [{ label: 'Pontuação', value: vm.scoreText || vm.normalized5Text || '—' }, { label: 'Percentual', value: vm.percentageText || '—' }, { label: 'Status', value: 'Concluído' }],
+        columns: [{ key: 'item', label: 'Item', width: 1 }, { key: 'value', label: 'Descrição', width: 3 }],
+        rows: [
+          { item: 'Participante', value: vm.participantName || 'Participante' },
+          { item: 'Diagnóstico', value: vm.surveyTitle || PUBLIC_PRODUCT_NAME },
+          { item: 'Empresa', value: vm.companyName || COMPANY_DISPLAY_NAME },
+          { item: 'Data', value: vm.completedDate || formatPublicDate(bundle.response?.completedAt || bundle.response?.createdAt) },
+          { item: 'Pontuação', value: vm.scoreText || vm.normalized5Text || 'Registrado' },
+          { item: 'Enquadramento', value: vm.levelTitle || 'Resultado do diagnóstico' },
+          { item: 'Recomendação', value: vm.recommendation || 'Resultado registrado com segurança.' }
+        ]
+      }, `relatorio-valora-insight-${bundle.responseId || 'resultado'}.pdf`);
+      toast('Relatório gerado com sucesso.', 'success');
     }, { button: el, buttonText: 'Gerando...' });
     return true;
   } catch (err) {
     window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
-    window.ValoraRuntimeDiagnostics.lastReportPdfError = { name: err?.name || '', message: err?.message || String(err), stack: String(err?.stack || '').slice(0, 2000), at: new Date().toISOString() };
+    window.ValoraRuntimeDiagnostics.lastReportPdfError = { name: err?.name || '', message: err?.message || String(err), code: err?.code || '', stack: String(err?.stack || '').slice(0, 2000), at: new Date().toISOString() };
     toast('Não conseguimos gerar o relatório agora. Tente novamente ou fale com a Valora Group.', 'warning');
     return false;
   }
@@ -2330,7 +2324,7 @@ async function legacyRun(el) {
   return fn(el);
 }
 
-async function downloadCertificatePdf(el){return withLoading('Preparando certificado PDF...',async()=>{try{const id=el?.dataset?.responseId||el?.dataset?.id||new URLSearchParams(location.search).get('result')||'';const token=el?.dataset?.token||el?.dataset?.resultToken||new URLSearchParams(location.search).get('rt')||'';let bundle=null;try{bundle=await ValoraRepository.loadPublicResult(id,token);}catch(_){bundle=null;}const data=safeBuildCertificateData?safeBuildCertificateData(bundle||buildCertificateData(id,token)):buildCertificateData(id,token);if(!assertCertificateCanExport(data))return false;(window.ValoraPdf||window.ValoraPDF).createCertificate(data,`${data.fileBaseName}.pdf`);return true;}catch(err){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastCertificateDownloadError=normalizeResultRenderError(err);toast('Certificado em preparação. Tente novamente em instantes.','warning');return false;}},{button:el,buttonText:'Preparando...'});}
+async function downloadCertificatePdf(el){return withLoading('Preparando certificado PDF...',async()=>{try{const id=el?.dataset?.responseId||el?.dataset?.id||new URLSearchParams(location.search).get('result')||'';const token=el?.dataset?.token||el?.dataset?.resultToken||new URLSearchParams(location.search).get('rt')||'';const bundle=await loadPublicResultBundleForAction(el);const data=safeBuildCertificateData?safeBuildCertificateData(bundle.response,bundle.survey,bundle.form,bundle.company):buildCertificateData(id,token);if(!assertCertificateCanExport(data))return false;(window.ValoraPdf||window.ValoraPDF).createCertificate(data,`${data.fileBaseName}.pdf`);return true;}catch(err){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastCertificateDownloadError=normalizeResultRenderError(err);toast('Certificado em preparação. Tente novamente em instantes.','warning');return false;}},{button:el,buttonText:'Preparando...'});}
 async function downloadCertificatePng(el){return withLoading('Preparando certificado imagem...',async()=>{try{const id=el?.dataset?.responseId||el?.dataset?.id||'';const token=el?.dataset?.token||el?.dataset?.resultToken||'';buildCertificateData(id,token);return await exportCertificateImage(id);}catch(err){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastCertificateDownloadError=normalizeResultRenderError(err);toast('Certificado em preparação. Tente novamente em instantes.','warning');return false;}},{button:el,buttonText:'Preparando...'});}
 async function resendPublicResultEmailSafe(el){const responseId=el?.dataset?.responseId||el?.dataset?.id||'';const resultToken=el?.dataset?.token||el?.dataset?.resultToken||'';if(!responseId||!resultToken){toast('Não conseguimos reenviar agora. Fale com a Valora pelo WhatsApp.','warning');return false;}return withLoading('Reenviando resultado por e-mail...',async()=>{try{const res=await ValoraRepository.sendResultEmail(responseId,{resultToken});const st=res?.status||'';toast(st==='sent'?'Resultado reenviado para seu e-mail.':st==='queued'?'Solicitação de envio registrada, mas ainda não enviada.':'Não conseguimos enviar agora. Fale com a Valora pelo WhatsApp.',st==='sent'?'success':'warning');return st==='sent';}catch(err){toast('Não conseguimos reenviar agora. Fale com a Valora pelo WhatsApp.','warning');return false;}},{button:el,buttonText:'Reenviando...'});}
 
@@ -2338,6 +2332,31 @@ function readLastPublicResultFromSession(){
   try { return JSON.parse(sessionStorage.getItem('valora:lastPublicResult') || 'null'); }
   catch (_) { return null; }
 }
+
+async function loadPublicResultBundleForAction(el = null) {
+  const params = new URLSearchParams(location.search);
+  const responseId = el?.dataset?.responseId || el?.dataset?.id || params.get('result') || window.ValoraRuntimeDiagnostics?.lastSubmitSuccess?.responseId || '';
+  const resultToken = el?.dataset?.token || el?.dataset?.resultToken || params.get('rt') || window.ValoraRuntimeDiagnostics?.lastSubmitSuccess?.resultToken || '';
+  const cached = readLastPublicResultFromSession();
+  if (cached?.responseId === responseId && cached?.result) return normalizePublicResultBundle(cached.result, responseId, resultToken || cached.resultToken || '');
+  if (!responseId || !resultToken) throw Object.assign(new Error('Link seguro de resultado incompleto.'), { code: 'missing_result_token' });
+  try { return normalizePublicResultBundle(await ValoraRepository.loadPublicResult(responseId, resultToken), responseId, resultToken); }
+  catch (err) {
+    if (cached?.result) {
+      window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
+      window.ValoraRuntimeDiagnostics.lastPublicResultActionFallback = { reason: err?.code || err?.message || 'load_failed', at: new Date().toISOString() };
+      return normalizePublicResultBundle(cached.result, cached.responseId || responseId, cached.resultToken || resultToken);
+    }
+    throw err;
+  }
+}
+function renderPremiumPublicResult(vm) {
+  const pct = Math.max(0, Math.min(100, Number(vm.percentage || 0)));
+  const dims = Array.isArray(vm.byDimension) ? vm.byDimension : Object.entries(vm.byDimension || {}).map(([name,v]) => ({ name, percentage: v?.percentage, normalized5: v?.normalized5 }));
+  const waMessage = `Olá, fiz o diagnóstico ${PUBLIC_PRODUCT_NAME} e quero falar com a ${COMPANY_DISPLAY_NAME} sobre meu resultado.`;
+  return `<section class="section public-result-section"><div class="public-result-container"><article class="result-hero result-executive-card"><div class="result-hero-copy"><span class="result-product-badge">${esc(PUBLIC_PRODUCT_NAME)} — Devolutiva estratégica</span><h1>${esc(vm.surveyTitle || 'Resultado do diagnóstico')}</h1><p>${esc(vm.companyName || COMPANY_DISPLAY_NAME)} • ${esc(vm.completedDate || 'Data não informada')}</p><h2>${esc(vm.levelTitle || 'Resultado do diagnóstico')}</h2><p>${esc(vm.recommendation || 'Resultado registrado com segurança.')}</p><span class="result-level-pill">${esc(vm.levelTitle || 'Maturidade registrada')}</span></div><aside class="result-score-panel" aria-label="Pontuação"><small>Pontuação</small><strong>${esc(vm.scoreText || vm.normalized5Text || '—')}</strong><span>${esc(vm.percentageText || '—')}</span><div class="result-progress"><i style="width:${pct}%"></i></div></aside></article>${vm.emailStatusHtml || ''}<section class="result-card"><h2>Recomendação executiva</h2><p>${esc(vm.recommendation || 'Use as dimensões com menor índice como prioridade de evolução.')}</p></section><section class="result-dimensions"><h2>Dimensões avaliadas</h2><div class="result-dimension-grid">${dims.length ? dims.map(d => `<article class="result-dimension-card"><h3>${esc(d.dimensionName || d.name || d.dimensionId || 'Dimensão')}</h3><b>${esc(d.normalized5 ? Number(d.normalized5).toFixed(1) + ' / 5' : Math.round(Number(d.percentage || 0)) + '%')}</b><div class="result-progress light"><i style="width:${Math.max(0, Math.min(100, Number(d.percentage || 0)))}%"></i></div></article>`).join('') : '<article class="result-dimension-card"><p>As dimensões serão exibidas quando a devolutiva completa estiver disponível.</p></article>'}</div></section><div class="result-actions public-result-actions"><button class="btn btn-primary" data-action="reportResponsePdf" data-response-id="${esc(vm.responseId||'')}" data-token="${esc(vm.resultToken||'')}">Baixar relatório PDF</button><button class="btn btn-secondary" data-action="certificatePdf" data-response-id="${esc(vm.responseId||'')}" data-token="${esc(vm.resultToken||'')}">Baixar/Imprimir certificado</button><button class="btn btn-soft" data-action="resendResultEmail" data-response-id="${esc(vm.responseId||'')}" data-token="${esc(vm.resultToken||'')}">Reenviar e-mail</button>${whatsappLink('Fale com a Valora Group no WhatsApp', waMessage)}</div></div></section>`;
+}
+
 function renderResultLoadFallback(responseId = '', resultToken = ''){
   const app=document.getElementById('app'); if(!app)return false;
   app.innerHTML=`<section class="section"><div class="container"><div class="card"><h1>Resultado em processamento</h1><p>Não conseguimos carregar a devolutiva completa agora, mas seu resultado permanece registrado.</p><div class="confirm-actions"><button class="btn btn-primary" data-action="reloadPublicResult" data-response-id="${esc(responseId)}" data-token="${esc(resultToken)}">Tentar novamente</button><a class="btn btn-success" href="${esc(publicWhatsappContactUrl())}" target="_blank" rel="noopener">Fale com a Valora Group</a></div><div id="certificateArea" class="page-help certificate-pending"><b>Certificado em preparação.</b><br>O certificado poderá ser carregado novamente em instantes.</div></div></div></section>`;
@@ -2386,7 +2405,8 @@ async function renderResult(id,afterSubmit=false,publicToken='', resultOrPayload
     r=state.responses.find(x=>x.id===id);if(!r)return $('#app').innerHTML=invalidLink('Resultado não encontrado','O registro solicitado não está disponível.');if(!canAccessResult(r,currentUserSafe(),publicToken))return $('#app').innerHTML=invalidLink('Acesso negado','Entre com o perfil participante ou gestor autorizado.');s=state.surveys.find(x=>x.id===r.surveyId);company=companyById(r.companyId)||{};companyLabel=companyName(r.companyId);
   }
   const formForInsight=state.forms.find(x=>x.id===(r.formId||s?.formId))||{};const bundle=normalizePublicResultBundle({response:r,survey:s,form:formForInsight,company},id,publicToken);const resultVm=normalizePublicResultViewModel(bundle,id,publicToken);if(!r.level)r.level={};r.level.recommendation=r.level.recommendation||resultVm.recommendation;r.normalized5=Number(r.normalized5??resultVm.normalized5);r.percentage=Number(r.percentage??resultVm.percentage);const insight=generateValoraInsightDevolutiva(r,formForInsight,r);const resultEmailStatus=r.communication?.resultEmail?.status||r.resultEmail?.status||resultVm.resultEmail?.status||'not_requested';
-  $('#app').innerHTML=`<section class="section"><div class="container"><div class="result-hero"><div><span class="badge dark">Resultado individual</span><h1>${esc(resultVm.surveyTitle||s?.title||'Resultado')}</h1><p>${esc(companyLabel)} • ${formatPublicDate(r.completedAt||r.createdAt)}</p><h2>${esc(resultVm.levelTitle||r.level?.label||'Resultado')}</h2><p>${esc(r.level?.description||'')}</p></div><div class="result-score"><div class="time-ring"><div class="time-ring-inner"><div><strong>${Number(r.normalized5).toFixed(2)}</strong><span>/5</span></div></div></div></div></div>${afterSubmit?`<div class="success-box result-notice">${esc(renderEmailDeliveryStatus(resultEmailStatus))}</div>`:''}<div class="kpi-grid result-kpis">${kpi('Pontuação',Number(r.rawScore).toFixed(1),`Máximo ${Number(r.maxScore).toFixed(1)}`)}${kpi('Índice normalizado',Number(r.normalized5).toFixed(2)+'/5',`${Number(r.percentage).toFixed(0)}%`)}${kpi('Método',scoringLabel(r.scoringMethod),'Definido pelo formulário')}${kpi('Nível',r.level?.label||'—','Faixa configurada')}</div><div class="grid grid-2"><div class="card"><h3>Resultado por dimensão</h3>${barList(Object.entries(r.byDimension||{}).map(([label,v])=>({label,valueLabel:Number(v.normalized5).toFixed(2)+'/5',percent:v.percentage})))}</div><div class="card"><h3>Próximos passos</h3><p>${esc(resultVm.recommendation||r.level?.recommendation||recommendationFor(r.normalized5,formForInsight,r))}</p><p><b>Leitura:</b> ${esc(r.level?.description||'Use as dimensões com menor índice como prioridade.')}</p></div></div>${renderExecutiveSummaryCard({...resultVm,executiveSummary:insight.executiveSummary,scoreText:insight.totalScoreText,levelTitle:insight.maturityLevel?.label||resultVm.levelTitle})}${valoraInsightHtml(insight)}${safeCertificateHtml(bundle.response,bundle.survey,bundle.form,bundle.company)}<div class="card whatsapp-commercial-cta"><h3>Seu diagnóstico gratuito foi concluído.</h3><p>Este resultado mostra uma primeira leitura da maturidade da sua organização. Para receber uma análise mais completa, entender os pontos críticos e conhecer os planos da Valora para acompanhar sua evolução, fale com nosso time pelo WhatsApp.</p><a class="btn btn-success" href="${esc(publicWhatsappContactUrl(buildResultWhatsAppMessage(buildResultCommunicationViewModel(r))))}" target="_blank" rel="noopener">Fale com a Valora Group</a></div><div class="table-actions result-actions"><button class="btn btn-primary" data-action="reportResponsePdf" data-id="${r.id}" data-token="${esc(publicToken||r.resultToken||'')}">Baixar relatório estratégico</button><button class="btn btn-secondary" data-action="certificatePdf" data-id="${r.id}" data-token="${esc(publicToken||r.resultToken||'')}">Baixar certificado</button><button class="btn btn-soft" data-action="certificatePng" data-id="${r.id}">Baixar certificado em imagem</button><a class="btn btn-success" href="${esc(publicWhatsappContactUrl(buildResultWhatsAppMessage(buildResultCommunicationViewModel(r))))}" target="_blank" rel="noopener">Enviar resultado pelo WhatsApp</a><button class="btn btn-soft" data-action="resendPublicResultEmail" data-id="${r.id}" data-result-token="${esc(publicToken||r.resultToken||'')}">Reenviar resultado por e-mail</button><button class="btn btn-ghost" data-action="goMyArea">Ir para minha área</button></div></div></section>`;
+  const emailStatusHtml = afterSubmit ? `<div class="success-box result-notice">${esc(renderEmailDeliveryStatus(resultEmailStatus))}</div>` : '';
+  $('#app').innerHTML = renderPremiumPublicResult({...resultVm,responseId:r.id,resultToken:publicToken||r.resultToken||'',scoreText:insight.totalScoreText||resultVm.normalized5Text,completedDate:formatPublicDate(r.completedAt||r.createdAt),emailStatusHtml});
 }
 function isDemoCompany(company){const name=String(company?.name||company?.publicName||'').trim().toLowerCase(),slugValue=String(company?.slug||'').trim().toLowerCase();return company?.id==='org_demo'||slugValue==='empresa-exemplo'||name==='empresa exemplo'||name==='empresa demonstração'||name==='empresa demonstracao';}
 function safeText(v,fallback=''){const t=String(v??'').replace(/\s+/g,' ').trim();return t||fallback;}
@@ -2478,8 +2498,7 @@ async function certificatePdf(el){
     const responseId=el?.dataset?.responseId||el?.dataset?.id||params.get('result')||'';
     const token=el?.dataset?.token||el?.dataset?.resultToken||params.get('rt')||'';
     await withLoading('Preparando certificado PDF...',async()=>{
-      const full=token?await ValoraRepository.loadPublicResult(responseId,token):{response:state.responses.find(r=>r.id===responseId)||{id:responseId}};
-      const bundle=normalizePublicResultBundle(full,responseId,token);
+      const bundle=await loadPublicResultBundleForAction(el);
       const data=safeBuildCertificateData(bundle.response,bundle.survey,bundle.form,bundle.company);
       const pdf=window.ValoraPdf||window.ValoraPDF;
       if(!pdf?.createCertificate)throw Object.assign(new Error('Gerador de PDF indisponível.'),{code:'pdf_unavailable'});

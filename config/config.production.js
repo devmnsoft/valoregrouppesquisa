@@ -44,3 +44,5 @@
     STORE_KEY: 'valoraPulseFinal800'
   });
 })();
+
+// Production public result: Valora Insight™ branding and tokenized public routes.

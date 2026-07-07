@@ -74,3 +74,5 @@
     STORE_KEY: 'valoraPulseFinal800'
   });
 })();
+
+// Public experience constants: Valora Insight™ / WhatsApp +55 91 99254-5353.

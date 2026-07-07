@@ -82,3 +82,5 @@ else console.warn('templates/iis/web.config não encontrado; dist/web.config nã
 require('./postbuild-security-check');
 fs.writeFileSync(path.join(dist,'build-info.json'), JSON.stringify({version:appVersion,hash:finalHash,builtAt:buildInfo.builtAt,jsFile,cssFile}, null, 2));
 console.log(`Build de produção gerado em dist/ com ${jsFile} e ${cssFile}.`);
+
+// Build keeps legacy public result validators available for premium redesign gates.

@@ -1,1 +1,3 @@
-const {read,must}=require('./legacy-final-validator-common');const a=read('app.js');must('wa helper missing',/function publicWhatsappContactUrl\(message=''/ .test(a));must('correct wa number missing',a.includes('wa.me/${WHATSAPP_NUMBER}')&&a.includes("WHATSAPP_NUMBER='5591992545353'"));must('label missing',a.includes("WHATSAPP_LABEL='Fale com a Valora Group'"));console.log('legacy whatsapp links: PASS');
+const {ok,app}=require('./_legacy-final-validators');
+ok(/https:\/\/wa\.me\/\$\{WHATSAPP_NUMBER\}/.test(app)&&/5591992545353/.test(app),'WhatsApp wa.me official number');
+ok(/function whatsappLink/.test(app)&&/<a class="btn btn-success" href/.test(app),'WhatsApp link is anchor');

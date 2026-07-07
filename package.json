@@ -482,7 +482,9 @@
     "functions:smtp-gmail": "node scripts/validate-functions-smtp-transporter-gmail.js",
     "legacy:public-bypass-auth": "node scripts/validate-legacy-public-route-bypasses-auth.js",
     "functions:get-public-result-token": "node scripts/validate-functions-get-public-result-public-token.js",
-    "legacy:empty-action-ignored": "node scripts/validate-legacy-empty-action-ignored.js"
+    "legacy:empty-action-ignored": "node scripts/validate-legacy-empty-action-ignored.js",
+    "functions:email-http-provider": "node scripts/validate-functions-email-http-provider.js",
+    "functions:email-status-honest": "node scripts/validate-functions-email-status-honest.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

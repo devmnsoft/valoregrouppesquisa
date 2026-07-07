@@ -465,7 +465,8 @@
     "web:admin-menu-profile-access": "node tools/validate-admin-menu-profile-access.js",
     "web:valora-insight-public-journey": "node tools/validate-valora-insight-public-journey.js",
     "web:brand-assets": "node tools/validate-valora-brand-assets.js",
-    "web:visual-homologation": "node tools/validate-valora-visual-homologation.js"
+    "web:visual-homologation": "node tools/validate-valora-visual-homologation.js",
+    "web:rc2-visual-readiness": "node tools/validate-valora-rc2-visual-readiness.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

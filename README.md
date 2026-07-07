@@ -654,3 +654,6 @@ Consulte `VALORA_BRAND_ASSETS_MANUAL_SETUP.md` para nomes obrigatórios, testes 
 ## Compatibilidade oficial do `scriptbd_completo.sql`
 
 O bootstrap PostgreSQL oficial deve ser validado com `npm run db:scriptbd-validate` antes de uso em local, homologação ou produção. A seção `-- COMPATIBILIDADE PARA BANCOS EXISTENTES` em `scriptbd_completo.sql` normaliza schemas antigos sem `DROP TABLE` destrutivo de tabelas de negócio, incluindo `plan_limits.users`, `plans.monthly_price`, `organizations.plan_code`, contratos de formulários/perguntas/opções, `email_templates.body_html/body_text` e o índice de `usage_monthly(period_month)`. Consulte `SCRIPTBD_COMPLETO_COMPATIBILITY_GUIDE.md` para o procedimento completo.
+
+## Sprint Premium SaaS Valora Insight™
+A Web oficial em `backend/Valora.Web` agora possui design system premium, layout público executivo, admin SaaS moderno e validadores `npm run web:premium-layout` e `npm run db:scriptbd-validate`. Consulte `VALORA_PREMIUM_UI_GUIDE.md`, `VALORA_SAAS_LAYOUT_GUIDE.md` e `SCRIPTBD_COMPLETO_COMPATIBILITY_GUIDE.md`.

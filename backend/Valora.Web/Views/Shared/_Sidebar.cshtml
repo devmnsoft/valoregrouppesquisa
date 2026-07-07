@@ -1,17 +1,50 @@
-<aside class="app-sidebar d-none d-lg-block"><a class="brand-mark" data-brand-root href="/">
-  <span class="brand-picture" data-brand><img src="/img/brand/valora-symbol.jpeg" alt="Valora Group" class="admin-brand-symbol" onerror="this.classList.add('d-none'); this.closest('.brand-mark').classList.add('brand-fallback-active');"></span><span class="brand-fallback-text" aria-hidden="true">Valora Group</span>
-  <span class="brand-text">
-    <strong>Valora Group</strong>
-    <small>Painel administrativo</small>
-  </span>
-</a><nav class="nav flex-column sidebar-nav">
-<a class="nav-link" href="/Dashboard">Dashboard</a><a class="nav-link" href="/Plans">Planos</a><a class="nav-link" href="/Organization">Organização</a><a class="nav-link" href="/Users">Usuários</a><a class="nav-link" href="/Forms">Formulários</a><a class="nav-link" href="/Surveys">Pesquisas</a><a class="nav-link" href="/Surveys/PublicLinks">Links públicos</a><a class="nav-link" href="/FreeDiagnostics" data-required-permission="canViewResponses" data-allowed-roles="admin_valora,consultor_valora,empresa_admin,gestor_pesquisa,analista_resultados">Diagnósticos gratuitos</a><a class="nav-link" href="/Communications">Comunicações</a><a class="nav-link" href="/Responses">Respostas</a><a class="nav-link" href="/Certificates/Validate">Certificados</a><a class="nav-link" href="/Audit">Auditoria</a><a class="nav-link" href="/Migration">Migração</a><a class="nav-link" href="/EnvironmentStatus">Status</a><a class="nav-link" href="/Settings">Configurações</a>
-<a class="nav-link" href="/Reports">Relatórios</a><a class="nav-link" href="/Certificates">Certificados</a><a class="nav-link" href="/Exports">Exportações</a><a class="nav-link" href="/Lgpd">LGPD</a><a class="nav-link" href="/Email/Templates">E-mail</a><a class="nav-link" href="/Audit">Auditoria</a></nav></aside><div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar"><div class="offcanvas-header"><a class="brand-mark" data-brand-root href="/">
-  <span class="brand-picture" data-brand><img src="/img/brand/valora-symbol.jpeg" alt="Valora Group" class="admin-brand-symbol" onerror="this.classList.add('d-none'); this.closest('.brand-mark').classList.add('brand-fallback-active');"></span><span class="brand-fallback-text" aria-hidden="true">Valora Group</span>
-  <span class="brand-text">
-    <strong>Valora Group</strong>
-    <small>Painel administrativo</small>
-  </span>
-</a><button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button></div><div class="offcanvas-body"><nav class="nav flex-column sidebar-nav">
-<a class="nav-link" href="/Dashboard">Dashboard</a><a class="nav-link" href="/Plans">Planos</a><a class="nav-link" href="/Organization">Organização</a><a class="nav-link" href="/Users">Usuários</a><a class="nav-link" href="/Forms">Formulários</a><a class="nav-link" href="/Surveys">Pesquisas</a><a class="nav-link" href="/Surveys/PublicLinks">Links públicos</a><a class="nav-link" href="/FreeDiagnostics" data-required-permission="canViewResponses" data-allowed-roles="admin_valora,consultor_valora,empresa_admin,gestor_pesquisa,analista_resultados">Diagnósticos gratuitos</a><a class="nav-link" href="/Communications">Comunicações</a><a class="nav-link" href="/Responses">Respostas</a><a class="nav-link" href="/Certificates/Validate">Certificados</a><a class="nav-link" href="/Audit">Auditoria</a><a class="nav-link" href="/Migration">Migração</a><a class="nav-link" href="/EnvironmentStatus">Status</a><a class="nav-link" href="/Settings">Configurações</a>
-<a class="nav-link" href="/Reports">Relatórios</a><a class="nav-link" href="/Certificates">Certificados</a><a class="nav-link" href="/Exports">Exportações</a><a class="nav-link" href="/Lgpd">LGPD</a><a class="nav-link" href="/Email/Templates">E-mail</a><a class="nav-link" href="/Audit">Auditoria</a></nav></div></div>
+@{
+  var groups = new[] {
+    new { Title = "Visão Geral", Items = new[] {
+      new { Label="Dashboard", Url="/Dashboard", Roles="admin_valora,consultor_valora,empresa_admin,gestor_pesquisa,analista_resultados,gestor_area", Permission="" },
+      new { Label="Diagnósticos gratuitos", Url="/FreeDiagnostics", Roles="admin_valora,consultor_valora,empresa_admin,gestor_pesquisa,analista_resultados", Permission="canViewResponses" },
+      new { Label="Respostas", Url="/Responses", Roles="admin_valora,consultor_valora,empresa_admin,gestor_pesquisa,analista_resultados,gestor_area", Permission="canViewResponses" }
+    }},
+    new { Title = "Gestão", Items = new[] {
+      new { Label="Organizações", Url="/Organization", Roles="admin_valora,consultor_valora", Permission="" },
+      new { Label="Usuários", Url="/Users", Roles="admin_valora,consultor_valora,empresa_admin", Permission="" },
+      new { Label="Planos", Url="/Plans", Roles="admin_valora", Permission="" },
+      new { Label="Módulos", Url="/Modules", Roles="admin_valora", Permission="" }
+    }},
+    new { Title = "Diagnósticos", Items = new[] {
+      new { Label="Formulários", Url="/Forms", Roles="admin_valora,consultor_valora,empresa_admin,gestor_pesquisa", Permission="" },
+      new { Label="Pesquisas", Url="/Surveys", Roles="admin_valora,consultor_valora,empresa_admin,gestor_pesquisa", Permission="" },
+      new { Label="Links públicos", Url="/Surveys/PublicLinks", Roles="admin_valora,consultor_valora,empresa_admin,gestor_pesquisa", Permission="" },
+      new { Label="Convites", Url="/Invites", Roles="admin_valora,consultor_valora,empresa_admin,gestor_pesquisa", Permission="" }
+    }},
+    new { Title = "Inteligência", Items = new[] {
+      new { Label="Relatórios", Url="/Reports", Roles="admin_valora,consultor_valora,empresa_admin,analista_resultados,gestor_area", Permission="" },
+      new { Label="Certificados", Url="/Certificates", Roles="admin_valora,consultor_valora,empresa_admin,analista_resultados", Permission="" },
+      new { Label="Exportações", Url="/Exports", Roles="admin_valora,consultor_valora,empresa_admin,analista_resultados", Permission="" },
+      new { Label="Benchmark", Url="/Benchmark", Roles="admin_valora,consultor_valora,empresa_admin,analista_resultados", Permission="" }
+    }},
+    new { Title = "Operação", Items = new[] {
+      new { Label="Comunicações", Url="/Communications", Roles="admin_valora,consultor_valora,empresa_admin", Permission="" },
+      new { Label="E-mail", Url="/Email/Templates", Roles="admin_valora,consultor_valora,empresa_admin", Permission="" },
+      new { Label="LGPD", Url="/Lgpd", Roles="admin_valora,consultor_valora,empresa_admin", Permission="" },
+      new { Label="Auditoria", Url="/Audit", Roles="admin_valora,consultor_valora", Permission="" },
+      new { Label="Migração", Url="/Migration", Roles="admin_valora", Permission="" },
+      new { Label="Configurações", Url="/Settings", Roles="admin_valora,consultor_valora,empresa_admin", Permission="" },
+      new { Label="Status", Url="/EnvironmentStatus", Roles="admin_valora,consultor_valora", Permission="" }
+    }}
+  };
+}
+<aside class="app-sidebar valora-sidebar d-none d-lg-flex" data-admin-sidebar>
+  <a class="brand-mark" data-brand-root href="/Dashboard">
+    <span class="brand-picture" data-brand><img src="/img/brand/valora-symbol.jpeg" alt="Valora Group" class="admin-brand-symbol" onerror="this.classList.add('d-none'); this.closest('.brand-mark').classList.add('brand-fallback-active');"></span>
+    <span class="brand-fallback-text" aria-hidden="true">Valora Group</span>
+    <span class="brand-text"><strong>Valora Group</strong><small>SaaS executivo</small></span>
+  </a>
+  <nav class="sidebar-nav valora-sidebar-nav" aria-label="Menu administrativo por perfil">
+    @foreach (var group in groups) {<section class="sidebar-group"><p>@group.Title</p>@foreach (var item in group.Items) {<a class="nav-link" href="@item.Url" data-allowed-roles="@item.Roles" data-required-permission="@item.Permission">@item.Label</a>}</section>}
+  </nav>
+</aside>
+<div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
+  <div class="offcanvas-header"><h2 id="mobileSidebarLabel" class="h6 mb-0">Menu Valora</h2><button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button></div>
+  <div class="offcanvas-body valora-sidebar-nav">@foreach (var group in groups) {<section class="sidebar-group"><p>@group.Title</p>@foreach (var item in group.Items) {<a class="nav-link" href="@item.Url" data-allowed-roles="@item.Roles" data-required-permission="@item.Permission">@item.Label</a>}</section>}</div>
+</div>

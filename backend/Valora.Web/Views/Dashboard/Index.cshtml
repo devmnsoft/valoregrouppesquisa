@@ -1,12 +1,19 @@
-@{ ViewData["Title"] = "Dashboard oficial"; }
-<section class="page-card official-module" data-page="dashboard-page">
+@{ ViewData["Title"] = "Dashboard executivo"; }
+<section class="page-card official-module dashboard-premium" data-page="dashboard-page">
   <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-    <div><p class="eyebrow">Valora.Web oficial</p><h1>Dashboard oficial</h1><p class="text-muted">Status operacional, uso, limites e atalhos.</p></div>
-    <button class="btn btn-primary" data-refresh>Atualizar</button>
+    <div><p class="eyebrow">Valora Insight™</p><h1>Dashboard executivo</h1><p class="text-muted">Olá, acompanhe indicadores reais da operação. Quando não houver base suficiente, exibimos estado vazio sem valores simulados.</p></div>
+    <button class="valora-button valora-button--primary" data-refresh type="button">Atualizar indicadores</button>
   </div>
-  <div class="row g-3 mt-2" data-summary-cards><div class="col-md-4"><div class="metric-card"><span>Resumo</span><strong data-card="resumo">Aguardando API</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Saúde</span><strong data-card="saúde">Aguardando API</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Pesquisas recentes</span><strong data-card="pesquisas-recentes">Aguardando API</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Respostas recentes</span><strong data-card="respostas-recentes">Aguardando API</strong></div></div></div>
-  <div class="alert alert-warning d-none mt-3" data-gap-controlled="true" data-gap-card>Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.</div>
-  <div class="alert alert-danger d-none mt-3" role="alert" data-error></div>
-  <div class="table-responsive mt-3"><table class="table table-sm align-middle"><thead><tr><th>Nome</th><th>Status</th><th>Detalhes</th><th>Ação</th></tr></thead><tbody data-items></tbody></table></div>
+  <div class="row g-3 mt-2" data-summary-cards>
+    <div class="col-md-4 col-xl-2"><div class="valora-kpi metric-card"><span>Respostas no mês</span><strong data-card="respostas-mes">--</strong><small>Ainda não há dados suficientes para este indicador.</small></div></div>
+    <div class="col-md-4 col-xl-2"><div class="valora-kpi metric-card"><span>Diagnósticos ativos</span><strong data-card="diagnosticos-ativos">--</strong><small>Ainda não há dados suficientes para este indicador.</small></div></div>
+    <div class="col-md-4 col-xl-2"><div class="valora-kpi metric-card"><span>Taxa de conclusão</span><strong data-card="taxa-conclusao">--</strong><small>Ainda não há dados suficientes para este indicador.</small></div></div>
+    <div class="col-md-4 col-xl-2"><div class="valora-kpi metric-card"><span>Nível médio</span><strong data-card="nivel-medio">--</strong><small>Ainda não há dados suficientes para este indicador.</small></div></div>
+    <div class="col-md-4 col-xl-2"><div class="valora-kpi metric-card"><span>Certificados emitidos</span><strong data-card="certificados">--</strong><small>Ainda não há dados suficientes para este indicador.</small></div></div>
+    <div class="col-md-4 col-xl-2"><div class="valora-kpi metric-card"><span>Alertas LGPD</span><strong data-card="lgpd-alertas">--</strong><small>Ainda não há dados suficientes para este indicador.</small></div></div>
+  </div>
+  <div class="row g-3 mt-3"><div class="col-lg-7"><div class="valora-card"><h2>Atividades recentes</h2><div class="valora-empty" data-empty-activities>Ainda não há dados suficientes para este indicador.</div><div class="table-responsive mt-3"><table class="valora-table table align-middle"><thead><tr><th>Nome</th><th>Status</th><th>Detalhes</th><th>Ação</th></tr></thead><tbody data-items></tbody></table></div></div></div><div class="col-lg-5"><div class="valora-card"><h2>Ações rápidas</h2><div class="d-grid gap-2"><a class="valora-button valora-button--secondary" href="/FreeDiagnostics">Ver diagnósticos gratuitos</a><a class="valora-button valora-button--ghost" href="/Surveys/PublicLinks">Gerenciar links públicos</a><a class="valora-button valora-button--ghost" href="/Reports">Abrir relatórios</a></div><hr><h3>Distribuição de maturidade</h3><div class="valora-progress" aria-label="Gráfico simples"><span style="width:0%"></span></div><p class="text-muted mt-2">Ainda não há dados suficientes para este indicador.</p></div></div></div>
+  <div class="valora-alert valora-alert--warning d-none mt-3" data-gap-controlled="true" data-gap-card>Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.</div>
+  <div class="valora-alert valora-alert--danger d-none mt-3" role="alert" data-error></div>
 </section>
 @section Scripts { <script src="/js/pages/dashboard-page.js"></script> }

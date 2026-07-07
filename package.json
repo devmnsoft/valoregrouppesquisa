@@ -474,7 +474,12 @@
     "legacy:whatsapp-links": "node scripts/validate-legacy-whatsapp-links.js",
     "legacy:result-token-required": "node scripts/validate-legacy-result-token-required.js",
     "functions:email-real-status": "node scripts/validate-functions-email-real-status.js",
-    "web:client-feedback-fixes": "node tools/validate-valora-client-feedback-fixes.js"
+    "web:client-feedback-fixes": "node tools/validate-valora-client-feedback-fixes.js",
+    "legacy:client-review-texts": "node scripts/validate-legacy-client-review-texts.js",
+    "legacy:report-response-pdf": "node scripts/validate-legacy-report-response-pdf-action.js",
+    "legacy:legacy-run-allowlist": "node scripts/validate-legacy-legacy-run-allowlist.js",
+    "legacy:no-undefined-actions": "node scripts/validate-legacy-action-handlers-no-undefined.js",
+    "functions:smtp-gmail": "node scripts/validate-functions-smtp-transporter-gmail.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

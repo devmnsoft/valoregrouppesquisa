@@ -836,3 +836,43 @@ html,body{max-width:100%;overflow-x:hidden;}
 .public-result-actions{display:flex;flex-wrap:wrap;gap:12px;}
 .whatsapp-floating{max-width:calc(100vw - 24px);}
 @media (max-width:640px){.public-result-container,.public-result-section .container{padding-left:12px;padding-right:12px;}.result-card,.result-highlight,.result-summary-card,.result-dimension-card,.certificate-preview-card{padding:16px;border-radius:18px;}.result-dimension-grid{grid-template-columns:1fr;}.public-result-actions,.confirm-actions{display:grid;grid-template-columns:1fr;gap:10px;}.public-result-actions .btn,.confirm-actions .btn{width:100%;justify-content:center;text-align:center;}.whatsapp-floating{right:12px;bottom:12px;}.insight-dimensions,.grid.grid-3,.grid.grid-2{grid-template-columns:1fr!important;}.insight-hero,.result-hero{grid-template-columns:1fr!important;padding:18px;border-radius:18px;}.table-actions.result-actions{display:grid;grid-template-columns:1fr;}.table-actions.result-actions .btn{width:100%;justify-content:center;}}
+
+/* Final client review public result hardening */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+html,
+body { width: 100%; max-width: 100%; overflow-x: hidden; }
+.public-result-section { width: 100%; overflow-x: hidden; }
+.public-result-section .container,
+.public-result-container { width: min(100%, 980px); max-width: 100%; margin: 0 auto; padding-left: clamp(12px, 4vw, 28px); padding-right: clamp(12px, 4vw, 28px); }
+.result-card,
+.result-highlight,
+.result-summary-card,
+.result-dimension-card,
+.certificate-preview-card,
+.public-result-panel,
+.result-executive-card { width: 100%; max-width: 100%; overflow-wrap: anywhere; word-break: normal; }
+.result-executive-card,
+.result-highlight { background: #073f4d; color: #ffffff; border-radius: 24px; padding: clamp(18px, 5vw, 34px); overflow: hidden; }
+.result-executive-card .eyebrow { color: #d7a94b; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; font-size: .78rem; }
+.result-score-box { width: 100%; max-width: 100%; border-radius: 20px; padding: clamp(18px, 5vw, 34px); background: rgba(255,255,255,.12); margin-top: 18px; }
+.result-score-box strong { display:block; font-size: clamp(42px, 18vw, 84px); line-height: 1; }
+.result-dimension-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+@media (max-width: 640px) {
+  .public-result-section .container,
+  .public-result-container { padding-left: 12px; padding-right: 12px; }
+  .result-card,
+  .result-highlight,
+  .result-summary-card,
+  .result-dimension-card,
+  .certificate-preview-card,
+  .public-result-panel,
+  .result-executive-card { padding: 16px; border-radius: 18px; }
+  .result-dimension-grid { grid-template-columns: 1fr; }
+  .confirm-actions,
+  .public-result-actions { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .confirm-actions .btn,
+  .public-result-actions .btn { width: 100%; justify-content: center; text-align: center; }
+  .whatsapp-floating { right: 12px; bottom: 12px; width: 48px; height: 48px; }
+}

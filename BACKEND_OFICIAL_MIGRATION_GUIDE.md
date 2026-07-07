@@ -96,3 +96,15 @@ A migração da Web oficial ASP.NET somente será considerada completa quando ho
 ## Sprint Backend Centralização Valora Insight™
 
 A fonte oficial da evolução Valora Insight™ passa a ser `backend/Valora.sln` e `database/postgresql`. O diagnóstico oficial usa 5 dimensões, 25 perguntas reais extraídas do legado (`app.js`), escala 1 a 5, total máximo 125 e devolutiva determinística no backend. A Web oficial não deve usar Firebase nem acessar banco diretamente; deve consumir a API oficial. Credenciais Firebase/service account devem ficar fora do repositório e a chave compartilhada fora do fluxo seguro deve ser revogada/rotacionada.
+
+## Sprint Visual Homologation — assets da marca
+
+Os binários oficiais `backend/Valora.Web/wwwroot/img/brand/valora-logo-full.jpeg` e `backend/Valora.Web/wwwroot/img/brand/valora-symbol.jpeg` precisam ser adicionados manualmente, pois o Codex não manipula arquivos binários de marca. A Web oficial possui fallback visual seguro com texto institucional “Valora Group”, evitando imagem quebrada e preservando layout público/admin até o upload manual.
+
+Validação:
+
+- `npm run web:brand-assets` é o modo padrão e falha quando os binários oficiais não existem.
+- `VALORA_ALLOW_MISSING_BRAND_ASSETS=true npm run web:brand-assets` é o modo diagnóstico; ele registra a pendência manual sem falhar por ausência dos JPEGs, mas continua bloqueando `VG` como marca final, logo externa, secrets, service account e paths inseguros.
+- `npm run web:visual-homologation` valida layouts, fallback, documentação, checklist, Home, diagnóstico, resultado, segurança e ausência de logo externa.
+
+Consulte `VALORA_BRAND_ASSETS_MANUAL_SETUP.md` para nomes obrigatórios, testes locais e commit manual dos binários.

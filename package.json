@@ -464,7 +464,8 @@
     "security:no-service-account-secrets": "node tools/validate-no-service-account-secrets.js",
     "web:admin-menu-profile-access": "node tools/validate-admin-menu-profile-access.js",
     "web:valora-insight-public-journey": "node tools/validate-valora-insight-public-journey.js",
-    "web:brand-assets": "node tools/validate-valora-brand-assets.js"
+    "web:brand-assets": "node tools/validate-valora-brand-assets.js",
+    "web:visual-homologation": "node tools/validate-valora-visual-homologation.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

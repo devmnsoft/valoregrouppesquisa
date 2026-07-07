@@ -128,3 +128,6 @@ Consulte `VALORA_BRAND_ASSETS_MANUAL_SETUP.md` para nomes obrigatórios, testes 
 ## Compatibilidade oficial do `scriptbd_completo.sql`
 
 O bootstrap PostgreSQL oficial deve ser validado com `npm run db:scriptbd-validate` antes de uso em local, homologação ou produção. A seção `-- COMPATIBILIDADE PARA BANCOS EXISTENTES` em `scriptbd_completo.sql` normaliza schemas antigos sem `DROP TABLE` destrutivo de tabelas de negócio, incluindo `plan_limits.users`, `plans.monthly_price`, `organizations.plan_code`, contratos de formulários/perguntas/opções, `email_templates.body_html/body_text` e o índice de `usage_monthly(period_month)`. Consulte `SCRIPTBD_COMPLETO_COMPATIBILITY_GUIDE.md` para o procedimento completo.
+
+## UI oficial premium
+O frontend oficial permanece em ASP.NET Core MVC/Razor dentro de `backend/Valora.Web`, usando Bootstrap, JavaScript puro e `wwwroot/css/valora-design-system.css`. Não criar SPA ou frontend fora de `backend`.

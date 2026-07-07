@@ -1,14 +1,211 @@
-.admin-brand-symbol {
+.admin-brand-symbol  {
+
   width: 44px;
+
   height: 44px;
+
   object-fit: contain;
+
   border-radius: 14px;
+
   background: #0c3448;
+
   padding: 4px;
+
   box-shadow: 0 12px 28px rgba(12, 52, 72, .2);
+
 }
 
-.brand-mark:hover .admin-brand-symbol { transform: translateY(-1px); }
-.app-sidebar .brand-mark { padding: .35rem .25rem .85rem; }
-.topbar .brand-mark { min-width: 220px; }
-.brand-text strong { letter-spacing: -.01em; }
+.brand-mark:hover .admin-brand-symbol  {
+   transform: translateY(-1px);
+
+}
+
+.app-sidebar .brand-mark  {
+   padding: .35rem .25rem .85rem;
+
+}
+
+.topbar .brand-mark  {
+   min-width: 220px;
+
+}
+
+.brand-text strong  {
+   letter-spacing: -.01em;
+
+}
+
+/* Premium SaaS redesign */
+.valora-admin-shell {
+  display:flex;
+  min-height:100vh;
+  background:var(--valora-bg)
+}
+.app-sidebar.valora-sidebar {
+  width:292px;
+  position:sticky;
+  top:0;
+  height:100vh;
+  flex-direction:column;
+  padding:1.2rem;
+  box-shadow:18px 0 50px rgba(6,44,55,.16);
+  overflow-y:auto
+}
+.app-main {
+  flex:1;
+  min-width:0
+}
+.valora-admin-content {
+  padding:1.4rem;
+  max-width:1280px;
+  margin-inline:auto
+}
+.brand-mark {
+  display:flex;
+  align-items:center;
+  gap:.75rem;
+  text-decoration:none;
+  color:inherit
+}
+.admin-brand-symbol {
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  object-fit:cover
+}
+.brand-text {
+  display:flex;
+  flex-direction:column;
+  line-height:1.1
+}
+.brand-text small {
+  opacity:.75
+}
+.valora-sidebar-nav {
+  display:grid;
+  gap:1rem;
+  margin-top:1.2rem
+}
+.sidebar-group p {
+  margin:0 0 .45rem;
+  color:rgba(255,255,255,.58);
+  font-size:.72rem;
+  font-weight:900;
+  text-transform:uppercase;
+  letter-spacing:.08em
+}
+.offcanvas .sidebar-group p {
+  color:var(--valora-muted)
+}
+.sidebar-group .nav-link {
+  border-radius:14px;
+  color:rgba(255,255,255,.86);
+  padding:.7rem .85rem;
+  font-weight:700
+}
+.offcanvas .sidebar-group .nav-link {
+  color:var(--valora-navy)
+}
+.sidebar-group .nav-link:hover,.sidebar-group .nav-link.active {
+  background:rgba(117,220,232,.16);
+  color:#fff
+}
+.offcanvas .sidebar-group .nav-link:hover {
+  background:#eaf6f8;
+  color:var(--valora-navy)
+}
+.topbar.valora-topbar {
+  position:sticky;
+  top:0;
+  z-index:50;
+  margin:1rem 1rem 0;
+  border-radius:22px;
+  padding:.85rem 1rem
+}
+.topbar-title strong {
+  display:block;
+  color:var(--valora-navy);
+  font-size:1.08rem
+}
+.quick-action {
+  padding:.55rem .85rem;
+  min-height:38px
+}
+.page-card,.official-module {
+  border-radius:var(--valora-radius);
+  border:1px solid var(--valora-line);
+  box-shadow:var(--valora-shadow-soft);
+  background:#fff
+}
+.metric-card {
+  border-radius:20px;
+  border:1px solid var(--valora-line);
+  background:linear-gradient(180deg,#fff,#f8fdfe);
+  padding:1.1rem;
+  box-shadow:var(--valora-shadow-soft)
+}
+.metric-card span {
+  display:block;
+  color:var(--valora-muted);
+  font-size:.82rem;
+  font-weight:800
+}
+.metric-card strong {
+  display:block;
+  color:var(--valora-navy);
+  font-size:1.8rem
+}
+.table-responsive {
+  border-radius:18px
+}
+.table {
+  --bs-table-bg:#fff
+}
+.table thead th {
+  background:#eaf6f8;
+  color:var(--valora-navy);
+  font-size:.78rem;
+  text-transform:uppercase;
+  letter-spacing:.04em
+}
+.form-control,.form-select {
+  border-radius:14px;
+  border-color:var(--valora-line)
+}
+.empty-state {
+  border:1px dashed var(--valora-line);
+  border-radius:20px;
+  padding:1.2rem;
+  background:#fff;
+  color:var(--valora-muted)
+}
+@media(max-width:991px) {
+  .valora-admin-content {
+    padding:1rem
+  }
+  .topbar.valora-topbar {
+    margin:.75rem;
+    border-radius:18px
+  }
+  .topbar-actions {
+    width:100%;
+    justify-content:flex-start
+  }
+  .quick-action {
+    width:auto
+  }
+  .app-sidebar.valora-sidebar {
+    display:none!important
+  }
+
+}
+@media(max-width:576px) {
+  .topbar-actions .valora-badge {
+    display:none
+  }
+  .quick-action,.topbar-actions .valora-button {
+    width:100%
+  }
+
+}

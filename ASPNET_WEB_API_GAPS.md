@@ -91,3 +91,6 @@ A migração da Web oficial ASP.NET somente será considerada completa quando ho
 ## Sprint Backend Centralização Valora Insight™
 
 A fonte oficial da evolução Valora Insight™ passa a ser `backend/Valora.sln` e `database/postgresql`. O diagnóstico oficial usa 5 dimensões, 25 perguntas reais extraídas do legado (`app.js`), escala 1 a 5, total máximo 125 e devolutiva determinística no backend. A Web oficial não deve usar Firebase nem acessar banco diretamente; deve consumir a API oficial. Credenciais Firebase/service account devem ficar fora do repositório e a chave compartilhada fora do fluxo seguro deve ser revogada/rotacionada.
+
+## Gaps após redesign premium
+A UI não usa dados fake. Indicadores sem retorno real da API exibem estado vazio controlado: “Ainda não há dados suficientes para este indicador.”

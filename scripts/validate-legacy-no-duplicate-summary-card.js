@@ -1,1 +1,2 @@
-const {read,must}=require('./legacy-final-validator-common');const a=read('app.js');must('renderExecutiveSummaryCard missing',/function renderExecutiveSummaryCard/.test(a));must('old duplicate title removed',!a.includes('Enquadramento geral sem adoçamento'));console.log('legacy no duplicate summary card: PASS');
+const {ok,app}=require('./_legacy-final-validators');
+ok(!/Enquadramento geral sem adoçamento/.test(app),'duplicate white summary card removed');

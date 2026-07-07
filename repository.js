@@ -57,3 +57,5 @@ window.ValoraRepository=Object.freeze({
   getHybridDiagnostics:()=>window.ValoraHybridDiagnostics||[]
 });
 })();
+
+// Public result actions are allowed without auth when responseId + resultToken are provided.

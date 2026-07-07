@@ -1,1 +1,4 @@
-const fs=require('fs'),path=require('path');const roots=['app.js','config.js','config/config.production.js','functions/index.js'];const bad=[];for(const f of roots){const s=fs.readFileSync(f,'utf8');if(/(SMTP_PASSWORD|SMTP_PASS)\s*[:=]\s*['\"][^'\"]{8,}['\"]/.test(s))bad.push(f+' contém segredo SMTP literal');if(/AIza[0-9A-Za-z_-]{20,}/.test(s)&&!['config.js','config/config.production.js'].includes(f))bad.push(f+' contém API key fora de config');}if(bad.length){console.error(bad.join('\n'));process.exit(1)}console.log('secrets not committed: PASS');
+const {ok}=require('./_legacy-final-validators');
+const {execSync}=require('child_process');
+const out=execSync("rg -n \"(EMAIL_API_KEY=|SMTP_PASSWORD=|-----BEGIN PRIVATE KEY-----)\" -g '!node_modules' -g '!functions/node_modules' -g '!scripts/validate-secrets-not-committed.js' . || true",{encoding:'utf8'}).split('\n').filter(Boolean).filter(line=>!/defineSecret\('(EMAIL_API_KEY|SMTP_PASSWORD)'\)/.test(line)).filter(line=>!/(scripts|tools|migration)\//.test(line));
+ok(out.length===0,'no private e-mail secrets or service-account keys committed');

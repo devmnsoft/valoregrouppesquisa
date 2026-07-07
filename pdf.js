@@ -129,7 +129,7 @@ function wrappedCenteredText(parts,pageWidth,y,maxChars,lineHeight,size,text,bol
 function fitCenteredText(parts,pageWidth,y,maxChars,maxFont,minFont,text,color='0.043 0.239 0.302'){
   const lines=splitWords(text,maxChars).slice(0,2);let size=maxFont;if(lines.some(l=>l.length>34))size=Math.max(minFont,maxFont-6);if(lines.some(l=>l.length>48))size=minFont;lines.forEach(line=>{centerText(parts,pageWidth,y,size,line,true,color);y-=size+7;});return y;
 }
-function createCertificate(data,filename='certificado-valora-pulse.pdf'){
+function createCertificate(data,filename='certificado-valora-insight.pdf'){
   const W=842,H=595,parts=[];
   const participant=String(data?.participantName||'Participante não identificado');
   const survey=String(data?.surveyTitle||data?.surveyName||'Diagnóstico Valora Insight™');

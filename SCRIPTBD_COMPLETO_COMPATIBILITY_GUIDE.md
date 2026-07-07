@@ -1,29 +1,15 @@
-# Guia de compatibilidade do `scriptbd_completo.sql`
+# Guia de compatibilidade do scriptbd_completo.sql
 
-Use `scriptbd_completo.sql` como bootstrap idempotente oficial do schema `valorapesquisa`. Ele contém uma seção `-- COMPATIBILIDADE PARA BANCOS EXISTENTES` que deve rodar antes de índices e seeds.
+O script completo oficial é `scriptbd_completo.sql`, espelhado em `database/postgresql/scriptbd_completo.sql`.
 
-## Cenários suportados
+## Banco antigo
+`CREATE TABLE IF NOT EXISTS` não adiciona colunas em tabelas já existentes. Por isso o bloco `-- COMPATIBILIDADE PARA BANCOS EXISTENTES` deve ficar antes dos triggers, índices e seeds.
 
-- Banco limpo.
-- Banco parcialmente criado.
-- Banco antigo sem colunas novas.
-- Segunda execução idempotente.
-- Local/homologação e preparação para produção.
+## Caso `plan_limits.users`
+A coluna `plan_limits.users` precisa ser criada por `ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS users int NOT NULL DEFAULT 0;` antes de qualquer `INSERT INTO valorapesquisa.plan_limits`.
 
-## Regras
-
-- Não usar schema `public` para objetos oficiais.
-- Não remover dados de negócio sem backup.
-- Não reintroduzir `plans.price_label` ou `plans.badge`.
-- Seeds oficiais devem usar apenas colunas garantidas pelo bloco de compatibilidade.
+## Índice usage_monthly
+O índice correto usa `period_month`: `usage_monthly(organization_id, period_month)`.
 
 ## Validação
-
-```bash
-npm run db:scriptbd-validate
-npm run backend:sql-schema-validate
-npm run backend:official-validate
-npm run check:critical
-```
-
-Com PostgreSQL disponível, rode o script duas vezes e consulte as contagens oficiais de planos, limites, capacidades, formulários, perguntas, opções e super admin.
+Execute `npm run db:scriptbd-validate` antes de homologar banco limpo, banco antigo e segunda execução.

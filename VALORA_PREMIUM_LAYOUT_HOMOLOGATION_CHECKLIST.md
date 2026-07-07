@@ -1,0 +1,25 @@
+# Checklist de homologação premium Valora
+
+- [ ] Home desktop: hero, CTAs, seções e footer premium.
+- [ ] Home mobile: sem scroll horizontal, menu público abre/fecha e CTAs não cobrem texto.
+- [ ] Diagnóstico desktop: introdução, LGPD, identificação, progresso, escala 1 a 5 e envio claro.
+- [ ] Diagnóstico mobile: blocos leves, botões grandes e sem overflow.
+- [ ] Resultado desktop: devolutiva executiva com score, radar, dimensões, benchmarking e CTAs.
+- [ ] Resultado mobile: WhatsApp e CTAs não cobrem conteúdo.
+- [ ] Certificado desktop: moldura premium, dados principais e validação.
+- [ ] Certificado PDF: impressão compacta, sem página branca extra.
+- [ ] Admin desktop: layout SaaS com sidebar, topbar e conteúdo alinhado.
+- [ ] Admin mobile: offcanvas funcional e sem duplicidade visual.
+- [ ] Sidebar: grupos Visão Geral, Gestão, Diagnósticos, Inteligência e Operação.
+- [ ] Topbar: breadcrumb, ambiente, perfil, ação rápida e sair.
+- [ ] Menu por perfil: admin, consultor, empresa, gestor, analista, gestor área, participante e convidado externo.
+- [ ] Tabelas: responsivas, cabeçalhos claros, ações sem exposição técnica.
+- [ ] Forms: labels, foco acessível, mensagens amigáveis.
+- [ ] Estados vazios: mensagem real “Ainda não há dados suficientes para este indicador.” quando aplicável.
+- [ ] Loading: overlay e textos claros.
+- [ ] Toast: mensagens não técnicas.
+- [ ] WhatsApp: links oficiais funcionando.
+- [ ] LGPD: consentimento e política acessíveis.
+- [ ] SQL limpo: `scriptbd_completo.sql` roda em banco vazio.
+- [ ] SQL banco antigo: colunas ausentes são adicionadas antes dos seeds.
+- [ ] SQL segunda execução: script idempotente sem duplicar seed.

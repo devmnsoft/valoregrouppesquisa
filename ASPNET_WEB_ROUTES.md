@@ -82,3 +82,6 @@ Consulte `VALORA_BRAND_ASSETS_MANUAL_SETUP.md` para nomes obrigatórios, testes 
 - Resultado público com data segura, fallback `Data não informada`, layout mobile sem scroll horizontal e CTAs empilhados.
 - Certificado/relatório com CSS de impressão compacto em `backend/Valora.Web/wwwroot/css/valora-print.css`.
 - Validação: `npm run web:client-feedback-fixes`.
+
+## Rotas premium conferidas
+Rotas públicas principais: `/`, `/diagnostico-gratuito`, `/resultado/{id}`, `/certificado/{id}`, `/certificado/validar`, `/lgpd`, `/contato`. Rotas admin seguem layout SaaS com sidebar por perfil.

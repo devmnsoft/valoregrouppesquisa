@@ -639,6 +639,98 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.repair_runs (
     operation text not null, status text not null default 'pending', started_at timestamptz default now(), finished_at timestamptz, details jsonb
 );
 
+-- COMPATIBILIDADE PARA BANCOS EXISTENTES
+-- CREATE TABLE IF NOT EXISTS não altera tabelas já existentes. Este bloco normaliza
+-- contratos oficiais antes de índices e seeds, preservando dados de negócio.
+ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS code text;
+ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS name text NOT NULL DEFAULT '';
+ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS monthly_price numeric(12,2) NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS annual_price numeric(12,2) NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS display_order int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plans_code ON valorapesquisa.plans(code);
+
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS plan_code text;
+
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS plan_id uuid;
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS active_surveys int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS responses_per_month int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS users int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS managers int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS forms int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS public_links int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS email_invites_per_month int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS storage_mb int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_limits_plan_id ON valorapesquisa.plan_limits(plan_id);
+
+ALTER TABLE valorapesquisa.plan_capabilities ADD COLUMN IF NOT EXISTS plan_id uuid;
+ALTER TABLE valorapesquisa.plan_capabilities ADD COLUMN IF NOT EXISTS capability_code text;
+ALTER TABLE valorapesquisa.plan_capabilities ADD COLUMN IF NOT EXISTS enabled boolean NOT NULL DEFAULT true;
+ALTER TABLE valorapesquisa.plan_capabilities ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.plan_capabilities ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+DO $$ BEGIN IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='plan_capabilities' AND column_name='capability_key') THEN EXECUTE 'UPDATE valorapesquisa.plan_capabilities SET capability_code = capability_key WHERE capability_code IS NULL'; END IF; END $$;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_capabilities_plan_capability ON valorapesquisa.plan_capabilities(plan_id, capability_code);
+
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS title text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS slug citext;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS category text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS time_min int;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS scoring_method text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS is_global boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS min_score int;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS max_score int;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS score_ranges jsonb;
+UPDATE valorapesquisa.forms SET name = COALESCE(name,title), title = COALESCE(title,name) WHERE name IS NULL OR title IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_forms_slug ON valorapesquisa.forms(slug);
+
+ALTER TABLE valorapesquisa.form_dimensions ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE valorapesquisa.form_dimensions ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE valorapesquisa.form_dimensions ADD COLUMN IF NOT EXISTS position int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.form_dimensions ADD COLUMN IF NOT EXISTS display_order int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.form_dimensions ADD COLUMN IF NOT EXISTS max_score numeric(10,2);
+ALTER TABLE valorapesquisa.form_dimensions ADD COLUMN IF NOT EXISTS weight numeric(8,2) DEFAULT 1;
+
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS text text;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS type text NOT NULL DEFAULT 'scale';
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS weight numeric(10,2) NOT NULL DEFAULT 1;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS max_score numeric(10,2);
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS required boolean NOT NULL DEFAULT true;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS position int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS display_order int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS min_value int DEFAULT 1;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS max_value int DEFAULT 5;
+
+ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS label text;
+ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS value int;
+ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS position int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS text text;
+ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS score numeric(10,2);
+ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS display_order int NOT NULL DEFAULT 0;
+UPDATE valorapesquisa.question_options SET text = COALESCE(text,label), label = COALESCE(label,text), score = COALESCE(score,value::numeric), display_order = COALESCE(display_order,position) WHERE text IS NULL OR label IS NULL OR score IS NULL;
+
+ALTER TABLE valorapesquisa.email_templates ADD COLUMN IF NOT EXISTS code text;
+ALTER TABLE valorapesquisa.email_templates ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.email_templates ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE valorapesquisa.email_templates ADD COLUMN IF NOT EXISTS from_email text;
+ALTER TABLE valorapesquisa.email_templates ADD COLUMN IF NOT EXISTS subject text;
+ALTER TABLE valorapesquisa.email_templates ADD COLUMN IF NOT EXISTS body text;
+ALTER TABLE valorapesquisa.email_templates ADD COLUMN IF NOT EXISTS body_html text;
+ALTER TABLE valorapesquisa.email_templates ADD COLUMN IF NOT EXISTS body_text text;
+ALTER TABLE valorapesquisa.email_templates ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+ALTER TABLE valorapesquisa.email_templates ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.email_templates ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.email_templates ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+UPDATE valorapesquisa.email_templates SET body_html = COALESCE(body_html,body), body_text = COALESCE(body_text,body), body = COALESCE(body,body_text,body_html), name = COALESCE(name,code) WHERE body_html IS NULL OR body_text IS NULL OR body IS NULL OR name IS NULL;
+
+
 DROP TRIGGER IF EXISTS trg_organizations_updated_at ON valorapesquisa.organizations; CREATE TRIGGER trg_organizations_updated_at BEFORE UPDATE ON valorapesquisa.organizations FOR EACH ROW EXECUTE FUNCTION valorapesquisa.set_updated_at();
 
 DROP TRIGGER IF EXISTS trg_organization_settings_updated_at ON valorapesquisa.organization_settings; CREATE TRIGGER trg_organization_settings_updated_at BEFORE UPDATE ON valorapesquisa.organization_settings FOR EACH ROW EXECUTE FUNCTION valorapesquisa.set_updated_at();
@@ -1138,13 +1230,19 @@ ON CONFLICT (email) DO UPDATE SET status='active',role=EXCLUDED.role,role_id=EXC
 
 
 WITH org AS (SELECT id FROM valorapesquisa.organizations WHERE slug='valora'), f AS (
-INSERT INTO valorapesquisa.forms(organization_id,title,slug,description,status,min_score,max_score,score_ranges)
-SELECT id,'Valora Insight — Diagnóstico de Maturidade Empresarial','valora-insight','Diagnóstico oficial Valora Insight','active',25,125,'[{"label":"Crítico","min":25,"max":55},{"label":"Em estruturação","min":56,"max":85},{"label":"Estruturada","min":86,"max":110},{"label":"Alta maturidade","min":111,"max":125}]'::jsonb FROM org
-ON CONFLICT DO NOTHING RETURNING id), form_id AS (SELECT id FROM f UNION SELECT id FROM valorapesquisa.forms WHERE slug='valora-insight' LIMIT 1), dims(name,pos) AS (VALUES ('Cultura e Propósito',1),('Gestão e Governança',2),('Liderança',3),('Pessoas e Talentos',4),('Resultados e Crescimento',5))
-INSERT INTO valorapesquisa.form_dimensions(form_id,name,position) SELECT form_id.id,dims.name,dims.pos FROM form_id,dims ON CONFLICT DO NOTHING;
-WITH fd AS (SELECT d.id,d.name,d.position,f.id form_id FROM valorapesquisa.form_dimensions d JOIN valorapesquisa.forms f ON f.id=d.form_id WHERE f.slug='valora-insight'), nums(n) AS (VALUES (1),(2),(3),(4),(5))
-INSERT INTO valorapesquisa.questions(form_id,dimension_id,text,position,type,min_value,max_value,required)
-SELECT fd.form_id,fd.id,fd.name || ' - pergunta ' || nums.n, ((fd.position-1)*5)+nums.n,'scale',1,5,true FROM fd,nums ON CONFLICT DO NOTHING;
+INSERT INTO valorapesquisa.forms(organization_id,title,name,slug,description,category,time_min,scoring_method,status,is_global,min_score,max_score,score_ranges)
+SELECT id,'Valora Insight — Diagnóstico de Maturidade Empresarial','Valora Insight — Diagnóstico de Maturidade Empresarial','valora-insight','Diagnóstico oficial Valora Insight','diagnostico',10,'sum','active',true,25,125,'[{"label":"Crítico","min":25,"max":55},{"label":"Em estruturação","min":56,"max":85},{"label":"Estruturada","min":86,"max":110},{"label":"Alta maturidade","min":111,"max":125}]'::jsonb FROM org
+ON CONFLICT DO NOTHING RETURNING id), form_id AS (SELECT id FROM f UNION SELECT id FROM valorapesquisa.forms WHERE slug='valora-insight' LIMIT 1), dims(name,description,pos) AS (VALUES ('Cultura e Propósito','Clareza de identidade, valores e alinhamento cultural.',1),('Gestão e Governança','Processos, rituais de gestão e tomada de decisão.',2),('Liderança','Capacidade dos líderes de orientar, desenvolver e engajar.',3),('Pessoas e Talentos','Atração, desenvolvimento, reconhecimento e retenção.',4),('Resultados e Crescimento','Execução, indicadores, aprendizado e crescimento sustentável.',5))
+INSERT INTO valorapesquisa.form_dimensions(form_id,name,description,position,display_order,max_score,weight) SELECT form_id.id,dims.name,dims.description,dims.pos,dims.pos,25,1 FROM form_id,dims ON CONFLICT DO NOTHING;
+WITH q(dimension_name,position,text) AS (VALUES
+('Cultura e Propósito',1,'Nossa organização comunica claramente seu propósito e transforma valores em comportamentos observáveis no dia a dia.'),('Cultura e Propósito',2,'As decisões importantes são coerentes com os valores declarados pela empresa.'),('Cultura e Propósito',3,'As equipes entendem como seu trabalho contribui para a estratégia e para os clientes.'),('Cultura e Propósito',4,'Há práticas consistentes para reconhecer atitudes alinhadas à cultura desejada.'),('Cultura e Propósito',5,'Mudanças culturais são conduzidas com comunicação, escuta e acompanhamento.'),
+('Gestão e Governança',6,'A empresa possui metas claras, indicadores acompanhados e responsáveis definidos.'),('Gestão e Governança',7,'Os processos críticos estão documentados, são revisados e possuem donos claros.'),('Gestão e Governança',8,'As reuniões de gestão geram decisões, prazos e acompanhamento efetivo.'),('Gestão e Governança',9,'Riscos, prioridades e recursos são discutidos de forma estruturada pela liderança.'),('Gestão e Governança',10,'A governança favorece transparência, prestação de contas e melhoria contínua.'),
+('Liderança',11,'As lideranças dão direcionamento claro e acompanham a execução sem microgerenciar.'),('Liderança',12,'Gestores oferecem feedbacks frequentes, objetivos e orientados ao desenvolvimento.'),('Liderança',13,'Líderes atuam como exemplo dos comportamentos esperados pela organização.'),('Liderança',14,'Conflitos são tratados com maturidade, respeito e foco em solução.'),('Liderança',15,'A liderança prepara sucessores e distribui conhecimento de forma intencional.'),
+('Pessoas e Talentos',16,'A organização atrai pessoas compatíveis com a cultura e as competências necessárias.'),('Pessoas e Talentos',17,'Há trilhas ou ações claras de desenvolvimento para diferentes perfis profissionais.'),('Pessoas e Talentos',18,'Critérios de reconhecimento, promoção e remuneração são percebidos como justos.'),('Pessoas e Talentos',19,'O clima favorece segurança psicológica, colaboração e aprendizagem.'),('Pessoas e Talentos',20,'A empresa monitora engajamento e atua sobre causas relevantes de rotatividade.'),
+('Resultados e Crescimento',21,'As metas estratégicas se desdobram em iniciativas mensuráveis e acompanhadas.'),('Resultados e Crescimento',22,'Resultados de clientes, operação e finanças são analisados de forma integrada.'),('Resultados e Crescimento',23,'A empresa aprende com erros e transforma lições em melhorias de processo.'),('Resultados e Crescimento',24,'Inovação e eficiência são estimuladas sem perder foco na entrega principal.'),('Resultados e Crescimento',25,'O crescimento é planejado considerando capacidade operacional, pessoas e sustentabilidade.')
+), fd AS (SELECT d.id,d.name,f.id form_id FROM valorapesquisa.form_dimensions d JOIN valorapesquisa.forms f ON f.id=d.form_id WHERE f.slug='valora-insight')
+INSERT INTO valorapesquisa.questions(form_id,dimension_id,text,position,display_order,type,weight,max_score,min_value,max_value,required)
+SELECT fd.form_id,fd.id,q.text,q.position,q.position,'scale',1,5,1,5,true FROM fd JOIN q ON q.dimension_name=fd.name ON CONFLICT DO NOTHING;
 WITH org AS (SELECT id FROM valorapesquisa.organizations WHERE slug='valora'), form_id AS (SELECT id FROM valorapesquisa.forms WHERE slug='valora-insight'), s AS (
 INSERT INTO valorapesquisa.surveys(organization_id,form_id,title,description,status,expires_at,is_free,featured_on_home,visible_on_home,plan_id,token_hash)
 SELECT org.id,form_id.id,'Diagnóstico gratuito Valora Insight','Pesquisa gratuita oficial','active','2036-12-31 23:59:59+00',true,true,true,'free',encode(digest('valora-local-dev-public-token','sha256'),'hex') FROM org,form_id ON CONFLICT DO NOTHING RETURNING id)
@@ -1171,9 +1269,9 @@ CREATE TABLE IF NOT EXISTS privacy_requests (id uuid PRIMARY KEY DEFAULT gen_ran
 CREATE TABLE IF NOT EXISTS email_templates (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES organizations(id), code text NOT NULL, name text NOT NULL, subject text NOT NULL, body_html text NOT NULL, body_text text, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, is_deleted boolean NOT NULL DEFAULT false, UNIQUE(code, organization_id));
 ALTER TABLE email_jobs ADD COLUMN IF NOT EXISTS certificate_id uuid; ALTER TABLE email_jobs ADD COLUMN IF NOT EXISTS template_code text DEFAULT 'survey_invite'; ALTER TABLE email_jobs ADD COLUMN IF NOT EXISTS from_email text DEFAULT 'no-reply@localhost'; ALTER TABLE email_jobs ADD COLUMN IF NOT EXISTS from_name text DEFAULT 'Valora'; ALTER TABLE email_jobs ADD COLUMN IF NOT EXISTS to_email_masked text DEFAULT '***'; ALTER TABLE email_jobs ADD COLUMN IF NOT EXISTS to_email_encrypted_or_plain_dev text; ALTER TABLE email_jobs ADD COLUMN IF NOT EXISTS body_html text; ALTER TABLE email_jobs ADD COLUMN IF NOT EXISTS body_text text; ALTER TABLE email_jobs ADD COLUMN IF NOT EXISTS next_attempt_at timestamptz; ALTER TABLE email_jobs ADD COLUMN IF NOT EXISTS last_attempt_at timestamptz; ALTER TABLE email_jobs ADD COLUMN IF NOT EXISTS sent_at timestamptz; ALTER TABLE email_jobs ADD COLUMN IF NOT EXISTS dead_letter_reason text;
 CREATE INDEX IF NOT EXISTS idx_report_definitions_code ON report_definitions(code); CREATE INDEX IF NOT EXISTS idx_generated_reports_org ON generated_reports(organization_id); CREATE INDEX IF NOT EXISTS idx_certificates_validation_code ON certificates(validation_code); CREATE INDEX IF NOT EXISTS idx_export_jobs_org ON export_jobs(organization_id); CREATE INDEX IF NOT EXISTS idx_lgpd_consents_org ON lgpd_consents(organization_id); CREATE INDEX IF NOT EXISTS idx_privacy_requests_org ON privacy_requests(organization_id); CREATE INDEX IF NOT EXISTS idx_privacy_requests_protocol ON privacy_requests(protocol); CREATE INDEX IF NOT EXISTS idx_email_templates_code ON email_templates(code); CREATE INDEX IF NOT EXISTS idx_email_jobs_status ON email_jobs(status);
-CREATE INDEX IF NOT EXISTS idx_plans_code ON plans(code); CREATE INDEX IF NOT EXISTS idx_plans_status ON plans(status); CREATE INDEX IF NOT EXISTS idx_modules_code ON modules(code); CREATE INDEX IF NOT EXISTS idx_modules_status ON modules(status); CREATE INDEX IF NOT EXISTS idx_organization_modules_organization_id ON organization_modules(organization_id); CREATE INDEX IF NOT EXISTS idx_subscriptions_organization_id ON subscriptions(organization_id); CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status); CREATE INDEX IF NOT EXISTS idx_usage_monthly_organization_month ON usage_monthly(organization_id, month);
+CREATE INDEX IF NOT EXISTS idx_plans_code ON plans(code); CREATE INDEX IF NOT EXISTS idx_plans_status ON plans(status); CREATE INDEX IF NOT EXISTS idx_modules_code ON modules(code); CREATE INDEX IF NOT EXISTS idx_modules_status ON modules(status); CREATE INDEX IF NOT EXISTS idx_organization_modules_organization_id ON organization_modules(organization_id); CREATE INDEX IF NOT EXISTS idx_subscriptions_organization_id ON subscriptions(organization_id); CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status); CREATE INDEX IF NOT EXISTS idx_usage_monthly_organization_month ON usage_monthly(organization_id, period_month);
 INSERT INTO report_definitions(code,name,description,report_type,required_module_code,minimum_plan_code) VALUES ('response_summary','Relatório por resposta','Resumo seguro por resposta','response','relatorios','free'),('survey_summary','Relatório por pesquisa','Resumo agregado por pesquisa','survey','relatorios','essential'),('organization_executive','Relatório executivo','Resumo executivo da organização','organization','relatorios','growth') ON CONFLICT (code) DO NOTHING;
-INSERT INTO email_templates(code,name,subject,body_html,body_text,status) VALUES ('survey_invite','Convite de pesquisa','Convite para pesquisa','<p>Você recebeu um convite.</p>','Você recebeu um convite.','active'),('result_available','Resultado disponível','Seu resultado está disponível','<p>Seu resultado está disponível.</p>','Seu resultado está disponível.','active'),('certificate_issued','Certificado emitido','Seu certificado foi emitido','<p>Seu certificado foi emitido.</p>','Seu certificado foi emitido.','active'),('password_reset','Redefinição de senha','Redefinição de senha','<p>Redefina sua senha.</p>','Redefina sua senha.','active'),('privacy_request_received','Solicitação recebida','Solicitação LGPD recebida','<p>Recebemos sua solicitação.</p>','Recebemos sua solicitação.','active'),('privacy_request_completed','Solicitação concluída','Solicitação LGPD concluída','<p>Sua solicitação foi concluída.</p>','Sua solicitação foi concluída.','active') ON CONFLICT (code, organization_id) DO NOTHING;
+INSERT INTO email_templates(code,name,subject,body_html,body_text,status) SELECT code,name,subject,body_html,body_text,status FROM (VALUES ('survey_invite','Convite de pesquisa','Convite para pesquisa','<p>Você recebeu um convite.</p>','Você recebeu um convite.','active'),('result_available','Resultado disponível','Seu resultado está disponível','<p>Seu resultado está disponível.</p>','Seu resultado está disponível.','active'),('certificate_issued','Certificado emitido','Seu certificado foi emitido','<p>Seu certificado foi emitido.</p>','Seu certificado foi emitido.','active'),('password_reset','Redefinição de senha','Redefinição de senha','<p>Redefina sua senha.</p>','Redefina sua senha.','active'),('privacy_request_received','Solicitação recebida','Solicitação LGPD recebida','<p>Recebemos sua solicitação.</p>','Recebemos sua solicitação.','active'),('privacy_request_completed','Solicitação concluída','Solicitação LGPD concluída','<p>Sua solicitação foi concluída.</p>','Sua solicitação foi concluída.','active')) AS v(code,name,subject,body_html,body_text,status) WHERE NOT EXISTS (SELECT 1 FROM email_templates e WHERE e.code=v.code AND e.organization_id IS NULL);
 
 -- Public survey result/email/certificate compatibility additions (idempotent).
 CREATE TABLE IF NOT EXISTS valorapesquisa.email_job_attempts (

@@ -118,3 +118,7 @@ Consulte `VALORA_BRAND_ASSETS_MANUAL_SETUP.md` para nomes obrigatórios, testes 
 - Validação diagnóstica sem binários: `VALORA_ALLOW_MISSING_BRAND_ASSETS=true npm run web:brand-assets`.
 - Readiness visual RC2: `npm run web:rc2-visual-readiness`.
 - A homologação final ainda deve ser executada com .NET SDK, PostgreSQL e navegador real para validar desktop/mobile antes do pacote `0.9.0-rc2`.
+
+## Compatibilidade oficial do `scriptbd_completo.sql`
+
+O bootstrap PostgreSQL oficial deve ser validado com `npm run db:scriptbd-validate` antes de uso em local, homologação ou produção. A seção `-- COMPATIBILIDADE PARA BANCOS EXISTENTES` em `scriptbd_completo.sql` normaliza schemas antigos sem `DROP TABLE` destrutivo de tabelas de negócio, incluindo `plan_limits.users`, `plans.monthly_price`, `organizations.plan_code`, contratos de formulários/perguntas/opções, `email_templates.body_html/body_text` e o índice de `usage_monthly(period_month)`. Consulte `SCRIPTBD_COMPLETO_COMPATIBILITY_GUIDE.md` para o procedimento completo.

@@ -10,3 +10,7 @@ ALTER TABLE valorapesquisa.users ADD COLUMN IF NOT EXISTS role_id uuid NULL;
 ALTER TABLE valorapesquisa.users ADD COLUMN IF NOT EXISTS phone text NULL;
 ALTER TABLE valorapesquisa.users ADD COLUMN IF NOT EXISTS name text NULL;
 CREATE TABLE IF NOT EXISTS valorapesquisa.organization_settings (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL UNIQUE REFERENCES valorapesquisa.organizations(id), settings jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), created_by uuid, updated_by uuid, is_deleted boolean NOT NULL DEFAULT false, deleted_at timestamptz, deleted_by uuid);
+
+
+-- COMPATIBILIDADE PARA BANCOS EXISTENTES
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS plan_code text;

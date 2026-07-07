@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.organization_branding (
     is_deleted boolean not null default false,
     deleted_at timestamptz null,
     deleted_by uuid null,
-    organization_id uuid not null, logo_url text, primary_color text, custom_domain text
+    organization_id uuid not null, logo_url text, symbol_url text, primary_color text, secondary_color text, custom_domain text
 );
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.units (
@@ -754,6 +754,16 @@ CREATE INDEX IF NOT EXISTS ix_organizations_created_at ON valorapesquisa.organiz
 CREATE INDEX IF NOT EXISTS ix_organization_settings_organization_id ON valorapesquisa.organization_settings (organization_id);
 
 CREATE INDEX IF NOT EXISTS ix_organization_settings_created_at ON valorapesquisa.organization_settings (created_at);
+
+
+ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS symbol_url text;
+ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS secondary_color text;
+UPDATE valorapesquisa.organization_branding
+SET logo_url = COALESCE(NULLIF(logo_url, ''), '/img/brand/valora-logo-full.jpeg'),
+    symbol_url = COALESCE(NULLIF(symbol_url, ''), '/img/brand/valora-symbol.jpeg'),
+    primary_color = COALESCE(NULLIF(primary_color, ''), '#0c3448'),
+    secondary_color = COALESCE(NULLIF(secondary_color, ''), '#75dce8')
+WHERE is_deleted = false;
 
 CREATE INDEX IF NOT EXISTS ix_organization_branding_organization_id ON valorapesquisa.organization_branding (organization_id);
 

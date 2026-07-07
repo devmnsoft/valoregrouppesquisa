@@ -1,0 +1,14 @@
+.admin-brand-symbol {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 14px;
+  background: #0c3448;
+  padding: 4px;
+  box-shadow: 0 12px 28px rgba(12, 52, 72, .2);
+}
+
+.brand-mark:hover .admin-brand-symbol { transform: translateY(-1px); }
+.app-sidebar .brand-mark { padding: .35rem .25rem .85rem; }
+.topbar .brand-mark { min-width: 220px; }
+.brand-text strong { letter-spacing: -.01em; }

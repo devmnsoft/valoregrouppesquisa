@@ -93,3 +93,5 @@ const LEGACY_PUBLIC_RESULT_FINAL_FIX_VALIDATORS = [
   'scripts/validate-secrets-not-committed.js'
 ];
 void LEGACY_PUBLIC_RESULT_FINAL_FIX_VALIDATORS;
+
+// Valora Insight™ devolutiva engine final audit reviewed

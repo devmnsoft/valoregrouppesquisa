@@ -16,5 +16,6 @@
   },
   "valoraPublicResultFinalFix": {
     "emailProviderDefault": "http_api"
-  }
+  },
+  "valoraInsightDevolutivaEngine": "reviewed"
 }

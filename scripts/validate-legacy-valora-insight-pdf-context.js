@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8');if(!/reportResponsePdf[\s\S]*buildValoraInsightDevolutiva[\s\S]*Resultado geral[\s\S]*Radar/.test(s)){console.error('pdf context does not use devolutiva');process.exit(1)}console.log('legacy pdf context ok');

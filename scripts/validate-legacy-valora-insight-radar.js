@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8');for(const x of ['function radarBar','function buildRadar','function renderRadarHtml','█','░'])if(!s.includes(x)){console.error('missing radar '+x);process.exit(1)}console.log('legacy radar ok');

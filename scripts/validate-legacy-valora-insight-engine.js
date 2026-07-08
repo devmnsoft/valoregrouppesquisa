@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8');for(const x of ['buildValoraInsightDevolutiva','normalizeValoraInsightScores','PUBLIC_PRODUCT_NAME','VALORA_INSIGHT_LEVELS'])if(!s.includes(x)){console.error('missing '+x);process.exit(1)}console.log('legacy insight engine ok');

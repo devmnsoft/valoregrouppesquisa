@@ -1,2 +1,1 @@
-const {ok,app}=require('./_legacy-final-validators');
-ok(!/Enquadramento geral sem adoçamento/.test(app),'duplicate white summary card removed');
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8');if(/\$\{\s*renderExecutiveSummaryCard\s*\(/.test(s)){console.error('duplicate summary card renderer is used');process.exit(1)}console.log('no duplicate summary ok');

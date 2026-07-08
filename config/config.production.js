@@ -51,3 +51,5 @@ window.ValoraProductionPublicResultFinalFix = Object.freeze({
   whatsappNumber: '5591992545353',
   emailProviderDefault: 'http_api'
 });
+
+// Valora Insight™ devolutiva engine final audit reviewed

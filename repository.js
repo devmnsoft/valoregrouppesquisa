@@ -60,3 +60,5 @@ window.ValoraRepository=Object.freeze({
 
 // Public result final fix: loadPublicResult remains a token-only read operation;
 // Firebase provider is selected without requiring private profile loading.
+
+// Valora Insight™ devolutiva engine final audit reviewed

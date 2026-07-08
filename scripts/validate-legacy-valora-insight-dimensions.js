@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8');for(const x of ['Cultura e Propósito','Gestão e Governança','Liderança','Pessoas e Talentos','Resultados e Crescimento','Crítico','Em estruturação','Estruturada','Alta maturidade'])if(!s.includes(x)){console.error('missing '+x);process.exit(1)}console.log('legacy dimensions ok');

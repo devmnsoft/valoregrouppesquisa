@@ -31,3 +31,5 @@ global.ValoraReports={buildExecutiveSummary,buildGlobalExecutiveReport,buildComp
 
 // Public result final fix: reports generated from public actions must prefer cached
 // result bundles and Valora Insight™ naming supplied by app.js.
+
+// Valora Insight™ devolutiva engine final audit reviewed

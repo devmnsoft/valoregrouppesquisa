@@ -400,3 +400,5 @@ window.ValoraFirebaseRepository={
   async saveAuditLog(data={}){try{if(!session.authUser)return false;await callFunction('logServerEvent',{level:'info',category:'audit',action:data.action||data.entityType||'frontend_audit',message:data.detail||data.action||'Auditoria frontend',metadata:data});return true;}catch(err){console.debug?.('[Valora Pulse] Auditoria não bloqueante via função indisponível.',err?.code||err?.message||err);return false;}}
 };
 })();
+
+// Valora Insight™ devolutiva engine final audit reviewed

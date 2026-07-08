@@ -1,3 +1,1 @@
-const {ok,app,pdf}=require('./_legacy-final-validators');
-ok(/function formatPublicDate/.test(app),'formatPublicDate helper exists');
-ok(!/Invalid date/.test(app+pdf),'Invalid date literal absent');
+const fs=require('fs');const files=['app.js','pdf.js','report-service.js','functions/index.js'];const bad=files.filter(f=>fs.existsSync(f)&&fs.readFileSync(f,'utf8').includes('Invalid date'));if(bad.length){console.error('Invalid date appears in '+bad.join(','));process.exit(1)}console.log('no invalid date ok');

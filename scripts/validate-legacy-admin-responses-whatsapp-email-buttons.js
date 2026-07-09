@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8');for(const x of ['data-action="shareResultWhatsapp"','Enviar WhatsApp','data-action="sendResultEmail"','Reenviar e-mail','renderAdminResponsesMobileCards'])if(!s.includes(x))throw new Error('botão admin responses ausente: '+x);console.log('validate-legacy-admin-responses-whatsapp-email-buttons: PASS');

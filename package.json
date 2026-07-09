@@ -528,7 +528,14 @@
     "legacy:report-pdf-mobile-safe": "node scripts/validate-legacy-report-pdf-mobile-safe.js",
     "legacy:pdf-no-unsupported-unicode": "node scripts/validate-legacy-pdf-no-unsupported-unicode.js",
     "legacy:action-handlers": "node scripts/validate-legacy-action-handlers-public-admin.js",
-    "legacy:admin-pdf-no-public-token": "node scripts/validate-legacy-admin-report-certificate-no-public-token.js"
+    "legacy:admin-pdf-no-public-token": "node scripts/validate-legacy-admin-report-certificate-no-public-token.js",
+    "functions:result-token-on-submit": "node scripts/validate-functions-result-token-hash-saved-on-submit.js",
+    "functions:send-email-rotates-token": "node scripts/validate-functions-send-result-email-rotates-token.js",
+    "functions:whatsapp-rotates-token": "node scripts/validate-functions-whatsapp-result-rotates-token.js",
+    "functions:no-token-hash-url": "node scripts/validate-functions-no-token-hash-in-public-url.js",
+    "functions:get-result-hash-missing": "node scripts/validate-functions-get-public-result-hash-missing-diagnostic.js",
+    "legacy:share-result-whatsapp": "node scripts/validate-legacy-share-result-whatsapp-action.js",
+    "legacy:admin-response-buttons": "node scripts/validate-legacy-admin-responses-whatsapp-email-buttons.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

@@ -410,3 +410,5 @@ window.ValoraFirebaseRepository={
 })();
 
 // Valora Insight™ devolutiva engine final audit reviewed
+
+// Legacy final stabilization: certificate UI is disabled in the frontend; repository keeps historical fields untouched for backward-compatible reads only.

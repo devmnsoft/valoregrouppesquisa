@@ -20,7 +20,7 @@
     PUBLIC_SUBMISSION_PROVIDER: 'auto', PUBLIC_SURVEY_VALIDATION_PROVIDER: 'auto', RESULT_PROVIDER: 'auto',
     EMAIL_TRANSPORT: 'auto',
     WHATSAPP_TRANSPORT: 'manual',
-    WHATSAPP_CONTACT_URL: 'https://wa.me/5591992545353?text=Ol%C3%A1%2C%20quero%20conhecer%20os%20planos%20completos%20da%20Valora.',
+    WHATSAPP_CONTACT_URL: 'https://wa.me/5591992545353?text=Ol%C3%A1%2C%20vi%20minha%20devolutiva%20Valora%20Insight%E2%84%A2%20e%20quero%20falar%20com%20o%20Valora%20Group.',
     FREE_SURVEY_LINK_EXPIRATION_DAYS: 3650,
     EXTERNAL_API_BASE_URL: 'https://api.valoragroup.mnsoft.com.br',
     COMMUNICATION_GATEWAY: {
@@ -49,6 +49,7 @@
 window.ValoraProductionPublicResultFinalFix = Object.freeze({
   publicProductName: 'Valora Insight™',
   whatsappNumber: '5591992545353',
+  certificateFeatureEnabled: false,
   emailProviderDefault: 'http_api'
 });
 

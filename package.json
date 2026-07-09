@@ -535,7 +535,19 @@
     "functions:no-token-hash-url": "node scripts/validate-functions-no-token-hash-in-public-url.js",
     "functions:get-result-hash-missing": "node scripts/validate-functions-get-public-result-hash-missing-diagnostic.js",
     "legacy:share-result-whatsapp": "node scripts/validate-legacy-share-result-whatsapp-action.js",
-    "legacy:admin-response-buttons": "node scripts/validate-legacy-admin-responses-whatsapp-email-buttons.js"
+    "legacy:admin-response-buttons": "node scripts/validate-legacy-admin-responses-whatsapp-email-buttons.js",
+    "legacy:certificate-removed": "node scripts/validate-legacy-certificate-removed.js",
+    "legacy:pdf-safe-text": "node scripts/validate-legacy-pdf-safe-text.js",
+    "legacy:pdf-no-question-artifacts": "node scripts/validate-legacy-pdf-no-question-mark-artifacts.js",
+    "legacy:pdf-no-truncated": "node scripts/validate-legacy-pdf-no-truncated-sections.js",
+    "legacy:pdf-pagination": "node scripts/validate-legacy-pdf-wrapped-pagination.js",
+    "legacy:benchmark-market": "node scripts/validate-legacy-benchmarking-market-reference.js",
+    "legacy:whatsapp-cta": "node scripts/validate-legacy-whatsapp-cta-text.js",
+    "legacy:login-copy": "node scripts/validate-legacy-login-copy.js",
+    "legacy:report-no-certificate": "node scripts/validate-legacy-report-no-certificate.js",
+    "legacy:report-structure": "node scripts/validate-legacy-report-structure.js",
+    "legacy:mobile-report": "node scripts/validate-legacy-mobile-report-layout.js",
+    "legacy:branding": "node scripts/validate-legacy-public-admin-branding.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

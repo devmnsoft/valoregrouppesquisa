@@ -1,6 +1,6 @@
 const fs=require('fs');
-function read(p){return fs.readFileSync(p,'utf8')}
-function assert(cond,msg){if(!cond){console.error('FAIL:',msg);process.exit(1)}}
-function has(file,re,msg){assert(re.test(read(file)),`${file}: ${msg}`)}
-function no(file,re,msg){assert(!re.test(read(file)),`${file}: ${msg}`)}
-module.exports={read,assert,has,no};
+function read(f){return fs.readFileSync(f,'utf8')}
+function ok(cond,msg){if(!cond){throw new Error(msg)}}
+function no(f,re,msg){ok(!re.test(read(f)),msg||`${f} matched ${re}`)}
+function has(f,needle,msg){ok(read(f).includes(needle),msg||`${f} missing ${needle}`)}
+module.exports={read,ok,no,has};

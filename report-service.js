@@ -37,3 +37,5 @@ global.ValoraReports={stripResultAccessSecrets,radarBarPdfSafe,buildExecutiveSum
 // Valora Insight devolutiva engine final audit reviewed
 
 // Public result reports use the authenticated admin bundle or the cached/token-validated public bundle only.
+
+// Legacy final stabilization: individual Valora Insight PDF text safety is centralized in app.js/pdf.js; executive aggregate reports must avoid certificate CTAs.

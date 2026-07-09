@@ -4,9 +4,17 @@
 const CP1252 = {0x20AC:0x80,0x201A:0x82,0x0192:0x83,0x201E:0x84,0x2026:0x85,0x2020:0x86,0x2021:0x87,0x02C6:0x88,0x2030:0x89,0x0160:0x8A,0x2039:0x8B,0x0152:0x8C,0x017D:0x8E,0x2018:0x91,0x2019:0x92,0x201C:0x93,0x201D:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,0x02DC:0x98,0x2122:0x99,0x0161:0x9A,0x203A:0x9B,0x0153:0x9C,0x017E:0x9E,0x0178:0x9F};
 const encoder = new TextEncoder();
 
+function toPdfSafeText(value = '') { return String(value ?? '').replace(/[\u{1F000}-\u{1FAFF}]/gu, '').replace(/[\u2600-\u27BF]/g, '').replace(/[\u2580-\u259F]/g, '').replace(/[\u2190-\u21FF]/g, '-').replace(/[\u2013\u2014]/g, '-').replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/\u2122/g, '').replace(/\u00AE/g, '').replace(/\u00A9/g, '(c)').replace(/\s+/g, ' ').trim(); }
+function toPdfAsciiFallback(value = '') { return toPdfSafeText(value).normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+function pdfProductName(){ return 'Valora Insight'; }
+function pdfLevelTitle(level){ if(!level) return 'Resultado registrado'; const title=level.title||level.name||level.label||String(level||''); return toPdfSafeText(title).replace(/^\?+\s*/,'').trim(); }
+function pdfScoreLine(totalScore, level){ return `${Number(totalScore||0)}/125 - ${pdfLevelTitle(level)}`; }
+function ensurePdfPageSpace(doc, y, neededHeight, options = {}) { const marginBottom = options.marginBottom || 24; const pageHeight = doc.internal.pageSize.getHeight(); if (y + neededHeight > pageHeight - marginBottom) { doc.addPage(); return options.marginTop || 24; } return y; }
+function writePdfWrappedText(doc, text, x, y, maxWidth, options = {}) { const fontSize=options.fontSize||10,lineHeight=options.lineHeight||5.5; doc.setFontSize(fontSize); let currentY=y; toPdfSafeText(text).split(/\n{2,}/).map(p=>p.trim()).filter(Boolean).forEach(paragraph=>{ doc.splitTextToSize(paragraph,maxWidth).forEach(line=>{ currentY=ensurePdfPageSpace(doc,currentY,lineHeight,options); doc.text(line,x,currentY); currentY+=lineHeight; }); currentY+=lineHeight*.65; }); return currentY; }
+function writePdfSection(doc, title, body, x, y, maxWidth, options = {}) { let currentY=ensurePdfPageSpace(doc,y,20,options); doc.setFontSize(options.titleSize||13); doc.setFont(undefined,'bold'); doc.text(toPdfSafeText(title),x,currentY); currentY+=8; doc.setFont(undefined,'normal'); return writePdfWrappedText(doc,body,x,currentY,maxWidth,options)+3; }
 function redactResultAccessSecretText(text){return String(text??'').replace(/resultTokenHash|tokenHash/gi,'token protegido');}
 function winAnsiBytes(text){
-  text=redactResultAccessSecretText(text);
+  text=toPdfSafeText(redactResultAccessSecretText(text));
   const out=[];
   for(const ch of String(text??'')){
     const code=ch.codePointAt(0);
@@ -91,7 +99,7 @@ function createReport(options,filename='relatorio-valora-pulse.pdf'){
   const pages=[]; let parts=[],y=pageH-margin;
   function header(pageNo){
     parts.push(ascii(`0.043 0.239 0.302 rg 0 ${pageH-92} ${pageW} 92 re f\n`));
-    parts.push(cmdText(margin,pageH-48,21,'VALORA PULSE',true,'1 1 1'));
+    parts.push(cmdText(margin,pageH-48,21,pdfProductName().toUpperCase(),true,'1 1 1'));
     parts.push(cmdText(margin,pageH-70,9,'Governança - Controller - Advisory',false,'0.77 0.95 0.98'));
     parts.push(cmdText(pageW-92,pageH-65,9,`Página ${pageNo}`,false,'1 1 1'));
     y=pageH-122;
@@ -114,7 +122,7 @@ function createReport(options,filename='relatorio-valora-pulse.pdf'){
     const lines=Math.max(...cellLines.map(a=>a.length)); const rowH=Math.max(24,lines*11+8);
     if(y-rowH<44){ finish();header(pages.length+1);tableHeader(); }
     if(rowIndex%2===0) parts.push(ascii(`0.98 0.99 1 rg ${margin} ${y-rowH+3} ${usable} ${rowH} re f\n`));
-    let x=margin;columns.forEach((c,i)=>{cellLines[i].slice(0,5).forEach((line,j)=>parts.push(cmdText(x+4,y-12-j*10,7.8,line,false,'0.05 0.17 0.22')));x+=widths[i];});
+    let x=margin;columns.forEach((c,i)=>{cellLines[i].forEach((line,j)=>parts.push(cmdText(x+4,y-12-j*10,7.8,line,false,'0.05 0.17 0.22')));x+=widths[i];});
     parts.push(cmdLine(margin,y-rowH+3,pageW-margin,y-rowH+3,.5)); y-=rowH;
   });
   ensure(36); parts.push(cmdText(margin,32,7.8,`Gerado em ${new Date().toLocaleString('pt-BR')} - Documento confidencial`,false,'0.30 0.45 0.51'));
@@ -126,10 +134,10 @@ function centerText(parts,pageWidth,y,size,text,bold=false,color='0.03 0.16 0.21
   const safe=String(text??'');parts.push(cmdText(Math.max(36,(pageWidth-textWidthApprox(safe,size))/2),y,size,safe,bold,color));return y-size*1.25;
 }
 function wrappedCenteredText(parts,pageWidth,y,maxChars,lineHeight,size,text,bold=false,color='0.03 0.16 0.21',maxLines=6){
-  const lines=splitWords(text,maxChars).slice(0,maxLines);lines.forEach(line=>{centerText(parts,pageWidth,y,size,line,bold,color);y-=lineHeight;});return y;
+  const lines=splitWords(toPdfSafeText(text),maxChars).slice(0,maxLines);lines.forEach(line=>{centerText(parts,pageWidth,y,size,line,bold,color);y-=lineHeight;});return y;
 }
 function fitCenteredText(parts,pageWidth,y,maxChars,maxFont,minFont,text,color='0.043 0.239 0.302'){
-  const lines=splitWords(text,maxChars).slice(0,2);let size=maxFont;if(lines.some(l=>l.length>34))size=Math.max(minFont,maxFont-6);if(lines.some(l=>l.length>48))size=minFont;lines.forEach(line=>{centerText(parts,pageWidth,y,size,line,true,color);y-=size+7;});return y;
+  const lines=splitWords(toPdfSafeText(text),maxChars).slice(0,2);let size=maxFont;if(lines.some(l=>l.length>34))size=Math.max(minFont,maxFont-6);if(lines.some(l=>l.length>48))size=minFont;lines.forEach(line=>{centerText(parts,pageWidth,y,size,line,true,color);y-=size+7;});return y;
 }
 function createCertificate(data,filename='certificado-valora-insight.pdf'){
   const W=842,H=595,parts=[];
@@ -164,7 +172,7 @@ function createCertificate(data,filename='certificado-valora-insight.pdf'){
   const bytes=buildPdf([concat(parts)],[W,H]); return blobDownload(bytes,filename);
 }
 
-global.ValoraPDF={createReport,createCertificate,buildPdf};
+global.ValoraPDF={createReport,createCertificate,buildPdf,toPdfSafeText,toPdfAsciiFallback,pdfProductName,pdfLevelTitle,pdfScoreLine,ensurePdfPageSpace,writePdfWrappedText,writePdfSection};
 })(window);
 
 // Public result final fix: certificate/report exports use Valora Insight public branding.

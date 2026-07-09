@@ -34,7 +34,7 @@
     EMAIL_FALLBACKS: ['cloud-functions', 'email-job'],
 
     WHATSAPP_TRANSPORT: 'manual',
-    WHATSAPP_CONTACT_URL: 'https://wa.me/5591992545353?text=Ol%C3%A1%2C%20fiz%20o%20diagn%C3%B3stico%20gratuito%20Valora%20e%20quero%20entender%20os%20planos.',
+    WHATSAPP_CONTACT_URL: 'https://wa.me/5591992545353?text=Ol%C3%A1%2C%20vi%20minha%20devolutiva%20Valora%20Insight%E2%84%A2%20e%20quero%20falar%20com%20o%20Valora%20Group.',
 
     FREE_SURVEY_LINK_EXPIRATION_DAYS: 3650,
 
@@ -81,6 +81,7 @@ window.ValoraPublicResultFinalFix = Object.freeze({
   platformName: 'Valora Pulse™',
   companyDisplayName: 'Valora Group',
   whatsappNumber: '5591992545353',
+  certificateFeatureEnabled: false,
   emailProviderDefault: 'http_api'
 });
 

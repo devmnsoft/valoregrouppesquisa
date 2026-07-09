@@ -499,7 +499,15 @@
     "legacy:insight-sections": "node scripts/validate-legacy-valora-insight-required-sections.js",
     "legacy:insight-dimensions": "node scripts/validate-legacy-valora-insight-dimensions.js",
     "legacy:insight-radar": "node scripts/validate-legacy-valora-insight-radar.js",
-    "legacy:insight-pdf-context": "node scripts/validate-legacy-valora-insight-pdf-context.js"
+    "legacy:insight-pdf-context": "node scripts/validate-legacy-valora-insight-pdf-context.js",
+    "legacy:participant-access-password": "node scripts/validate-legacy-participant-access-password.js",
+    "legacy:whatsapp-share-links": "node scripts/validate-legacy-whatsapp-share-links.js",
+    "legacy:radar-pdf-safe": "node scripts/validate-legacy-radar-pdf-safe.js",
+    "legacy:plan-upgrade-flow": "node scripts/validate-legacy-plan-upgrade-flow.js",
+    "legacy:plan-capabilities": "node scripts/validate-legacy-plan-capabilities.js",
+    "legacy:notification-dedupe": "node scripts/validate-legacy-notification-dedupe.js",
+    "legacy:admin-response-actions": "node scripts/validate-legacy-admin-response-actions.js",
+    "legacy:public-texts": "node scripts/validate-legacy-public-texts.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

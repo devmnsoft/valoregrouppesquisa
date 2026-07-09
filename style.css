@@ -1104,3 +1104,8 @@ body {
 .truth-card-premium p { color: #2D2105; font-weight: 800; font-size: clamp(1.1rem, 2vw, 1.45rem); }
 .dimension-insight-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}.dimension-insight-card{padding:16px;border:1px solid #d8eef2;border-radius:18px;background:#f8fdff}.insight-radar{display:grid;gap:10px;margin:14px 0}.radar-row{display:grid;grid-template-columns:minmax(150px,1fr) auto auto;gap:12px;align-items:center;padding:12px 14px;border:1px solid #d8eef2;border-radius:16px;background:#f8fdff}.radar-row span{font-weight:900;color:#082A37}.radar-row code{color:#073F4D;font-weight:900;white-space:nowrap}.radar-row strong{color:#082A37}@media(max-width:640px){.radar-row{grid-template-columns:1fr;gap:6px}.result-hero-premium{border-radius:22px}.dimension-insight-list{grid-template-columns:1fr}}
 .radar-html-bar{display:inline-block;width:120px;max-width:100%;height:10px;border-radius:999px;background:#d7e8ec;vertical-align:middle;overflow:hidden}.radar-html-bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#0f5265,#2db7c4)}
+
+/* Public result token repair UX */
+.public-result-token-error { border-left: 6px solid #b42318; }
+.request-new-result-link-form { margin-top: 18px; border: 1px solid #d8eef2; }
+.request-new-result-link-form h3 { color: #073f4d; margin-bottom: 8px; }

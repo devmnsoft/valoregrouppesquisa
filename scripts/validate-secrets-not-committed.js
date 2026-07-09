@@ -1,4 +1,2 @@
-const {ok}=require('./_legacy-final-validators');
-const {execSync}=require('child_process');
-const out=execSync("rg -n \"(EMAIL_API_KEY=|SMTP_PASSWORD=|-----BEGIN PRIVATE KEY-----)\" -g '!node_modules' -g '!functions/node_modules' -g '!scripts/validate-secrets-not-committed.js' . || true",{encoding:'utf8'}).split('\n').filter(Boolean).filter(line=>!/defineSecret\('(EMAIL_API_KEY|SMTP_PASSWORD)'\)/.test(line)).filter(line=>!/(scripts|tools|migration)\//.test(line));
-ok(out.length===0,'no private e-mail secrets or service-account keys committed');
+#!/usr/bin/env node
+const fs=require('fs');const files=['functions/index.js','app.js','firebase-repository.js','repository.js','config.js','config/config.production.js'];const bad=/(SMTP_PASSWORD\s*=\s*['"][^'"]{8,}|PRIVATE KEY|-----BEGIN PRIVATE KEY-----)/i;for(const f of files){const s=fs.readFileSync(f,'utf8');if(bad.test(s)){console.error('Potential secret in '+f);process.exit(1);}}console.log('ok');

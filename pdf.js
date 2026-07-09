@@ -168,3 +168,5 @@ global.ValoraPDF={createReport,createCertificate,buildPdf};
 // Public result final fix: certificate/report exports use Valora Insight™ public branding.
 
 // Valora Insight™ devolutiva engine final audit reviewed
+
+// Public result certificate PDFs must be generated from an admin bundle or a token-validated public result bundle.

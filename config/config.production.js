@@ -53,3 +53,6 @@ window.ValoraProductionPublicResultFinalFix = Object.freeze({
 });
 
 // Valora Insight™ devolutiva engine final audit reviewed
+
+// Public result links use ?result=<responseId>&rt=<raw-token>; hashes are never exposed.
+window.ValoraProductionPublicResultLinkContract = Object.freeze({ resultParam: 'result', tokenParam: 'rt', productName: 'Valora Insight™' });

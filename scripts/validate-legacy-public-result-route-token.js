@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+const {read,assert}=require('./validate-common-public-token');const s=read('app.js');assert(/function getPublicRouteParams\(\)[\s\S]*params\.get\('rt'\)/.test(s),'route must read rt');assert(/ValoraRepository\.loadPublicResult\(p\.resultId, p\.resultToken\)/.test(s),'route must pass token to loadPublicResult');assert(/renderPublicResultAccessError/.test(s),'public result access error UI missing');console.log('ok');

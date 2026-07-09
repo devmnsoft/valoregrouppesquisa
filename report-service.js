@@ -33,3 +33,5 @@ global.ValoraReports={buildExecutiveSummary,buildGlobalExecutiveReport,buildComp
 // result bundles and Valora Insight™ naming supplied by app.js.
 
 // Valora Insight™ devolutiva engine final audit reviewed
+
+// Public result reports use the authenticated admin bundle or the cached/token-validated public bundle only.

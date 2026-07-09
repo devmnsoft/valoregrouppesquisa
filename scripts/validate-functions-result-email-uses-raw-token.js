@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+const {read,assert}=require('./validate-common-public-token');const s=read('functions/index.js');assert(/sendResultEmailInternal\(\{[^}]*resultToken/s.test(s),'sendResultEmailInternal must receive resultToken');assert(/buildPublicResultUrl\(responseId,resultToken\)/.test(s),'email must use buildPublicResultUrl');assert(!/rt=resultTokenHash|resultTokenHash[\s\S]{0,80}buildResultEmailHtml/.test(s),'email appears to use resultTokenHash');console.log('ok');

@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+const {read,assert}=require('./validate-common-public-token');const s=read('functions/index.js');assert(/function createResultToken\(\).*randomBytes\(32\)/s.test(s),'createResultToken canonical missing');assert(/function createResultAccessPair\(\)/.test(s),'createResultAccessPair missing');assert(/submitSurveyResponse[\s\S]*createResultAccessPair\(\)/.test(s),'submit does not use createResultAccessPair');console.log('ok');

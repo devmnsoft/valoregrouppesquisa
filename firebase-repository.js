@@ -349,11 +349,12 @@ async function submitPublicSurveyResponseFirebase(payload){
   catch(err){throw mapPublicFunctionError(err);}
 }
 async function loadPublicResultFirebase(responseId,resultToken){
-  if(!responseId){const e=new Error('responseId obrigatório.');e.code='missing_response_id';throw e;}
-  if(!resultToken){const e=new Error('Token de resultado obrigatório.');e.code='missing_result_token';e.details={code:'missing_result_token',friendlyMessage:'Link de resultado incompleto. Abra o link recebido por e-mail ou gere um novo acesso.'};throw e;}
+  if(!responseId){throw Object.assign(new Error('responseId obrigatório.'),{code:'missing_response_id'});}
+  if(!resultToken){throw Object.assign(new Error('resultToken obrigatório.'),{code:'missing_result_token'});}
   try{return await callFunction('getPublicResult',{responseId,resultToken});}
   catch(err){throw mapPublicFunctionError(err);}
 }
+async function requestNewResultLinkFirebase(payload={}){try{return await callFunction('requestNewResultLink',payload);}catch(err){throw mapPublicFunctionError(err);}}
 async function sendResultEmailFirebase(responseId,payload={}){
   try{return await callFunction('sendResultEmail',{responseId,...payload});}
   catch(err){throw mapPublicFunctionError(err);}
@@ -382,6 +383,7 @@ window.ValoraFirebaseRepository={
   submitPublicSurveyResponse:submitPublicSurveyResponseFirebase,
   loadPublicResult:loadPublicResultFirebase,
   sendResultEmail:sendResultEmailFirebase,
+  requestNewResultLink:requestNewResultLinkFirebase,
   getParticipantResultsByPassword:getParticipantResultsByPasswordFirebase,
   loadCompanies({state}={}){return state?.companies||[];},loadOrganizations:loadOrganizations,loadUsers({state}={}){return state?.users||[];},loadPlans({state}={}){return state?.plans||[];},loadModules({state}={}){return state?.modules||[];},loadForms({state}={}){return state?.forms||[];},loadSurveys({state}={}){return state?.surveys||[];},loadResponses({state}={}){return state?.responses||[];},loadInvitations({state}={}){return state?.invitations||[];},loadActionPlans({state}={}){return state?.actionPlans||[];},loadSupportTickets({state}={}){return state?.supportTickets||[];},loadKnowledgeBase({state}={}){return state?.knowledgeBase||[];},loadNotifications({state}={}){return state?.notifications||[];},loadInvoices({state}={}){return state?.invoices||[];},loadIntegrations({state}={}){return state?.integrations||[];},loadApiKeys({state}={}){return (state?.apiKeys||[]).map(x=>({...x,keyHash:x.keyHash?'[protected]':''}));},loadWebhooks({state}={}){return (state?.webhooks||[]).map(x=>({...x,secretHash:x.secretHash?'[protected]':''}));},loadSettings({state}={}){return state?.settings||{};},
   listOrganizations:loadOrganizations,getOrganization(id){return getDoc('organizations',id);},createOrganization(data){return createDoc('organizations',data);},createClient(data){return callFunction('createClient',{payload:data}).catch(()=>createDoc('organizations',data));},updateClient(id,data){return callFunction('updateClient',{id,payload:data}).catch(()=>updateDoc('organizations',id,data));},updateOrganization(id,data){return updateDoc('organizations',id,data);},updateOrganizationBrand(id,brand){return updateDoc('organizations',id,{brand});},updateOrganizationSubscription(id,subscription){return updateDoc('organizations',id,{subscription,planId:subscription?.planId});},updateOrganizationSettings(id,settings){return updateDoc('organizations',id,{settings});},updateOrganizationLimits(id,limitsOverride){return updateDoc('organizations',id,{limitsOverride});},async getOrganizationBySlug(slug){const rows=await queryCollection('organizations',[["slug","==",slug]],null,1);return rows[0]||null;},async checkSlugAvailability(slug){const rows=await queryCollection('organizations',[["slug","==",slug]],null,1);return !rows.length;},deleteOrganization(id){return deleteDoc('organizations',id);},

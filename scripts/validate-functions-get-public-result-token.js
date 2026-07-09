@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+const {read,assert}=require('./validate-common-public-token');const s=read('functions/index.js');const m=s.match(/exports\.getPublicResult[\s\S]*?\n\}\);/);assert(m,'getPublicResult export missing');assert(/verifyResultToken/.test(m[0]),'getPublicResult must use verifyResultToken');assert(!/req\.auth/.test(m[0]),'getPublicResult must not require auth');assert(/public_result_access_errors/.test(m[0]),'invalid token diagnostics missing');console.log('ok');

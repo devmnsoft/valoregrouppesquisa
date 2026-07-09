@@ -1,0 +1,2 @@
+#!/usr/bin/env node
+const {read,assert}=require('./validate-common-public-token');const s=read('functions/index.js');assert(/createSurveyPublicTokenPair/.test(s),'survey token pair missing');assert(/hashBearerToken\(tokenValue\)/.test(s),'survey hash must use hashBearerToken');assert(/invalid_survey_token/.test(s),'invalid survey token code missing');assert(!/url\.searchParams\.set\('token',\s*.*Hash/.test(s),'survey URL may use hash');console.log('ok');

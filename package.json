@@ -481,7 +481,7 @@
     "legacy:no-undefined-actions": "node scripts/validate-legacy-action-handlers-no-undefined.js",
     "functions:smtp-gmail": "node scripts/validate-functions-smtp-transporter-gmail.js",
     "legacy:public-bypass-auth": "node scripts/validate-legacy-public-route-bypasses-auth.js",
-    "functions:get-public-result-token": "node scripts/validate-functions-get-public-result-public-token.js",
+    "functions:get-public-result-token": "node scripts/validate-functions-get-public-result-token.js",
     "legacy:empty-action-ignored": "node scripts/validate-legacy-empty-action-ignored.js",
     "db:scriptbd-validate": "node tools/validate-scriptbd-completo-sql-compat.js",
     "web:premium-layout": "node tools/validate-valora-premium-layout.js",
@@ -509,7 +509,14 @@
     "legacy:admin-response-actions": "node scripts/validate-legacy-admin-response-actions.js",
     "legacy:public-texts": "node scripts/validate-legacy-public-texts.js",
     "legacy:report-pdf-context": "node scripts/validate-legacy-report-pdf-context.js",
-    "legacy:survey-link-not-expired": "node scripts/validate-legacy-survey-link-not-expired.js"
+    "legacy:survey-link-not-expired": "node scripts/validate-legacy-survey-link-not-expired.js",
+    "functions:result-token-source": "node scripts/validate-functions-result-token-single-source.js",
+    "functions:email-uses-raw-token": "node scripts/validate-functions-result-email-uses-raw-token.js",
+    "legacy:public-result-route-token": "node scripts/validate-legacy-public-result-route-token.js",
+    "legacy:email-result-link": "node scripts/validate-legacy-email-template-result-link.js",
+    "functions:request-new-result-link": "node scripts/validate-functions-request-new-result-link.js",
+    "functions:survey-public-link-token": "node scripts/validate-functions-survey-public-link-token.js",
+    "legacy:admin-result-link-regeneration": "node scripts/validate-legacy-admin-result-link-regeneration.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

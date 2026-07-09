@@ -1,0 +1,1 @@
+const {has}=require('./legacy-final-validator-lib');has('app.js',/function renderAdminResponsesMobileCards/,'mobile response cards missing');has('style.css',/responses-mobile-list[\s\S]*response-mobile-card/,'mobile response CSS missing');console.log('ok');

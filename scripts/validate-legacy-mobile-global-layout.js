@@ -1,0 +1,1 @@
+const {has}=require('./legacy-final-validator-lib');has('style.css',/box-sizing:border-box/,'global box sizing missing');has('style.css',/overflow-x:hidden/,'body overflow guard missing');has('style.css',/@media \(max-width:760px\)/,'mobile media missing');console.log('ok');

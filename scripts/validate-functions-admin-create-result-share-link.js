@@ -1,0 +1,1 @@
+const {has}=require('./legacy-final-validator-lib');has('functions/index.js',/exports\.adminCreateResultShareLink[\s\S]*rotateResultTokenForResponse[\s\S]*buildPublicResultUrl/,'admin result share callable missing');console.log('ok');

@@ -95,3 +95,5 @@ const LEGACY_PUBLIC_RESULT_FINAL_FIX_VALIDATORS = [
 void LEGACY_PUBLIC_RESULT_FINAL_FIX_VALIDATORS;
 
 // Valora Insight™ devolutiva engine final audit reviewed
+
+// Legacy final audit: build keeps mobile/PDF/token validators available in package scripts.

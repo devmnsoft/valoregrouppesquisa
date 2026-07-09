@@ -88,3 +88,5 @@ window.ValoraPublicResultFinalFix = Object.freeze({
 
 // Public result links use ?result=<responseId>&rt=<raw-token>; hashes are never exposed.
 window.ValoraPublicResultLinkContract = Object.freeze({ resultParam: 'result', tokenParam: 'rt', productName: 'Valora Insight™' });
+
+// Legacy final audit: public URLs must carry raw public/result tokens, never token hashes.

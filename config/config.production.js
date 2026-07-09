@@ -56,3 +56,5 @@ window.ValoraProductionPublicResultFinalFix = Object.freeze({
 
 // Public result links use ?result=<responseId>&rt=<raw-token>; hashes are never exposed.
 window.ValoraProductionPublicResultLinkContract = Object.freeze({ resultParam: 'result', tokenParam: 'rt', productName: 'Valora Insight™' });
+
+// Legacy final audit: production sharing uses PUBLIC_APP_URL plus raw bearer tokens only.

@@ -1,0 +1,1 @@
+const {has}=require('./legacy-final-validator-lib');has('functions/index.js',/function timestampToMillis[\s\S]*function isExpiredTimestamp/,'timestamp helpers missing');has('functions/index.js',/loadValidSurvey[\s\S]*verifyBearerToken[\s\S]*survey_expired/,'public survey token validation incomplete');console.log('ok');

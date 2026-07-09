@@ -1,0 +1,1 @@
+const {has}=require('./legacy-final-validator-lib');has('style.css',/public-result-container/,'public result mobile container missing');has('style.css',/public-result-actions[\s\S]*grid-template-columns:1fr/,'public result actions not stacked');console.log('ok');

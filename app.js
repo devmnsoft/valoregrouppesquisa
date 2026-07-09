@@ -2491,15 +2491,29 @@ async function reloadPublicResult(el) {
     catch (err) { toast('Não conseguimos carregar o resultado completo agora. O resultado registrado permanece disponível nesta tela.', 'warning'); }
   }, { button: el, buttonText: 'Carregando...' });
 }
+
+function createValoraInsightReportDocument(bundle={},responseId=''){
+  const devolutiva=buildValoraInsightDevolutiva(bundle);
+  return {title:'Relatório Valora Insight',subtitle:'Devolutiva estratégica de maturidade organizacional',metrics:[{label:'Pontuação',value:`${devolutiva.totalScore}/125`},{label:'Nível',value:`${devolutiva.level.title}`},{label:'Data',value:formatPublicDate(bundle.response?.completedAt||bundle.response?.createdAt)}],columns:[{key:'item',label:'Seção',width:1},{key:'value',label:'Conteúdo',width:3}],rows:[{item:'Resultado geral',value:`${devolutiva.totalScore}/125 - ${devolutiva.level.title}`},{item:devolutiva.framingTitle,value:devolutiva.framing},{item:devolutiva.executiveRealityTitle,value:devolutiva.executiveReality},{item:devolutiva.dimensionDiagnosisTitle,value:devolutiva.dimensions.map(d=>`${d.name}: ${d.score}/25 - ${d.directReading} Implicação: ${d.implication}`).join('\n')},{item:devolutiva.radarTitle,value:devolutiva.dimensions.map(d=>`${d.name}: ${radarBarPdfSafe(d.score)} ${d.score}/25`).join('\n')},{item:devolutiva.benchmarkingTitle,value:[devolutiva.benchmarking.intro,devolutiva.benchmarking.starters,devolutiva.benchmarking.growing,devolutiva.benchmarking.mature,`O que impede o avanço: ${devolutiva.benchmarking.blocker}`].join(' ')},{item:devolutiva.strategicTruthTitle,value:devolutiva.strategicTruth},{item:devolutiva.riskTitle,value:devolutiva.risk},{item:devolutiva.nextLevelTitle,value:devolutiva.nextLevel},{item:devolutiva.transitionTitle,value:devolutiva.transition}],responseId};
+}
+function generateValoraInsightReportPdf(bundle={},responseId=''){
+  const pdf=window.ValoraPdf||window.ValoraPDF;if(!pdf?.createReport)throw Object.assign(new Error('Gerador de relatório PDF indisponível.'),{code:'pdf_report_unavailable'});
+  const doc=createValoraInsightReportDocument(bundle,responseId);
+  return pdf.createReport(doc,`relatorio-valora-insight-${responseId||bundle.responseId||'resultado'}.pdf`);
+}
+function generateValoraInsightCertificatePdf(bundle={},responseId=''){
+  const pdf=window.ValoraPdf||window.ValoraPDF;if(!pdf?.createCertificate)throw Object.assign(new Error('Gerador de PDF indisponível.'),{code:'pdf_unavailable'});
+  const data=safeBuildCertificateData(bundle.response||bundle.result||{},bundle.survey||{},bundle.form||{},bundle.company||{});
+  data.responseId=responseId||data.responseId;data.productName='Valora Insight';data.brandName='Valora Insight';data.formattedDate=formatPublicDate((bundle.response||{}).completedAt||(bundle.response||{}).createdAt);
+  return pdf.createCertificate(data,`certificado-valora-insight-${responseId||bundle.responseId||'resultado'}.pdf`);
+}
+
 async function reportResponsePdf(el) {
   try {
     await withLoading('Preparando relatório em PDF...', async () => {
       const bundle = await loadPublicResultBundleForAction(el);
-      const vm = normalizePublicResultViewModel(bundle, bundle.responseId, bundle.resultToken);
-      const pdf = window.ValoraPdf || window.ValoraPDF;
-      if (!pdf?.createReport) throw Object.assign(new Error('Gerador de relatório PDF indisponível.'), { code: 'pdf_report_unavailable' });
-      const devolutiva = buildValoraInsightDevolutiva(bundle);
-      pdf.createReport({title:'Relatório Valora Insight™',subtitle:'Devolutiva estratégica de maturidade organizacional',metrics:[{label:'Pontuação',value:`${devolutiva.totalScore}/125`},{label:'Nível',value:`${devolutiva.level.title}`},{label:'Status',value:'Concluído'}],columns:[{key:'item',label:'Seção',width:1},{key:'value',label:'Conteúdo',width:3}],rows:[{item:'Resultado geral',value:`${devolutiva.totalScore}/125 — ${devolutiva.level.title}`},{item:devolutiva.framingTitle,value:devolutiva.framing},{item:devolutiva.executiveRealityTitle,value:devolutiva.executiveReality},{item:devolutiva.dimensionDiagnosisTitle,value:devolutiva.dimensions.map(d=>`${d.name}: ${d.score}/25 — ${d.directReading} Implicação: ${d.implication}`).join('\n')},{item:devolutiva.radarTitle,value:devolutiva.dimensions.map(d=>`${d.name}: ${radarBarPdfSafe(d.score)} ${d.score}/25`).join('\n')},{item:devolutiva.benchmarkingTitle,value:[devolutiva.benchmarking.intro,devolutiva.benchmarking.starters,devolutiva.benchmarking.growing,devolutiva.benchmarking.mature,`O que impede o avanço: ${devolutiva.benchmarking.blocker}`].join(' ')},{item:devolutiva.strategicTruthTitle,value:devolutiva.strategicTruth},{item:devolutiva.riskTitle,value:devolutiva.risk},{item:devolutiva.nextLevelTitle,value:devolutiva.nextLevel},{item:devolutiva.transitionTitle,value:devolutiva.transition}]}, `relatorio-valora-insight-${bundle.responseId||'resultado'}.pdf`);
+      normalizePublicResultViewModel(bundle, bundle.responseId, bundle.resultToken);
+      generateValoraInsightReportPdf(bundle,bundle.responseId||'resultado');
       toast('Relatório gerado com sucesso.', 'success');
     }, { button: el, buttonText: 'Gerando...' });
     return true;
@@ -2978,7 +2992,7 @@ function createActions(){return {
   addDimension,removeDimension(el){removeDimension(el.dataset.id);},addQuestion(el){addQuestion(el.dataset.type||'scale');},removeQuestion(el){removeQuestion(el.dataset.id);},moveQuestion(el){moveQuestion(el.dataset.id,el.dataset.direction);},duplicateQuestion(el){duplicateQuestion(el.dataset.id);},addOption(el){addOption(el.dataset.id);},removeOption(el){removeOption(el.dataset.qid,el.dataset.id);},addBand,removeBand(el){removeBand(el.dataset.index);},reviewBuilder(){showBuilderReview();},previewBuilder,saveBuilder,
   newSurvey(){openSurveyEditor();},editSurvey(el){openSurveyEditor(el.dataset.id);},closeLinkedSurvey(el){window.ValoraRepository?.adminCloseSurvey?.(el.dataset.id).then(()=>{const s=state.surveys.find(x=>x.id===el.dataset.id);if(s)Object.assign(s,{status:'closed',visibility:'private',featuredOnHome:false,isFeatured:false,homeFeatured:false,visibleOnHome:false,revoked:true});clearFeaturedHomeSurveyCache('survey_closed');toast('Pesquisa encerrada.','success');rerenderPortal();}).catch(err=>toast(sanitizePublicError(err)||'Falha ao encerrar pesquisa.','error'));},archiveLinkedSurvey(el){window.ValoraRepository?.adminArchiveSurvey?.(el.dataset.id).then(()=>{const s=state.surveys.find(x=>x.id===el.dataset.id);if(s)Object.assign(s,{status:'archived',archived:true,visibility:'private',featuredOnHome:false,isFeatured:false,homeFeatured:false,visibleOnHome:false,revoked:true});clearFeaturedHomeSurveyCache('survey_archived');toast('Pesquisa arquivada.','success');rerenderPortal();}).catch(err=>toast(sanitizePublicError(err)||'Falha ao arquivar pesquisa.','error'));},closeSurveysByForm(el){closeSurveysByForm(el.dataset.id,el.dataset.mode||'close');},archiveFormAfterClose(el){archiveFormAfterClose(el.dataset.id);},createLinkedFormVersion(el){const f=formById(el.dataset.id);if(f)createFormVersionFromDraft(f,{...f,name:`${f.name} — nova versão`});},deleteSurvey(el){return withLoading('Excluindo pesquisa...',()=>deleteSurvey(el.dataset.id),{button:el,action:'deleteSurvey',id:el.dataset.id});},featureSurvey(el){return withLoading('Destacando na home...',()=>featureSurvey(el.dataset.id),{button:el,action:'featureSurvey',id:el.dataset.id});},removeFeaturedSurvey(el){return withLoading('Removendo destaque...',()=>removeSurveyAsHomeFeatured(),{button:el,action:'featureSurvey',id:'remove'});},shareSurvey(el){return withLoading('Preparando compartilhamento...',()=>Promise.resolve(openShareModal(el.dataset.id)),{button:el,action:'shareSurvey',id:el.dataset.id});},quickSurvey(){openQuickSurvey();},renewSurvey(el){return withLoading('Renovando link...',()=>Promise.resolve(renewSurvey(el.dataset.id)),{button:el,action:'preparePublicSurveyLink',id:el.dataset.id});},openSurvey(el){const s=state.surveys.find(x=>x.id===el.dataset.id);if(s)openSurveyInNewTab({dataset:{link:buildSurveyLink(s)}});},
   copyText(el){copyText(el.dataset.text||el.dataset.link||lastShareLink);},copyLink(el){copyText(el.dataset.link||lastShareLink);},openLink(el){const link=el.dataset.link||lastShareLink;if(link&&link!=='#signup'){if(isPublicSurveyUrl(link))return openSurveyInNewTab(el);openExternal(link);}else navigate('signup');},openSurveyInNewTab,goHomeFromPublicSurvey,openExternal,inviteEmail(el){openInviteEmail(el.dataset.id);},
-  viewResponse(el){return viewResponse(el.dataset.id,el.dataset.token||el.dataset.resultToken||null);},emailResult(el){openResultEmail(el.dataset.id);},certificatePdf(el){return certificatePdf(el);},downloadCertificatePdf(el){return certificatePdf(el);},certificatePng(el){return certificatePng(el);},reportResponsePdf(el){return reportResponsePdf(el);},downloadResultReport(el){return downloadResultReport(el);},reportPdf(el){return reportPdf(el);},downloadReport(el){return downloadReport(el);},legacy_run(el){return legacyRun(el);},deleteResponse(el){deleteResponse(el.dataset.id);},anonymizeResponse(el){anonymizeResponse(el.dataset.id);},
+  viewResponse(el){return adminViewResponse(el);},adminViewResponse:el=>adminViewResponse(el),emailResult(el){openResultEmail(el.dataset.id);},responseCertificatePdf:el=>adminCertificatePdf(el),adminCertificatePdf:el=>adminCertificatePdf(el),certificatePdf(el){return isAdminRoute()?adminCertificatePdf(el):certificatePdf(el);},downloadCertificatePdf(el){return isAdminRoute()?adminCertificatePdf(el):certificatePdf(el);},certificatePng(el){return certificatePng(el);},responseReportPdf:el=>adminReportResponsePdf(el),adminReportResponsePdf:el=>adminReportResponsePdf(el),reportResponsePdf(el){return isAdminRoute()?adminReportResponsePdf(el):reportResponsePdf(el);},downloadResultReport(el){return downloadResultReport(el);},reportPdf(el){return reportPdf(el);},downloadReport(el){return downloadReport(el);},legacy_run(el){return legacyRun(el);},deleteResponse:el=>adminDeleteResponse(el),anonymizeResponse:el=>adminAnonymizeResponse(el),
   exportReport(el){exportReport(el.dataset.scope,el.dataset.format);},
   exportExecutiveReport,
   sendTestEmail,openOutbox,refreshEmailStatus:updateEmailStatus,restoreBrandDefaults(){const c=currentCompany();if(!c)return;c.brand={...DEFAULT_BRAND};applyCompanyTheme(c);persist('Marca Valora restaurada.');rerenderPortal();},
@@ -3223,9 +3237,39 @@ function canUseWhiteLabel(company){return !!company&&['trial','active'].includes
 function publicSurveyBrand(s){const c=companyById(s.companyId);if(!c?.brand?.useCompanyBrandOnPublicSurvey)return '';const t=getCompanyTheme(c);return `<div class="brand-preview public-brand" style="--brand-primary:${esc(t.primaryColor)};--brand-secondary:${esc(t.secondaryColor)};--brand-bg:${esc(t.backgroundColor)};--brand-text:${esc(t.textColor)}"><div><img src="${esc(t.logoUrl)}" alt="${esc(c.publicName||c.name)}"><b>${esc(c.publicName||c.name)}</b><span>${esc(c.slogan||'Pesquisa organizacional')}</span></div>${c.brand.showPoweredByValora!==false?'<small>Powered by Valora Group</small>':''}</div>`;}
 function clientsSection(){return `<div class="section-toolbar"><div><h3>Clientes e ambientes</h3><p class="muted">Plano, assinatura, white label, uso, CNPJ/CPF e dados de contato.</p></div><button class="btn btn-primary" data-action="newCompany">Cadastrar cliente</button></div><div class="card table-wrap"><table class="table"><thead><tr><th>Cliente</th><th>Slug</th><th>Plano/assinatura</th><th>Uso</th><th>Status</th><th>Ações</th></tr></thead><tbody>${state.companies.map(c=>{const p=planById(c.planId),sub=getSubscriptionStatus(c),limits=getLimitStatus(c.id);return `<tr><td><b>${esc(c.publicName||c.name)}</b><br><span class="muted">${esc(c.email||'')} • ${esc(c.legalName||c.name||'')}</span></td><td>${esc(c.slug||'—')}<br><span class="muted">${c.brand?.logoUrl?'Logo configurada':'Sem logo'}</span></td><td>${esc(p?.name||'—')}<br><span class="badge ${sub.tone}">${esc(subscriptionLabel(sub.status))}</span> <span class="muted">${money(p?.price||0)}/mês</span></td><td>${limits.items.slice(0,3).map(i=>`${esc(i.label)}: ${i.used}/${i.limit<0?'∞':i.limit}`).join('<br>')}</td><td><span class="badge ${c.status==='active'?'success':'danger'}">${esc(STATUS_LABELS[c.status]||c.status)}</span></td><td><div class="table-actions"><button class="btn btn-soft btn-mini" data-action="editCompany" data-id="${c.id}">Editar</button><button class="btn btn-secondary btn-mini" data-action="impersonateCompany" data-id="${c.id}">Abrir ambiente</button><button class="btn btn-danger btn-mini" data-action="deleteCompany" data-id="${c.id}">Excluir</button></div></td></tr>`}).join('')}</tbody></table></div>`;}
 
-async function adminViewResponse(responseId){return viewResponse(responseId,null);}
-async function adminReportResponsePdf(responseId){return reportResponsePdf({dataset:{id:responseId}});}
-async function adminCertificatePdf(responseId){return certificatePdf({dataset:{id:responseId}});}
+async function adminLoadResponseBundle(responseId){
+  if(!responseId)throw Object.assign(new Error('responseId obrigatório.'),{code:'missing_response_id'});
+  if(ValoraRepository.adminGetResponseResult)return await ValoraRepository.adminGetResponseResult(responseId);
+  const response=state.responses?.find(r=>r.id===responseId);
+  if(!response)throw Object.assign(new Error('Resposta não encontrada no estado local.'),{code:'response_not_found'});
+  const survey=state.surveys?.find(s=>s.id===response.surveyId)||{};
+  const form=state.forms?.find(f=>f.id===response.formId||f.id===survey.formId)||{};
+  const company=state.companies?.find(c=>c.id===response.companyId||c.id===survey.companyId)||{};
+  return {ok:true,response,result:response,survey,form,company,responseId,score:{rawScore:response.rawScore,maxScore:response.maxScore,normalized5:response.normalized5,percentage:response.percentage,byDimension:response.byDimension||{}},level:response.level||null};
+}
+async function adminViewResponse(responseIdOrEl){
+  const responseId=typeof responseIdOrEl==='string'?responseIdOrEl:responseIdOrEl?.dataset?.id||responseIdOrEl?.dataset?.responseId||'';
+  const bundle=await adminLoadResponseBundle(responseId);
+  return renderResult(responseId,false,'',bundle);
+}
+async function adminReportResponsePdf(responseIdOrEl){
+  const responseId=typeof responseIdOrEl==='string'?responseIdOrEl:responseIdOrEl?.dataset?.id||responseIdOrEl?.dataset?.responseId||'';
+  await withLoading('Gerando relatório...',async()=>generateValoraInsightReportPdf(await adminLoadResponseBundle(responseId),responseId));
+  return true;
+}
+async function adminCertificatePdf(responseIdOrEl){
+  const responseId=typeof responseIdOrEl==='string'?responseIdOrEl:responseIdOrEl?.dataset?.id||responseIdOrEl?.dataset?.responseId||'';
+  await withLoading('Gerando certificado...',async()=>generateValoraInsightCertificatePdf(await adminLoadResponseBundle(responseId),responseId));
+  return true;
+}
+async function adminAnonymizeResponse(responseIdOrEl){
+  const responseId=typeof responseIdOrEl==='string'?responseIdOrEl:responseIdOrEl?.dataset?.id||responseIdOrEl?.dataset?.responseId||'';
+  return confirmAction('Anonimizar resposta?','Os dados pessoais do participante serão removidos, mantendo os indicadores estatísticos.',async()=>{await anonymizeResponse(responseId);});
+}
+async function adminDeleteResponse(responseIdOrEl){
+  const responseId=typeof responseIdOrEl==='string'?responseIdOrEl:responseIdOrEl?.dataset?.id||responseIdOrEl?.dataset?.responseId||'';
+  return confirmAction('Excluir resposta?','Esta ação removerá a resposta da listagem administrativa.',async()=>{await deleteResponse(responseId);});
+}
 function getEffectivePlanCapabilities(companyId){const company=companyById(companyId)||currentCompany()||{};const plan=getCompanyPlan(company.id)||planById(company.planId)||defaultPlan()||{};return {...getEffectiveCompanyLimits(company,plan),enabledModules:plan.enabledModules||[],allowReports:plan.allowReports!==false,allowCertificates:plan.allowCertificates!==false,allowEmailSending:plan.allowEmailSending!==false,allowStrategicReport:!!plan.allowStrategicReport,allowActionPlans:!!plan.allowActionPlans,allowWhiteLabel:!!plan.allowWhiteLabel};}
 function canUpgradePlan(companyId){const plan=getCompanyPlan(companyId)||{};return !['enterprise'].includes(String(plan.id||'').toLowerCase());}
 function showPlanUpgradeCTA(companyId,capability=''){if(!canUpgradePlan(companyId))return whatsappLink('Falar com a Valora Group',`Olá, quero falar sobre meu plano Valora Insight™${capability?' para '+capability:''}.`);return `<button class="btn btn-primary" data-action="requestUpgrade" data-plan="${esc((getCompanyPlan(companyId)||{}).id||'')}">Solicitar upgrade</button><button class="btn btn-secondary" data-action="openPlanUpgrade">Aderir ao plano</button>${whatsappLink('Falar com a Valora Group')}`;}

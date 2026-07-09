@@ -507,7 +507,9 @@
     "legacy:plan-capabilities": "node scripts/validate-legacy-plan-capabilities.js",
     "legacy:notification-dedupe": "node scripts/validate-legacy-notification-dedupe.js",
     "legacy:admin-response-actions": "node scripts/validate-legacy-admin-response-actions.js",
-    "legacy:public-texts": "node scripts/validate-legacy-public-texts.js"
+    "legacy:public-texts": "node scripts/validate-legacy-public-texts.js",
+    "legacy:report-pdf-context": "node scripts/validate-legacy-report-pdf-context.js",
+    "legacy:survey-link-not-expired": "node scripts/validate-legacy-survey-link-not-expired.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

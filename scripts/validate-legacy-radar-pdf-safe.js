@@ -1,6 +1,1 @@
-#!/usr/bin/env node
-const fs=require('fs');const app=fs.readFileSync('app.js','utf8');const report=fs.existsSync('report-service.js')?fs.readFileSync('report-service.js','utf8'):'';function fail(m){console.error('FAIL:',m);process.exit(1)}
-if(!/function radarBarPdfSafe/.test(app+report))fail('radarBarPdfSafe ausente');
-if(/[█░→]/.test(report))fail('relatório PDF contém caracteres unicode inseguros');
-if(/\?\?\?\?\?/.test(app+report))fail('código contém marcador ?????');
-console.log('legacy radar pdf safe: PASS');
+const fs=require('fs');const src=['app.js','report-service.js','pdf.js'].map(f=>fs.existsSync(f)?fs.readFileSync(f,'utf8'):'').join('\n');function fail(m){console.error(m);process.exit(1)}if(!/function radarBarPdfSafe[\s\S]*#/.test(src))fail('radarBarPdfSafe missing');if(!/function renderRadarForPdf/.test(src))fail('renderRadarForPdf missing');const pdf=(fs.existsSync('pdf.js')?fs.readFileSync('pdf.js','utf8'):'')+'\n'+(fs.existsSync('report-service.js')?fs.readFileSync('report-service.js','utf8'):'');if(/radarBarHtml|<span|class=|█|░/.test(pdf))fail('PDF/report layer contains unsafe radar HTML/unicode');console.log('validate-legacy-radar-pdf-safe: PASS');

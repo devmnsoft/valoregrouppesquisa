@@ -68,3 +68,5 @@ window.ValoraRepository=Object.freeze({
 // Legacy final audit: repository facade remains token-flow compatible with firebase-repository.js.
 
 // Legacy final stabilization: certificate generation is a frontend no-op; local repository preserves old records without exposing certificate actions.
+
+// Legacy radar benchmark WhatsApp final fix reviewed: adminCreateResultShareLink rotates WhatsApp result tokens.

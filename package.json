@@ -547,7 +547,8 @@
     "legacy:report-no-certificate": "node scripts/validate-legacy-report-no-certificate.js",
     "legacy:report-structure": "node scripts/validate-legacy-report-structure.js",
     "legacy:mobile-report": "node scripts/validate-legacy-mobile-report-layout.js",
-    "legacy:branding": "node scripts/validate-legacy-public-admin-branding.js"
+    "legacy:branding": "node scripts/validate-legacy-public-admin-branding.js",
+    "legacy:final-regression": "node scripts/validate-final-regression-lockdown.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

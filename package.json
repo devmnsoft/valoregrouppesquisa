@@ -548,7 +548,16 @@
     "legacy:report-structure": "node scripts/validate-legacy-report-structure.js",
     "legacy:mobile-report": "node scripts/validate-legacy-mobile-report-layout.js",
     "legacy:branding": "node scripts/validate-legacy-public-admin-branding.js",
-    "legacy:final-regression": "node scripts/validate-final-regression-lockdown.js"
+    "legacy:final-regression": "node scripts/validate-final-regression-lockdown.js",
+    "legacy:radar-no-escaped-html": "node scripts/validate-legacy-radar-no-escaped-html.js",
+    "legacy:radar-data-model": "node scripts/validate-legacy-radar-data-model.js",
+    "legacy:radar-render-html": "node scripts/validate-legacy-radar-render-html.js",
+    "legacy:benchmark-indexes": "node scripts/validate-legacy-benchmarking-valora-indexes.js",
+    "legacy:benchmark-gptw": "node scripts/validate-legacy-benchmarking-gptw-reference.js",
+    "legacy:benchmark-no-fake-cert": "node scripts/validate-legacy-benchmarking-no-fake-certification.js",
+    "legacy:public-result-whatsapp": "node scripts/validate-legacy-public-result-whatsapp-share.js",
+    "legacy:admin-result-whatsapp": "node scripts/validate-legacy-admin-result-whatsapp-share.js",
+    "legacy:mobile-radar-benchmark": "node scripts/validate-legacy-mobile-radar-benchmarking.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

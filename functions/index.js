@@ -661,3 +661,5 @@ exports.repairOfficialFormDocument=onCall(async req=>{const user=await authedUse
 // Valora Insight™ devolutiva engine final audit reviewed
 
 // Legacy final stabilization: result communications use report links; certificate CTAs are disabled by the frontend no-op fallback.
+
+// Legacy radar benchmark WhatsApp final fix reviewed: callable result sharing remains token-rotating.

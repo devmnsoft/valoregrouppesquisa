@@ -91,3 +91,8 @@ window.ValoraPublicResultFinalFix = Object.freeze({
 window.ValoraPublicResultLinkContract = Object.freeze({ resultParam: 'result', tokenParam: 'rt', productName: 'Valora Insight™' });
 
 // Legacy final audit: public URLs must carry raw public/result tokens, never token hashes.
+
+// Legacy SaaS consolidation next evolution flags
+window.ValoraConfig = window.ValoraConfig || {};
+window.ValoraConfig.LEGACY_SAAS_CONSOLIDATION_V2 = true;
+window.ValoraConfig.PLAN_UPGRADE_REQUESTS_COLLECTION = 'plan_upgrade_requests';

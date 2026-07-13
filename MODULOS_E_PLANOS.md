@@ -63,3 +63,7 @@ Planos alimentam `organizations.subscription` e faturas em `invoices`. O ciclo p
 
 ## Módulo `integrations`
 Inclui API pública, API keys, webhooks, importação de funcionários, exportação estruturada, exportação BI-ready e logs. Planos gratuitos não devem liberar API pública completa; Enterprise libera API/webhooks. Planos intermediários podem liberar apenas exportação manual.
+
+## Consolidação SaaS consultiva — Next Evolution
+
+A plataforma agora considera o catálogo oficial de planos como motor de entitlements para limites, capabilities, upgrade comercial, relatórios por plano, benchmarking premium, agenda executiva, plano 30/60/90, saúde organizacional, histórico de evolução, comparação por unidade, comunicação por plano e observabilidade operacional. A referência a GPTW Brasil é exclusivamente qualitativa e conceitual: não representa certificação GPTW, ranking oficial, pontuação externa ou validação pública de mercado; os índices são internos do Valora Insight™.

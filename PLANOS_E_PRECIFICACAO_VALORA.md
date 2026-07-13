@@ -80,3 +80,7 @@ ENABLE_CLOUD_FUNCTIONS: false
 ```
 
 Enquanto estiver no Spark, não vender como ativos: e-mail transacional real, webhooks reais, integrações server-side, Secret Manager ou processamento backend. Esses recursos devem ser tratados como **disponíveis quando migrar para Blaze**.
+
+## Consolidação SaaS consultiva — Next Evolution
+
+A plataforma agora considera o catálogo oficial de planos como motor de entitlements para limites, capabilities, upgrade comercial, relatórios por plano, benchmarking premium, agenda executiva, plano 30/60/90, saúde organizacional, histórico de evolução, comparação por unidade, comunicação por plano e observabilidade operacional. A referência a GPTW Brasil é exclusivamente qualitativa e conceitual: não representa certificação GPTW, ranking oficial, pontuação externa ou validação pública de mercado; os índices são internos do Valora Insight™.

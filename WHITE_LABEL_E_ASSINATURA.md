@@ -48,3 +48,7 @@ Status `suspended`, `cancelled` e `inactive` bloqueiam ações operacionais conf
 - Upload real de logo via Firebase Storage ainda não foi ativado; usa URL validada.
 - Cobrança real e webhooks de assinatura ainda não existem.
 - Unicidade forte de slug deve ser transacional via backend/Cloud Function antes de escalar produção multi-tenant.
+
+## Consolidação SaaS consultiva — Next Evolution
+
+A plataforma agora considera o catálogo oficial de planos como motor de entitlements para limites, capabilities, upgrade comercial, relatórios por plano, benchmarking premium, agenda executiva, plano 30/60/90, saúde organizacional, histórico de evolução, comparação por unidade, comunicação por plano e observabilidade operacional. A referência a GPTW Brasil é exclusivamente qualitativa e conceitual: não representa certificação GPTW, ranking oficial, pontuação externa ou validação pública de mercado; os índices são internos do Valora Insight™.

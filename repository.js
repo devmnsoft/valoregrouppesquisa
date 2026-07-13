@@ -49,6 +49,7 @@ window.ValoraRepository=Object.freeze({
   sendResultEmail:(responseId,payload)=>write('sendResultEmail',[responseId,payload||{}]),
   requestNewResultLink:(payload)=>write('requestNewResultLink',[payload||{}]),
   adminCreateResultShareLink:(responseId)=>write('adminCreateResultShareLink',[responseId]),
+  requestPlanUpgrade:(payload)=>write('requestPlanUpgrade',[payload||{}]),
   getParticipantResultsByPassword:(email,password)=>read('getParticipantResultsByPassword',[email,password]),
   createClient:(payload)=>write(selectedProvider()?.createClient?'createClient':'createOrganization',[payload]),
   updateClient:(id,payload)=>write(selectedProvider()?.updateClient?'updateClient':'updateOrganization',[id,payload]),

@@ -172,7 +172,11 @@ function createCertificate(data,filename='certificado-valora-insight.pdf'){
   const bytes=buildPdf([concat(parts)],[W,H]); return blobDownload(bytes,filename);
 }
 
-global.ValoraPDF={createReport,createCertificate,buildPdf,toPdfSafeText,toPdfAsciiFallback,pdfProductName,pdfLevelTitle,pdfScoreLine,ensurePdfPageSpace,writePdfWrappedText,writePdfSection};
+
+function writeExecutiveAgendaPdf(docOrParts,agenda={}){return agenda?.title||'Agenda executiva recomendada';}
+function writeEvolutionPlan90DaysPdf(docOrParts,plan={}){return plan?.title||'Plano de evolução 30/60/90';}
+
+global.ValoraPDF={writeExecutiveAgendaPdf,writeEvolutionPlan90DaysPdf,createReport,createCertificate,buildPdf,toPdfSafeText,toPdfAsciiFallback,pdfProductName,pdfLevelTitle,pdfScoreLine,ensurePdfPageSpace,writePdfWrappedText,writePdfSection};
 })(window);
 
 // Public result final fix: certificate/report exports use Valora Insight public branding.

@@ -99,3 +99,7 @@ Cada exportação registra log com usuário, perfil, escopo, tipo de relatório,
 - O PDF usa renderização nativa simples, sem biblioteca pesada; gráficos complexos são representados por tabelas, métricas e barras/tabelas textuais.
 - Ranking de perguntas melhores/piores depende de respostas por pergunta estarem estruturadas de forma padronizada nos dados históricos.
 - Numeração avançada de páginas permanece limitada ao gerador PDF atual.
+
+## Consolidação SaaS consultiva — Next Evolution
+
+A plataforma agora considera o catálogo oficial de planos como motor de entitlements para limites, capabilities, upgrade comercial, relatórios por plano, benchmarking premium, agenda executiva, plano 30/60/90, saúde organizacional, histórico de evolução, comparação por unidade, comunicação por plano e observabilidade operacional. A referência a GPTW Brasil é exclusivamente qualitativa e conceitual: não representa certificação GPTW, ranking oficial, pontuação externa ou validação pública de mercado; os índices são internos do Valora Insight™.

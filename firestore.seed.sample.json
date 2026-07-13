@@ -481,3 +481,5 @@
     }
   }
 }
+
+/* plan_upgrade_requests sample: { id, companyId, companyName, userId, userEmail, currentPlanCode, targetPlanCode, reason, context, source, status: "new", createdAt, updatedAt } */

@@ -568,7 +568,21 @@
     "legacy:executive-xray": "node scripts/validate-legacy-executive-xray.js",
     "legacy:valora-differentials": "node scripts/validate-legacy-valora-differentials.js",
     "legacy:commercial-cta": "node scripts/validate-legacy-commercial-cta-by-plan.js",
-    "legacy:report-premium-copy": "node scripts/validate-legacy-report-premium-copy.js"
+    "legacy:report-premium-copy": "node scripts/validate-legacy-report-premium-copy.js",
+    "legacy:entitlements": "node scripts/validate-legacy-entitlements-engine.js",
+    "legacy:plan-server-enforcement": "node scripts/validate-legacy-plan-server-enforcement.js",
+    "legacy:upgrade-requests": "node scripts/validate-legacy-upgrade-requests.js",
+    "legacy:report-by-plan-v2": "node scripts/validate-legacy-report-sections-by-plan-v2.js",
+    "legacy:executive-agenda": "node scripts/validate-legacy-executive-agenda.js",
+    "legacy:evolution-plan-90": "node scripts/validate-legacy-evolution-plan-90-days.js",
+    "legacy:organizational-health": "node scripts/validate-legacy-organizational-health-panel.js",
+    "legacy:evolution-history": "node scripts/validate-legacy-evolution-history.js",
+    "legacy:unit-comparison": "node scripts/validate-legacy-unit-comparison.js",
+    "legacy:benchmarking-v2": "node scripts/validate-legacy-benchmarking-2.js",
+    "legacy:tension-map": "node scripts/validate-legacy-organizational-tension-map.js",
+    "legacy:differentials-premium": "node scripts/validate-legacy-valora-differentials-premium.js",
+    "legacy:communication-by-plan": "node scripts/validate-legacy-communication-by-plan.js",
+    "legacy:system-health": "node scripts/validate-legacy-system-health-panel.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

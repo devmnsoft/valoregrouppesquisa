@@ -121,3 +121,7 @@ Ações relevantes geram log: login, criação, edição, exclusão, compartilha
 - suporte a redução de movimento;
 - tabelas com rolagem interna em telas menores;
 - mensagens de erro e confirmação em linguagem direta.
+
+## Consolidação SaaS consultiva — Next Evolution
+
+A plataforma agora considera o catálogo oficial de planos como motor de entitlements para limites, capabilities, upgrade comercial, relatórios por plano, benchmarking premium, agenda executiva, plano 30/60/90, saúde organizacional, histórico de evolução, comparação por unidade, comunicação por plano e observabilidade operacional. A referência a GPTW Brasil é exclusivamente qualitativa e conceitual: não representa certificação GPTW, ranking oficial, pontuação externa ou validação pública de mercado; os índices são internos do Valora Insight™.

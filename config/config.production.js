@@ -59,3 +59,8 @@ window.ValoraProductionPublicResultFinalFix = Object.freeze({
 window.ValoraProductionPublicResultLinkContract = Object.freeze({ resultParam: 'result', tokenParam: 'rt', productName: 'Valora Insight™' });
 
 // Legacy final audit: production sharing uses PUBLIC_APP_URL plus raw bearer tokens only.
+
+// Legacy SaaS consolidation next evolution flags
+window.ValoraConfig = window.ValoraConfig || {};
+window.ValoraConfig.LEGACY_SAAS_CONSOLIDATION_V2 = true;
+window.ValoraConfig.PLAN_UPGRADE_REQUESTS_COLLECTION = 'plan_upgrade_requests';

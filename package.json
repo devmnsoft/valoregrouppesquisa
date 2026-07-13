@@ -557,7 +557,18 @@
     "legacy:benchmark-no-fake-cert": "node scripts/validate-legacy-benchmarking-no-fake-certification.js",
     "legacy:public-result-whatsapp": "node scripts/validate-legacy-public-result-whatsapp-share.js",
     "legacy:admin-result-whatsapp": "node scripts/validate-legacy-admin-result-whatsapp-share.js",
-    "legacy:mobile-radar-benchmark": "node scripts/validate-legacy-mobile-radar-benchmarking.js"
+    "legacy:mobile-radar-benchmark": "node scripts/validate-legacy-mobile-radar-benchmarking.js",
+    "legacy:plan-catalog": "node scripts/validate-legacy-plan-catalog.js",
+    "legacy:plan-limits": "node scripts/validate-legacy-plan-limits-enforced.js",
+    "legacy:plan-upgrade-commercial": "node scripts/validate-legacy-plan-upgrade-commercial.js",
+    "legacy:report-by-plan": "node scripts/validate-legacy-report-sections-by-plan.js",
+    "legacy:valora-indexes": "node scripts/validate-legacy-valora-indexes.js",
+    "legacy:market-benchmark": "node scripts/validate-legacy-market-benchmark-premium.js",
+    "legacy:gptw-safe": "node scripts/validate-legacy-gptw-reference-safe.js",
+    "legacy:executive-xray": "node scripts/validate-legacy-executive-xray.js",
+    "legacy:valora-differentials": "node scripts/validate-legacy-valora-differentials.js",
+    "legacy:commercial-cta": "node scripts/validate-legacy-commercial-cta-by-plan.js",
+    "legacy:report-premium-copy": "node scripts/validate-legacy-report-premium-copy.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

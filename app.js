@@ -887,6 +887,79 @@ async function resolveProductionPublicSurveyLink(params) {
   return { redirected: false, blocked: true, isDemoLink: true };
 }
 
+
+function renderFreeDiagnosticHero() {
+  return `
+    <section class="free-diagnostic-hero" id="diagnostico-gratuito">
+      <div class="free-diagnostic-hero__inner">
+        <div class="free-diagnostic-hero__copy">
+          <span class="free-diagnostic-hero__badge">Diagnóstico gratuito</span>
+          <h2>Valora Insight™</h2>
+          <p class="free-diagnostic-hero__lead">
+            Descubra o nível de maturidade da sua organização e receba uma devolutiva estratégica inicial.
+          </p>
+          <div class="free-diagnostic-hero__facts">
+            <span>5 minutos</span>
+            <span>25 perguntas</span>
+            <span>devolutiva estratégica</span>
+          </div>
+          <div class="free-diagnostic-hero__benefits">
+            <article>
+              <strong>Resultado no e-mail</strong>
+              <p>Receba o link seguro da sua devolutiva.</p>
+            </article>
+            <article>
+              <strong>Leitura resumida</strong>
+              <p>Entenda seu estágio atual de maturidade.</p>
+            </article>
+            <article>
+              <strong>Próximo passo claro</strong>
+              <p>Veja onde sua empresa deve concentrar atenção.</p>
+            </article>
+          </div>
+          <div class="free-diagnostic-hero__actions">
+            <button class="btn btn-primary" type="button" data-action="startFreeDiagnostic">
+              Responder diagnóstico gratuito
+            </button>
+            <button class="btn btn-secondary" type="button" data-action="scrollHowItWorks">
+              Ver como funciona
+            </button>
+          </div>
+          <a class="free-diagnostic-hero__specialist" href="https://wa.me/5591992545353?text=Ol%C3%A1%2C%20quero%20falar%20sobre%20o%20diagn%C3%B3stico%20Valora%20Insight" target="_blank" rel="noopener">
+            Fale com o Valora Group
+          </a>
+        </div>
+        <aside class="free-diagnostic-hero__preview" aria-label="Prévia do diagnóstico Valora Insight">
+          <div class="free-diagnostic-preview-card">
+            <div class="free-diagnostic-preview-card__top">
+              <span>Diagnóstico gratuito</span>
+              <small>disponível agora</small>
+            </div>
+            <h3>Diagnóstico Valora Insight™</h3>
+            <p>
+              Uma leitura inicial sobre cultura, governança, liderança, pessoas e resultados.
+            </p>
+            <div class="free-diagnostic-preview-card__radar">
+              <div><span>Cultura</span><i style="--w:82%"></i></div>
+              <div><span>Governança</span><i style="--w:68%"></i></div>
+              <div><span>Liderança</span><i style="--w:74%"></i></div>
+              <div><span>Pessoas</span><i style="--w:70%"></i></div>
+              <div><span>Resultados</span><i style="--w:76%"></i></div>
+            </div>
+            <div class="free-diagnostic-preview-card__blocker">
+              <span>Principal bloqueio</span>
+              <strong>Estrutura de decisão</strong>
+            </div>
+            <button class="btn btn-primary" type="button" data-action="startFreeDiagnostic">
+              Responder diagnóstico gratuito
+            </button>
+          </div>
+        </aside>
+      </div>
+    </section>
+  `;
+}
+
 function renderHome(){
   state.settings=normalizeSettings(state.settings);
   let faqItems=normalizeFaqItems(state?.settings?.faq, defaultFaq());
@@ -935,7 +1008,7 @@ function renderHome(){
   ${adminWarning}
   ${loggedOperationalFallback}
   ${publicFeaturedFallback}
-  <section class="featured-survey-section free-diagnostic-section"><div class="featured-survey-card free-diagnostic-card"><div class="free-diagnostic-layout"><div class="featured-survey-copy free-diagnostic-copy"><span class="eyebrow free-diagnostic-kicker">Diagnóstico gratuito</span><h2 class="free-diagnostic-title">Valora Insight™</h2><p class="free-diagnostic-lead">Descubra o nível de maturidade da sua organização.</p><div class="free-diagnostic-benefits"><span class="pill free-diagnostic-benefit">Receba seu resultado no e-mail</span><span class="pill free-diagnostic-benefit">Acesse uma devolutiva resumida</span><span class="pill free-diagnostic-benefit">Fale com o Valora Group para conhecer os planos completos</span></div></div><div class="free-diagnostic-preview"><article class="featured-survey-action free-diagnostic-start-card free-diagnostic-preview-card"><h3 data-home-featured-title>${esc(featuredSurvey?.title||'Diagnóstico Valora Insight™')}</h3><p data-home-featured-status>${hasFeaturedSurvey?'Disponível agora':'Fale com o Valora Group'}</p><a class="btn btn-primary" data-home-featured-cta href="${hasFeaturedSurvey?esc(featuredSurveyUrl):'#'}">${hasFeaturedSurvey?'Responder diagnóstico gratuito':'Fale com o Valora Group'}</a></article></div></div></div></section>
+  ${renderFreeDiagnosticHero()}
   <section id="how-it-works" class="free-diagnostic-strip"><div><span>Comece pela leitura essencial</span><strong>Responda ao diagnóstico gratuito e receba uma visão resumida do estágio atual da organização.</strong>${hasFeaturedSurvey?`<small>Pesquisa gratuita</small>`:'<small>Sem pesquisa gratuita ativa no momento; o CTA será habilitado após configuração da pesquisa pública.</small>'}</div>${hasFeaturedSurvey?`<a class="btn btn-primary" href="${esc(featuredSurveyUrl)}">Responder diagnóstico grátis</a>`:`<a class="btn btn-primary" href="${esc(whatsappLink)}" ${whatsappLink.startsWith('https://wa.me/')?'target="_blank" rel="noopener"':''}>Fale com o Valora Group</a>`}</section>
   <section class="section"><div class="container"><h2 class="section-title">Como cada pessoa usa o diagnóstico</h2><div class="grid grid-3"><div class="card icon-card" data-icon="◆"><h3>Administrador Valora</h3><p>Equipe Valora Group responsável por configurar diagnósticos, acompanhar clientes e apoiar a evolução estratégica.</p></div><div class="card icon-card" data-icon="▦"><h3>Empresa Cliente</h3><p>Empresa que responde, acompanha resultados e utiliza a devolutiva para priorizar melhorias.</p></div><div class="card icon-card" data-icon="✓"><h3>Participante</h3><p>Pessoa que responde ao diagnóstico e acessa sua devolutiva pelo link seguro ou por e-mail e senha.</p></div></div></div></section>
   <section class="home-faq-section"><div class="container"><div class="section-heading"><span class="eyebrow">Dúvidas comuns</span><h2>Perguntas frequentes</h2><p>Entenda como funciona o diagnóstico e como começar com segurança.</p></div><div class="faq-list">${faqItems.map(item=>`<details class="faq-item"><summary>${esc(item.question)}</summary><p>${esc(item.answer)}</p></details>`).join('')}</div></div></section>`;
@@ -3067,7 +3140,7 @@ async function handleLoginSubmit(form,event){
 }
 
 function createActions(){return {
-  reloadApp(){location.reload();},reloadPublicResult,openOfficialFreeSurveyFromError,retryPublicSurvey,dryRunDemoPurge(){return runDemoPurgeFromAdmin(false);},applyDemoPurge(){return confirmAction('Aplicar limpeza demo?','Dados demo serão arquivados/revogados em produção.',()=>runDemoPurgeFromAdmin(true),true);},debugFeaturedHomeSurvey(){return callFirebaseFunction('debugFeaturedHomeSurveyConsistency',{}).then(r=>{const data=r?.data||r;window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey=data;openModal('Diagnóstico da pesquisa em destaque',`<pre class="debug-box">${esc(JSON.stringify(data,null,2))}</pre>`,'large');toast('Diagnóstico atualizado.','success');});},repairOfficialFallback(){return callFirebaseFunction('repairOfficialFormDocument',{}).then(r=>{openModal('Reparo da pesquisa oficial',`<pre class="debug-box">${esc(JSON.stringify(r?.data||r||{},null,2))}</pre>`,'large');toast('Fallback oficial reparado.','success');});},copyFeaturedDiagnostic(){copyText(JSON.stringify(window.ValoraRuntimeDiagnostics?.lastFeaturedHomeSurvey||{},null,2));},redirectToFeaturedHomeSurvey,goSurveys(){navigate('empresa/surveys');},goLogin:()=>goLogin(),login:()=>goLogin(),openLogin:()=>goLogin(),revalidateAssistedOperation(){toast('Operação assistida revalidada.','success');},copyFreeSurveyPublicLink(){toast('Link público copiado com token mascarado.','success');},repairFreeSurveyPublicLink(){if(confirm('Confirmar reparo seguro da pesquisa gratuita?'))toast('Reparo seguro solicitado via Function.','success');},promptResendResultEmail(){const id=prompt('responseId real para reenvio');if(id)return resendResultEmail(id);},viewEmailJobs(){navigate('admin/communications');},viewSanitizedOperationalLogs(){navigate('admin/logs');},viewConfigLiveReport(){toast('Relatório de config live disponível nos artefatos.','info');},viewFreeSurveySmokeReport(){toast('Relatório de smoke da pesquisa disponível.','info');},viewEmailSmokeReport(){toast('Relatório de smoke de e-mail disponível.','info');},sendResultEmail(el){return resendPublicResultEmailSafe(el);},resendResultEmail(el){return (el?.dataset?.token||el?.dataset?.resultToken||el?.dataset?.responseId)?resendPublicResultEmailSafe(el):resendResultEmail(el.dataset.id);},viewResponse:el=>adminViewResponse(el),adminViewResponse:el=>adminViewResponse(el),responseReportPdf:el=>adminReportResponsePdf(el),adminReportResponsePdf:el=>adminReportResponsePdf(el),reportResponsePdf:el=>isAdminRoute()?adminReportResponsePdf(el):reportResponsePdf(el),downloadResultReport:el=>downloadResultReport(el),reportPdf:el=>reportPdf(el),downloadReport:el=>downloadReport(el),responseCertificatePdf:el=>adminCertificatePdf(el),adminCertificatePdf:el=>adminCertificatePdf(el),certificatePdf:el=>isAdminRoute()?adminCertificatePdf(el):certificatePdf(el),downloadCertificatePdf(el){return isAdminRoute()?adminCertificatePdf(el):certificatePdf(el);},anonymizeResponse:el=>adminAnonymizeResponse(el),adminAnonymizeResponse:el=>adminAnonymizeResponse(el),deleteResponse:el=>adminDeleteResponse(el),adminDeleteResponse:el=>adminDeleteResponse(el),responseDelete:el=>adminDeleteResponse(el),downloadCertificatePng,legacy_run:el=>legacyRun(el),openWhatsapp:el=>openWhatsapp(el),openPlanUpgrade:el=>openPlanUpgradeModal(el?.dataset?.plan||''),requestPlanUpgrade:el=>requestPlanUpgrade(el),markUpgradeContacted:el=>updateUpgradeRequestStatus(el?.dataset?.id,'in_contact'),markUpgradeConverted:el=>updateUpgradeRequestStatus(el?.dataset?.id,'converted'),archiveUpgrade:el=>updateUpgradeRequestStatus(el?.dataset?.id,'archived'),repairSurveyLink:()=>toast('Reparo de link de pesquisa solicitado pelo painel de saúde do sistema.','info'),clearDuplicateNotifications:()=>toast('Limpeza de notificações duplicadas solicitada.','info'),shareSurveyWhatsapp:el=>shareSurveyWhatsapp(el),sendSurveyWhatsapp:el=>shareSurveyWhatsapp(el),whatsappSurvey:el=>shareSurveyWhatsapp(el),adminShareSurveyWhatsapp:el=>shareSurveyWhatsapp(el),shareCurrentPublicResultWhatsapp:el=>shareCurrentPublicResultWhatsapp(el),shareResultWhatsapp:el=>shareResultWhatsapp(el),sendResultWhatsapp:el=>shareResultWhatsapp(el),whatsappResult:el=>shareResultWhatsapp(el),adminShareResultWhatsapp:el=>shareResultWhatsapp(el),requestNewResultLink:el=>requestNewResultLink(el),resendPublicResultEmail(el){return resendPublicResultEmailSafe(el);},resolveCommunication(el){return resolveCommunication(el.dataset.id);},processEmailQueue(){toast('Processamento da fila de e-mail deve ser executado pelas rotinas de backend.','info');},resendPendingResults(){toast('Reenvio de resultados pendentes deve ser executado pelas rotinas de backend.','info');},
+  reloadApp(){location.reload();},reloadPublicResult,openOfficialFreeSurveyFromError,retryPublicSurvey,dryRunDemoPurge(){return runDemoPurgeFromAdmin(false);},applyDemoPurge(){return confirmAction('Aplicar limpeza demo?','Dados demo serão arquivados/revogados em produção.',()=>runDemoPurgeFromAdmin(true),true);},debugFeaturedHomeSurvey(){return callFirebaseFunction('debugFeaturedHomeSurveyConsistency',{}).then(r=>{const data=r?.data||r;window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastFeaturedHomeSurvey=data;openModal('Diagnóstico da pesquisa em destaque',`<pre class="debug-box">${esc(JSON.stringify(data,null,2))}</pre>`,'large');toast('Diagnóstico atualizado.','success');});},repairOfficialFallback(){return callFirebaseFunction('repairOfficialFormDocument',{}).then(r=>{openModal('Reparo da pesquisa oficial',`<pre class="debug-box">${esc(JSON.stringify(r?.data||r||{},null,2))}</pre>`,'large');toast('Fallback oficial reparado.','success');});},copyFeaturedDiagnostic(){copyText(JSON.stringify(window.ValoraRuntimeDiagnostics?.lastFeaturedHomeSurvey||{},null,2));},redirectToFeaturedHomeSurvey,startFreeDiagnostic(){return redirectToFeaturedHomeSurvey();},scrollHowItWorks(){document.getElementById('how-it-works')?.scrollIntoView({behavior:'smooth',block:'start'});},goSurveys(){navigate('empresa/surveys');},goLogin:()=>goLogin(),login:()=>goLogin(),openLogin:()=>goLogin(),revalidateAssistedOperation(){toast('Operação assistida revalidada.','success');},copyFreeSurveyPublicLink(){toast('Link público copiado com token mascarado.','success');},repairFreeSurveyPublicLink(){if(confirm('Confirmar reparo seguro da pesquisa gratuita?'))toast('Reparo seguro solicitado via Function.','success');},promptResendResultEmail(){const id=prompt('responseId real para reenvio');if(id)return resendResultEmail(id);},viewEmailJobs(){navigate('admin/communications');},viewSanitizedOperationalLogs(){navigate('admin/logs');},viewConfigLiveReport(){toast('Relatório de config live disponível nos artefatos.','info');},viewFreeSurveySmokeReport(){toast('Relatório de smoke da pesquisa disponível.','info');},viewEmailSmokeReport(){toast('Relatório de smoke de e-mail disponível.','info');},sendResultEmail(el){return resendPublicResultEmailSafe(el);},resendResultEmail(el){return (el?.dataset?.token||el?.dataset?.resultToken||el?.dataset?.responseId)?resendPublicResultEmailSafe(el):resendResultEmail(el.dataset.id);},viewResponse:el=>adminViewResponse(el),adminViewResponse:el=>adminViewResponse(el),responseReportPdf:el=>adminReportResponsePdf(el),adminReportResponsePdf:el=>adminReportResponsePdf(el),reportResponsePdf:el=>isAdminRoute()?adminReportResponsePdf(el):reportResponsePdf(el),downloadResultReport:el=>downloadResultReport(el),reportPdf:el=>reportPdf(el),downloadReport:el=>downloadReport(el),responseCertificatePdf:el=>adminCertificatePdf(el),adminCertificatePdf:el=>adminCertificatePdf(el),certificatePdf:el=>isAdminRoute()?adminCertificatePdf(el):certificatePdf(el),downloadCertificatePdf(el){return isAdminRoute()?adminCertificatePdf(el):certificatePdf(el);},anonymizeResponse:el=>adminAnonymizeResponse(el),adminAnonymizeResponse:el=>adminAnonymizeResponse(el),deleteResponse:el=>adminDeleteResponse(el),adminDeleteResponse:el=>adminDeleteResponse(el),responseDelete:el=>adminDeleteResponse(el),downloadCertificatePng,legacy_run:el=>legacyRun(el),openWhatsapp:el=>openWhatsapp(el),openPlanUpgrade:el=>openPlanUpgradeModal(el?.dataset?.plan||''),requestPlanUpgrade:el=>requestPlanUpgrade(el),markUpgradeContacted:el=>updateUpgradeRequestStatus(el?.dataset?.id,'in_contact'),markUpgradeConverted:el=>updateUpgradeRequestStatus(el?.dataset?.id,'converted'),archiveUpgrade:el=>updateUpgradeRequestStatus(el?.dataset?.id,'archived'),repairSurveyLink:()=>toast('Reparo de link de pesquisa solicitado pelo painel de saúde do sistema.','info'),clearDuplicateNotifications:()=>toast('Limpeza de notificações duplicadas solicitada.','info'),shareSurveyWhatsapp:el=>shareSurveyWhatsapp(el),sendSurveyWhatsapp:el=>shareSurveyWhatsapp(el),whatsappSurvey:el=>shareSurveyWhatsapp(el),adminShareSurveyWhatsapp:el=>shareSurveyWhatsapp(el),shareCurrentPublicResultWhatsapp:el=>shareCurrentPublicResultWhatsapp(el),shareResultWhatsapp:el=>shareResultWhatsapp(el),sendResultWhatsapp:el=>shareResultWhatsapp(el),whatsappResult:el=>shareResultWhatsapp(el),adminShareResultWhatsapp:el=>shareResultWhatsapp(el),requestNewResultLink:el=>requestNewResultLink(el),resendPublicResultEmail(el){return resendPublicResultEmailSafe(el);},resolveCommunication(el){return resolveCommunication(el.dataset.id);},processEmailQueue(){toast('Processamento da fila de e-mail deve ser executado pelas rotinas de backend.','info');},resendPendingResults(){toast('Reenvio de resultados pendentes deve ser executado pelas rotinas de backend.','info');},
   goHome,closeModal,closeConfirm,openManual,openManualRoute,openSupportChat,openSupportConversation,assignSupportConversation,resolveSupportConversation,closeSupportConversation,rateSupportConversation,
   confirmOk(){const cb=confirmCallback;closeConfirm(false);if(cb)cb();},
   toggleMenu(el){return toggleMenu();},toggleAdminMobileMenu(el){return toggleAdminMobileMenu();},closeAdminMobileMenu(el){return closeAdminMobileMenu();},

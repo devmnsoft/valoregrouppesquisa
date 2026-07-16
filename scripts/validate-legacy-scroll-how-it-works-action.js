@@ -1,0 +1,10 @@
+const {readApp,fail,functionBlock}=require('./validate-legacy-home-utils');
+const app=readApp();
+const fn=functionBlock(app,'scrollHowItWorks');
+if(!fn) fail('scrollHowItWorks ausente.');
+if(!fn.includes("getElementById('como-funciona')")) fail('scrollHowItWorks não aponta para #como-funciona.');
+if(!/scrollIntoView\(\{\s*behavior:\s*'smooth',\s*block:\s*'start'\s*\}\)/.test(fn)) fail('scrollHowItWorks sem rolagem suave esperada.');
+const actions=functionBlock(app,'createActions');
+if(!/scrollHowItWorks\b/.test(actions)) fail('createActions não mapeia scrollHowItWorks.');
+if(!functionBlock(app,'renderFreeDiagnosticHero').includes('data-action="scrollHowItWorks"')) fail('Botão Ver como funciona não usa data-action scrollHowItWorks.');
+console.log('validate-legacy-scroll-how-it-works-action: PASS');

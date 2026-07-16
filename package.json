@@ -603,7 +603,14 @@
     "legacy:home-hero-single-source": "node scripts/validate-legacy-home-hero-single-source.js",
     "legacy:how-it-works": "node scripts/validate-legacy-how-it-works-section.js",
     "legacy:scroll-how-it-works": "node scripts/validate-legacy-scroll-how-it-works-action.js",
-    "legacy:home-free-occurrences": "node scripts/validate-legacy-home-free-diagnostic-occurrences.js"
+    "legacy:home-free-occurrences": "node scripts/validate-legacy-home-free-diagnostic-occurrences.js",
+    "functions:admin-delete-callable": "node scripts/validate-functions-admin-delete-response-callable.js",
+    "functions:admin-delete-cors": "node scripts/validate-functions-admin-delete-response-cors.js",
+    "legacy:admin-delete-no-fetch": "node scripts/validate-legacy-admin-delete-no-direct-fetch.js",
+    "legacy:admin-delete-repository": "node scripts/validate-legacy-admin-delete-repository-callable.js",
+    "legacy:admin-delete-errors": "node scripts/validate-legacy-admin-delete-error-handling.js",
+    "legacy:admin-delete-filter": "node scripts/validate-legacy-admin-delete-response-filter.js",
+    "legacy:allowed-origins": "node scripts/validate-legacy-allowed-origins.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

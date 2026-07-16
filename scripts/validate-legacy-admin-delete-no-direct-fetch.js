@@ -1,0 +1,3 @@
+const fs=require('fs'),path=require('path');const files=['firebase-repository.js','repository.js','app.js'];if(fs.existsSync('dist')){const walk=d=>fs.readdirSync(d,{withFileTypes:true}).flatMap(e=>{const p=path.join(d,e.name);return e.isDirectory()?walk(p):[p]});files.push(...walk('dist').filter(f=>/\.(js|html|css)$/.test(f)));}
+for(const f of files){const s=fs.readFileSync(f,'utf8');if(/cloudfunctions\.net\/adminDeleteResponse|fetch\([^\n]*(adminDeleteResponse|\/adminDeleteResponse)/.test(s))throw new Error('fetch direto adminDeleteResponse em '+f)}
+console.log('validate-legacy-admin-delete-no-direct-fetch: PASS');

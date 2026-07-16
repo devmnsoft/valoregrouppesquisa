@@ -28,10 +28,19 @@ async function write(method,args){if(firebaseOnlyPublicOps()&&['submitPublicSurv
 const p=selectedProvider();if(!p?.[method])throw new Error(`Provider ${currentDataProvider()==='hybrid'?primaryProvider():currentDataProvider()} não possui método ${method}.`);return p[method](...args);}
 
 async function adminDeleteResponse(responseId) {
-  const p = selectedProvider();
-  if (p?.adminDeleteResponse) return p.adminDeleteResponse(responseId);
-  if (p?.deleteResponse) return p.deleteResponse(responseId);
-  throw Object.assign(new Error('Exclusão de resposta indisponível.'), { code: 'delete_response_unavailable' });
+  const provider = selectedProvider();
+
+  if (provider?.adminDeleteResponse) {
+    return provider.adminDeleteResponse(responseId);
+  }
+
+  if (provider?.deleteResponse) {
+    return provider.deleteResponse(responseId);
+  }
+
+  throw Object.assign(new Error('Exclusão de resposta indisponível.'), {
+    code: 'delete_response_unavailable'
+  });
 }
 function certUrl(method,args){const p=selectedProvider();if(!p?.[method])return '';return p[method](...args);}
 function alias(method,fallback){return async function(...args){return read(method,args).catch(err=>{if(fallback)return fallback(...args);throw err;});};}

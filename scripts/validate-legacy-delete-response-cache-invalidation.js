@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8');for(const x of ['delete window.ValoraRuntimeCache.responses','delete window.ValoraRuntimeCache.adminResponses','state.responses=activeResponsesOnly'])if(!s.includes(x))throw new Error('cache/state delete incompleto: '+x);console.log('validate-legacy-delete-response-cache-invalidation: PASS');

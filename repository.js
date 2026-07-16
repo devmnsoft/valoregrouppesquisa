@@ -26,6 +26,13 @@ async function read(method,args){if(firebaseOnlyPublicOps()&&['validatePublicSur
 const p=selectedProvider();if(!p?.[method])throw new Error(`Provider ${currentDataProvider()==='hybrid'?primaryProvider():currentDataProvider()} não possui método ${method}.`);const result=await p[method](...args);if(shouldUseHybrid()){const s=secondaryProvider();if(s?.[method])Promise.resolve().then(()=>s[method](...args)).then(other=>recordDivergence(method,result,other)).catch(error=>recordDivergence(method,result,{error:error.message}));}return result;}
 async function write(method,args){if(firebaseOnlyPublicOps()&&['submitPublicSurveyResponse','sendResultEmail','requestNewResultLink','adminCreateResultShareLink'].includes(method)){const p=firebaseRepository();if(!p?.[method])throw new Error(`Firebase provider não possui método ${method}.`);return p[method](...args);}
 const p=selectedProvider();if(!p?.[method])throw new Error(`Provider ${currentDataProvider()==='hybrid'?primaryProvider():currentDataProvider()} não possui método ${method}.`);return p[method](...args);}
+
+async function adminDeleteResponse(responseId) {
+  const p = selectedProvider();
+  if (p?.adminDeleteResponse) return p.adminDeleteResponse(responseId);
+  if (p?.deleteResponse) return p.deleteResponse(responseId);
+  throw Object.assign(new Error('Exclusão de resposta indisponível.'), { code: 'delete_response_unavailable' });
+}
 function certUrl(method,args){const p=selectedProvider();if(!p?.[method])return '';return p[method](...args);}
 function alias(method,fallback){return async function(...args){return read(method,args).catch(err=>{if(fallback)return fallback(...args);throw err;});};}
 const base=firebaseRepository();
@@ -49,6 +56,7 @@ window.ValoraRepository=Object.freeze({
   sendResultEmail:(responseId,payload)=>write('sendResultEmail',[responseId,payload||{}]),
   requestNewResultLink:(payload)=>write('requestNewResultLink',[payload||{}]),
   adminCreateResultShareLink:(responseId)=>write('adminCreateResultShareLink',[responseId]),
+  adminDeleteResponse:(responseId)=>adminDeleteResponse(responseId),
   requestPlanUpgrade:(payload)=>write('requestPlanUpgrade',[payload||{}]),
   getParticipantResultsByPassword:(email,password)=>read('getParticipantResultsByPassword',[email,password]),
   createClient:(payload)=>write(selectedProvider()?.createClient?'createClient':'createOrganization',[payload]),

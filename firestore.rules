@@ -394,7 +394,10 @@ service cloud.firestore {
                   || (sameCompany(resource.data.companyId) && sameArea())
                   || (signedIn() && request.auth.uid == resource.data.participantUid);
       allow create: if false;
-      allow update, delete: if isValoraAdmin();
+      allow update: if isValoraAdmin()
+                    && request.resource.data.deleted == true
+                    && request.resource.data.deletedAt != null;
+      allow delete: if isValoraAdmin();
     }
 
     match /invitations/{invitationId} {

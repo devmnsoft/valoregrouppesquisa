@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8');for(const x of ['deleteResponse:el=>adminDeleteResponse(el)','adminDeleteResponse:el=>adminDeleteResponse(el)','responseDelete:el=>adminDeleteResponse(el)'])if(!s.includes(x))throw new Error('ação ausente: '+x);console.log('validate-legacy-response-delete-actions: PASS');

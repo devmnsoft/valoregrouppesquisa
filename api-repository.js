@@ -14,10 +14,11 @@ function assertPublicSubmitPayloadReady(payload){const guard=window.ValoraPublic
   async function loadPublicResult(responseId,resultToken){return normalizeResultPayload(await api().post(`/public/results/${encodeURIComponent(responseId)}`,{resultToken}));}
   function downloadCertificatePdf(responseId){return `${api().getBaseUrl()}/responses/${encodeURIComponent(responseId)}/certificate.pdf`;}
   function downloadCertificatePng(responseId){return `${api().getBaseUrl()}/responses/${encodeURIComponent(responseId)}/certificate.png`;}
+  async function adminDeleteResponse(responseId){if(!api()?.delete)throw Object.assign(new Error('Exclusão de resposta indisponível na API.'),{code:'delete_response_unavailable'});return api().delete(`/responses/${encodeURIComponent(responseId)}`);}
   async function getMigrationStatus(){return api().get('/admin/migration/status');}
   async function getApiHealth(){return api().get('/health');}
   async function getDatabaseHealth(){return api().get('/health/database');}
   async function getArchitectureStatus(){return api().get('/admin/architecture/status');}
   async function sendResultEmail(responseId,payload={}){return api().post(`/communications/result/${encodeURIComponent(responseId)}/send-email`,payload);}
-  global.ValoraApiRepository=Object.freeze({login,registerCompany,getMe,getPublicPlans,publicPlans:getPublicPlans,validatePublicSurvey,submitPublicSurveyResponse,submitPublicSurvey:submitPublicSurveyResponse,loadPublicResult,loadResult:loadPublicResult,validateSurveyLink:validatePublicSurvey,downloadCertificatePdf,downloadCertificatePng,getMigrationStatus,getApiHealth,getDatabaseHealth,getArchitectureStatus,sendResultEmail});
+  global.ValoraApiRepository=Object.freeze({login,registerCompany,getMe,getPublicPlans,publicPlans:getPublicPlans,validatePublicSurvey,submitPublicSurveyResponse,submitPublicSurvey:submitPublicSurveyResponse,loadPublicResult,loadResult:loadPublicResult,validateSurveyLink:validatePublicSurvey,downloadCertificatePdf,downloadCertificatePng,getMigrationStatus,getApiHealth,getDatabaseHealth,getArchitectureStatus,sendResultEmail,adminDeleteResponse});
 })(window);

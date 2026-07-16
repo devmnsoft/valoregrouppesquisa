@@ -6,6 +6,8 @@
     RUNTIME_ENV: 'production',
 
     APP_PUBLIC_URL: 'https://valoragroup.mnsoft.com.br',
+    APP_TEST_URL: 'https://valorateste.mnsoft.com.br/',
+    ALLOWED_ORIGINS: ['https://valoragroup.mnsoft.com.br','https://valorateste.mnsoft.com.br','https://gestordepesquisa.web.app','https://gestordepesquisa.firebaseapp.com'],
 
     STORAGE_MODE: 'firebase',
     DATA_PROVIDER: 'firebase',

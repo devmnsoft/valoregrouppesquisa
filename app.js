@@ -3441,13 +3441,22 @@ async function adminDeleteResponse(responseIdOrEl){
   const responseId=typeof responseIdOrEl==='string'?responseIdOrEl:responseIdOrEl?.dataset?.id||responseIdOrEl?.dataset?.responseId||'';
   if(!responseId){toast('Resposta não identificada.','warning');return false;}
   return confirmAction('Excluir resposta?','Esta resposta deixará de aparecer nas listagens e relatórios. A ação será registrada para auditoria.',async()=>{
-    await ValoraRepository.adminDeleteResponse(responseId);
-    state.responses=(state.responses||[]).map(response=>response.id!==responseId?response:{...response,deleted:true,deletedAt:new Date().toISOString(),status:'deleted'});
-    state.responses=activeResponsesOnly(state.responses);
-    if(window.ValoraRuntimeCache){delete window.ValoraRuntimeCache.responses;delete window.ValoraRuntimeCache.adminResponses;}
-    toast('Resposta excluída com sucesso.','success');
-    if(typeof renderAdminResponses==='function')renderAdminResponses();else route('admin/responses');
-    return true;
+    try{
+      await ValoraRepository.adminDeleteResponse(responseId);
+      state.responses=activeResponsesOnly((state.responses||[]).map(response=>response.id!==responseId?response:{...response,deleted:true,deletedAt:new Date().toISOString(),status:'deleted'}));
+      if(window.ValoraRuntimeCache){delete window.ValoraRuntimeCache.responses;delete window.ValoraRuntimeCache.adminResponses;}
+      toast('Resposta excluída com sucesso.','success');
+      route('admin/responses');
+      return true;
+    }catch(err){
+      console.error('[Valora] adminDeleteResponse failed',err);
+      window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
+      window.ValoraRuntimeDiagnostics.lastAdminDeleteResponseError={code:err?.code||err?.details?.code||'',message:err?.message||String(err),details:err?.details||null,at:new Date().toISOString()};
+      const code=err?.details?.code||err?.code||'delete_failed';
+      if(String(err?.message||'').includes('CORS')||code==='internal'){toast('Não foi possível excluir por erro de comunicação com o servidor. Verifique se a Function foi publicada corretamente.','error');return false;}
+      toast(`Não foi possível excluir a resposta. Código: ${code}`,'error');
+      return false;
+    }
   });
 }
 function getEffectivePlanCapabilities(company = {}) { if(typeof company==='string') company=companyById(company)||{planCode:company}; const plan = getPlanDefinition(getCompanyPlanCode(company)); return { ...plan.capabilities, limits: plan.limits, plan }; }

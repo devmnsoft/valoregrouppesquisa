@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('app.js','utf8');for(const x of ['try{','catch(err)','lastAdminDeleteResponseError','code===\'internal\'','includes(\'CORS\')','Verifique se a Function foi publicada corretamente'])if(!s.includes(x))throw new Error('tratamento de erro ausente: '+x);console.log('validate-legacy-admin-delete-error-handling: PASS');

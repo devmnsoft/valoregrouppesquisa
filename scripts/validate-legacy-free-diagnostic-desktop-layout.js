@@ -1,0 +1,11 @@
+const { read, ok, done } = require('./validate-helper');
+const css = read('style.css');
+const app = read('app.js');
+ok(app.includes('free-diagnostic-hero__copy') && app.includes('free-diagnostic-hero__preview'), 'HTML precisa ter copy à esquerda e preview à direita.');
+ok(/\.free-diagnostic-hero__inner\s*\{[\s\S]*?display:\s*grid[\s\S]*?grid-template-columns:\s*minmax\(0,\s*1\.08fr\)\s*minmax\(430px,\s*\.92fr\)/.test(css), 'Desktop precisa usar duas colunas e minmax(430px, .92fr) no preview.');
+ok(/\.free-diagnostic-preview-card\s*\{[\s\S]*?width:\s*min\(100%,\s*470px\)/.test(css), 'Card desktop precisa ter largura premium de 470px, não menor que 360px.');
+const premiumCss = css.split('/* v8.6.12 — Free diagnostic hero premium desktop-first */').pop();
+const desktopCss = premiumCss.split('@media (max-width: 1024px)')[0];
+ok(!/\.free-diagnostic-preview-card\s*\{[^}]*width:\s*(?:[12]\d\d|3[0-5]\d)px/i.test(desktopCss), 'Card desktop não pode ter width menor que 360px.');
+ok(/\.free-diagnostic-preview-card h3\s*\{[\s\S]*?max-width:\s*380px[\s\S]*?word-break:\s*normal/.test(css), 'H3 do card precisa ter largura natural e word-break normal.');
+done('validate-legacy-free-diagnostic-desktop-layout');

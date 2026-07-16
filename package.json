@@ -590,7 +590,11 @@
     "legacy:response-filter-deleted": "node scripts/validate-legacy-response-list-filters-deleted.js",
     "legacy:delete-cache": "node scripts/validate-legacy-delete-response-cache-invalidation.js",
     "legacy:delete-actions": "node scripts/validate-legacy-response-delete-actions.js",
-    "legacy:deleted-not-metrics": "node scripts/validate-legacy-deleted-responses-not-in-metrics.js"
+    "legacy:deleted-not-metrics": "node scripts/validate-legacy-deleted-responses-not-in-metrics.js",
+    "legacy:free-diagnostic-desktop": "node scripts/validate-legacy-free-diagnostic-responsive-desktop.js",
+    "legacy:free-diagnostic-mobile-only": "node scripts/validate-legacy-free-diagnostic-mobile-only.js",
+    "legacy:free-diagnostic-no-regression": "node scripts/validate-legacy-free-diagnostic-no-desktop-regression.js",
+    "legacy:free-diagnostic-css-scope": "node scripts/validate-legacy-free-diagnostic-css-scope.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

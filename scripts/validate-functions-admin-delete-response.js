@@ -1,0 +1,1 @@
+const fs=require('fs');const s=fs.readFileSync('functions/index.js','utf8');for(const x of ['exports.adminDeleteResponse','response_deleted','audit_logs','deleted:true','deletedAt:TS()','status:\'deleted\''])if(!s.includes(x))throw new Error('function adminDeleteResponse incompleta: '+x);console.log('validate-functions-admin-delete-response: PASS');

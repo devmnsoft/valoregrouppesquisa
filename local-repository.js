@@ -3,6 +3,8 @@
 
 function deepCleanForFirestore(value,seen=new WeakSet()){if(value===undefined||typeof value==='function')return undefined;if(value===null||typeof value!=='object')return value;if(seen.has(value))return undefined;seen.add(value);if(Array.isArray(value))return value.map(v=>deepCleanForFirestore(v,seen)).filter(v=>v!==undefined);const out={};Object.keys(value).forEach(k=>{if(['__collection','__dirty','__temp','_ui','_local','_editing','_selected','_expanded','_cache','_diagnostics'].includes(k))return;const v=deepCleanForFirestore(value[k],seen);if(v!==undefined)out[k]=v;});return out;}
 function clone(v){return JSON.parse(JSON.stringify(v));}
+function isDeletedResponse(response={}){return response.deleted===true||response.status==='deleted'||!!response.deletedAt;}
+function activeResponsesOnly(responses=[]){return (responses||[]).filter(response=>!isDeletedResponse(response));}
 function productionMode(){return window.ValoraDataNormalization?.isProductionEnvironment?.()===true;}
 
 function purgeLegacyLocalStorageKeys(){
@@ -63,7 +65,8 @@ window.ValoraLocalRepository={
   listSurveys(companyId,{state}={}){const rows=withoutProductionDemoRows(state?.surveys||[]);return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
   createSurvey(data,{state}={}){const item={id:data.id||`survey_${Date.now().toString(36)}`,...data};state?.surveys?.push(item);return Promise.resolve(clone(item));},
   updateSurvey(id,data,{state}={}){const item=(state?.surveys||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
-  listResponses(companyId,{state}={}){const rows=state?.responses||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
+  listResponses(companyId,{state}={}){const rows=activeResponsesOnly(state?.responses||[]);return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
+  adminDeleteResponse(responseId,{state}={}){if(!state&&typeof localStorage!=='undefined'){const key=Object.keys(localStorage).find(k=>/valora/i.test(k));if(key){const loaded=JSON.parse(localStorage.getItem(key)||'{}');loaded.responses=(loaded.responses||[]).map(response=>response.id!==responseId?response:{...response,deleted:true,deletedAt:new Date().toISOString(),status:'deleted'});localStorage.setItem(key,JSON.stringify(loaded));}}if(state){state.responses=(state.responses||[]).map(response=>response.id!==responseId?response:{...response,deleted:true,deletedAt:new Date().toISOString(),status:'deleted'});}return Promise.resolve({ok:true,responseId});},
   listInvitations(companyId,{state}={}){const rows=state?.invitations||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
   createInvitation(data,{state}={}){const item={id:data.id||`invite_${Date.now().toString(36)}`,...data};state?.invitations?.push(item);return Promise.resolve(clone(item));},
   updateInvitation(id,data,{state}={}){const item=(state?.invitations||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
@@ -71,7 +74,7 @@ window.ValoraLocalRepository={
   loadUsers({state}={}){return state?.users||[];},
   loadForms({state}={}){return withoutProductionDemoRows(state?.forms||[]);},
   loadSurveys({state}={}){return withoutProductionDemoRows(state?.surveys||[]);},
-  loadResponses({state}={}){return state?.responses||[];},
+  loadResponses({state}={}){return activeResponsesOnly(state?.responses||[]);},
   listNotifications(filters={}, {state}={}){let rows=state?.notifications||[];Object.entries(filters||{}).forEach(([k,v])=>{if(v)rows=rows.filter(x=>String(x[k]||'')===String(v));});return Promise.resolve(clone(rows));},
   listUserNotifications(userId,{state}={}){return Promise.resolve(clone((state?.notifications||[]).filter(x=>x.userId===userId)));},
   listCompanyNotifications(companyId,{state}={}){return Promise.resolve(clone((state?.notifications||[]).filter(x=>x.companyId===companyId)));},

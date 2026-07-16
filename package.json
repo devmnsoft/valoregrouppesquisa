@@ -582,7 +582,15 @@
     "legacy:tension-map": "node scripts/validate-legacy-organizational-tension-map.js",
     "legacy:differentials-premium": "node scripts/validate-legacy-valora-differentials-premium.js",
     "legacy:communication-by-plan": "node scripts/validate-legacy-communication-by-plan.js",
-    "legacy:system-health": "node scripts/validate-legacy-system-health-panel.js"
+    "legacy:system-health": "node scripts/validate-legacy-system-health-panel.js",
+    "legacy:remove-pressure-copy": "node scripts/validate-legacy-remove-commercial-pressure-copy.js",
+    "legacy:free-diagnostic-mobile": "node scripts/validate-legacy-free-diagnostic-mobile-copy.js",
+    "legacy:response-soft-delete": "node scripts/validate-legacy-response-soft-delete.js",
+    "functions:admin-delete-response": "node scripts/validate-functions-admin-delete-response.js",
+    "legacy:response-filter-deleted": "node scripts/validate-legacy-response-list-filters-deleted.js",
+    "legacy:delete-cache": "node scripts/validate-legacy-delete-response-cache-invalidation.js",
+    "legacy:delete-actions": "node scripts/validate-legacy-response-delete-actions.js",
+    "legacy:deleted-not-metrics": "node scripts/validate-legacy-deleted-responses-not-in-metrics.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

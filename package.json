@@ -598,7 +598,12 @@
     "legacy:free-hero-premium": "node scripts/validate-legacy-free-diagnostic-premium-hero.js",
     "legacy:free-hero-no-word-break": "node scripts/validate-legacy-free-diagnostic-no-word-break.js",
     "legacy:free-hero-desktop": "node scripts/validate-legacy-free-diagnostic-desktop-layout.js",
-    "legacy:free-hero-mobile": "node scripts/validate-legacy-free-diagnostic-mobile-layout.js"
+    "legacy:free-hero-mobile": "node scripts/validate-legacy-free-diagnostic-mobile-layout.js",
+    "legacy:home-no-duplicate-free-diagnostic": "node scripts/validate-legacy-home-no-duplicate-free-diagnostic.js",
+    "legacy:home-hero-single-source": "node scripts/validate-legacy-home-hero-single-source.js",
+    "legacy:how-it-works": "node scripts/validate-legacy-how-it-works-section.js",
+    "legacy:scroll-how-it-works": "node scripts/validate-legacy-scroll-how-it-works-action.js",
+    "legacy:home-free-occurrences": "node scripts/validate-legacy-home-free-diagnostic-occurrences.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

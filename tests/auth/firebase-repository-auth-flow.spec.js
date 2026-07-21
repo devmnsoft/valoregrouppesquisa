@@ -1,0 +1,23 @@
+const assert = require('assert');
+const fs = require('fs');
+const vm = require('vm');
+
+const roleScopes = {admin_valora:'valora',consultor_valora:'valora',empresa_admin:'empresa',gestor_pesquisa:'empresa',analista_resultados:'empresa',gestor_area:'empresa',participante:'participante',convidado_externo:'externo'};
+function boot({doc={role:'empresa_admin',status:'active',email:'u@e.test',companyId:'c1'}, claims={}, getError=null, setError=null}={}){
+  const listeners=[]; const calls={set:0,signOut:0,signIn:0};
+  const user={uid:'uid-123456',email:'u@e.test',getIdTokenResult:async()=>({claims})};
+  const ref={get:async()=>{if(getError)throw getError;return {exists:doc!==null,id:user.uid,data:()=>doc};},set:async()=>{calls.set++; if(setError)throw setError;}};
+  const context={console,setTimeout,clearTimeout,Promise,Error,Date,CustomEvent:function(type,init){this.type=type;this.detail=init&&init.detail;},window:{location:{hash:'#login'},dispatchEvent:(e)=>{context.window.lastEvent=e;},ValoraRuntimeDiagnostics:{},ValoraRoles:{ROLE_DEFINITIONS:Object.fromEntries(Object.keys(roleScopes).map(r=>[r,{scope:roleScopes[r]}])),getRoleDefinition:(r)=>({scope:roleScopes[r]||'unknown'})},firebase:{firestore:{FieldValue:{serverTimestamp:()=>({server:true}),arrayUnion:(v)=>[v]}}},ValoraFirebaseServices:{initialized:true,db:{collection:(name)=>{assert.strictEqual(name,'users');return {doc:(uid)=>{assert.strictEqual(uid,user.uid);return ref;}}}},auth:{currentUser:user,signInWithEmailAndPassword:async()=>{calls.signIn++;return {user};},signOut:async()=>{calls.signOut++;},onAuthStateChanged:(cb)=>{listeners.push(cb);return ()=>{};}}}}};
+  context.global=context.window; vm.createContext(context); vm.runInContext(fs.readFileSync('firebase-repository.js','utf8'),context);
+  return {context,user,listeners,calls,repo:context.window.ValoraFirebaseRepository,auth:context.window.ValoraFirebaseAuth};
+}
+
+describe('firebase repository auth hotfix',()=>{
+  it('does not block login on lastLoginAt permission-denied because set is not required',async()=>{const h=boot({setError:Object.assign(new Error('denied'),{code:'permission-denied'})});const profile=await h.repo.login({email:'u@e.test',password:'secret'});assert.strictEqual(profile.uid,h.user.uid);assert.strictEqual(h.calls.set,0);assert.strictEqual(h.repo.currentUser().uid,h.user.uid);});
+  it('sets profile claims lastError and supports all role redirects',async()=>{for(const role of Object.keys(roleScopes)){const h=boot({doc:{role,status:'active',email:'u@e.test',companyId:'c1'},claims:{role}});const p=await h.repo.login({email:'u@e.test',password:'secret'});assert.strictEqual(p.role,role);assert.deepStrictEqual(h.context.window.ValoraRuntimeDiagnostics.lastAuthFlow.step,'profile_loaded');assert.strictEqual(h.repo.currentUser().role,role);assert.strictEqual(h.context.window.lastEvent.detail.error,null);}});
+  it('classifies profile-missing as terminal with friendly message',async()=>{const h=boot({doc:null});await assert.rejects(()=>h.repo.login({email:'u@e.test',password:'secret'}),/Cadastro incompleto/);assert.strictEqual(h.auth.isTerminalAuthProfileError({code:'profile-missing'}),true);});
+  it('classifies inactive-user as terminal',async()=>{const h=boot({doc:{role:'empresa_admin',status:'inactive',email:'u@e.test'}});await assert.rejects(()=>h.repo.login({email:'u@e.test',password:'secret'}),/Usuário inativo/);});
+  it('preserves permission-denied profile read as terminal diagnostic',async()=>{const h=boot({getError:Object.assign(new Error('Missing permissions'),{code:'permission-denied'})});await assert.rejects(()=>h.repo.login({email:'u@e.test',password:'secret'}));assert.strictEqual(h.auth.isTerminalAuthProfileError({code:'permission-denied'}),true);assert.strictEqual(h.auth.isTransientAuthProfileError({code:'permission-denied'}),false);assert.strictEqual(h.context.window.ValoraRuntimeDiagnostics.lastAuthFlow.code,'permission-denied');});
+  it('keeps network errors recoverable without logout',async()=>{const h=boot({getError:Object.assign(new Error('offline'),{code:'unavailable'})});const ready=h.auth.waitUntilReady();await h.listeners[0](h.user);assert.strictEqual(h.calls.signOut,0);assert.strictEqual(h.context.window.ValoraFirebaseServices.auth.currentUser,h.user);assert.strictEqual(h.auth.isTransientAuthProfileError({code:'unavailable'}),true);});
+  it('restores valid session to a profile, not visitor',async()=>{const h=boot();const ready=h.auth.waitUntilReady();await h.listeners[0](h.user);const profile=await ready;assert(profile);assert.strictEqual(profile.uid,h.user.uid);assert.strictEqual(h.repo.currentUser().uid,h.user.uid);assert.strictEqual(h.calls.signOut,0);});
+});

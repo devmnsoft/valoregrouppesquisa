@@ -612,7 +612,8 @@
     "legacy:admin-delete-filter": "node scripts/validate-legacy-admin-delete-response-filter.js",
     "legacy:allowed-origins": "node scripts/validate-legacy-allowed-origins.js",
     "mobile:auth-flow": "node scripts/validate-mobile-auth-flow.js",
-    "test:mobile-auth": "playwright test -c playwright.mobile-auth.config.js"
+    "test:mobile-auth": "playwright test -c playwright.mobile-auth.config.js",
+    "test:auth-hotfix": "npx mocha tests/auth/firebase-repository-auth-flow.spec.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

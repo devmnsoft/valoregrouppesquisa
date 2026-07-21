@@ -6,7 +6,7 @@ const GLOBAL_ROLES=['admin_valora','consultor_valora'];
 const PROFILE_MISSING_MESSAGE='Cadastro incompleto. Solicite liberação ao administrador.';
 const FRIENDLY_LOAD_ERROR='Não foi possível carregar as informações. Tente novamente.';
 const REQUIRED_FRONTEND_COLLECTIONS=['settings','modules','plans','organizations','companies','users','forms','surveys','responses','invitations','invoices','actionPlans','notifications','knowledgeBase','supportCategories','supportSlaPolicies','supportTickets','supportMessages','integrations','webhooks','apiKeys','communications','units','serviceDeliverables'];
-const session={authUser:null,profile:null,claims:{},ready:false,readyPromise:null,unsubscribe:null,store:null,normalizeState:null,loaded:false,loading:false,lastError:null,cache:{},authDebug:null};
+const session={authUser:null,profile:null,claims:{},ready:false,readyPromise:null,unsubscribe:null,store:null,normalizeState:null,loaded:false,loading:false,lastError:null,cache:{},authDebug:null,sessionPromises:new Map(),hydrationPromise:null};
 
 function assertPublicSubmitPayloadReady(payload){
   const guard=window.ValoraPublicSubmitGuard?.assertPublicSubmitPayloadReady;
@@ -46,7 +46,11 @@ function deepCleanForFirestore(value,options={},seen=new WeakSet()){
 }
 function sanitizeStateBeforeSave(state){return deepCleanForFirestore(state||{});}
 function publicProfile(doc,claims={}){if(!doc)return null;const role=ALLOWED_ROLES.includes(claims.role)?claims.role:doc.role;return {id:doc.uid||doc.id,uid:doc.uid||doc.id,name:doc.name||doc.email,email:doc.email,phone:doc.phone||'',position:doc.position||'',department:doc.department||'',role,companyId:doc.companyId||claims.companyId||'',status:doc.status||'inactive',preferences:doc.preferences||{},claims};}
-function cleanFirebaseLocalState(){try{Object.keys(localStorage).filter(k=>k.startsWith('firebase:')||k.includes('ValoraFirebase')).forEach(k=>localStorage.removeItem(k));}catch(_){} }
+function cleanValoraLocalState(){try{Object.keys(localStorage).filter(k=>k.startsWith('valora:')||k.startsWith('ValoraPulse')||k.startsWith('valoraPulse')).forEach(k=>localStorage.removeItem(k));}catch(_){} }
+function maskUid(uid){const v=String(uid||'');return v?v.slice(0,4)+'…'+v.slice(-3):'';}
+function recordAuthFlow(step,meta={}){const d=window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};d.lastAuthFlow={step,timestamp:new Date().toISOString(),uid:maskUid(meta.uid),role:meta.role||session.profile?.role||'',fromRoute:meta.fromRoute||'',targetRoute:meta.targetRoute||'',code:meta.code||''};return d.lastAuthFlow;}
+function isTransientAuthProfileError(err){const code=String(err?.code||'').toLowerCase();const msg=String(err?.message||err||'').toLowerCase();return ['unavailable','deadline-exceeded','network-request-failed','auth/network-request-failed'].includes(code)||code.includes('network')||msg.includes('network')||msg.includes('offline')||msg.includes('tempor');}
+function isTerminalAuthProfileError(err){return ['profile-missing','inactive-user','auth/user-disabled','invalid-role','missing-role-scope','inactive-company'].includes(String(err?.code||''));}
 function docData(d){return d.exists?{id:d.id,...d.data()}:null;}
 function asArray(snap){return snap.docs.map(docData).filter(Boolean);}
 function isGlobalRole(profile=session.profile){return GLOBAL_ROLES.includes(profile?.role);}
@@ -66,18 +70,26 @@ function mapCollectionError(err){
   if(code==='unavailable'||code.includes('network'))return Object.assign(new Error('Não foi possível carregar as informações. Tente novamente.'),{code});
   return Object.assign(new Error(FRIENDLY_LOAD_ERROR),{code});
 }
-async function refreshAuthDebug(user=session.authUser){if(!user)return {};await user.getIdToken(true);const tokenResult=await user.getIdTokenResult(true);const claims=tokenResult.claims||{};session.authDebug={uid:user.uid,email:user.email,claims,refreshedAt:new Date().toISOString(),tokenRefreshed:true,hasRoleClaim:!!claims.role};firestoreDebug().auth=session.authDebug;if(session.store)session.store.authDebug=session.authDebug;if(!claims.role)console.warn('[Valora Pulse] Usuário autenticado, mas sem custom claim role. Faça logout/login ou reaplique claims.');return claims;}
+async function refreshAuthDebug(user=session.authUser){if(!user)return {};const tokenResult=await user.getIdTokenResult(false);const claims=tokenResult.claims||{};session.authDebug={uid:user.uid,email:user.email,claims,refreshedAt:new Date().toISOString(),tokenRefreshed:true,hasRoleClaim:!!claims.role};firestoreDebug().auth=session.authDebug;if(session.store)session.store.authDebug=session.authDebug;if(!claims.role)console.warn('[Valora Pulse] Usuário autenticado, mas sem custom claim role. Faça logout/login ou reaplique claims.');return claims;}
 async function getClaims(user=session.authUser){if(!user)return {};return refreshAuthDebug(user);}
 async function getCurrentAuthUser(){await waitUntilReady();return session.authUser;}
 async function getCurrentUserProfile(){await waitUntilReady();return session.profile;}
 async function loadProfile(user){
   if(!user)return null;
-  const s=ensureFirebase();const claims=await getClaims(user);const ref=s.db.collection('users').doc(user.uid);const snap=await ref.get();
+  const s=ensureFirebase();recordAuthFlow('profile_loading',{uid:user.uid});const claims=await getClaims(user);const ref=s.db.collection('users').doc(user.uid);const snap=await ref.get();
   if(!snap.exists)throw Object.assign(new Error(PROFILE_MISSING_MESSAGE),{code:'profile-missing'});
-  const doc={uid:user.uid,...snap.data()};const profile=publicProfile(doc,claims);
+  const doc={uid:user.uid,...snap.data()};const profile=publicProfile(doc,claims);const roleDef=window.ValoraRoles?.getRoleDefinition?.(profile.role);
+  if(!ALLOWED_ROLES.includes(profile.role)||!roleDef||roleDef.scope==='unknown')throw Object.assign(new Error('Perfil sem papel válido.'),{code:'invalid-role'});
+  if(!roleDef.scope)throw Object.assign(new Error('Perfil sem escopo obrigatório.'),{code:'missing-role-scope'});
   if(profile.status!=='active')throw Object.assign(new Error('Usuário inativo.'),{code:'inactive-user'});
   await ref.set({lastLoginAt:ts(),updatedAt:doc.updatedAt||ts()},{merge:true});
-  session.claims=claims;session.profile=profile;return profile;
+  session.claims=claims;session.profile=profile;recordAuthFlow('profile_loaded',{uid:user.uid,role:profile.role});return profile;
+}
+async function establishAuthenticatedSession(user,options={}){
+  if(!user)return null;const uid=user.uid;
+  if(session.sessionPromises.has(uid))return session.sessionPromises.get(uid);
+  const promise=(async()=>{try{session.authUser=user;const profile=await loadProfile(user);if(session.store){recordAuthFlow('private_state_loading',{uid,role:profile.role});await hydrateStore();recordAuthFlow('private_state_loaded',{uid,role:profile.role});}dispatchAuthChanged();return profile;}catch(err){session.lastError=err;recordAuthFlow(isTransientAuthProfileError(err)?'recoverable_error':'terminal_error',{uid,code:err?.code});dispatchAuthChanged();if(isTerminalAuthProfileError(err))throw err;throw err;}finally{session.sessionPromises.delete(uid);}})();
+  session.sessionPromises.set(uid,promise);return promise;
 }
 function waitUntilReady(){
   if(session.ready)return Promise.resolve(session.profile);
@@ -86,7 +98,7 @@ function waitUntilReady(){
   session.readyPromise=new Promise(resolve=>{
     session.unsubscribe=s.auth.onAuthStateChanged(async user=>{
       session.authUser=user;session.profile=null;session.claims={};session.loaded=false;
-      try{if(user)await loadProfile(user);}catch(err){console.warn('[Valora Pulse] Sessão bloqueada.',err);try{await s.auth.signOut();}catch(_){} }
+      try{if(user)await establishAuthenticatedSession(user,{source:'auth_state'});}catch(err){if(isTerminalAuthProfileError(err)){console.warn('[Valora Pulse] Sessão bloqueada.',{code:err?.code});try{await s.auth.signOut();}catch(_){} }else{console.warn('[Valora Pulse] Falha transitória ao restaurar sessão.',{code:err?.code});}}
       session.ready=true;resolve(session.profile);
       if(session.profile&&session.store) hydrateStore().finally(()=>dispatchAuthChanged()); else dispatchAuthChanged();
     });
@@ -124,10 +136,13 @@ async function loadStoreData(){
   return {session:{userId:p.id||p.uid,createdAt:new Date().toISOString()},authDebug:session.authDebug,organizations:compatibleOrganizations,companies,users,plans,modules,forms,surveys,responses,invitations,invoices,actionPlans,supportTickets,supportMessages,supportSlaPolicies,supportCategories,knowledgeBase,notifications,settings,logs,integrations,apiKeys,webhooks,integrationLogs,communications,units,serviceDeliverables,firestoreLastError:null,firestoreDebug:firestoreDebug()};
 }
 async function hydrateStore(){
-  if(session.loading)return;session.loading=true;session.lastError=null;
+  if(session.hydrationPromise)return session.hydrationPromise;
+  session.loading=true;session.lastError=null;
+  session.hydrationPromise=(async()=>{
   try{const data=await loadStoreData();if(!data)return;Object.assign(session.store,data);session.normalizeState?.(session.store);REQUIRED_FRONTEND_COLLECTIONS.forEach(k=>recordCollectionDebug(k,k==='settings'?Object.keys(session.store.settings||{}).length:(session.store[k]||[]).length,{stateKey:k}));session.cache=clone({companies:session.store.companies,users:session.store.users,plans:session.store.plans,modules:session.store.modules,forms:session.store.forms,surveys:session.store.surveys,responses:session.store.responses,invitations:session.store.invitations,invoices:session.store.invoices,actionPlans:session.store.actionPlans,supportTickets:session.store.supportTickets,supportMessages:session.store.supportMessages,supportSlaPolicies:session.store.supportSlaPolicies,supportCategories:session.store.supportCategories,knowledgeBase:session.store.knowledgeBase,notifications:session.store.notifications,settings:session.store.settings,communications:session.store.communications,units:session.store.units,serviceDeliverables:session.store.serviceDeliverables});session.loaded=true;}
   catch(err){session.lastError=err;if(session.store){session.store.firestoreLastError={code:err?.code||'',message:err?.message||String(err),at:new Date().toISOString()};session.store.firestoreDebug=firestoreDebug();}console.warn('[Valora Pulse] Falha ao carregar Firestore.',err);}
-  finally{session.loading=false;}
+  finally{session.loading=false;session.hydrationPromise=null;}
+  })();return session.hydrationPromise;
 }
 function changed(a,b){return JSON.stringify(a||null)!==JSON.stringify(b||null);}
 async function syncCollectionFromState(key){session.store=sanitizeStateBeforeSave(session.store);const name=collectionNameForStateKey(key);const before=new Map((session.cache[key]||[]).map(x=>[x.id,x]));const now=new Map((session.store[key]||[]).map(x=>[x.id,x]));const writes=[];now.forEach((row,id)=>{if(key==='users'&&(!row.uid||row.uid!==id)&&!before.has(id)){console.warn('[Valora Pulse] TODO seguro: criação de usuário Firebase Auth deve ocorrer via Cloud Function/Admin SDK antes de gravar users/{uid}.',row.email);return;}if(!before.has(id))writes.push(createDoc(name,row));else if(changed(row,before.get(id)))writes.push(updateDoc(name,id,row));});before.forEach((_row,id)=>{if(!now.has(id))writes.push(deleteDoc(name,id));});await Promise.all(writes);session.cache[key]=clone(session.store[key]||[]);}
@@ -369,15 +384,15 @@ async function getParticipantResultsByPasswordFirebase(email,password){
 }
 
 window.ValoraFirestoreSanitizer={deepCleanForFirestore,sanitizeStateBeforeSave};
-window.ValoraFirebaseAuth={getCurrentAuthUser,getCurrentUserProfile,waitUntilReady};
+window.ValoraFirebaseAuth={getCurrentAuthUser,getCurrentUserProfile,waitUntilReady,refreshAuthDebug,establishAuthenticatedSession,isTransientAuthProfileError};
 window.ValoraFirebaseRepository={
   mode:'firebase',
-  loadStore({seedStore,normalizeState}){cleanFirebaseLocalState();session.store=emptyStore(seedStore,normalizeState);session.normalizeState=normalizeState;waitUntilReady().catch(()=>{});return session.store;},
+  loadStore({seedStore,normalizeState}){session.store=emptyStore(seedStore,normalizeState);session.normalizeState=normalizeState;waitUntilReady().catch(()=>{});return session.store;},
   saveStore(){return this.saveChanges({state:session.store});},
-  async login({email,password}){const s=ensureFirebase();try{const cred=await s.auth.signInWithEmailAndPassword(email,password);await cred.user.getIdToken(true);const profile=await loadProfile(cred.user);await hydrateStore();return profile;}catch(err){throw Object.assign(new Error(mapAuthError(err)),{code:err?.code});}},
+  async login({email,password}){const s=ensureFirebase();try{recordAuthFlow('login_submitted',{});await window.ValoraFirebaseAuthPersistenceReady;recordAuthFlow('persistence_ready',{});const cred=await s.auth.signInWithEmailAndPassword(email,password);recordAuthFlow('firebase_authenticated',{uid:cred.user?.uid});return await establishAuthenticatedSession(cred.user,{source:'login'});}catch(err){if(isTransientAuthProfileError(err))throw Object.assign(new Error('Falha temporária ao carregar seu perfil. Verifique a conexão e toque em Tentar novamente.'),{code:err?.code,recoverable:true});throw Object.assign(new Error(mapAuthError(err)),{code:err?.code});}},
   registerCompanyAccount,
   registerCompany,
-  async logout(){const s=ensureFirebase();session.profile=null;session.claims={};session.loaded=false;cleanFirebaseLocalState();await s.auth.signOut();},
+  async logout(){const s=ensureFirebase();await s.auth.signOut();session.profile=null;session.claims={};session.loaded=false;cleanValoraLocalState();},
   currentUser(){return session.profile;},
   async loadStoreFromFirestore(){await hydrateStore();return session.store;},
   loadOfficialFreeSurvey:loadOfficialFreeSurveyPublic,

@@ -121,7 +121,7 @@ function updateRuntimeDiagnostic(key,value){window.ValoraRuntimeDiagnostics=wind
 function isPublicRoute(route,params={}){const view=String(route||'home').split('/')[0].replace(/^#/,'')||'home';if(params.survey||params.result||params.certificate)return true;return ['','/','home','login','signup','cadastro','register','suporte','support','public-help','lgpd','privacidade','termos','plans'].includes(view);}
 function recordPublicBootError(error,context='public_boot'){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicBootError={context,message:error?.message||String(error),code:error?.code||'',at:new Date().toISOString()};console.warn('[Valora Pulse] Falha controlada no boot público',window.ValoraRuntimeDiagnostics.lastPublicBootError,error);}
 function releasePublicUi(reason='public_route'){try{document.documentElement.classList.remove('loading','app-loading','boot-loading');document.body.classList.remove('loading','app-loading','boot-loading');document.body.style.pointerEvents='';document.body.style.overflow='';['#loadingOverlay','#app-loader','.loadingOverlay','.app-loader','.boot-screen'].forEach(sel=>document.querySelectorAll(sel).forEach(el=>{el.hidden=true;el.style.display='none';}));window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastPublicUiRelease={reason,at:new Date().toISOString()};}catch(e){console.warn('[Valora Pulse] releasePublicUi falhou',e);}}
-function renderLoadingComTimeout(){const app=$('#app');if(app)app.innerHTML='<section class="section"><div class="container"><div class="card">Carregando sessão segura...</div></div></section>';const routeNow=routeFromLocation(),params=routeParamsFromLocation();setTimeout(()=>{if(currentUserSafe())return;if(isPublicRoute(routeNow,params)){releasePublicUi('auth_timeout_loading');route('home');}},5000);setTimeout(()=>{if(!currentUserSafe()&&!isPublicRoute(routeNow,params))renderLogin('Acesso seguro à plataforma Valora Pulse™.');},15000);}
+function renderLoadingComTimeout(){const app=$('#app');if(app)app.innerHTML='<section class="section"><div class="container"><div class="card">Carregando sessão segura...</div></div></section>';const routeNow=routeFromLocation(),params=routeParamsFromLocation();setTimeout(()=>{if(window.__valoraLoginInProgress||currentUserSafe())return;if(isPublicRoute(routeNow,params)){releasePublicUi('auth_timeout_loading');route('home');}},5000);setTimeout(()=>{if(!currentUserSafe()&&!isPublicRoute(routeNow,params))renderLogin('Acesso seguro à plataforma Valora Pulse™.');},15000);}
 function renderGuard(name,renderer,params=routeParamsFromLocation()){try{normalizeStateInPlace();if(isPublicRoute(name,params)){releasePublicUi(`public:${name}`);return renderer();}if(!state?.authReady&&repository?.mode==='firebase')return renderLoadingComTimeout();if(!currentUser())return renderLogin('Acesso seguro à plataforma Valora Pulse™.');return renderer();}catch(error){console.error(`[Valora Pulse] Falha ao renderizar ${name}`,error);if(isPublicRoute(name,params)||!currentUserSafe()){recordPublicBootError(error,`render:${name}`);releasePublicUi(`render_error:${name}`);}const html=`<section class="empty-state error-state"><h3>Não foi possível carregar esta área</h3><p>Encontramos uma inconsistência nos dados. Tente atualizar a página.</p><button class="btn btn-secondary" data-action="reloadApp">Atualizar</button></section>`;const app=$('#app');if(app)app.innerHTML=html;return html;}}
 
 class ValoraApiError extends Error{constructor(message,details={}){super(message);this.name='ValoraApiError';this.code=details.code||'api-error';this.status=details.status||0;this.url=details.url||'';this.contentType=details.contentType||'';}}
@@ -472,7 +472,7 @@ async function init(){
   if(repository.mode==='firebase'&&window.ValoraFirebaseAuth?.waitUntilReady){
     const routeNow=currentRoute,paramsNow=routeParamsFromLocation(),publicNow=isPublicRoute(routeNow,paramsNow);
     const authReadyPromise=window.ValoraFirebaseAuth.waitUntilReady().then(user=>{state.authReady=true;state.user=currentUserSafe();return user;});
-    const authTimeout=new Promise(resolve=>setTimeout(()=>{if(publicNow){updateRuntimeDiagnostic('lastPublicAuthTimeout',{route:routeNow,status:'visitor_released'});console.info('[Valora Pulse] Auth ainda carregando; seguindo em modo visitante para rota pública.');releasePublicUi('public_auth_timeout');resolve(null);}else{const app=$('#app');if(app)app.innerHTML='<section class="empty-state"><h3>Carregando sessão segura...</h3><p>Aguarde enquanto validamos seu acesso.</p><div class="confirm-actions"><button class="btn btn-secondary" data-action="retryPublicSurvey">Tentar novamente</button><button class="btn btn-soft" data-action="goLogin">Ir para login</button></div></section>';/* no visitor release for admin/private */}},publicNow?5000:15000));
+    const authTimeout=new Promise(resolve=>setTimeout(()=>{if(window.__valoraLoginInProgress)return resolve(null);if(publicNow){updateRuntimeDiagnostic('lastPublicAuthTimeout',{route:routeNow,status:'visitor_released'});console.info('[Valora Pulse] Auth ainda carregando; seguindo em modo visitante para rota pública.');releasePublicUi('public_auth_timeout');resolve(null);}else{const app=$('#app');if(app)app.innerHTML='<section class="empty-state"><h3>Carregando sessão segura...</h3><p>Aguarde enquanto validamos seu acesso.</p><div class="confirm-actions"><button class="btn btn-secondary" data-action="retryPublicSurvey">Tentar novamente</button><button class="btn btn-soft" data-action="goLogin">Ir para login</button></div></section>';/* no visitor release for admin/private */}},publicNow?5000:15000));
     await (publicNow?Promise.race([authReadyPromise,authTimeout]):authReadyPromise);
     if(publicNow)authReadyPromise.then(()=>{state.user=currentUserSafe();state.isPublicMode=!state.user;}).catch(()=>{});
   }
@@ -501,6 +501,7 @@ function isPublicJourneyPage(){return isPublicSurveyPage()||isPublicResultPage()
 
 function renderTakeSurveyFromRoute(){const u=new URL(location.href);return renderTakeSurvey(u.searchParams.get('survey'),u.searchParams.get('token'),u.searchParams.get('org'));}
 function routeFromLocation(){
+  if(redirectAuthenticatedPublicHashOnce())return;
   const u=new URL(location.href);const hash=(location.hash||'').slice(1);const sid=u.searchParams.get('survey'),token=u.searchParams.get('token'),result=u.searchParams.get('result'),resultToken=u.searchParams.get('rt'),certificate=u.searchParams.get('certificate');
   // Rotas internas sempre têm prioridade. Assim, Minha área, logo, LGPD e Planos
   // continuam funcionando mesmo depois de abrir um link seguro com query string.
@@ -3101,12 +3102,21 @@ function adminSidebarEl(){return document.querySelector('#adminSidebar, .admin-s
 function adminMobileToggleEl(){return document.querySelector('[data-action="toggleAdminMobileMenu"]');}
 function bindAdminMobileMenuEvents(){if(window.__valoraAdminMobileMenuBound)return;window.__valoraAdminMobileMenuBound=true;document.addEventListener('click',function(event){const action=event.target.closest('[data-action]');if(action&&action.dataset.action==='toggleAdminMobileMenu'){event.preventDefault();toggleAdminMobileMenu();return;}if(event.target.closest('.admin-mobile-overlay')){closeAdminMobileMenu();return;}if(event.target.closest('.admin-sidebar a, .admin-sidebar button[data-route], .admin-nav a, .admin-nav button')){if(isMobileAdminViewport())closeAdminMobileMenu();}});document.addEventListener('keydown',event=>{if(event.key==='Escape')closeAdminMobileMenu();});window.addEventListener('resize',()=>{if(!isMobileAdminViewport())closeAdminMobileMenu();});}
 bindAdminMobileMenuEvents();
-function clearPublicRouteParamsBeforePrivateNavigation(){
-  if(!location.search)return;
+const PUBLIC_ROUTE_HASHES=new Set(['','home','login','signup','cadastro','register','plans','lgpd','privacidade','termos','suporte','support','public-help','acessar-resultado','access-result']);
+let privateAuthRedirectInProgress=false;
+function resolvePostLoginRoute(profile){const scope=getRoleDefinition(profile?.role)?.scope;if(scope==='valora')return 'admin/dashboard';if(scope==='empresa')return 'empresa/dashboard';if(scope==='participante'||scope==='externo')return 'participante/dashboard';return 'home';}
+function recordAuthFlowStep(step,meta={}){const d=window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};d.lastAuthFlow={step,timestamp:new Date().toISOString(),uid:meta.uid?String(meta.uid).slice(0,4)+'…'+String(meta.uid).slice(-3):'',role:meta.role||currentUserSafe()?.role||'',fromRoute:meta.fromRoute||currentRoute||String(location.hash||'').replace(/^#/,'')||'',targetRoute:meta.targetRoute||'',code:meta.code||''};}
+function publicHashShouldBeReplaced(hash){const h=String(hash||'').replace(/^#/,'').split('?')[0].toLowerCase();return PUBLIC_ROUTE_HASHES.has(h);}
+function clearPublicRouteParamsBeforePrivateNavigation(targetRoute){
   const u=new URL(location.href);
-  ['survey','surveyId','token','org','result','rt','resultToken','response'].forEach(k=>u.searchParams.delete(k));
-  history.replaceState({},'',`${u.pathname}${u.search}${u.hash||'#login'}`);
+  ['survey','surveyId','token','org','result','rt','resultToken','response','certificate'].forEach(k=>u.searchParams.delete(k));
+  const target=String(targetRoute||resolvePostLoginRoute(currentUserSafe())||'home').replace(/^#/,'');
+  const hash=String(u.hash||'').replace(/^#/,'');
+  u.hash=(!hash||publicHashShouldBeReplaced(hash))?`#${target}`:`#${hash}`;
+  history.replaceState({},'',`${u.pathname}${u.search}${u.hash}`);
 }
+function navigateAfterLogin(profile){const target=resolvePostLoginRoute(profile);recordAuthFlowStep('redirecting',{uid:profile?.uid||profile?.id,role:profile?.role,targetRoute:target});clearPublicRouteParamsBeforePrivateNavigation(target);route(target);recordAuthFlowStep('redirect_completed',{uid:profile?.uid||profile?.id,role:profile?.role,targetRoute:target});return target;}
+function redirectAuthenticatedPublicHashOnce(){const user=currentUserSafe();if(!user||privateAuthRedirectInProgress)return false;const hash=String(location.hash||'').replace(/^#/,'');if(!publicHashShouldBeReplaced(hash))return false;privateAuthRedirectInProgress=true;try{navigateAfterLogin(user);return true;}finally{setTimeout(()=>{privateAuthRedirectInProgress=false;},250);}}
 
 function isAdminRoute(){return String(currentRoute||location.hash||'').replace(/^#/,'').startsWith('admin/');}
 function goLogin(){
@@ -3129,13 +3139,12 @@ async function handleLoginSubmit(form,event){
       const credential=await signInWithEmailAndPasswordSafe(email,password);
       const profile=await loadProfile(credential.user);
       if(profile?.status&&profile.status!=='active'){await signOutSafe();toast('Usuário inativo. Fale com o administrador.','error');return false;}
-      clearPublicRouteParamsBeforePrivateNavigation();
       audit('Login realizado','usuário',profile?.id||profile?.uid||'',profile?.email||email);
       toast(`Bem-vindo(a), ${profile?.name||email}.`,'success');
-      route('dashboard');
+      navigateAfterLogin(profile);
       return true;
     },{button,buttonText:'Entrando...'});
-  }catch(err){toast(err?.message||'Não foi possível entrar agora. Tente novamente.','error');return false;}
+  }catch(err){recordAuthFlowStep(err?.recoverable?'recoverable_error':'terminal_error',{code:err?.code});toast(err?.message||'Não foi possível entrar agora. Tente novamente.','error');return false;}
   finally{window.__valoraLoginInProgress=false;if(form?.password)form.password.value='';}
 }
 

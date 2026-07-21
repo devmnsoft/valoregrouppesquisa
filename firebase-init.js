@@ -11,6 +11,11 @@ function recordFunctionsError(error){window.ValoraRuntimeDiagnostics=window.Valo
 function getFirebaseFunctionsSafe(){const vf=window.ValoraFirebase; if(vf?.functions)return vf.functions; const legacy=window.ValoraFirebaseServices; if(legacy?.functions)return legacy.functions; if(window.firebase&&typeof window.firebase.functions==='function'){try{return window.firebase.functions();}catch(error){recordFunctionsError(error);return null;}} return null;}
 
 let services={app:null,auth:null,db:null,functions:null,initialized:false,available:false,error:null};
+let authPersistenceResolve;
+const authPersistenceReady=new Promise(resolve=>{authPersistenceResolve=resolve;});
+function recordPersistenceFallback(kind,error){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastAuthPersistence={kind,code:String(error?.code||'').slice(0,80),at:new Date().toISOString()};}
+async function configureAuthPersistence(auth){const modes=[['LOCAL',window.firebase.auth.Auth.Persistence.LOCAL],['SESSION',window.firebase.auth.Auth.Persistence.SESSION],['NONE',window.firebase.auth.Auth.Persistence.NONE]];for(const [kind,value] of modes){try{await auth.setPersistence(value);recordPersistenceFallback(kind,null);authPersistenceResolve({kind});return {kind};}catch(error){recordPersistenceFallback(kind,error);console.warn('[Valora Pulse] Fallback de persistência Firebase Auth.',{kind,code:error?.code||''});}}authPersistenceResolve({kind:'unavailable'});return {kind:'unavailable'};}
+window.ValoraFirebaseAuthPersistenceReady=authPersistenceReady;
 
 try{
   const needsFirebase=config.STORAGE_MODE==='firebase'&&config.FIREBASE_ENABLED===true;
@@ -21,7 +26,7 @@ try{
     try{services.functions=typeof window.firebase.functions==='function'?window.firebase.functions():null;}catch(functionsError){services.functions=null;recordFunctionsError(functionsError);console.warn('[Valora Pulse] Cloud Functions não inicializadas.',sanitizeError(functionsError));}
     services.initialized=true;
     services.available=true;
-    try{services.auth.setPersistence(window.firebase.auth.Auth.Persistence.LOCAL);}catch(err){console.warn('[Valora Pulse] Persistência Firebase Auth não configurada.',err);}
+    configureAuthPersistence(services.auth).catch(error=>{recordPersistenceFallback('unhandled',error);});
   }else if(needsFirebase){
     const missing=[];
     if(!hasFirebaseSdk())missing.push('SDK compat Firebase');

@@ -610,7 +610,9 @@
     "legacy:admin-delete-repository": "node scripts/validate-legacy-admin-delete-repository-callable.js",
     "legacy:admin-delete-errors": "node scripts/validate-legacy-admin-delete-error-handling.js",
     "legacy:admin-delete-filter": "node scripts/validate-legacy-admin-delete-response-filter.js",
-    "legacy:allowed-origins": "node scripts/validate-legacy-allowed-origins.js"
+    "legacy:allowed-origins": "node scripts/validate-legacy-allowed-origins.js",
+    "mobile:auth-flow": "node scripts/validate-mobile-auth-flow.js",
+    "test:mobile-auth": "playwright test -c playwright.mobile-auth.config.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

@@ -1,8 +1,17 @@
-# PLAN_CAPABILITY_MATRIX
+# Matriz de capacidades dos planos
 
-Implementação 2026-06-23 para certificados premium, comunicação pós-pesquisa e aderência comercial dos planos.
+A fonte de verdade executável é `shared/plan-catalog.json`. Os planos consolidados são: `free`, `essential`, `growth`, `professional`, `corporate` e `enterprise`.
 
-- Certificados usam `buildCertificateViewModel` como fonte única, PDF em `ValoraPDF.createCertificate` e PNG por canvas próprio com `toBlob`.
-- Comunicação usa `dispatchSurveyCompletedCommunications`, registra `communications` e não finge envio quando gateway/runtime não está ativo.
-- Gateway esperado: `POST /communication/email/send`, `POST /communication/whatsapp/send`, `GET /communication/status`, com token no backend e sem SMTP no frontend.
-- Planos oficiais: Grátis, Essencial, Profissional, Corporativo e Enterprise com `CAPABILITY_CATALOG` e `officialPlanCatalog`.
+Capacidades controladas no backend:
+- `executiveReport`
+- `internalBenchmark`
+- `consolidatedReports`
+- `multipleUnits`
+- `multipleCompanies`
+- `whiteLabel`
+- `actionPlan`
+- `executiveFollowUp`
+- `integrations`
+- `exports`
+
+O certificado PDF básico de participação não é bloqueado por plano.

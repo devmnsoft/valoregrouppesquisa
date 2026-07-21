@@ -657,3 +657,11 @@ O bootstrap PostgreSQL oficial deve ser validado com `npm run db:scriptbd-valida
 
 ## Sprint Premium SaaS Valora Insight™
 A Web oficial em `backend/Valora.Web` agora possui design system premium, layout público executivo, admin SaaS moderno e validadores `npm run web:premium-layout` e `npm run db:scriptbd-validate`. Consulte `VALORA_PREMIUM_UI_GUIDE.md`, `VALORA_SAAS_LAYOUT_GUIDE.md` e `SCRIPTBD_COMPLETO_COMPATIBILITY_GUIDE.md`.
+
+## Contratos Firebase legados — resultado, certificado e planos
+
+- Links públicos de resultado usam somente `?result=<responseId>&rt=<rawToken>`. O token bruto é devolvido apenas ao participante/solicitante e nunca deve ser gravado em Firestore, logs ou auditoria.
+- Cada resposta pode ter vários acessos ativos em `responses/{responseId}/resultAccessTokens/{sha256(rawToken)}`. Reenvios e compartilhamentos criam um novo token sem revogar links anteriores; revogação é explícita.
+- Respostas legadas com apenas `responses.resultTokenHash` são migradas no primeiro acesso válido para a subcoleção de tokens.
+- O certificado PDF básico de participação está disponível para todo resultado público validado e para administradores autorizados, independente do plano comercial.
+- A fonte de verdade dos planos é `shared/plan-catalog.json`; a interface pode ocultar ações, mas as Cloud Functions validam limites/capacidades no backend.

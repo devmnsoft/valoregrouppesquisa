@@ -73,7 +73,10 @@
       measurementId: 'G-KP0VV5MSHJ'
     },
 
-    STORE_KEY: 'valoraPulseFinal800'
+    STORE_KEY: 'valoraPulseFinal800',
+    certificateFeatureEnabled: true,
+    LEGACY_SAAS_CONSOLIDATION_V2: true,
+    PLAN_UPGRADE_REQUESTS_COLLECTION: 'plan_upgrade_requests'
   });
 })();
 
@@ -83,7 +86,7 @@ window.ValoraPublicResultFinalFix = Object.freeze({
   platformName: 'Valora Pulse™',
   companyDisplayName: 'Valora Group',
   whatsappNumber: '5591992545353',
-  certificateFeatureEnabled: false,
+  certificateFeatureEnabled: true,
   emailProviderDefault: 'http_api'
 });
 
@@ -94,7 +97,4 @@ window.ValoraPublicResultLinkContract = Object.freeze({ resultParam: 'result', t
 
 // Legacy final audit: public URLs must carry raw public/result tokens, never token hashes.
 
-// Legacy SaaS consolidation next evolution flags
-window.ValoraConfig = window.ValoraConfig || {};
-window.ValoraConfig.LEGACY_SAAS_CONSOLIDATION_V2 = true;
-window.ValoraConfig.PLAN_UPGRADE_REQUESTS_COLLECTION = 'plan_upgrade_requests';
+// Legacy SaaS consolidation flags are defined before Object.freeze in window.ValoraConfig.

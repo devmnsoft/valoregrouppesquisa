@@ -19,8 +19,8 @@ const WHATSAPP_NUMBER='5591992545353';
 const WHATSAPP_DISPLAY='+55 91 99254-5353';
 const WHATSAPP_CTA_LABEL='Fale com o Valora Group';
 const WHATSAPP_LABEL=WHATSAPP_CTA_LABEL;
-const CERTIFICATE_FEATURE_ENABLED=false;
-function isCertificateFeatureEnabled(){return false;}
+const CERTIFICATE_FEATURE_ENABLED=true;
+function isCertificateFeatureEnabled(){return CERTIFICATE_FEATURE_ENABLED!==false && window.ValoraConfig?.certificateFeatureEnabled!==false;}
 const RESERVED_ORG_SLUGS=Object.freeze(['admin','login','valora','api','firebase','suporte','app','www','dashboard','plans','lgpd']);
 const RESERVED_ORG_SLUG_SET=new Set(RESERVED_ORG_SLUGS);
 const VALORA_THEME={logoUrl:LOGO_FULL,primaryColor:'#0b3d4d',secondaryColor:'#d7a94b',accentColor:'#18a0fb',backgroundColor:'#eef7f9',textColor:'#082a37'};
@@ -2880,7 +2880,7 @@ function safeBuildCertificateData(result = {}, survey = {}, form = {}, company =
 function safeCertificateHtml(result = {}, survey = {}, form = {}, company = {}) { return ''; }
 function assertCertificateCanExport(d){const validation=validateCertificateViewModel(d);if(!validation.ok){toast(validation.message,'error');return false;}return true;}
 function wrapTextByWidth(text,measure,maxWidth,maxLines){const words=String(text||'').replace(/\s+/g,' ').trim().split(' ').filter(Boolean);const lines=[];let line='';for(const word of words){const candidate=line?`${line} ${word}`:word;if(measure(candidate)<=maxWidth)line=candidate;else{if(line)lines.push(line);line=word;}}if(line)lines.push(line);if(lines.length>maxLines){const cut=lines.slice(0,maxLines);let last=cut[maxLines-1]||'';while(last&&measure(`${last}…`)>maxWidth)last=last.slice(0,-1).trim();cut[maxLines-1]=`${last}…`;return cut;}return lines.length?lines:[''];}
-async function certificatePdf(el){ toast('O certificado foi removido desta versão. Use o relatório Valora Insight™.', 'info'); return false; }
+async function certificatePdf(el){return downloadCertificatePdf(el);}
 
 
 function reportRows(scope){
@@ -3441,7 +3441,7 @@ async function adminReportResponsePdf(responseIdOrEl){
   await withLoading('Gerando relatório...',async()=>generateValoraInsightReportPdf(await adminLoadResponseBundle(responseId),responseId));
   return true;
 }
-async function adminCertificatePdf(responseIdOrEl){ toast('O certificado foi removido desta versão. Use o relatório Valora Insight™.', 'info'); return false; }
+async function adminCertificatePdf(responseIdOrEl){const responseId=typeof responseIdOrEl==='string'?responseIdOrEl:responseIdOrEl?.dataset?.id||responseIdOrEl?.dataset?.responseId||'';return withLoading('Gerando certificado...',async()=>{const bundle=await adminLoadResponseBundle(responseId);const data=safeBuildCertificateData(bundle.response||bundle.result,bundle.survey,bundle.form,bundle.company);if(!assertCertificateCanExport(data))return false;(window.ValoraPdf||window.ValoraPDF).createCertificate(data,`${data.fileBaseName||'certificado'}.pdf`);toast('Certificado gerado com sucesso.','success');return true;},{button:typeof responseIdOrEl==='object'?responseIdOrEl:null,buttonText:'Gerando...'});}
 async function adminAnonymizeResponse(responseIdOrEl){
   const responseId=typeof responseIdOrEl==='string'?responseIdOrEl:responseIdOrEl?.dataset?.id||responseIdOrEl?.dataset?.responseId||'';
   return confirmAction('Anonimizar resposta?','Os dados pessoais do participante serão removidos, mantendo os indicadores estatísticos.',async()=>{await anonymizeResponse(responseId);});

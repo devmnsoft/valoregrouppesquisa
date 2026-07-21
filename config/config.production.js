@@ -51,7 +51,7 @@
 window.ValoraProductionPublicResultFinalFix = Object.freeze({
   publicProductName: 'Valora Insight™',
   whatsappNumber: '5591992545353',
-  certificateFeatureEnabled: false,
+  certificateFeatureEnabled: true,
   emailProviderDefault: 'http_api'
 });
 

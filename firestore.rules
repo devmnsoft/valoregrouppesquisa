@@ -360,31 +360,14 @@ service cloud.firestore {
                   && (isGlobalForm()
                       || isValoraTeam()
                       || sameCompany(resource.data.companyId));
-      allow create: if isValoraAdmin()
-                    || (isCompanyManager()
-                        && request.resource.data.companyId != 'global'
-                        && request.resource.data.isGlobal != true
-                        && sameCompany(request.resource.data.companyId));
-      allow update, delete: if isValoraAdmin()
-                            || (isCompanyManager()
-                                && !isGlobalForm()
-                                && sameCompany(resource.data.companyId)
-                                && sameCompany(request.resource.data.companyId)
-                                && request.resource.data.companyId == resource.data.companyId
-                                && request.resource.data.isGlobal != true);
+      allow create, update, delete: if false;
     }
 
     // Surveys não têm leitura pública direta. Links públicos devem resolver via
     // Cloud Function, que valida token/link e usa Admin SDK quando apropriado.
     match /surveys/{surveyId} {
       allow read: if signedIn() && (isValoraTeam() || sameCompany(resource.data.companyId));
-      allow create: if isValoraAdmin()
-                    || (isCompanyManager() && sameCompany(request.resource.data.companyId));
-      allow update, delete: if isValoraAdmin()
-                            || (isCompanyManager()
-                                && sameCompany(resource.data.companyId)
-                                && sameCompany(request.resource.data.companyId)
-                                && request.resource.data.companyId == resource.data.companyId);
+      allow create, update, delete: if false;
     }
 
     // Respostas públicas devem ser criadas por Cloud Function para evitar envio
@@ -438,10 +421,7 @@ service cloud.firestore {
                   || (role() in ['empresa_admin', 'gestor_pesquisa', 'analista_resultados'] && actionPlanSameCompanyOnExisting())
                   || (isAreaManager() && actionPlanSameCompanyOnExisting() && actionPlanSameArea());
 
-      allow create: if isValoraAdmin()
-                    || isValoraConsultant()
-                    || ((isEmpresaAdmin() || isResearchManager())
-                        && actionPlanSameCompanyOnCreate());
+      allow create: if false;
 
       allow update: if isValoraAdmin()
                     || isValoraConsultant()

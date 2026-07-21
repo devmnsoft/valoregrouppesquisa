@@ -1,8 +1,11 @@
-# PLAN_CONTRACT_TESTS
+# Contratos de teste dos planos
 
-Implementação 2026-06-23 para certificados premium, comunicação pós-pesquisa e aderência comercial dos planos.
+Os testes e validadores devem verificar o catálogo compartilhado em `shared/plan-catalog.json` e a aplicação no backend.
 
-- Certificados usam `buildCertificateViewModel` como fonte única, PDF em `ValoraPDF.createCertificate` e PNG por canvas próprio com `toBlob`.
-- Comunicação usa `dispatchSurveyCompletedCommunications`, registra `communications` e não finge envio quando gateway/runtime não está ativo.
-- Gateway esperado: `POST /communication/email/send`, `POST /communication/whatsapp/send`, `GET /communication/status`, com token no backend e sem SMTP no frontend.
-- Planos oficiais: Grátis, Essencial, Profissional, Corporativo e Enterprise com `CAPABILITY_CATALOG` e `officialPlanCatalog`.
+Cenários obrigatórios:
+- plano gratuito aceita exatamente o limite mensal e bloqueia a resposta seguinte;
+- submissões concorrentes no último saldo não ultrapassam o limite;
+- criação/reativação de pesquisa respeita `limits.activeSurveys`;
+- criação de gestores, funcionários, e-mails, unidades e empresas adicionais respeita limites;
+- `actionPlan` exige `capabilities.actionPlan` e retorna `plan_capability_required` quando ausente;
+- gravação direta em coleções protegidas (`forms`, `surveys`, `responses`, `actionPlans`) é negada pelas regras.

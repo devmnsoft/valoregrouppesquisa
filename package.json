@@ -536,7 +536,7 @@
     "functions:get-result-hash-missing": "node scripts/validate-functions-get-public-result-hash-missing-diagnostic.js",
     "legacy:share-result-whatsapp": "node scripts/validate-legacy-share-result-whatsapp-action.js",
     "legacy:admin-response-buttons": "node scripts/validate-legacy-admin-responses-whatsapp-email-buttons.js",
-    "legacy:certificate-removed": "node scripts/validate-legacy-certificate-removed.js",
+    "legacy:certificate-enabled": "node scripts/validate-legacy-certificate-enabled.js",
     "legacy:pdf-safe-text": "node scripts/validate-legacy-pdf-safe-text.js",
     "legacy:pdf-no-question-artifacts": "node scripts/validate-legacy-pdf-no-question-mark-artifacts.js",
     "legacy:pdf-no-truncated": "node scripts/validate-legacy-pdf-no-truncated-sections.js",

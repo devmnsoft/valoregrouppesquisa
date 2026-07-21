@@ -16,7 +16,7 @@ has(/Acesse a gestão do Valora Insight™\./,'Login deve conter subtítulo ofic
 has(/Fale com o Valora Group/,'CTA oficial de WhatsApp ausente.');
 no(/Fale com a Valora Group/,'CTA antigo encontrado.');
 ['buildPublicResultUrl','adminCreateResultShareLink','preparePublicSurveyLink','requestNewResultLink','radarBarPdfSafe','toPdfSafeText','renderAdminResponsesMobileCards','shareResultWhatsapp','shareSurveyWhatsapp'].forEach(name=>has(new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')),`${name} ausente.`));
-has(/CERTIFICATE_FEATURE_ENABLED\s*=\s*false/,'CERTIFICATE_FEATURE_ENABLED = false ausente.');
+has(/CERTIFICATE_FEATURE_ENABLED\s*=\s*true/,'CERTIFICATE_FEATURE_ENABLED deve estar ativo.');
 const pdf=read('report-service.js');
 ok(!/[█░]/.test(pdf),'PDF não pode usar blocos Unicode.');
 no(/\? Estruturada|\? Em estruturação|\? Crítico|\? Alta maturidade/,'Artefato de ? em enquadramento encontrado.');

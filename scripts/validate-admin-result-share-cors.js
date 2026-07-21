@@ -1,0 +1,22 @@
+'use strict';
+const fs=require('fs');
+function fail(m){console.error(`validate-admin-result-share-cors: FAIL - ${m}`);process.exit(1);}
+const fn=fs.readFileSync('functions/index.js','utf8');
+const app=fs.readFileSync('app.js','utf8');
+const repo=fs.readFileSync('firebase-repository.js','utf8');
+const block=(fn.match(/exports\.adminCreateResultShareLink\s*=\s*onCall\(\s*\{[\s\S]*?\}\s*,\s*async\s+req\s*=>\s*\{[\s\S]*?return \{ok:true,responseId,resultToken:access\.resultToken,url\};\}\);/)||[])[0];
+if(!block)fail('adminCreateResultShareLink deve ser onCall e retornar somente contrato autorizado esperado.');
+if(!/region\s*:\s*['"]us-central1['"]/.test(block))fail('adminCreateResultShareLink sem region us-central1.');
+if(!/cors\s*:\s*ALLOWED_CORS_ORIGINS/.test(block))fail('adminCreateResultShareLink sem cors: ALLOWED_CORS_ORIGINS.');
+if(!fn.includes('https://valoragroup.mnsoft.com.br'))fail('origem de produção ausente na allowlist.');
+for(const x of ['requireAdminUser(req)','req.data?.responseId','assertUserCanAccessResponse(user,snap.data())','rotateResultTokenForResponse','buildPublicResultUrl(responseId,access.resultToken)']) if(!block.includes(x))fail(`handler perdeu contrato obrigatório: ${x}`);
+if(/resultTokenHash|tokenHash/.test(block.replace(/buildPublicResultUrl/g,'')))fail('handler não deve retornar hash de token.');
+if(!/function callFunction\(name,payload\)[\s\S]*httpsCallable\(name\)/.test(repo))fail('firebase-repository.js deve usar callFunction/httpsCallable.');
+if(!/adminCreateResultShareLink\(responseId\)[\s\S]*callFunction\('adminCreateResultShareLink',\{responseId\}\)/.test(repo))fail('repository deve expor adminCreateResultShareLink via callable.');
+const directEndpoint=/fetch\s*\([^)]*adminCreateResultShareLink|cloudfunctions\.net\/adminCreateResultShareLink/;
+if(directEndpoint.test(app)||directEndpoint.test(repo))fail('fetch direto para adminCreateResultShareLink proibido no frontend.');
+const share=(app.match(/async function shareResultWhatsapp[\s\S]*?\nfunction /)||[''])[0];
+if(!share.includes('adminCreateResultShareLink'))fail('shareResultWhatsapp deve chamar adminCreateResultShareLink.');
+if(/searchParams\.set\(['\"](?:tokenHash|resultTokenHash)['\"]/.test(share))fail('shareResultWhatsapp não deve montar URL com hash de token.');
+if(!share.includes('lastShareResultWhatsappError'))fail('diagnóstico sanitizado de shareResultWhatsapp ausente.');
+console.log('validate-admin-result-share-cors: PASS');

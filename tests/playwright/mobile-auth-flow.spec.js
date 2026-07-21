@@ -5,6 +5,8 @@ const roles = [
   ['consultor_valora','admin/dashboard'],
   ['empresa_admin','empresa/dashboard'],
   ['gestor_pesquisa','empresa/dashboard'],
+  ['analista_resultados','empresa/dashboard'],
+  ['gestor_area','empresa/dashboard'],
   ['participante','participante/dashboard'],
   ['convidado_externo','participante/dashboard'],
 ];
@@ -16,7 +18,7 @@ test.describe('mobile auth routing regression', () => {
           await page.setContent(`<!doctype html><button id="app"></button><script>
             window.currentRoute='login'; window.state={}; window.__valoraLoginInProgress=false;
             window.location.hash='login';
-            window.getRoleDefinition=(role)=>({admin_valora:{scope:'valora'},consultor_valora:{scope:'valora'},empresa_admin:{scope:'empresa'},gestor_pesquisa:{scope:'empresa'},participante:{scope:'participante'},convidado_externo:{scope:'externo'}}[role]||{scope:'unknown'});
+            window.getRoleDefinition=(role)=>({admin_valora:{scope:'valora'},consultor_valora:{scope:'valora'},empresa_admin:{scope:'empresa'},gestor_pesquisa:{scope:'empresa'},analista_resultados:{scope:'empresa'},gestor_area:{scope:'empresa'},participante:{scope:'participante'},convidado_externo:{scope:'externo'}}[role]||{scope:'unknown'});
             window.currentUserSafe=()=>({uid:'uid-${role}',role:'${role}',status:'active'});
             window.route=(path)=>{window.currentRoute=path;document.body.dataset.route=path;};
             ${/const PUBLIC_ROUTE_HASHES[\s\S]*?function isAdminRoute/.exec(require('fs').readFileSync('app.js','utf8'))[0].replace('function isAdminRoute','function __stop')}

@@ -48,9 +48,11 @@ function sanitizeStateBeforeSave(state){return deepCleanForFirestore(state||{});
 function publicProfile(doc,claims={}){if(!doc)return null;const role=ALLOWED_ROLES.includes(claims.role)?claims.role:doc.role;return {id:doc.uid||doc.id,uid:doc.uid||doc.id,name:doc.name||doc.email,email:doc.email,phone:doc.phone||'',position:doc.position||'',department:doc.department||'',role,companyId:doc.companyId||claims.companyId||'',status:doc.status||'inactive',preferences:doc.preferences||{},claims};}
 function cleanValoraLocalState(){try{Object.keys(localStorage).filter(k=>k.startsWith('valora:')||k.startsWith('ValoraPulse')||k.startsWith('valoraPulse')).forEach(k=>localStorage.removeItem(k));}catch(_){} }
 function maskUid(uid){const v=String(uid||'');return v?v.slice(0,4)+'…'+v.slice(-3):'';}
-function recordAuthFlow(step,meta={}){const d=window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};d.lastAuthFlow={step,timestamp:new Date().toISOString(),uid:maskUid(meta.uid),role:meta.role||session.profile?.role||'',fromRoute:meta.fromRoute||'',targetRoute:meta.targetRoute||'',code:meta.code||''};return d.lastAuthFlow;}
-function isTransientAuthProfileError(err){const code=String(err?.code||'').toLowerCase();const msg=String(err?.message||err||'').toLowerCase();return ['unavailable','deadline-exceeded','network-request-failed','auth/network-request-failed'].includes(code)||code.includes('network')||msg.includes('network')||msg.includes('offline')||msg.includes('tempor');}
-function isTerminalAuthProfileError(err){return ['profile-missing','inactive-user','auth/user-disabled','invalid-role','missing-role-scope','inactive-company'].includes(String(err?.code||''));}
+function recordAuthFlow(step,meta={}){const d=window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};d.lastAuthFlow={step,timestamp:new Date().toISOString(),uid:maskUid(meta.uid),role:meta.role||session.profile?.role||'',fromRoute:meta.fromRoute||String(window.location?.hash||'').replace(/^#/,'')||'',targetRoute:meta.targetRoute||'',code:meta.code?String(meta.code).toLowerCase().replace(/[^a-z0-9_\/-]/g,'').slice(0,80):''};return d.lastAuthFlow;}
+function sanitizedErrorCode(err){return String(err?.code||err?.details?.code||'unknown').toLowerCase().replace(/[^a-z0-9_\/-]/g,'').slice(0,80);}
+function isOfflineFailedPrecondition(err){const code=sanitizedErrorCode(err);const msg=String(err?.message||err||'').toLowerCase();return code==='failed-precondition'&&(msg.includes('offline')||msg.includes('cache')||msg.includes('network'));}
+function isTransientAuthProfileError(err){const code=sanitizedErrorCode(err);const msg=String(err?.message||err||'').toLowerCase();return ['unavailable','deadline-exceeded','network-request-failed','auth/network-request-failed'].includes(code)||isOfflineFailedPrecondition(err)||code==='network'||code==='auth/network' || msg.includes('network request failed');}
+function isTerminalAuthProfileError(err){return ['profile-missing','inactive-user','auth/user-disabled','invalid-role','missing-role-scope','inactive-company','permission-denied','unauthenticated'].includes(sanitizedErrorCode(err));}
 function docData(d){return d.exists?{id:d.id,...d.data()}:null;}
 function asArray(snap){return snap.docs.map(docData).filter(Boolean);}
 function isGlobalRole(profile=session.profile){return GLOBAL_ROLES.includes(profile?.role);}
@@ -82,13 +84,12 @@ async function loadProfile(user){
   if(!ALLOWED_ROLES.includes(profile.role)||!roleDef||roleDef.scope==='unknown')throw Object.assign(new Error('Perfil sem papel válido.'),{code:'invalid-role'});
   if(!roleDef.scope)throw Object.assign(new Error('Perfil sem escopo obrigatório.'),{code:'missing-role-scope'});
   if(profile.status!=='active')throw Object.assign(new Error('Usuário inativo.'),{code:'inactive-user'});
-  await ref.set({lastLoginAt:ts(),updatedAt:doc.updatedAt||ts()},{merge:true});
-  session.claims=claims;session.profile=profile;recordAuthFlow('profile_loaded',{uid:user.uid,role:profile.role});return profile;
+  session.claims=claims;session.profile=profile;session.lastError=null;recordAuthFlow('profile_loaded',{uid:user.uid,role:profile.role});return profile;
 }
 async function establishAuthenticatedSession(user,options={}){
   if(!user)return null;const uid=user.uid;
   if(session.sessionPromises.has(uid))return session.sessionPromises.get(uid);
-  const promise=(async()=>{try{session.authUser=user;const profile=await loadProfile(user);if(session.store){recordAuthFlow('private_state_loading',{uid,role:profile.role});await hydrateStore();recordAuthFlow('private_state_loaded',{uid,role:profile.role});}dispatchAuthChanged();return profile;}catch(err){session.lastError=err;recordAuthFlow(isTransientAuthProfileError(err)?'recoverable_error':'terminal_error',{uid,code:err?.code});dispatchAuthChanged();if(isTerminalAuthProfileError(err))throw err;throw err;}finally{session.sessionPromises.delete(uid);}})();
+  const promise=(async()=>{try{session.authUser=user;const profile=await loadProfile(user);if(session.store&&!session.loaded){recordAuthFlow('private_state_loading',{uid,role:profile.role});await hydrateStore();recordAuthFlow('private_state_loaded',{uid,role:profile.role});}session.lastError=null;dispatchAuthChanged();return profile;}catch(err){session.lastError=err;recordAuthFlow(isTransientAuthProfileError(err)?'recoverable_error':'terminal_error',{uid,code:sanitizedErrorCode(err)});dispatchAuthChanged();throw err;}finally{session.sessionPromises.delete(uid);}})();
   session.sessionPromises.set(uid,promise);return promise;
 }
 function waitUntilReady(){
@@ -96,11 +97,13 @@ function waitUntilReady(){
   if(session.readyPromise)return session.readyPromise;
   const s=ensureFirebase();
   session.readyPromise=new Promise(resolve=>{
+    let settled=false;
+    const finish=value=>{if(!settled){settled=true;resolve(value);}};
     session.unsubscribe=s.auth.onAuthStateChanged(async user=>{
       session.authUser=user;session.profile=null;session.claims={};session.loaded=false;
-      try{if(user)await establishAuthenticatedSession(user,{source:'auth_state'});}catch(err){if(isTerminalAuthProfileError(err)){console.warn('[Valora Pulse] Sessão bloqueada.',{code:err?.code});try{await s.auth.signOut();}catch(_){} }else{console.warn('[Valora Pulse] Falha transitória ao restaurar sessão.',{code:err?.code});}}
-      session.ready=true;resolve(session.profile);
-      if(session.profile&&session.store) hydrateStore().finally(()=>dispatchAuthChanged()); else dispatchAuthChanged();
+      if(!user){session.lastError=null;session.ready=true;dispatchAuthChanged();finish(null);return;}
+      try{const profile=await establishAuthenticatedSession(user,{source:'auth_state'});session.ready=true;finish(profile);}
+      catch(err){const code=sanitizedErrorCode(err);session.lastError=err;if(isTerminalAuthProfileError(err)){session.ready=true;recordAuthFlow('terminal_error',{uid:user.uid,code});console.warn('[Valora Pulse] Sessão bloqueada.',{code});if(code==='unauthenticated'||code==='auth/user-disabled'){try{await s.auth.signOut();}catch(_){}}dispatchAuthChanged();finish(null);return;}if(isTransientAuthProfileError(err)){session.ready=false;recordAuthFlow('recoverable_error',{uid:user.uid,code});console.warn('[Valora Pulse] Falha recuperável ao restaurar sessão.',{code});dispatchAuthChanged();return;}session.ready=true;recordAuthFlow('terminal_error',{uid:user.uid,code});console.warn('[Valora Pulse] Falha terminal ao restaurar sessão.',{code});dispatchAuthChanged();finish(null);}
     });
   });
   return session.readyPromise;
@@ -384,7 +387,7 @@ async function getParticipantResultsByPasswordFirebase(email,password){
 }
 
 window.ValoraFirestoreSanitizer={deepCleanForFirestore,sanitizeStateBeforeSave};
-window.ValoraFirebaseAuth={getCurrentAuthUser,getCurrentUserProfile,waitUntilReady,refreshAuthDebug,establishAuthenticatedSession,isTransientAuthProfileError};
+window.ValoraFirebaseAuth={getCurrentAuthUser,getCurrentUserProfile,waitUntilReady,refreshAuthDebug,establishAuthenticatedSession,isTransientAuthProfileError,isTerminalAuthProfileError};
 window.ValoraFirebaseRepository={
   mode:'firebase',
   loadStore({seedStore,normalizeState}){session.store=emptyStore(seedStore,normalizeState);session.normalizeState=normalizeState;waitUntilReady().catch(()=>{});return session.store;},

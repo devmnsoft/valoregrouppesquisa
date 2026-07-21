@@ -92,7 +92,10 @@
   },
   "functions": {
     "source": "functions",
-    "runtime": "nodejs22"
+    "runtime": "nodejs22",
+    "predeploy": [
+      "node scripts/sync-functions-plan-catalog.js"
+    ]
   },
   "emulators": {
     "auth": {

@@ -4,7 +4,7 @@ const fs = require('fs');
 describe('adminCreateResultShareLink CORS callable contract', () => {
   it('keeps the callable preflight contract for the production origin', () => {
     const source = fs.readFileSync('functions/index.js', 'utf8');
-    const block = (source.match(/exports\.adminCreateResultShareLink\s*=\s*onCall\(\s*\{[\s\S]*?\}\s*,\s*async\s+req\s*=>\s*\{[\s\S]*?return \{ok:true,responseId,resultToken:access\.resultToken,url\};\}\);/) || [])[0];
+    const block = (source.match(/exports\.adminCreateResultShareLink\s*=\s*onCall\(\s*\{[\s\S]*?\}\s*,\s*async\s+req\s*=>\s*\{[\s\S]*?return \{ok:true,responseId,resultToken:access\.resultToken,url,tokenContractVersion:2\};\}\);/) || [])[0];
     assert.ok(block, 'adminCreateResultShareLink must remain a Firebase callable function');
     assert.match(block, /region\s*:\s*['"]us-central1['"]/, 'callable must be deployed in us-central1');
     assert.match(block, /cors\s*:\s*ALLOWED_CORS_ORIGINS/, 'callable must delegate OPTIONS/preflight CORS to the allowlist');

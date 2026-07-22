@@ -4,7 +4,7 @@ function fail(m){console.error(`validate-admin-result-share-cors: FAIL - ${m}`);
 const fn=fs.readFileSync('functions/index.js','utf8');
 const app=fs.readFileSync('app.js','utf8');
 const repo=fs.readFileSync('firebase-repository.js','utf8');
-const block=(fn.match(/exports\.adminCreateResultShareLink\s*=\s*onCall\(\s*\{[\s\S]*?\}\s*,\s*async\s+req\s*=>\s*\{[\s\S]*?return \{ok:true,responseId,resultToken:access\.resultToken,url\};\}\);/)||[])[0];
+const block=(fn.match(/exports\.adminCreateResultShareLink\s*=\s*onCall\(\s*\{[\s\S]*?\}\s*,\s*async\s+req\s*=>\s*\{[\s\S]*?return \{ok:true,responseId,resultToken:access\.resultToken,url,tokenContractVersion:2\};\}\);/)||[])[0];
 if(!block)fail('adminCreateResultShareLink deve ser onCall e retornar somente contrato autorizado esperado.');
 if(!/region\s*:\s*['"]us-central1['"]/.test(block))fail('adminCreateResultShareLink sem region us-central1.');
 if(!/cors\s*:\s*ALLOWED_CORS_ORIGINS/.test(block))fail('adminCreateResultShareLink sem cors: ALLOWED_CORS_ORIGINS.');

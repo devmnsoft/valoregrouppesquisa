@@ -1,3 +1,4 @@
+-- AVISO Fase 1: o bootstrap canonico agora e database/postgresql/banco_completo.sql. Este script historico foi preservado para referencia/compatibilidade.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE IF NOT EXISTS valorapesquisa.organizations (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, public_name text, slug text NOT NULL UNIQUE, document text, email text, phone text, status text NOT NULL DEFAULT 'active', plan_code text NOT NULL DEFAULT 'free', settings_json jsonb NOT NULL DEFAULT '{}'::jsonb, brand_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), created_by uuid, updated_by uuid, is_deleted boolean NOT NULL DEFAULT false, deleted_at timestamptz, deleted_by uuid);

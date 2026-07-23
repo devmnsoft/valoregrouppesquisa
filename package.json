@@ -614,7 +614,8 @@
     "mobile:auth-flow": "node scripts/validate-mobile-auth-flow.js",
     "test:mobile-auth": "playwright test -c playwright.mobile-auth.config.js",
     "test:auth-hotfix": "npx mocha tests/auth/firebase-repository-auth-flow.spec.js",
-    "release:groups:check": "node scripts/validate-release-groups.js"
+    "release:groups:check": "node scripts/validate-release-groups.js",
+    "backend:phase1-validate": "node tools/validate-backend-phase1-foundation.js && npm run backend:official-validate && npm run backend:sql-schema-validate && npm run db:scriptbd-validate && npm run backend:domain-entities-validate && npm run backend:rc2-homologation-validate && dotnet restore backend/Valora.sln && dotnet build backend/Valora.sln --configuration Release && dotnet test backend/Valora.sln --configuration Release && dotnet format backend/Valora.sln --verify-no-changes"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

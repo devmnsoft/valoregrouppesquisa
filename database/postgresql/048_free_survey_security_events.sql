@@ -1,3 +1,4 @@
+-- AVISO Fase 1: o bootstrap canonico agora e database/postgresql/banco_completo.sql. Este script historico foi preservado para referencia/compatibilidade.
 CREATE TABLE IF NOT EXISTS valorapesquisa.free_survey_security_events (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     survey_id uuid NULL,

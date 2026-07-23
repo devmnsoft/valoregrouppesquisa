@@ -1,3 +1,4 @@
+-- AVISO Fase 1: o bootstrap canonico agora e database/postgresql/banco_completo.sql. Este script historico foi preservado para referencia/compatibilidade.
 ALTER TABLE valorapesquisa.email_jobs ADD COLUMN IF NOT EXISTS resend_count int NOT NULL DEFAULT 0;
 ALTER TABLE valorapesquisa.email_jobs ADD COLUMN IF NOT EXISTS last_resend_at timestamptz;
 ALTER TABLE valorapesquisa.email_jobs ADD COLUMN IF NOT EXISTS reviewed_at timestamptz;

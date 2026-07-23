@@ -1,3 +1,4 @@
+-- AVISO Fase 1: o bootstrap canonico agora e database/postgresql/banco_completo.sql. Este script historico foi preservado para referencia/compatibilidade.
 -- 013_seed_valora_insight_questions.sql
 -- Seed oficial idempotente do Diagnóstico Valora Insight™.
 WITH org AS (

@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-23",
+  "groups": {
+    "result-token-v2": {
+      "description": "Contrato público de resultado ?result=<responseId>&rt=<rawToken> com tokens em responses/{responseId}/resultAccessTokens/{sha256(rawToken)} e ponte temporária responses.resultTokenHash.",
+      "requiresAtomicDeploy": true,
+      "overridePolicy": "Somente RELEASE_GROUP_OVERRIDE=true com justificativa auditada em release-evidence/release-group-override.json.",
+      "functions": [
+        "submitSurveyResponse",
+        "getPublicResult",
+        "adminCreateResultShareLink",
+        "adminRegenerateResultLink",
+        "requestNewResultLink",
+        "sendResultEmail",
+        "getParticipantResultsByPassword"
+      ],
+      "collections": [
+        "responses",
+        "responses/{responseId}/resultAccessTokens",
+        "public_result_access_errors",
+        "email_logs",
+        "audit_logs"
+      ]
+    },
+    "survey-token-v2": {
+      "description": "Contrato público de pesquisa com token bruto retornado somente no momento da geração e hash em subcoleção/ponte de rolling deploy.",
+      "requiresAtomicDeploy": true,
+      "overridePolicy": "Somente RELEASE_GROUP_OVERRIDE=true com justificativa auditada em release-evidence/release-group-override.json.",
+      "functions": [
+        "preparePublicSurveyLink",
+        "validateSurveyLink",
+        "submitSurveyResponse",
+        "getFeaturedHomeSurvey",
+        "repairFeaturedHomeSurvey"
+      ],
+      "collections": [
+        "surveys",
+        "surveys/{surveyId}/publicAccessTokens",
+        "audit_logs"
+      ]
+    }
+  }
+}

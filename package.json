@@ -613,7 +613,8 @@
     "legacy:allowed-origins": "node scripts/validate-legacy-allowed-origins.js",
     "mobile:auth-flow": "node scripts/validate-mobile-auth-flow.js",
     "test:mobile-auth": "playwright test -c playwright.mobile-auth.config.js",
-    "test:auth-hotfix": "npx mocha tests/auth/firebase-repository-auth-flow.spec.js"
+    "test:auth-hotfix": "npx mocha tests/auth/firebase-repository-auth-flow.spec.js",
+    "release:groups:check": "node scripts/validate-release-groups.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

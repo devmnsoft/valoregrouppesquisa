@@ -2,6 +2,18 @@ name: Firebase production deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Commit SHA approved for production
+        required: true
+      release_groups:
+        description: Comma-separated release groups to deploy (for example result-token-v2)
+        required: true
+        default: result-token-v2
+      allow_release_group_override:
+        description: Administrative override for isolated function deploys (must have evidence)
+        required: false
+        default: 'false'
   push:
     tags:
       - 'v*'
@@ -11,27 +23,51 @@ permissions:
 
 jobs:
   deploy-production:
-    name: Deploy production hosting
+    name: Atomic Firebase production release
     runs-on: ubuntu-latest
     environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate SHA and ref
+        run: |
+          set -euo pipefail
+          echo "release_sha=${GITHUB_SHA}" | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.expected_sha }}" != "$GITHUB_SHA" ]; then
+            echo "Expected SHA ${{ inputs.expected_sha }} does not match $GITHUB_SHA"
+            exit 1
+          fi
+          if [ "${GITHUB_REF_TYPE}" != "tag" ] && [ "${GITHUB_REF_NAME}" != "main" ]; then
+            echo "Production deploy allowed only from main or tags; got ${GITHUB_REF_NAME}."
+            exit 1
+          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
-      - name: Install dependencies
-        run: npm install
-
-      - name: Validate and build
+      - name: Install root dependencies
         run: |
-          npm run check:no-dist
+          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then npm ci; else npm install; fi
+
+      - name: Install Functions dependencies
+        run: npm --prefix functions ci
+
+      - name: Validate contracts, tests and build
+        run: |
+          set -euo pipefail
+          node scripts/sync-functions-plan-catalog.js
+          npm run release:groups:check
           npm run check
           npm run security:check
+          npm run test:rules
+          npm run test:functions
+          npm run test:security
           npm run build:prod
           for file in dist/assets/*.js; do node --check "$file"; done
           if find dist -name "*.map" | grep .; then
@@ -40,23 +76,55 @@ jobs:
           fi
           npm run postbuild:security
 
-      - name: Deploy Firebase Hosting production
+      - name: Create release artifact and manifest evidence
+        run: |
+          set -euo pipefail
+          mkdir -p release-evidence
+          cp functions/release-groups.json release-evidence/release-groups.json
+          cat > release-evidence/release-manifest.json <<JSON
+          {"sha":"$GITHUB_SHA","ref":"$GITHUB_REF","releaseGroups":"${{ inputs.release_groups || 'tag-release' }}","createdAt":"$(date -u +%Y-%m-%dT%H:%M:%SZ)"}
+          JSON
+          tar -czf valora-firebase-build-${GITHUB_SHA}.tgz dist firebase.json firestore.rules firestore.indexes.json functions/release-groups.json
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: valora-firebase-build-${{ github.sha }}
+          path: |
+            valora-firebase-build-${{ github.sha }}.tgz
+            release-evidence/**
+
+      - name: Deploy Firestore rules and required Functions before Hosting
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID_PROD || secrets.FIREBASE_PROJECT_ID }}
-          VALORA_PUBLIC_URL: ${{ vars.VALORA_PUBLIC_URL || 'https://valoragroup.mnsoft.com.br' }}
-          VALORA_WEB_URL: ${{ vars.VALORA_PUBLIC_URL || 'https://valoragroup.mnsoft.com.br' }}
-          VALORA_API_URL: ${{ vars.VALORA_API_URL || 'https://api.valoragroup.mnsoft.com.br' }}
+          RELEASE_GROUP_OVERRIDE: ${{ inputs.allow_release_group_override == 'true' && 'true' || 'false' }}
         run: |
           set -euo pipefail
           if [ -z "${FIREBASE_TOKEN:-}" ] || [ -z "${FIREBASE_PROJECT_ID:-}" ]; then
             echo "Deploy não configurado: defina FIREBASE_TOKEN e FIREBASE_PROJECT_ID_PROD/FIREBASE_PROJECT_ID."
             exit 1
           fi
+          npx firebase deploy --only firestore:rules --project "$FIREBASE_PROJECT_ID"
+          FUNCTIONS=$(node -e "const m=require('./functions/release-groups.json'); const names=String('${{ inputs.release_groups || 'result-token-v2' }}').split(',').map(s=>s.trim()).filter(Boolean); const f=[...new Set(names.flatMap(n=>m.groups[n]?.functions||[]))]; if(!f.length) process.exit(2); console.log(f.map(x=>'functions:'+x).join(','));")
+          node scripts/validate-release-groups.js --only="$FUNCTIONS"
+          npx firebase deploy --only "$FUNCTIONS" --project "$FIREBASE_PROJECT_ID"
+
+      - name: Smoke test Functions before Hosting
+        run: npm run prod:smoke
+
+      - name: Deploy Firebase Hosting production
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID_PROD || secrets.FIREBASE_PROJECT_ID }}
+          VALORA_PUBLIC_URL: ${{ vars.VALORA_PUBLIC_URL || 'https://valoragroup.mnsoft.com.br' }}
+        run: |
+          set -euo pipefail
           npx firebase deploy --only hosting --project "$FIREBASE_PROJECT_ID"
-          if [ -n "${VALORA_PUBLIC_URL:-}" ]; then
-            npm run security:csp-live
-          else
-            echo "VALORA_PUBLIC_URL não definido; validação live de CSP ignorada."
-          fi
+          npm run security:csp-live
           npm run prod:smoke
+
+      - name: Rollback instructions
+        if: failure()
+        run: |
+          echo "Use Firebase Hosting rollback to the previous release and redeploy the last known-good Functions group from release-evidence/release-manifest.json." | tee -a "$GITHUB_STEP_SUMMARY"

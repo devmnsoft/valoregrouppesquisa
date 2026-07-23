@@ -38,7 +38,7 @@ const officialSql = sqlFiles.map(f => read(f)).join('\n');
 ok(!/\bprice_label\b/i.test(officialSql), 'price_label não aparece no SQL oficial');
 ok(!/\bbadge\b/i.test(officialSql), 'badge não aparece no SQL oficial');
 ok(!/\bpublic_subtitle\b|\bpublic_description\b|\bhighlight_text\b|\bcta_label\b/i.test(officialSql), 'colunas públicas legadas não aparecem no SQL oficial');
-ok(!/\bcapability_key\b|\bcapability_level\b|\bcapability_type\b|\blimit_key\b|\blimit_value\b/i.test(officialSql), 'colunas legadas de limits/capabilities não aparecem no SQL oficial');
+ok(/\blimit_key\b[\s\S]*\blimit_value\b/i.test(officialSql) && /\bcapability_key\b/i.test(officialSql), 'colunas canonicas de limits/capabilities aparecem no SQL oficial');
 
 const sln = read('backend/Valora.sln');
 ok(!/backend-v2/i.test(sln), 'backend-v2 não é build oficial da solution');

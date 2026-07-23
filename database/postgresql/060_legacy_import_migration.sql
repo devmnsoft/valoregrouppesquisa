@@ -1,3 +1,4 @@
+-- AVISO Fase 1: o bootstrap canonico agora e database/postgresql/banco_completo.sql. Este script historico foi preservado para referencia/compatibilidade.
 
 -- 060_legacy_import_migration.sql
 -- Controle oficial da importação controlada legado/Firebase/localStorage para PostgreSQL.

@@ -1,3 +1,4 @@
+-- AVISO Fase 1: o bootstrap canonico agora e database/postgresql/banco_completo.sql. Este script historico foi preservado para referencia/compatibilidade.
 INSERT INTO valorapesquisa.plans(code,name,description,monthly_price,annual_price,display_order,status) VALUES
 ('free','Free','1 pesquisa ativa, 10 respostas/mês, 1 gestor, resultado básico, certificado simples, e-mail de resultado',0,0,10,'active'),
 ('essential','Essential','3 pesquisas ativas, 150 respostas/mês, 2 gestores',0,0,20,'active'),

@@ -11,7 +11,7 @@ public sealed class OperationsController(ICommunicationRepository communications
 {
     [Authorize]
     [HttpGet("/admin/operations/health")]
-    public IActionResult Health() => Ok(new { ok = true, api = true, database = "not_checked", csp = true, firebaseLegacy = true, valoraWeb = true, correlationId = HttpContext.TraceIdentifier });
+    public IActionResult Health() => Ok(new { ok = true, api = true, database = "not_checked", csp = true, legadoLegacy = true, valoraWeb = true, correlationId = HttpContext.TraceIdentifier });
 
     [Authorize]
     [HttpGet("/admin/operations/email")]

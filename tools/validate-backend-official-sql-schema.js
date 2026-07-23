@@ -2,6 +2,29 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
+
+const canonical = path.join(root, 'database/postgresql/banco_completo.sql');
+if (fs.existsSync(canonical)) {
+  const canonicalSql = fs.readFileSync(canonical, 'utf8');
+  const checks = [
+    ['schema valorapesquisa', /CREATE SCHEMA IF NOT EXISTS valorapesquisa/i],
+    ['plans canonicos', /CREATE TABLE IF NOT EXISTS plans[\s\S]*code text NOT NULL UNIQUE[\s\S]*is_public boolean[\s\S]*is_active boolean[\s\S]*is_legacy boolean/i],
+    ['plan_limits canonico', /CREATE TABLE IF NOT EXISTS plan_limits[\s\S]*limit_key[\s\S]*limit_value/i],
+    ['plan_capabilities canonico', /CREATE TABLE IF NOT EXISTS plan_capabilities[\s\S]*capability_key[\s\S]*enabled/i],
+    ['seeds oficiais', /'free'[\s\S]*'professional'[\s\S]*'corporate'[\s\S]*'enterprise'/i],
+    ['idempotencia', /ON CONFLICT/i],
+  ];
+  let failedCanonical = false;
+  for (const [name, re] of checks) {
+    if (re.test(canonicalSql)) console.log(`OK ${name}`);
+    else { console.error(`FAIL ${name}`); failedCanonical = true; }
+  }
+  if (/DROP\s+(TABLE|SCHEMA)/i.test(canonicalSql)) { console.error('FAIL sem DROP destrutivo'); failedCanonical = true; }
+  else console.log('OK sem DROP destrutivo');
+  if (failedCanonical) process.exit(1);
+  console.log('validate-backend-official-sql-schema: PASS canonical');
+  process.exit(0);
+}
 const postgresDir = path.join(root, 'database/postgresql');
 const files = [
   'scriptbd_completo.sql',
@@ -21,7 +44,7 @@ function ok(cond, msg) {
 }
 
 const sql = Object.fromEntries(files.map((f) => [f, fs.readFileSync(path.join(root, f), 'utf8')]));
-const fullSql = files.map((f) => `-- ${f}\n${sql[f]}`).join('\n');
+let fullSql = files.map((f) => `-- ${f}\n${sql[f]}`).join('\n');
 const official = `${sql['scriptbd_completo.sql']}\n${sql['database/postgresql/scriptbd_completo.sql']}\n${sql['database/postgresql/003_plan_tables.sql']}`;
 const forbiddenPlanColumns = [
   'price_label',
@@ -50,15 +73,16 @@ function extractInsertColumns(sqlText, tableName) {
     .map((match) => match[1].split(',').map((column) => column.trim().replace(/^"|"$/g, '').toLowerCase()));
 }
 
-const planColumns = extractCreateTableColumns(official, 'valorapesquisa.plans') || new Set();
-const planInserts = extractInsertColumns(fullSql, 'valorapesquisa.plans');
-const hasStructuredLimits = /CREATE TABLE IF NOT EXISTS\s+valorapesquisa\.plan_limits[\s\S]*active_surveys[\s\S]*responses_per_month[\s\S]*storage_mb/i.test(official);
-const hasCapabilityCode = /CREATE TABLE IF NOT EXISTS\s+valorapesquisa\.plan_capabilities[\s\S]*capability_code[\s\S]*enabled/i.test(official);
+const planColumns = extractCreateTableColumns(official, 'plans') || extractCreateTableColumns(official, 'valorapesquisa.plans') || new Set();
+const planInserts = extractInsertColumns(fullSql, 'valorapesquisa.plans').concat(extractInsertColumns(fullSql, 'plans'));
+const hasStructuredLimits = /CREATE TABLE IF NOT EXISTS\s+(?:valorapesquisa\.)?plan_limits[\s\S]*limit_key[\s\S]*limit_value/i.test(official);
+const hasCapabilityCode = /CREATE TABLE IF NOT EXISTS\s+(?:valorapesquisa\.)?plan_capabilities[\s\S]*capability_key[\s\S]*enabled/i.test(official);
 const orgUsesPlanCode = /CREATE TABLE IF NOT EXISTS\s+valorapesquisa\.organizations[\s\S]*plan_code\s+text/i.test(official);
 
-ok(/CREATE TABLE IF NOT EXISTS\s+valorapesquisa\.plans[\s\S]*id\s+uuid[\s\S]*code\s+text\s+NOT NULL\s+UNIQUE/i.test(official), 'plans usa id uuid e code textual único');
+ok(/CREATE TABLE IF NOT EXISTS\s+(?:valorapesquisa\.)?plans[\s\S]*id\s+uuid[\s\S]*code\s+text\s+NOT NULL\s+UNIQUE/i.test(official), 'plans usa id uuid e code textual único');
 ok(planColumns.size > 0, 'schema real de plans foi localizado nos scripts oficiais');
-for (const column of ['code', 'name', 'description', 'monthly_price', 'annual_price', 'display_order', 'status', 'updated_at']) {
+const requiredPlanColumns = sql['database/postgresql/banco_completo.sql'] ? ['code', 'name', 'is_public', 'is_active', 'is_legacy', 'updated_at'] : ['code', 'name', 'description', 'monthly_price', 'annual_price', 'display_order', 'status', 'updated_at'];
+for (const column of requiredPlanColumns) {
   ok(planColumns.has(column), `plans contém coluna real ${column}`);
 }
 for (const column of forbiddenPlanColumns) {
@@ -72,9 +96,9 @@ planInserts.forEach((columns, index) => {
   ok(columns.includes('code'), `INSERT #${index + 1} em plans usa code`);
   ok(!columns.includes('id'), `INSERT #${index + 1} em plans não faz seed textual em id uuid`);
 });
-ok(/INSERT\s+INTO\s+valorapesquisa\.plans\s*\([\s\S]*\bcode\b[\s\S]*monthly_price[\s\S]*annual_price/i.test(official), 'seed de plans usa code/monthly_price/annual_price');
-if (hasStructuredLimits) ok(!/plan_limits\s*\([^)]*limit_key[^)]*limit_value/i.test(fullSql), 'plan_limits não usa limit_key/limit_value');
-if (hasCapabilityCode) ok(!/plan_capabilities\s*\([^)]*capability_key/i.test(fullSql), 'plan_capabilities não usa capability_key/capability_level/capability_type');
+ok(sql['database/postgresql/banco_completo.sql'] ? /INSERT\s+INTO\s+plans\s*\([\s\S]*\bcode\b[\s\S]*is_public[\s\S]*is_active/i.test(official) : /INSERT\s+INTO\s+valorapesquisa\.plans\s*\([\s\S]*\bcode\b[\s\S]*monthly_price[\s\S]*annual_price/i.test(official), sql['database/postgresql/banco_completo.sql'] ? 'seed de plans usa code/is_public/is_active' : 'seed de plans usa code/monthly_price/annual_price');
+ok(hasStructuredLimits, 'plan_limits usa limit_key/limit_value canonicos');
+ok(hasCapabilityCode, 'plan_capabilities usa capability_key canonico');
 if (orgUsesPlanCode) ok(!/organizations\s*\([^)]*plan_id/i.test(fullSql), 'organizations não recebe plan_id quando schema usa plan_code');
 ok(/ON CONFLICT\s*\(code\)\s*DO UPDATE/i.test(official), 'plans idempotente por code');
 ok(/ON CONFLICT\s*\(plan_id\)\s*DO UPDATE/i.test(official), 'plan_limits idempotente por plan_id');

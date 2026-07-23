@@ -1,3 +1,4 @@
+-- AVISO Fase 1: o bootstrap canonico agora e database/postgresql/banco_completo.sql. Este script historico foi preservado para referencia/compatibilidade.
 -- Sprint 32 deterministic local E2E fixture.
 -- Safe only for Development/Local/Test. Do not run against production databases.
 DO $$

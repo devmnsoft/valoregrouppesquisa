@@ -23,5 +23,22 @@ public sealed class LgpdConsentService(ILgpdRepository repo,IAuditRepository aud
 public sealed class PrivacyRequestService(ILgpdRepository repo,IAuditRepository audit):IPrivacyRequestService{ public async Task<PrivacyRequestDto> CreatePublicAsync(CreatePrivacyRequestRequest r){ var p=await repo.CreateRequestAsync(r,SafeData.Hash(r.RequesterEmail),SafeData.MaskEmail(r.RequesterEmail)); await audit.AddAsync(new AuditEntry(r.OrganizationId,null,"lgpd.privacy_request.created","privacy_request",p.Id.ToString(),"Solicitação LGPD criada","{}")); return p;} public Task<PrivacyRequestDto?> GetPublicAsync(string protocol)=>repo.GetRequestAsync(protocol); public Task<IReadOnlyList<PrivacyRequestDto>> ListAsync(Guid o)=>repo.ListRequestsAsync(o); public Task UpdateStatusAsync(Guid o,Guid id,string s,Guid? h)=>repo.UpdateStatusAsync(o,id,s,h); public async Task CompleteAsync(Guid o,Guid id,string r,Guid? h){ await repo.CompleteAsync(o,id,r,h); await audit.AddAsync(new AuditEntry(o,h,"lgpd.privacy_request.completed","privacy_request",id.ToString(),"Solicitação LGPD concluída","{}")); }}
 public sealed class OperationalEmailTemplateService(IEmailOperationalRepository repo):IEmailTemplateService{ public Task<IReadOnlyList<EmailTemplateDto>> ListAsync(Guid? o)=>repo.ListTemplatesAsync(o); public Task<EmailTemplateDto> UpsertAsync(Guid? id,UpsertEmailTemplateRequest r)=>repo.UpsertTemplateAsync(id,r); }
 public sealed class EmailQueueService(IEmailOperationalRepository repo,IEntitlementService ent,IAuditRepository audit):IEmailQueueService{ async Task<EmailJobDto> Q(Guid o,Guid? r,Guid? c,string t,string to,string s){ if(!await ent.CanUseAsync(o,"convites_email")) throw new InvalidOperationException("MODULE_NOT_ENABLED"); var j=await repo.QueueAsync(o,r,c,t,to,s,$"<p>{s}</p>",s); await audit.AddAsync(new AuditEntry(o,null,"email.queued","email_job",j.Id.ToString(),"E-mail enfileirado","{}")); return j;} public Task<EmailJobDto> QueueResultAsync(Guid o,Guid r,string to)=>Q(o,r,null,"result_available",to,"Resultado disponível"); public Task<EmailJobDto> QueueCertificateAsync(Guid o,Guid c,string to)=>Q(o,null,c,"certificate_issued",to,"Certificado emitido"); public Task<EmailJobDto> QueueInviteAsync(Guid o,Guid s,string to)=>Q(o,null,null,"survey_invite",to,"Convite para pesquisa"); public async Task<EmailJobDto?> RetryAsync(Guid id)=>await repo.GetJobAsync(id); }
-public sealed class EmailSenderService(IEmailOperationalRepository repo,IEmailSender sender):IEmailSenderService{ public async Task<int> ProcessAsync(int batchSize=20){ var jobs=(await repo.ListJobsAsync(null,"queued")).Take(batchSize).ToList(); foreach(var j in jobs){ await repo.MarkProcessingAsync(j.Id); try{ await sender.SendAsync("devnull@example.com",j.Subject,j.Subject); await repo.MarkSentAsync(j.Id);} catch(Exception ex){ await repo.MarkFailedAsync(j.Id,ex.Message,j.Attempts>=2); }} return jobs.Count; }}
+public sealed class EmailSenderService(IEmailOperationalRepository repo, IEmailSender sender) : IEmailSenderService
+{
+    public async Task<int> ProcessAsync(int batchSize = 20)
+    {
+        var jobs = (await repo.ListJobsAsync(null, "queued")).Take(batchSize).ToList();
+
+        foreach (var job in jobs)
+        {
+            await repo.MarkProcessingAsync(job.Id);
+            await repo.MarkFailedAsync(
+                job.Id,
+                "FEATURE_NOT_IMPLEMENTED: envio operacional exige destinatário real armazenado de forma segura.",
+                dead: true);
+        }
+
+        return jobs.Count;
+    }
+}
 public sealed class EmailStatusService(IEmailOperationalRepository repo):IEmailStatusService{ public Task<EmailStatusDto> GetAsync(Guid? o)=>repo.StatusAsync(o,true); }

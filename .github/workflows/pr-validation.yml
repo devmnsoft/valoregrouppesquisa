@@ -22,20 +22,41 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: |
+          if [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then npm ci; else npm install; fi
 
       - name: Block committed dist artifacts
         run: npm run check:no-dist
+
+      - name: Install Functions dependencies
+        run: npm --prefix functions ci
+
+      - name: Sync plan catalog and validate release groups
+        run: |
+          node scripts/sync-functions-plan-catalog.js
+          npm run release:groups:check
 
       - name: Syntax checks
         run: npm run check
 
       - name: Security checks
         run: npm run security:check
+
+      - name: Firestore rules tests
+        run: npm run test:rules
+
+      - name: Functions tests
+        run: npm run test:functions
+
+      - name: Security test suite
+        run: npm run test:security
+
+      - name: Critical public Playwright tests
+        run: npx playwright test --config=playwright.e2e.config.js tests/e2e/legacy-public-survey-submit.spec.js tests/e2e/legacy-result-email-flow.spec.js tests/e2e/legacy-certificate-flow.spec.js
 
       - name: Production build
         run: npm run build:prod

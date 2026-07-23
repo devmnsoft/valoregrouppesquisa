@@ -187,25 +187,8 @@ function registerCompany(data){
 }
 
 async function registerCompanyAccount(data){
-  const s=ensureFirebase();
-  const email=String(data.email||'').trim().toLowerCase();
-  if(!email||!data.password)throw Object.assign(new Error('Informe e-mail e senha para criar o ambiente.'),{code:'invalid-signup'});
-  const cred=await s.auth.createUserWithEmailAndPassword(email,data.password);
-  const uid=cred.user.uid;
-  const now=new Date().toISOString();
-  const companyRef=s.db.collection('organizations').doc();
-  const legacyCompanyRef=s.db.collection('companies').doc(companyRef.id);
-  const settingsRef=s.db.collection('organizationSettings').doc(companyRef.id);
-  const company={id:companyRef.id,type:data.type||'juridica',name:data.companyName||data.name||email,publicName:data.companyName||data.name||email,slug:data.slug||String(data.companyName||email).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),document:data.document||'',email,phone:data.phone||'',cep:data.cep||'',address:data.address||'',planId:data.planId||'free',status:'active',subscription:{planId:data.planId||'free',status:'active',billingStatus:'free',startedAt:now},createdAt:now,updatedAt:now};
-  const user={id:uid,uid,name:data.name||data.companyName||email,email,role:'empresa_admin',companyId:company.id,phone:data.phone||'',status:'active',receivesEmail:true,portalAccess:true,createdAt:now,updatedAt:now};
-  const batch=s.db.batch();
-  batch.set(companyRef,company);
-  batch.set(legacyCompanyRef,{...company,organizationId:company.id});
-  batch.set(settingsRef,{organizationId:company.id,companyId:company.id,planId:company.planId,status:company.status,createdAt:now,updatedAt:now,notifications:{email:true},lgpd:{enabled:true}});
-  batch.set(s.db.collection('users').doc(uid),user);
-  await batch.commit();
-  const profile=await loadProfile(cred.user);
-  await hydrateStore();
+  const profile=await callFunction('registerCompanyAccount',{payload:data});
+  await hydrateStore().catch(()=>{});
   return profile;
 }
 function mapAuthError(err){const code=err?.code||'';/* auth/invalid-login-credentials auth/user-not-found auth/wrong-password auth/invalid-email auth/user-disabled auth/too-many-requests auth/network-request-failed auth/api-key-not-valid auth/operation-not-allowed */if(code.includes('invalid-credential')||code.includes('invalid-login-credentials')||code.includes('wrong-password')||code.includes('user-not-found'))return 'E-mail ou senha inválidos.';if(code.includes('invalid-email'))return 'E-mail inválido.';if(code.includes('user-disabled'))return 'Usuário desativado.';if(code.includes('operation-not-allowed')||code.includes('api-key-not-valid')||code.includes('configuration-not-found'))return 'Serviço de autenticação indisponível.';if(code.includes('too-many-requests'))return 'Muitas tentativas. Aguarde alguns minutos.';if(code.includes('network-request-failed')||code==='unavailable')return 'Serviço de autenticação indisponível.';if(code==='inactive-user')return 'Usuário inativo. Solicite liberação ao administrador.';if(code==='profile-missing')return PROFILE_MISSING_MESSAGE;if(code==='inactive-company')return 'Sua empresa está inativa. Contate o administrador.';return 'Não foi possível entrar. Verifique seus dados ou solicite redefinição de senha.';}

@@ -20,6 +20,7 @@ function clientFunctions() {
     validateSurveyLink: httpsCallable(functions, 'validateSurveyLink'),
     submitSurveyResponse: httpsCallable(functions, 'submitSurveyResponse'),
     getPublicResult: httpsCallable(functions, 'getPublicResult'),
+    sendResultEmail: httpsCallable(functions, 'sendResultEmail'),
   };
 }
 
@@ -62,6 +63,17 @@ async function resetData(overrides = {}) {
       percentage: 80,
       ...overrides.response,
     });
+    if (overrides.resultAccess !== false) {
+      await db.collection('responses').doc('resp-publica').collection('resultAccessTokens').doc(sha256(RESULT_TOKEN)).set({
+        tokenHash: sha256(RESULT_TOKEN),
+        responseId: 'resp-publica',
+        status: 'active',
+        channel: 'test',
+        createdAt: new Date(),
+        expiresAt: null,
+        ...overrides.resultAccess,
+      });
+    }
   }
   return db;
 }
@@ -125,4 +137,38 @@ describe('Cloud Functions públicas — links, respostas e resultados', () => {
     await resetData({ response: {} });
     await expectCode(fn.getPublicResult({ responseId: 'resp-publica', resultToken: 'invalido' }), 'permission-denied');
   });
+
+  it('getPublicResult rejeita token revogado', async () => {
+    await resetData({ response: {}, resultAccess: { status: 'revoked', revokedAt: new Date() } });
+    await expectCode(fn.getPublicResult({ responseId: 'resp-publica', resultToken: RESULT_TOKEN }), 'permission-denied');
+  });
+
+  it('getPublicResult rejeita token expirado', async () => {
+    await resetData({ response: {}, resultAccess: { expiresAt: new Date(Date.now() - 60_000) } });
+    await expectCode(fn.getPublicResult({ responseId: 'resp-publica', resultToken: RESULT_TOKEN }), 'permission-denied');
+  });
+
+  it('getPublicResult rejeita token emitido para outra resposta', async () => {
+    await resetData({ response: {}, resultAccess: false });
+    const db = admin.firestore();
+    await db.collection('responses').doc('resp-outra').set({ companyId: 'empresa-a', surveyId: 'survey-a' });
+    await db.collection('responses').doc('resp-outra').collection('resultAccessTokens').doc(sha256(RESULT_TOKEN)).set({ tokenHash: sha256(RESULT_TOKEN), responseId: 'resp-outra', status: 'active' });
+    await expectCode(fn.getPublicResult({ responseId: 'resp-publica', resultToken: RESULT_TOKEN }), 'permission-denied');
+  });
+
+  it('sendResultEmail rejeita token inválido antes de enviar e-mail', async () => {
+    await resetData({ response: {} });
+    await expectCode(fn.sendResultEmail({ responseId: 'resp-publica', resultToken: 'invalido', to: 'ana@example.com' }), 'permission-denied');
+  });
+
+  it('diagnósticos e erros não persistem token bruto', async () => {
+    const raw = 'token-bruto-super-secreto';
+    await resetData({ response: {} });
+    await expectCode(fn.getPublicResult({ responseId: 'resp-publica', resultToken: raw }), 'permission-denied');
+    const docs = await admin.firestore().collection('public_result_access_errors').get();
+    for (const doc of docs.docs) {
+      assert.equal(JSON.stringify(doc.data()).includes(raw), false, 'raw token must not be written to diagnostics');
+    }
+  });
+
 });

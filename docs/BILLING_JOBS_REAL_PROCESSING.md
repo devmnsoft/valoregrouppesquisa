@@ -1,0 +1,2 @@
+# Billing Jobs Real Processing
+`BillingCommunicationJob` deve buscar faturas pendentes/vencidas, aplicar regras em `billing_communication_rules`, evitar duplicidade por `(client_id, invoice_id, type, channel)`, criar `client_communications`, notificações internas, `job_execution_logs` e `system_audit_logs`. `BillingStatusJob` deve marcar vencidas, aplicar carência e bloquear benefícios pagos sem bloquear login.

@@ -665,3 +665,25 @@ A Web oficial em `backend/Valora.Web` agora possui design system premium, layout
 - Respostas legadas com apenas `responses.resultTokenHash` são migradas no primeiro acesso válido para a subcoleção de tokens.
 - O certificado PDF básico de participação está disponível para todo resultado público validado e para administradores autorizados, independente do plano comercial.
 - A fonte de verdade dos planos é `shared/plan-catalog.json`; a interface pode ocultar ações, mas as Cloud Functions validam limites/capacidades no backend.
+
+
+## HabitFlow v6.1-DeepAudit-OperationalCompleteness-ProductionReadiness
+
+Esta revisão adiciona o pacote operacional HabitFlow v6.1 para estabilização de banco, auditoria, billing, SuperAdmin e prontidão de produção. O repositório atual não contém a árvore `src/HabitFlow.*`; por isso, a entrega inclui scripts SQL/QA e documentação de integração.
+
+### Rodar sem Docker
+- Manter a porta 5097.
+- Quando o projeto HabitFlow estiver presente: `dotnet run --project src/HabitFlow.Web`.
+
+### Banco
+- Aplicar: `psql -U postgres -d habitflow -f database/migrate.sql`.
+- Validar: `psql -U postgres -d habitflow -f database/validate_schema_habitflow.sql`.
+- QA estático: `pwsh scripts/qa/check-database-scripts.ps1`.
+
+### Primeiro SuperAdmin
+- Use `scripts/admin/create-superadmin.ps1`.
+- Gere o hash de senha pelo utilitário oficial do projeto; o script não registra senha real.
+
+### Seeds
+- `database/seed_dev.sql` é apenas para desenvolvimento.
+- `database/seed_production_minimal.sql` cria somente estrutura/regras mínimas.

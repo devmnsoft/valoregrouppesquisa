@@ -3,7 +3,7 @@
 ## Diagnóstico antes da correção
 1. `IsDemo` existia em `PublicSurveysController` como ramificação principal de validate/submit.
 2. `demo-public-token` existia no mesmo controller e no validador E2E antigo.
-3. `demo-valora-insight` existia no controller e como seed local em `database/postgresql/012_seed_demo_valora_insight.sql`.
+3. `demo-valora-insight` existia no controller e como seed local em `backend/database/postgresql/012_seed_demo_valora_insight.sql`.
 4. `pending-backfill` era retornado como `form.id` no validate real.
 5. O cálculo de resultado ficava no controller via `new ValoraInsightCalculator()`.
 6. `PublicResultsController` apenas exigia string preenchida e não comparava hash real.

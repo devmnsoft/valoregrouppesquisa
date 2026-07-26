@@ -15,7 +15,7 @@
 | 9 | Existem repositories Dapper reais? | Sim: repositories em `Valora.Infrastructure/Repositories/Repositories.cs` usam Dapper e queries parametrizadas. |
 | 10 | A API conecta no PostgreSQL? | Sim por `PostgresConnectionFactory` e `/health/database`; execução depende do PostgreSQL local. |
 | 11 | PostgreSQL sobe via Docker? | Sim, `docker-compose.postgres.yml` aponta PostgreSQL 16 na porta 5434. |
-| 12 | Existem migrations SQL reais? | Sim, `database/postgresql/*.sql`. |
+| 12 | Existem migrations SQL reais? | Sim, `backend/database/postgresql/*.sql`. |
 | 13 | As migrations são idempotentes? | Sim em padrão `CREATE ... IF NOT EXISTS`, `CREATE INDEX IF NOT EXISTS` e seeds com `ON CONFLICT`. |
 | 14 | Existe seed dos cinco planos oficiais? | Sim, `010_seed_official_plans.sql`. |
 | 15 | Existe seed demo Valora Insight™? | Sim, `011_seed_demo_valora_insight.sql`. |

@@ -21,7 +21,7 @@ public sealed class AdminRepositoryMigrationTests
     [Fact]
     public void CompleteDatabaseScriptKeepsUsersCompatibleWithRepositoriesAndRoles()
     {
-        var sql = File.ReadAllText(Path.Combine("..", "..", "..", "..", "scriptbd_completo.sql"));
+        var sql = File.ReadAllText(Path.Combine("..", "..", "..", "..", "banco_completo.sql"));
         Assert.Contains("role text not null default 'empresa_admin'", sql);
         Assert.Contains("role_id uuid null", sql);
         Assert.Contains("phone text null", sql);
@@ -41,7 +41,7 @@ public sealed class AdminRepositoryMigrationTests
     [Fact]
     public void CompleteDatabaseScriptContainsOrganizationColumnsRequiredByAdminRepository()
     {
-        var sql = File.ReadAllText(Path.Combine("..", "..", "..", "..", "scriptbd_completo.sql"));
+        var sql = File.ReadAllText(Path.Combine("..", "..", "..", "..", "banco_completo.sql"));
         foreach (var column in new[] { "document text", "email citext", "phone text", "settings_json jsonb", "brand_json jsonb", "deleted_at timestamptz", "deleted_by uuid" })
         {
             Assert.Contains(column, sql);
@@ -51,7 +51,7 @@ public sealed class AdminRepositoryMigrationTests
     [Fact]
     public void CompleteDatabaseScriptUsesOfficialCodeBasedPlanSchema()
     {
-        var sql = File.ReadAllText(Path.Combine("..", "..", "..", "..", "scriptbd_completo.sql"));
+        var sql = File.ReadAllText(Path.Combine("..", "..", "..", "..", "banco_completo.sql"));
         Assert.Contains("id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE", sql);
         Assert.Contains("monthly_price numeric", sql);
         Assert.Contains("annual_price numeric", sql);

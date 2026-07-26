@@ -2,7 +2,7 @@
 
 Fixture determinística local da Sprint 32 para homologação live.
 
-- Seed: `database/postgresql/099_seed_e2e_live_fixture.sql`.
+- Seed: `backend/database/postgresql/099_seed_e2e_live_fixture.sql`.
 - Organização: Valora E2E Organization.
 - Admin: `e2e-admin@valoragroup.local`.
 - Senha somente para teste retornada por `/e2e/fixture`: `Valora!12345`.

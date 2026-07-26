@@ -4,7 +4,7 @@
 
 1. O ambiente live sobe API e PostgreSQL automaticamente? **Sim**, `local:live:up` usa `docker compose up -d --build`.
 2. As migrations são aplicadas automaticamente? **Sim**, por `scripts/run-postgres-migrations.js` com `schema_migrations`.
-3. Existe seed E2E determinístico? **Sim**, `database/postgresql/099_seed_e2e_live_fixture.sql`.
+3. Existe seed E2E determinístico? **Sim**, `backend/database/postgresql/099_seed_e2e_live_fixture.sql`.
 4. O E2E ainda depende de `VALORA_E2E_SURVEY_ID` manual? **Não** em modo live; usa `/e2e/fixture`.
 5. O E2E ainda depende de `VALORA_E2E_PUBLIC_TOKEN` manual? **Não** em modo live; usa `/e2e/fixture`.
 6. O E2E trata PDF/PNG corretamente? **Sim**, `requestBinary` valida `application/pdf` e `image/png`.

@@ -5,7 +5,7 @@
 1. **Backend ASP.NET Core existe?** Sim: `backend/Valora.sln` contém Api, Domain, Application, Infrastructure e Tests.
 2. **A solução backend compila?** A estrutura está pronta; neste container o comando não pôde ser executado porque `dotnet` não está instalado.
 3. **PostgreSQL sobe via Docker?** Há `docker-compose.postgres.yml` com PostgreSQL 16 na porta 5434.
-4. **Scripts SQL existem e estão completos?** Sim, a pasta `database/postgresql/` contém os scripts 001–011 exigidos, incluindo tabelas core, planos, surveys, responses, results, certificates, communications e audit.
+4. **Scripts SQL existem e estão completos?** Sim, a pasta `backend/database/postgresql/` contém os scripts 001–011 exigidos, incluindo tabelas core, planos, surveys, responses, results, certificates, communications e audit.
 5. **Cinco planos oficiais no seed?** Sim: free, essential, professional, corporate e enterprise em `010_seed_official_plans.sql`.
 6. **Seed demo Valora Insight™?** Sim: `011_seed_demo_valora_insight.sql` cria organização, formulário, 5 dimensões, 25 perguntas, survey e link público demo.
 7. **api-client.js existe?** Sim, expõe cliente HTTP com token bearer e tratamento de JSON/HTML.

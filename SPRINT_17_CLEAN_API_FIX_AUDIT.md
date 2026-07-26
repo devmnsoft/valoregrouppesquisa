@@ -21,7 +21,7 @@
 17. Schema `audit`: migrations não canônicas arquivadas fora da pasta executável.
 18. Schema `migration`: migrations não canônicas arquivadas fora da pasta executável.
 19. `MigrationRunner`: corrigido para usar somente `valorapesquisa.schema_migrations`.
-20. Scripts SQL executáveis: somente migrations canônicas `001` a `012` em `database/postgresql`.
+20. Scripts SQL executáveis: somente migrations canônicas `001` a `012` em `backend/database/postgresql`.
 21. Scripts de migração JS: permanecem para dry-run/export/transform/import/compare e serão validados por scripts dedicados.
 22. Backend: repositories usam `valorapesquisa.nome_da_tabela`.
 23. Frontend: preservado em Bootstrap + JavaScript puro, com Firebase e provider híbrido mantidos.

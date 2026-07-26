@@ -1,7 +1,7 @@
 # Sprint 24 — Auditoria de Logging Operacional
 
 ## Escopo auditado
-`backend/Valora.Api`, `backend/Valora.Application`, `backend/Valora.Infrastructure`, `backend/Valora.Tests`, `database/postgresql`, `migration`, `scripts`, `tools/windows`, `api-client.js`, `api-repository.js`, `repository.js`, `app.js` e `package.json`.
+`backend/Valora.Api`, `backend/Valora.Application`, `backend/Valora.Infrastructure`, `backend/Valora.Tests`, `backend/database/postgresql`, `migration`, `scripts`, `tools/windows`, `api-client.js`, `api-repository.js`, `repository.js`, `app.js` e `package.json`.
 
 ## Respostas objetivas
 1. Services críticos sem ILogger<T>: pendência residual em assemblers/normalizers puros quando não executam IO; documentado como aceitável para evitar try/catch inútil.

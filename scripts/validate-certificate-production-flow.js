@@ -1,5 +1,5 @@
 const {assert,requireFile,requirePattern,readIf,allFiles,pass}=require('./production-gate-utils');
-const cs=allFiles(['backend'],['.cs']); const sql=allFiles(['database/postgresql'],['.sql']);
+const cs=allFiles(['backend'],['.cs']); const sql=allFiles(['backend/database/postgresql'],['.sql']);
 requireFile('backend/Valora.Api/Controllers/CertificatesController.cs');
 requireFile('backend/Valora.Application/Certificates/CertificateService.cs');
 requireFile('backend/Valora.Infrastructure/Repositories/CertificateRepository.cs');

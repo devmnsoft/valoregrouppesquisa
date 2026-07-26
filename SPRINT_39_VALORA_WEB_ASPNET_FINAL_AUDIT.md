@@ -7,7 +7,7 @@ Data: 2026-06-29.
 - `backend/Valora.Api/`
 - `backend/Valora.Application/`
 - `backend/Valora.Infrastructure/`
-- `database/postgresql/`
+- `backend/database/postgresql/`
 - `package.json`
 - `scripts/`
 - `tests/e2e-web/`

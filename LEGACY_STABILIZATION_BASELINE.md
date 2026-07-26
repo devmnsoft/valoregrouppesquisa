@@ -39,7 +39,7 @@
 - API keys/webhooks need continued versioned hardening for scopes, HMAC signatures, SSRF protection, retries and dead-letter queues.
 
 ### Backend .NET and PostgreSQL
-- Official strategic backend remains `backend/Valora.sln` with `Valora.Api`, `Valora.Application`, `Valora.Domain`, `Valora.Infrastructure`, `Valora.Web` and `database/postgresql`.
+- Official strategic backend remains `backend/Valora.sln` with `Valora.Api`, `Valora.Application`, `Valora.Domain`, `Valora.Infrastructure`, `Valora.Web` and `backend/database/postgresql`.
 - No cutover is approved by this stabilization. See `LEGACY_TO_BACKEND_PARITY_MATRIX.md`.
 
 ## Duplicate/redefined contracts identified

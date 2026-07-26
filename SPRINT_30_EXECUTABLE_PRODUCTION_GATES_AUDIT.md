@@ -4,7 +4,7 @@ Data: 2026-06-27
 
 ## Escopo auditado
 
-Foram auditados `package.json`, validadores `scripts/validate-*`, frontend híbrido (`index.html`, `config.js`, `runtime-capabilities.js`, `api-client.js`, `api-repository.js`, `repository.js`, `app.js`), backend `backend/`, schema `database/postgresql/`, migração `migration/`, scripts Windows, Docker, Firebase Hosting/Rules e `functions/`.
+Foram auditados `package.json`, validadores `scripts/validate-*`, frontend híbrido (`index.html`, `config.js`, `runtime-capabilities.js`, `api-client.js`, `api-repository.js`, `repository.js`, `app.js`), backend `backend/`, schema `backend/database/postgresql/`, migração `migration/`, scripts Windows, Docker, Firebase Hosting/Rules e `functions/`.
 
 ## Respostas objetivas
 

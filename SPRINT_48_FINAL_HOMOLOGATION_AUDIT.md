@@ -1,6 +1,6 @@
 # Sprint 48 — Auditoria Final de Homologação
 
-Escopo auditado: index.html, app.js, pdf.js, config.js, firebase.json, backend/Valora.Api, backend/Valora.Application, backend/Valora.Infrastructure, backend/Valora.Web, database/postgresql, scripts, tests, tests/e2e, tests/e2e-web, docker-compose.yml e tools/windows.
+Escopo auditado: index.html, app.js, pdf.js, config.js, firebase.json, backend/Valora.Api, backend/Valora.Application, backend/Valora.Infrastructure, backend/Valora.Web, backend/database/postgresql, scripts, tests, tests/e2e, tests/e2e-web, docker-compose.yml e tools/windows.
 
 1. Sim, com controles mínimos implementados.
 2. Sim, por IP/e-mail/token.

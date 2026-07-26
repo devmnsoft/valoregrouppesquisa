@@ -13,7 +13,7 @@
 O script oficial cria tabelas de identidade, planos, formulários, pesquisas, respostas, resultados, certificados, comunicação, auditoria, operação, importação, relatórios/LGPD e migração com `CREATE TABLE IF NOT EXISTS`. A lista completa é verificável com:
 
 ```bash
-rg -n "CREATE TABLE IF NOT EXISTS" scriptbd_completo.sql database/postgresql/*.sql
+rg -n "CREATE TABLE IF NOT EXISTS" scriptbd_completo.sql backend/database/postgresql/*.sql
 ```
 
 ## INSERTs sensíveis a schemas antigos

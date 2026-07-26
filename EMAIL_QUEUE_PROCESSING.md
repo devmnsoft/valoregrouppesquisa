@@ -27,4 +27,4 @@ Firebase Hosting permite `https://cdn.jsdelivr.net` em scripts/styles/fontes e `
 
 ## Gaps e riscos
 
-É necessário configurar SMTP real no ambiente de produção, aplicar migration `database/postgresql/044_email_jobs_smtp_real.sql` e executar testes com provedor SMTP homologado. A rota compatível `/communication/result/send` deve ser removida em sprint futura.
+É necessário configurar SMTP real no ambiente de produção, aplicar migration `backend/database/postgresql/044_email_jobs_smtp_real.sql` e executar testes com provedor SMTP homologado. A rota compatível `/communication/result/send` deve ser removida em sprint futura.

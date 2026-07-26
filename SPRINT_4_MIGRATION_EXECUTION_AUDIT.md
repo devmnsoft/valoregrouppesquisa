@@ -5,7 +5,7 @@
 1. **O backend ASP.NET Core existe?** Sim. A solution `backend/Valora.sln` contém projetos Api, Domain, Application, Infrastructure e Tests.
 2. **O backend compila?** A estrutura está preparada para compilar; neste ambiente o comando `dotnet build backend/Valora.sln` não pôde ser executado porque o SDK `dotnet` não está instalado.
 3. **PostgreSQL local existe?** Sim. `docker-compose.postgres.yml` define PostgreSQL 16 local na porta 5434.
-4. **Os scripts SQL existem?** Sim, há scripts em `database/postgresql/` para schemas, tabelas, auditoria, comunicação, planos e seed demo.
+4. **Os scripts SQL existem?** Sim, há scripts em `backend/database/postgresql/` para schemas, tabelas, auditoria, comunicação, planos e seed demo.
 5. **O seed dos planos existe?** Sim, `010_seed_official_plans.sql` mantém os cinco planos oficiais.
 6. **O api-client.js existe?** Sim, com cliente HTTP baseado em `API_BASE_URL`, token em `sessionStorage`/memória e validação de JSON.
 7. **O api-repository.js existe?** Sim, com auth, planos públicos, jornada pública, certificados e status de migração.

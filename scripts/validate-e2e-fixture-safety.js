@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs=require('fs'); const {assert,writeJson,writeMd}=require('./live-gate-utils');
 const controller=fs.readFileSync('backend/Valora.Api/Controllers/E2eFixtureController.cs','utf8');
-const seed=fs.readFileSync('database/postgresql/099_seed_e2e_live_fixture.sql','utf8');
+const seed=fs.readFileSync('backend/database/postgresql/099_seed_e2e_live_fixture.sql','utf8');
 const checks=[]; function check(name,cond){checks.push({name,status:cond?'PASS':'FAIL'}); assert(cond,name);}
 check('controller blocks Production',/IsProduction\(\).*return false/s.test(controller));
 check('controller allows only Development Local Test or explicit flag',/EnableFixtureEndpoints/.test(controller)&&/Local/.test(controller)&&/Test/.test(controller));

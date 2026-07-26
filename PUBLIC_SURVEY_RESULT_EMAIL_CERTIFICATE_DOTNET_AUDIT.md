@@ -23,7 +23,7 @@ O frontend legado (`index.html`, `app.js`, repositórios JS, `pdf.js`, serviços
 - `loading.js`: `setGlobalLoading`, `withLoading` e `setButtonLoading`.
 
 ## Banco e scripts
-O script oficial continua em `database/postgresql/scriptbd_completo.sql` e os validadores conferem idempotência, tabelas e índices essenciais.
+O script oficial continua em `backend/database/postgresql/scriptbd_completo.sql` e os validadores conferem idempotência, tabelas e índices essenciais.
 
 ## Funcionalidades migradas
 Resposta pública, cálculo do resultado, criação de certificado, enfileiramento/reenvio de e-mail, página de resultado, downloads PDF/PNG, WhatsApp CTA e loading visual agora são validados no caminho .NET + Dapper + PostgreSQL.

@@ -11,12 +11,12 @@ O seed oficial tentava inserir `price_label` em `valorapesquisa.plans`, mas o co
 ## 3. Arquivos corrigidos
 
 - `scriptbd_completo.sql`
-- `database/postgresql/scriptbd_completo.sql`
-- `database/postgresql/002_core_tables.sql`
-- `database/postgresql/003_plan_tables.sql`
-- `database/postgresql/011_seed_official_plans.sql`
-- `database/postgresql/012_seed_demo_valora_insight.sql`
-- `database/postgresql/099_seed_e2e_live_fixture.sql`
+- `backend/database/postgresql/scriptbd_completo.sql`
+- `backend/database/postgresql/002_core_tables.sql`
+- `backend/database/postgresql/003_plan_tables.sql`
+- `backend/database/postgresql/011_seed_official_plans.sql`
+- `backend/database/postgresql/012_seed_demo_valora_insight.sql`
+- `backend/database/postgresql/099_seed_e2e_live_fixture.sql`
 - `backend/Valora.Infrastructure/Repositories/PlanRepository.cs`
 - `backend/Valora.Infrastructure/Repositories/OrganizationRepository.cs`
 - `backend/Valora.Tests/AdminRepositoryMigrationTests.cs`

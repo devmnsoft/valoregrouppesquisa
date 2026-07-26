@@ -5,10 +5,10 @@
 Antes da correção, `price_label` aparecia no DDL e nos seeds oficiais de planos em:
 
 - `scriptbd_completo.sql`
-- `database/postgresql/scriptbd_completo.sql`
-- `database/postgresql/003_plan_tables.sql`
-- `database/postgresql/011_seed_official_plans.sql`
-- `database/postgresql/099_seed_e2e_live_fixture.sql`
+- `backend/database/postgresql/scriptbd_completo.sql`
+- `backend/database/postgresql/003_plan_tables.sql`
+- `backend/database/postgresql/011_seed_official_plans.sql`
+- `backend/database/postgresql/099_seed_e2e_live_fixture.sql`
 - consultas do backend em `backend/Valora.Infrastructure/Repositories/PlanRepository.cs`
 - testes estáticos que validavam o contrato antigo em `backend/Valora.Tests/AdminRepositoryMigrationTests.cs`
 
@@ -19,12 +19,12 @@ Após a correção, os scripts SQL oficiais não usam `price_label`.
 O padrão antigo foi identificado nos blocos de seed dos scripts completos:
 
 - `scriptbd_completo.sql`
-- `database/postgresql/scriptbd_completo.sql`
+- `backend/database/postgresql/scriptbd_completo.sql`
 
 O padrão mais completo `plans(id,name,badge,...,price_label,...)` também existia em:
 
-- `database/postgresql/011_seed_official_plans.sql`
-- `database/postgresql/099_seed_e2e_live_fixture.sql`
+- `backend/database/postgresql/011_seed_official_plans.sql`
+- `backend/database/postgresql/099_seed_e2e_live_fixture.sql`
 
 Todos foram substituídos por `plans(code, ..., monthly_price, annual_price, ...)`.
 

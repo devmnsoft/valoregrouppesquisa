@@ -5,7 +5,7 @@
 - backend/Valora.Api/Controllers/
 - backend/Valora.Application/
 - backend/Valora.Infrastructure/
-- database/postgresql/
+- backend/database/postgresql/
 - package.json
 - scripts/
 - tests/e2e-web/

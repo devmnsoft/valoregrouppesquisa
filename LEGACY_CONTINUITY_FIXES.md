@@ -4,7 +4,7 @@ Atualizado na Sprint 64.
 
 ## Resumo
 - Mantém o legado Firebase ativo até a virada final.
-- Registra o script único `scriptbd_completo.sql` e a cópia em `database/postgresql/scriptbd_completo.sql`.
+- Registra o script único `scriptbd_completo.sql` e a cópia em `backend/database/postgresql/scriptbd_completo.sql`.
 - Documenta paridade progressiva do Valora.Api/Valora.Web com o legado.
 - Segredos SMTP devem ficar fora do repositório.
 

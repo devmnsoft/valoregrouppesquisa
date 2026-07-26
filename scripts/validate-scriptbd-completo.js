@@ -1,4 +1,4 @@
-const fs=require('fs'); const a='scriptbd_completo.sql', b='database/postgresql/scriptbd_completo.sql';
+const fs=require('fs'); const a='scriptbd_completo.sql', b='backend/database/postgresql/scriptbd_completo.sql';
 for (const f of [a,b]) if(!fs.existsSync(f)) throw new Error(`Arquivo ausente: ${f}`);
 const sql=fs.readFileSync(a,'utf8'); if(sql!==fs.readFileSync(b,'utf8')) throw new Error('Scripts SQL não são idênticos.');
 const required=['CREATE SCHEMA IF NOT EXISTS valorapesquisa','CREATE EXTENSION IF NOT EXISTS pgcrypto','CREATE EXTENSION IF NOT EXISTS citext','valorapesquisa.set_updated_at'];

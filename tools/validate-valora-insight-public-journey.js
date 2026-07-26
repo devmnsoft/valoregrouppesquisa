@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 const fs=require('fs');const cp=require('child_process');function read(p){return fs.existsSync(p)?fs.readFileSync(p,'utf8'):''}function ok(c,m){if(!c){console.error('FAIL:',m);process.exit(1)}console.log('OK:',m)}
-const files=['backend/Valora.Web/Views/Home/Index.cshtml','backend/Valora.Web/Views/PublicPages/FreeDiagnostic.cshtml','backend/Valora.Web/Views/PublicSurvey/Take.cshtml','backend/Valora.Web/Views/Results/Public.cshtml','backend/Valora.Web/Views/Certificates/Details.cshtml','backend/Valora.Web/Views/Lgpd/Index.cshtml','database/postgresql/013_seed_valora_insight_questions.sql','backend/Valora.Application/Results/ValoraInsightCalculator.cs','backend/Valora.Application/Results/ValoraInsightDevolutivaService.cs'];
-files.forEach(f=>ok(fs.existsSync(f),`${f} existe`));const sql=read('database/postgresql/013_seed_valora_insight_questions.sql');
+const files=['backend/Valora.Web/Views/Home/Index.cshtml','backend/Valora.Web/Views/PublicPages/FreeDiagnostic.cshtml','backend/Valora.Web/Views/PublicSurvey/Take.cshtml','backend/Valora.Web/Views/Results/Public.cshtml','backend/Valora.Web/Views/Certificates/Details.cshtml','backend/Valora.Web/Views/Lgpd/Index.cshtml','backend/database/postgresql/013_seed_valora_insight_questions.sql','backend/Valora.Application/Results/ValoraInsightCalculator.cs','backend/Valora.Application/Results/ValoraInsightDevolutivaService.cs'];
+files.forEach(f=>ok(fs.existsSync(f),`${f} existe`));const sql=read('backend/database/postgresql/013_seed_valora_insight_questions.sql');
 ['Cultura e Propósito','Gestão e Governança','Liderança','Pessoas e Talentos','Resultados e Crescimento'].forEach(d=>ok(sql.includes(d),`dimensão ${d}`));
 ok((sql.match(/','/g)||[]).length>=25 && (sql.match(/Discordo totalmente|Concordo totalmente/g)||[]).length>=2,'25 perguntas e escala 1 a 5 existem no seed');
 ok(!/pergunta\s+[1-5]/i.test(sql),'seed oficial não contém perguntas genéricas');

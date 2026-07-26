@@ -3,7 +3,7 @@
 ## Diagnóstico obrigatório
 
 1. **Backend ASP.NET Core existe:** sim, em `backend/Valora.sln`, com projetos `Valora.Api`, `Valora.Application`, `Valora.Domain`, `Valora.Infrastructure` e `Valora.Tests`.
-2. **PostgreSQL tem scripts SQL:** sim, em `database/postgresql/`, incluindo schemas, tabelas, seed oficial de planos e seed demo Valora Insight™.
+2. **PostgreSQL tem scripts SQL:** sim, em `backend/database/postgresql/`, incluindo schemas, tabelas, seed oficial de planos e seed demo Valora Insight™.
 3. **`api-client.js` existe:** sim, expondo `window.ValoraApiClient` com métodos HTTP e endpoints do MVP.
 4. **`api-repository.js` existe:** sim, expondo login, cadastro, planos, validação pública, submissão, resultado e links de certificado.
 5. **`DATA_PROVIDER` já é usado de verdade:** parcialmente. A configuração padrão permanece `firebase`, e a sprint adiciona suporte validável a `api` e `hybrid` para a jornada pública.

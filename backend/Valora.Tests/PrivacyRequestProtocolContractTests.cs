@@ -10,7 +10,7 @@ public sealed class PrivacyRequestProtocolContractTests
         var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../"));
         var dto = File.ReadAllText(Path.Combine(root, "Valora.Application/DTOs/OperationalDtos.cs"));
         var controller = File.ReadAllText(Path.Combine(root, "Valora.Api/Controllers/LgpdController.cs"));
-        var sql = File.ReadAllText(Path.Combine(root, "../database/postgresql/050_reports_certificates_exports_lgpd_email.sql"));
+        var sql = File.ReadAllText(Path.Combine(root, "../backend/database/postgresql/050_reports_certificates_exports_lgpd_email.sql"));
 
         Assert.Contains("string Protocol", dto);
         Assert.Contains("/public/lgpd/requests/{protocol}", controller);

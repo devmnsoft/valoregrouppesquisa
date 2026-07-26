@@ -1,6 +1,6 @@
 # Matriz de Capacidades dos Planos — PostgreSQL
 
-A seed `database/postgresql/010_seed_official_plans.sql` mantém os cinco planos oficiais (`free`, `essential`, `professional`, `corporate`, `enterprise`) em `billing.plans`, com limites em `billing.plan_limits` e capacidades em `billing.plan_capabilities`.
+A seed `backend/database/postgresql/010_seed_official_plans.sql` mantém os cinco planos oficiais (`free`, `essential`, `professional`, `corporate`, `enterprise`) em `billing.plans`, com limites em `billing.plan_limits` e capacidades em `billing.plan_capabilities`.
 
 | Plano | Limites principais | Capacidades principais |
 |---|---|---|

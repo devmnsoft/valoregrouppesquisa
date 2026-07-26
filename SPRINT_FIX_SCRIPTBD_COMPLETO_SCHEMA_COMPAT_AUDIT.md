@@ -30,11 +30,11 @@ Seeds de planos, limites, capacidades, organização, Valora Insight™ e templa
 
 ## 8. Teste em banco limpo
 
-Cenário documentado em `database/postgresql/compat-tests/clean-db.sql`. Resultado local registrado após execução dos comandos obrigatórios.
+Cenário documentado em `backend/database/postgresql/compat-tests/clean-db.sql`. Resultado local registrado após execução dos comandos obrigatórios.
 
 ## 9. Teste em banco antigo
 
-Cenários locais criados em `database/postgresql/compat-tests/` para `plan_limits` chave/valor, ausência de `monthly_price`, ausência de `users`, ausência de `plan_code` e `email_templates` antigo.
+Cenários locais criados em `backend/database/postgresql/compat-tests/` para `plan_limits` chave/valor, ausência de `monthly_price`, ausência de `users`, ausência de `plan_code` e `email_templates` antigo.
 
 ## 10. Resultado da primeira execução
 

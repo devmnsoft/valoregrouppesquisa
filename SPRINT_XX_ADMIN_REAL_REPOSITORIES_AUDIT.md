@@ -7,8 +7,8 @@ A sprint consolidou os endpoints administrativos principais já ligados a reposi
 ## 2. Arquivos alterados
 
 - `scriptbd_completo.sql`
-- `database/postgresql/scriptbd_completo.sql`
-- `database/postgresql/002_core_tables.sql`
+- `backend/database/postgresql/scriptbd_completo.sql`
+- `backend/database/postgresql/002_core_tables.sql`
 - `backend/Valora.Tests/AdminRepositoryMigrationTests.cs`
 - `SPRINT_XX_ADMIN_REAL_REPOSITORIES_DIAGNOSTIC.md`
 - `SPRINT_XX_ADMIN_REAL_REPOSITORIES_AUDIT.md`
@@ -71,7 +71,7 @@ Foram adicionados testes estáticos de compatibilidade de schema e segurança em
 ## 9. Comandos executados
 
 - `rg -n "WEB_ADMIN_REAL_REPOSITORY_REQUIRED|501|NotImplemented|TODO|fake|placeholder|Bootstrap API-first|Executar ação" ...`
-- `git diff -- scriptbd_completo.sql database/postgresql/scriptbd_completo.sql database/postgresql/002_core_tables.sql`
+- `git diff -- scriptbd_completo.sql backend/database/postgresql/scriptbd_completo.sql backend/database/postgresql/002_core_tables.sql`
 - `npm run backend:build`
 - `npm run backend:test`
 - `npm run web:build`

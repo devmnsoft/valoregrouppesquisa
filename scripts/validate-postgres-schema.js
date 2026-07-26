@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const dir = 'database/postgresql';
+const dir = 'backend/database/postgresql';
 const requiredFiles = [
   '001_create_schema_valorapesquisa.sql',
   '002_core_tables.sql',

@@ -1,6 +1,6 @@
 # Guia de compatibilidade do scriptbd_completo.sql
 
-O script completo oficial é `scriptbd_completo.sql`, espelhado em `database/postgresql/scriptbd_completo.sql`.
+O script completo oficial é `scriptbd_completo.sql`, espelhado em `backend/database/postgresql/scriptbd_completo.sql`.
 
 ## Banco antigo
 `CREATE TABLE IF NOT EXISTS` não adiciona colunas em tabelas já existentes. Por isso o bloco `-- COMPATIBILIDADE PARA BANCOS EXISTENTES` deve ficar antes dos triggers, índices e seeds.

@@ -4,7 +4,7 @@ Data: 2026-06-26.
 
 ## Diagnóstico real
 
-O repositório já continha a ponte de arquitetura: `api-client.js`, `api-repository.js`, `gateway-client.js`, `runtime-capabilities.js`, `repository.js`, backend ASP.NET Core em `backend/Valora.sln`, migrations PostgreSQL em `database/postgresql/`, migração em `migration/`, validadores em `scripts/` e automações Windows em `tools/windows/`.
+O repositório já continha a ponte de arquitetura: `api-client.js`, `api-repository.js`, `gateway-client.js`, `runtime-capabilities.js`, `repository.js`, backend ASP.NET Core em `backend/Valora.sln`, migrations PostgreSQL em `backend/database/postgresql/`, migração em `migration/`, validadores em `scripts/` e automações Windows em `tools/windows/`.
 
 ## Respostas obrigatórias
 

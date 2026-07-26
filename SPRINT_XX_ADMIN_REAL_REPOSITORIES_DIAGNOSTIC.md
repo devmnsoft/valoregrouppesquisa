@@ -53,7 +53,7 @@ Também havia incompatibilidade de tipo/shape para tabelas usadas por `PlanRepos
 - `subscriptions.plan_id text`
 - `subscriptions.started_at`, `trial_ends_at`, `cancelled_at`, `billing_status`
 
-## 7. Colunas em `database/postgresql/*.sql` ausentes no `scriptbd_completo.sql`
+## 7. Colunas em `backend/database/postgresql/*.sql` ausentes no `scriptbd_completo.sql`
 
 Foram reconciliadas no script completo:
 

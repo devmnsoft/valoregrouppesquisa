@@ -32,6 +32,9 @@ jobs:
       - name: Block committed dist artifacts
         run: npm run check:no-dist
 
+      - name: Validate repository boundaries
+        run: npm run repository:boundaries
+
       - name: Install Functions dependencies
         run: npm --prefix functions ci
 

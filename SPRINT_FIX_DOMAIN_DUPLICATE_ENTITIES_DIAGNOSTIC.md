@@ -21,7 +21,7 @@ A varredura estática em `backend/Valora.Domain/Entities/**/*.cs` encontrou dupl
 
 ## Plano objetivo da correção
 
-1. Preservar o legado da raiz e não tocar em `backend-v2`.
+1. Preservar o legado da raiz e não tocar em `projeto .NET predecessor removido`.
 2. Remover declarações duplicadas de agregadores sem esconder o problema com `partial`.
 3. Criar arquivos próprios para entidades operacionais e de migração ainda agrupadas.
 4. Mesclar propriedades úteis das versões duplicadas no arquivo oficial por entidade.

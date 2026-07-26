@@ -1,5 +1,5 @@
 const {assert,requireFile,requirePattern,readIf,allFiles,pass}=require('./production-gate-utils');
-const cs=allFiles(['backend'],['.cs']); const sql=allFiles(['database/postgresql'],['.sql']); const body=cs.map(readIf).join('\n');
+const cs=allFiles(['backend'],['.cs']); const sql=allFiles(['backend/database/postgresql'],['.sql']); const body=cs.map(readIf).join('\n');
 ['plans','plan_limits','plan_capabilities','subscriptions','usage_monthly'].forEach(t=>requirePattern(`${t} table`,sql,new RegExp(`valorapesquisa\\.${t}`,'i')));
 requireFile('backend/Valora.Application/Services/Plans/PlanEntitlementService.cs');
 assert(/free/i.test(body)&&/Create.*Organization|RegisterCompany/i.test(body),'company registration does not assign free plan');

@@ -7,9 +7,9 @@ public sealed class OfficialSqlPlansSchemaTests
     private static string Root => Path.Combine("..", "..", "..", "..");
 
     [Theory]
-    [InlineData("scriptbd_completo.sql")]
-    [InlineData("database/postgresql/scriptbd_completo.sql")]
-    [InlineData("database/postgresql/011_seed_official_plans.sql")]
+    [InlineData("banco_completo.sql")]
+    [InlineData("backend/database/postgresql/banco_completo.sql")]
+    [InlineData("backend/database/postgresql/011_seed_official_plans.sql")]
     public void OfficialPlanSeedsDoNotReferenceKnownRemovedColumns(string relativePath)
     {
         var sql = File.ReadAllText(Path.Combine(Root, relativePath));
@@ -24,7 +24,7 @@ public sealed class OfficialSqlPlansSchemaTests
     [Fact]
     public void OfficialPlanSeedUsesCodeBasedIdempotentShape()
     {
-        var sql = File.ReadAllText(Path.Combine(Root, "database/postgresql/011_seed_official_plans.sql"));
+        var sql = File.ReadAllText(Path.Combine(Root, "backend/database/postgresql/011_seed_official_plans.sql"));
         Assert.Contains("INSERT INTO valorapesquisa.plans(code", sql);
         Assert.Contains("ON CONFLICT (code) DO UPDATE", sql);
         Assert.Contains("JOIN (VALUES", sql);

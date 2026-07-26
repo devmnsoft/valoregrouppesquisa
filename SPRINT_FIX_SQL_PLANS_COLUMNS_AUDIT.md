@@ -29,17 +29,17 @@ Além disso, os seeds oficiais de planos não usam mais campos legados de UI/com
   - Seed oficial de planos ajustado para usar apenas colunas reais.
   - `ON CONFLICT (code)` mantido para idempotência.
 
-- `database/postgresql/scriptbd_completo.sql`
-  - Mesmas correções aplicadas ao script completo oficial dentro de `database/postgresql`.
+- `backend/database/postgresql/scriptbd_completo.sql`
+  - Mesmas correções aplicadas ao script completo oficial dentro de `backend/database/postgresql`.
 
-- `database/postgresql/003_plan_tables.sql`
+- `backend/database/postgresql/003_plan_tables.sql`
   - Tabela `valorapesquisa.plans` reduzida ao contrato real usado pelo backend.
 
-- `database/postgresql/011_seed_official_plans.sql`
+- `backend/database/postgresql/011_seed_official_plans.sql`
   - Seed oficial de planos ajustado para colunas reais.
   - Upsert por `code` mantido.
 
-- `database/postgresql/099_seed_e2e_live_fixture.sql`
+- `backend/database/postgresql/099_seed_e2e_live_fixture.sql`
   - Revisado: já usava `code`, preços, ordem, status, limites estruturados e `plan_code` em organizações.
 
 ## 4. Schema real considerado
@@ -86,10 +86,10 @@ npm run backend:official-sql-schema
 - `npm run backend:official-sql-schema`
 - `npm run backend:official-validate`
 - `node --check tools/validate-backend-official-sql-schema.js`
-- `rg -n "INSERT INTO valorapesquisa\.plans|CREATE TABLE IF NOT EXISTS valorapesquisa\.plans|price_label|badge|public_subtitle|public_description|highlight_text|cta_label" scriptbd_completo.sql database/postgresql tools/validate-backend-official-sql-schema.js package.json`
+- `rg -n "INSERT INTO valorapesquisa\.plans|CREATE TABLE IF NOT EXISTS valorapesquisa\.plans|price_label|badge|public_subtitle|public_description|highlight_text|cta_label" scriptbd_completo.sql backend/database/postgresql tools/validate-backend-official-sql-schema.js package.json`
 
 ## 7. Gaps restantes
 
 - Não foi executado um banco PostgreSQL real nesta correção; a validação foi estática pelos validadores oficiais disponíveis no repositório.
 - As ocorrências dos nomes proibidos permanecem apenas dentro da lista de bloqueio do próprio validador, para impedir regressões futuras.
-- Scripts arquivados em `database/postgresql_archive` não foram alterados porque não fazem parte do conjunto oficial solicitado para execução/correção.
+- Scripts arquivados em `backend/database/postgresql_archive` não foram alterados porque não fazem parte do conjunto oficial solicitado para execução/correção.

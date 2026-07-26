@@ -4,7 +4,7 @@ Data: 2026-06-26.
 
 ## Escopo auditado
 
-Arquivos/pastas: `package.json`, `config.js`, `runtime-capabilities.js`, `index.html`, `api-client.js`, `api-repository.js`, `gateway-client.js`, `repository.js`, `firebase-repository.js`, `local-repository.js`, `app.js`, `pdf.js`, `backend/`, `database/postgresql/`, `migration/`, `communication-gateway/`, `scripts/`, `tools/windows/`.
+Arquivos/pastas: `package.json`, `config.js`, `runtime-capabilities.js`, `index.html`, `api-client.js`, `api-repository.js`, `gateway-client.js`, `repository.js`, `firebase-repository.js`, `local-repository.js`, `app.js`, `pdf.js`, `backend/`, `backend/database/postgresql/`, `migration/`, `communication-gateway/`, `scripts/`, `tools/windows/`.
 
 ## Respostas objetivas
 

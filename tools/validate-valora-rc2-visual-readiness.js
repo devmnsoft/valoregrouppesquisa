@@ -20,7 +20,7 @@ const files = {
   cssPublic: 'backend/Valora.Web/wwwroot/css/valora-public.css',
   cssAdmin: 'backend/Valora.Web/wwwroot/css/valora-admin.css',
   sqlRoot: 'scriptbd_completo.sql',
-  sqlDb: 'database/postgresql/scriptbd_completo.sql'
+  sqlDb: 'backend/database/postgresql/scriptbd_completo.sql'
 };
 ok(exists(files.diagnostic), 'Diagnóstico inicial RC2 não existe');
 ok(exists(files.checklist), 'Checklist visual RC2 não existe');
@@ -37,7 +37,7 @@ ok(/auth-session|guards|logoutButton|_Sidebar|_Topbar/.test(read(files.adminLayo
 const sql = `${read(files.sqlRoot)}\n${read(files.sqlDb)}`;
 ok(sql.includes('/img/brand/valora-logo-full.jpeg'), 'SQL não possui path da logo completa');
 ok(sql.includes('/img/brand/valora-symbol.jpeg'), 'SQL não possui path do símbolo');
-const scanTargets = ['backend/Valora.Web/Views', 'backend/Valora.Web/wwwroot/css', 'backend/Valora.Web/wwwroot/js', 'database/postgresql', 'scriptbd_completo.sql'];
+const scanTargets = ['backend/Valora.Web/Views', 'backend/Valora.Web/wwwroot/css', 'backend/Valora.Web/wwwroot/js', 'backend/database/postgresql', 'scriptbd_completo.sql'];
 for (const target of scanTargets) {
   const full = path.join(root, target);
   if (!fs.existsSync(full)) continue;

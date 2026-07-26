@@ -25,8 +25,8 @@ public sealed class OfficialBackendConsolidationTests
         var packageJson = Read("package.json");
         Assert.Contains("backend:official-validate", packageJson);
         Assert.Contains("tools/validate-backend-official-migration.js", packageJson);
-        Assert.DoesNotContain("backend:build\": \"dotnet build backend-v2", packageJson);
-        Assert.DoesNotContain("backend:test\": \"dotnet test backend-v2", packageJson);
+        Assert.DoesNotContain("backend:build\": \"dotnet build projeto .NET predecessor removido", packageJson);
+        Assert.DoesNotContain("backend:test\": \"dotnet test projeto .NET predecessor removido", packageJson);
     }
 
     [Fact]

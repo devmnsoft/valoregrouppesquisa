@@ -1,0 +1,60 @@
+name: Backend ASP.NET Core validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Restore, build, test and validate PostgreSQL
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: valora
+          POSTGRES_PASSWORD: valora
+          POSTGRES_DB: valorapesquisa_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U valora -d valorapesquisa_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: backend/global.json
+
+      - name: Restore
+        run: dotnet restore Valora.sln
+
+      - name: Build
+        run: dotnet build Valora.sln --configuration Release --no-restore
+
+      - name: Test
+        env:
+          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
+        run: dotnet test Valora.sln --configuration Release --no-build
+
+      - name: Format check
+        run: dotnet format Valora.sln --verify-no-changes
+
+      - name: Apply canonical database twice
+        env:
+          PGPASSWORD: valora
+        run: |
+          psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/banco_completo.sql
+          psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/banco_completo.sql

@@ -4,8 +4,8 @@ const path = require('path');
 
 const files = [
   'scriptbd_completo.sql',
-  'database/postgresql/scriptbd_completo.sql',
-  ...fs.readdirSync('database/postgresql').filter(f => f.endsWith('.sql')).map(f => path.join('database/postgresql', f)),
+  'backend/database/postgresql/scriptbd_completo.sql',
+  ...fs.readdirSync('backend/database/postgresql').filter(f => f.endsWith('.sql')).map(f => path.join('backend/database/postgresql', f)),
 ];
 let failed = false;
 const fail = (m) => { console.error(`❌ ${m}`); failed = true; };

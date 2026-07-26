@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const roots = ['database/postgresql', 'backend', 'migration', 'scripts'];
+const roots = ['backend/database/postgresql', 'backend', 'migration', 'scripts'];
 const forbiddenSchemas = ['valora', 'billing', 'communication', 'audit', 'migration'];
 const forbiddenSchemaRef = new RegExp(`\\b(${forbiddenSchemas.filter(name => name !== 'audit' && name !== 'migration').join('|')})\\.`);
 const forbiddenCreate = new RegExp(`CREATE\\s+SCHEMA\\s+IF\\s+NOT\\s+EXISTS\\s+(${forbiddenSchemas.join('|')})\\b`, 'i');
@@ -28,8 +28,8 @@ for (const file of files) {
   }
 }
 
-const rootSql = listFiles('database/postgresql')
-  .filter(file => path.dirname(file) === 'database/postgresql' && file.endsWith('.sql'));
+const rootSql = listFiles('backend/database/postgresql')
+  .filter(file => path.dirname(file) === 'backend/database/postgresql' && file.endsWith('.sql'));
 if (!rootSql.some(file => fs.readFileSync(file, 'utf8').includes(allowed))) {
   errors.push('nenhum SQL canônico usa valorapesquisa.');
 }

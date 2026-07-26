@@ -1,1 +1,0 @@
-using Microsoft.AspNetCore.Mvc; namespace ValoraPesquisa.Web.Controllers; public class HomeController:Controller{ public IActionResult Index()=>View(); public IActionResult Dashboard()=>View("~/Views/Admin/Dashboard.cshtml"); }

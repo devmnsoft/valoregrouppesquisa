@@ -2,12 +2,10 @@ namespace Valora.Tests;
 
 public sealed class PostgreSqlCanonicalScriptTests
 {
-    private static readonly string Root = LocateRepositoryRoot();
-
     [Fact]
     public void CanonicalScriptIsIdempotentAndNonDestructiveByInspection()
     {
-        var sql = File.ReadAllText(Path.Combine(Root, "database", "postgresql", "banco_completo.sql"));
+        var sql = File.ReadAllText(Support.RepositoryPaths.CanonicalDatabaseScript);
         Assert.Contains("CREATE SCHEMA IF NOT EXISTS valorapesquisa", sql);
         Assert.Contains("CREATE TABLE IF NOT EXISTS organizations", sql);
         Assert.Contains("CREATE UNIQUE INDEX IF NOT EXISTS ux_legal_entities_org_cnpj_active", sql);
@@ -21,7 +19,7 @@ public sealed class PostgreSqlCanonicalScriptTests
     [Fact]
     public void CanonicalScriptSeedsOfficialPlansAndValoraSurvey()
     {
-        var sql = File.ReadAllText(Path.Combine(Root, "database", "postgresql", "banco_completo.sql"));
+        var sql = File.ReadAllText(Support.RepositoryPaths.CanonicalDatabaseScript);
         foreach (var plan in new[] { "free", "professional", "corporate", "enterprise" })
         {
             Assert.Contains($"'{plan}'", sql);
@@ -33,16 +31,8 @@ public sealed class PostgreSqlCanonicalScriptTests
         Assert.Contains("Liderança", sql);
         Assert.Contains("Pessoas e Talentos", sql);
         Assert.Contains("Resultados e Crescimento", sql);
-        Assert.Contains("generate_series(1,5)", sql);
+        Assert.Contains("growth-q5", sql);
+        Assert.Equal(25, System.Text.RegularExpressions.Regex.Matches(sql, @"'(?:(?:culture|governance|leadership|people|growth)-q[1-5])'").Count);
     }
 
-    private static string LocateRepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "package.json")))
-        {
-            directory = directory.Parent;
-        }
-        return directory?.FullName ?? throw new InvalidOperationException("Repository root not found.");
-    }
 }

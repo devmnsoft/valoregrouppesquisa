@@ -44,17 +44,38 @@ jobs:
       - name: Build
         run: dotnet build Valora.sln --configuration Release --no-restore
 
-      - name: Test
-        env:
-          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
-        run: dotnet test Valora.sln --configuration Release --no-build
+      - name: Unit tests
+        run: dotnet test Valora.sln --configuration Release --no-build --filter "FullyQualifiedName!~Integration&FullyQualifiedName!~Architecture" --logger "trx;LogFileName=unit-tests.trx"
 
-      - name: Format check
-        run: dotnet format Valora.sln --verify-no-changes
+      - name: Architecture tests
+        run: dotnet test Valora.sln --configuration Release --no-build --filter "FullyQualifiedName~Architecture" --logger "trx;LogFileName=architecture-tests.trx"
 
       - name: Apply canonical database twice
         env:
           PGPASSWORD: valora
         run: |
-          psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/banco_completo.sql
-          psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/banco_completo.sql
+          psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/banco_completo.sql | tee database-first.log
+          psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/banco_completo.sql | tee database-second.log
+          for migration in database/postgresql/migrations/*.sql; do
+            psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f "$migration" | tee -a migrations.log
+          done
+
+      - name: Integration tests
+        env:
+          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
+          VALORA_TEST_POSTGRES_CONNECTION: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
+        run: dotnet test Valora.sln --configuration Release --no-build --filter "FullyQualifiedName~Integration" --logger "trx;LogFileName=integration-tests.trx"
+
+      - name: Format check
+        run: dotnet format Valora.sln --verify-no-changes
+
+      - name: Publish validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-validation-evidence
+          path: |
+            backend/**/TestResults/*.trx
+            backend/database-*.log
+            backend/migrations.log
+          if-no-files-found: warn

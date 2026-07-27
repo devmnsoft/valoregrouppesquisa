@@ -4,6 +4,19 @@ on:
   pull_request:
     branches:
       - main
+    paths:
+      - index.html
+      - app.js
+      - style.css
+      - config.js
+      - functions/**
+      - shared/**
+      - firebase.json
+      - firestore.rules
+      - scripts/**
+      - tests/**
+      - package.json
+      - package-lock.json
 
 permissions:
   contents: read

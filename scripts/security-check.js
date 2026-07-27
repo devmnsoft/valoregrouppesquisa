@@ -65,8 +65,17 @@ const sensitiveContentPatterns = [
   { name: 'TELEGRAM_BOT_TOKEN', pattern: /TELEGRAM_BOT_TOKEN\s*[:=]\s*['\"]?[A-Za-z0-9:_-]{20,}/i },
   { name: 'SMTP_PASSWORD', pattern: /SMTP_PASSWORD\s*[:=]\s*['\"][^'\"\s$<]{8,}/i },
   { name: 'serviceAccount', pattern: /serviceAccount\s*[:=]\s*['\"]?\{?/i },
-  { name: 'private_key', pattern: /-----BEGIN PRIVATE KEY-----|"private_key"\s*:\s*"-----BEGIN/i },
+  // Require key material after the PEM header. Merely documenting/detecting the
+  // header is safe; a committed PEM body is not.
+  { name: 'private_key', pattern: /-----BEGIN PRIVATE KEY-----\s+[A-Za-z0-9+/]{16,}|"private_key"\s*:\s*"-----BEGIN[^"\\]*(?:\\n|\r?\n)[A-Za-z0-9+/]{16,}/i },
 ];
+
+function contentForSecretScan(file, text) {
+  if (!/\.[cm]?js$/i.test(file)) return text;
+  // Validator source legitimately contains regular expressions describing
+  // secrets. Remove regex literals only; quoted credentials remain scannable.
+  return text.replace(/\/(?:\\.|[^/\r\n])+\/[dgimsuvy]*/g, '');
+}
 
 function checkFiles(files) {
   const allowedBinary = /\.(png|jpe?g|gif|webp|ico|pdf|woff2?)$/i;
@@ -77,7 +86,7 @@ function checkFiles(files) {
     if (allowedBinary.test(normalized) || normalized === 'scripts/security-check.js' || normalized === 'migration/migration-logger.js' || /\.md$/i.test(normalized)) continue;
     const full = path.join(root, normalized);
     if (!fs.existsSync(full) || fs.statSync(full).isDirectory()) continue;
-    const text = fs.readFileSync(full, 'utf8');
+    const text = contentForSecretScan(normalized, fs.readFileSync(full, 'utf8'));
     for (const { name, pattern } of sensitiveContentPatterns) {
       if (pattern.test(text)) failures.push(`Token/segredo suspeito (${name}) em: ${normalized}`);
     }

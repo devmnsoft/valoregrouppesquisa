@@ -2,6 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const { classifySecrets } = require('./security-secret-classifier');
 
 const root = path.resolve(__dirname, '..');
 const failures = [];
@@ -60,23 +61,6 @@ const sensitivePathPatterns = [
   /(^|\/)data\/outbox\/(?!\.gitkeep$)/i,
   /(^|\/)dist\//i,
 ];
-const sensitiveContentPatterns = [
-  { name: 'BotToken', pattern: /\b\d{8,10}:[A-Za-z0-9_-]{30,}\b/ },
-  { name: 'TELEGRAM_BOT_TOKEN', pattern: /TELEGRAM_BOT_TOKEN\s*[:=]\s*['\"]?[A-Za-z0-9:_-]{20,}/i },
-  { name: 'SMTP_PASSWORD', pattern: /SMTP_PASSWORD\s*[:=]\s*['\"][^'\"\s$<]{8,}/i },
-  { name: 'serviceAccount', pattern: /serviceAccount\s*[:=]\s*['\"]?\{?/i },
-  // Require key material after the PEM header. Merely documenting/detecting the
-  // header is safe; a committed PEM body is not.
-  { name: 'private_key', pattern: /-----BEGIN PRIVATE KEY-----\s+[A-Za-z0-9+/]{16,}|"private_key"\s*:\s*"-----BEGIN[^"\\]*(?:\\n|\r?\n)[A-Za-z0-9+/]{16,}/i },
-];
-
-function contentForSecretScan(file, text) {
-  if (!/\.[cm]?js$/i.test(file)) return text;
-  // Validator source legitimately contains regular expressions describing
-  // secrets. Remove regex literals only; quoted credentials remain scannable.
-  return text.replace(/\/(?:\\.|[^/\r\n])+\/[dgimsuvy]*/g, '');
-}
-
 function checkFiles(files) {
   const allowedBinary = /\.(png|jpe?g|gif|webp|ico|pdf|woff2?)$/i;
 
@@ -86,9 +70,9 @@ function checkFiles(files) {
     if (allowedBinary.test(normalized) || normalized === 'scripts/security-check.js' || normalized === 'migration/migration-logger.js' || /\.md$/i.test(normalized)) continue;
     const full = path.join(root, normalized);
     if (!fs.existsSync(full) || fs.statSync(full).isDirectory()) continue;
-    const text = contentForSecretScan(normalized, fs.readFileSync(full, 'utf8'));
-    for (const { name, pattern } of sensitiveContentPatterns) {
-      if (pattern.test(text)) failures.push(`Token/segredo suspeito (${name}) em: ${normalized}`);
+    const text = fs.readFileSync(full, 'utf8');
+    for (const name of classifySecrets(normalized, text)) {
+      failures.push(`Token/segredo suspeito (${name}) em: ${normalized}`);
     }
   }
 }

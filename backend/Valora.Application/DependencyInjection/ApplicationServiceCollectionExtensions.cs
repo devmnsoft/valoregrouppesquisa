@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Valora.Application.Certificates;
 using Valora.Application.Communication;
 using Valora.Application.FreeDiagnostics;
-using Valora.Application.Contracts;
 using Valora.Application.Results;
 using Valora.Application.Services;
 using Valora.Application.Contracts;
@@ -22,6 +21,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ResultEmailService>();
         services.AddScoped<EmailQueueProcessor>();
         services.AddScoped<AuthService>();
+        services.AddSingleton<IPasswordPolicy, PasswordPolicy>();
         services.AddScoped<AuditService>();
         services.AddScoped<FreeDiagnosticsAppService>();
         services.AddScoped<PlanEntitlementService>();

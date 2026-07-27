@@ -15,12 +15,18 @@ public sealed class AuthService(
     ICommunicationRepository communications,
     IJwtTokenService jwt,
     IPasswordHasher hasher,
+    IPasswordPolicy passwordPolicy,
     AuditService audit,
     ILogger<AuthService> logger)
 {
     public async Task<AuthResponse> RegisterCompanyAsync(RegisterCompanyRequest request)
     {
         ValidateRegisterRequest(request);
+        var passwordValidation = passwordPolicy.Validate(request.Password, request.Email, request.CompanyName);
+        if (!passwordValidation.IsValid)
+        {
+            throw new ArgumentException(string.Join(" ", passwordValidation.Errors));
+        }
         logger.LogInformation("Company registration started. Email={Email}", LogSanitizer.MaskEmail(request.Email));
 
         var existing = await users.GetByEmailAsync(request.Email);
@@ -128,9 +134,15 @@ public sealed class AuthService(
 
     public async Task ResetPasswordAsync(ResetPasswordRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 6)
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Token))
         {
             throw new ArgumentException("Solicitação de redefinição inválida.");
+        }
+
+        var passwordValidation = passwordPolicy.Validate(request.NewPassword, request.Email);
+        if (!passwordValidation.IsValid)
+        {
+            throw new ArgumentException(string.Join(" ", passwordValidation.Errors));
         }
 
         var user = await users.GetByEmailAsync(request.Email)
@@ -152,7 +164,6 @@ public sealed class AuthService(
     {
         if (string.IsNullOrWhiteSpace(request.Email)
             || string.IsNullOrWhiteSpace(request.Password)
-            || request.Password.Length < 6
             || string.IsNullOrWhiteSpace(request.CompanyName))
         {
             throw new ArgumentException("Dados inválidos.");

@@ -1,160 +1,98 @@
 using Dapper;
 using Microsoft.Extensions.Logging;
 using Valora.Application.Contracts;
+using Valora.Application.ReadModels;
 using Valora.Application.Security;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class UserRepository(IDbConnectionFactory f, ILogger<UserRepository> logger) : IUserRepository
+public sealed class UserRepository(IDbConnectionFactory factory, ILogger<UserRepository> logger) : IUserRepository
 {
-    public async Task<dynamic?> GetByEmailAsync(string email)
+    private const string UserProjection = """
+        u.id AS Id, u.organization_id AS OrganizationId, u.name AS Name, u.email AS Email,
+        u.status AS Status, u.phone AS Phone, u.password_reset_required AS PasswordResetRequired,
+        u.last_login_at AS LastLoginAt, u.created_at AS CreatedAt, u.updated_at AS UpdatedAt,
+        COALESCE((SELECT array_agg(r.code ORDER BY r.code) FROM valorapesquisa.user_roles ur
+          JOIN valorapesquisa.roles r ON r.id=ur.role_id WHERE ur.user_id=u.id), ARRAY[]::text[]) AS RoleCodes
+        """;
+
+    public async Task<UserAuthenticationRecord?> GetByEmailAsync(string email)
     {
         try
         {
-            using var c = f.Create();
-            return await c.QuerySingleOrDefaultAsync(
-                "SELECT * FROM valorapesquisa.users WHERE lower(email)=lower(@email) AND is_deleted=false",
-                new { email });
+            using var connection = factory.Create();
+            const string sql = """
+                SELECT u.id AS Id, u.organization_id AS OrganizationId, u.name AS Name, u.email AS Email,
+                       u.password_hash AS PasswordHash, u.status AS Status, u.phone AS Phone,
+                       COALESCE((SELECT string_agg(r.code, ',' ORDER BY r.code)
+                         FROM valorapesquisa.user_roles ur JOIN valorapesquisa.roles r ON r.id=ur.role_id
+                         WHERE ur.user_id=u.id), '') AS RoleCodesCsv
+                FROM valorapesquisa.users u
+                WHERE lower(u.email)=lower(@email) AND u.deleted_at IS NULL
+                """;
+            return await connection.QuerySingleOrDefaultAsync<UserAuthenticationRecord>(sql, new { email });
         }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Erro ao buscar usuário por e-mail. Email={Email}", LogSanitizer.MaskEmail(email));
-            throw;
-        }
+        catch (Exception ex) { logger.LogError(ex, "Erro ao buscar usuário por e-mail. Email={Email}", LogSanitizer.MaskEmail(email)); throw; }
     }
 
-    public async Task<dynamic?> GetAsync(Guid id)
+    public async Task<UserRecord?> GetAsync(Guid id)
     {
-        try
-        {
-            using var c = f.Create();
-            return await c.QuerySingleOrDefaultAsync(
-                "SELECT id,organization_id,name,email,role,status FROM valorapesquisa.users WHERE id=@id",
-                new { id });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Erro ao buscar usuário. UserId={UserId}", id);
-            throw;
-        }
+        using var connection = factory.Create();
+        return await connection.QuerySingleOrDefaultAsync<UserRecord>($"SELECT {UserProjection} FROM valorapesquisa.users u WHERE u.id=@id AND u.deleted_at IS NULL", new { id });
+    }
+
+    public async Task<IReadOnlyList<UserRecord>> ListByOrganizationAsync(Guid organizationId, bool includeGlobal = false)
+    {
+        using var connection = factory.Create();
+        var rows = await connection.QueryAsync<UserRecord>($"SELECT {UserProjection} FROM valorapesquisa.users u WHERE u.deleted_at IS NULL AND (u.organization_id=@organizationId OR @includeGlobal) ORDER BY u.created_at DESC", new { organizationId, includeGlobal });
+        return rows.AsList();
     }
 
     public async Task<Guid> CreateAsync(Guid organizationId, string name, string email, string passwordHash, string role)
     {
+        using var connection = factory.Create();
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
         try
         {
-            using var c = f.Create();
-            const string sql = "INSERT INTO valorapesquisa.users(organization_id,name,email,password_hash,role) VALUES (@organizationId,@name,@email,@passwordHash,@role) RETURNING id";
-            return await c.ExecuteScalarAsync<Guid>(sql, new { organizationId, name, email, passwordHash, role });
+            var userId = await connection.ExecuteScalarAsync<Guid>("INSERT INTO valorapesquisa.users(organization_id,name,email,password_hash) VALUES (@organizationId,@name,@email,@passwordHash) RETURNING id", new { organizationId, name, email, passwordHash }, transaction);
+            var roleId = await connection.ExecuteScalarAsync<Guid?>("SELECT id FROM valorapesquisa.roles WHERE code=@role AND deleted_at IS NULL AND (organization_id IS NULL OR organization_id=@organizationId) ORDER BY organization_id NULLS FIRST LIMIT 1", new { role, organizationId }, transaction);
+            if (roleId is null) throw new InvalidOperationException("Role de cadastro não configurada.");
+            await connection.ExecuteAsync("INSERT INTO valorapesquisa.user_roles(user_id,role_id) VALUES (@userId,@roleId) ON CONFLICT DO NOTHING", new { userId, roleId }, transaction);
+            transaction.Commit();
+            return userId;
         }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Erro ao criar usuário. OrganizationId={OrganizationId} Email={Email} Role={Role}", organizationId, LogSanitizer.MaskEmail(email), role);
-            throw;
-        }
+        catch { transaction.Rollback(); throw; }
     }
 
-    public async Task TouchLoginAsync(Guid id)
+    public async Task TouchLoginAsync(Guid id) { using var c=factory.Create(); await c.ExecuteAsync("UPDATE valorapesquisa.users SET last_login_at=now(), updated_at=now() WHERE id=@id AND deleted_at IS NULL",new{id}); }
+
+    public async Task CreatePasswordResetTokenAsync(Guid userId,string tokenHash,DateTimeOffset expiresAt,string? requestIpHash,string? userAgent)
     {
-        try
-        {
-            using var c = f.Create();
-            await c.ExecuteAsync("UPDATE valorapesquisa.users SET last_login_at=now() WHERE id=@id", new { id });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Erro ao atualizar último login. UserId={UserId}", id);
-            throw;
-        }
+        using var c=factory.Create();
+        const string sql="""
+          UPDATE valorapesquisa.password_reset_tokens SET used_at=now(),updated_at=now() WHERE user_id=@userId AND used_at IS NULL;
+          INSERT INTO valorapesquisa.password_reset_tokens(organization_id,user_id,token_hash,expires_at,request_ip_hash,user_agent)
+          SELECT organization_id,id,@tokenHash,@expiresAt,@requestIpHash,@userAgent FROM valorapesquisa.users WHERE id=@userId AND deleted_at IS NULL
+          """;
+        await c.ExecuteAsync(sql,new{userId,tokenHash,expiresAt,requestIpHash,userAgent});
     }
 
-    public async Task CreatePasswordResetTokenAsync(Guid userId, string tokenHash, DateTimeOffset expiresAt, string? requestIpHash, string? userAgent)
+    public async Task<PasswordResetTokenRecord?> GetValidPasswordResetTokenAsync(string tokenHash)
     {
-        try
-        {
-            using var c = f.Create();
-            const string sql = "UPDATE valorapesquisa.password_reset_tokens SET used_at=now(), updated_at=now() WHERE user_id=@userId AND used_at IS NULL AND is_deleted=false; INSERT INTO valorapesquisa.password_reset_tokens(user_id,token_hash,expires_at,request_ip_hash,user_agent) VALUES (@userId,@tokenHash,@expiresAt,@requestIpHash,@userAgent)";
-            await c.ExecuteAsync(sql, new { userId, tokenHash, expiresAt, requestIpHash, userAgent });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Erro ao criar credencial temporária de acesso. UserId={UserId}", userId);
-            throw;
-        }
+        using var c=factory.Create();
+        return await c.QuerySingleOrDefaultAsync<PasswordResetTokenRecord>("SELECT id AS Id,user_id AS UserId,expires_at AS ExpiresAt,used_at AS UsedAt FROM valorapesquisa.password_reset_tokens WHERE token_hash=@tokenHash AND used_at IS NULL AND expires_at>now()",new{tokenHash});
     }
 
-    public async Task<dynamic?> GetValidPasswordResetTokenAsync(string tokenHash)
+    public async Task MarkPasswordResetTokenUsedAsync(Guid tokenId) { using var c=factory.Create(); await c.ExecuteAsync("UPDATE valorapesquisa.password_reset_tokens SET used_at=now(),updated_at=now() WHERE id=@tokenId AND used_at IS NULL",new{tokenId}); }
+    public async Task UpdatePasswordHashAsync(Guid userId,string passwordHash) { using var c=factory.Create(); await c.ExecuteAsync("UPDATE valorapesquisa.users SET password_hash=@passwordHash,updated_at=now() WHERE id=@userId AND deleted_at IS NULL",new{userId,passwordHash}); }
+
+    public async Task UpdateAsync(Guid organizationId,Guid id,string? name,string? email,string? role,string? phone)
     {
-        try
-        {
-            using var c = f.Create();
-            const string sql = "SELECT id,user_id,expires_at,used_at FROM valorapesquisa.password_reset_tokens WHERE token_hash=@tokenHash AND used_at IS NULL AND expires_at>now() AND is_deleted=false";
-            return await c.QuerySingleOrDefaultAsync(sql, new { tokenHash });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Erro ao validar credencial temporária de acesso.");
-            throw;
-        }
+        if (role is not null) throw new InvalidOperationException("Roles devem ser alteradas pelo fluxo RBAC dedicado.");
+        using var c=factory.Create();
+        await c.ExecuteAsync("UPDATE valorapesquisa.users SET name=COALESCE(@name,name),email=COALESCE(@email,email),phone=COALESCE(@phone,phone),updated_at=now() WHERE id=@id AND organization_id=@organizationId AND deleted_at IS NULL",new{organizationId,id,name,email,phone});
     }
 
-    public async Task MarkPasswordResetTokenUsedAsync(Guid tokenId)
-    {
-        try
-        {
-            using var c = f.Create();
-            await c.ExecuteAsync(
-                "UPDATE valorapesquisa.password_reset_tokens SET used_at=now(), updated_at=now() WHERE id=@tokenId",
-                new { tokenId });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Erro ao marcar token de recuperação como usado. TokenId={TokenId}", tokenId);
-            throw;
-        }
-    }
-
-    public async Task UpdatePasswordHashAsync(Guid userId, string passwordHash)
-    {
-        try
-        {
-            using var c = f.Create();
-            const string sql = "UPDATE valorapesquisa.users SET password_hash=@passwordHash, updated_at=now() WHERE id=@userId";
-            await c.ExecuteAsync(sql, new { userId, passwordHash });
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Erro ao atualizar credencial de acesso. UserId={UserId}", userId);
-            throw;
-        }
-    }
-
-
-    public async Task<IReadOnlyList<dynamic>> ListByOrganizationAsync(Guid organizationId, bool includeGlobal = false)
-    {
-        try
-        {
-            using var c = f.Create();
-            var sql = "SELECT u.id,u.organization_id,u.name,u.email,COALESCE(u.role,r.code) AS role,u.status,u.phone,u.last_login_at,u.created_at FROM valorapesquisa.users u LEFT JOIN valorapesquisa.roles r ON r.id=u.role_id WHERE u.is_deleted=false AND (u.organization_id=@organizationId OR @includeGlobal=true) ORDER BY u.created_at DESC";
-            return (await c.QueryAsync(sql, new { organizationId, includeGlobal })).ToList();
-        }
-        catch (Exception ex) { logger.LogError(ex, "Erro ao listar usuários. OrganizationId={OrganizationId}", organizationId); throw; }
-    }
-
-    public async Task UpdateAsync(Guid organizationId, Guid id, string? name, string? email, string? role, string? phone)
-    {
-        try
-        {
-            using var c = f.Create();
-            await c.ExecuteAsync("UPDATE valorapesquisa.users SET name=COALESCE(@name,name), email=COALESCE(@email,email), role=COALESCE(@role,role), phone=COALESCE(@phone,phone), updated_at=now() WHERE id=@id AND organization_id=@organizationId AND is_deleted=false", new { organizationId, id, name, email, role, phone });
-        }
-        catch (Exception ex) { logger.LogError(ex, "Erro ao atualizar usuário. UserId={UserId} OrganizationId={OrganizationId} Email={Email}", id, organizationId, LogSanitizer.MaskEmail(email)); throw; }
-    }
-
-    public async Task UpdateStatusAsync(Guid organizationId, Guid id, string status)
-    {
-        try { using var c = f.Create(); await c.ExecuteAsync("UPDATE valorapesquisa.users SET status=@status, updated_at=now() WHERE id=@id AND organization_id=@organizationId AND is_deleted=false", new { organizationId, id, status }); }
-        catch (Exception ex) { logger.LogError(ex, "Erro ao atualizar status de usuário. UserId={UserId} OrganizationId={OrganizationId}", id, organizationId); throw; }
-    }
-
+    public async Task UpdateStatusAsync(Guid organizationId,Guid id,string status) { using var c=factory.Create(); await c.ExecuteAsync("UPDATE valorapesquisa.users SET status=@status,updated_at=now() WHERE id=@id AND organization_id=@organizationId AND deleted_at IS NULL",new{organizationId,id,status}); }
 }

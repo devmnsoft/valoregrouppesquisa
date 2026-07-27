@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Valora.Application.Contracts;
 using Valora.Application.Security;
 using Valora.Application.DTOs;
+using Valora.Domain.ValueObjects;
 
 namespace Valora.Application.Services;
 
@@ -22,23 +23,23 @@ public sealed class AuthService(
     public async Task<AuthResponse> RegisterCompanyAsync(RegisterCompanyRequest request)
     {
         ValidateRegisterRequest(request);
-        var passwordValidation = passwordPolicy.Validate(request.Password, request.Email, request.CompanyName);
+        var passwordValidation = passwordPolicy.Validate(request.Password, request.AdministratorEmail, request.CompanyName);
         if (!passwordValidation.IsValid)
         {
             throw new ArgumentException(string.Join(" ", passwordValidation.Errors));
         }
-        logger.LogInformation("Company registration started. Email={Email}", LogSanitizer.MaskEmail(request.Email));
+        logger.LogInformation("Company registration started. Email={Email}", LogSanitizer.MaskEmail(request.AdministratorEmail));
 
-        var existing = await users.GetByEmailAsync(request.Email);
+        var existing = await users.GetByEmailAsync(request.AdministratorEmail);
         if (existing is not null)
         {
-            logger.LogWarning("Company registration conflict. Email={Email}", LogSanitizer.MaskEmail(request.Email));
+            logger.LogWarning("Company registration conflict. Email={Email}", LogSanitizer.MaskEmail(request.AdministratorEmail));
             throw new InvalidOperationException("E-mail já cadastrado.");
         }
 
         var organizationId = await organizations.CreateAsync(
             request.CompanyName,
-            request.Email,
+            request.AdministratorEmail,
             BuildSlug(request.CompanyName),
             "free");
 
@@ -46,8 +47,8 @@ public sealed class AuthService(
 
         var userId = await users.CreateAsync(
             organizationId,
-            request.Name,
-            request.Email,
+            request.AdministratorName,
+            request.AdministratorEmail,
             hasher.Hash(request.Password),
             "empresa_admin");
 
@@ -59,11 +60,11 @@ public sealed class AuthService(
             organizationId.ToString(),
             "Empresa cadastrada via API."));
 
-        logger.LogInformation("Company registration succeeded. OrganizationId={OrganizationId} UserId={UserId} Email={Email}", organizationId, userId, LogSanitizer.MaskEmail(request.Email));
+        logger.LogInformation("Company registration succeeded. OrganizationId={OrganizationId} UserId={UserId} Email={Email}", organizationId, userId, LogSanitizer.MaskEmail(request.AdministratorEmail));
 
         return new AuthResponse(
-            jwt.CreateToken(userId, organizationId, request.Email, "empresa_admin"),
-            new { id = userId, name = request.Name, email = request.Email, role = "empresa_admin" },
+            jwt.CreateToken(userId, organizationId, request.AdministratorEmail, "empresa_admin"),
+            new { id = userId, name = request.AdministratorName, email = request.AdministratorEmail, role = "empresa_admin" },
             new { id = organizationId, name = request.CompanyName },
             await plans.GetByIdAsync("free"));
     }
@@ -80,33 +81,29 @@ public sealed class AuthService(
         var user = await users.GetByEmailAsync(request.Email)
             ?? throw new UnauthorizedAccessException("Credenciais inválidas.");
 
-        if (!hasher.Verify(request.Password, (string)user.password_hash))
+        if (!hasher.Verify(request.Password, user.PasswordHash))
         {
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
-        await users.TouchLoginAsync((Guid)user.id);
-        logger.LogInformation("Login succeeded. UserId={UserId} Email={Email}", (Guid)user.id, LogSanitizer.MaskEmail((string)user.email));
+        await users.TouchLoginAsync(user.Id);
+        logger.LogInformation("Login succeeded. UserId={UserId} Email={Email}", user.Id, LogSanitizer.MaskEmail(user.Email));
 
         await audit.LogAsync(new AuditEntry(
-            (Guid?)user.organization_id,
-            (Guid)user.id,
+            user.OrganizationId,
+            user.Id,
             "auth.login",
             "user",
-            user.id.ToString(),
+            user.Id.ToString(),
             "Login realizado."));
 
-        var organization = (Guid?)user.organization_id is Guid organizationId
-            ? await organizations.GetAsync(organizationId)
-            : null;
+        var organization = await organizations.GetAsync(user.OrganizationId);
 
-        var plan = (Guid?)user.organization_id is Guid planOrganizationId
-            ? await plans.GetByIdAsync(await plans.GetCurrentPlanIdAsync(planOrganizationId) ?? "free")
-            : null;
+        var plan = await plans.GetByIdAsync(await plans.GetCurrentPlanIdAsync(user.OrganizationId) ?? "free");
 
         return new AuthResponse(
-            jwt.CreateToken((Guid)user.id, (Guid?)user.organization_id, (string)user.email, (string)user.role),
-            new { id = user.id, name = user.name, email = user.email, role = user.role },
+            jwt.CreateToken(user.Id, user.OrganizationId, user.Email, user.RoleCodes.FirstOrDefault() ?? "empresa_admin"),
+            new { id = user.Id, name = user.Name, email = user.Email, role = user.RoleCodes.FirstOrDefault() },
             organization,
             plan);
     }
@@ -124,9 +121,9 @@ public sealed class AuthService(
                 .Replace("+", "-").Replace("/", "_").TrimEnd('=');
             var tokenHash = HashToken(rawToken);
             var expiresAt = DateTimeOffset.UtcNow.AddHours(1);
-            await users.CreatePasswordResetTokenAsync((Guid)user.id, tokenHash, expiresAt, HashNullable(ipAddress), userAgent);
-            await communications.AddEmailJobAsync((Guid?)user.organization_id, null, (string)user.email, "Recuperação de senha - Valora Insight", "password-reset", "pending", JsonSerializer.Serialize(new { userId = user.id, expiresAt, tokenPreview = rawToken[..6] + "...", delivery = "password-reset-link-generated-server-side" }));
-            await audit.LogAsync(new AuditEntry((Guid?)user.organization_id, (Guid)user.id, "auth.forgot_password_requested", "user", user.id.ToString(), "Recuperação de senha solicitada."));
+            await users.CreatePasswordResetTokenAsync(user.Id, tokenHash, expiresAt, HashNullable(ipAddress), userAgent);
+            await communications.AddEmailJobAsync(user.OrganizationId, null, user.Email, "Recuperação de senha - Valora Insight", "password-reset", "pending", JsonSerializer.Serialize(new { userId = user.Id, expiresAt, delivery = "password-reset-link-required" }));
+            await audit.LogAsync(new AuditEntry(user.OrganizationId, user.Id, "auth.forgot_password_requested", "user", user.Id.ToString(), "Recuperação de senha solicitada."));
         }
 
         logger.LogInformation("Password reset request accepted. Email={Email}", LogSanitizer.MaskEmail(email));
@@ -149,24 +146,32 @@ public sealed class AuthService(
             ?? throw new UnauthorizedAccessException("Token inválido ou expirado.");
         var token = await users.GetValidPasswordResetTokenAsync(HashToken(request.Token))
             ?? throw new UnauthorizedAccessException("Token inválido ou expirado.");
-        if ((Guid)token.user_id != (Guid)user.id)
+        if (token.UserId != user.Id)
         {
             throw new UnauthorizedAccessException("Token inválido ou expirado.");
         }
 
-        await users.UpdatePasswordHashAsync((Guid)user.id, hasher.Hash(request.NewPassword));
-        await users.MarkPasswordResetTokenUsedAsync((Guid)token.id);
-        await audit.LogAsync(new AuditEntry((Guid?)user.organization_id, (Guid)user.id, "auth.password_reset_completed", "user", user.id.ToString(), "Senha redefinida com token válido."));
-        logger.LogInformation("Password reset completed. UserId={UserId} Email={Email}", (Guid)user.id, LogSanitizer.MaskEmail((string)user.email));
+        await users.UpdatePasswordHashAsync(user.Id, hasher.Hash(request.NewPassword));
+        await users.MarkPasswordResetTokenUsedAsync(token.Id);
+        await audit.LogAsync(new AuditEntry(user.OrganizationId, user.Id, "auth.password_reset_completed", "user", user.Id.ToString(), "Senha redefinida com token válido."));
+        logger.LogInformation("Password reset completed. UserId={UserId} Email={Email}", user.Id, LogSanitizer.MaskEmail(user.Email));
     }
 
     private static void ValidateRegisterRequest(RegisterCompanyRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Email)
+        if (!Cnpj.TryCreate(request.Cnpj, out _)
+            || string.IsNullOrWhiteSpace(request.Email)
             || string.IsNullOrWhiteSpace(request.Password)
-            || string.IsNullOrWhiteSpace(request.CompanyName))
+            || string.IsNullOrWhiteSpace(request.CompanyName)
+            || string.IsNullOrWhiteSpace(request.AdministratorName)
+            || string.IsNullOrWhiteSpace(request.Phone)
+            || string.IsNullOrWhiteSpace(request.Language)
+            || string.IsNullOrWhiteSpace(request.TimeZone)
+            || string.IsNullOrWhiteSpace(request.IdempotencyKey)
+            || !request.AcceptedTerms
+            || !request.AcceptedPrivacyPolicy)
         {
-            throw new ArgumentException("Dados inválidos.");
+            throw new ArgumentException("Dados de cadastro empresarial inválidos.");
         }
     }
 

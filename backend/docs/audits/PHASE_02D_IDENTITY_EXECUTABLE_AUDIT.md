@@ -9,7 +9,9 @@
 - Jobs de e-mail possuem estados finitos, tentativas, backoff agendável e idempotência.
 - `RepositoryPaths` elimina dependência do diretório corrente nos testes corrigidos.
 - O teste do questionário confirma as 25 perguntas oficiais.
-- O validador estático falha diante das violações de segurança ainda existentes.
+- `UserRepository` e `OrganizationRepository` usam records tipados, projeções explícitas, `deleted_at` e roles relacionais.
+- O contrato público de cadastro exige CNPJ, administrador, consentimentos, idioma, timezone e chave de idempotência.
+- O validador estático continua falhando diante das violações restantes em planos, BFF e e-mail.
 
 ## Resultado honesto
 

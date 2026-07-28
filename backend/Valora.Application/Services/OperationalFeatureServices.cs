@@ -39,7 +39,7 @@ public sealed class EmailSenderService(IEmailOperationalRepository repo, IEmailS
             await repo.MarkFailedAsync(
                 job.Id,
                 "Destinatário indisponível no contrato legado; job movido para retry seguro.",
-                dead: false);
+                deadLetter: false);
         }
 
         return jobs.Count;

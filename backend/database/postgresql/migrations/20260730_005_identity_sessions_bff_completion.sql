@@ -7,6 +7,48 @@ DO $$ BEGIN
   END IF;
 END $$;
 ALTER TABLE user_sessions VALIDATE CONSTRAINT ck_user_sessions_status;
+-- Bancos anteriores à fase de sessões persistidas podem conter tokens sem
+-- família/sessão. Eles não podem ser rotacionados com segurança: revogue-os e
+-- crie os registros históricos mínimos antes de tornar as colunas obrigatórias.
+UPDATE refresh_tokens
+SET revoked_at = COALESCE(revoked_at, now()),
+    revocation_reason = COALESCE(revocation_reason, 'legacy_token_migrated')
+WHERE family_id IS NULL OR session_id IS NULL;
+
+INSERT INTO user_sessions (id, user_id, organization_id, status, expires_at, revoked_at, revocation_reason)
+SELECT gen_random_uuid(), token.user_id, token.organization_id, 'revoked', token.expires_at,
+       COALESCE(token.revoked_at, now()), 'legacy_token_migrated'
+FROM refresh_tokens token
+WHERE token.session_id IS NULL
+ON CONFLICT DO NOTHING;
+
+UPDATE refresh_tokens token
+SET session_id = session.id
+FROM (
+    SELECT id, user_id, organization_id
+    FROM user_sessions
+    WHERE revocation_reason = 'legacy_token_migrated'
+) session
+WHERE token.session_id IS NULL
+  AND session.user_id = token.user_id
+  AND session.organization_id = token.organization_id;
+
+INSERT INTO refresh_token_families (id, session_id, revoked_at, revocation_reason)
+SELECT gen_random_uuid(), token.session_id, COALESCE(token.revoked_at, now()), 'legacy_token_migrated'
+FROM refresh_tokens token
+WHERE token.family_id IS NULL
+ON CONFLICT DO NOTHING;
+
+UPDATE refresh_tokens token
+SET family_id = family.id
+FROM (
+    SELECT id, session_id
+    FROM refresh_token_families
+    WHERE revocation_reason = 'legacy_token_migrated'
+) family
+WHERE token.family_id IS NULL
+  AND family.session_id = token.session_id;
+
 ALTER TABLE refresh_tokens ALTER COLUMN family_id SET NOT NULL;
 ALTER TABLE refresh_tokens ALTER COLUMN session_id SET NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_refresh_tokens_replaced_by ON refresh_tokens(replaced_by_id) WHERE replaced_by_id IS NOT NULL;

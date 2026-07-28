@@ -2,6 +2,7 @@ using Valora.Application.Services;
 
 namespace Valora.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class PasswordPolicyTests
 {
     private readonly PasswordPolicy policy = new();

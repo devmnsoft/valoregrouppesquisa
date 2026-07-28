@@ -3,6 +3,7 @@ using Xunit;
 
 namespace Valora.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class LogSanitizerTests
 {
     [Fact] public void Masks_email() => Assert.Equal("m***@dominio.com", LogSanitizer.MaskEmail("maria@dominio.com"));

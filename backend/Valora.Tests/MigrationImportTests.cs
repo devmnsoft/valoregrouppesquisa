@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Valora.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class MigrationImportTests
 {
     private readonly ILegacyDataNormalizer normalizer = new LegacyDataNormalizer();

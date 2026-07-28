@@ -1,11 +1,13 @@
 using System.Text.RegularExpressions;
 using Xunit;
+using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
+[Trait("Category", "StaticContract")]
 public sealed class OfficialBackendConsolidationTests
 {
-    private static string Root => Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../.."));
+    private static string Root => RepositoryPaths.RepositoryRoot;
     private static string Read(string relative) => File.ReadAllText(Path.Combine(Root, relative));
     private static IEnumerable<string> Files(string relative, string pattern) => Directory.Exists(Path.Combine(Root, relative))
         ? Directory.EnumerateFiles(Path.Combine(Root, relative), pattern, SearchOption.AllDirectories)
@@ -15,16 +17,16 @@ public sealed class OfficialBackendConsolidationTests
     public void OfficialSolutionIsBackendValoraSln()
     {
         Assert.True(File.Exists(Path.Combine(Root, "backend/Valora.sln")));
-        Assert.True(File.Exists(Path.Combine(Root, "BACKEND_OFICIAL_MIGRATION_GUIDE.md")));
-        Assert.Contains("backend/Valora.sln", Read("BACKEND_OFICIAL_MIGRATION_GUIDE.md"));
+        Assert.True(File.Exists(RepositoryPaths.CanonicalDatabaseScript));
     }
 
     [Fact]
     public void PackageHasOfficialValidatorAndDoesNotMoveOfficialBuildToBackendV2()
     {
         var packageJson = Read("package.json");
-        Assert.Contains("backend:official-validate", packageJson);
-        Assert.Contains("tools/validate-backend-official-migration.js", packageJson);
+        Assert.Contains("repository:boundaries", packageJson);
+        Assert.Contains("security:check", packageJson);
+        Assert.Contains("build:prod", packageJson);
         Assert.DoesNotContain("backend:build\": \"dotnet build projeto .NET predecessor removido", packageJson);
         Assert.DoesNotContain("backend:test\": \"dotnet test projeto .NET predecessor removido", packageJson);
     }

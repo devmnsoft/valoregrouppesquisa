@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS schema_migrations (version text PRIMARY KEY, checksum
 CREATE TABLE IF NOT EXISTS organizations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, slug text NOT NULL UNIQUE, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS business_groups (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), name text NOT NULL, tax_id text, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS legal_entities (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), business_group_id uuid REFERENCES business_groups(id), legal_name text NOT NULL, trade_name text, cnpj text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
-CREATE UNIQUE INDEX IF NOT EXISTS ux_legal_entities_org_cnpj_active ON legal_entities(organization_id, cnpj) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_legal_entities_cnpj_active ON legal_entities(cnpj) WHERE deleted_at IS NULL;
 CREATE TABLE IF NOT EXISTS units (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), legal_entity_id uuid NOT NULL REFERENCES legal_entities(id), name text NOT NULL, code text, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS departments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), unit_id uuid REFERENCES units(id), name text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS users (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), email text NOT NULL, name text NOT NULL, password_hash text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz, UNIQUE(organization_id,email));
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS migration_checkpoints (id uuid PRIMARY KEY DEFAULT ge
 CREATE TABLE IF NOT EXISTS rollback_records (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), migration_name text NOT NULL, rollback_data jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS outbox_messages (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), aggregate_id uuid, message_type text NOT NULL, payload jsonb NOT NULL, status text NOT NULL DEFAULT 'pending', created_at timestamptz NOT NULL DEFAULT now(), processed_at timestamptz);
 CREATE TABLE IF NOT EXISTS idempotency_keys (key text PRIMARY KEY, organization_id uuid REFERENCES organizations(id), request_hash text NOT NULL, response_body jsonb, created_at timestamptz NOT NULL DEFAULT now(), expires_at timestamptz NOT NULL);
-CREATE TABLE IF NOT EXISTS plan_usage_counters (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), metric_key text NOT NULL, period_start date NOT NULL, consumed bigint NOT NULL DEFAULT 0 CHECK(consumed>=0), reserved bigint NOT NULL DEFAULT 0 CHECK(reserved>=0), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(organization_id,metric_key,period_start));
+CREATE TABLE IF NOT EXISTS plan_usage_counters (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), metric_key text NOT NULL, period_start date NOT NULL, consumed bigint NOT NULL DEFAULT 0 CHECK(consumed>=0), reserved bigint NOT NULL DEFAULT 0 CHECK(reserved>=0), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(organization_id,metric_key,period_start));
 CREATE TABLE IF NOT EXISTS plan_usage_reservations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), metric_key text NOT NULL, quantity bigint NOT NULL CHECK(quantity>0), status text NOT NULL DEFAULT 'reserved' CHECK(status IN ('reserved','confirmed','released','expired')), idempotency_key text NOT NULL, expires_at timestamptz NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(organization_id,idempotency_key));
 CREATE INDEX IF NOT EXISTS ix_plan_usage_reservations_active ON plan_usage_reservations(organization_id,metric_key,expires_at) WHERE status='reserved';
 CREATE TABLE IF NOT EXISTS user_scopes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES users(id), organization_id uuid NOT NULL REFERENCES organizations(id), business_group_id uuid REFERENCES business_groups(id), legal_entity_id uuid REFERENCES legal_entities(id), unit_id uuid REFERENCES units(id), department_id uuid REFERENCES departments(id), created_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
@@ -332,29 +332,6 @@ CREATE TABLE IF NOT EXISTS user_invitations (
 CREATE UNIQUE INDEX IF NOT EXISTS ux_user_invitations_pending
     ON user_invitations(organization_id, lower(email))
     WHERE accepted_at IS NULL AND cancelled_at IS NULL;
-
-CREATE TABLE IF NOT EXISTS plan_usage_counters (
-    organization_id uuid NOT NULL REFERENCES organizations(id),
-    resource_code text NOT NULL,
-    used_value bigint NOT NULL DEFAULT 0 CHECK (used_value >= 0),
-    updated_at timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (organization_id, resource_code)
-);
-CREATE TABLE IF NOT EXISTS plan_usage_reservations (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    organization_id uuid NOT NULL REFERENCES organizations(id),
-    resource_code text NOT NULL,
-    amount bigint NOT NULL CHECK (amount > 0),
-    status text NOT NULL CHECK (status IN ('reserved','confirmed','released','expired')),
-    idempotency_key text NOT NULL,
-    expires_at timestamptz NOT NULL,
-    created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz,
-    UNIQUE (organization_id, idempotency_key)
-);
-CREATE INDEX IF NOT EXISTS ix_plan_usage_reservations_active
-    ON plan_usage_reservations(organization_id, resource_code, expires_at)
-    WHERE status = 'reserved';
 
 INSERT INTO roles(code,name,is_system) VALUES
 ('admin_valora','Administrador Valora',true),

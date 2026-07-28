@@ -1,5 +1,6 @@
 using Xunit;
 namespace Valora.Tests;
+[Trait("Category", "Unit")]
 public sealed class PublicSurveySubmitTests
 {
     [Fact] public void SubmitWithoutLgpdReturnsErrorContract() => Assert.True(true);

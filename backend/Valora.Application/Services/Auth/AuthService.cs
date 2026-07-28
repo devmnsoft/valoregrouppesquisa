@@ -7,6 +7,7 @@ using Valora.Application.Contracts;
 using Valora.Application.Security;
 using Valora.Application.DTOs;
 using Valora.Domain.ValueObjects;
+using Valora.Application.CompanyRegistration;
 
 namespace Valora.Application.Services;
 
@@ -20,59 +21,22 @@ public sealed class AuthService(
     IPasswordPolicy passwordPolicy,
     AuditService audit,
     IOptions<AuthenticationOptions> authenticationOptions,
-    ILogger<AuthService> logger)
+    ILogger<AuthService> logger,
+    RegisterCompanyHandler companyRegistration)
 {
     public async Task<AuthenticationResult> RegisterCompanyAsync(RegisterCompanyRequest request)
     {
-        ValidateRegisterRequest(request);
         var passwordValidation = passwordPolicy.Validate(request.Password, request.AdministratorEmail, request.CompanyName);
-        if (!passwordValidation.IsValid)
-        {
-            throw new ArgumentException(string.Join(" ", passwordValidation.Errors));
-        }
-        logger.LogInformation("Company registration started. Email={Email}", LogSanitizer.MaskEmail(request.AdministratorEmail));
+        if (!passwordValidation.IsValid) throw new ArgumentException(string.Join(" ", passwordValidation.Errors));
 
-        var existing = await users.GetByEmailAsync(request.AdministratorEmail);
-        if (existing is not null)
-        {
-            logger.LogWarning("Company registration conflict. Email={Email}", LogSanitizer.MaskEmail(request.AdministratorEmail));
-            throw new InvalidOperationException("E-mail já cadastrado.");
-        }
-
-        var organizationId = await organizations.CreateAsync(
-            request.CompanyName,
-            request.AdministratorEmail,
-            BuildSlug(request.CompanyName),
-            "free");
-
-        await plans.CreateSubscriptionAsync(organizationId, "free");
-
-        var userId = await users.CreateAsync(
-            organizationId,
-            request.AdministratorName,
-            request.AdministratorEmail,
-            hasher.Hash(request.Password),
-            "empresa_admin");
-
-        await audit.LogAsync(new AuditEntry(
-            organizationId,
-            userId,
-            "auth.register_company",
-            "organization",
-            organizationId.ToString(),
-            "Empresa cadastrada via API."));
-
-        logger.LogInformation("Company registration succeeded. OrganizationId={OrganizationId} UserId={UserId} Email={Email}", organizationId, userId, LogSanitizer.MaskEmail(request.AdministratorEmail));
-
-        var createdOrganization = await organizations.GetAsync(organizationId);
+        // The handler commits every company write before any session or token exists.
+        var registration = await companyRegistration.HandleAsync(request);
+        var tokens = await authenticationSessions.CreateAsync(registration.UserId, registration.OrganizationId,
+            request.AdministratorEmail, "empresa_admin", request.Language);
         var freePlan = await plans.GetByIdAsync("free");
-        var tokens = await authenticationSessions.CreateAsync(userId, organizationId, request.AdministratorEmail,
-            "empresa_admin", request.Language);
         return CreateAuthenticationResult(tokens,
-            new AuthenticatedUserDto(userId, request.AdministratorName, request.AdministratorEmail, "empresa_admin"),
-            createdOrganization is null
-                ? new AuthenticatedOrganizationDto(organizationId, request.CompanyName, request.TradeName, string.Empty)
-                : new AuthenticatedOrganizationDto(createdOrganization.Id, createdOrganization.Name, createdOrganization.PublicName, createdOrganization.Slug),
+            new AuthenticatedUserDto(registration.UserId, request.AdministratorName, request.AdministratorEmail, "empresa_admin"),
+            new AuthenticatedOrganizationDto(registration.OrganizationId, request.CompanyName, request.TradeName, string.Empty),
             new AuthenticatedPlanDto("free", freePlan?.Name ?? "Gratuito"));
     }
 

@@ -5,6 +5,7 @@ using Valora.Application.FreeDiagnostics;
 using Valora.Application.Results;
 using Valora.Application.Services;
 using Valora.Application.Contracts;
+using Valora.Application.CompanyRegistration;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -21,6 +22,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ResultEmailService>();
         services.AddScoped<EmailQueueProcessor>();
         services.AddScoped<AuthService>();
+        services.AddScoped<RegisterCompanyValidator>();
+        services.AddScoped<RegisterCompanyHandler>();
         services.AddScoped<IAuthenticationSessionService, AuthenticationSessionService>();
         services.AddSingleton<IPasswordPolicy, PasswordPolicy>();
         services.AddScoped<AuditService>();

@@ -45,10 +45,10 @@ jobs:
         run: dotnet build Valora.sln --configuration Release --no-restore
 
       - name: Unit tests
-        run: dotnet test Valora.sln --configuration Release --no-build --filter "FullyQualifiedName!~Integration&FullyQualifiedName!~Architecture" --logger "trx;LogFileName=unit-tests.trx"
+        run: dotnet test Valora.sln --configuration Release --no-build --filter "Category=Unit" --logger "trx;LogFileName=unit-tests.trx"
 
       - name: Architecture tests
-        run: dotnet test Valora.sln --configuration Release --no-build --filter "FullyQualifiedName~Architecture" --logger "trx;LogFileName=architecture-tests.trx"
+        run: dotnet test Valora.sln --configuration Release --no-build --filter "Category=Architecture|Category=StaticContract" --logger "trx;LogFileName=architecture-tests.trx"
 
       - name: Apply canonical database twice
         env:
@@ -64,7 +64,10 @@ jobs:
         env:
           ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
           VALORA_TEST_POSTGRES_CONNECTION: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
-        run: dotnet test Valora.sln --configuration Release --no-build --filter "FullyQualifiedName~Integration" --logger "trx;LogFileName=integration-tests.trx"
+        run: dotnet test Valora.sln --configuration Release --no-build --filter "Category=DatabaseContract|Category=Integration" --logger "trx;LogFileName=integration-tests.trx"
+
+      - name: Phase 2G.1 gate
+        run: node tools/validation/validate-phase2g1-registration.js
 
       - name: Format check
         run: dotnet format Valora.sln --verify-no-changes
@@ -78,4 +81,6 @@ jobs:
             backend/**/TestResults/*.trx
             backend/database-*.log
             backend/migrations.log
+            backend/database-schema.log
+            backend/playwright-report/**
           if-no-files-found: warn

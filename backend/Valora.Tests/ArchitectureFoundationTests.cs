@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 
 namespace Valora.Tests;
 
+[Trait("Category", "Architecture")]
 public sealed class ArchitectureFoundationTests
 {
     private static readonly string Root = LocateRepositoryRoot();

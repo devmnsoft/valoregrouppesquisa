@@ -13,8 +13,10 @@ public static class InfrastructureServiceCollectionExtensions
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IDbConnectionFactory, PostgresConnectionFactory>();
+        services.AddScoped<IDbTransactionFactory, DbTransactionFactory>();
         services.AddScoped<MigrationRunner>();
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+        services.AddScoped<Valora.Application.CompanyRegistration.ICompanyRegistrationRepository, CompanyRegistrationRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();

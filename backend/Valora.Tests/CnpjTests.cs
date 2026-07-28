@@ -2,6 +2,7 @@ using Valora.Domain.ValueObjects;
 
 namespace Valora.Tests;
 
+[Trait("Category", "Unit")]
 public sealed class CnpjTests
 {
     [Theory]

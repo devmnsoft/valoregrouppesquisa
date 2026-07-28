@@ -2,6 +2,7 @@ using Xunit;
 
 namespace Valora.Tests.Integration;
 
+[Trait("Category", "Integration")]
 public sealed class PostgresHomologationFlowTests
 {
     [Fact]

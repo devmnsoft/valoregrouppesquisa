@@ -1,13 +1,15 @@
 using Xunit;
+using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
+[Trait("Category", "StaticContract")]
 public sealed class DatabaseScriptCompletoTests
 {
     [Fact]
     public void ScriptCompletoContainsRequiredBootstrapObjects()
     {
-        var sql = File.ReadAllText(Path.Combine("..", "..", "..", "..", "banco_completo.sql"));
+        var sql = File.ReadAllText(RepositoryPaths.CanonicalDatabaseScript);
         Assert.Contains("CREATE SCHEMA IF NOT EXISTS valorapesquisa", sql);
         Assert.Contains("CREATE EXTENSION IF NOT EXISTS pgcrypto", sql);
         Assert.Contains("CREATE TABLE IF NOT EXISTS valorapesquisa.organizations", sql);

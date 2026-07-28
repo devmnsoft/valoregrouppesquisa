@@ -19,6 +19,21 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Detect legacy changes
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            legacy:
+              - 'firestore.rules'
+              - 'functions/**'
+              - 'app.js'
+              - 'firebase-repository.js'
+              - 'firebase.json'
+              - 'shared/**'
+              - 'tests/rules/**'
+              - 'tests/functions/**'
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -36,6 +51,7 @@ jobs:
         run: npm run repository:boundaries
 
       - name: Install Functions dependencies
+        if: steps.changes.outputs.legacy == 'true'
         run: npm --prefix functions ci
 
       - name: Sync plan catalog and validate release groups
@@ -50,15 +66,19 @@ jobs:
         run: npm run security:check
 
       - name: Firestore rules tests
+        if: steps.changes.outputs.legacy == 'true'
         run: npm run test:rules
 
       - name: Functions tests
+        if: steps.changes.outputs.legacy == 'true'
         run: npm run test:functions
 
       - name: Security test suite
+        if: steps.changes.outputs.legacy == 'true'
         run: npm run test:security
 
       - name: Critical public Playwright tests
+        if: steps.changes.outputs.legacy == 'true'
         run: npx playwright test --config=playwright.e2e.config.js tests/e2e/legacy-public-survey-submit.spec.js tests/e2e/legacy-result-email-flow.spec.js tests/e2e/legacy-certificate-flow.spec.js
 
       - name: Production build

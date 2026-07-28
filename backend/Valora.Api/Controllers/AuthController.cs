@@ -23,6 +23,33 @@ public sealed class AuthController(AuthService auth, IUserRepository users, ILog
         return Ok(await auth.LoginAsync(request));
     }
 
+    [HttpPost("/api/v1/auth/refresh")]
+    public async Task<ActionResult<AuthenticationResult>> Refresh(RefreshRequest request) => Ok(await auth.RefreshAsync(request));
+
+    [Authorize, HttpPost("/api/v1/auth/logout")]
+    public async Task<IActionResult> Logout(LogoutRequest request)
+    {
+        await auth.LogoutAsync(CurrentUserId(), request);
+        return NoContent();
+    }
+
+    [Authorize, HttpPost("/api/v1/auth/logout-all")]
+    public async Task<IActionResult> LogoutAll()
+    {
+        await auth.LogoutAllAsync(CurrentUserId());
+        return NoContent();
+    }
+
+    [Authorize, HttpGet("/api/v1/auth/sessions")]
+    public async Task<ActionResult<IReadOnlyList<SessionDto>>> Sessions() => Ok(await auth.ListSessionsAsync(CurrentUserId()));
+
+    [Authorize, HttpDelete("/api/v1/auth/sessions/{sessionId:guid}")]
+    public async Task<IActionResult> RevokeSession(Guid sessionId)
+    {
+        await auth.RevokeSessionAsync(CurrentUserId(), sessionId);
+        return NoContent();
+    }
+
     [HttpPost("/api/v1/auth/forgot-password")]
     public async Task<IActionResult> Forgot(ForgotPasswordRequest request)
     {
@@ -50,7 +77,9 @@ public sealed class AuthController(AuthService auth, IUserRepository users, ILog
     [HttpGet("/api/v1/auth/me")]
     public async Task<IActionResult> Me()
     {
-        var id = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var id = CurrentUserId();
         return Ok(await users.GetAsync(id));
     }
+
+    private Guid CurrentUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 }

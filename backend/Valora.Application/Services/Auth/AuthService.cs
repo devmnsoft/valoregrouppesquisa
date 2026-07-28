@@ -2,6 +2,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Valora.Application.Contracts;
 using Valora.Application.Security;
 using Valora.Application.DTOs;
@@ -14,10 +15,11 @@ public sealed class AuthService(
     IUserRepository users,
     IPlanRepository plans,
     ICommunicationRepository communications,
-    IJwtTokenService jwt,
+    IAuthenticationSessionService authenticationSessions,
     IPasswordHasher hasher,
     IPasswordPolicy passwordPolicy,
     AuditService audit,
+    IOptions<AuthenticationOptions> authenticationOptions,
     ILogger<AuthService> logger)
 {
     public async Task<AuthenticationResult> RegisterCompanyAsync(RegisterCompanyRequest request)
@@ -64,8 +66,9 @@ public sealed class AuthService(
 
         var createdOrganization = await organizations.GetAsync(organizationId);
         var freePlan = await plans.GetByIdAsync("free");
-        return CreateAuthenticationResult(
-            jwt.CreateToken(userId, organizationId, request.AdministratorEmail, "empresa_admin"),
+        var tokens = await authenticationSessions.CreateAsync(userId, organizationId, request.AdministratorEmail,
+            "empresa_admin", request.Language);
+        return CreateAuthenticationResult(tokens,
             new AuthenticatedUserDto(userId, request.AdministratorName, request.AdministratorEmail, "empresa_admin"),
             createdOrganization is null
                 ? new AuthenticatedOrganizationDto(organizationId, request.CompanyName, request.TradeName, string.Empty)
@@ -107,12 +110,32 @@ public sealed class AuthService(
         var currentPlan = await plans.GetByIdAsync(planId);
         var role = user.RoleCodes.FirstOrDefault() ?? "empresa_admin";
 
-        return CreateAuthenticationResult(
-            jwt.CreateToken(user.Id, user.OrganizationId, user.Email, role),
+        var tokens = await authenticationSessions.CreateAsync(user.Id, user.OrganizationId, user.Email, role,
+            organization?.DefaultLanguageCode ?? "pt-BR");
+        return CreateAuthenticationResult(tokens,
             new AuthenticatedUserDto(user.Id, user.Name, user.Email, role),
             organization is null ? null : new AuthenticatedOrganizationDto(organization.Id, organization.Name, organization.PublicName, organization.Slug),
             new AuthenticatedPlanDto(planId, currentPlan?.Name ?? planId));
     }
+
+    public async Task<AuthenticationResult> RefreshAsync(RefreshRequest request)
+    {
+        var tokens = await authenticationSessions.RefreshAsync(request.RefreshToken);
+        var user = await users.GetAsync(tokens.UserId) ?? throw new UnauthorizedAccessException("Sessão inválida.");
+        var organization = await organizations.GetAsync(tokens.OrganizationId);
+        var planId = await plans.GetCurrentPlanIdAsync(tokens.OrganizationId) ?? "free";
+        var plan = await plans.GetByIdAsync(planId);
+        var role = user.RoleCodes.FirstOrDefault() ?? "empresa_admin";
+        return CreateAuthenticationResult(tokens,
+            new AuthenticatedUserDto(user.Id, user.Name, user.Email, role),
+            organization is null ? null : new AuthenticatedOrganizationDto(organization.Id, organization.Name, organization.PublicName, organization.Slug),
+            new AuthenticatedPlanDto(planId, plan?.Name ?? planId));
+    }
+
+    public Task LogoutAsync(Guid userId, LogoutRequest request) => authenticationSessions.LogoutAsync(userId, request.RefreshToken);
+    public Task LogoutAllAsync(Guid userId) => authenticationSessions.LogoutAllAsync(userId);
+    public Task<IReadOnlyList<SessionDto>> ListSessionsAsync(Guid userId) => authenticationSessions.ListAsync(userId);
+    public Task RevokeSessionAsync(Guid userId, Guid sessionId) => authenticationSessions.RevokeAsync(userId, sessionId);
 
 
     public async Task ForgotPasswordAsync(ForgotPasswordRequest request, string? ipAddress = null, string? userAgent = null)
@@ -128,7 +151,8 @@ public sealed class AuthService(
             var tokenHash = HashToken(rawToken);
             var expiresAt = DateTimeOffset.UtcNow.AddHours(1);
             await users.CreatePasswordResetTokenAsync(user.Id, tokenHash, expiresAt, HashNullable(ipAddress), userAgent);
-            await communications.AddEmailJobAsync(user.OrganizationId, null, user.Email, "Recuperação de senha - Valora Insight", "password-reset", "pending", JsonSerializer.Serialize(new { userId = user.Id, expiresAt, delivery = "password-reset-link-required" }));
+            var resetUrl = $"{authenticationOptions.Value.PasswordResetBaseUrl}?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(rawToken)}";
+            await communications.AddEmailJobAsync(user.OrganizationId, null, user.Email, "Recuperação de senha - Valora Insight", "password-reset", "pending", JsonSerializer.Serialize(new { userId = user.Id, expiresAt, resetUrl }));
             await audit.LogAsync(new AuditEntry(user.OrganizationId, user.Id, "auth.forgot_password_requested", "user", user.Id.ToString(), "Recuperação de senha solicitada."));
         }
 
@@ -159,6 +183,7 @@ public sealed class AuthService(
 
         await users.UpdatePasswordHashAsync(user.Id, hasher.Hash(request.NewPassword));
         await users.MarkPasswordResetTokenUsedAsync(token.Id);
+        await authenticationSessions.LogoutAllAsync(user.Id);
         await audit.LogAsync(new AuditEntry(user.OrganizationId, user.Id, "auth.password_reset_completed", "user", user.Id.ToString(), "Senha redefinida com token válido."));
         logger.LogInformation("Password reset completed. UserId={UserId} Email={Email}", user.Id, LogSanitizer.MaskEmail(user.Email));
     }
@@ -186,18 +211,17 @@ public sealed class AuthService(
     private static string? HashNullable(string? value) => string.IsNullOrWhiteSpace(value) ? null : HashToken(value);
 
     private static AuthenticationResult CreateAuthenticationResult(
-        string accessToken,
+        TokenPair tokens,
         AuthenticatedUserDto user,
         AuthenticatedOrganizationDto? organization,
         AuthenticatedPlanDto? plan)
     {
-        var now = DateTimeOffset.UtcNow;
         return new AuthenticationResult(
-            accessToken,
-            now.AddMinutes(15),
-            Convert.ToBase64String(RandomNumberGenerator.GetBytes(48)).Replace("+", "-").Replace("/", "_").TrimEnd('='),
-            now.AddDays(30),
-            Guid.NewGuid(),
+            tokens.AccessToken,
+            tokens.AccessTokenExpiresAt,
+            tokens.RefreshToken,
+            tokens.RefreshTokenExpiresAt,
+            tokens.SessionId,
             user,
             organization,
             plan);

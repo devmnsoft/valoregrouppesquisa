@@ -25,7 +25,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 builder.Services.AddAuthorization();
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
 builder.Services.AddDataProtection().SetApplicationName("Valora.Web.Bff");
-builder.Services.AddSingleton<IBffSessionStore, BffSessionStore>();
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSingleton<BffSessionProtector>();
+builder.Services.AddSingleton<IDistributedBffSessionStore, DistributedBffSessionStore>();
+builder.Services.AddHostedService<BffSessionCleanupService>();
 builder.Services.AddScoped<BffAuthenticationService>();
 builder.Services.AddHttpClient<IBffApiClient, BffApiClient>((services, client) =>
 {

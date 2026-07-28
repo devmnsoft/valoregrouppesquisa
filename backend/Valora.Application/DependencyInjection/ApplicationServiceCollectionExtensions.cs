@@ -21,6 +21,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ResultEmailService>();
         services.AddScoped<EmailQueueProcessor>();
         services.AddScoped<AuthService>();
+        services.AddScoped<IAuthenticationSessionService, AuthenticationSessionService>();
         services.AddSingleton<IPasswordPolicy, PasswordPolicy>();
         services.AddScoped<AuditService>();
         services.AddScoped<FreeDiagnosticsAppService>();

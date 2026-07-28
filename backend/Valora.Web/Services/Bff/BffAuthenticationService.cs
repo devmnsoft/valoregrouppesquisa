@@ -5,15 +5,15 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace Valora.Web.Services.Bff;
 
-public sealed class BffAuthenticationService(IBffApiClient api, IBffSessionStore sessions)
+public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffSessionStore sessions)
 {
     public async Task<BffSafeSession> SignInAsync(HttpContext context, string endpoint, object request, CancellationToken cancellationToken)
     {
         var result = await api.PostAuthenticationAsync(endpoint, request, cancellationToken);
         var ticket = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         var safe = new BffSafeSession(result.User, result.Organization, result.Plan);
-        sessions.Set(ticket, new(result.AccessToken, result.AccessTokenExpiresAt, result.RefreshToken,
-            result.RefreshTokenExpiresAt, safe));
+        await sessions.SetAsync(ticket, new(result.AccessToken, result.AccessTokenExpiresAt, result.RefreshToken,
+            result.RefreshTokenExpiresAt, safe), cancellationToken);
 
         var claims = new[]
         {
@@ -29,31 +29,35 @@ public sealed class BffAuthenticationService(IBffApiClient api, IBffSessionStore
         return safe;
     }
 
-    public bool TryGet(HttpContext context, out BffServerSession? session)
+    public async Task<BffServerSession?> GetAsync(HttpContext context, CancellationToken cancellationToken = default)
     {
         var ticket = context.User.FindFirstValue("bff_ticket");
-        return ticket is not null && sessions.TryGet(ticket, out session);
+        return ticket is null ? null : await sessions.GetAsync(ticket, cancellationToken);
     }
 
     public async Task<BffSafeSession?> RefreshAsync(HttpContext context, CancellationToken cancellationToken)
     {
         var ticket = context.User.FindFirstValue("bff_ticket");
-        if (ticket is null || !sessions.TryGet(ticket, out var current) || current is null) return null;
+        if (ticket is null) return null;
+        var current = await sessions.GetAsync(ticket, cancellationToken);
+        if (current is null) return null;
         var result = await api.PostAuthenticationAsync("/api/v1/auth/refresh",
             new { refreshToken = current.RefreshToken }, cancellationToken);
         var safe = new BffSafeSession(result.User, result.Organization, result.Plan);
-        sessions.Set(ticket, new(result.AccessToken, result.AccessTokenExpiresAt, result.RefreshToken,
-            result.RefreshTokenExpiresAt, safe));
+        await sessions.SetAsync(ticket, new(result.AccessToken, result.AccessTokenExpiresAt, result.RefreshToken,
+            result.RefreshTokenExpiresAt, safe), cancellationToken);
         return safe;
     }
 
     public async Task SignOutAsync(HttpContext context, CancellationToken cancellationToken)
     {
         var ticket = context.User.FindFirstValue("bff_ticket");
-        if (ticket is not null && sessions.TryGet(ticket, out var session) && session is not null)
+        if (ticket is not null)
         {
-            await api.PostAsync("/api/v1/auth/logout", new { refreshToken = session.RefreshToken }, session.AccessToken, cancellationToken);
-            sessions.Remove(ticket);
+            var session = await sessions.GetAsync(ticket, cancellationToken);
+            if (session is not null)
+                await api.PostAsync("/api/v1/auth/logout", new { refreshToken = session.RefreshToken }, session.AccessToken, cancellationToken);
+            await sessions.RemoveAsync(ticket, cancellationToken);
         }
         await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     }

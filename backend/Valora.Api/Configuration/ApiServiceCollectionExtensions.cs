@@ -1,4 +1,5 @@
 using Valora.Application.Communication;
+using Valora.Application.Services;
 
 namespace Valora.Api.Configuration;
 
@@ -22,6 +23,7 @@ public static class ApiServiceCollectionExtensions
         });
         services.AddSwaggerDocumentation();
         services.Configure<EmailOptions>(configuration.GetSection("Email"));
+        services.Configure<AuthenticationOptions>(configuration.GetSection("Authentication"));
         services.AddJwtAuthentication(configuration);
         services.AddAuthorization();
         return services;

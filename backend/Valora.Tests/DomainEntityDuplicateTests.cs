@@ -1,5 +1,6 @@
 using System.Text.RegularExpressions;
 using Xunit;
+using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
@@ -9,7 +10,7 @@ public sealed class DomainEntityDuplicateTests
     [Fact]
     public void Domain_entities_do_not_repeat_type_names_in_the_same_namespace()
     {
-        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../Valora.Domain/Entities"));
+        var root = RepositoryPaths.DomainFile("Entities");
         var files = Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
             .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
                 && !file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")

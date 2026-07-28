@@ -1,39 +1,108 @@
 #!/usr/bin/env node
+'use strict';
+
 const fs = require('fs');
 const path = require('path');
-const cp = require('child_process');
-const root = process.cwd();
-const skip = new Set(['.git','node_modules','functions/node_modules','communication-gateway/node_modules','dist','bin','obj']);
-function walk(dir, out=[]) {
-  const rel = path.relative(root, dir).replace(/\\/g,'/');
-  if (skip.has(rel) || [...skip].some(s => rel.startsWith(s + '/'))) return out;
-  for (const entry of fs.readdirSync(dir, {withFileTypes:true})) {
-    const full = path.join(dir, entry.name);
-    const r = path.relative(root, full).replace(/\\/g,'/');
-    if ([...skip].some(s => r === s || r.startsWith(s + '/'))) continue;
-    if (entry.isDirectory()) walk(full, out); else out.push(r);
+const boundaries = require('./product-boundaries.json');
+
+const ignoredRoots = new Set([
+  '.git', 'node_modules', 'functions/node_modules',
+  'communication-gateway/node_modules', 'dist', 'bin', 'obj'
+]);
+const classifierSources = new Set([
+  'scripts/repository/product-boundaries.json',
+  'scripts/repository/validate-project-boundaries.js',
+  'scripts/repository/validate-project-boundaries.test.js'
+]);
+
+function normalize(value) {
+  return value.replace(/\\/g, '/');
+}
+
+function isIgnored(relativePath) {
+  return [...ignoredRoots].some(root => relativePath === root || relativePath.startsWith(`${root}/`));
+}
+
+function walk(root, directory = root, output = []) {
+  const directoryRelative = normalize(path.relative(root, directory));
+  if (isIgnored(directoryRelative)) return output;
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const fullPath = path.join(directory, entry.name);
+    const relativePath = normalize(path.relative(root, fullPath));
+    if (isIgnored(relativePath)) continue;
+    if (entry.isDirectory()) walk(root, fullPath, output);
+    else output.push(relativePath);
   }
-  return out;
+  return output;
 }
-const files = walk(root);
-const errors = [];
-const sln = files.filter(f => f.endsWith('.sln'));
-if (sln.length !== 1 || sln[0] !== 'backend/Valora.sln') errors.push(`Solutions inválidas: ${sln.join(', ') || '(nenhuma)'}`);
-for (const f of files.filter(f => f.endsWith('.csproj') && !f.startsWith('backend/'))) errors.push(`.csproj fora de backend/: ${f}`);
-for (const d of ['backend'+'-v2','backend'+'-v3','src/'+'Habit'+'Flow']) if (fs.existsSync(path.join(root,d))) errors.push(`Diretório proibido: ${d}`);
-for (const f of files.filter(f => f === 'global.json')) errors.push('global.json deve estar em backend/global.json');
-if (!fs.existsSync(path.join(root,'backend/global.json'))) errors.push('backend/global.json ausente');
-if (fs.existsSync(path.join(root,'database'))) errors.push('database/ raiz não deve existir');
-for (const f of files.filter(f => /^(ASPNET_|BACKEND_|NOVO_PROJETO_DOTNET_|SPRINT_.*(DOTNET|BACKEND)|HOMOLOGACAO_CUTOVER_CHECKLIST|CUTOVER_PLAN|ROLLBACK_PLAN|BACKUP_RESTORE_RUNBOOK|LEGACY_RETIREMENT_PLAN|RELEASE_CANDIDATE_NOTES|REQUISITO_MIGRACAO_COMPLETA_ASPNET_CORE_10|SAAS_FINAL_ACCEPTANCE_CHECKLIST|SECURITY_HARDENING_CHECKLIST|BANCO_COMPLETO_GUIA_EXECUCAO).*\.md$/i.test(f))) errors.push(`Documento .NET solto na raiz: ${f}`);
-for (const f of files.filter(f => f.startsWith('tools/') && /backend|postgres|aspnet|dotnet|migration/i.test(path.basename(f)))) errors.push(`Validador backend solto em tools/: ${f}`);
-const textFiles = files.filter(f => !/\.(png|jpg|jpeg|gif|ico|pdf|zip|gz|woff2?|ttf|eot)$/i.test(f));
-for (const f of textFiles) {
-  let t; try { t = fs.readFileSync(path.join(root,f),'utf8'); } catch { continue; }
-  const forbiddenProduct = 'habit' + 'flow';
-  if (new RegExp(forbiddenProduct, 'i').test(t)) errors.push(`Texto proibido produto externo em ${f}`);
-  if (new RegExp('schema\\s+' + forbiddenProduct, 'i').test(t)) errors.push(`Schema proibido produto externo em ${f}`);
-  if (new RegExp('Valora'+'Pesquisa\\.sln|src/'+'Habit'+'Flow|50'+'97').test(t)) errors.push(`Referência proibida em ${f}`);
-  if (f.startsWith('backend/') && /firebase/i.test(t) && !/README|docs|Tests|\.csproj|appsettings|database|tools/.test(f)) errors.push(`Referência Firebase em runtime backend: ${f}`);
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
-if (errors.length) { console.error(errors.join('\n')); process.exit(1); }
-console.log('Repository boundaries OK');
+
+function classifyFile(relativePath, content = '') {
+  const violations = [];
+  const pathParts = relativePath.split('/');
+  const forbiddenPattern = new RegExp(boundaries.forbiddenProductNames.map(escapeRegExp).join('|'), 'i');
+  if (forbiddenPattern.test(relativePath)) violations.push('caminho de produto externo');
+  if (!classifierSources.has(relativePath) && forbiddenPattern.test(content)) {
+    violations.push('conteúdo de produto externo');
+  }
+  if (relativePath.endsWith('.sln') && relativePath !== boundaries.officialSolution) {
+    violations.push('solution não oficial');
+  }
+  if (relativePath.endsWith('.csproj') && !relativePath.startsWith(`${boundaries.officialBackendRoot}/`)) {
+    violations.push('projeto .NET fora do backend oficial');
+  }
+  if (pathParts.some(part => /^backend-v\d+$/i.test(part)) || relativePath.startsWith('src/')) {
+    violations.push('árvore de backend paralela');
+  }
+  if (/\bmigration\b/i.test(relativePath) && !relativePath.startsWith(`${boundaries.officialBackendRoot}/`) && /\.sql$/i.test(relativePath)) {
+    violations.push('migration fora do backend oficial');
+  }
+  if (/\b(requirement|requisito)\b/i.test(relativePath) && forbiddenPattern.test(content)) {
+    violations.push('requisito incompatível');
+  }
+  const externalFileReference = content.match(/(?:src|database|docs)\/[\w./-]+/gi) || [];
+  if (externalFileReference.some(reference => forbiddenPattern.test(reference))) {
+    violations.push('referência de arquivo de produto externo');
+  }
+  return [...new Set(violations)];
+}
+
+function validateRepository(root = process.cwd()) {
+  const files = walk(root);
+  const violations = [];
+  const solutions = files.filter(file => file.endsWith('.sln'));
+  if (solutions.length !== 1 || solutions[0] !== boundaries.officialSolution) {
+    violations.push(`Solutions inválidas: ${solutions.join(', ') || '(nenhuma)'}`);
+  }
+  if (!fs.existsSync(path.join(root, 'backend/global.json'))) violations.push('backend/global.json ausente');
+  if (fs.existsSync(path.join(root, 'database'))) violations.push('database/ raiz não deve existir');
+
+  const binaryPattern = /\.(png|jpg|jpeg|gif|ico|pdf|zip|gz|woff2?|ttf|eot)$/i;
+  for (const file of files) {
+    let content = '';
+    if (!binaryPattern.test(file)) {
+      try { content = fs.readFileSync(path.join(root, file), 'utf8'); } catch { continue; }
+    }
+    for (const reason of classifyFile(file, content)) violations.push(`${reason}: ${file}`);
+    if (file === 'global.json') violations.push('global.json deve estar em backend/global.json');
+    if (file.startsWith('backend/') && /firebase/i.test(content) && !/README|docs|Tests|\.csproj|appsettings|database|tools/.test(file)) {
+      violations.push(`Referência Firebase em runtime backend: ${file}`);
+    }
+  }
+  return violations;
+}
+
+if (require.main === module) {
+  const violations = validateRepository();
+  if (violations.length) {
+    console.error(violations.join('\n'));
+    process.exitCode = 1;
+  } else {
+    console.log('Repository boundaries OK');
+  }
+}
+
+module.exports = { classifyFile, validateRepository };

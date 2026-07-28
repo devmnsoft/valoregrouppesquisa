@@ -46,10 +46,16 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
     }
 
     [Authorize, HttpGet("me")]
-    public IActionResult Me() => authentication.TryGet(HttpContext, out var session) && session is not null
-        ? Ok(session.SafeSession) : Unauthorized();
+    public async Task<IActionResult> Me(CancellationToken cancellationToken)
+    {
+        var session = await authentication.GetAsync(HttpContext, cancellationToken);
+        return session is null ? Unauthorized() : Ok(session.SafeSession);
+    }
 
     [Authorize, HttpGet("sessions")]
-    public IActionResult Sessions() => authentication.TryGet(HttpContext, out var session) && session is not null
-        ? Ok(new[] { session.SafeSession }) : Unauthorized();
+    public async Task<IActionResult> Sessions(CancellationToken cancellationToken)
+    {
+        var session = await authentication.GetAsync(HttpContext, cancellationToken);
+        return session is null ? Unauthorized() : Ok(new[] { session.SafeSession });
+    }
 }

@@ -124,6 +124,8 @@ ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS used_at timestamptz;
 ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS replaced_by_id uuid REFERENCES refresh_tokens(id);
 ALTER TABLE refresh_tokens ADD COLUMN IF NOT EXISTS revocation_reason text;
 CREATE INDEX IF NOT EXISTS ix_refresh_tokens_family ON refresh_tokens(family_id, created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_refresh_tokens_replaced_by ON refresh_tokens(replaced_by_id) WHERE replaced_by_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_refresh_tokens_session_active ON refresh_tokens(session_id,expires_at) WHERE revoked_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS login_attempts (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email_hash text NOT NULL, ip_hash text,
@@ -161,6 +163,17 @@ ALTER TABLE outbox_messages ADD COLUMN IF NOT EXISTS idempotency_key text;
 ALTER TABLE outbox_messages ADD COLUMN IF NOT EXISTS attempts integer NOT NULL DEFAULT 0;
 ALTER TABLE outbox_messages ADD COLUMN IF NOT EXISTS next_attempt_at timestamptz NOT NULL DEFAULT now();
 CREATE UNIQUE INDEX IF NOT EXISTS ux_outbox_idempotency ON outbox_messages(idempotency_key) WHERE idempotency_key IS NOT NULL;
+
+INSERT INTO permissions(code,name,description,module_code) VALUES
+('organization.current.read','Visualizar organização','Consulta a organização corrente.','identity'),
+('organization.current.update','Atualizar organização','Atualiza a organização corrente.','identity'),
+('users.read','Visualizar usuários','Consulta usuários do tenant.','identity'),
+('users.create','Criar usuários','Cria usuários no tenant.','identity'),
+('users.update','Atualizar usuários','Atualiza usuários no tenant.','identity'),
+('users.disable','Desativar usuários','Desativa usuários no tenant.','identity'),
+('sessions.read','Visualizar sessões','Consulta sessões próprias.','identity'),
+('sessions.revoke','Revogar sessões','Revoga sessões próprias.','identity')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code;
 
 
 DO $$ DECLARE t text; BEGIN FOREACH t IN ARRAY ARRAY['organizations','business_groups','legal_entities','units','departments','users','roles','plans','plan_limits','plan_capabilities','subscriptions','usage_monthly','usage_lifetime','modules','organization_modules','organization_settings','organization_branding','surveys','survey_cycles','survey_invites','responses','result_scores','reports','exports','emails','whatsapp_messages','communications','action_plans','privacy_requests','support_tickets','integrations','migration_checkpoints'] LOOP EXECUTE format('DROP TRIGGER IF EXISTS trg_%I_updated_at ON valorapesquisa.%I', t, t); EXECUTE format('CREATE TRIGGER trg_%I_updated_at BEFORE UPDATE ON valorapesquisa.%I FOR EACH ROW EXECUTE FUNCTION valorapesquisa.set_updated_at()', t, t); END LOOP; END $$;

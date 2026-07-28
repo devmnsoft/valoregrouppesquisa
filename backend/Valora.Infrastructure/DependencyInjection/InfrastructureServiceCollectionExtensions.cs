@@ -16,6 +16,9 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<MigrationRunner>();
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<ISessionRepository, SessionRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
+        services.AddScoped<IPermissionRepository, PermissionRepository>();
         services.AddScoped<IPlanRepository, PlanRepository>();
         services.AddScoped<ISurveyRepository, SurveyRepository>();
         services.AddScoped<IResponseRepository, ResponseRepository>();

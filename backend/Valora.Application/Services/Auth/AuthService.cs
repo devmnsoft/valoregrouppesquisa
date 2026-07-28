@@ -20,7 +20,7 @@ public sealed class AuthService(
     AuditService audit,
     ILogger<AuthService> logger)
 {
-    public async Task<AuthResponse> RegisterCompanyAsync(RegisterCompanyRequest request)
+    public async Task<AuthenticationResult> RegisterCompanyAsync(RegisterCompanyRequest request)
     {
         ValidateRegisterRequest(request);
         var passwordValidation = passwordPolicy.Validate(request.Password, request.AdministratorEmail, request.CompanyName);
@@ -62,14 +62,18 @@ public sealed class AuthService(
 
         logger.LogInformation("Company registration succeeded. OrganizationId={OrganizationId} UserId={UserId} Email={Email}", organizationId, userId, LogSanitizer.MaskEmail(request.AdministratorEmail));
 
-        return new AuthResponse(
+        var createdOrganization = await organizations.GetAsync(organizationId);
+        var freePlan = await plans.GetByIdAsync("free");
+        return CreateAuthenticationResult(
             jwt.CreateToken(userId, organizationId, request.AdministratorEmail, "empresa_admin"),
-            new { id = userId, name = request.AdministratorName, email = request.AdministratorEmail, role = "empresa_admin" },
-            new { id = organizationId, name = request.CompanyName },
-            await plans.GetByIdAsync("free"));
+            new AuthenticatedUserDto(userId, request.AdministratorName, request.AdministratorEmail, "empresa_admin"),
+            createdOrganization is null
+                ? new AuthenticatedOrganizationDto(organizationId, request.CompanyName, request.TradeName, string.Empty)
+                : new AuthenticatedOrganizationDto(createdOrganization.Id, createdOrganization.Name, createdOrganization.PublicName, createdOrganization.Slug),
+            new AuthenticatedPlanDto("free", freePlan?.Name ?? "Gratuito"));
     }
 
-    public async Task<AuthResponse> LoginAsync(LoginRequest request)
+    public async Task<AuthenticationResult> LoginAsync(LoginRequest request)
     {
         logger.LogInformation("Login started. Email={Email}", LogSanitizer.MaskEmail(request.Email));
 
@@ -99,13 +103,15 @@ public sealed class AuthService(
 
         var organization = await organizations.GetAsync(user.OrganizationId);
 
-        var plan = await plans.GetByIdAsync(await plans.GetCurrentPlanIdAsync(user.OrganizationId) ?? "free");
+        var planId = await plans.GetCurrentPlanIdAsync(user.OrganizationId) ?? "free";
+        var currentPlan = await plans.GetByIdAsync(planId);
+        var role = user.RoleCodes.FirstOrDefault() ?? "empresa_admin";
 
-        return new AuthResponse(
-            jwt.CreateToken(user.Id, user.OrganizationId, user.Email, user.RoleCodes.FirstOrDefault() ?? "empresa_admin"),
-            new { id = user.Id, name = user.Name, email = user.Email, role = user.RoleCodes.FirstOrDefault() },
-            organization,
-            plan);
+        return CreateAuthenticationResult(
+            jwt.CreateToken(user.Id, user.OrganizationId, user.Email, role),
+            new AuthenticatedUserDto(user.Id, user.Name, user.Email, role),
+            organization is null ? null : new AuthenticatedOrganizationDto(organization.Id, organization.Name, organization.PublicName, organization.Slug),
+            new AuthenticatedPlanDto(planId, currentPlan?.Name ?? planId));
     }
 
 
@@ -178,6 +184,24 @@ public sealed class AuthService(
     private static string HashToken(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
     private static string? HashNullable(string? value) => string.IsNullOrWhiteSpace(value) ? null : HashToken(value);
+
+    private static AuthenticationResult CreateAuthenticationResult(
+        string accessToken,
+        AuthenticatedUserDto user,
+        AuthenticatedOrganizationDto? organization,
+        AuthenticatedPlanDto? plan)
+    {
+        var now = DateTimeOffset.UtcNow;
+        return new AuthenticationResult(
+            accessToken,
+            now.AddMinutes(15),
+            Convert.ToBase64String(RandomNumberGenerator.GetBytes(48)).Replace("+", "-").Replace("/", "_").TrimEnd('='),
+            now.AddDays(30),
+            Guid.NewGuid(),
+            user,
+            organization,
+            plan);
+    }
 
     private static string BuildSlug(string value)
     {

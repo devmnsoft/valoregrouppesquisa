@@ -1,4 +1,4 @@
-@{ ViewData["Title"] = "Entrar"; }
+@{ ViewData["Title"] = "Entrar"; Layout = "_AuthLayout"; }
 <section class="page-card auth-card" data-page="login-page">
   <p class="eyebrow">Acesso seguro</p><h1>Entrar no Valora Insight™</h1>
   <p class="text-muted">Use seu e-mail corporativo e senha para acessar o painel SaaS.</p>
@@ -10,4 +10,4 @@
   <div class="alert alert-danger d-none mt-3 error-state" role="alert"></div><div class="d-flex justify-content-between gap-3 flex-wrap mt-3"><a href="/Account/ForgotPassword">Esqueci minha senha</a><a href="/Account/Register">Criar conta da empresa</a></div>
   <p class="small text-muted mt-3">Ambiente protegido por token de sessão, correlação de requisições e logs sem senha.</p>
 </section>
-@section Scripts { <script src="/js/pages/login-page.js"></script> }
+@section Scripts { <script src="~/js/pages/login-page.js" asp-append-version="true" defer></script> }

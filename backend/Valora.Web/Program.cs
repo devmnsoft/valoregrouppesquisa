@@ -1,6 +1,7 @@
 using Serilog;
 using Valora.Web.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Valora.Web.Services.Bff;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,7 +24,15 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     });
 builder.Services.AddAuthorization();
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
-builder.Services.AddHttpClient();
+builder.Services.AddDataProtection().SetApplicationName("Valora.Web.Bff");
+builder.Services.AddSingleton<IBffSessionStore, BffSessionStore>();
+builder.Services.AddScoped<BffAuthenticationService>();
+builder.Services.AddHttpClient<IBffApiClient, BffApiClient>((services, client) =>
+{
+    var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<ApiOptions>>().Value;
+    client.BaseAddress = new Uri(options.BaseUrl);
+    client.Timeout = TimeSpan.FromMilliseconds(options.TimeoutMs);
+});
 
 builder.Services.Configure<ApiOptions>(
     builder.Configuration.GetSection("Api"));

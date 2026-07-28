@@ -11,21 +11,18 @@ namespace Valora.Api.Controllers;
 [ApiController]
 public sealed class AuthController(AuthService auth, IUserRepository users, ILogger<AuthController> logger) : ControllerBase
 {
-    [HttpPost("/auth/register-company")]
     [HttpPost("/api/v1/auth/register-company")]
     public async Task<IActionResult> Register(RegisterCompanyRequest request)
     {
         return Ok(await auth.RegisterCompanyAsync(request));
     }
 
-    [HttpPost("/auth/login")]
     [HttpPost("/api/v1/auth/login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
         return Ok(await auth.LoginAsync(request));
     }
 
-    [HttpPost("/auth/forgot-password")]
     [HttpPost("/api/v1/auth/forgot-password")]
     public async Task<IActionResult> Forgot(ForgotPasswordRequest request)
     {
@@ -41,7 +38,6 @@ public sealed class AuthController(AuthService auth, IUserRepository users, ILog
         }
     }
 
-    [HttpPost("/auth/reset-password")]
     [HttpPost("/api/v1/auth/reset-password")]
     public async Task<IActionResult> Reset(ResetPasswordRequest request)
     {

@@ -160,7 +160,7 @@ public sealed class AuthService(
     private static void ValidateRegisterRequest(RegisterCompanyRequest request)
     {
         if (!Cnpj.TryCreate(request.Cnpj, out _)
-            || string.IsNullOrWhiteSpace(request.Email)
+            || string.IsNullOrWhiteSpace(request.AdministratorEmail)
             || string.IsNullOrWhiteSpace(request.Password)
             || string.IsNullOrWhiteSpace(request.CompanyName)
             || string.IsNullOrWhiteSpace(request.AdministratorName)

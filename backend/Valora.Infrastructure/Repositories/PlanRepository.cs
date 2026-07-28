@@ -2,12 +2,78 @@ using Dapper;
 using Microsoft.Extensions.Logging;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
+
 namespace Valora.Infrastructure.Repositories;
-public sealed class PlanRepository(IDbConnectionFactory f, ILogger<PlanRepository> logger):IPlanRepository
+
+public sealed class PlanRepository(IDbConnectionFactory connections, ILogger<PlanRepository> logger) : IPlanRepository
 {
- public async Task<IReadOnlyList<PlanDto>> GetPublicPlansAsync(){try{using var c=f.Create(); var plans=(await c.QueryAsync<dynamic>("SELECT id,code,name,description,monthly_price,annual_price,display_order FROM valorapesquisa.plans WHERE status='active' ORDER BY display_order")).ToList(); var result=new List<PlanDto>(); foreach(var p in plans) result.Add(await Hydrate((Guid)p.id,(string)p.code,p)); return result;}catch(Exception ex){logger.LogError(ex,"Erro ao listar planos públicos.");throw;}}
- public async Task<PlanDto?> GetByIdAsync(string id){try{using var c=f.Create(); var p=await c.QuerySingleOrDefaultAsync<dynamic>("SELECT id,code,name,description,monthly_price,annual_price,display_order FROM valorapesquisa.plans WHERE code=@id",new{id}); return p is null?null:await Hydrate((Guid)p.id,(string)p.code,p);}catch(Exception ex){logger.LogError(ex,"Erro ao buscar plano. PlanId={PlanId}",id);throw;}}
- async Task<PlanDto> Hydrate(Guid planId,string code,dynamic p){try{using var c=f.Create(); var limitsRow=await c.QuerySingleOrDefaultAsync<dynamic>("SELECT active_surveys,responses_per_month,users,managers,forms,public_links,email_invites_per_month,storage_mb FROM valorapesquisa.plan_limits WHERE plan_id=@planId",new{planId}); var limits = limitsRow is null ? new Dictionary<string,int>() : new Dictionary<string,int>{{"active_surveys",(int)limitsRow.active_surveys},{"responses_per_month",(int)limitsRow.responses_per_month},{"users",(int)limitsRow.users},{"managers",(int)limitsRow.managers},{"forms",(int)limitsRow.forms},{"public_links",(int)limitsRow.public_links},{"email_invites_per_month",(int)limitsRow.email_invites_per_month},{"storage_mb",(int)limitsRow.storage_mb}}; var caps=(await c.QueryAsync<(string capability_code,bool enabled)>("SELECT capability_code,enabled FROM valorapesquisa.plan_capabilities WHERE plan_id=@planId",new{planId})).ToDictionary(x=>x.capability_code,x=>x.enabled?"enabled":"disabled"); var monthly=(decimal)p.monthly_price; var annual=(decimal)p.annual_price; var priceLabel=monthly<=0 && annual<=0?"Sob consulta":$"R$ {monthly:0.##}"; var priceComplement=annual>0?"por mês / anual disponível":(monthly>0?"por mês":"projeto consultivo"); var badge=code switch { "free"=>"Para começar", "professional"=>"Mais escolhido", "enterprise"=>"Sob medida", _=>"Plano" }; return new(code,(string)p.name,badge,priceLabel,priceComplement,(int)p.display_order,limits,caps);}catch(Exception ex){logger.LogError(ex,"Erro ao hidratar limites do plano. PlanId={PlanId}",code);throw;}}
- public async Task<string?> GetCurrentPlanIdAsync(Guid organizationId){try{using var c=f.Create(); return await c.ExecuteScalarAsync<string?>("SELECT p.code FROM valorapesquisa.subscriptions s JOIN valorapesquisa.plans p ON p.id=s.plan_id WHERE s.organization_id=@organizationId AND s.status='active' ORDER BY s.created_at DESC LIMIT 1",new{organizationId});}catch(Exception ex){logger.LogError(ex,"Erro ao buscar plano atual. OrganizationId={OrganizationId}",organizationId);throw;}}
- public async Task CreateSubscriptionAsync(Guid organizationId,string planId){try{using var c=f.Create(); await c.ExecuteAsync("INSERT INTO valorapesquisa.subscriptions(organization_id,plan_id) SELECT @organizationId,id FROM valorapesquisa.plans WHERE code=@planId ON CONFLICT (organization_id) DO UPDATE SET plan_id=EXCLUDED.plan_id,status='active',updated_at=now()",new{organizationId,planId});}catch(Exception ex){logger.LogError(ex,"Erro ao criar assinatura. OrganizationId={OrganizationId} PlanId={PlanId}",organizationId,planId);throw;}}
+    public async Task<IReadOnlyList<PlanDto>> GetPublicPlansAsync()
+    {
+        try
+        {
+            using var connection = connections.Create();
+            var plans = await connection.QueryAsync<PlanRecord>("""
+                SELECT id AS Id, code AS Code, name AS Name, is_public AS IsPublic, is_active AS IsActive
+                FROM valorapesquisa.plans
+                WHERE is_public = true AND is_active = true
+                ORDER BY name
+                """);
+            var result = new List<PlanDto>();
+            foreach (var plan in plans) result.Add(await HydrateAsync(plan));
+            return result;
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Erro ao listar planos públicos.");
+            throw;
+        }
+    }
+
+    public async Task<PlanDto?> GetByIdAsync(string id)
+    {
+        using var connection = connections.Create();
+        var plan = await connection.QuerySingleOrDefaultAsync<PlanRecord>("""
+            SELECT id AS Id, code AS Code, name AS Name, is_public AS IsPublic, is_active AS IsActive
+            FROM valorapesquisa.plans WHERE code = @id
+            """, new { id });
+        return plan is null ? null : await HydrateAsync(plan);
+    }
+
+    private async Task<PlanDto> HydrateAsync(PlanRecord plan)
+    {
+        using var connection = connections.Create();
+        var limits = (await connection.QueryAsync<PlanLimitRecord>("""
+            SELECT limit_key AS LimitKey, limit_value AS LimitValue, period AS Period
+            FROM valorapesquisa.plan_limits WHERE plan_id = @planId
+            """, new { planId = plan.Id })).ToDictionary(x => x.LimitKey, x => x.LimitValue ?? -1);
+        var capabilities = (await connection.QueryAsync<PlanCapabilityRecord>("""
+            SELECT capability_key AS CapabilityKey, enabled AS Enabled
+            FROM valorapesquisa.plan_capabilities WHERE plan_id = @planId
+            """, new { planId = plan.Id })).ToDictionary(x => x.CapabilityKey, x => x.Enabled ? "enabled" : "disabled");
+        var displayOrder = plan.Code switch { "free" => 10, "professional" => 20, "enterprise" => 30, _ => 100 };
+        var badge = plan.Code switch { "free" => "Para começar", "professional" => "Mais escolhido", "enterprise" => "Sob medida", _ => "Plano" };
+        return new PlanDto(plan.Code, plan.Name, badge, plan.Code == "free" ? "Grátis" : "Sob consulta", null, displayOrder, limits, capabilities);
+    }
+
+    public async Task<string?> GetCurrentPlanIdAsync(Guid organizationId)
+    {
+        using var connection = connections.Create();
+        return await connection.ExecuteScalarAsync<string?>("""
+            SELECT p.code FROM valorapesquisa.subscriptions s
+            JOIN valorapesquisa.plans p ON p.id = s.plan_id
+            WHERE s.organization_id = @organizationId AND s.status = 'active' AND s.deleted_at IS NULL
+            ORDER BY s.created_at DESC LIMIT 1
+            """, new { organizationId });
+    }
+
+    public async Task CreateSubscriptionAsync(Guid organizationId, string planId)
+    {
+        using var connection = connections.Create();
+        await connection.ExecuteAsync("""
+            INSERT INTO valorapesquisa.subscriptions(organization_id, plan_id, status)
+            SELECT @organizationId, id, 'active' FROM valorapesquisa.plans WHERE code = @planId
+            ON CONFLICT (organization_id) WHERE deleted_at IS NULL
+            DO UPDATE SET plan_id = EXCLUDED.plan_id, status = 'active', updated_at = now()
+            """, new { organizationId, planId });
+    }
 }

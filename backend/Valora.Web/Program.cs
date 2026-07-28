@@ -1,6 +1,7 @@
 using Serilog;
 using Valora.Web.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Valora.Web.Services.Bff;
 
 var builder = WebApplication.CreateBuilder(args);

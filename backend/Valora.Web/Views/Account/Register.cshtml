@@ -1,3 +1,25 @@
-@{ ViewData["Title"] = "Criar conta"; }
-<section class="page-card auth-card" data-page="register-company-page"><p class="eyebrow">Onboarding B2B</p><h1>Criar conta da empresa</h1><p class="text-muted">Informe os dados do responsável para iniciar a assinatura Valora Insight™.</p><form class="needs-validation valora-form" novalidate><div class="row g-3"><div class="col-md-6"><label class="form-label">Nome do responsável</label><input class="form-control" name="name" required></div><div class="col-md-6"><label class="form-label">Nome da empresa</label><input class="form-control" name="companyName" required></div><div class="col-md-6"><label class="form-label">E-mail</label><input class="form-control" type="email" name="email" autocomplete="email" required></div><div class="col-md-6"><label class="form-label">Telefone opcional</label><input class="form-control" name="phone" autocomplete="tel"></div><div class="col-md-6"><label class="form-label">Senha</label><input class="form-control" type="password" name="password" autocomplete="new-password" minlength="8" required></div><div class="col-md-6"><label class="form-label">Confirmar senha</label><input class="form-control" type="password" name="confirmPassword" autocomplete="new-password" minlength="8" required></div></div><div class="form-check mt-3"><input class="form-check-input" type="checkbox" name="lgpd" id="lgpd" required><label class="form-check-label" for="lgpd">Aceito o tratamento dos dados conforme LGPD para criação da conta.</label></div><button class="btn btn-primary btn-lg mt-4" type="submit">Criar conta</button></form><div class="alert alert-danger d-none mt-3 error-state" role="alert"></div><div class="alert alert-success d-none mt-3 success-state"></div></section>
-@section Scripts { <script src="/js/pages/register-company-page.js"></script> }
+@{ ViewData["Title"] = "Criar conta"; Layout = "_AuthLayout"; }
+<section class="page-card auth-card" data-page="register-company-page">
+  <p class="eyebrow">Onboarding empresarial</p><h2>Criar conta da empresa</h2>
+  <p class="text-muted">Conclua as três etapas para iniciar sua jornada no Valora Insight™.</p>
+  <form class="needs-validation valora-form" novalidate>
+    <fieldset><legend>1. Empresa</legend><div class="row g-3">
+      <div class="col-md-6"><label class="form-label" for="cnpj">CNPJ</label><input id="cnpj" class="form-control" name="cnpj" inputmode="numeric" required></div>
+      <div class="col-md-6"><label class="form-label" for="phone">Telefone</label><input id="phone" class="form-control" name="phone" autocomplete="tel" required></div>
+      <div class="col-12"><label class="form-label" for="companyName">Razão social</label><input id="companyName" class="form-control" name="companyName" required></div>
+      <div class="col-12"><label class="form-label" for="tradeName">Nome fantasia</label><input id="tradeName" class="form-control" name="tradeName"></div>
+    </div></fieldset>
+    <fieldset class="mt-4"><legend>2. Administrador</legend><div class="row g-3">
+      <div class="col-12"><label class="form-label" for="administratorName">Nome</label><input id="administratorName" class="form-control" name="administratorName" autocomplete="name" required></div>
+      <div class="col-12"><label class="form-label" for="administratorEmail">E-mail corporativo</label><input id="administratorEmail" class="form-control" type="email" name="administratorEmail" autocomplete="email" required></div>
+      <div class="col-md-6"><label class="form-label" for="password">Senha</label><input id="password" class="form-control" type="password" name="password" autocomplete="new-password" minlength="12" required></div>
+      <div class="col-md-6"><label class="form-label" for="confirmPassword">Confirmar senha</label><input id="confirmPassword" class="form-control" type="password" name="confirmPassword" autocomplete="new-password" minlength="12" required></div>
+    </div></fieldset>
+    <fieldset class="mt-4"><legend>3. Configuração e consentimentos</legend><input type="hidden" name="language" value="pt-BR"><input type="hidden" name="timeZone" value="America/Belem">
+      <div class="form-check"><input class="form-check-input" type="checkbox" name="terms" id="terms" required><label class="form-check-label" for="terms">Li e aceito os termos de uso.</label></div>
+      <div class="form-check mt-2"><input class="form-check-input" type="checkbox" name="privacy" id="privacy" required><label class="form-check-label" for="privacy">Li e aceito a política de privacidade.</label></div>
+    </fieldset>
+    <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">Criar conta segura</button>
+  </form><div class="alert alert-danger d-none mt-3 error-state" role="alert" tabindex="-1"></div>
+</section>
+@section Scripts { <script src="~/js/pages/register-company-page.js" asp-append-version="true" defer></script> }

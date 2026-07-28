@@ -1,0 +1,32 @@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{ var csrf = Antiforgery.GetAndStoreTokens(Context).RequestToken; }
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="@csrf">
+  <title>@ViewData["Title"] — Valora Insight™</title>
+  <link rel="stylesheet" href="~/lib/bootstrap/bootstrap.min.css" asp-append-version="true">
+  <link rel="stylesheet" href="~/css/valora-design-system.css" asp-append-version="true">
+  <link rel="stylesheet" href="~/css/valora-auth.css" asp-append-version="true">
+</head>
+<body class="valora-auth">
+  <a class="skip-link" href="#auth-content">Ir para o formulário</a>
+  <main class="auth-shell" id="auth-content">
+    <aside class="auth-story" aria-label="Sobre o Valora Insight">
+      <a class="auth-brand" href="/" aria-label="Valora Insight — página inicial"><span aria-hidden="true">V</span> Valora Insight™</a>
+      <div>
+        <p class="eyebrow">Governança que gera evolução</p>
+        <h1>Decisões organizacionais com clareza, segurança e rastreabilidade.</h1>
+        <p>Transforme diagnóstico em uma jornada objetiva pelas dimensões de estratégia, liderança, pessoas, processos e resultados.</p>
+        <img src="~/img/illustrations/auth-insight.svg" width="560" height="360" alt="Painel abstrato representando as cinco dimensões do diagnóstico" asp-append-version="true">
+      </div>
+      <ul class="auth-trust" aria-label="Compromissos de confiança"><li>Privacidade e LGPD</li><li>Segurança por padrão</li><li>Trilha auditável</li></ul>
+    </aside>
+    <section class="auth-content">@RenderBody()<footer><a href="/privacy">Privacidade</a><a href="/PublicPages/Contact">Suporte</a></footer></section>
+  </main>
+  <script src="~/js/api/auth-api.js" asp-append-version="true" defer></script>
+  @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

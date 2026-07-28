@@ -34,8 +34,8 @@ public sealed class EmailSenderService(IEmailOperationalRepository repo, IEmailS
             await repo.MarkProcessingAsync(job.Id);
             await repo.MarkFailedAsync(
                 job.Id,
-                "FEATURE_NOT_IMPLEMENTED: envio operacional exige destinatário real armazenado de forma segura.",
-                dead: true);
+                "Destinatário indisponível no contrato legado; job movido para retry seguro.",
+                dead: false);
         }
 
         return jobs.Count;

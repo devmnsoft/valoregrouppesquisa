@@ -1,5 +1,4 @@
 (function () {
-  const tokenKey = 'valora.jwt';
   const defaultTimeout = 20000;
 
   function apiBaseUrl() {
@@ -13,24 +12,11 @@
     return 'web-' + Date.now() + '-' + Math.random().toString(16).slice(2);
   }
 
-  function getToken() {
-    return window.Session && typeof window.Session.token === 'function'
-      ? window.Session.token()
-      : sessionStorage.getItem(tokenKey);
-  }
+  function getToken() { return null; }
 
-  function setToken(token) {
-    if (!token) return;
-    sessionStorage.setItem(tokenKey, token);
-  }
+  function setToken() { }
 
-  function clearToken() {
-    if (window.Session && typeof window.Session.clear === 'function') {
-      window.Session.clear();
-      return;
-    }
-    sessionStorage.removeItem(tokenKey);
-  }
+  function clearToken() { if (window.Session) window.Session.clear(); }
 
   function normalizeApiError(xhr, correlationId) {
     const body = xhr && xhr.responseJSON && typeof xhr.responseJSON === 'object' ? xhr.responseJSON : {};
@@ -74,8 +60,6 @@
   function requestJson(method, path, data, options) {
     const correlationId = generateCorrelationId();
     const headers = { 'X-Correlation-Id': correlationId };
-    const token = getToken();
-    if (token) headers.Authorization = 'Bearer ' + token;
 
     return $.ajax({
       url: apiBaseUrl() + path,
@@ -84,6 +68,7 @@
       timeout: (window.ValoraWebConfig && window.ValoraWebConfig.API_TIMEOUT_MS) || defaultTimeout,
       contentType: 'application/json; charset=utf-8',
       dataType: (options && options.dataType) || 'json',
+      xhrFields: { withCredentials: true },
       data: data === undefined || data === null ? undefined : JSON.stringify(data)
     }).catch(function (xhr) {
       throw normalizeApiError(xhr, correlationId);
@@ -93,8 +78,6 @@
   function requestBinary(method, path, data) {
     const correlationId = generateCorrelationId();
     const headers = { 'X-Correlation-Id': correlationId };
-    const token = getToken();
-    if (token) headers.Authorization = 'Bearer ' + token;
 
     return $.ajax({
       url: apiBaseUrl() + path,
@@ -103,7 +86,7 @@
       timeout: (window.ValoraWebConfig && window.ValoraWebConfig.API_TIMEOUT_MS) || defaultTimeout,
       contentType: data ? 'application/json; charset=utf-8' : false,
       data: data ? JSON.stringify(data) : undefined,
-      xhrFields: { responseType: 'blob' }
+      xhrFields: { responseType: 'blob', withCredentials: true }
     }).catch(function (xhr) {
       throw normalizeApiError(xhr, correlationId);
     });

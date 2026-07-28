@@ -1,1 +1,2 @@
-window.Session={tokenKey:'valora.jwt',save:r=>{if(r&&r.token)sessionStorage.setItem('valora.jwt',r.token);sessionStorage.setItem('valora.user',JSON.stringify({email:r?.email||'',name:r?.name||''}));},token:()=>sessionStorage.getItem('valora.jwt'),clear:()=>{sessionStorage.removeItem('valora.jwt');sessionStorage.removeItem('valora.user');},isAuthenticated:()=>!!sessionStorage.getItem('valora.jwt')};
+// Authentication state is owned by the server-side BFF cookie; JavaScript never receives tokens.
+window.Session={save:()=>{},token:()=>null,clear:()=>{},isAuthenticated:()=>document.body.dataset.authenticated==='true'};

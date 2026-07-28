@@ -7,8 +7,8 @@
   async function loadUsers(){ const host = moduleHost(); if(!host.length) return; if(window.Guards && !Guards.requireAuth({redirectTo:'/Account/Login'})) return; host.find('[data-error],[data-gap-card]').addClass('d-none'); try { if(window.Loading) Loading.show('Carregando módulo...'); const settled = await Promise.allSettled([function(){return UsersApi.list();}].map(function(fn){ return fn(); })); const items = []; const gaps = []; settled.forEach(function(result){ if(result.status === 'fulfilled') items.push.apply(items, normalizeItems(result.value)); else gaps.push(result.reason || {}); }); renderModuleCards(items); renderModuleTable(items); renderUsersTable(items); if(gaps.length){ host.find('[data-gap-card]').removeClass('d-none').attr('data-gap-controlled','true').text('Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.'); } } catch(error) { host.find('[data-error]').removeClass('d-none').text('Não foi possível carregar este módulo com segurança.'); } finally { if(window.Loading) Loading.hide(); } }
   function renderUsersTable(items){ renderModuleCards(normalizeItems(items)); }
   function openUserModal(id){ if(window.Toast) Toast.info('Ação disponível para o item selecionado.'); }
-  async function saveUser(payload){ if(window.Toast) Toast.success('Solicitação enviada para processamento.'); return payload || { ok: true }; }
-  async function toggleUserStatus(payload){ if(window.Toast) Toast.success('Solicitação enviada para processamento.'); return payload || { ok: true }; }
+  async function saveUser(){ throw new Error('Operação indisponível sem confirmação da API.'); }
+  async function toggleUserStatus(){ throw new Error('Operação indisponível sem confirmação da API.'); }
   window.loadUsers = loadUsers;
   $(function(){ moduleHost().find('[data-refresh]').on('click', loadUsers); loadUsers(); });
 }());

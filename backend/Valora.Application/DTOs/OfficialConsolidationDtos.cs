@@ -10,7 +10,7 @@ public sealed record SurveyLinkDto(Guid Id,Guid SurveyId,string PublicUrl,string
 public sealed record ResponseDto(Guid Id,Guid OrganizationId,Guid SurveyId,Guid FormId,string? ParticipantName,string? ParticipantEmail,string Status,DateTimeOffset? CompletedAt);
 public sealed record AuditEventDto(Guid Id,Guid? OrganizationId,Guid? UserId,string Action,string Entity,Guid? EntityId,string CorrelationId,DateTimeOffset CreatedAt);
 public sealed record ModuleDto(Guid Id,string Code,string Name,string? Description,string Category,string Status,int DisplayOrder,string? MinimumPlanCode);
-public sealed record SubscriptionDto(Guid Id,Guid OrganizationId,Guid PlanId,string Status,string BillingStatus,DateTimeOffset StartsAt,DateTimeOffset? ExpiresAt);
+public sealed record SubscriptionDto(Guid Id,Guid OrganizationId,Guid PlanId,string Status,DateTimeOffset StartsAt,DateTimeOffset? EndsAt);
 public sealed record DashboardMetricsDto(int Organizations,int Users,int Surveys,int Responses,int ActiveSubscriptions);
 public sealed record MenuItemDto(string Code,string Label,string Url,string Icon,int Order,IReadOnlyList<MenuItemDto> Children);
 public sealed record EntitlementDto(Guid OrganizationId,string PlanCode,IReadOnlyList<string> EnabledModules,IReadOnlyDictionary<string,int> Limits);

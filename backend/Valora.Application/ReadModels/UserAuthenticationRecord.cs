@@ -1,0 +1,15 @@
+namespace Valora.Application.ReadModels;
+
+public sealed record UserAuthenticationRecord(
+    Guid Id,
+    Guid OrganizationId,
+    string Name,
+    string Email,
+    string PasswordHash,
+    string Status,
+    string? Phone,
+    string RoleCodesCsv)
+{
+    public IReadOnlyList<string> RoleCodes => RoleCodesCsv
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+}

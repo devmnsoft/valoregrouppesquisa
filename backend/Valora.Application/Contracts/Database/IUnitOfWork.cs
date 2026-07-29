@@ -10,8 +10,3 @@ public interface IUnitOfWork : IAsyncDisposable
     Task CommitAsync();
     Task RollbackAsync();
 }
-
-public interface IDbTransactionFactory
-{
-    Task<IUnitOfWork> BeginAsync(CancellationToken cancellationToken = default);
-}

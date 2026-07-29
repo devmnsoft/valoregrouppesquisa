@@ -1,0 +1,12 @@
+{
+  "projects": [
+    "Valora.Api",
+    "Valora.Application",
+    "Valora.Domain",
+    "Valora.Infrastructure",
+    "Valora.Web"
+  ],
+  "filesScanned": 512,
+  "violationCount": 0,
+  "violations": []
+}

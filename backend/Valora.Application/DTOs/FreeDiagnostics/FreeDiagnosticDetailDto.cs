@@ -1,0 +1,3 @@
+namespace Valora.Application.DTOs.FreeDiagnostics;
+
+public sealed record FreeDiagnosticDetailDto(Guid ResponseId,Guid? OrganizationId,string? OrganizationName,string? SurveyTitle,string? ParticipantName,string? ParticipantEmail,string? EmailStatus,string? CertificateStatus,string? MaturityLevel,DateTime? CreatedAt,DateTime? CompletedAt,int EmailAttempts,int ResendCount,DateTime? LastResendAt,DateTime? ReviewedAt,string? ReviewNote,string? LastError,string? ResultUrl,string? CertificateUrl,string? ValidationCode,string? ValidationUrl,IReadOnlyList<object> RecentEmails,IReadOnlyList<object> RecentAuditEvents);

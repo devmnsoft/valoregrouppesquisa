@@ -1,5 +1,12 @@
-using System;
-using System.IO;
+using Valora.Tests.Support;
 using Xunit;
+
 [Trait("Category", "Unit")]
-public sealed class FreeDiagnosticsCertificateOperationsTests { [Fact] public void Certificate_regeneration_does_not_change_result(){ var s=File.ReadAllText(Path.Combine(AppContext.BaseDirectory,"../../../../../FREE_SURVEY_CERTIFICATE_OPERATIONS.md")); Assert.Contains("não altera resultado original",s); } }
+public sealed class FreeDiagnosticsCertificateOperationsTests
+{
+    [Fact]
+    public void CertificateRegenerationDoesNotChangeResult()
+    {
+        Assert.Contains("não altera resultado original", File.ReadAllText(RepositoryPaths.RootFile("FREE_SURVEY_CERTIFICATE_OPERATIONS.md")));
+    }
+}

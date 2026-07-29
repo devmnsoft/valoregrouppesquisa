@@ -1,16 +1,15 @@
 using System.Text.RegularExpressions;
+using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
 [Trait("Category", "Architecture")]
 public sealed class ArchitectureFoundationTests
 {
-    private static readonly string Root = LocateRepositoryRoot();
-
     [Fact]
     public void OfficialProjectsTargetNet10()
     {
-        foreach (var project in Directory.EnumerateFiles(Path.Combine(Root, "backend"), "*.csproj", SearchOption.AllDirectories))
+        foreach (var project in Directory.EnumerateFiles(RepositoryPaths.BackendRoot, "*.csproj", SearchOption.AllDirectories))
         {
             var text = File.ReadAllText(project);
             Assert.Contains("<TargetFramework>net10.0</TargetFramework>", text);
@@ -21,16 +20,20 @@ public sealed class ArchitectureFoundationTests
     [Fact]
     public void WebProjectDoesNotReferenceDatabasePackages()
     {
-        var webProject = File.ReadAllText(Path.Combine(Root, "backend", "Valora.Web", "Valora.Web.csproj"));
+        var webProject = File.ReadAllText(RepositoryPaths.WebFile("Valora.Web.csproj"));
         Assert.DoesNotContain("Npgsql", webProject, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Dapper", webProject, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
-    public void BackendOfficialDoesNotReferenceFirebase()
+    public void BackendProjectsDoNotDependOnFirebaseRuntime()
     {
-        var officialFiles = Directory.EnumerateFiles(Path.Combine(Root, "backend"), "*.*", SearchOption.AllDirectories)
-            .Where(path => !path.Contains("bin") && !path.Contains("obj") && !path.Contains("Valora.Tests"));
+        var productionRoots = new[] { RepositoryPaths.ApiRoot, RepositoryPaths.ApplicationRoot, RepositoryPaths.DomainRoot, RepositoryPaths.InfrastructureRoot, RepositoryPaths.WebRoot };
+        var runtimeExtensions = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { ".cs", ".csproj", ".js", ".json" };
+        var officialFiles = productionRoots.SelectMany(root => Directory.EnumerateFiles(root, "*.*", SearchOption.AllDirectories))
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
+                && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
+                && runtimeExtensions.Contains(Path.GetExtension(path)));
         foreach (var file in officialFiles)
         {
             Assert.DoesNotContain("Firebase", File.ReadAllText(file), StringComparison.OrdinalIgnoreCase);
@@ -40,22 +43,14 @@ public sealed class ArchitectureFoundationTests
     [Fact]
     public void PublicCSharpFilesContainSinglePrimaryPublicType()
     {
-        var files = Directory.EnumerateFiles(Path.Combine(Root, "backend"), "*.cs", SearchOption.AllDirectories)
-            .Where(path => !path.Contains("bin") && !path.Contains("obj"));
+        var productionRoots = new[] { RepositoryPaths.ApiRoot, RepositoryPaths.ApplicationRoot, RepositoryPaths.DomainRoot, RepositoryPaths.InfrastructureRoot, RepositoryPaths.WebRoot };
+        var files = productionRoots.SelectMany(root => Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
+                && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"));
         var publicTypePattern = new Regex(@"^public\s+(?:sealed\s+|abstract\s+|static\s+|partial\s+)*\b(class|record|interface|enum)\b", RegexOptions.Multiline);
         foreach (var file in files)
         {
             Assert.True(publicTypePattern.Matches(File.ReadAllText(file)).Count <= 1, $"Multiple public primary types in {file}");
         }
-    }
-
-    private static string LocateRepositoryRoot()
-    {
-        var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "package.json")))
-        {
-            directory = directory.Parent;
-        }
-        return directory?.FullName ?? throw new InvalidOperationException("Repository root not found.");
     }
 }

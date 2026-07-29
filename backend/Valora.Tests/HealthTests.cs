@@ -1,3 +1,13 @@
 using Xunit;
 
-namespace Valora.Tests; public class HealthTests { [Fact] public void Health_contract_has_ok_field() { Assert.True(true); } }
+namespace Valora.Tests;
+
+[Trait("Category", "BffIntegration")]
+public sealed class HealthTests
+{
+    [Fact]
+    public void WebHealthControllerExists()
+    {
+        Assert.True(File.Exists(Support.RepositoryPaths.WebFile("Controllers", "WebHealthController.cs")));
+    }
+}

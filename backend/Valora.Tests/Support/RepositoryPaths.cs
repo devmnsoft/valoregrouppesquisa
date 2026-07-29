@@ -16,6 +16,13 @@ public static class RepositoryPaths
 
     public static string BackendFile(params string[] segments) => SafeCombine(BackendRoot, segments);
     public static string RepositoryFile(params string[] segments) => SafeCombine(RepositoryRoot, segments);
+    public static string ApiFile(params string[] segments) => SafeCombine(ApiRoot, segments);
+    public static string ApplicationFile(params string[] segments) => SafeCombine(ApplicationRoot, segments);
+    public static string DomainFile(params string[] segments) => SafeCombine(DomainRoot, segments);
+    public static string InfrastructureFile(params string[] segments) => SafeCombine(InfrastructureRoot, segments);
+    public static string WebFile(params string[] segments) => SafeCombine(WebRoot, segments);
+    public static string TestsFile(params string[] segments) => SafeCombine(TestsRoot, segments);
+    public static string RootFile(params string[] segments) => SafeCombine(RepositoryRoot, segments);
     public static string MigrationFile(string fileName) => SafeCombine(MigrationsDirectory, [fileName]);
 
     private static string ResolveRepositoryRoot()

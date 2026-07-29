@@ -3,7 +3,7 @@ using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
-[Trait("Category", "StaticContract")]
+[Trait("Category", "DatabaseContract")]
 public sealed class DatabaseScriptCompletoTests
 {
     [Fact]

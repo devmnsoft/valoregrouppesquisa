@@ -1,3 +1,9 @@
+using Valora.Tests.Support;
 using Xunit;
+
 [Trait("Category", "Unit")]
-public class CommunicationEndpointContractTests { [Fact] public void Sprint46_contract_is_documented(){ Assert.True(System.IO.File.Exists(System.IO.Path.Combine(System.AppContext.BaseDirectory,"../../../../SPRINT_46_FREE_DIAGNOSTIC_E2E_AUDIT.md")) || true); } }
+public sealed class CommunicationEndpointContractTests
+{
+    [Fact]
+    public void Sprint46ContractIsDocumented() => Assert.True(File.Exists(RepositoryPaths.RootFile("SPRINT_46_FREE_DIAGNOSTIC_E2E_AUDIT.md")));
+}

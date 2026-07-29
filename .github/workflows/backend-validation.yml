@@ -45,29 +45,56 @@ jobs:
         run: dotnet build Valora.sln --configuration Release --no-restore
 
       - name: Unit tests
-        run: dotnet test Valora.sln --configuration Release --no-build --filter "Category=Unit" --logger "trx;LogFileName=unit-tests.trx"
+        run: tools/ci/run-filtered-tests.sh Unit unit-tests.trx
 
       - name: Architecture tests
-        run: dotnet test Valora.sln --configuration Release --no-build --filter "Category=Architecture|Category=StaticContract" --logger "trx;LogFileName=architecture-tests.trx"
+        run: tools/ci/run-filtered-tests.sh Architecture architecture-tests.trx
 
-      - name: Apply canonical database twice
+      - name: Static contract tests
+        run: tools/ci/run-filtered-tests.sh StaticContract static-contract-tests.trx
+
+      - name: Apply canonical database — first
+        env:
+          PGPASSWORD: valora
+        run: psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/banco_completo.sql | tee database-first.log
+
+      - name: Apply canonical database — second
+        env:
+          PGPASSWORD: valora
+        run: psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/banco_completo.sql | tee database-second.log
+
+      - name: Export schema
+        env:
+          PGPASSWORD: valora
+        run: psql -h localhost -U valora -d valorapesquisa_ci -f tools/database/export-schema-contract.sql > database-schema-canonical.log
+
+      - name: Apply migrations
+        env:
+          PGPASSWORD: valora
+          VALORA_TEST_POSTGRES_CONNECTION: postgresql://valora:valora@localhost:5432/valorapesquisa_ci
+        run: tools/database/apply-migrations.sh migrations.log
+
+      - name: Verify schema
         env:
           PGPASSWORD: valora
         run: |
-          psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/banco_completo.sql | tee database-first.log
-          psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/banco_completo.sql | tee database-second.log
-          for migration in database/postgresql/migrations/*.sql; do
-            psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f "$migration" | tee -a migrations.log
-          done
+          psql -h localhost -U valora -d valorapesquisa_ci -f tools/database/export-schema-contract.sql > database-schema-migrated.log
+          python3 tools/database/compare-schema-contract.py database-schema-canonical.log database-schema-migrated.log
+
+      - name: Database contract tests
+        run: tools/ci/run-filtered-tests.sh DatabaseContract database-contract-tests.trx
 
       - name: Integration tests
         env:
           ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
           VALORA_TEST_POSTGRES_CONNECTION: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
-        run: dotnet test Valora.sln --configuration Release --no-build --filter "Category=DatabaseContract|Category=Integration" --logger "trx;LogFileName=integration-tests.trx"
+        run: tools/ci/run-filtered-tests.sh Integration integration-tests.trx
 
-      - name: Phase 2G.1 gate
-        run: node tools/validation/validate-phase2g1-registration.js
+      - name: BFF integration tests
+        run: tools/ci/run-filtered-tests.sh BffIntegration bff-integration-tests.trx
+
+      - name: Phase 2H.2 validation
+        run: node tools/validation/validate-phase2h2.js
 
       - name: Format check
         run: dotnet format Valora.sln --verify-no-changes
@@ -81,6 +108,6 @@ jobs:
             backend/**/TestResults/*.trx
             backend/database-*.log
             backend/migrations.log
-            backend/database-schema.log
+            backend/database-schema-*.log
             backend/playwright-report/**
           if-no-files-found: warn

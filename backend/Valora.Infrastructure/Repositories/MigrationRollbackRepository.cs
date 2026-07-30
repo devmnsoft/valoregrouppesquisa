@@ -1,11 +1,28 @@
-using System.Collections.Concurrent;
 using Dapper;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
 
 namespace Valora.Infrastructure.Repositories;
 
-internal static class MigrationImportStore
-{ public static readonly ConcurrentDictionary<Guid,MigrationBatchDto> Batches=new(); public static readonly ConcurrentDictionary<Guid,MigrationSourceFileDto> Files=new(); public static readonly ConcurrentDictionary<Guid,List<MigrationRecordDto>> Records=new(); public static readonly ConcurrentDictionary<Guid,List<MigrationConflictDto>> Conflicts=new(); public static readonly ConcurrentDictionary<Guid,List<MigrationMappingDto>> Mappings=new(); public static readonly ConcurrentDictionary<Guid,List<MigrationRollbackItemDto>> Rollbacks=new(); }
+public sealed class MigrationRollbackRepository(IDbConnectionFactory connections) : IMigrationRollbackRepository
+{
+    public async Task AddAsync(MigrationRollbackItemDto item, CancellationToken ct = default)
+    {
+        const string sql = "INSERT INTO valorapesquisa.rollback_records(id,batch_id,target_entity,target_id,operation,before_json,after_json,status,rolled_back_at) VALUES (@Id,@BatchId,@TargetEntity,@TargetId,@Operation,CAST(@BeforeMaskedJson AS jsonb),CAST(@AfterMaskedJson AS jsonb),@Status,@RolledBackAt)";
+        using var connection = connections.Create();
+        await connection.ExecuteAsync(new CommandDefinition(sql, item, commandTimeout: 30, cancellationToken: ct));
+    }
 
-public sealed class MigrationRollbackRepository : IMigrationRollbackRepository { public Task AddAsync(MigrationRollbackItemDto i,CancellationToken ct=default){const string sql="INSERT INTO valorapesquisa.migration_rollback_items(batch_id,target_entity,target_id,operation,before_json,after_json,status) VALUES (@BatchId,@TargetEntity,@TargetId,@Operation,CAST(@BeforeMaskedJson AS jsonb),CAST(@AfterMaskedJson AS jsonb),@Status)"; _=new CommandDefinition(sql,i,cancellationToken:ct); MigrationImportStore.Rollbacks.AddOrUpdate(i.BatchId,_=>new(){i},(_,l)=>{l.Add(i);return l;}); return Task.CompletedTask;} public Task<IReadOnlyList<MigrationRollbackItemDto>> ListByBatchAsync(Guid batchId,CancellationToken ct=default)=>Task.FromResult((IReadOnlyList<MigrationRollbackItemDto>)MigrationImportStore.Rollbacks.GetValueOrDefault(batchId,new()).ToList()); public Task MarkRolledBackAsync(Guid id,CancellationToken ct=default){foreach(var kv in MigrationImportStore.Rollbacks){var ix=kv.Value.FindIndex(x=>x.Id==id); if(ix>=0) kv.Value[ix]=kv.Value[ix] with{Status="rolled_back",RolledBackAt=DateTime.UtcNow};} return Task.CompletedTask;} }
+    public async Task<IReadOnlyList<MigrationRollbackItemDto>> ListByBatchAsync(Guid batchId, CancellationToken ct = default)
+    {
+        const string sql = "SELECT id,batch_id AS BatchId,target_entity AS TargetEntity,target_id AS TargetId,operation,before_json::text AS BeforeMaskedJson,after_json::text AS AfterMaskedJson,status,rolled_back_at AS RolledBackAt FROM valorapesquisa.rollback_records WHERE batch_id=@batchId ORDER BY created_at";
+        using var connection = connections.Create();
+        return (await connection.QueryAsync<MigrationRollbackItemDto>(new CommandDefinition(sql, new { batchId }, commandTimeout: 30, cancellationToken: ct))).AsList();
+    }
+
+    public async Task MarkRolledBackAsync(Guid id, CancellationToken ct = default)
+    {
+        using var connection = connections.Create();
+        await connection.ExecuteAsync(new CommandDefinition("UPDATE valorapesquisa.rollback_records SET status='rolled_back',rolled_back_at=now(),updated_at=now() WHERE id=@id", new { id }, commandTimeout: 30, cancellationToken: ct));
+    }
+}

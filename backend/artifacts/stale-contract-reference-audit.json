@@ -1,0 +1,7 @@
+[
+  {"sourceFile":"backend/Valora.Tests/PrivacyRequestProtocolContractTests.cs","obsoleteReference":"Valora.Application/DTOs/OperationalDtos.cs","replacement":"PrivacyRequestDto runtime reflection","testCategory":"Unit","status":"replaced"},
+  {"sourceFile":"backend/Valora.Tests/PrivacyRequestProtocolContractTests.cs","obsoleteReference":"database/postgresql/050_reports_certificates_exports_lgpd_email.sql","replacement":"PostgreSQL catalog contract","testCategory":"DatabaseContract","status":"replaced"},
+  {"sourceFile":"backend/Valora.Tests/OperationalStaticContractTests.cs","obsoleteReference":"Valora.Application/DTOs/OperationalDtos.cs","replacement":"Valora.Application/DTOs/**/*.cs","testCategory":"StaticContract","status":"replaced"},
+  {"sourceFile":"backend/Valora.Tests/PostgreSqlCanonicalScriptTests.cs","obsoleteReference":"database/postgresql/migrations/20260801_007_schema_convergence_and_registration.sql","replacement":"database/postgresql/script_completo.sql","testCategory":"StaticContract","status":"replaced"},
+  {"sourceFile":"backend/tools/validation/validate-backend-official-migration-import.js","obsoleteReference":"Valora.Application/DTOs/MigrationDtos.cs","replacement":"individual migration DTO files","testCategory":"StaticContract","status":"replaced"}
+]

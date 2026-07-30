@@ -1,113 +1,163 @@
-name: Backend ASP.NET Core validation
+name: Phase 2K.3 validation
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
 jobs:
-  backend:
-    name: Restore, build, test and validate PostgreSQL
+  repository-boundaries:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: valora
-          POSTGRES_PASSWORD: valora
-          POSTGRES_DB: valorapesquisa_ci
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U valora -d valorapesquisa_ci"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     steps:
       - uses: actions/checkout@v4
+      - run: test "$(find backend -name '*.sln' -print)" = backend/Valora.sln
+      - run: test "$(find backend/database/postgresql -name '*.sql' -print)" = backend/database/postgresql/script_completo.sql
 
-      - name: Setup .NET 10
-        uses: actions/setup-dotnet@v4
-        with:
-          global-json-file: backend/global.json
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { global-json-file: backend/global.json }
+      - run: dotnet restore Valora.sln
+        working-directory: backend
 
-      - name: Restore
-        run: dotnet restore Valora.sln
+  build:
+    needs: restore
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { global-json-file: backend/global.json }
+      - run: dotnet build Valora.sln -c Release
+        working-directory: backend
 
-      - name: Build
-        run: dotnet build Valora.sln --configuration Release --no-restore
+  unit-tests:
+    needs: build
+    uses: ./.github/workflows/run-backend-test-category.yml
+    with: { category: Unit, artifact: unit-tests }
+  architecture-tests:
+    needs: build
+    uses: ./.github/workflows/run-backend-test-category.yml
+    with: { category: Architecture, artifact: architecture-tests }
+  static-contract-tests:
+    needs: build
+    uses: ./.github/workflows/run-backend-test-category.yml
+    with: { category: StaticContract, artifact: static-contract-tests }
 
-      - name: Unit tests
-        run: tools/ci/run-filtered-tests.sh Unit unit-tests.trx
+  postgres-15-clean:
+    uses: ./.github/workflows/run-postgres-contract.yml
+    with: { postgres-version: '15', scenario: clean, executions: 1 }
+  postgres-15-rerun:
+    uses: ./.github/workflows/run-postgres-contract.yml
+    with: { postgres-version: '15', scenario: clean, executions: 3 }
+  postgres-15-partial:
+    uses: ./.github/workflows/run-postgres-contract.yml
+    with: { postgres-version: '15', scenario: partial, executions: 3 }
+  postgres-16-clean:
+    uses: ./.github/workflows/run-postgres-contract.yml
+    with: { postgres-version: '16', scenario: clean, executions: 1 }
+  postgres-16-rerun:
+    uses: ./.github/workflows/run-postgres-contract.yml
+    with: { postgres-version: '16', scenario: clean, executions: 3 }
+  postgres-16-revoked-at:
+    uses: ./.github/workflows/run-postgres-contract.yml
+    with: { postgres-version: '16', scenario: revoked-at, executions: 3 }
+  postgres-16-legacy:
+    uses: ./.github/workflows/run-postgres-contract.yml
+    with: { postgres-version: '16', scenario: legacy, executions: 3 }
 
-      - name: Architecture tests
-        run: tools/ci/run-filtered-tests.sh Architecture architecture-tests.trx
+  database-contract-tests:
+    needs: [postgres-15-rerun, postgres-16-rerun]
+    uses: ./.github/workflows/run-backend-test-category.yml
+    with: { category: DatabaseContract, artifact: database-contract-tests, postgres: true }
+  integration-tests:
+    needs: database-contract-tests
+    uses: ./.github/workflows/run-backend-test-category.yml
+    with: { category: Integration, artifact: integration-tests, postgres: true }
+  api-integration-tests:
+    needs: integration-tests
+    uses: ./.github/workflows/run-backend-test-category.yml
+    with: { category: ApiIntegration, artifact: api-integration-tests, postgres: true }
+  bff-integration-tests:
+    needs: integration-tests
+    uses: ./.github/workflows/run-backend-test-category.yml
+    with: { category: BffIntegration, artifact: bff-integration-tests, postgres: true }
 
-      - name: Static contract tests
-        run: tools/ci/run-filtered-tests.sh StaticContract static-contract-tests.trx
+  publish-api:
+    needs: build
+    uses: ./.github/workflows/publish-dotnet-project.yml
+    with: { project: Valora.Api, artifact: publish-api }
+  publish-web:
+    needs: build
+    uses: ./.github/workflows/publish-dotnet-project.yml
+    with: { project: Valora.Web, artifact: publish-web }
 
-      - name: Apply canonical database — first
-        env:
-          PGPASSWORD: valora
-        run: psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/script_completo.sql | tee database-first.log
-
-      - name: Apply canonical database — second
-        env:
-          PGPASSWORD: valora
-        run: psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/script_completo.sql | tee database-second.log
-
-      - name: Export schema
-        env:
-          PGPASSWORD: valora
-        run: psql -h localhost -U valora -d valorapesquisa_ci -f tools/database/export-schema-contract.sql > database-schema-canonical.log
-
-      - name: Apply migrations
-        env:
-          PGPASSWORD: valora
-          VALORA_TEST_POSTGRES_CONNECTION: postgresql://valora:valora@localhost:5432/valorapesquisa_ci
-        run: psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/script_completo.sql | tee migrations.log
-
-      - name: Verify schema
-        env:
-          PGPASSWORD: valora
-        run: |
-          psql -h localhost -U valora -d valorapesquisa_ci -f tools/database/export-schema-contract.sql > database-schema-migrated.log
-          python3 tools/database/compare-schema-contract.py database-schema-canonical.log database-schema-migrated.log
-
-      - name: Database contract tests
-        run: tools/ci/run-filtered-tests.sh DatabaseContract database-contract-tests.trx
-
-      - name: Integration tests
-        env:
-          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
-          VALORA_TEST_POSTGRES_CONNECTION: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
-        run: tools/ci/run-filtered-tests.sh Integration integration-tests.trx
-
-      - name: BFF integration tests
-        run: tools/ci/run-filtered-tests.sh BffIntegration bff-integration-tests.trx
-
-      - name: Phase 2H.2 validation
-        run: node tools/validation/validate-phase2k.js
-
-      - name: Format check
-        run: dotnet format Valora.sln --verify-no-changes
-
-      - name: Publish validation evidence
-        if: always()
+  playwright:
+    needs: [publish-api, publish-web, api-integration-tests, bff-integration-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - if: always()
         uses: actions/upload-artifact@v4
-        with:
-          name: backend-validation-evidence
-          path: |
-            backend/**/TestResults/*.trx
-            backend/database-*.log
-            backend/migrations.log
-            backend/database-schema-*.log
-            backend/playwright-report/**
-          if-no-files-found: warn
+        with: { name: playwright-report, path: playwright-report, if-no-files-found: error }
+
+  accessibility:
+    needs: playwright
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test --config=playwright.e2e.config.js --grep "axe|accessibility|WCAG"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: axe-report, path: axe-report, if-no-files-found: error }
+
+  format-check:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { global-json-file: backend/global.json }
+      - run: dotnet format Valora.sln --verify-no-changes 2>&1 | tee artifacts/format.log
+        working-directory: backend
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: format, path: backend/artifacts/format.log, if-no-files-found: error }
+
+  phase-validation:
+    needs: [repository-boundaries, static-contract-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node tools/validation/validate-phase2k3.js
+        working-directory: backend
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: phase2k3-validation, path: backend/artifacts/phase2k3-validation.json, if-no-files-found: error }
+
+  release-gate:
+    if: always()
+    needs: [repository-boundaries, restore, build, unit-tests, architecture-tests, static-contract-tests, postgres-15-clean, postgres-15-rerun, postgres-15-partial, postgres-16-clean, postgres-16-rerun, postgres-16-revoked-at, postgres-16-legacy, database-contract-tests, integration-tests, api-integration-tests, bff-integration-tests, publish-api, publish-web, playwright, accessibility, format-check, phase-validation]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every Phase 2K.3 gate
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: test "$(echo "$RESULTS" | jq -r '[.[].result] | all(. == "success")')" = true

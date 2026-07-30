@@ -1,0 +1,123 @@
+{
+  "phase": "2K.3",
+  "checkedAt": "2026-07-30T22:09:45.846Z",
+  "status": "failed",
+  "checks": 12,
+  "failures": [
+    {
+      "rule": "typed-contract",
+      "file": "backend/Valora.Application/DTOs/PublicSurveys/PublicSurveySubmitRequest.cs",
+      "detail": "A public DTO must be strongly typed."
+    },
+    {
+      "rule": "typed-contract",
+      "file": "backend/Valora.Application/DTOs/PublicSurveys/SubmitResponseRequest.cs",
+      "detail": "A public DTO must be strongly typed."
+    },
+    {
+      "rule": "typed-contract",
+      "file": "backend/Valora.Application/DTOs/PublicSurveys/SubmitSurveyResponseRequest.cs",
+      "detail": "A public DTO must be strongly typed."
+    },
+    {
+      "rule": "direct-user-creation",
+      "file": "backend/Valora.Api/Controllers/WebAdminModulesController.cs",
+      "detail": "Direct user creation with a generated password is forbidden."
+    },
+    {
+      "rule": "unfinished-ui",
+      "file": "backend/Valora.Web/Views/Audit/Index.cshtml",
+      "detail": "Unfinished UI copy is forbidden."
+    },
+    {
+      "rule": "unfinished-ui",
+      "file": "backend/Valora.Web/Views/Communications/Index.cshtml",
+      "detail": "Unfinished UI copy is forbidden."
+    },
+    {
+      "rule": "unfinished-ui",
+      "file": "backend/Valora.Web/Views/EnvironmentStatus/Index.cshtml",
+      "detail": "Unfinished UI copy is forbidden."
+    },
+    {
+      "rule": "unfinished-ui",
+      "file": "backend/Valora.Web/Views/Forms/Index.cshtml",
+      "detail": "Unfinished UI copy is forbidden."
+    },
+    {
+      "rule": "unfinished-ui",
+      "file": "backend/Valora.Web/Views/Organization/Index.cshtml",
+      "detail": "Unfinished UI copy is forbidden."
+    },
+    {
+      "rule": "unfinished-ui",
+      "file": "backend/Valora.Web/Views/Responses/Index.cshtml",
+      "detail": "Unfinished UI copy is forbidden."
+    },
+    {
+      "rule": "unfinished-ui",
+      "file": "backend/Valora.Web/Views/Settings/Index.cshtml",
+      "detail": "Unfinished UI copy is forbidden."
+    },
+    {
+      "rule": "unfinished-ui",
+      "file": "backend/Valora.Web/Views/Surveys/Index.cshtml",
+      "detail": "Unfinished UI copy is forbidden."
+    },
+    {
+      "rule": "unfinished-ui",
+      "file": "backend/Valora.Web/Views/Surveys/PublicLinks.cshtml",
+      "detail": "Unfinished UI copy is forbidden."
+    },
+    {
+      "rule": "unfinished-ui",
+      "file": "backend/Valora.Web/Views/Users/Index.cshtml",
+      "detail": "Unfinished UI copy is forbidden."
+    },
+    {
+      "rule": "browser-api-boundary",
+      "file": "backend/Valora.Web/wwwroot/js/pages/public-survey-page.js",
+      "detail": "The browser must use the BFF and must not persist tokens."
+    },
+    {
+      "rule": "browser-api-boundary",
+      "file": "backend/Valora.Web/wwwroot/js/pages/result-page.js",
+      "detail": "The browser must use the BFF and must not persist tokens."
+    },
+    {
+      "rule": "browser-api-boundary",
+      "file": "backend/Valora.Web/wwwroot/js/public/public-certificate.js",
+      "detail": "The browser must use the BFF and must not persist tokens."
+    },
+    {
+      "rule": "browser-api-boundary",
+      "file": "backend/Valora.Web/wwwroot/js/public/public-home.js",
+      "detail": "The browser must use the BFF and must not persist tokens."
+    },
+    {
+      "rule": "browser-api-boundary",
+      "file": "backend/Valora.Web/wwwroot/js/public/public-lgpd.js",
+      "detail": "The browser must use the BFF and must not persist tokens."
+    },
+    {
+      "rule": "browser-api-boundary",
+      "file": "backend/Valora.Web/wwwroot/js/public/public-result.js",
+      "detail": "The browser must use the BFF and must not persist tokens."
+    },
+    {
+      "rule": "browser-api-boundary",
+      "file": "backend/Valora.Web/wwwroot/js/public/public-survey.js",
+      "detail": "The browser must use the BFF and must not persist tokens."
+    },
+    {
+      "rule": "remote-asset",
+      "file": "backend/Valora.Web/Views/Shared/_Layout.cshtml",
+      "detail": "Runtime assets must be local."
+    },
+    {
+      "rule": "dynamic-navigation",
+      "file": "backend/Valora.Web/Views/Shared/_Sidebar.cshtml",
+      "detail": "Sidebar contains a hardcoded navigation catalog."
+    }
+  ]
+}

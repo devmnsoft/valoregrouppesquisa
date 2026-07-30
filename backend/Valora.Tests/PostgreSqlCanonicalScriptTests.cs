@@ -8,11 +8,11 @@ public sealed class PostgreSqlCanonicalScriptTests
     {
         var sql = File.ReadAllText(Support.RepositoryPaths.CanonicalDatabaseScript);
         Assert.Contains("CREATE SCHEMA IF NOT EXISTS valorapesquisa", sql);
-        Assert.Contains("CREATE TABLE IF NOT EXISTS organizations", sql);
+        Assert.Contains("CREATE TABLE IF NOT EXISTS valorapesquisa.organizations", sql);
         Assert.Contains("CREATE UNIQUE INDEX IF NOT EXISTS ux_legal_entities_cnpj_active", sql);
         Assert.Contains("WHERE deleted_at IS NULL", sql, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("CREATE UNIQUE INDEX IF NOT EXISTS ux_legal_entities_org_cnpj_active", sql);
-        Assert.Contains("DROP TRIGGER IF EXISTS", sql);
+        Assert.Contains("pg_get_triggerdef", sql);
         Assert.Contains("CREATE TRIGGER", sql);
         Assert.Contains("ON CONFLICT", sql);
         Assert.DoesNotContain("DROP TABLE", sql, StringComparison.OrdinalIgnoreCase);
@@ -20,9 +20,9 @@ public sealed class PostgreSqlCanonicalScriptTests
     }
 
     [Fact]
-    public void ConvergenceMigrationSafelyReplacesOrganizationScopedCnpjIndex()
+    public void CanonicalScriptSafelyReplacesOrganizationScopedCnpjIndex()
     {
-        var sql = File.ReadAllText(Support.RepositoryPaths.MigrationFile("20260801_007_schema_convergence_and_registration.sql"));
+        var sql = File.ReadAllText(Support.RepositoryPaths.CanonicalDatabaseScript);
 
         Assert.Contains("DROP INDEX IF EXISTS ux_legal_entities_org_cnpj_active", sql);
         Assert.Contains("CREATE UNIQUE INDEX IF NOT EXISTS ux_legal_entities_cnpj_active", sql);

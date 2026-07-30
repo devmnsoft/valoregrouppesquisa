@@ -25,7 +25,19 @@ public sealed class OrganizationRepository(IDbConnectionFactory factory, ILogger
     public async Task UpdateCurrentAsync(Guid id,UpdateOrganizationRequest request)
     {
         using var c=factory.Create();
-        await c.ExecuteAsync("UPDATE valorapesquisa.organizations SET public_name=COALESCE(@PublicName,public_name),phone=COALESCE(@Phone,phone),updated_at=now() WHERE id=@id AND deleted_at IS NULL",new{request.PublicName,request.Phone,id});
+        var affected = await c.ExecuteAsync("""
+            UPDATE valorapesquisa.organizations SET
+                public_name=COALESCE(@PublicName,public_name), phone=COALESCE(@Phone,phone),
+                email=COALESCE(@Email,email), default_language_code=COALESCE(@DefaultLanguageCode,default_language_code),
+                time_zone=COALESCE(@TimeZone,time_zone), version=version+1, updated_at=now()
+            WHERE id=@id AND deleted_at IS NULL AND (@ExpectedVersion IS NULL OR version=@ExpectedVersion)
+            """,new{request.PublicName,request.Phone,request.Email,request.DefaultLanguageCode,request.TimeZone,request.ExpectedVersion,id});
+        if (affected == 0)
+        {
+            var exists = await c.ExecuteScalarAsync<bool>("SELECT EXISTS(SELECT 1 FROM valorapesquisa.organizations WHERE id=@id AND deleted_at IS NULL)", new { id });
+            if (!exists) throw new KeyNotFoundException("Organização não encontrada.");
+            throw new InvalidOperationException("A organização foi atualizada por outra sessão.");
+        }
     }
 
     public async Task<int> CountManagersAsync(Guid organizationId)
@@ -37,7 +49,7 @@ public sealed class OrganizationRepository(IDbConnectionFactory factory, ILogger
     public async Task<IReadOnlyList<OrganizationSettingRecord>> GetSettingsAsync(Guid organizationId)
     {
         using var c=factory.Create();
-        var rows=await c.QueryAsync<OrganizationSettingRecord>("SELECT id AS Id,settings::text AS Settings,updated_at AS UpdatedAt FROM valorapesquisa.organization_settings WHERE organization_id=@organizationId AND deleted_at IS NULL ORDER BY updated_at DESC LIMIT 1",new{organizationId});
+        var rows=await c.QueryAsync<OrganizationSettingRecord>("SELECT id AS Id,settings::text AS Settings,created_at AS CreatedAt,updated_at AS UpdatedAt FROM valorapesquisa.organization_settings WHERE organization_id=@organizationId",new{organizationId});
         return rows.AsList();
     }
 
@@ -51,7 +63,33 @@ public sealed class OrganizationRepository(IDbConnectionFactory factory, ILogger
     public async Task<IReadOnlyList<OrganizationUsageRecord>> GetUsageAsync(Guid organizationId)
     {
         using var c=factory.Create();
-        var rows=await c.QueryAsync<OrganizationUsageRecord>("SELECT metric_key AS MetricKey,metric_value AS MetricValue,period_month AS PeriodMonth,updated_at AS UpdatedAt FROM valorapesquisa.usage_monthly WHERE organization_id=@organizationId AND deleted_at IS NULL ORDER BY period_month DESC,metric_key",new{organizationId});
+        const string sql = """
+            WITH current_subscription AS (
+                SELECT s.plan_id FROM valorapesquisa.subscriptions s
+                WHERE s.organization_id=@organizationId AND s.deleted_at IS NULL
+                ORDER BY s.starts_at DESC LIMIT 1
+            ), usage_keys AS (
+                SELECT usage_key AS key FROM valorapesquisa.usage_monthly WHERE organization_id=@organizationId
+                UNION SELECT usage_key FROM valorapesquisa.usage_lifetime WHERE organization_id=@organizationId
+                UNION SELECT metric_key FROM valorapesquisa.plan_usage_counters WHERE organization_id=@organizationId
+                UNION SELECT pl.limit_key FROM valorapesquisa.plan_limits pl JOIN current_subscription cs ON cs.plan_id=pl.plan_id
+            ), totals AS (
+                SELECT k.key,
+                    COALESCE((SELECT sum(quantity) FROM valorapesquisa.usage_monthly m WHERE m.organization_id=@organizationId AND m.usage_key=k.key AND m.year=EXTRACT(YEAR FROM CURRENT_DATE) AND m.month=EXTRACT(MONTH FROM CURRENT_DATE)),0)
+                    + COALESCE((SELECT sum(quantity) FROM valorapesquisa.usage_lifetime l WHERE l.organization_id=@organizationId AND l.usage_key=k.key),0)
+                    + COALESCE((SELECT sum(consumed) FROM valorapesquisa.plan_usage_counters c WHERE c.organization_id=@organizationId AND c.metric_key=k.key),0) AS consumed,
+                    COALESCE((SELECT sum(reserved) FROM valorapesquisa.plan_usage_counters c WHERE c.organization_id=@organizationId AND c.metric_key=k.key),0)
+                    + COALESCE((SELECT sum(quantity) FROM valorapesquisa.plan_usage_reservations r WHERE r.organization_id=@organizationId AND r.metric_key=k.key AND r.status='reserved' AND r.expires_at>now()),0) AS reserved,
+                    (SELECT pl.limit_value FROM valorapesquisa.plan_limits pl JOIN current_subscription cs ON cs.plan_id=pl.plan_id WHERE pl.limit_key=k.key) AS limit_value
+                FROM usage_keys k
+            )
+            SELECT key AS Key, to_char(CURRENT_DATE,'YYYY-MM') AS Period, consumed::bigint AS Consumed, reserved::bigint AS Reserved,
+                limit_value AS Limit, CASE WHEN limit_value IS NULL THEN NULL ELSE GREATEST(limit_value-consumed-reserved,0)::bigint END AS Available,
+                CASE WHEN limit_value IS NULL OR limit_value=0 THEN NULL ELSE round((consumed+reserved)*100.0/limit_value,2) END AS Percentage,
+                (limit_value IS NULL) AS Unlimited
+            FROM totals ORDER BY key
+            """;
+        var rows=await c.QueryAsync<OrganizationUsageRecord>(sql,new{organizationId});
         return rows.AsList();
     }
 }

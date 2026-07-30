@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.modules (id uuid PRIMARY KEY DEFAULT g
 CREATE TABLE IF NOT EXISTS valorapesquisa.organization_modules (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), module_id uuid REFERENCES valorapesquisa.modules(id), module_code text NOT NULL, enabled boolean NOT NULL DEFAULT true, source text NOT NULL DEFAULT 'plan', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, UNIQUE(organization_id,module_code));
 CREATE TABLE IF NOT EXISTS valorapesquisa.organization_settings (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL UNIQUE REFERENCES valorapesquisa.organizations(id), settings jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.organization_branding (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL UNIQUE REFERENCES valorapesquisa.organizations(id), primary_color text NOT NULL DEFAULT '#0b3d4d', secondary_color text NOT NULL DEFAULT '#d7a94b', logo_url text, public_slug text UNIQUE, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
+ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS white_label_enabled boolean NOT NULL DEFAULT false;
 ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS primary_color text DEFAULT '#0b3d4d';
 ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS secondary_color text DEFAULT '#d7a94b';
 ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS logo_url text;
@@ -120,6 +121,7 @@ ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS phone text;
 ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS default_language_code text NOT NULL DEFAULT 'pt-BR';
 ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS time_zone text NOT NULL DEFAULT 'America/Belem';
 ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS onboarding_status text NOT NULL DEFAULT 'pending';
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS version bigint NOT NULL DEFAULT 1;
 
 ALTER TABLE valorapesquisa.users ADD COLUMN IF NOT EXISTS phone text;
 ALTER TABLE valorapesquisa.users ADD COLUMN IF NOT EXISTS password_reset_required boolean NOT NULL DEFAULT false;
@@ -193,6 +195,22 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.onboarding_steps (
  step_code text NOT NULL, status text NOT NULL DEFAULT 'pending', completed_at timestamptz,
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, UNIQUE(organization_id,step_code));
 
+CREATE TABLE IF NOT EXISTS valorapesquisa.user_invitations (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ email text NOT NULL, normalized_email text NOT NULL, name text NOT NULL, token_hash text,
+ status text NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','cancelled','expired')),
+ expires_at timestamptz NOT NULL, accepted_at timestamptz, cancelled_at timestamptz, invited_by uuid NOT NULL REFERENCES valorapesquisa.users(id),
+ resend_count integer NOT NULL DEFAULT 0, last_sent_at timestamptz NOT NULL DEFAULT now(), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_user_invitations_pending ON valorapesquisa.user_invitations(organization_id,normalized_email) WHERE status='pending';
+CREATE UNIQUE INDEX IF NOT EXISTS ux_user_invitations_token ON valorapesquisa.user_invitations(token_hash) WHERE token_hash IS NOT NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.user_invitation_roles (
+ invitation_id uuid NOT NULL REFERENCES valorapesquisa.user_invitations(id) ON DELETE CASCADE, role_id uuid NOT NULL REFERENCES valorapesquisa.roles(id),
+ created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(invitation_id,role_id));
+CREATE TABLE IF NOT EXISTS valorapesquisa.user_invitation_scopes (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), invitation_id uuid NOT NULL REFERENCES valorapesquisa.user_invitations(id) ON DELETE CASCADE,
+ scope_type text NOT NULL CHECK(scope_type IN ('business_group','legal_entity','unit','department')), scope_id uuid NOT NULL,
+ created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(invitation_id,scope_type,scope_id));
+
 CREATE TABLE IF NOT EXISTS valorapesquisa.email_templates (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), template_key text NOT NULL, language_code text NOT NULL DEFAULT 'pt-BR',
  subject_template text NOT NULL, body_template text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz,
@@ -241,11 +259,11 @@ INSERT INTO valorapesquisa.plans(code,name,is_public,is_active,is_legacy) VALUES
 ('free','Gratuito',true,true,false),('professional','Profissional',true,true,false),('corporate','Corporativo',true,true,false),('enterprise','Enterprise',true,true,false),('essential','Essential legado',false,false,true),('growth','Growth legado',false,false,true)
 ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,is_public=EXCLUDED.is_public,is_active=EXCLUDED.is_active,is_legacy=EXCLUDED.is_legacy,updated_at=now();
 WITH configured_limits(limit_key, free_value, professional_value, corporate_value, enterprise_value) AS (VALUES
-('legalEntities',1,1,1,NULL),('units',1,1,NULL,NULL),('departments',3,20,NULL,NULL),
-('users',3,20,100,NULL),('managers',1,5,25,NULL),('activeSurveys',1,5,25,NULL),
-('monthlyResponses',100,1000,10000,NULL),('lifetimeResponses',500,NULL,NULL,NULL),
-('monthlyEmailInvites',100,2000,20000,NULL),('diagnosticCycles',1,12,NULL,NULL),
-('languages',1,2,4,NULL),('storageMb',100,2048,10240,NULL))
+('legalEntities'::text,1::integer,1::integer,1::integer,NULL::integer),('units'::text,1::integer,1::integer,NULL::integer,NULL::integer),('departments'::text,3::integer,20::integer,NULL::integer,NULL::integer),
+('users'::text,3::integer,20::integer,100::integer,NULL::integer),('managers'::text,1::integer,5::integer,25::integer,NULL::integer),('activeSurveys'::text,1::integer,5::integer,25::integer,NULL::integer),
+('monthlyResponses'::text,100::integer,1000::integer,10000::integer,NULL::integer),('lifetimeResponses'::text,500::integer,NULL::integer,NULL::integer,NULL::integer),
+('monthlyEmailInvites'::text,100::integer,2000::integer,20000::integer,NULL::integer),('diagnosticCycles'::text,1::integer,12::integer,NULL::integer,NULL::integer),
+('languages'::text,1::integer,2::integer,4::integer,NULL::integer),('storageMb'::text,100::integer,2048::integer,10240::integer,NULL::integer))
 INSERT INTO valorapesquisa.plan_limits(plan_id,limit_key,limit_value)
 SELECT p.id,l.limit_key,CASE p.code WHEN 'free' THEN l.free_value WHEN 'professional' THEN l.professional_value WHEN 'corporate' THEN l.corporate_value ELSE l.enterprise_value END
 FROM plans p CROSS JOIN configured_limits l WHERE p.code IN ('free','professional','corporate','enterprise')

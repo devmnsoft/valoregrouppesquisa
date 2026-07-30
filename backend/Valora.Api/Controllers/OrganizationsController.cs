@@ -13,20 +13,20 @@ public sealed class OrganizationsController(
     IOrganizationRepository organizations,
     PlanEntitlementService entitlements) : ControllerBase
 {
-    [HttpGet("/organizations/current")]
+    [HttpGet("/api/v1/organization/current")]
     public async Task<IActionResult> Current()
     {
         return Ok(await organizations.GetAsync(CurrentOrganizationId()));
     }
 
-    [HttpPatch("/organizations/current")]
+    [HttpPut("/api/v1/organization/current")]
     public async Task<IActionResult> Patch(UpdateOrganizationRequest request)
     {
         await organizations.UpdateCurrentAsync(CurrentOrganizationId(), request);
         return Ok(await organizations.GetAsync(CurrentOrganizationId()));
     }
 
-    [HttpGet("/organizations/current/usage")]
+    [HttpGet("/api/v1/organization/current/usage")]
     public async Task<IActionResult> Usage()
     {
         return Ok(await entitlements.GetUsageAsync(CurrentOrganizationId()));

@@ -59,7 +59,8 @@
 
   function requestJson(method, path, data, options) {
     const correlationId = generateCorrelationId();
-    const headers = { 'X-Correlation-Id': correlationId };
+    const csrf = document.querySelector('meta[name="csrf-token"]');
+    const headers = { 'X-Correlation-Id': correlationId, 'X-CSRF-TOKEN': csrf ? csrf.content : '' };
 
     return $.ajax({
       url: apiBaseUrl() + path,

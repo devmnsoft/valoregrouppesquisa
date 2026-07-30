@@ -29,6 +29,17 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
+    public async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? request, string bearer, string correlationId, CancellationToken cancellationToken)
+    {
+        var message = new HttpRequestMessage(method, path)
+        {
+            Content = request is null ? null : JsonContent.Create(request, options: JsonOptions)
+        };
+        message.Headers.Authorization = new("Bearer", bearer);
+        message.Headers.TryAddWithoutValidation("X-Correlation-Id", correlationId);
+        return await httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+    }
+
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         if (response.IsSuccessStatusCode) return;

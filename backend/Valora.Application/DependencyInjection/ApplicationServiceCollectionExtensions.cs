@@ -4,6 +4,7 @@ using Valora.Application.Communication;
 using Valora.Application.FreeDiagnostics;
 using Valora.Application.Results;
 using Valora.Application.Services;
+using Valora.Application.Security;
 using Valora.Application.Contracts;
 using Valora.Application.CompanyRegistration;
 
@@ -13,6 +14,7 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddSingleton<ISensitiveDataSanitizer, SensitiveDataSanitizer>();
         services.AddSingleton<ValoraInsightCalculator>();
         services.AddSingleton<ValoraInsightDevolutivaService>();
         services.AddScoped<CertificateService>();

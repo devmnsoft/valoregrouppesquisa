@@ -1,12 +1,48 @@
-using System.Collections.Concurrent;
 using Dapper;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
 
 namespace Valora.Infrastructure.Repositories;
 
-internal static class MigrationImportStore
-{ public static readonly ConcurrentDictionary<Guid,MigrationBatchDto> Batches=new(); public static readonly ConcurrentDictionary<Guid,MigrationSourceFileDto> Files=new(); public static readonly ConcurrentDictionary<Guid,List<MigrationRecordDto>> Records=new(); public static readonly ConcurrentDictionary<Guid,List<MigrationConflictDto>> Conflicts=new(); public static readonly ConcurrentDictionary<Guid,List<MigrationMappingDto>> Mappings=new(); public static readonly ConcurrentDictionary<Guid,List<MigrationRollbackItemDto>> Rollbacks=new(); }
+public sealed class MigrationBatchRepository(IDbConnectionFactory connections) : IMigrationBatchRepository
+{
+    private const int CommandTimeout = 30;
+    private const string Projection = """
+        id, source_type AS SourceType, source_name AS SourceName, mode, status,
+        requested_by AS RequestedBy, started_at AS StartedAt, finished_at AS FinishedAt,
+        total_records AS TotalRecords, valid_records AS ValidRecords,
+        invalid_records AS InvalidRecords, imported_records AS ImportedRecords,
+        skipped_records AS SkippedRecords, conflict_records AS ConflictRecords,
+        error_records AS ErrorRecords, summary_json::text AS SummaryMaskedJson
+        """;
 
-public sealed class MigrationBatchRepository(IDbConnectionFactory f) : IMigrationBatchRepository
-{ public Task<MigrationBatchDto> CreateAsync(string sourceType,string sourceName,string mode,string requestedBy,CancellationToken ct=default){const string sql="INSERT INTO valorapesquisa.migration_batches(source_type,source_name,mode,requested_by) VALUES (@sourceType,@sourceName,@mode,@requestedBy) RETURNING id"; _=new CommandDefinition(sql,new{sourceType,sourceName,mode,requestedBy},cancellationToken:ct); var dto=new MigrationBatchDto(Guid.NewGuid(),sourceType,sourceName,mode,"created",requestedBy,DateTime.UtcNow,null,0,0,0,0,0,0,0,"{}"); MigrationImportStore.Batches[dto.Id]=dto; return Task.FromResult(dto);} public Task<IReadOnlyList<MigrationBatchDto>> ListAsync(CancellationToken ct=default)=>Task.FromResult((IReadOnlyList<MigrationBatchDto>)MigrationImportStore.Batches.Values.ToList()); public Task<MigrationBatchDto?> GetAsync(Guid id,CancellationToken ct=default)=>Task.FromResult(MigrationImportStore.Batches.GetValueOrDefault(id)); public Task UpdateStatusAsync(Guid id,string status,string summaryMaskedJson,CancellationToken ct=default){const string sql="UPDATE valorapesquisa.migration_batches SET status=@status, summary_json=CAST(@summaryMaskedJson AS jsonb), updated_at=now() WHERE id=@id"; _=new CommandDefinition(sql,new{id,status,summaryMaskedJson},cancellationToken:ct); if(MigrationImportStore.Batches.TryGetValue(id,out var b)) MigrationImportStore.Batches[id]=b with{Status=status,SummaryMaskedJson=summaryMaskedJson,FinishedAt=DateTime.UtcNow}; return Task.CompletedTask;} }
+    public async Task<MigrationBatchDto> CreateAsync(string sourceType, string sourceName, string mode, string requestedBy, CancellationToken ct = default)
+    {
+        const string sql = $"""INSERT INTO valorapesquisa.migration_batches(source_type, source_name, mode, requested_by)
+            VALUES (@sourceType, @sourceName, @mode, @requestedBy) RETURNING {Projection}""";
+        using var connection = connections.Create();
+        return await connection.QuerySingleAsync<MigrationBatchDto>(new CommandDefinition(sql, new { sourceType, sourceName, mode, requestedBy }, commandTimeout: CommandTimeout, cancellationToken: ct));
+    }
+
+    public async Task<IReadOnlyList<MigrationBatchDto>> ListAsync(CancellationToken ct = default)
+    {
+        using var connection = connections.Create();
+        var rows = await connection.QueryAsync<MigrationBatchDto>(new CommandDefinition($"SELECT {Projection} FROM valorapesquisa.migration_batches ORDER BY started_at DESC", commandTimeout: CommandTimeout, cancellationToken: ct));
+        return rows.AsList();
+    }
+
+    public async Task<MigrationBatchDto?> GetAsync(Guid id, CancellationToken ct = default)
+    {
+        using var connection = connections.Create();
+        return await connection.QuerySingleOrDefaultAsync<MigrationBatchDto>(new CommandDefinition($"SELECT {Projection} FROM valorapesquisa.migration_batches WHERE id = @id", new { id }, commandTimeout: CommandTimeout, cancellationToken: ct));
+    }
+
+    public async Task UpdateStatusAsync(Guid id, string status, string summaryMaskedJson, CancellationToken ct = default)
+    {
+        const string sql = """UPDATE valorapesquisa.migration_batches SET status = @status,
+            summary_json = CAST(@summaryMaskedJson AS jsonb), finished_at = CASE WHEN @status IN ('completed','failed','rolled_back') THEN now() ELSE finished_at END,
+            updated_at = now() WHERE id = @id""";
+        using var connection = connections.Create();
+        await connection.ExecuteAsync(new CommandDefinition(sql, new { id, status, summaryMaskedJson }, commandTimeout: CommandTimeout, cancellationToken: ct));
+    }
+}

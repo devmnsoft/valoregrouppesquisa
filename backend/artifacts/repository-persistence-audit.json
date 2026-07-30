@@ -1,0 +1,8 @@
+[
+  {"repository":"MigrationBatchRepository","method":"Create/List/Get/UpdateStatus","previousBehavior":"Static concurrent dictionary and discarded CommandDefinition","newBehavior":"Dapper queries execute against PostgreSQL","table":"valorapesquisa.migration_batches","transactional":true,"tested":false},
+  {"repository":"MigrationSourceFileRepository","method":"Create/List/Get","previousBehavior":"Static concurrent dictionary","newBehavior":"Dapper queries execute against PostgreSQL","table":"valorapesquisa.migration_source_files","transactional":true,"tested":false},
+  {"repository":"MigrationRecordRepository","method":"Add/ListByBatch","previousBehavior":"Static list and discarded CommandDefinition","newBehavior":"Dapper commands execute against PostgreSQL","table":"valorapesquisa.migration_records","transactional":true,"tested":false},
+  {"repository":"MigrationMappingRepository","method":"Add/ListByBatch","previousBehavior":"Static list and discarded CommandDefinition","newBehavior":"Dapper commands execute against PostgreSQL","table":"valorapesquisa.migration_mappings","transactional":true,"tested":false},
+  {"repository":"MigrationConflictRepository","method":"Add/ListByBatch/Resolve/HasBlocking","previousBehavior":"Static list and process-local mutation","newBehavior":"Dapper commands execute against PostgreSQL","table":"valorapesquisa.migration_conflicts","transactional":true,"tested":false},
+  {"repository":"MigrationRollbackRepository","method":"Add/ListByBatch/MarkRolledBack","previousBehavior":"Static list and process-local mutation","newBehavior":"Dapper commands execute against PostgreSQL","table":"valorapesquisa.rollback_records","transactional":true,"tested":false}
+]

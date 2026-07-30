@@ -56,12 +56,12 @@ jobs:
       - name: Apply canonical database — first
         env:
           PGPASSWORD: valora
-        run: psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/banco_completo.sql | tee database-first.log
+        run: psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/script_completo.sql | tee database-first.log
 
       - name: Apply canonical database — second
         env:
           PGPASSWORD: valora
-        run: psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/banco_completo.sql | tee database-second.log
+        run: psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/script_completo.sql | tee database-second.log
 
       - name: Export schema
         env:
@@ -72,7 +72,7 @@ jobs:
         env:
           PGPASSWORD: valora
           VALORA_TEST_POSTGRES_CONNECTION: postgresql://valora:valora@localhost:5432/valorapesquisa_ci
-        run: tools/database/apply-migrations.sh migrations.log
+        run: psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f database/postgresql/script_completo.sql | tee migrations.log
 
       - name: Verify schema
         env:
@@ -94,7 +94,7 @@ jobs:
         run: tools/ci/run-filtered-tests.sh BffIntegration bff-integration-tests.trx
 
       - name: Phase 2H.2 validation
-        run: node tools/validation/validate-phase2h2.js
+        run: node tools/validation/validate-phase2k.js
 
       - name: Format check
         run: dotnet format Valora.sln --verify-no-changes

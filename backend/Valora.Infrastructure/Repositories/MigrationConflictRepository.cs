@@ -1,11 +1,36 @@
-using System.Collections.Concurrent;
 using Dapper;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
 
 namespace Valora.Infrastructure.Repositories;
 
-internal static class MigrationImportStore
-{ public static readonly ConcurrentDictionary<Guid,MigrationBatchDto> Batches=new(); public static readonly ConcurrentDictionary<Guid,MigrationSourceFileDto> Files=new(); public static readonly ConcurrentDictionary<Guid,List<MigrationRecordDto>> Records=new(); public static readonly ConcurrentDictionary<Guid,List<MigrationConflictDto>> Conflicts=new(); public static readonly ConcurrentDictionary<Guid,List<MigrationMappingDto>> Mappings=new(); public static readonly ConcurrentDictionary<Guid,List<MigrationRollbackItemDto>> Rollbacks=new(); }
+public sealed class MigrationConflictRepository(IDbConnectionFactory connections) : IMigrationConflictRepository
+{
+    private const string Projection = "id,batch_id AS BatchId,legacy_collection AS LegacyCollection,legacy_id AS LegacyId,target_entity AS TargetEntity,target_id AS TargetId,conflict_type AS ConflictType,severity,legacy_value_json::text AS LegacyValueMaskedJson,current_value_json::text AS CurrentValueMaskedJson,resolution,resolved_by AS ResolvedBy,resolved_at AS ResolvedAt";
 
-public sealed class MigrationConflictRepository : IMigrationConflictRepository { public Task AddAsync(MigrationConflictDto c,CancellationToken ct=default){const string sql="INSERT INTO valorapesquisa.migration_conflicts(batch_id,legacy_collection,legacy_id,target_entity,conflict_type,severity,legacy_value_json,current_value_json) VALUES (@BatchId,@LegacyCollection,@LegacyId,@TargetEntity,@ConflictType,@Severity,CAST(@LegacyValueMaskedJson AS jsonb),CAST(@CurrentValueMaskedJson AS jsonb))"; _=new CommandDefinition(sql,c,cancellationToken:ct); MigrationImportStore.Conflicts.AddOrUpdate(c.BatchId,_=>new(){c},(_,l)=>{l.Add(c);return l;}); return Task.CompletedTask;} public Task<IReadOnlyList<MigrationConflictDto>> ListByBatchAsync(Guid batchId,CancellationToken ct=default)=>Task.FromResult((IReadOnlyList<MigrationConflictDto>)MigrationImportStore.Conflicts.GetValueOrDefault(batchId,new()).ToList()); public Task ResolveAsync(Guid id,string resolution,string resolvedBy,CancellationToken ct=default){foreach(var kv in MigrationImportStore.Conflicts){var i=kv.Value.FindIndex(x=>x.Id==id); if(i>=0) kv.Value[i]=kv.Value[i] with{Resolution=resolution,ResolvedBy=resolvedBy,ResolvedAt=DateTime.UtcNow,Severity="resolved"};} return Task.CompletedTask;} public Task<bool> HasBlockingAsync(Guid batchId,CancellationToken ct=default)=>Task.FromResult(MigrationImportStore.Conflicts.GetValueOrDefault(batchId,new()).Any(x=>x.Severity=="blocking")); }
+    public async Task AddAsync(MigrationConflictDto conflict, CancellationToken ct = default)
+    {
+        const string sql = "INSERT INTO valorapesquisa.migration_conflicts(id,batch_id,legacy_collection,legacy_id,target_entity,target_id,conflict_type,severity,legacy_value_json,current_value_json,resolution,resolved_by,resolved_at) VALUES (@Id,@BatchId,@LegacyCollection,@LegacyId,@TargetEntity,@TargetId,@ConflictType,@Severity,CAST(@LegacyValueMaskedJson AS jsonb),CAST(@CurrentValueMaskedJson AS jsonb),@Resolution,@ResolvedBy,@ResolvedAt)";
+        using var connection = connections.Create();
+        await connection.ExecuteAsync(new CommandDefinition(sql, conflict, commandTimeout: 30, cancellationToken: ct));
+    }
+
+    public async Task<IReadOnlyList<MigrationConflictDto>> ListByBatchAsync(Guid batchId, CancellationToken ct = default)
+    {
+        using var connection = connections.Create();
+        return (await connection.QueryAsync<MigrationConflictDto>(new CommandDefinition($"SELECT {Projection} FROM valorapesquisa.migration_conflicts WHERE batch_id=@batchId ORDER BY created_at", new { batchId }, commandTimeout: 30, cancellationToken: ct))).AsList();
+    }
+
+    public async Task ResolveAsync(Guid conflictId, string resolution, string resolvedBy, CancellationToken ct = default)
+    {
+        const string sql = "UPDATE valorapesquisa.migration_conflicts SET resolution=@resolution,resolved_by=@resolvedBy,resolved_at=now(),severity='resolved',updated_at=now() WHERE id=@conflictId";
+        using var connection = connections.Create();
+        await connection.ExecuteAsync(new CommandDefinition(sql, new { conflictId, resolution, resolvedBy }, commandTimeout: 30, cancellationToken: ct));
+    }
+
+    public async Task<bool> HasBlockingAsync(Guid batchId, CancellationToken ct = default)
+    {
+        using var connection = connections.Create();
+        return await connection.QuerySingleAsync<bool>(new CommandDefinition("SELECT EXISTS(SELECT 1 FROM valorapesquisa.migration_conflicts WHERE batch_id=@batchId AND severity='blocking' AND resolved_at IS NULL)", new { batchId }, commandTimeout: 30, cancellationToken: ct));
+    }
+}

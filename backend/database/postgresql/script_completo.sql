@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS users (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
 CREATE TABLE IF NOT EXISTS roles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES organizations(id), code text NOT NULL, name text NOT NULL, is_system boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz, UNIQUE(organization_id,code));
 CREATE TABLE IF NOT EXISTS permissions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE, name text NOT NULL, description text, module_code text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 CREATE TABLE IF NOT EXISTS role_permissions (role_id uuid NOT NULL REFERENCES roles(id), permission_id uuid NOT NULL REFERENCES permissions(id), created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(role_id, permission_id));
-CREATE TABLE IF NOT EXISTS user_sessions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), user_id uuid NOT NULL REFERENCES users(id), expires_at timestamptz NOT NULL, revoked_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.user_sessions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), expires_at timestamptz NOT NULL, revoked_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS refresh_tokens (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), user_id uuid NOT NULL REFERENCES users(id), token_hash text NOT NULL UNIQUE, expires_at timestamptz NOT NULL, revoked_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS password_reset_tokens (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), user_id uuid NOT NULL REFERENCES users(id), token_hash text NOT NULL UNIQUE, expires_at timestamptz NOT NULL, used_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS plans (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE, name text NOT NULL, is_public boolean NOT NULL, is_active boolean NOT NULL, is_legacy boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
@@ -112,12 +112,31 @@ CREATE TABLE IF NOT EXISTS user_roles (
  user_id uuid NOT NULL REFERENCES users(id), role_id uuid NOT NULL REFERENCES roles(id),
  created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(user_id, role_id));
 
-ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
-ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS last_used_at timestamptz;
-ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS ip_hash text;
-ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS user_agent text;
-ALTER TABLE user_sessions ADD COLUMN IF NOT EXISTS revocation_reason text;
-CREATE INDEX IF NOT EXISTS ix_user_sessions_user_active ON user_sessions(user_id, expires_at) WHERE revoked_at IS NULL;
+-- A legacy user_sessions table can predate any of these columns.  Keep the
+-- compatibility columns nullable here: historical rows must never receive an
+-- arbitrary tenant or user merely to satisfy a constraint.
+ALTER TABLE valorapesquisa.user_sessions
+    ADD COLUMN IF NOT EXISTS organization_id uuid,
+    ADD COLUMN IF NOT EXISTS user_id uuid,
+    ADD COLUMN IF NOT EXISTS expires_at timestamptz,
+    ADD COLUMN IF NOT EXISTS revoked_at timestamptz,
+    ADD COLUMN IF NOT EXISTS status text DEFAULT 'active',
+    ADD COLUMN IF NOT EXISTS last_used_at timestamptz,
+    ADD COLUMN IF NOT EXISTS ip_hash text,
+    ADD COLUMN IF NOT EXISTS user_agent text,
+    ADD COLUMN IF NOT EXISTS revocation_reason text,
+    ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+
+UPDATE valorapesquisa.user_sessions
+SET status = 'active'
+WHERE status IS NULL;
+
+ALTER TABLE valorapesquisa.user_sessions
+    ALTER COLUMN status SET DEFAULT 'active';
+
+CREATE INDEX IF NOT EXISTS ix_user_sessions_user_active
+    ON valorapesquisa.user_sessions(user_id, expires_at)
+    WHERE revoked_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS refresh_token_families (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), session_id uuid NOT NULL REFERENCES user_sessions(id),

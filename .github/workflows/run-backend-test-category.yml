@@ -1,0 +1,31 @@
+name: Backend test category
+on:
+  workflow_call:
+    inputs:
+      category: { required: true, type: string }
+      artifact: { required: true, type: string }
+      postgres: { required: false, type: boolean, default: false }
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env: { POSTGRES_USER: valora, POSTGRES_PASSWORD: valora, POSTGRES_DB: valorapesquisa_ci }
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U valora -d valorapesquisa_ci" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { global-json-file: backend/global.json }
+      - if: inputs.postgres
+        env: { PGPASSWORD: valora }
+        run: psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f backend/database/postgresql/script_completo.sql
+      - env:
+          VALORA_TEST_POSTGRES_CONNECTION: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
+          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
+        run: tools/ci/run-filtered-tests.sh '${{ inputs.category }}' '${{ inputs.artifact }}.trx'
+        working-directory: backend
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: '${{ inputs.artifact }}', path: 'backend/**/TestResults/${{ inputs.artifact }}.trx', if-no-files-found: error }

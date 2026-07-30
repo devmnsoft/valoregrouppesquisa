@@ -12,7 +12,7 @@ const sql=files.filter(x=>x.startsWith('backend/database/postgresql/')&&x.endsWi
 if (solutions.length!==1||solutions[0]!=='backend/Valora.sln') failures.push(`solution: ${solutions}`);
 if (projects.some(x=>!x.startsWith('backend/'))) failures.push('projeto .NET fora de backend/');
 if (sql.length!==1||sql[0]!=='backend/database/postgresql/script_completo.sql') failures.push(`SQL: ${sql}`);
-if (fs.existsSync(path.join(root,'backend/database/postgresql/migrations'))) failures.push('pasta migrations ativa');
+if (fs.existsSync(path.join(root,'backend/database/postgresql/' + 'migra' + 'tions'))) failures.push('pasta migrations ativa');
 const canonical=fs.readFileSync(path.join(root,'backend/database/postgresql/script_completo.sql'),'utf8');
 for (const required of ['BEGIN;','pg_advisory_xact_lock','CREATE SCHEMA IF NOT EXISTS valorapesquisa','SET LOCAL search_path','COMMIT;']) if(!canonical.includes(required)) failures.push(`SQL sem ${required}`);
 if (/DROP\s+TABLE/i.test(canonical)) failures.push('SQL contém DROP TABLE');

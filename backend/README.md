@@ -26,8 +26,8 @@ A solution `Valora.sln` segue Clean Architecture com separação entre API, apli
 ## Banco
 
 - Schema oficial: `valorapesquisa`.
-- Bootstrap canônico: `backend/database/postgresql/banco_completo.sql`.
-- Atualizações incrementais: `backend/database/postgresql/migrations/`.
+- Bootstrap canônico: `backend/database/postgresql/script_completo.sql`.
+- Atualizações: reaplique o mesmo `backend/database/postgresql/script_completo.sql`; não há migrations incrementais ativas.
 - Seeds: `backend/database/postgresql/seeds/`.
 - Validações SQL: `backend/database/postgresql/validation/`.
 
@@ -53,7 +53,7 @@ dotnet run --project Valora.Web/Valora.Web.csproj
 
 ## Migrations
 
-O bootstrap usa `backend/database/postgresql/banco_completo.sql`. O `MigrationRunner` deve aplicar somente migrations incrementais em `backend/database/postgresql/migrations/`, com controle por `schema_migrations`, checksum, lock, transação e registro de sucesso/falha.
+O bootstrap e todas as convergências usam somente `backend/database/postgresql/script_completo.sql`, de forma transacional e idempotente.
 
 ## Documentação
 

@@ -1,4 +1,4 @@
-# Testes locais de compatibilidade do banco_completo.sql
+# Testes locais de compatibilidade do script_completo.sql
 
 Cenários oficiais para PostgreSQL real:
 
@@ -9,4 +9,4 @@ Cenários oficiais para PostgreSQL real:
 5. `legacy-organizations-without-plan-code.sql`: `organizations` sem `plan_code`.
 6. `legacy-email-templates.sql`: `email_templates` com contrato antigo.
 
-Execute cada arquivo em uma base descartável e depois rode `psql -U postgres -d postgres -f banco_completo.sql` duas vezes.
+Execute cada arquivo em uma base descartável e depois rode `psql -U postgres -d postgres -f script_completo.sql` duas vezes.

@@ -57,7 +57,7 @@ Nenhuma tela ou API exibe senha, hash, token, refresh token, connection string, 
 ## Sprint homologação/cutover backend oficial (2026-07-02)
 
 - Homologação local: copie `.env.example` para `.env`, ajuste apenas credenciais locais e execute `tools/linux/backend-hml-01-subir-postgres.sh` ou `tools\windows\backend-hml-01-subir-postgres.bat`.
-- Banco PostgreSQL: aplique `backend/database/postgresql/banco_completo.sql` e migrações com `tools/linux/backend-hml-02-aplicar-banco.sh` ou `tools\windows\backend-hml-02-aplicar-banco.bat`.
+- Banco PostgreSQL: aplique `backend/database/postgresql/script_completo.sql` e migrações com `tools/linux/backend-hml-02-aplicar-banco.sh` ou `tools\windows\backend-hml-02-aplicar-banco.bat`.
 - API/Web: rode `tools/linux/backend-hml-03-rodar-api.sh` e `tools/linux/backend-hml-04-rodar-web.sh` (equivalentes Windows disponíveis).
 - Testes integrados: defina `VALORA_TEST_POSTGRES_CONNECTION` somente para base local/homologação descartável e execute `dotnet test backend/Valora.sln` em ambiente com .NET SDK 8.
 - Migração com amostra: use `docs/migration-samples/*.json`; todo apply real exige dry-run, relatório de divergências, ausência de conflito bloqueante, confirmação explícita, batch, rollback e auditoria.
@@ -119,9 +119,9 @@ Consulte `VALORA_BRAND_ASSETS_MANUAL_SETUP.md` para nomes obrigatórios, testes 
 - Readiness visual RC2: `npm run web:rc2-visual-readiness`.
 - A homologação final ainda deve ser executada com .NET SDK, PostgreSQL e navegador real para validar desktop/mobile antes do pacote `0.9.0-rc2`.
 
-## Compatibilidade oficial do `banco_completo.sql`
+## Compatibilidade oficial do `script_completo.sql`
 
-O bootstrap PostgreSQL oficial deve ser validado com `npm run db:scriptbd-validate` antes de uso em local, homologação ou produção. A seção `-- COMPATIBILIDADE PARA BANCOS EXISTENTES` em `banco_completo.sql` normaliza schemas antigos sem `DROP TABLE` destrutivo de tabelas de negócio, incluindo `plan_limits.users`, `plans.monthly_price`, `organizations.plan_code`, contratos de formulários/perguntas/opções, `email_templates.body_html/body_text` e o índice de `usage_monthly(period_month)`. Consulte `SCRIPTBD_COMPLETO_COMPATIBILITY_GUIDE.md` para o procedimento completo.
+O bootstrap PostgreSQL oficial deve ser validado com `npm run db:scriptbd-validate` antes de uso em local, homologação ou produção. A seção `-- COMPATIBILIDADE PARA BANCOS EXISTENTES` em `script_completo.sql` normaliza schemas antigos sem `DROP TABLE` destrutivo de tabelas de negócio, incluindo `plan_limits.users`, `plans.monthly_price`, `organizations.plan_code`, contratos de formulários/perguntas/opções, `email_templates.body_html/body_text` e o índice de `usage_monthly(period_month)`. Consulte `SCRIPTBD_COMPLETO_COMPATIBILITY_GUIDE.md` para o procedimento completo.
 
 ## Banco oficial premium
-Antes de cutover, aplicar `banco_completo.sql` validado pelo bloco `-- COMPATIBILIDADE PARA BANCOS EXISTENTES`, garantindo `plan_limits.users` e demais colunas antes dos seeds.
+Antes de cutover, aplicar `script_completo.sql` validado pelo bloco `-- COMPATIBILIDADE PARA BANCOS EXISTENTES`, garantindo `plan_limits.users` e demais colunas antes dos seeds.

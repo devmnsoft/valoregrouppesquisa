@@ -1,6 +1,6 @@
 # Homologação da Fase 02F
 
-1. Aplicar `banco_completo.sql` duas vezes em banco vazio.
+1. Aplicar `script_completo.sql` duas vezes em banco vazio.
 2. Aplicar migrations em ordem, incluindo `20260730_005_identity_sessions_bff_completion.sql`.
 3. Executar restore, build, testes e format de `Valora.sln`.
 4. Validar login e confirmar registros de sessão, família e hash do refresh.

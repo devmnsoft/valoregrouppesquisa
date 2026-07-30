@@ -46,7 +46,7 @@ A Web oficial permanece em `backend/Valora.Web`, ASP.NET Core MVC/Razor, Bootstr
 
 ## 12. SQL oficial ajustado
 
-A validação oficial passa a verificar as tabelas exigidas nos scripts `backend/database/postgresql` e `banco_completo.sql`.
+A validação oficial passa a verificar as tabelas exigidas nos scripts `backend/database/postgresql` e `script_completo.sql`.
 
 ## 13. Validadores criados
 

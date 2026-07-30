@@ -4,14 +4,14 @@ Atualizado na Sprint 64.
 
 ## Resumo
 - Mantém o legado Firebase ativo até a virada final.
-- Registra o script único `banco_completo.sql` e a cópia em `backend/database/postgresql/banco_completo.sql`.
+- Registra o script único `script_completo.sql` e a cópia em `backend/database/postgresql/script_completo.sql`.
 - Documenta paridade progressiva do Valora.Api/Valora.Web com o legado.
 - Segredos SMTP devem ficar fora do repositório.
 
 ## Comandos úteis
 ```bash
-psql -U postgres -d postgres -f banco_completo.sql
-psql "Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=123456" -f banco_completo.sql
+psql -U postgres -d postgres -f script_completo.sql
+psql "Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=123456" -f script_completo.sql
 npm run db:scriptbd-completo
 npm run security:no-secrets
 ```

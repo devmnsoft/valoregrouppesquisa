@@ -14,7 +14,7 @@ Localização: `backend/`.
 
 Solution: `backend/Valora.sln`.
 
-Banco: PostgreSQL, schema `valorapesquisa`, com fonte canônica em `backend/database/postgresql/banco_completo.sql`.
+Banco: PostgreSQL, schema `valorapesquisa`, com fonte canônica em `backend/database/postgresql/script_completo.sql`.
 
 ## Regras
 

@@ -47,7 +47,7 @@ const gaps = read('ASPNET_WEB_API_GAPS.md');
 const gapOccurrences = walk('backend').filter(f=>/\.(cs|cshtml|js)$/.test(f)).filter(f=>read(f).includes('WEB_ADMIN_REAL_REPOSITORY_REQUIRED'));
 if (gapOccurrences.length) ok(gaps.includes('WEB_ADMIN_REAL_REPOSITORY_REQUIRED'), 'WEB_ADMIN_REAL_REPOSITORY_REQUIRED existe sem gap documentado');
 
-const sql = read('backend/database/postgresql/banco_completo.sql') + '\n' + read('banco_completo.sql');
+const sql = read('backend/database/postgresql/script_completo.sql') + '\n' + read('script_completo.sql');
 ['organizations','users','roles','permissions','forms','questions','question_options','surveys','survey_links','responses','response_answers','result_scores','certificates','communications','email_jobs','audit_logs','plans','plan_limits','plan_capabilities','modules','organization_modules','subscriptions','usage_monthly'].forEach(t => ok(new RegExp(`CREATE TABLE IF NOT EXISTS\\s+valorapesquisa\\.${t}\\b`, 'i').test(sql), `SQL oficial sem tabela ${t}`));
 
 if (errors.length) {

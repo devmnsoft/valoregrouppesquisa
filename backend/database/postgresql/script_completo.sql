@@ -1,9 +1,10 @@
 -- Valora Insight - bootstrap canonico PostgreSQL
 -- Fonte oficial a partir da Fase 1. Idempotente e nao destrutivo.
 BEGIN;
+SELECT pg_advisory_xact_lock(hashtextextended('valorapesquisa:script_completo', 0));
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE SCHEMA IF NOT EXISTS valorapesquisa;
-SET search_path TO valorapesquisa, public;
+SET LOCAL search_path TO valorapesquisa, public;
 
 CREATE OR REPLACE FUNCTION valorapesquisa.set_updated_at()
 RETURNS trigger LANGUAGE plpgsql AS $$
@@ -247,9 +248,10 @@ COMMIT;
 -- Fase 2G: invariantes multiempresa, RBAC por escopo e reservas de limites.
 -- Migration aditiva e idempotente; não remove dados ou tabelas legadas.
 BEGIN;
+SELECT pg_advisory_xact_lock(hashtextextended('valorapesquisa:script_completo', 0));
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE SCHEMA IF NOT EXISTS valorapesquisa;
-SET search_path TO valorapesquisa, public;
+SET LOCAL search_path TO valorapesquisa, public;
 
 ALTER TABLE business_groups ADD COLUMN IF NOT EXISTS code text;
 ALTER TABLE business_groups ADD COLUMN IF NOT EXISTS type text NOT NULL DEFAULT 'economic_group';
@@ -349,4 +351,68 @@ ON CONFLICT DO NOTHING;
 INSERT INTO schema_migrations(version,checksum)
 VALUES ('20260731_006_multiempresa_rbac_plan_limits','phase-02g-v1')
 ON CONFLICT(version) DO UPDATE SET checksum=EXCLUDED.checksum,applied_at=now();
+
+-- 19. MIGRACAO DE ESTRUTURAS LEGADAS E CONVERGENCIA FASE 2J
+
+-- Converge historical installations without losing counter or reservation data.
+DO $$
+BEGIN
+  IF to_regclass('valorapesquisa.plan_usage_counters') IS NULL THEN
+    CREATE TABLE plan_usage_counters (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), metric_key text NOT NULL, period_start date NOT NULL, consumed bigint NOT NULL DEFAULT 0, reserved bigint NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+  ELSE
+    ALTER TABLE plan_usage_counters ADD COLUMN IF NOT EXISTS id uuid DEFAULT gen_random_uuid();
+    ALTER TABLE plan_usage_counters ADD COLUMN IF NOT EXISTS metric_key text;
+    ALTER TABLE plan_usage_counters ADD COLUMN IF NOT EXISTS period_start date DEFAULT date_trunc('month', CURRENT_DATE)::date;
+    ALTER TABLE plan_usage_counters ADD COLUMN IF NOT EXISTS consumed bigint DEFAULT 0;
+    ALTER TABLE plan_usage_counters ADD COLUMN IF NOT EXISTS reserved bigint DEFAULT 0;
+    ALTER TABLE plan_usage_counters ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='plan_usage_counters' AND column_name='resource_code') THEN
+      UPDATE plan_usage_counters SET metric_key=resource_code WHERE metric_key IS NULL;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='plan_usage_counters' AND column_name='used_value') THEN
+      UPDATE plan_usage_counters SET consumed=used_value WHERE consumed=0;
+    END IF;
+    ALTER TABLE plan_usage_counters DROP COLUMN IF EXISTS resource_code;
+    ALTER TABLE plan_usage_counters DROP COLUMN IF EXISTS used_value;
+  END IF;
+END $$;
+ALTER TABLE plan_usage_counters ALTER COLUMN id SET NOT NULL, ALTER COLUMN metric_key SET NOT NULL, ALTER COLUMN period_start SET NOT NULL, ALTER COLUMN consumed SET NOT NULL, ALTER COLUMN reserved SET NOT NULL, ALTER COLUMN created_at SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_usage_counters_period ON plan_usage_counters(organization_id,metric_key,period_start);
+
+DO $$
+BEGIN
+  IF to_regclass('valorapesquisa.plan_usage_reservations') IS NULL THEN
+    CREATE TABLE plan_usage_reservations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), metric_key text NOT NULL, quantity bigint NOT NULL, status text NOT NULL DEFAULT 'reserved', idempotency_key text NOT NULL, expires_at timestamptz NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+  ELSE
+    ALTER TABLE plan_usage_reservations ADD COLUMN IF NOT EXISTS metric_key text;
+    ALTER TABLE plan_usage_reservations ADD COLUMN IF NOT EXISTS quantity bigint;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='plan_usage_reservations' AND column_name='resource_code') THEN
+      UPDATE plan_usage_reservations SET metric_key=resource_code WHERE metric_key IS NULL;
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='plan_usage_reservations' AND column_name='amount') THEN
+      UPDATE plan_usage_reservations SET quantity=amount WHERE quantity IS NULL;
+    END IF;
+    ALTER TABLE plan_usage_reservations DROP COLUMN IF EXISTS resource_code;
+    ALTER TABLE plan_usage_reservations DROP COLUMN IF EXISTS amount;
+  END IF;
+END $$;
+ALTER TABLE plan_usage_reservations ALTER COLUMN metric_key SET NOT NULL, ALTER COLUMN quantity SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_usage_reservation_idempotency ON plan_usage_reservations(organization_id,idempotency_key);
+CREATE INDEX IF NOT EXISTS ix_plan_usage_reservations_active ON plan_usage_reservations(organization_id,metric_key,expires_at) WHERE status='reserved';
+DROP INDEX IF EXISTS ux_legal_entities_org_cnpj_active;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_legal_entities_cnpj_active ON legal_entities(cnpj) WHERE deleted_at IS NULL;
+
+INSERT INTO valorapesquisa.schema_migrations(version, checksum) VALUES ('20260730_phase_02j', 'script-completo-v1') ON CONFLICT(version) DO UPDATE SET checksum=EXCLUDED.checksum, applied_at=now();
+
+-- 35. VALIDACOES FINAIS
+DO $validation$
+BEGIN
+  IF to_regnamespace('valorapesquisa') IS NULL THEN RAISE EXCEPTION 'Schema valorapesquisa ausente'; END IF;
+  IF to_regclass('valorapesquisa.organizations') IS NULL OR to_regclass('valorapesquisa.users') IS NULL THEN RAISE EXCEPTION 'Tabelas obrigatorias ausentes'; END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='plan_usage_counters' AND column_name IN ('resource_code','used_value')) THEN RAISE EXCEPTION 'Colunas legadas ainda presentes em plan_usage_counters'; END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='plan_usage_reservations' AND column_name='amount') THEN RAISE EXCEPTION 'Coluna legada amount ainda presente'; END IF;
+END
+$validation$;
+
+-- 36. COMMIT
 COMMIT;

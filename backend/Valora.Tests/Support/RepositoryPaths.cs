@@ -10,7 +10,7 @@ public static class RepositoryPaths
     public static string InfrastructureRoot => Path.Combine(BackendRoot, "Valora.Infrastructure");
     public static string WebRoot => Path.Combine(BackendRoot, "Valora.Web");
     public static string TestsRoot => Path.Combine(BackendRoot, "Valora.Tests");
-    public static string CanonicalDatabaseScript => Path.Combine(BackendRoot, "database", "postgresql", "banco_completo.sql");
+    public static string CanonicalDatabaseScript => Path.Combine(BackendRoot, "database", "postgresql", "script_completo.sql");
     public static string MigrationsDirectory => Path.Combine(BackendRoot, "database", "postgresql", "migrations");
     public static string RootPackageJson => Path.Combine(RepositoryRoot, "package.json");
 

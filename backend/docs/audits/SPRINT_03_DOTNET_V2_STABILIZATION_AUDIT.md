@@ -37,7 +37,7 @@ Foram criados scripts Windows e Linux para subir PostgreSQL, aplicar banco, roda
 Foi criado `projeto .NET predecessor removido/README.md` com visão geral, pré-requisitos, PostgreSQL, banco, API, Web, URLs locais, credenciais demo, testes, Docker Compose, validação manual e troubleshooting.
 
 ## 13. Seed ajustado
-`banco_completo.sql` contém seed idempotente com organização Valora, usuário admin Valora, organização empresa demo, usuário empresa admin demo, formulário demo, pesquisa demo publicada, perguntas e opções demo. As senhas não são gravadas em texto puro; hashes de desenvolvimento são documentados.
+`script_completo.sql` contém seed idempotente com organização Valora, usuário admin Valora, organização empresa demo, usuário empresa admin demo, formulário demo, pesquisa demo publicada, perguntas e opções demo. As senhas não são gravadas em texto puro; hashes de desenvolvimento são documentados.
 
 ## 14. Testes unitários criados
 A suíte em `FoundationTests.cs` cobre cálculo `scale`, `single_choice`, `multiple_choice`, `short_text`, peso, níveis Inicial/Intermediário/Avançado, token hash, BCrypt, sanitização/segurança textual, erro sem stack trace, SQL com tabelas/índices e estrutura separada.

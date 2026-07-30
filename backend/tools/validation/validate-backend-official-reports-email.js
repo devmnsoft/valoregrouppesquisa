@@ -1,7 +1,7 @@
 const fs=require('fs'), path=require('path');
 const root=process.cwd(); const read=p=>fs.existsSync(p)?fs.readFileSync(p,'utf8'):''; let failed=false;
 function ok(cond,msg){ if(cond) console.log('OK',msg); else { console.error('FAIL',msg); failed=true; }}
-const sql=read('backend/database/postgresql/banco_completo.sql')+read('banco_completo.sql');
+const sql=read('backend/database/postgresql/script_completo.sql')+read('script_completo.sql');
 ['report_definitions','generated_reports','certificates','certificate_validations','export_jobs','lgpd_consents','privacy_requests','email_templates','email_jobs','modules','subscriptions','usage_monthly'].forEach(t=>ok(sql.includes(t),`SQL contém ${t}`));
 ['ReportsController','OperationalCertificatesController','PublicCertificatesController','ExportsController','LgpdController','EmailController'].forEach(c=>ok(read(`backend/Valora.Api/Controllers/${c}.cs`).includes(c),`controller ${c}`));
 ['ReportService','CertificateOperationalService','ExportService','LgpdConsentService','PrivacyRequestService','EmailQueueService','MenuService','EntitlementService'].forEach(s=>ok(read('backend/Valora.Application/Services/OperationalServices.cs').includes(s),`service ${s}`));

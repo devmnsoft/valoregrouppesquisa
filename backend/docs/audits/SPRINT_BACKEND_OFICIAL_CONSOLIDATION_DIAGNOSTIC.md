@@ -34,11 +34,11 @@ Dashboard, organizações, usuários, formulários, pesquisas, links públicos, 
 
 ## 9. Tabelas do banco oficial divergentes
 
-O script oficial já cobre grande parte do schema. Divergências a monitorar: presença e compatibilidade de `modules`, `organization_modules`, `subscriptions`, `usage_monthly`, `survey_invites`, `survey_participants`, `organization_settings`, `organization_branding`, `user_profiles`, `roles`, `permissions` e `role_permissions` entre `banco_completo.sql`, `backend/database/postgresql/banco_completo.sql` e scripts incrementais.
+O script oficial já cobre grande parte do schema. Divergências a monitorar: presença e compatibilidade de `modules`, `organization_modules`, `subscriptions`, `usage_monthly`, `survey_invites`, `survey_participants`, `organization_settings`, `organization_branding`, `user_profiles`, `roles`, `permissions` e `role_permissions` entre `script_completo.sql`, `backend/database/postgresql/script_completo.sql` e scripts incrementais.
 
 ## 10. Scripts SQL que precisam ser ajustados
 
-Manter `backend/database/postgresql/banco_completo.sql` como fonte operacional e sincronizar `banco_completo.sql` raiz. Scripts incrementais devem permanecer idempotentes e conter seeds sem senha em texto e sem token público real em texto.
+Manter `backend/database/postgresql/script_completo.sql` como fonte operacional e sincronizar `script_completo.sql` raiz. Scripts incrementais devem permanecer idempotentes e conter seeds sem senha em texto e sem token público real em texto.
 
 ## 11. Validadores que apontam para `projeto .NET predecessor removido`
 

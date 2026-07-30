@@ -1,18 +1,10 @@
 {
-  "officialProductNames": [
-    "Valora",
-    "Valora Pulse",
-    "Valora Insight",
-    "Valora Group"
-  ],
-  "forbiddenProductNames": [
-    "HabitFlow",
-    "InovaGed",
-    "IntegraRP",
-    "SIGOV",
-    "PlantaoPro",
-    "OrcaFacil"
-  ],
+  "officialProductNames": ["Valora", "Valora Pulse", "Valora Insight", "Valora Group"],
+  "forbiddenProductNames": ["HabitFlow", "InovaGed", "IntegraRP", "SIGOV", "PlantaoPro", "OrcaFacil"],
+  "exactlyOneSolution": "backend/Valora.sln",
   "officialSolution": "backend/Valora.sln",
-  "officialBackendRoot": "backend"
+  "onlyDotNetRoot": "backend/",
+  "officialBackendRoot": "backend",
+  "legacyRoot": "/",
+  "officialDatabaseFile": "backend/database/postgresql/script_completo.sql"
 }

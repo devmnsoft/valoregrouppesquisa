@@ -1,4 +1,4 @@
-# Guia de execução — `backend/database/postgresql/banco_completo.sql`
+# Guia de execução — `backend/database/postgresql/script_completo.sql`
 
 ## Requisitos
 
@@ -16,7 +16,7 @@ psql "postgresql://usuario:senha@host:5432/valoradb"
 ## Execução
 
 ```bash
-psql "postgresql://usuario:senha@host:5432/valoradb" -v ON_ERROR_STOP=1 -f backend/database/postgresql/banco_completo.sql
+psql "postgresql://usuario:senha@host:5432/valoradb" -v ON_ERROR_STOP=1 -f backend/database/postgresql/script_completo.sql
 ```
 
 ## Reexecução
@@ -24,7 +24,7 @@ psql "postgresql://usuario:senha@host:5432/valoradb" -v ON_ERROR_STOP=1 -f backe
 O script foi escrito para ser idempotente: usa `CREATE ... IF NOT EXISTS`, `CREATE OR REPLACE FUNCTION`, índices condicionais, triggers recriados de forma determinística e seeds com `ON CONFLICT`.
 
 ```bash
-psql "postgresql://usuario:senha@host:5432/valoradb" -v ON_ERROR_STOP=1 -f backend/database/postgresql/banco_completo.sql
+psql "postgresql://usuario:senha@host:5432/valoradb" -v ON_ERROR_STOP=1 -f backend/database/postgresql/script_completo.sql
 ```
 
 ## Validação
@@ -52,7 +52,7 @@ pg_dump --format=custom --file=backup_valoradb.dump valoradb
 
 ## Scripts incrementais
 
-- `banco_completo.sql` é o bootstrap para bancos vazios ou normalização inicial controlada.
+- `script_completo.sql` é o bootstrap para bancos vazios ou normalização inicial controlada.
 - Evoluções futuras devem entrar como migrations versionadas pequenas.
 - Cada migration deve registrar `version`, `checksum`, data de aplicação e executor em `schema_migrations`.
 - Rollback deve ser documentado quando tecnicamente seguro.

@@ -13,7 +13,7 @@ for (const file of tests) {
   const source = read(file);
   reject(/AppContext\.BaseDirectory[^\n]*(\.\.\/){2,}|FindRepositoryRoot|EncontrarRaiz/.test(source), `${path.relative(backend, file)} resolve caminhos por conta própria`);
 }
-const sql = read(path.join(backend, 'database/postgresql/banco_completo.sql'));
+const sql = read(path.join(backend, 'database/postgresql/script_completo.sql'));
 reject((sql.match(/CREATE TABLE IF NOT EXISTS plan_usage_counters/gi) || []).length !== 1, 'bootstrap contém mais de uma definição de contador');
 reject(/\bresource_code\b|\bused_value\b|\bamount\b/.test(sql), 'bootstrap usa colunas de consumo obsoletas');
 const auth = read(path.join(backend, 'Valora.Application/Services/Auth/AuthService.cs'));

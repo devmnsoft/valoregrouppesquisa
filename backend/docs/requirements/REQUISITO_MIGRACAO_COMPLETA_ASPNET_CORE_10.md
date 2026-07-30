@@ -8,7 +8,7 @@ Este documento consolida:
 2. o diagnóstico técnico do repositório atual;
 3. a arquitetura obrigatória da nova versão;
 4. a migração integral do legado Firebase/JavaScript para ASP.NET Core 10, Dapper e PostgreSQL;
-5. a criação do banco canônico em `backend/database/postgresql/banco_completo.sql`;
+5. a criação do banco canônico em `backend/database/postgresql/script_completo.sql`;
 6. o requisito de planos Gratuito, Profissional, Corporativo e Enterprise;
 7. os critérios de segurança, qualidade, testes, migração, homologação e cutover;
 8. um prompt completo para execução pelo Codex.
@@ -62,7 +62,7 @@ A implementação não pode considerar o backend atual concluído. Foram identif
 8. Existem operações JavaScript oficiais que retornam sucesso simulado sem persistência real, por exemplo ações de salvar e alterar status de pesquisa.
 9. Há serviços provisórios com comportamento inadequado para produção, como processamento de e-mail com destinatário fixo de desenvolvimento.
 10. Existem contratos e catálogos de planos divergentes entre README, JavaScript, JSON compartilhado, Functions, documentação e PostgreSQL.
-11. Existem dois caminhos de banco e múltiplos scripts que podem divergir. Não há hoje uma única fonte canônica chamada `banco_completo.sql`.
+11. Existem dois caminhos de banco e múltiplos scripts que podem divergir. Não há hoje uma única fonte canônica chamada `script_completo.sql`.
 12. Algumas tabelas existentes possuem poucas FKs, constraints e índices; outras guardam estruturas críticas apenas em `jsonb` genérico.
 13. Há funcionalidades descritas como migradas, mas ainda dependentes de estados vazios, HTTP 501, runtime não homologado ou código de demonstração.
 14. O legado contém regras de acesso, módulos, perfis e coleções que ainda não estão integralmente representados no domínio PostgreSQL.
@@ -603,12 +603,12 @@ Não traduzir automaticamente em runtime as pesquisas oficiais. Cada tradução 
 Criar:
 
 ```text
-backend/database/postgresql/banco_completo.sql
+backend/database/postgresql/script_completo.sql
 ```
 
 Este será o único bootstrap canônico do banco.
 
-Atualizar todos os scripts, documentação, Docker, CI, MigrationRunner e ferramentas Windows/Linux para utilizar `banco_completo.sql`.
+Atualizar todos os scripts, documentação, Docker, CI, MigrationRunner e ferramentas Windows/Linux para utilizar `script_completo.sql`.
 
 Arquivar ou remover da execução automática os scripts completos duplicados, evitando duas fontes concorrentes. Não apagar migrations históricas necessárias sem preservar rastreabilidade.
 
@@ -743,7 +743,7 @@ O script deve consolidar, com FKs e índices:
 Criar teste automatizado que:
 
 1. sobe PostgreSQL descartável;
-2. executa `banco_completo.sql`;
+2. executa `script_completo.sql`;
 3. executa o mesmo arquivo novamente;
 4. valida tabelas, colunas, constraints, triggers, índices e seeds;
 5. executa operações mínimas de insert/update/delete lógico;
@@ -986,7 +986,7 @@ npm run backend:sql-schema-validate
 npm run db:scriptbd-validate
 ```
 
-Atualizar os scripts npm para o novo nome `banco_completo.sql` e criar um comando específico, por exemplo:
+Atualizar os scripts npm para o novo nome `script_completo.sql` e criar um comando específico, por exemplo:
 
 ```bash
 npm run db:banco-completo-validate
@@ -1049,7 +1049,7 @@ Requisitos:
 7. Web MVC funcional.
 8. Worker funcional.
 9. Ferramenta de migração funcional.
-10. `backend/database/postgresql/banco_completo.sql` idempotente.
+10. `backend/database/postgresql/script_completo.sql` idempotente.
 11. Seeds oficiais dos quatro planos.
 12. Pesquisa Valora versionada nos quatro idiomas.
 13. Migração real de dados com dry-run/apply/reconcile/rollback.
@@ -1073,7 +1073,7 @@ A implementação só estará concluída quando:
 
 - o build Release for zero erro;
 - todos os testes executáveis passarem;
-- `banco_completo.sql` executar duas vezes sem erro;
+- `script_completo.sql` executar duas vezes sem erro;
 - nenhuma tabela/constraint/trigger/index duplicado causar falha;
 - nenhuma funcionalidade produtiva depender de Firebase;
 - nenhuma página oficial usar dados fake;
@@ -1139,7 +1139,7 @@ Não crie `backend-v3`, outra solution, React, Angular, Vue, Vite, SPA paralela 
 
 ### Banco
 
-1. Crie `backend/database/postgresql/banco_completo.sql` como fonte canônica.
+1. Crie `backend/database/postgresql/script_completo.sql` como fonte canônica.
 2. Consolide todo o schema necessário do legado e do backend.
 3. Atualize ferramentas, runners, Docker, CI e documentação para esse arquivo.
 4. Faça o script idempotente para tabelas, colunas, PKs, FKs, UKs, CKs, índices, functions, triggers e seeds.
@@ -1203,7 +1203,7 @@ Implemente integralmente as novas regras:
 
 1. Crie testes unitários, integração, arquitetura e E2E.
 2. Teste PostgreSQL real descartável.
-3. Teste execução dupla de `banco_completo.sql`.
+3. Teste execução dupla de `script_completo.sql`.
 4. Teste isolamento multiempresa.
 5. Teste limites dos planos.
 6. Teste pesquisa pública e cálculo.
@@ -1260,7 +1260,7 @@ Entregue uma PR pronta para homologação contendo:
 - solution .NET 10 compilável;
 - código limpo e separado;
 - DDD/Application/Infrastructure/API/Web/Worker/Migration coerentes;
-- PostgreSQL completo em `banco_completo.sql`;
+- PostgreSQL completo em `script_completo.sql`;
 - migração real Firebase → PostgreSQL;
 - paridade funcional;
 - novas regras dos planos;

@@ -9,8 +9,8 @@ const web = read('backend/Valora.Web/Valora.Web.csproj');
 if (/Npgsql|Dapper/i.test(web)) fail.push('Valora.Web referencia pacote de banco');
 const backendFiles = walk('backend').filter(p=>/\.(cs|csproj|json)$/.test(p) && !p.includes('Valora.Tests'));
 for (const p of backendFiles) { const s=read(p); if (/Firebase/i.test(s)) fail.push(`${p} referencia Firebase no backend oficial`); if (/devnull@example\.com|retorna sucesso sem persistencia|ok: true/i.test(s)) fail.push(`${p} contem marcador de dado simulado`); }
-const sql = read('backend/database/postgresql/banco_completo.sql');
-for (const term of ['CREATE SCHEMA IF NOT EXISTS valorapesquisa','CREATE TABLE IF NOT EXISTS organizations','ON CONFLICT','free','professional','corporate','enterprise','Cultura e Propósito']) if (!sql.includes(term)) fail.push(`banco_completo.sql sem ${term}`);
-if (/DROP\s+(TABLE|SCHEMA)/i.test(sql)) fail.push('banco_completo.sql contem DROP destrutivo');
+const sql = read('backend/database/postgresql/script_completo.sql');
+for (const term of ['CREATE SCHEMA IF NOT EXISTS valorapesquisa','CREATE TABLE IF NOT EXISTS organizations','ON CONFLICT','free','professional','corporate','enterprise','Cultura e Propósito']) if (!sql.includes(term)) fail.push(`script_completo.sql sem ${term}`);
+if (/DROP\s+(TABLE|SCHEMA)/i.test(sql)) fail.push('script_completo.sql contem DROP destrutivo');
 if (fail.length) { console.error('Validacao Fase 1 falhou:\n- '+fail.join('\n- ')); process.exit(1); }
 console.log('Validacao estatica Fase 1 concluida. Execute dotnet build/test/format e Testcontainers em ambiente com .NET 10 e Docker.');

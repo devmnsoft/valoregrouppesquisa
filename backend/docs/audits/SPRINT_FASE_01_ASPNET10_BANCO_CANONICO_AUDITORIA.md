@@ -5,7 +5,7 @@
 - Criada fundação de build centralizada com `global.json`, `backend/Directory.Build.props`, `backend/Directory.Packages.props` e `.editorconfig`.
 - Atualizados os projetos oficiais para `net10.0` e Central Package Management.
 - Entidades estruturais mínimas do domínio foram expandidas com identidade, tenant, status, timestamps e exclusão lógica por meio de `AuditableEntity` quando aplicável.
-- Criado `backend/database/postgresql/banco_completo.sql` como bootstrap canônico não destrutivo e idempotente.
+- Criado `backend/database/postgresql/script_completo.sql` como bootstrap canônico não destrutivo e idempotente.
 - Preservados scripts históricos com aviso apontando para o bootstrap canônico.
 - Criados testes estáticos de arquitetura e inspeção do script canônico.
 - Criado validador consolidado `npm run backend:phase1-validate`.
@@ -14,7 +14,7 @@
 
 - Solution oficial `backend/Valora.sln`.
 - Projetos oficiais existentes.
-- Script histórico `backend/database/postgresql/banco_completo.sql` como referência de estruturas e compatibilidade.
+- Script histórico `backend/database/postgresql/script_completo.sql` como referência de estruturas e compatibilidade.
 - Validadores Node já existentes relacionados ao backend oficial.
 
 ## Não concluído nesta fase

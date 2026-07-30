@@ -3,7 +3,7 @@
 1. **Projeto novo em `backend`**: `backend/Valora.sln` contém API, Application, Domain, Infrastructure, Tests e Web MVC/Razor como base oficial.
 2. **Legado da raiz**: preservado como referência funcional em Bootstrap/JavaScript/Firebase, iniciado por `index.html`; não foi alterado nesta etapa diagnóstica.
 3. **`projeto .NET predecessor removido`**: permanece referência histórica e fora do build oficial.
-4. **Scripts SQL**: scripts oficiais estão em `backend/database/postgresql` e no `banco_completo.sql` raiz; arquivos de archive contêm histórico e não são build oficial.
+4. **Scripts SQL**: scripts oficiais estão em `backend/database/postgresql` e no `script_completo.sql` raiz; arquivos de archive contêm histórico e não são build oficial.
 5. **Schema de `plans`**: schema oficial usa `id` UUID e `code` como chave natural, sem colunas legadas de apresentação.
 6. **Seed de planos**: seed oficial usa `ON CONFLICT (code)` e valores compatíveis com o schema real.
 7. **Validador `backend:sql-schema-validate`**: existente no `package.json` e responsável por bloquear regressões de schema/seed de planos.

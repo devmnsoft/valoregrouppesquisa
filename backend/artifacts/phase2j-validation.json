@@ -1,0 +1,17 @@
+{
+  "phase": "02J",
+  "validatedAt": "2026-07-30T11:26:24.159Z",
+  "solutions": [
+    "backend/Valora.sln"
+  ],
+  "projects": [
+    "backend/Valora.Api/Valora.Api.csproj",
+    "backend/Valora.Application/Valora.Application.csproj",
+    "backend/Valora.Domain/Valora.Domain.csproj",
+    "backend/Valora.Infrastructure/Valora.Infrastructure.csproj",
+    "backend/Valora.Tests/Valora.Tests.csproj",
+    "backend/Valora.Web/Valora.Web.csproj"
+  ],
+  "officialSql": "backend/database/postgresql/script_completo.sql",
+  "status": "passed"
+}

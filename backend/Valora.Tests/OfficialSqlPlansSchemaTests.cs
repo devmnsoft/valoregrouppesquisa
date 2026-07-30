@@ -6,7 +6,7 @@ namespace Valora.Tests;
 public sealed class OfficialSqlPlansSchemaTests
 {
     [Theory]
-    [InlineData("banco_completo.sql")]
+    [InlineData("script_completo.sql")]
     [InlineData("011_seed_official_plans.sql")]
     public void OfficialPlanSeedsDoNotReferenceKnownRemovedColumns(string relativePath)
     {

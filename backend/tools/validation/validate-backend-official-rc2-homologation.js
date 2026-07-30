@@ -33,7 +33,7 @@ const pkg = JSON.parse(read('package.json') || '{}');
 ok(Boolean(pkg.scripts && pkg.scripts['backend:sql-schema-validate']), 'backend:sql-schema-validate está no package.json');
 ok(Boolean(pkg.scripts && pkg.scripts['backend:rc2-homologation-validate']), 'backend:rc2-homologation-validate está no package.json');
 
-const sqlFiles = ['banco_completo.sql', ...walk('backend/database/postgresql', f => f.endsWith('.sql'))];
+const sqlFiles = ['script_completo.sql', ...walk('backend/database/postgresql', f => f.endsWith('.sql'))];
 const officialSql = sqlFiles.map(f => read(f)).join('\n');
 ok(!/\bprice_label\b/i.test(officialSql), 'price_label não aparece no SQL oficial');
 ok(!/\bbadge\b/i.test(officialSql), 'badge não aparece no SQL oficial');

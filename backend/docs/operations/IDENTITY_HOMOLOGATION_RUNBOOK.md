@@ -21,8 +21,8 @@ dotnet build Valora.sln --configuration Release
 dotnet test Valora.sln --configuration Release
 dotnet format Valora.sln
 dotnet format Valora.sln --verify-no-changes
-psql "$VALORA_TEST_POSTGRES_CONNECTION" -v ON_ERROR_STOP=1 -f database/postgresql/banco_completo.sql
-psql "$VALORA_TEST_POSTGRES_CONNECTION" -v ON_ERROR_STOP=1 -f database/postgresql/banco_completo.sql
+psql "$VALORA_TEST_POSTGRES_CONNECTION" -v ON_ERROR_STOP=1 -f database/postgresql/script_completo.sql
+psql "$VALORA_TEST_POSTGRES_CONNECTION" -v ON_ERROR_STOP=1 -f database/postgresql/script_completo.sql
 ```
 
 Aplique também todas as migrations em ordem duas vezes. Homologue cadastro, rollback induzido, login, rotação, detecção de reuso, logout, reset, outbox e isolamento entre dois tenants. Não promova enquanto qualquer comando falhar.

@@ -22,7 +22,7 @@ Os testes estão em `backend/Valora.Tests`. A execução real ficou bloqueada po
 Há testes integrados para homologação PostgreSQL, mas a execução com banco real ficou bloqueada por ausência de Docker/PostgreSQL local.
 
 ## 7. Estado atual do SQL oficial
-O SQL oficial existe em `banco_completo.sql`, `backend/database/postgresql/banco_completo.sql` e scripts complementares em `backend/database/postgresql/*.sql`.
+O SQL oficial existe em `script_completo.sql`, `backend/database/postgresql/script_completo.sql` e scripts complementares em `backend/database/postgresql/*.sql`.
 
 ## 8. Estado atual dos health checks
 A API declara endpoints `/health`, `/health/database`, `/health/migration`, `/health/email`, `/health/storage` e `/health/version`. O Web MVC declara páginas operacionais `/Operations/Health`, `/Operations/Version` e `/Operations/Checks`.

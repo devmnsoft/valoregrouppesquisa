@@ -3,7 +3,7 @@ const path = require('path');
 
 const root = path.resolve(__dirname, '..');
 
-const canonical = path.join(root, 'backend/database/postgresql/banco_completo.sql');
+const canonical = path.join(root, 'backend/database/postgresql/script_completo.sql');
 if (fs.existsSync(canonical)) {
   const canonicalSql = fs.readFileSync(canonical, 'utf8');
   const checks = [
@@ -27,8 +27,8 @@ if (fs.existsSync(canonical)) {
 }
 const postgresDir = path.join(root, 'backend/database/postgresql');
 const files = [
-  'banco_completo.sql',
-  'backend/database/postgresql/banco_completo.sql',
+  'script_completo.sql',
+  'backend/database/postgresql/script_completo.sql',
   ...fs.readdirSync(postgresDir)
     .filter((f) => f.endsWith('.sql'))
     .map((f) => `backend/database/postgresql/${f}`),
@@ -45,7 +45,7 @@ function ok(cond, msg) {
 
 const sql = Object.fromEntries(files.map((f) => [f, fs.readFileSync(path.join(root, f), 'utf8')]));
 let fullSql = files.map((f) => `-- ${f}\n${sql[f]}`).join('\n');
-const official = `${sql['banco_completo.sql']}\n${sql['backend/database/postgresql/banco_completo.sql']}\n${sql['backend/database/postgresql/003_plan_tables.sql']}`;
+const official = `${sql['script_completo.sql']}\n${sql['backend/database/postgresql/script_completo.sql']}\n${sql['backend/database/postgresql/003_plan_tables.sql']}`;
 const forbiddenPlanColumns = [
   'price_label',
   'badge',
@@ -81,7 +81,7 @@ const orgUsesPlanCode = /CREATE TABLE IF NOT EXISTS\s+valorapesquisa\.organizati
 
 ok(/CREATE TABLE IF NOT EXISTS\s+(?:valorapesquisa\.)?plans[\s\S]*id\s+uuid[\s\S]*code\s+text\s+NOT NULL\s+UNIQUE/i.test(official), 'plans usa id uuid e code textual único');
 ok(planColumns.size > 0, 'schema real de plans foi localizado nos scripts oficiais');
-const requiredPlanColumns = sql['backend/database/postgresql/banco_completo.sql'] ? ['code', 'name', 'is_public', 'is_active', 'is_legacy', 'updated_at'] : ['code', 'name', 'description', 'monthly_price', 'annual_price', 'display_order', 'status', 'updated_at'];
+const requiredPlanColumns = sql['backend/database/postgresql/script_completo.sql'] ? ['code', 'name', 'is_public', 'is_active', 'is_legacy', 'updated_at'] : ['code', 'name', 'description', 'monthly_price', 'annual_price', 'display_order', 'status', 'updated_at'];
 for (const column of requiredPlanColumns) {
   ok(planColumns.has(column), `plans contém coluna real ${column}`);
 }
@@ -96,7 +96,7 @@ planInserts.forEach((columns, index) => {
   ok(columns.includes('code'), `INSERT #${index + 1} em plans usa code`);
   ok(!columns.includes('id'), `INSERT #${index + 1} em plans não faz seed textual em id uuid`);
 });
-ok(sql['backend/database/postgresql/banco_completo.sql'] ? /INSERT\s+INTO\s+plans\s*\([\s\S]*\bcode\b[\s\S]*is_public[\s\S]*is_active/i.test(official) : /INSERT\s+INTO\s+valorapesquisa\.plans\s*\([\s\S]*\bcode\b[\s\S]*monthly_price[\s\S]*annual_price/i.test(official), sql['backend/database/postgresql/banco_completo.sql'] ? 'seed de plans usa code/is_public/is_active' : 'seed de plans usa code/monthly_price/annual_price');
+ok(sql['backend/database/postgresql/script_completo.sql'] ? /INSERT\s+INTO\s+plans\s*\([\s\S]*\bcode\b[\s\S]*is_public[\s\S]*is_active/i.test(official) : /INSERT\s+INTO\s+valorapesquisa\.plans\s*\([\s\S]*\bcode\b[\s\S]*monthly_price[\s\S]*annual_price/i.test(official), sql['backend/database/postgresql/script_completo.sql'] ? 'seed de plans usa code/is_public/is_active' : 'seed de plans usa code/monthly_price/annual_price');
 ok(hasStructuredLimits, 'plan_limits usa limit_key/limit_value canonicos');
 ok(hasCapabilityCode, 'plan_capabilities usa capability_key canonico');
 if (orgUsesPlanCode) ok(!/organizations\s*\([^)]*plan_id/i.test(fullSql), 'organizations não recebe plan_id quando schema usa plan_code');

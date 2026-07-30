@@ -10,7 +10,7 @@ Foi mantida a solution `backend/Valora.sln`, porque já existe separação compa
 - `backend/Valora.Api`: Web API.
 - `backend/Valora.Web`: MVC/Razor oficial.
 - `backend/Valora.Tests`: testes automatizados.
-- `backend/database/postgresql`: scripts PostgreSQL e `banco_completo.sql`.
+- `backend/database/postgresql`: scripts PostgreSQL e `script_completo.sql`.
 
 ## 3. Estrutura criada/ajustada
 - `backend/Valora.Domain/Common/AuditableEntity.cs` com campos auditáveis obrigatórios.
@@ -37,7 +37,7 @@ Foram mapeados clientes, financeiro, planos, módulos, usuários, funcionários,
 - Validar tudo em ambiente com .NET SDK instalado.
 
 ## 7. Banco criado/ajustado
-O repositório já contém `backend/database/postgresql/banco_completo.sql` e scripts modulares. A etapa documentou a necessidade de expandir tabelas novas para todas as entidades auditáveis, com UUID, FKs, índices por `organization_id`, e-mail, slug, status e hashes de token.
+O repositório já contém `backend/database/postgresql/script_completo.sql` e scripts modulares. A etapa documentou a necessidade de expandir tabelas novas para todas as entidades auditáveis, com UUID, FKs, índices por `organization_id`, e-mail, slug, status e hashes de token.
 
 ## 8. Endpoints criados/confirmados
 A solução já possui controllers para Auth, Organizations, Plans, Surveys, PublicSurveys, Responses, Certificates, Communications, Operations, Migration, Health e Admin. Nesta etapa foram criados contratos de aplicação para sustentar importação legado sem acoplar Web/Api ao Firebase.

@@ -10,7 +10,7 @@ O legado preservado na raiz é iniciado por `index.html` e usa HTML, Bootstrap, 
 - Legado: referência funcional e operacional, sem receber migração estrutural nesta sprint.
 - `backend`: base oficial ASP.NET/PostgreSQL para evolução, homologação e cutover.
 - `projeto .NET predecessor removido`: referência histórica, sem novas features.
-- Scripts SQL atuais: contrato oficial PostgreSQL em `banco_completo.sql` e `backend/database/postgresql/*.sql`, devendo ser compatíveis com o schema real.
+- Scripts SQL atuais: contrato oficial PostgreSQL em `script_completo.sql` e `backend/database/postgresql/*.sql`, devendo ser compatíveis com o schema real.
 
 ## 4. Mapa do que já foi migrado
 - Solution oficial e camadas API/Application/Domain/Infrastructure/Web.

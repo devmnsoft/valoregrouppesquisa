@@ -10,7 +10,7 @@
 8. **Repositories criados**: repositories oficiais para batch, source file, record, mapping, conflict e rollback, com comandos Dapper parametrizados e store seguro para execução estática.
 9. **Controllers criados**: `MigrationController` oficial da API e controller MVC `MigrationController` no Web.
 10. **Endpoints criados**: `/migration/sources`, `/migration/batches`, dry-run, report, apply, reconcile, conflicts, resolution, rollback e cutover readiness.
-11. **SQL ajustado**: `backend/database/postgresql/060_legacy_import_migration.sql`, `banco_completo.sql` e `backend/database/postgresql/banco_completo.sql`.
+11. **SQL ajustado**: `backend/database/postgresql/060_legacy_import_migration.sql`, `script_completo.sql` e `backend/database/postgresql/script_completo.sql`.
 12. **Web MVC criada**: páginas Razor para dashboard, batches, batch, upload, dry-run, conflitos, conciliação, rollback e cutover readiness.
 13. **Dry-run implementado**: lê JSON, normaliza/máscara, valida coleções, grava registros/conflitos de migração e não altera tabelas finais.
 14. **Apply implementado**: exige dry-run, `confirmApply=true`, perfil `admin_valora`, ausência de conflito bloqueante, mapping e itens de rollback.

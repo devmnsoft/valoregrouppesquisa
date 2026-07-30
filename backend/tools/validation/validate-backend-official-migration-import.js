@@ -2,8 +2,8 @@ const fs=require('fs'); const path=require('path');
 const root=process.cwd(); let ok=true;
 function has(file, needles){const p=path.join(root,file); if(!fs.existsSync(p)){console.error('MISSING',file); ok=false; return '';} const txt=fs.readFileSync(p,'utf8'); for(const n of needles){ if(!txt.includes(n)){console.error('MISSING',file,n); ok=false;} else console.log('OK',file,n);} return txt;}
 has('backend/database/postgresql/060_legacy_import_migration.sql',['migration_batches','migration_source_files','migration_records','migration_mappings','migration_conflicts','migration_rollback_items']);
-has('banco_completo.sql',['migration_batches','migration_conflicts']);
-has('backend/database/postgresql/banco_completo.sql',['migration_batches','migration_rollback_items']);
+has('script_completo.sql',['migration_batches','migration_conflicts']);
+has('backend/database/postgresql/script_completo.sql',['migration_batches','migration_rollback_items']);
 has('backend/Valora.Domain/Entities/LegacyMigrationEntities.cs',['MigrationSourceFile','MigrationRecord','MigrationMapping','MigrationConflict','MigrationRollbackItem']);
 has('backend/Valora.Domain/Entities/MigrationDomainEntities.cs',['MigrationBatch','SourceType','SummaryJson']);
 has('backend/Valora.Application/DTOs/MigrationDtos.cs',['MigrationBatchDto','MigrationDryRunRequest','MigrationApplyRequest','MigrationRollbackRequest','CutoverReadinessDto','MaskedJson']);

@@ -54,6 +54,9 @@ function classifyFile(relativePath, content = '') {
   if (relativePath.endsWith('.csproj') && !relativePath.startsWith(`${boundaries.officialBackendRoot}/`)) {
     violations.push('projeto .NET fora do backend oficial');
   }
+  if (/^backend-v\d*(?:\/|$)/i.test(relativePath)) violations.push('árvore de backend paralela');
+  if (relativePath === 'backend/database/postgresql/banco_completo.sql') violations.push('script SQL legado');
+  if (relativePath.startsWith('backend/database/postgresql/migrations/')) violations.push('migration PostgreSQL ativa');
   if (pathParts.some(part => /^backend-v\d+$/i.test(part)) || relativePath.startsWith('src/')) {
     violations.push('árvore de backend paralela');
   }
@@ -79,6 +82,10 @@ function validateRepository(root = process.cwd()) {
   }
   if (!fs.existsSync(path.join(root, 'backend/global.json'))) violations.push('backend/global.json ausente');
   if (fs.existsSync(path.join(root, 'database'))) violations.push('database/ raiz não deve existir');
+  const databaseSql = files.filter(file => file.startsWith('backend/database/postgresql/') && file.endsWith('.sql'));
+  if (databaseSql.length !== 1 || databaseSql[0] !== boundaries.officialDatabaseFile) {
+    violations.push(`Scripts SQL oficiais inválidos: ${databaseSql.join(', ') || '(nenhum)'}`);
+  }
 
   const binaryPattern = /\.(png|jpg|jpeg|gif|ico|pdf|zip|gz|woff2?|ttf|eot)$/i;
   for (const file of files) {

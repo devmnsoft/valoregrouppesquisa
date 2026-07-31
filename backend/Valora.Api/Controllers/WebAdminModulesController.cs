@@ -50,13 +50,6 @@ public sealed class WebAdminModulesController(
     [HttpGet("/organization/current/limits")]
     public Task<IActionResult> Limits() => Safe(async () => { var planId = await plans.GetCurrentPlanIdAsync(OrganizationId) ?? "free"; var plan = await plans.GetByIdAsync(planId); return new { ok = true, planId, limits = plan?.Limits ?? new Dictionary<string,int>(), capabilities = plan?.Capabilities ?? new Dictionary<string,string>(), correlationId = CorrelationId }; }, "organization.limits");
 
-    [HttpGet("/api/v1/users")]
-    public Task<IActionResult> Users() => Safe(async () => new { ok = true, data = await users.ListByOrganizationAsync(OrganizationId), correlationId = CorrelationId }, "users.list");
-    [HttpPut("/api/v1/users/{userId:guid}")]
-    public Task<IActionResult> UpdateUser(Guid userId, [FromBody] JsonElement request) => Safe(async () => { await users.UpdateAsync(OrganizationId, userId, Text(request,"name"), Text(request,"email"), Text(request,"role"), Text(request,"phone")); await Audit("user.updated", "user", userId); return new { ok = true, id = userId, correlationId = CorrelationId }; }, "users.update");
-    [HttpPatch("/api/v1/users/{userId:guid}/status")]
-    public Task<IActionResult> UserStatus(Guid userId, [FromBody] JsonElement request) => Safe(async () => { await users.UpdateStatusAsync(OrganizationId, userId, Text(request,"status") ?? "inactive"); await Audit("user.status", "user", userId); return new { ok = true, id = userId, correlationId = CorrelationId }; }, "users.status");
-
     [HttpGet("/forms")]
     public Task<IActionResult> Forms() => Safe(async () => new { ok = true, data = await forms.ListAdminAsync(OrganizationId), correlationId = CorrelationId }, "forms.list");
     [HttpGet("/forms/{formId:guid}")]

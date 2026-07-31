@@ -1,0 +1,12 @@
+using Valora.Application.Contracts;using Valora.Application.DTOs;using Valora.Application.Exceptions;
+namespace Valora.Application.Services;
+public sealed class UserAdministrationService(IUserAdministrationRepository repository):IUserAdministrationService
+{
+ public async Task<PagedResponse<UserAdministrationResponse>> ListAsync(Guid org,UserListQuery q,CancellationToken ct=default){Tenant(org);var page=Math.Max(1,q.Page);var size=Math.Clamp(q.PageSize,1,100);var query=q with{Page=page,PageSize=size};var(items,total)=await repository.ListAsync(org,query,ct);return new(items,page,size,total,(int)Math.Ceiling(total/(double)size));}
+ public async Task<UserAdministrationResponse> GetAsync(Guid org,Guid id,CancellationToken ct=default)=>await repository.GetAsync(Tenant(org),id,ct)??throw new NotFoundAppException("Usuário não encontrado.");
+ public async Task<UserAdministrationResponse> UpdateAsync(Guid org,Guid id,UpdateUserRequest r,CancellationToken ct=default){if(string.IsNullOrWhiteSpace(r.Name))throw new ValidationAppException("Nome obrigatório.");if(!await repository.UpdateAsync(Tenant(org),id,r,ct))throw new NotFoundAppException("Usuário não encontrado.");return await GetAsync(org,id,ct);}
+ public async Task UpdateStatusAsync(Guid org,Guid actor,Guid id,UpdateUserStatusRequest r,CancellationToken ct=default){Tenant(org);if(r.Status is not("active" or "inactive"))throw new ValidationAppException("Status inválido.");if(r.Status=="inactive"&&await repository.IsAdministratorAsync(org,id,ct)&&await repository.CountAdministratorsAsync(org,ct)<=1)throw new BusinessRuleAppException("LAST_ADMINISTRATOR: O último administrador não pode ser desativado.");if(!await repository.UpdateStatusAsync(org,id,r.Status,ct))throw new NotFoundAppException("Usuário não encontrado.");}
+ public async Task SetRolesAsync(Guid org,Guid actor,Guid id,UpdateUserRolesRequest r,CancellationToken ct=default){Tenant(org);if(r.RoleCodes.Count==0&&await repository.IsAdministratorAsync(org,id,ct)&&await repository.CountAdministratorsAsync(org,ct)<=1)throw new BusinessRuleAppException("LAST_ADMIN_ROLE: A última role administrativa não pode ser removida.");await repository.ReplaceRolesAsync(org,id,r.RoleCodes.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),ct);}
+ public async Task SetScopesAsync(Guid org,Guid actor,Guid id,UpdateUserScopesRequest r,CancellationToken ct=default){Tenant(org);await repository.ReplaceScopesAsync(org,id,r.Scopes,ct);}
+ private static Guid Tenant(Guid id)=>id==Guid.Empty?throw new ForbiddenAppException("Tenant obrigatório."):id;
+}

@@ -45,6 +45,7 @@ ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS logo_u
 ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS public_slug text;
 ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
 ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS version bigint NOT NULL DEFAULT 1;
 CREATE TABLE IF NOT EXISTS valorapesquisa.forms (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE, name text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.form_versions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), form_id uuid NOT NULL REFERENCES valorapesquisa.forms(id), version int NOT NULL, language text NOT NULL DEFAULT 'pt-BR', is_immutable boolean NOT NULL DEFAULT true, max_score int NOT NULL DEFAULT 125, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(form_id,version,language));
 CREATE TABLE IF NOT EXISTS valorapesquisa.form_translations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), form_version_id uuid NOT NULL REFERENCES valorapesquisa.form_versions(id), language text NOT NULL, title text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(form_version_id,language));
@@ -235,6 +236,18 @@ INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
 ('users.disable','Desativar usuários','Desativa usuários no tenant.','identity'),
 ('sessions.read','Visualizar sessões','Consulta sessões próprias.','identity'),
 ('sessions.revoke','Revogar sessões','Revoga sessões próprias.','identity')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code;
+
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+('organization.read','Visualizar organização','Consulta os dados organizacionais.','identity'),('organization.update','Atualizar organização','Atualiza dados organizacionais.','identity'),
+('organization.branding.read','Visualizar branding','Consulta a identidade visual.','identity'),('organization.branding.update','Atualizar branding','Atualiza a identidade visual.','identity'),
+('organization.subscription.read','Visualizar assinatura','Consulta plano e assinatura.','identity'),('organization.usage.read','Visualizar consumo','Consulta consumo e limites.','identity'),
+('organization.onboarding.read','Visualizar onboarding','Consulta o onboarding.','identity'),('organization.onboarding.update','Atualizar onboarding','Conclui passos manuais.','identity'),
+('invitations.read','Visualizar convites','Consulta convites de usuários.','identity'),('invitations.create','Criar convites','Cria convites de usuários.','identity'),('invitations.resend','Reenviar convites','Reenvia convites pendentes.','identity'),('invitations.cancel','Cancelar convites','Cancela convites pendentes.','identity'),
+('business_groups.read','Visualizar grupos','Consulta grupos econômicos.','organization'),('business_groups.create','Criar grupos','Cria grupos econômicos.','organization'),('business_groups.update','Atualizar grupos','Atualiza grupos econômicos.','organization'),('business_groups.disable','Desativar grupos','Desativa grupos econômicos.','organization'),('business_groups.delete','Excluir grupos','Exclui logicamente grupos econômicos.','organization'),
+('legal_entities.read','Visualizar empresas','Consulta pessoas jurídicas.','organization'),('legal_entities.create','Criar empresas','Cria pessoas jurídicas.','organization'),('legal_entities.update','Atualizar empresas','Atualiza pessoas jurídicas.','organization'),('legal_entities.disable','Desativar empresas','Desativa pessoas jurídicas.','organization'),('legal_entities.delete','Excluir empresas','Exclui logicamente pessoas jurídicas.','organization'),
+('units.read','Visualizar unidades','Consulta unidades.','organization'),('units.create','Criar unidades','Cria unidades.','organization'),('units.update','Atualizar unidades','Atualiza unidades.','organization'),('units.disable','Desativar unidades','Desativa unidades.','organization'),('units.delete','Excluir unidades','Exclui logicamente unidades.','organization'),
+('departments.read','Visualizar setores','Consulta setores.','organization'),('departments.create','Criar setores','Cria setores.','organization'),('departments.update','Atualizar setores','Atualiza setores.','organization'),('departments.disable','Desativar setores','Desativa setores.','organization'),('departments.delete','Excluir setores','Exclui logicamente setores.','organization')
 ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code;
 
 

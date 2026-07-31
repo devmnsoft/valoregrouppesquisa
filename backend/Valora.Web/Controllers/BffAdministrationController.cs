@@ -21,6 +21,26 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
     public Task<IActionResult> Users(string? resource, CancellationToken cancellationToken) =>
         ForwardAsync($"/api/v1/users/{resource}", cancellationToken);
 
+    [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
+    [Route("access/{**resource}")]
+    public Task<IActionResult> Access(string? resource, CancellationToken cancellationToken) => ForwardAsync($"/api/v1/access/{resource}", cancellationToken);
+
+    [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
+    [Route("business-groups/{**resource}")]
+    public Task<IActionResult> BusinessGroups(string? resource, CancellationToken cancellationToken) => ForwardAsync($"/api/v1/business-groups/{resource}", cancellationToken);
+
+    [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
+    [Route("legal-entities/{**resource}")]
+    public Task<IActionResult> LegalEntities(string? resource, CancellationToken cancellationToken) => ForwardAsync($"/api/v1/legal-entities/{resource}", cancellationToken);
+
+    [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
+    [Route("units/{**resource}")]
+    public Task<IActionResult> Units(string? resource, CancellationToken cancellationToken) => ForwardAsync($"/api/v1/units/{resource}", cancellationToken);
+
+    [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
+    [Route("departments/{**resource}")]
+    public Task<IActionResult> Departments(string? resource, CancellationToken cancellationToken) => ForwardAsync($"/api/v1/departments/{resource}", cancellationToken);
+
     [HttpGet("dashboard/executive-summary")]
     public Task<IActionResult> Dashboard(CancellationToken cancellationToken) =>
         ForwardAsync("/api/v1/dashboard/executive-summary", cancellationToken);

@@ -110,8 +110,7 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.outbox_messages (id uuid PRIMARY KEY D
 CREATE TABLE IF NOT EXISTS valorapesquisa.idempotency_keys (key text PRIMARY KEY, organization_id uuid REFERENCES valorapesquisa.organizations(id), request_hash text NOT NULL, response_body jsonb, created_at timestamptz NOT NULL DEFAULT now(), expires_at timestamptz NOT NULL);
 CREATE TABLE IF NOT EXISTS valorapesquisa.plan_usage_counters (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), metric_key text NOT NULL, period_start date NOT NULL, consumed bigint NOT NULL DEFAULT 0 CHECK(consumed>=0), reserved bigint NOT NULL DEFAULT 0 CHECK(reserved>=0), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(organization_id,metric_key,period_start));
 CREATE TABLE IF NOT EXISTS valorapesquisa.plan_usage_reservations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), metric_key text NOT NULL, quantity bigint NOT NULL CHECK(quantity>0), status text NOT NULL DEFAULT 'reserved' CHECK(status IN ('reserved','confirmed','released','expired')), idempotency_key text NOT NULL, expires_at timestamptz NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(organization_id,idempotency_key));
-CREATE INDEX IF NOT EXISTS ix_plan_usage_reservations_active ON valorapesquisa.plan_usage_reservations(organization_id,metric_key,expires_at) WHERE status='reserved';
-CREATE TABLE IF NOT EXISTS valorapesquisa.user_scopes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), business_group_id uuid REFERENCES valorapesquisa.business_groups(id), legal_entity_id uuid REFERENCES valorapesquisa.legal_entities(id), unit_id uuid REFERENCES valorapesquisa.units(id), department_id uuid REFERENCES valorapesquisa.departments(id), created_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.user_scopes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), scope_type text NOT NULL CHECK(scope_type IN ('business_group','legal_entity','unit','department')), scope_id uuid NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), created_by_user_id uuid REFERENCES valorapesquisa.users(id), deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.subscription_history (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), subscription_id uuid NOT NULL REFERENCES valorapesquisa.subscriptions(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), previous_status text, new_status text NOT NULL, previous_plan_id uuid REFERENCES valorapesquisa.plans(id), new_plan_id uuid REFERENCES valorapesquisa.plans(id), changed_by uuid REFERENCES valorapesquisa.users(id), reason text, created_at timestamptz NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS ix_subscription_history_organization ON valorapesquisa.subscription_history(organization_id,created_at DESC);
 
@@ -199,10 +198,8 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.user_invitations (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
  email text NOT NULL, normalized_email text NOT NULL, name text NOT NULL, token_hash text,
  status text NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','accepted','cancelled','expired')),
- expires_at timestamptz NOT NULL, accepted_at timestamptz, cancelled_at timestamptz, invited_by uuid NOT NULL REFERENCES valorapesquisa.users(id),
+ expires_at timestamptz NOT NULL, accepted_at timestamptz, cancelled_at timestamptz, invited_by_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
  resend_count integer NOT NULL DEFAULT 0, last_sent_at timestamptz NOT NULL DEFAULT now(), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
-CREATE UNIQUE INDEX IF NOT EXISTS ux_user_invitations_pending ON valorapesquisa.user_invitations(organization_id,normalized_email) WHERE status='pending';
-CREATE UNIQUE INDEX IF NOT EXISTS ux_user_invitations_token ON valorapesquisa.user_invitations(token_hash) WHERE token_hash IS NOT NULL;
 CREATE TABLE IF NOT EXISTS valorapesquisa.user_invitation_roles (
  invitation_id uuid NOT NULL REFERENCES valorapesquisa.user_invitations(id) ON DELETE CASCADE, role_id uuid NOT NULL REFERENCES valorapesquisa.roles(id),
  created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(invitation_id,role_id));
@@ -393,27 +390,35 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_roles_tenant_code_active
     ON valorapesquisa.roles(organization_id, code)
     WHERE organization_id IS NOT NULL AND deleted_at IS NULL;
 
-CREATE TABLE IF NOT EXISTS valorapesquisa.user_invitations (
-    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
-    email text NOT NULL,
-    token_hash text NOT NULL UNIQUE,
-    invited_by_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
-    expires_at timestamptz NOT NULL,
-    accepted_at timestamptz,
-    cancelled_at timestamptz,
-    created_at timestamptz NOT NULL DEFAULT now()
-);
+-- Converge the single invitation contract after all legacy columns are available.
 ALTER TABLE valorapesquisa.user_invitations ADD COLUMN IF NOT EXISTS email text;
+ALTER TABLE valorapesquisa.user_invitations ADD COLUMN IF NOT EXISTS normalized_email text;
+ALTER TABLE valorapesquisa.user_invitations ADD COLUMN IF NOT EXISTS name text;
 ALTER TABLE valorapesquisa.user_invitations ADD COLUMN IF NOT EXISTS token_hash text;
 ALTER TABLE valorapesquisa.user_invitations ADD COLUMN IF NOT EXISTS invited_by_user_id uuid;
 ALTER TABLE valorapesquisa.user_invitations ADD COLUMN IF NOT EXISTS expires_at timestamptz;
 ALTER TABLE valorapesquisa.user_invitations ADD COLUMN IF NOT EXISTS accepted_at timestamptz;
 ALTER TABLE valorapesquisa.user_invitations ADD COLUMN IF NOT EXISTS cancelled_at timestamptz;
+ALTER TABLE valorapesquisa.user_invitations ADD COLUMN IF NOT EXISTS status text DEFAULT 'pending';
+ALTER TABLE valorapesquisa.user_invitations ADD COLUMN IF NOT EXISTS resend_count integer DEFAULT 0;
+ALTER TABLE valorapesquisa.user_invitations ADD COLUMN IF NOT EXISTS last_sent_at timestamptz;
 ALTER TABLE valorapesquisa.user_invitations ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.user_invitations ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='user_invitations' AND column_name='invited_by') THEN
+    UPDATE valorapesquisa.user_invitations SET invited_by_user_id=invited_by WHERE invited_by_user_id IS NULL;
+  END IF;
+END $$;
+UPDATE valorapesquisa.user_invitations
+SET normalized_email=lower(trim(email)), name=COALESCE(NULLIF(name,''),split_part(email,'@',1)),
+    status=CASE WHEN accepted_at IS NOT NULL THEN 'accepted' WHEN cancelled_at IS NOT NULL THEN 'cancelled' WHEN expires_at<now() THEN 'expired' ELSE COALESCE(status,'pending') END,
+    resend_count=COALESCE(resend_count,0);
+ALTER TABLE valorapesquisa.user_invitations ALTER COLUMN normalized_email SET NOT NULL, ALTER COLUMN name SET NOT NULL,
+  ALTER COLUMN status SET NOT NULL, ALTER COLUMN resend_count SET NOT NULL, ALTER COLUMN invited_by_user_id SET NOT NULL;
+ALTER TABLE valorapesquisa.user_invitations DROP COLUMN IF EXISTS invited_by;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_user_invitations_pending
-    ON valorapesquisa.user_invitations(organization_id, lower(email))
-    WHERE accepted_at IS NULL AND cancelled_at IS NULL;
+    ON valorapesquisa.user_invitations(organization_id, normalized_email) WHERE status='pending';
+CREATE UNIQUE INDEX IF NOT EXISTS ux_user_invitations_token ON valorapesquisa.user_invitations(token_hash) WHERE token_hash IS NOT NULL;
 
 INSERT INTO valorapesquisa.roles(code,name,is_system) VALUES
 ('admin_valora','Administrador Valora',true),
@@ -479,6 +484,31 @@ END $$;
 ALTER TABLE valorapesquisa.plan_usage_reservations ALTER COLUMN metric_key SET NOT NULL, ALTER COLUMN quantity SET NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_usage_reservation_idempotency ON valorapesquisa.plan_usage_reservations(organization_id,idempotency_key);
 CREATE INDEX IF NOT EXISTS ix_plan_usage_reservations_active ON valorapesquisa.plan_usage_reservations(organization_id,metric_key,expires_at) WHERE status='reserved';
+
+-- Collapse the historical optional scope columns into the canonical polymorphic scope.
+ALTER TABLE valorapesquisa.user_scopes ADD COLUMN IF NOT EXISTS scope_type text;
+ALTER TABLE valorapesquisa.user_scopes ADD COLUMN IF NOT EXISTS scope_id uuid;
+ALTER TABLE valorapesquisa.user_scopes ADD COLUMN IF NOT EXISTS created_by_user_id uuid;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='user_scopes' AND column_name='business_group_id') THEN
+    UPDATE valorapesquisa.user_scopes SET scope_type='business_group',scope_id=business_group_id WHERE scope_id IS NULL AND business_group_id IS NOT NULL;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='user_scopes' AND column_name='legal_entity_id') THEN
+    UPDATE valorapesquisa.user_scopes SET scope_type='legal_entity',scope_id=legal_entity_id WHERE scope_id IS NULL AND legal_entity_id IS NOT NULL;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='user_scopes' AND column_name='unit_id') THEN
+    UPDATE valorapesquisa.user_scopes SET scope_type='unit',scope_id=unit_id WHERE scope_id IS NULL AND unit_id IS NOT NULL;
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='user_scopes' AND column_name='department_id') THEN
+    UPDATE valorapesquisa.user_scopes SET scope_type='department',scope_id=department_id WHERE scope_id IS NULL AND department_id IS NOT NULL;
+  END IF;
+END $$;
+DELETE FROM valorapesquisa.user_scopes WHERE scope_type IS NULL OR scope_id IS NULL;
+ALTER TABLE valorapesquisa.user_scopes ALTER COLUMN scope_type SET NOT NULL, ALTER COLUMN scope_id SET NOT NULL;
+ALTER TABLE valorapesquisa.user_scopes DROP COLUMN IF EXISTS business_group_id, DROP COLUMN IF EXISTS legal_entity_id,
+  DROP COLUMN IF EXISTS unit_id, DROP COLUMN IF EXISTS department_id;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_user_scopes_active ON valorapesquisa.user_scopes(organization_id,user_id,scope_type,scope_id) WHERE deleted_at IS NULL;
 DROP INDEX IF EXISTS ux_legal_entities_org_cnpj_active;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_legal_entities_cnpj_active ON valorapesquisa.legal_entities(cnpj) WHERE deleted_at IS NULL;
 

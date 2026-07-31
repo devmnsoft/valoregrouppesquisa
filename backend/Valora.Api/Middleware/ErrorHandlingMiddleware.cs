@@ -52,7 +52,7 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
         UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "UNAUTHORIZED", "Acesso não autorizado."),
         ForbiddenAppException => (StatusCodes.Status403Forbidden, "FORBIDDEN", "Acesso proibido."),
         NotFoundAppException or KeyNotFoundException => (StatusCodes.Status404NotFound, "NOT_FOUND", "Recurso não encontrado."),
-        ConflictAppException => (StatusCodes.Status409Conflict, "CONFLICT", "Conflito na operação."),
+        ConflictAppException or ConcurrencyConflictException => (StatusCodes.Status409Conflict, "CONCURRENCY_CONFLICT", "O recurso foi alterado por outra sessão."),
         BusinessRuleAppException or InvalidOperationException => (StatusCodes.Status422UnprocessableEntity, "BUSINESS_RULE_ERROR", "Não foi possível concluir a operação."),
         NpgsqlException => (StatusCodes.Status503ServiceUnavailable, "DATABASE_ERROR", "Banco de dados indisponível."),
         TimeoutException => (StatusCodes.Status504GatewayTimeout, "TIMEOUT", "Tempo limite excedido."),

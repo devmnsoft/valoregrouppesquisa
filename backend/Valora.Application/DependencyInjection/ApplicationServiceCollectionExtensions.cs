@@ -60,6 +60,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IEmailQueueService, EmailQueueService>();
         services.AddScoped<IEmailSenderService, EmailSenderService>();
         services.AddScoped<IEmailStatusService, EmailStatusService>();
+        services.AddScoped<IOrganizationAdministrationService, OrganizationAdministrationService>();
 
         services.AddScoped<Valora.Application.Contracts.ILegacyDataNormalizer, LegacyDataNormalizer>();
         services.AddScoped<Valora.Application.Contracts.ILegacyMappingService, LegacyMappingService>();

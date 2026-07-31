@@ -12,4 +12,5 @@ public sealed record OrganizationRecord(
     string TimeZone,
     string OnboardingStatus,
     DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt);
+    DateTimeOffset? UpdatedAt,
+    long Version);

@@ -10,20 +10,19 @@ namespace Valora.Api.Controllers;
 [Authorize]
 [ApiController]
 public sealed class OrganizationsController(
-    IOrganizationRepository organizations,
+    IOrganizationAdministrationService organizations,
     PlanEntitlementService entitlements) : ControllerBase
 {
     [HttpGet("/api/v1/organization/current")]
-    public async Task<IActionResult> Current()
+    public async Task<IActionResult> Current(CancellationToken cancellationToken)
     {
-        return Ok(await organizations.GetAsync(CurrentOrganizationId()));
+        return Ok(await organizations.GetCurrentAsync(CurrentOrganizationId(), cancellationToken));
     }
 
     [HttpPut("/api/v1/organization/current")]
-    public async Task<IActionResult> Patch(UpdateOrganizationRequest request)
+    public async Task<IActionResult> Patch(UpdateOrganizationRequest request, CancellationToken cancellationToken)
     {
-        await organizations.UpdateCurrentAsync(CurrentOrganizationId(), request);
-        return Ok(await organizations.GetAsync(CurrentOrganizationId()));
+        return Ok(await organizations.UpdateCurrentAsync(CurrentOrganizationId(), request, cancellationToken));
     }
 
     [HttpGet("/api/v1/organization/current/usage")]

@@ -38,13 +38,19 @@ jobs:
             -c 'CREATE TABLE valorapesquisa.plan_usage_counters(organization_id uuid, resource_code text, used_value bigint, updated_at timestamptz DEFAULT now())' \
             -c "CREATE TABLE valorapesquisa.plan_usage_reservations(id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid, resource_code text, amount bigint, status text DEFAULT 'reserved', idempotency_key text, expires_at timestamptz, created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now())"
       - name: PostgreSQL ${{ inputs.postgres-version }} — first execution
-        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/database/postgresql/script_completo.sql | tee postgres-${{ inputs.postgres-version }}-first.log
+        run: |
+          set -euo pipefail
+          psql "$DATABASE_URL" -X --set ON_ERROR_STOP=on --file backend/database/postgresql/script_completo.sql 2>&1 | tee postgres-${{ inputs.postgres-version }}-first.log
       - name: PostgreSQL ${{ inputs.postgres-version }} — idempotency rerun
         if: inputs.executions >= 2
-        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/database/postgresql/script_completo.sql | tee postgres-${{ inputs.postgres-version }}-second.log
+        run: |
+          set -euo pipefail
+          psql "$DATABASE_URL" -X --set ON_ERROR_STOP=on --file backend/database/postgresql/script_completo.sql 2>&1 | tee postgres-${{ inputs.postgres-version }}-second.log
       - name: PostgreSQL ${{ inputs.postgres-version }} — third execution
         if: inputs.executions >= 3
-        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/database/postgresql/script_completo.sql | tee postgres-${{ inputs.postgres-version }}-third.log
+        run: |
+          set -euo pipefail
+          psql "$DATABASE_URL" -X --set ON_ERROR_STOP=on --file backend/database/postgresql/script_completo.sql 2>&1 | tee postgres-${{ inputs.postgres-version }}-third.log
       - name: Validate schema isolation and protocol
         run: |
           test "$(psql "$DATABASE_URL" -Atc "select count(*) from pg_tables where schemaname='public'")" = 0

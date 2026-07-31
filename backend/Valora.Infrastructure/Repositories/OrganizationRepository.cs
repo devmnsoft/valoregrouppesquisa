@@ -9,11 +9,11 @@ namespace Valora.Infrastructure.Repositories;
 
 public sealed class OrganizationRepository(IDbConnectionFactory factory, ILogger<OrganizationRepository> logger) : IOrganizationRepository
 {
-    public async Task<OrganizationRecord?> GetAsync(Guid id)
+    public async Task<OrganizationRecord?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
         using var c=factory.Create();
-        const string sql="SELECT id AS Id,name AS Name,public_name AS PublicName,slug AS Slug,email AS Email,phone AS Phone,status AS Status,default_language_code AS DefaultLanguageCode,time_zone AS TimeZone,onboarding_status AS OnboardingStatus,created_at AS CreatedAt,updated_at AS UpdatedAt FROM valorapesquisa.organizations WHERE id=@id AND deleted_at IS NULL";
-        return await c.QuerySingleOrDefaultAsync<OrganizationRecord>(sql,new{id});
+        const string sql="SELECT id AS Id,name AS Name,public_name AS PublicName,slug AS Slug,email AS Email,phone AS Phone,status AS Status,default_language_code AS DefaultLanguageCode,time_zone AS TimeZone,onboarding_status AS OnboardingStatus,created_at AS CreatedAt,updated_at AS UpdatedAt,version AS Version FROM valorapesquisa.organizations WHERE id=@id AND deleted_at IS NULL";
+        return await c.QuerySingleOrDefaultAsync<OrganizationRecord>(new CommandDefinition(sql,new{id}, cancellationToken: cancellationToken));
     }
 
     public async Task<Guid> CreateAsync(string name,string email,string slug,string planId)
@@ -22,22 +22,17 @@ public sealed class OrganizationRepository(IDbConnectionFactory factory, ILogger
         return await c.ExecuteScalarAsync<Guid>("INSERT INTO valorapesquisa.organizations(name,public_name,email,slug) VALUES (@name,@name,@email,@slug) RETURNING id",new{name,email,slug});
     }
 
-    public async Task UpdateCurrentAsync(Guid id,UpdateOrganizationRequest request)
+    public async Task<long?> UpdateCurrentAsync(Guid id,UpdateOrganizationRequest request, CancellationToken cancellationToken = default)
     {
         using var c=factory.Create();
-        var affected = await c.ExecuteAsync("""
+        return await c.QuerySingleOrDefaultAsync<long?>(new CommandDefinition("""
             UPDATE valorapesquisa.organizations SET
                 public_name=COALESCE(@PublicName,public_name), phone=COALESCE(@Phone,phone),
                 email=COALESCE(@Email,email), default_language_code=COALESCE(@DefaultLanguageCode,default_language_code),
                 time_zone=COALESCE(@TimeZone,time_zone), version=version+1, updated_at=now()
-            WHERE id=@id AND deleted_at IS NULL AND (@ExpectedVersion IS NULL OR version=@ExpectedVersion)
-            """,new{request.PublicName,request.Phone,request.Email,request.DefaultLanguageCode,request.TimeZone,request.ExpectedVersion,id});
-        if (affected == 0)
-        {
-            var exists = await c.ExecuteScalarAsync<bool>("SELECT EXISTS(SELECT 1 FROM valorapesquisa.organizations WHERE id=@id AND deleted_at IS NULL)", new { id });
-            if (!exists) throw new KeyNotFoundException("Organização não encontrada.");
-            throw new InvalidOperationException("A organização foi atualizada por outra sessão.");
-        }
+            WHERE id=@id AND version=@ExpectedVersion AND deleted_at IS NULL
+            RETURNING version
+            """,new{request.PublicName,request.Phone,request.Email,request.DefaultLanguageCode,request.TimeZone,request.ExpectedVersion,id}, cancellationToken: cancellationToken));
     }
 
     public async Task<int> CountManagersAsync(Guid organizationId)

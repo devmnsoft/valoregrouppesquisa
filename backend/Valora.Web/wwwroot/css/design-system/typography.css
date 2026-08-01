@@ -1,0 +1,4 @@
+body { color: var(--text-primary); font-family: Inter, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 16px; line-height: 1.55; }
+h1, h2, h3 { color: var(--text-primary); font-weight: 700; letter-spacing: -.025em; }
+h1 { font-size: clamp(2rem, 3vw, 2.375rem); } h2 { font-size: clamp(1.5rem, 2vw, 1.875rem); } h3 { font-size: 1.25rem; }
+.eyebrow { color: var(--valora-600); font-size: .78rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }

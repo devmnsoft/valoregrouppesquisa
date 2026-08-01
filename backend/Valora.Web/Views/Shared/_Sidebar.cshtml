@@ -1,7 +1,7 @@
 @{
   var groups = new[] {
     new { Title = "Visão Geral", Items = new[] {
-      new { Label="Dashboard", Url="/Dashboard", Roles="admin_valora,consultor_valora,empresa_admin,gestor_pesquisa,analista_resultados,gestor_area", Permission="" },
+      new { Label="Visão Executiva", Url="/Dashboard", Roles="admin_valora,consultor_valora,empresa_admin,gestor_pesquisa,analista_resultados,gestor_area", Permission="" },
       new { Label="Diagnósticos gratuitos", Url="/FreeDiagnostics", Roles="admin_valora,consultor_valora,empresa_admin,gestor_pesquisa,analista_resultados", Permission="canViewResponses" },
       new { Label="Respostas", Url="/Responses", Roles="admin_valora,consultor_valora,empresa_admin,gestor_pesquisa,analista_resultados,gestor_area", Permission="canViewResponses" }
     }},
@@ -35,11 +35,11 @@
   };
 }
 <aside class="app-sidebar valora-sidebar d-none d-lg-flex" data-admin-sidebar>
-  <a class="brand-mark" data-brand-root href="/Dashboard">
-    <span class="brand-picture" data-brand><img src="/img/brand/valora-symbol.jpeg" alt="Valora Group" class="admin-brand-symbol" onerror="this.classList.add('d-none'); this.closest('.brand-mark').classList.add('brand-fallback-active');"></span>
-    <span class="brand-fallback-text" aria-hidden="true">Valora Group</span>
-    <span class="brand-text"><strong>Valora Group</strong><small>SaaS executivo</small></span>
+  <a class="brand-mark" data-brand-root href="/Dashboard" aria-label="Valora Group — Visão Executiva">
+    <span class="brand-monogram" aria-hidden="true">VG</span>
+    <span class="brand-text"><strong>Valora Group™</strong><small>Governance • Controller • Advisory</small></span>
   </a>
+  <div class="sidebar-context"><small>Organização atual</small><strong data-current-organization>Carregando organização…</strong><span class="valora-badge" data-current-plan>Plano</span></div>
   <nav class="sidebar-nav valora-sidebar-nav" aria-label="Menu administrativo por perfil">
     @foreach (var group in groups) {<section class="sidebar-group"><p>@group.Title</p>@foreach (var item in group.Items) {<a class="nav-link" href="@item.Url" data-allowed-roles="@item.Roles" data-required-permission="@item.Permission">@item.Label</a>}</section>}
   </nav>

@@ -1,19 +1,39 @@
-@{ ViewData["Title"] = "Dashboard executivo"; }
-<section class="page-card official-module dashboard-premium" data-page="dashboard-page">
-  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-    <div><p class="eyebrow">Valora Insight™</p><h1>Dashboard executivo</h1><p class="text-muted">Olá, acompanhe indicadores reais da operação. Quando não houver base suficiente, exibimos estado vazio sem valores simulados.</p></div>
-    <button class="valora-button valora-button--primary" data-refresh type="button">Atualizar indicadores</button>
+@{ ViewData["Title"] = "Visão Executiva"; }
+<section data-page="dashboard-page">
+  <header class="executive-hero valora-card">
+    <div>
+      <p class="eyebrow">Cockpit Executivo Valora</p>
+      <h1>Bom dia, <span data-first-name>líder</span></h1>
+      <p>Esta é a leitura atual de <strong data-organization> sua organização</strong>.</p>
+      <div class="executive-meta">
+        <span class="valora-badge" data-last-update>Atualizando leitura…</span>
+        <span class="valora-badge" data-plan hidden></span>
+        <span class="valora-badge" data-subscription hidden></span>
+      </div>
+    </div>
+    <div class="executive-score" data-score-panel hidden>
+      <div><small>Score de maturidade</small><strong data-score></strong><span data-level></span></div>
+    </div>
+    <div class="executive-score" data-empty-score>
+      <div>
+        <h2>Inicie sua leitura de maturidade</h2>
+        <p>Sua organização ainda não possui uma leitura de maturidade. Crie o primeiro diagnóstico para iniciar a análise.</p>
+        <a class="valora-button valora-button--primary" href="/Surveys">Criar primeiro diagnóstico</a>
+      </div>
+    </div>
+  </header>
+
+  <div class="executive-grid" data-summary-cards>
+    <article class="valora-card metric-card"><span>Respostas no período</span><strong data-kpi="responses"></strong><small>Respostas registradas no escopo atual</small></article>
+    <article class="valora-card metric-card"><span>Pesquisas ativas</span><strong data-kpi="activeSurveys"></strong><small>Diagnósticos aceitando respostas</small></article>
+    <article class="valora-card metric-card"><span>Taxa de conclusão</span><strong data-kpi="completionRate"></strong><small>Envios concluídos sobre iniciados</small></article>
+    <article class="valora-card metric-card"><span>Usuários ativos</span><strong data-kpi="activeUsers"></strong><small>Acessos habilitados na organização</small></article>
   </div>
-  <div class="row g-3 mt-2" data-summary-cards>
-    <div class="col-md-4 col-xl-2"><div class="valora-kpi metric-card"><span>Respostas no mês</span><strong data-card="respostas-mes">--</strong><small>Ainda não há dados suficientes para este indicador.</small></div></div>
-    <div class="col-md-4 col-xl-2"><div class="valora-kpi metric-card"><span>Diagnósticos ativos</span><strong data-card="diagnosticos-ativos">--</strong><small>Ainda não há dados suficientes para este indicador.</small></div></div>
-    <div class="col-md-4 col-xl-2"><div class="valora-kpi metric-card"><span>Taxa de conclusão</span><strong data-card="taxa-conclusao">--</strong><small>Ainda não há dados suficientes para este indicador.</small></div></div>
-    <div class="col-md-4 col-xl-2"><div class="valora-kpi metric-card"><span>Nível médio</span><strong data-card="nivel-medio">--</strong><small>Ainda não há dados suficientes para este indicador.</small></div></div>
-    <div class="col-md-4 col-xl-2"><div class="valora-kpi metric-card"><span>Certificados emitidos</span><strong data-card="certificados">--</strong><small>Ainda não há dados suficientes para este indicador.</small></div></div>
-    <div class="col-md-4 col-xl-2"><div class="valora-kpi metric-card"><span>Alertas LGPD</span><strong data-card="lgpd-alertas">--</strong><small>Ainda não há dados suficientes para este indicador.</small></div></div>
+
+  <div class="row g-3 mt-1">
+    <div class="col-lg-8"><article class="valora-card h-100"><p class="eyebrow">Leitura estratégica</p><h2>Atividade recente</h2><div class="valora-empty" data-empty-activities>Nenhuma atividade foi registrada no período selecionado.</div><div class="table-responsive" data-activity-table hidden><table class="valora-table table"><thead><tr><th>Atividade</th><th>Status</th><th>Detalhes</th></tr></thead><tbody data-items></tbody></table></div></article></div>
+    <div class="col-lg-4"><article class="valora-card h-100"><p class="eyebrow">Próxima ação</p><h2>Conduza o próximo ciclo</h2><p class="text-muted">Crie um diagnóstico, distribua o link seguro e acompanhe as respostas neste cockpit.</p><a class="valora-button valora-button--primary" href="/Surveys">Abrir Estúdio de Diagnósticos</a></article></div>
   </div>
-  <div class="row g-3 mt-3"><div class="col-lg-7"><div class="valora-card"><h2>Atividades recentes</h2><div class="valora-empty" data-empty-activities>Ainda não há dados suficientes para este indicador.</div><div class="table-responsive mt-3"><table class="valora-table table align-middle"><thead><tr><th>Nome</th><th>Status</th><th>Detalhes</th><th>Ação</th></tr></thead><tbody data-items></tbody></table></div></div></div><div class="col-lg-5"><div class="valora-card"><h2>Ações rápidas</h2><div class="d-grid gap-2"><a class="valora-button valora-button--secondary" href="/FreeDiagnostics">Ver diagnósticos gratuitos</a><a class="valora-button valora-button--ghost" href="/Surveys/PublicLinks">Gerenciar links públicos</a><a class="valora-button valora-button--ghost" href="/Reports">Abrir relatórios</a></div><hr><h3>Distribuição de maturidade</h3><div class="valora-progress" aria-label="Gráfico simples"><span style="width:0%"></span></div><p class="text-muted mt-2">Ainda não há dados suficientes para este indicador.</p></div></div></div>
-  <div class="valora-alert valora-alert--warning d-none mt-3" data-gap-controlled="true" data-gap-card>Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.</div>
-  <div class="valora-alert valora-alert--danger d-none mt-3" role="alert" data-error></div>
+  <div class="valora-alert valora-alert--danger mt-3" role="alert" data-error hidden></div>
 </section>
 @section Scripts { <script src="/js/pages/dashboard-page.js"></script> }

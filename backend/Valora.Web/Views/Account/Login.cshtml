@@ -1,13 +1,15 @@
 @{ ViewData["Title"] = "Entrar"; Layout = "_AuthLayout"; }
 <section class="page-card auth-card" data-page="login-page">
-  <p class="eyebrow">Acesso seguro</p><h1>Entrar no Valora Insight™</h1>
-  <p class="text-muted">Use seu e-mail corporativo e senha para acessar o painel SaaS.</p>
+  <p class="eyebrow">Bem-vindo de volta</p><h1>Acesse sua visão executiva.</h1>
+  <p class="text-muted">Continue a jornada de evolução da sua organização com segurança.</p>
   <form class="needs-validation valora-form" novalidate>
     <label class="form-label" for="email">E-mail</label><input id="email" class="form-control form-control-lg" type="email" name="email" autocomplete="email" required>
-    <label class="form-label mt-3" for="password">Senha</label><input id="password" class="form-control form-control-lg" type="password" name="password" autocomplete="current-password" required minlength="6">
+    <label class="form-label mt-3" for="password">Senha</label><div class="password-field"><input id="password" class="form-control form-control-lg" type="password" name="password" autocomplete="current-password" required minlength="6"><button class="icon-button" type="button" data-action="toggle-password" aria-label="Mostrar senha" title="Mostrar senha"><valora-icon name="eye" size="20" /></button></div>
+    <label class="remember-session"><input type="checkbox" name="rememberMe" value="true"> <span>Lembrar minha sessão neste dispositivo</span></label>
     <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">Entrar</button>
   </form>
   <div class="alert alert-danger d-none mt-3 error-state" role="alert"></div><div class="d-flex justify-content-between gap-3 flex-wrap mt-3"><a href="/Account/ForgotPassword">Esqueci minha senha</a><a href="/Account/Register">Criar conta da empresa</a></div>
-  <p class="small text-muted mt-3">Ambiente protegido por token de sessão, correlação de requisições e logs sem senha.</p>
+  <p class="small text-muted mt-3">Sua sessão é protegida e seus dados não são armazenados no navegador.</p>
+  <a class="back-to-site" href="/">Voltar ao site</a>
 </section>
 @section Scripts { <script src="~/js/pages/login-page.js" asp-append-version="true" defer></script> }

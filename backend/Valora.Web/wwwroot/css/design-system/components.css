@@ -1,5 +1,4 @@
 .brand-mark { align-items: center; color: inherit; display: flex; gap: 12px; text-decoration: none; }
-.brand-monogram { align-items: center; background: var(--surface-primary); border-radius: 8px; color: var(--valora-900); display: inline-flex; font-weight: 800; height: 40px; justify-content: center; width: 40px; }
 .brand-text { display: grid; } .brand-text small { color: var(--valora-100); font-size: .7rem; letter-spacing: .06em; }
 .sidebar-context { border-block: 1px solid rgb(255 255 255 / 12%); margin: 24px 0; padding: 18px 4px; }
 .sidebar-context small { color: var(--valora-100); display: block; } .sidebar-context strong { display: block; font-size: .9rem; }

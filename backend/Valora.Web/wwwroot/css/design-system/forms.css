@@ -1,0 +1,2 @@
+.form-control, .form-select { border: 1px solid var(--border-subtle); border-radius: 6px; min-height: 44px; }
+.form-control:focus, .form-select:focus { border-color: var(--valora-600); box-shadow: 0 0 0 3px rgb(77 113 128 / 15%); }

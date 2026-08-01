@@ -1,0 +1,6 @@
+.executive-hero { background: var(--valora-900); color: #fff; display: grid; gap: 28px; grid-template-columns: 1.2fr .8fr; padding: clamp(28px, 4vw, 52px); }
+.executive-hero h1, .executive-hero h2 { color: #fff; } .executive-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+.executive-score { align-items: center; border-left: 1px solid rgb(255 255 255 / 20%); display: flex; justify-content: center; }
+.executive-score strong { font-size: clamp(3.5rem, 8vw, 6rem); line-height: 1; }
+.executive-grid { display: grid; gap: 16px; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 18px; }
+.metric-card span, .metric-card small { color: var(--text-muted); display: block; } .metric-card strong { display: block; font-size: 1.7rem; margin: 7px 0; }

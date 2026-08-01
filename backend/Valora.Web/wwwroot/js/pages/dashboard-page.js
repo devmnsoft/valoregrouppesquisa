@@ -1,15 +1,67 @@
-(function(){
-  function safeText(value){ return $('<div>').text(value == null ? '' : String(value)).html(); }
-  function normalizeItems(payload){ const data = payload && payload.data ? payload.data : payload; if (Array.isArray(data)) return data; if (data && Array.isArray(data.items)) return data.items; return data ? [data] : []; }
-  function moduleHost(){ return $('[data-page="dashboard-page"]'); }
-  function renderModuleTable(list){ const html = list.slice(0,20).map(function(item){ const title = item.name || item.title || item.publicName || item.email || item.id || 'Sem identificação'; const status = item.status || item.role || item.plan || 'Ativo'; const detail = item.description || item.message || item.contactEmail || item.level || 'Informação disponível'; return '<tr><td>'+safeText(title)+'</td><td><span class="badge text-bg-secondary">'+safeText(status)+'</span></td><td>'+safeText(detail)+'</td><td><button type="button" class="btn btn-sm btn-outline-primary" data-module-action="details">Ver detalhes</button></td></tr>'; }).join(''); moduleHost().find('[data-items]').html(html || '<tr><td colspan="4" class="text-muted">Nenhum registro disponível para este módulo.</td></tr>'); }
-  function renderModuleCards(list){ moduleHost().find('[data-summary-cards] strong').each(function(index){ $(this).text(index === 0 ? list.length : 'OK'); }); }
-  async function loadDashboard(){ const host = moduleHost(); if(!host.length) return; if(window.Guards && !Guards.requireAuth({redirectTo:'/Account/Login'})) return; host.find('[data-error],[data-gap-card]').addClass('d-none'); try { if(window.Loading) Loading.show('Carregando módulo...'); const settled = await Promise.allSettled([function(){return UsageApi.usage();},function(){return UsageApi.limits();},function(){return HealthApi.all();},function(){return SurveysApi.list();},function(){return ResponsesApi.list({});}].map(function(fn){ return fn(); })); const items = []; const gaps = []; settled.forEach(function(result){ if(result.status === 'fulfilled') items.push.apply(items, normalizeItems(result.value)); else gaps.push(result.reason || {}); }); renderModuleCards(items); renderModuleTable(items); renderDashboardCards(items); renderDashboardHealth(items); renderDashboardUsage(items); renderRecentSurveys(items); renderRecentResponses(items); if(gaps.length){ host.find('[data-gap-card]').removeClass('d-none').attr('data-gap-controlled','true').text('Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.'); } } catch(error) { host.find('[data-error]').removeClass('d-none').text('Não foi possível carregar este módulo com segurança.'); } finally { if(window.Loading) Loading.hide(); } }
-  function renderDashboardCards(items){ renderModuleCards(normalizeItems(items)); }
-  function renderDashboardHealth(items){ renderModuleCards(normalizeItems(items)); }
-  function renderDashboardUsage(items){ renderModuleCards(normalizeItems(items)); }
-  function renderRecentSurveys(items){ renderModuleCards(normalizeItems(items)); }
-  function renderRecentResponses(items){ renderModuleCards(normalizeItems(items)); }
-  window.loadDashboard = loadDashboard;
-  $(function(){ moduleHost().find('[data-refresh]').on('click', loadDashboard); loadDashboard(); });
-}());
+(() => {
+  const root = document.querySelector('[data-page="dashboard-page"]');
+  if (!root) return;
+
+  const unwrap = value => value?.data ?? value ?? {};
+  const arrayOf = value => {
+    const data = unwrap(value);
+    return Array.isArray(data) ? data : Array.isArray(data.items) ? data.items : [];
+  };
+  const setText = (selector, value) => {
+    const element = root.querySelector(selector);
+    if (element) element.textContent = value;
+  };
+  const number = value => new Intl.NumberFormat('pt-BR').format(Number(value) || 0);
+
+  function renderKpis({ surveys, responses, usage }) {
+    const activeSurveys = surveys.filter(item => ['active', 'scheduled'].includes(String(item.status).toLowerCase())).length;
+    const completed = responses.filter(item => ['completed', 'submitted'].includes(String(item.status).toLowerCase())).length;
+    const completionRate = responses.length ? Math.round((completed / responses.length) * 100) : 0;
+    setText('[data-kpi="responses"]', number(responses.length));
+    setText('[data-kpi="activeSurveys"]', number(activeSurveys));
+    setText('[data-kpi="completionRate"]', `${completionRate}%`);
+    setText('[data-kpi="activeUsers"]', number(usage.activeUsers ?? usage.usersActive ?? 0));
+  }
+
+  function renderActivity(items) {
+    const body = root.querySelector('[data-items]');
+    const empty = root.querySelector('[data-empty-activities]');
+    const table = root.querySelector('[data-activity-table]');
+    if (!items.length) return;
+    empty.hidden = true;
+    table.hidden = false;
+    body.replaceChildren(...items.slice(0, 8).map(item => {
+      const row = document.createElement('tr');
+      [item.name ?? item.title ?? 'Atividade', item.status ?? 'Registrada', item.description ?? item.email ?? ''].forEach(value => {
+        const cell = document.createElement('td');
+        cell.textContent = String(value);
+        row.append(cell);
+      });
+      return row;
+    }));
+  }
+
+  async function load() {
+    const error = root.querySelector('[data-error]');
+    error.hidden = true;
+    try {
+      window.Loading?.show('Atualizando leitura executiva…');
+      const [surveysResult, responsesResult, usageResult] = await Promise.allSettled([
+        SurveysApi.list(), ResponsesApi.list({}), UsageApi.usage()
+      ]);
+      const surveys = surveysResult.status === 'fulfilled' ? arrayOf(surveysResult.value) : [];
+      const responses = responsesResult.status === 'fulfilled' ? arrayOf(responsesResult.value) : [];
+      const usage = usageResult.status === 'fulfilled' ? unwrap(usageResult.value) : {};
+      renderKpis({ surveys, responses, usage });
+      renderActivity([...surveys, ...responses]);
+      setText('[data-last-update]', `Atualizado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`);
+    } catch (exception) {
+      error.textContent = 'Não foi possível atualizar a leitura executiva. Tente novamente em instantes.';
+      error.hidden = false;
+    } finally {
+      window.Loading?.hide();
+    }
+  }
+
+  load();
+})();

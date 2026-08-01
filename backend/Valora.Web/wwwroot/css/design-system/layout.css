@@ -1,0 +1,5 @@
+.admin-body { background: var(--surface-secondary); margin: 0; }
+.app-shell { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); min-height: 100vh; }
+.app-main { min-width: 0; } .valora-admin-content { margin: 0 auto; max-width: 1560px; padding: 32px 40px 64px; }
+.valora-sidebar { background: var(--valora-900); color: #fff; display: flex; flex-direction: column; min-height: 100vh; padding: 24px 18px; position: sticky; top: 0; }
+.valora-topbar { background: rgb(255 255 255 / 94%); border-bottom: 1px solid var(--border-subtle); min-height: 88px; padding: 16px 40px; position: sticky; top: 0; z-index: 20; }

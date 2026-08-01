@@ -1,0 +1,2 @@
+.valora-empty { background: var(--surface-secondary); border: 1px dashed var(--border-subtle); border-radius: 8px; color: var(--text-secondary); padding: 28px; text-align: center; }
+.valora-alert { border-left: 4px solid var(--semantic-info); padding: 14px 16px; } .valora-alert--danger { border-color: var(--semantic-danger); }

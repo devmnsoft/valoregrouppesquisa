@@ -1,14 +1,13 @@
 <header class="topbar valora-topbar navbar navbar-expand-lg" data-admin-topbar>
-  <button class="btn btn-outline-primary d-lg-none me-2" type="button" data-action="toggleWebMobileAdminMenu" aria-expanded="false" aria-controls="mobileSidebar" aria-label="Abrir menu administrativo">☰</button>
-  <a class="brand-mark topbar-brand" data-brand-root href="/Dashboard"><span class="brand-picture" data-brand><img src="/img/brand/valora-symbol.jpeg" alt="Valora Group" class="admin-brand-symbol" onerror="this.classList.add('d-none'); this.closest('.brand-mark').classList.add('brand-fallback-active');"></span><span class="brand-fallback-text" aria-hidden="true">Valora Group</span></a>
+  <button class="valora-button valora-button--ghost d-lg-none me-2" type="button" data-action="toggleWebMobileAdminMenu" aria-expanded="false" aria-controls="mobileSidebar" aria-label="Abrir navegação"><span aria-hidden="true">≡</span></button>
   <div class="topbar-title">
     <nav class="valora-breadcrumbs" aria-label="Breadcrumb"><a href="/Dashboard">Início</a><span>/</span><span>@ViewData["Title"]</span></nav>
     <strong>@(ViewData["Title"] ?? "Painel Valora")</strong>
   </div>
   <div class="ms-auto d-flex gap-2 align-items-center flex-wrap topbar-actions">
-    <span id="environmentBadge" class="valora-badge">Ambiente local</span>
-    <span class="valora-badge" data-user-profile>Perfil</span>
-    <a class="valora-button valora-button--primary quick-action" href="/diagnostico-gratuito">Ação rápida</a>
+    <button class="valora-button valora-button--ghost" type="button" aria-label="Abrir busca global"><span aria-hidden="true">⌕</span><span class="d-none d-xl-inline ms-2">Buscar</span><kbd class="d-none d-xl-inline ms-2">Ctrl K</kbd></button>
+    <span class="valora-badge" data-user-profile aria-label="Perfil atual"></span>
+    <a class="valora-button valora-button--primary quick-action" href="/Surveys">Novo diagnóstico</a>
     <button id="logoutButton" class="valora-button valora-button--ghost" type="button">Sair</button>
   </div>
 </header>

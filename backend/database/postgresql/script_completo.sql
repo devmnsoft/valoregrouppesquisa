@@ -181,9 +181,18 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.login_attempts (
  succeeded boolean NOT NULL, attempted_at timestamptz NOT NULL DEFAULT now(), blocked_until timestamptz);
 CREATE INDEX IF NOT EXISTS ix_login_attempts_window ON valorapesquisa.login_attempts(email_hash, attempted_at DESC);
 
-ALTER TABLE valorapesquisa.password_reset_tokens ADD COLUMN IF NOT EXISTS request_ip_hash text;
-ALTER TABLE valorapesquisa.password_reset_tokens ADD COLUMN IF NOT EXISTS user_agent text;
-ALTER TABLE valorapesquisa.password_reset_tokens ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+-- Instalações anteriores podem conter apenas parte da estrutura de recuperação.
+-- Todas as colunas são garantidas antes de qualquer constraint ou índice que as use.
+ALTER TABLE valorapesquisa.password_reset_tokens
+    ADD COLUMN IF NOT EXISTS organization_id uuid,
+    ADD COLUMN IF NOT EXISTS user_id uuid,
+    ADD COLUMN IF NOT EXISTS token_hash text,
+    ADD COLUMN IF NOT EXISTS expires_at timestamptz,
+    ADD COLUMN IF NOT EXISTS used_at timestamptz,
+    ADD COLUMN IF NOT EXISTS request_ip_hash text,
+    ADD COLUMN IF NOT EXISTS user_agent text,
+    ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now(),
+    ADD COLUMN IF NOT EXISTS updated_at timestamptz;
 CREATE INDEX IF NOT EXISTS ix_password_reset_valid ON valorapesquisa.password_reset_tokens(token_hash, expires_at) WHERE used_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.organization_consents (

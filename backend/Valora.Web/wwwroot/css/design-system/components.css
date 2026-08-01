@@ -1,0 +1,14 @@
+.brand-mark { align-items: center; color: inherit; display: flex; gap: 12px; text-decoration: none; }
+.brand-monogram { align-items: center; background: var(--surface-primary); border-radius: 8px; color: var(--valora-900); display: inline-flex; font-weight: 800; height: 40px; justify-content: center; width: 40px; }
+.brand-text { display: grid; } .brand-text small { color: var(--valora-100); font-size: .7rem; letter-spacing: .06em; }
+.sidebar-context { border-block: 1px solid rgb(255 255 255 / 12%); margin: 24px 0; padding: 18px 4px; }
+.sidebar-context small { color: var(--valora-100); display: block; } .sidebar-context strong { display: block; font-size: .9rem; }
+.sidebar-group { margin-bottom: 20px; } .sidebar-group > p { color: var(--valora-500); font-size: .7rem; font-weight: 700; letter-spacing: .12em; margin: 0 10px 8px; text-transform: uppercase; }
+.valora-sidebar-nav .nav-link { border-radius: 6px; color: var(--valora-100); margin: 2px 0; padding: 10px 12px; transition: background var(--transition-fast), color var(--transition-fast); }
+.valora-sidebar-nav .nav-link:hover, .valora-sidebar-nav .nav-link.active { background: rgb(255 255 255 / 10%); color: #fff; }
+.valora-card, .page-card { background: var(--surface-primary); border: 1px solid var(--border-subtle); border-radius: 10px; box-shadow: var(--shadow-soft); padding: 24px; }
+.valora-button { align-items: center; border: 1px solid transparent; border-radius: 6px; display: inline-flex; font-weight: 650; justify-content: center; min-height: 42px; padding: 9px 16px; text-decoration: none; transition: all var(--transition-fast); }
+.valora-button--primary { background: var(--valora-900); color: #fff; } .valora-button--primary:hover { background: var(--valora-800); color: #fff; }
+.valora-button--ghost { border-color: var(--border-subtle); color: var(--valora-800); }
+.valora-badge { background: var(--surface-tertiary); border-radius: 999px; color: var(--valora-800); font-size: .78rem; padding: 5px 9px; }
+.topbar-title strong { display: block; font-size: 1.05rem; } .valora-breadcrumbs { color: var(--text-muted); font-size: .76rem; }

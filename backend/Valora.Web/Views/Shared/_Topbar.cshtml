@@ -1,13 +1,17 @@
 <header class="topbar valora-topbar navbar navbar-expand-lg" data-admin-topbar>
-  <button class="valora-button valora-button--ghost d-lg-none me-2" type="button" data-action="toggleWebMobileAdminMenu" aria-expanded="false" aria-controls="mobileSidebar" aria-label="Abrir navegação"><span aria-hidden="true">≡</span></button>
+  <button class="icon-button d-lg-none me-2" type="button" data-action="toggle-navigation" aria-expanded="false" aria-controls="mobileSidebar" aria-label="Abrir navegação" title="Abrir navegação"><valora-icon name="menu" /></button>
   <div class="topbar-title">
     <nav class="valora-breadcrumbs" aria-label="Breadcrumb"><a href="/Dashboard">Início</a><span>/</span><span>@ViewData["Title"]</span></nav>
     <strong>@(ViewData["Title"] ?? "Painel Valora")</strong>
   </div>
   <div class="ms-auto d-flex gap-2 align-items-center flex-wrap topbar-actions">
-    <button class="valora-button valora-button--ghost" type="button" aria-label="Abrir busca global"><span aria-hidden="true">⌕</span><span class="d-none d-xl-inline ms-2">Buscar</span><kbd class="d-none d-xl-inline ms-2">Ctrl K</kbd></button>
-    <span class="valora-badge" data-user-profile aria-label="Perfil atual"></span>
+    <button class="valora-button valora-button--ghost" type="button" data-action="open-command-palette" aria-haspopup="dialog" aria-controls="commandPalette"><valora-icon name="search" /><span class="d-none d-xl-inline ms-2">Buscar</span><kbd class="d-none d-xl-inline ms-2">Ctrl K</kbd></button>
+    <button class="icon-button" type="button" data-action="toggle-notifications" aria-expanded="false" aria-controls="notificationPanel" aria-label="Abrir notificações" title="Notificações"><valora-icon name="bell" /></button>
+    <button class="valora-button valora-button--ghost" type="button" data-action="toggle-user-menu" aria-expanded="false" aria-controls="userMenu"><span class="valora-avatar" aria-hidden="true">V</span><span data-user-profile>Minha conta</span><valora-icon name="chevron-down" size="16" /></button>
     <a class="valora-button valora-button--primary quick-action" href="/Surveys">Novo diagnóstico</a>
     <button id="logoutButton" class="valora-button valora-button--ghost" type="button">Sair</button>
   </div>
 </header>
+<section id="notificationPanel" class="shell-popover" hidden aria-label="Notificações"><div class="shell-popover__header"><strong>Notificações</strong><button type="button" class="valora-button valora-button--ghost" data-action="read-all-notifications">Marcar todas</button></div><p class="shell-empty">Você não possui novas notificações.</p></section>
+<nav id="userMenu" class="shell-popover shell-user-menu" hidden aria-label="Menu do usuário"><a href="/Users/Profile">Meu perfil</a><a href="/Settings">Preferências</a><a href="/Users/Sessions">Sessões</a><button type="button" data-action="logout"><valora-icon name="log-out" size="18" /> Sair</button></nav>
+<div id="commandPalette" class="command-palette" hidden role="dialog" aria-modal="true" aria-labelledby="commandPaletteTitle"><div class="command-palette__surface"><h2 id="commandPaletteTitle" class="visually-hidden">Busca global</h2><label class="command-palette__search"><valora-icon name="search" /><span class="visually-hidden">Pesquisar</span><input type="search" autocomplete="off" placeholder="Pesquise diagnósticos, resultados ou pessoas" data-command-input></label><div class="command-palette__results" data-command-results><p>Digite para pesquisar nesta organização.</p></div><button class="valora-button valora-button--ghost" type="button" data-action="close-command-palette">Fechar <kbd>Esc</kbd></button></div></div>

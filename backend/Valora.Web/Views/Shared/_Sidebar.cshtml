@@ -36,7 +36,6 @@
 }
 <aside class="app-sidebar valora-sidebar d-none d-lg-flex" data-admin-sidebar>
   <a class="brand-mark" data-brand-root href="/Dashboard" aria-label="Valora Group — Visão Executiva">
-    <span class="brand-monogram" aria-hidden="true">VG</span>
     <span class="brand-text"><strong>Valora Group™</strong><small>Governance • Controller • Advisory</small></span>
   </a>
   <div class="sidebar-context"><small>Organização atual</small><strong data-current-organization>Carregando organização…</strong><span class="valora-badge" data-current-plan>Plano</span></div>
@@ -45,6 +44,6 @@
   </nav>
 </aside>
 <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
-  <div class="offcanvas-header"><h2 id="mobileSidebarLabel" class="h6 mb-0">Menu Valora</h2><button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button></div>
+  <div class="offcanvas-header"><h2 id="mobileSidebarLabel" class="h6 mb-0">Menu Valora</h2><button type="button" class="icon-button" data-action="close-navigation" aria-label="Fechar navegação" title="Fechar navegação"><valora-icon name="x" /></button></div>
   <div class="offcanvas-body valora-sidebar-nav">@foreach (var group in groups) {<section class="sidebar-group"><p>@group.Title</p>@foreach (var item in group.Items) {<a class="nav-link" href="@item.Url" data-allowed-roles="@item.Roles" data-required-permission="@item.Permission">@item.Label</a>}</section>}</div>
 </div>

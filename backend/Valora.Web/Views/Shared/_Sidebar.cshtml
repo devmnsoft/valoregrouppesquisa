@@ -39,11 +39,11 @@
   </a>
   <div class="sidebar-context"><small>Organização atual</small><strong data-current-organization>Carregando organização…</strong><span class="valora-badge" data-current-plan>Plano</span></div>
   <nav class="sidebar-nav valora-sidebar-nav" aria-label="Menu administrativo por perfil">
-    @foreach (var group in groups) {<section class="sidebar-group"><p>@group.Title</p>@foreach (var item in group.Items) {<a class="nav-link" href="@item.Url" title="@item.Label" data-allowed-roles="@item.Roles" data-required-permission="@item.Permission"><valora-icon name="@item.Icon" size="19" /><span>@item.Label</span></a>}</section>}
+    @foreach (var group in groups) {<section class="sidebar-group"><p>@group.Title</p>@foreach (var item in group.Items) {<a class="nav-link" href="@item.Url" title="@item.Label" data-allowed-roles="@item.Roles" data-required-permission="@item.Permission"><valora-icon name="@item.Icon" size="19" decorative="true" /><span>@item.Label</span></a>}</section>}
   </nav>
-  <footer class="sidebar-footer"><a href="/PublicPages/Contact"><valora-icon name="help-circle" size="19" /><span>Ajuda e suporte</span></a><button class="icon-button" type="button" data-action="collapse-navigation" aria-expanded="true" aria-label="Recolher navegação" title="Recolher navegação"><valora-icon name="chevron-left" size="20" /></button></footer>
+  <footer class="sidebar-footer"><a href="/PublicPages/Contact"><valora-icon name="help-circle" size="19" decorative="true" /><span>Ajuda e suporte</span></a><button class="icon-button" type="button" data-action="collapse-navigation" aria-expanded="true" aria-label="Recolher navegação" title="Recolher navegação"><valora-icon name="chevron-left" size="20" decorative="true" /></button></footer>
 </aside>
 <div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
   <div class="offcanvas-header"><h2 id="mobileSidebarLabel" class="h6 mb-0">Menu Valora</h2><button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button></div>
-  <div class="offcanvas-body valora-sidebar-nav">@foreach (var group in groups) {<section class="sidebar-group"><p>@group.Title</p>@foreach (var item in group.Items) {<a class="nav-link" href="@item.Url" data-allowed-roles="@item.Roles" data-required-permission="@item.Permission"><valora-icon name="@item.Icon" size="19" /><span>@item.Label</span></a>}</section>}</div>
+  <div class="offcanvas-body valora-sidebar-nav">@foreach (var group in groups) {<section class="sidebar-group"><p>@group.Title</p>@foreach (var item in group.Items) {<a class="nav-link" href="@item.Url" data-allowed-roles="@item.Roles" data-required-permission="@item.Permission"><valora-icon name="@item.Icon" size="19" decorative="true" /><span>@item.Label</span></a>}</section>}</div>
 </div>

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Valora.Web.Services.Bff;
 using Valora.Web.Ui;
+using Valora.Web.Navigation;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,8 @@ builder.Host.UseSerilog((context, logger) =>
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<ValoraIconRegistry>();
+builder.Services.AddSingleton<NavigationCatalog>();
+builder.Services.AddScoped<NavigationService>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {

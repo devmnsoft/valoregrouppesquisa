@@ -30,7 +30,7 @@
     <p id="loadingMessage">Carregando...</p>
   </div>
   <div class="app-shell valora-admin-shell">
-    @await Html.PartialAsync("_Sidebar")
+    @await Component.InvokeAsync("Navigation")
     <main class="app-main">
       @await Html.PartialAsync("_Topbar")
       <section class="content-wrapper valora-admin-content">@RenderBody()</section>

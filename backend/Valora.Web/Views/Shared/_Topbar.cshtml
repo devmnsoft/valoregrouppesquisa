@@ -1,6 +1,6 @@
 <header class="topbar valora-topbar" data-admin-topbar>
   <button class="icon-button mobile-navigation-trigger" type="button" data-action="toggle-navigation" aria-expanded="false" aria-controls="mobileSidebar" aria-label="Abrir navegação" title="Abrir navegação">
-    <valora-icon name="menu" size="22" />
+    <valora-icon name="menu" size="22" decorative="true" />
   </button>
   <div class="topbar-title">
     <nav class="valora-breadcrumbs" aria-label="Breadcrumb"><a href="/Dashboard">Início</a><span aria-hidden="true">/</span><span aria-current="page">@ViewData["Title"]</span></nav>
@@ -8,14 +8,14 @@
   </div>
   <div class="topbar-actions">
     <button class="search-trigger" type="button" data-action="open-command-palette" aria-haspopup="dialog">
-      <valora-icon name="search" size="20" /><span>Buscar</span><kbd>Ctrl K</kbd>
+      <valora-icon name="search" size="20" decorative="true" /><span>Buscar</span><kbd>Ctrl K</kbd>
     </button>
     <button class="icon-button" type="button" data-action="toggle-notifications" aria-expanded="false" aria-controls="notificationPanel" aria-label="Abrir notificações" title="Notificações">
-      <valora-icon name="bell" size="20" /><span class="notification-count" data-notification-count hidden>0</span>
+      <valora-icon name="bell" size="20" decorative="true" /><span class="notification-count" data-notification-count hidden>0</span>
     </button>
-    <a class="valora-button valora-button--primary quick-action" href="/Surveys"><valora-icon name="plus" size="18" /> Novo diagnóstico</a>
+    <a class="valora-button valora-button--primary quick-action" href="/Surveys"><valora-icon name="plus" size="18" decorative="true" /> Novo diagnóstico</a>
     <button class="user-menu-trigger" type="button" data-action="toggle-user-menu" aria-expanded="false" aria-controls="userMenu">
-      <span class="user-avatar" data-user-initials aria-hidden="true">VA</span><span class="user-summary"><strong data-user-name>Conta Valora</strong><small data-user-profile>Perfil</small></span><valora-icon name="chevron-down" size="16" />
+      <span class="user-avatar" data-user-initials aria-hidden="true">VA</span><span class="user-summary"><strong data-user-name>Conta Valora</strong><small data-user-profile>Perfil</small></span><valora-icon name="chevron-down" size="16" decorative="true" />
     </button>
   </div>
 </header>
@@ -26,8 +26,8 @@
 <nav class="topbar-popover user-menu" id="userMenu" data-user-menu hidden aria-label="Menu da conta">
   <div class="user-menu-identity"><strong data-user-name>Conta Valora</strong><small data-user-email>Conta autenticada</small><span data-current-organization>Organização atual</span></div>
   <a href="/Users/Profile">Meu perfil</a><a href="/Settings">Preferências</a><a href="/Users?tab=sessions">Sessões</a>
-  <button id="logoutButton" type="button"><valora-icon name="log-out" size="18" /> Sair</button>
+  <button id="logoutButton" type="button"><valora-icon name="log-out" size="18" decorative="true" /> Sair</button>
 </nav>
 <dialog class="command-palette" data-command-palette aria-labelledby="commandPaletteTitle">
-  <form method="dialog" class="command-palette-frame"><header><valora-icon name="search" size="20" /><label id="commandPaletteTitle" class="visually-hidden" for="globalSearch">Busca global</label><input id="globalSearch" type="search" placeholder="Pesquisar pesquisas, resultados, usuários…" autocomplete="off" data-global-search><button class="icon-button" value="cancel" aria-label="Fechar busca" title="Fechar"><valora-icon name="x" size="20" /></button></header><div class="command-results" data-command-results><p>Digite para pesquisar em todos os módulos permitidos.</p></div><footer><span>↑↓ navegar</span><span>Enter abrir</span><span>Esc fechar</span></footer></form>
+  <form method="dialog" class="command-palette-frame"><header><valora-icon name="search" size="20" decorative="true" /><label id="commandPaletteTitle" class="visually-hidden" for="globalSearch">Busca global</label><input id="globalSearch" type="search" placeholder="Pesquisar pesquisas, resultados, usuários…" autocomplete="off" data-global-search><button class="icon-button" value="cancel" aria-label="Fechar busca" title="Fechar"><valora-icon name="x" size="20" decorative="true" /></button></header><div class="command-results" data-command-results><p>Digite para pesquisar em todos os módulos permitidos.</p></div><footer><span>↑↓ navegar</span><span>Enter abrir</span><span>Esc fechar</span></footer></form>
 </dialog>

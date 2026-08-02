@@ -1,0 +1,37 @@
+namespace Valora.Web.Navigation;
+
+public sealed class NavigationCatalog
+{
+    private static readonly IReadOnlySet<string> Administrators = Roles("admin_valora", "consultor_valora", "empresa_admin");
+    private static readonly IReadOnlySet<string> Diagnostics = Roles("admin_valora", "consultor_valora", "empresa_admin", "gestor_pesquisa");
+    private static readonly IReadOnlySet<string> Results = Roles("admin_valora", "consultor_valora", "empresa_admin", "gestor_pesquisa", "analista_resultados", "gestor_area");
+
+    public IReadOnlyList<NavigationSection> Sections { get; } =
+    [
+        Section("executive", "Visão Executiva", 10,
+            Item("executive.overview", "Visão Executiva", "Indicadores e prioridades da organização", "/Dashboard", "layout-dashboard", null, null, "dashboard", null, 10, Results)),
+        Section("diagnostics", "Diagnósticos", 20,
+            Item("diagnostics.forms", "Formulários", "Crie e publique diagnósticos", "/Forms", "file-text", null, "forms", "forms", "organization", 10, Diagnostics),
+            Item("diagnostics.surveys", "Pesquisas", "Configure campanhas e períodos", "/Surveys", "file-question", null, "surveys", "surveys", "organization", 20, Diagnostics),
+            Item("diagnostics.distribution", "Distribuição", "Gerencie links seguros", "/Surveys/PublicLinks", "send", null, "surveys", "distribution", "organization", 30, Diagnostics),
+            Item("diagnostics.responses", "Respostas", "Acompanhe a participação", "/Responses", "activity", "canViewResponses", "responses", "responses", "organization", 40, Results)),
+        Section("intelligence", "Inteligência", 30,
+            Item("intelligence.results", "Resultados", "Devolutivas e análises executivas", "/Reports", "chart-radar", null, "results", "results", "organization", 10, Results),
+            Item("intelligence.certificates", "Certificados", "Emissão e validação", "/Certificates/Validate", "award", null, "certificates", "certificates", "organization", 20, Results)),
+        Section("structure", "Estrutura", 40,
+            Item("structure.organization", "Organização", "Estrutura, marca e assinatura", "/Organization", "building", null, null, "organization", "organization", 10, Administrators)),
+        Section("administration", "Administração", 50,
+            Item("administration.access", "Central de Acessos", "Usuários, papéis e escopos", "/Users", "users", null, null, "users", "organization", 10, Administrators),
+            Item("administration.communications", "Comunicações", "Templates e entregas", "/Communications", "message-circle", null, null, "communications", "organization", 20, Administrators),
+            Item("administration.audit", "Auditoria", "Histórico de atividades", "/Audit", "activity", null, null, "audit", "organization", 30, Roles("admin_valora", "consultor_valora")),
+            Item("administration.settings", "Configurações", "Preferências da plataforma", "/Settings", "settings", null, null, "settings", "organization", 40, Administrators))
+    ];
+
+    private static NavigationSection Section(string code, string label, int order, params NavigationItem[] items) => new(code, label, order, items);
+
+    private static NavigationItem Item(string code, string label, string description, string url, string icon,
+        string? permission, string? capability, string moduleCode, string? scope, int order, IReadOnlySet<string> roles) =>
+        new(code, label, description, url, icon, permission, capability, moduleCode, scope, order, null, roles);
+
+    private static IReadOnlySet<string> Roles(params string[] values) => new HashSet<string>(values, StringComparer.OrdinalIgnoreCase);
+}

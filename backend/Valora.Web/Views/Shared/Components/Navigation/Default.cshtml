@@ -1,0 +1,30 @@
+@model Valora.Web.Navigation.NavigationViewModel
+@{
+  bool IsCurrent(string url) => Model.CurrentPath.Equals(url, StringComparison.OrdinalIgnoreCase)
+    || (url != "/Dashboard" && Model.CurrentPath.StartsWith(url + "/", StringComparison.OrdinalIgnoreCase));
+}
+<aside class="app-sidebar valora-sidebar d-none d-lg-flex" data-admin-sidebar>
+  <a class="brand-mark" data-brand-root href="/Dashboard" aria-label="Valora Group — Visão Executiva">
+    <span class="brand-wordmark"><strong>Valora</strong><small>GROUP</small></span>
+    <span class="brand-text"><small>Governance · Controller · Advisory</small></span>
+  </a>
+  <div class="sidebar-context"><small>Organização atual</small><strong data-current-organization>Carregando organização…</strong><span class="valora-badge" data-current-plan>Plano</span></div>
+  <nav class="sidebar-nav valora-sidebar-nav" aria-label="Navegação principal">
+    @foreach (var section in Model.Sections) {
+      <section class="sidebar-group"><p>@section.Label</p>
+        @foreach (var item in section.Items) {
+          <a class="nav-link @(IsCurrent(item.Url) ? "active" : null)" href="@item.Url" title="@item.Description" aria-current="@(IsCurrent(item.Url) ? "page" : null)" data-navigation-code="@item.Code">
+            <valora-icon name="@item.Icon" size="19" decorative="true" /><span>@item.Label</span>@if (item.Badge is not null) { <small class="valora-badge">@item.Badge</small> }
+          </a>
+        }
+      </section>
+    }
+  </nav>
+  <footer class="sidebar-footer"><a href="/PublicPages/Contact"><valora-icon name="help-circle" size="19" decorative="true" /><span>Ajuda e suporte</span></a><button class="icon-button" type="button" data-action="collapse-navigation" aria-expanded="true" aria-label="Recolher navegação" title="Recolher navegação"><valora-icon name="chevron-left" size="20" decorative="true" /></button></footer>
+</aside>
+<div class="offcanvas offcanvas-start" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
+  <div class="offcanvas-header"><h2 id="mobileSidebarLabel" class="h6 mb-0">Menu Valora</h2><button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button></div>
+  <div class="offcanvas-body valora-sidebar-nav">
+    @foreach (var section in Model.Sections) { <section class="sidebar-group"><p>@section.Label</p>@foreach (var item in section.Items) { <a class="nav-link @(IsCurrent(item.Url) ? "active" : null)" href="@item.Url" aria-current="@(IsCurrent(item.Url) ? "page" : null)"><valora-icon name="@item.Icon" size="19" decorative="true" /><span>@item.Label</span></a> }</section> }
+  </div>
+</div>

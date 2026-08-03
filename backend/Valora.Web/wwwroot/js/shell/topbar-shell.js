@@ -7,6 +7,25 @@
   const userMenu = document.querySelector('[data-user-menu]');
   let timer;
 
+  const setText = (selector, value) => document.querySelectorAll(selector).forEach((node) => { node.textContent = value; });
+  const loadAccountContext = async () => {
+    try {
+      const response = await fetch('/bff/account/context', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      if (!response.ok) throw new Error(`account-context-${response.status}`);
+      const account = await response.json();
+      setText('[data-user-name]', account.userName);
+      setText('[data-user-profile]', account.primaryRole);
+      setText('[data-user-email]', account.userEmail);
+      setText('[data-user-initials]', account.userInitials);
+      setText('[data-current-organization]', account.organizationName || 'Sem organização vinculada');
+      setText('[data-current-plan]', account.planName || 'Sem plano ativo');
+    } catch (error) {
+      document.querySelector('[data-admin-topbar]')?.setAttribute('data-account-context', 'unavailable');
+      console.error('Não foi possível carregar o contexto da conta.', error);
+    }
+  };
+  loadAccountContext();
+
   const closePopovers = (except) => [notifications, userMenu].forEach((node) => { if (node && node !== except) node.hidden = true; });
   document.querySelector('[data-action="open-command-palette"]')?.addEventListener('click', () => { palette?.showModal(); search?.focus(); });
   document.querySelector('[data-action="toggle-notifications"]')?.addEventListener('click', (event) => { closePopovers(notifications); notifications.hidden = !notifications.hidden; event.currentTarget.setAttribute('aria-expanded', String(!notifications.hidden)); });

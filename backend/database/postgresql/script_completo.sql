@@ -48,6 +48,77 @@ ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS update
 ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS version bigint NOT NULL DEFAULT 1;
 CREATE TABLE IF NOT EXISTS valorapesquisa.forms (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE, name text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.form_versions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), form_id uuid NOT NULL REFERENCES valorapesquisa.forms(id), version int NOT NULL, language text NOT NULL DEFAULT 'pt-BR', is_immutable boolean NOT NULL DEFAULT true, max_score int NOT NULL DEFAULT 125, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(form_id,version,language));
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES valorapesquisa.organizations(id);
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS category text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS estimated_minutes int NOT NULL DEFAULT 15;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS current_draft_version_id uuid;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS latest_published_version_id uuid;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS created_by_user_id uuid REFERENCES valorapesquisa.users(id);
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS version bigint NOT NULL DEFAULT 1;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES valorapesquisa.organizations(id);
+ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS version_number int;
+UPDATE valorapesquisa.form_versions SET version_number=version WHERE version_number IS NULL;
+ALTER TABLE valorapesquisa.form_versions ALTER COLUMN version_number SET NOT NULL;
+ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'published';
+ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS maximum_score int NOT NULL DEFAULT 125;
+ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS published_at timestamptz;
+ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS published_by_user_id uuid REFERENCES valorapesquisa.users(id);
+ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.form_section_versions (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+    form_version_id uuid NOT NULL REFERENCES valorapesquisa.form_versions(id),
+    title text NOT NULL,
+    description text,
+    position int NOT NULL CHECK (position >= 0),
+    version bigint NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    deleted_at timestamptz
+);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.question_versions (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+    section_id uuid NOT NULL REFERENCES valorapesquisa.form_section_versions(id),
+    code text NOT NULL,
+    type text NOT NULL CHECK (type IN ('likert_1_5','single_choice','multiple_choice','short_text','long_text','heading','description','separator')),
+    title text NOT NULL,
+    description text,
+    required boolean NOT NULL DEFAULT false,
+    dimension_code text,
+    weight numeric(8,2) NOT NULL DEFAULT 1 CHECK (weight >= 0),
+    position int NOT NULL CHECK (position >= 0),
+    settings jsonb NOT NULL DEFAULT '{}'::jsonb,
+    version bigint NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    deleted_at timestamptz,
+    UNIQUE(section_id, code)
+);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.question_option_versions (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+    question_id uuid NOT NULL REFERENCES valorapesquisa.question_versions(id),
+    label text NOT NULL,
+    value text NOT NULL,
+    score numeric(8,2) CHECK (score IS NULL OR score BETWEEN 1 AND 5),
+    position int NOT NULL CHECK (position >= 0),
+    version bigint NOT NULL DEFAULT 1,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now(),
+    deleted_at timestamptz,
+    UNIQUE(question_id, value)
+);
+CREATE INDEX IF NOT EXISTS ix_forms_organization_status ON valorapesquisa.forms(organization_id,status) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_form_sections_version_position ON valorapesquisa.form_section_versions(form_version_id,position) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_question_versions_section_position ON valorapesquisa.question_versions(section_id,position) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_question_option_versions_question_position ON valorapesquisa.question_option_versions(question_id,position) WHERE deleted_at IS NULL;
 CREATE TABLE IF NOT EXISTS valorapesquisa.form_translations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), form_version_id uuid NOT NULL REFERENCES valorapesquisa.form_versions(id), language text NOT NULL, title text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(form_version_id,language));
 CREATE TABLE IF NOT EXISTS valorapesquisa.dimensions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), form_version_id uuid NOT NULL REFERENCES valorapesquisa.form_versions(id), code text NOT NULL, name text NOT NULL, display_order int NOT NULL, max_score int NOT NULL DEFAULT 25, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(form_version_id,code));
 CREATE TABLE IF NOT EXISTS valorapesquisa.questions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), dimension_id uuid REFERENCES valorapesquisa.dimensions(id), code text NOT NULL, text text NOT NULL, display_order int NOT NULL, min_value int, max_value int, is_qualitative boolean NOT NULL DEFAULT false, is_required boolean NOT NULL DEFAULT true, max_text_length int, anonymity_protected boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(dimension_id,code));

@@ -1,13 +1,52 @@
-(function(){
-  function safeText(value){ return $('<div>').text(value == null ? '' : String(value)).html(); }
-  function normalizeItems(payload){ const data = payload && payload.data ? payload.data : payload; if (Array.isArray(data)) return data; if (data && Array.isArray(data.items)) return data.items; return data ? [data] : []; }
-  function moduleHost(){ return $('[data-page="forms-page"]'); }
-  function renderModuleTable(list){ const html = list.slice(0,20).map(function(item){ const title = item.name || item.title || item.publicName || item.email || item.id || 'Sem identificação'; const status = item.status || item.role || item.plan || 'Ativo'; const detail = item.description || item.message || item.contactEmail || item.level || 'Informação disponível'; return '<tr><td>'+safeText(title)+'</td><td><span class="badge text-bg-secondary">'+safeText(status)+'</span></td><td>'+safeText(detail)+'</td><td><button type="button" class="btn btn-sm btn-outline-primary" data-module-action="details">Ver detalhes</button></td></tr>'; }).join(''); moduleHost().find('[data-items]').html(html || '<tr><td colspan="4" class="text-muted">Nenhum registro disponível para este módulo.</td></tr>'); }
-  function renderModuleCards(list){ moduleHost().find('[data-summary-cards] strong').each(function(index){ $(this).text(index === 0 ? list.length : 'OK'); }); }
-  async function loadForms(){ const host = moduleHost(); if(!host.length) return; if(window.Guards && !Guards.requireAuth({redirectTo:'/Account/Login'})) return; host.find('[data-error],[data-gap-card]').addClass('d-none'); try { if(window.Loading) Loading.show('Carregando módulo...'); const settled = await Promise.allSettled([function(){return FormsApi.list();}].map(function(fn){ return fn(); })); const items = []; const gaps = []; settled.forEach(function(result){ if(result.status === 'fulfilled') items.push.apply(items, normalizeItems(result.value)); else gaps.push(result.reason || {}); }); renderModuleCards(items); renderModuleTable(items); renderFormsTable(items); renderFormDetails(items); if(gaps.length){ host.find('[data-gap-card]').removeClass('d-none').attr('data-gap-controlled','true').text('Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.'); } } catch(error) { host.find('[data-error]').removeClass('d-none').text('Não foi possível carregar este módulo com segurança.'); } finally { if(window.Loading) Loading.hide(); } }
-  function renderFormsTable(items){ renderModuleCards(normalizeItems(items)); }
-  function renderFormDetails(items){ renderModuleCards(normalizeItems(items)); }
-  async function saveForm(payload){ if(window.Toast) Toast.success('Solicitação enviada para processamento.'); return payload || { ok: true }; }
-  window.loadForms = loadForms;
-  $(function(){ moduleHost().find('[data-refresh]').on('click', loadForms); loadForms(); });
+(function () {
+  const host = document.querySelector('[data-page="forms-page"]');
+  if (!host) return;
+  const dialog = document.querySelector('[data-form-dialog]');
+  const body = host.querySelector('[data-items]');
+  const empty = host.querySelector('[data-empty]');
+  const error = host.querySelector('[data-error]');
+
+  function escape(value) {
+    const node = document.createElement('span');
+    node.textContent = value == null ? '' : String(value);
+    return node.innerHTML;
+  }
+
+  function render(items) {
+    ['draft', 'published', 'archived'].forEach(status => {
+      host.querySelector(`[data-metric="${status}"]`).textContent = items.filter(item => item.status === status).length;
+    });
+    host.querySelector('[data-metric="inUse"]').textContent = items.filter(item => item.inUse).length;
+    empty.classList.toggle('d-none', items.length > 0);
+    body.innerHTML = items.map(item => `<tr><td><strong>${escape(item.name)}</strong><small>${escape(item.description)}</small></td><td>${escape(item.category || 'Diagnóstico')}</td><td>v${item.versionNumber}</td><td>${item.sections} seções · ${item.questions} perguntas · ${item.dimensions} dimensões</td><td>${item.estimatedMinutes} min</td><td><span class="status-badge status-${escape(item.status)}">${escape(item.status)}</span></td><td>${new Date(item.updatedAt).toLocaleDateString('pt-BR')}</td><td><a class="btn btn-sm btn-outline-primary" href="/Forms/${item.id}/Builder">Editar</a></td></tr>`).join('');
+  }
+
+  async function load() {
+    error.classList.add('d-none');
+    try {
+      const response = await FormsApi.list('?page=1&pageSize=100');
+      render(FormsApi.normalize(response) || []);
+    } catch (problem) {
+      error.textContent = problem.message || 'Não foi possível carregar os formulários. Tente novamente.';
+      error.classList.remove('d-none');
+    }
+  }
+
+  host.querySelectorAll('[data-new-form]').forEach(button => button.addEventListener('click', () => dialog.showModal()));
+  document.querySelectorAll('[data-dialog-close]').forEach(button => button.addEventListener('click', () => dialog.close()));
+  host.querySelector('[data-refresh]').addEventListener('click', load);
+  dialog.querySelector('form').addEventListener('submit', async event => {
+    event.preventDefault();
+    const submit = event.currentTarget.querySelector('[type="submit"]');
+    submit.disabled = true;
+    const values = new FormData(event.currentTarget);
+    try {
+      await FormsApi.create({ name: values.get('name'), description: values.get('description'), category: values.get('category'), estimatedMinutes: Number(values.get('estimatedMinutes')) });
+      dialog.close(); event.currentTarget.reset(); await load();
+    } catch (problem) {
+      error.textContent = problem.message || 'O formulário não pôde ser criado. Revise os campos e tente novamente.';
+      error.classList.remove('d-none'); dialog.close();
+    } finally { submit.disabled = false; }
+  });
+  load();
 }());

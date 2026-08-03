@@ -5,4 +5,11 @@ public sealed record NavigationContext(
     IReadOnlySet<string> Permissions,
     IReadOnlySet<string> Capabilities,
     IReadOnlySet<string> Scopes,
-    bool HasValidSubscription);
+    IReadOnlySet<string> EnabledModules,
+    IReadOnlySet<string> AvailableRoutes,
+    string SubscriptionStatus,
+    string? PlanCode)
+{
+    public bool HasValidSubscription =>
+        PlanCode is not null && SubscriptionStatus is "active" or "trialing";
+}

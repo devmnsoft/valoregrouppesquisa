@@ -12,7 +12,13 @@ public sealed class NavigationService(NavigationCatalog catalog, BffAuthenticati
         var permissions = Claims(httpContext, "permission");
         var capabilities = Claims(httpContext, "capability");
         var scopes = Claims(httpContext, "scope");
-        var context = new NavigationContext(role, permissions, capabilities, scopes, session?.SafeSession.Plan is not null);
+        var modules = Claims(httpContext, "module");
+        var routes = catalog.Sections.SelectMany(section => section.Items).Select(item => item.Url)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var subscriptionStatus = httpContext.User.FindFirstValue("subscription_status")
+            ?? (session?.SafeSession.Plan is null ? "missing" : "active");
+        var context = new NavigationContext(role, permissions, capabilities, scopes, modules, routes,
+            subscriptionStatus, session?.SafeSession.Plan?.Id);
 
         var sections = catalog.Sections
             .OrderBy(section => section.Order)
@@ -26,10 +32,12 @@ public sealed class NavigationService(NavigationCatalog catalog, BffAuthenticati
     private static bool IsVisible(NavigationItem item, NavigationContext context)
     {
         if (!item.Roles.Contains(context.Role)) return false;
+        if (!context.AvailableRoutes.Contains(item.Url)) return false;
+        if (context.EnabledModules.Count == 0 || !context.EnabledModules.Contains(item.ModuleCode)) return false;
         if (!context.HasValidSubscription && item.Capability is not null) return false;
-        if (item.Permission is not null && context.Permissions.Count > 0 && !context.Permissions.Contains(item.Permission)) return false;
-        if (item.Capability is not null && context.Capabilities.Count > 0 && !context.Capabilities.Contains(item.Capability)) return false;
-        if (item.ScopeRequirement is not null && context.Scopes.Count > 0 && !context.Scopes.Contains(item.ScopeRequirement)) return false;
+        if (item.Permission is not null && !context.Permissions.Contains(item.Permission)) return false;
+        if (item.Capability is not null && !context.Capabilities.Contains(item.Capability)) return false;
+        if (item.ScopeRequirement is not null && !context.Scopes.Contains(item.ScopeRequirement)) return false;
         return true;
     }
 

@@ -1,0 +1,25 @@
+@model Valora.Web.Navigation.NavigationGroupsViewModel
+
+@foreach (var navigationSection in Model.Sections)
+{
+    var groupId = $"{Model.IdPrefix}-{navigationSection.Code}";
+    <section class="sidebar-group" data-navigation-group>
+        <button class="sidebar-group-toggle" type="button" aria-expanded="@(navigationSection.IsExpanded.ToString().ToLowerInvariant())" aria-controls="@groupId" data-navigation-section="@navigationSection.Code">
+            <span>@navigationSection.Label</span>
+            <valora-icon name="chevron-down" size="15" decorative="true" />
+        </button>
+        <div id="@groupId" class="sidebar-group-items @(navigationSection.IsExpanded ? null : "is-collapsed")">
+            @foreach (var navigationItem in navigationSection.Items)
+            {
+                <a class="nav-link @(navigationItem.IsActive ? "active" : null)" href="@navigationItem.Url" title="@navigationItem.Description" aria-label="@navigationItem.Label — @navigationItem.Description" aria-current="@(navigationItem.IsActive ? "page" : null)" data-navigation-code="@navigationItem.Code">
+                    <valora-icon name="@navigationItem.Icon" size="19" decorative="true" />
+                    <span>@navigationItem.Label</span>
+                    @if (navigationItem.Badge is not null)
+                    {
+                        <small class="valora-badge">@navigationItem.Badge</small>
+                    }
+                </a>
+            }
+        </div>
+    </section>
+}

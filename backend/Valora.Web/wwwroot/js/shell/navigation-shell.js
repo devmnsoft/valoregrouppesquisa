@@ -7,12 +7,24 @@
   if (!sidebar || !mobile || !toggle) return;
 
   const links = document.querySelectorAll('.valora-sidebar-nav .nav-link');
-  const path = window.location.pathname.toLowerCase();
   links.forEach((link) => {
-    const current = path === new URL(link.href).pathname.toLowerCase() || (path.startsWith(new URL(link.href).pathname.toLowerCase()) && new URL(link.href).pathname !== '/');
-    link.classList.toggle('active', current);
-    if (current) link.setAttribute('aria-current', 'page');
     link.addEventListener('click', () => closeMobile());
+  });
+
+  document.querySelectorAll('[data-navigation-section]').forEach((button) => {
+    const content = document.getElementById(button.getAttribute('aria-controls'));
+    const storageKey = `valora-navigation-${button.dataset.navigationSection}`;
+    const stored = localStorage.getItem(storageKey);
+    if (stored !== null && !content.querySelector('[aria-current="page"]')) {
+      button.setAttribute('aria-expanded', stored);
+      content.classList.toggle('is-collapsed', stored !== 'true');
+    }
+    button.addEventListener('click', () => {
+      const expanded = button.getAttribute('aria-expanded') === 'true';
+      button.setAttribute('aria-expanded', String(!expanded));
+      content.classList.toggle('is-collapsed', expanded);
+      localStorage.setItem(storageKey, String(!expanded));
+    });
   });
 
   const setMobileState = (open) => {

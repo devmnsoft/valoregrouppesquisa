@@ -104,6 +104,10 @@
   padding:.7rem .85rem;
   font-weight:700
 }
+.sidebar-group-toggle{align-items:center;background:transparent;border:0;color:inherit;display:flex;font:inherit;justify-content:space-between;padding:.5rem .75rem;text-align:left;width:100%}
+.sidebar-group-toggle svg{transition:transform .16s ease}.sidebar-group-toggle[aria-expanded="false"] svg{transform:rotate(-90deg)}
+.sidebar-group-items.is-collapsed{display:none}
+@media(prefers-reduced-motion:reduce){.sidebar-group-toggle svg{transition:none}}
 .offcanvas .sidebar-group .nav-link {
   color:var(--valora-navy)
 }

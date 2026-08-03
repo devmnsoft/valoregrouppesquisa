@@ -19,6 +19,8 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<ValoraIconRegistry>();
 builder.Services.AddSingleton<NavigationCatalog>();
 builder.Services.AddScoped<NavigationService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<INavigationRouteResolver, EndpointNavigationRouteResolver>();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {

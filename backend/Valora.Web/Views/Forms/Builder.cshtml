@@ -1,22 +1,40 @@
 @model Guid
-@{ ViewData["Title"] = "Estúdio de Diagnósticos"; }
+@{
+    ViewData["Title"] = "Estúdio de Diagnósticos";
+}
 <main class="builder-workspace" data-page="form-builder" data-form-id="@Model">
-  <header class="workspace-header builder-header">
-    <div><a href="/Forms" class="eyebrow">Formulários</a><h1 data-form-name>Carregando diagnóstico…</h1><p><span class="status-badge" data-form-status></span> <span data-save-state aria-live="polite"></span></p></div>
-    <div class="builder-actions"><button class="btn btn-outline-secondary" type="button" data-preview>Preview</button><button class="btn btn-primary" type="button" data-publish>Publicar</button></div>
-  </header>
-  <div class="alert alert-danger d-none" role="alert" data-error></div>
-  <div class="builder-loading" data-loading aria-live="polite">Carregando estrutura do formulário…</div>
-  <div class="builder-layout d-none" data-builder-content>
-    <nav class="builder-sections" aria-label="Seções do formulário"><h2>Seções</h2><ol data-section-nav></ol></nav>
-    <section class="builder-canvas" aria-label="Canvas do formulário" data-canvas></section>
-    <aside class="builder-properties"><h2>Propriedades</h2><form data-metadata-form>
-      <label class="form-label" for="builder-name">Nome</label><input class="form-control" id="builder-name" name="name" required maxlength="160">
-      <label class="form-label mt-3" for="builder-description">Descrição</label><textarea class="form-control" id="builder-description" name="description" rows="4" maxlength="1000"></textarea>
-      <label class="form-label mt-3" for="builder-category">Categoria</label><input class="form-control" id="builder-category" name="category" maxlength="80">
-      <label class="form-label mt-3" for="builder-minutes">Tempo estimado</label><input class="form-control" id="builder-minutes" name="estimatedMinutes" type="number" min="1" max="480" required>
-      <button class="btn btn-primary mt-3" type="submit">Salvar metadados</button>
-    </form></aside>
-  </div>
+    <header class="workspace-header builder-header">
+        <div>
+            <a href="/Forms" class="eyebrow">Formulários</a>
+            <h1 data-form-name>Carregando diagnóstico…</h1>
+            <p><span class="status-badge" data-form-status></span> <span data-save-state aria-live="polite"></span></p>
+        </div>
+        <div class="builder-actions">
+            <button class="btn btn-outline-secondary" type="button" data-preview>Visualizar</button>
+            <button class="btn btn-primary" type="button" data-publish>Publicar</button>
+        </div>
+    </header>
+    <div class="alert alert-danger d-none" role="alert" data-error></div>
+    <div class="builder-loading" data-loading aria-live="polite">Carregando estrutura do formulário…</div>
+    <div class="builder-layout d-none" data-builder-content>
+        <nav class="builder-sections" aria-label="Seções do formulário">
+            <div class="builder-panel-heading"><h2>Seções</h2><button class="btn btn-sm btn-primary" type="button" data-add-section>Adicionar</button></div>
+            <ol data-section-nav></ol>
+        </nav>
+        <section class="builder-canvas" aria-label="Canvas do formulário" data-canvas></section>
+        <aside class="builder-properties" aria-live="polite">
+            <h2 data-properties-title>Propriedades do formulário</h2>
+            <form data-properties-form></form>
+        </aside>
+    </div>
+    <dialog class="builder-preview" data-preview-dialog aria-labelledby="preview-title">
+        <header><h2 id="preview-title">Visualização do diagnóstico</h2><button type="button" class="btn-close" data-close-preview aria-label="Fechar"></button></header>
+        <div class="builder-preview-toolbar" role="group" aria-label="Tamanho da visualização"><button type="button" data-preview-size="desktop">Desktop</button><button type="button" data-preview-size="mobile">Celular</button></div>
+        <div data-preview-content></div>
+    </dialog>
 </main>
-@section Scripts { <script src="/js/pages/form-builder.js"></script> }
+
+@section Scripts
+{
+    <script src="/js/pages/form-builder.js"></script>
+}

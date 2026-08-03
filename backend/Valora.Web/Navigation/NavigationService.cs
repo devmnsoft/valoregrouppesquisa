@@ -3,36 +3,82 @@ using Valora.Web.Services.Bff;
 
 namespace Valora.Web.Navigation;
 
-public sealed class NavigationService(NavigationCatalog catalog, BffAuthenticationService authentication)
+public sealed class NavigationService(
+    NavigationCatalog catalog,
+    BffAuthenticationService authentication,
+    INavigationRouteResolver routes)
 {
     public async Task<NavigationViewModel> BuildAsync(HttpContext httpContext, CancellationToken cancellationToken = default)
     {
         var session = await authentication.GetAsync(httpContext, cancellationToken);
-        var role = session?.SafeSession.User.Role ?? httpContext.User.FindFirstValue(ClaimTypes.Role) ?? string.Empty;
-        var permissions = Claims(httpContext, "permission");
-        var capabilities = Claims(httpContext, "capability");
-        var scopes = Claims(httpContext, "scope");
-        var modules = Claims(httpContext, "module");
-        var routes = catalog.Sections.SelectMany(section => section.Items).Select(item => item.Url)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var subscriptionStatus = httpContext.User.FindFirstValue("subscription_status")
-            ?? (session?.SafeSession.Plan is null ? "missing" : "active");
-        var context = new NavigationContext(role, permissions, capabilities, scopes, modules, routes,
-            subscriptionStatus, session?.SafeSession.Plan?.Id);
+        var roles = Claims(httpContext, ClaimTypes.Role);
+        if (!string.IsNullOrWhiteSpace(session?.SafeSession.User.Role))
+            roles.Add(session.SafeSession.User.Role);
 
-        var sections = catalog.Sections
-            .OrderBy(section => section.Order)
-            .Select(section => section with { Items = section.Items.Where(item => IsVisible(item, context)).OrderBy(item => item.Order).ToArray() })
-            .Where(section => section.Items.Count > 0)
+        var context = new NavigationContext(
+            session?.SafeSession.User.Name ?? httpContext.User.Identity?.Name,
+            session?.SafeSession.Organization?.TradeName ?? session?.SafeSession.Organization?.Name,
+            session?.SafeSession.Plan?.Id,
+            httpContext.User.FindFirstValue("subscription_status") ?? (session?.SafeSession.Plan is null ? "missing" : "active"),
+            roles,
+            Claims(httpContext, "permission"),
+            Claims(httpContext, "capability"),
+            Claims(httpContext, "scope"),
+            Claims(httpContext, "module"));
+
+        var currentPath = NormalizePath(httpContext.Request.Path.Value);
+        var visible = catalog.Sections
+            .OrderBy(navigationSection => navigationSection.Order)
+            .Select(navigationSection => new
+            {
+                Section = navigationSection,
+                Items = navigationSection.Items.OrderBy(item => item.Order)
+                    .Select(item => (Item: item, Url: routes.Resolve(item.Destination)))
+                    .Where(resolved => resolved.Url is not null && IsVisible(resolved.Item, context))
+                    .ToArray()
+            })
+            .Where(resolvedSection => resolvedSection.Items.Length > 0)
             .ToArray();
 
-        return new NavigationViewModel(sections, httpContext.Request.Path.Value ?? "/");
+        // Prefer the longest matching URL, ensuring a single active item for nested routes.
+        var activeCode = visible.SelectMany(resolvedSection => resolvedSection.Items)
+            .Where(resolved => Matches(currentPath, resolved.Url!))
+            .OrderByDescending(resolved => NormalizePath(resolved.Url).Length)
+            .Select(resolved => resolved.Item.Code)
+            .FirstOrDefault();
+
+        var sections = visible.Select(resolvedSection =>
+        {
+            var items = resolvedSection.Items.Select(resolved => new NavigationItemViewModel(
+                resolved.Item.Code, resolved.Item.Label, resolved.Item.Description, resolved.Url!, resolved.Item.Icon,
+                resolved.Item.Badge, resolved.Item.Code == activeCode)).ToArray();
+            return new NavigationSectionViewModel(resolvedSection.Section.Code, resolvedSection.Section.Label,
+                items.Any(item => item.IsActive), items);
+        }).ToArray();
+
+        var correlationId = httpContext.TraceIdentifier;
+        return new NavigationViewModel(sections, context.OrganizationName, session?.SafeSession.Plan?.Name,
+            session is not null && context.OrganizationName is not null, correlationId);
+    }
+
+    public static bool Matches(string? requestPath, string destination)
+    {
+        var current = NormalizePath(requestPath);
+        var target = NormalizePath(destination);
+        return current.Equals(target, StringComparison.OrdinalIgnoreCase)
+            || (target != "/" && current.StartsWith(target + "/", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static string NormalizePath(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "/";
+        var path = value.Split('?', '#')[0].TrimEnd('/');
+        return string.IsNullOrEmpty(path) ? "/" : path.StartsWith('/') ? path : "/" + path;
     }
 
     private static bool IsVisible(NavigationItem item, NavigationContext context)
     {
-        if (!item.Roles.Contains(context.Role)) return false;
-        if (!context.AvailableRoutes.Contains(item.Url)) return false;
+        if (!item.Roles.Overlaps(context.Roles)) return false;
         if (context.EnabledModules.Count == 0 || !context.EnabledModules.Contains(item.ModuleCode)) return false;
         if (!context.HasValidSubscription && item.Capability is not null) return false;
         if (item.Permission is not null && !context.Permissions.Contains(item.Permission)) return false;
@@ -41,7 +87,8 @@ public sealed class NavigationService(NavigationCatalog catalog, BffAuthenticati
         return true;
     }
 
-    private static IReadOnlySet<string> Claims(HttpContext context, string type) =>
-        context.User.FindAll(type).SelectMany(claim => claim.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+    private static HashSet<string> Claims(HttpContext context, string type) =>
+        context.User.FindAll(type)
+            .SelectMany(claim => claim.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 }

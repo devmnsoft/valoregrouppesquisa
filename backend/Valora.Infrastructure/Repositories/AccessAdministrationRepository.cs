@@ -3,7 +3,7 @@ using Valora.Application.Access;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class AccessAdministrationRepository(IDbConnectionFactory factory) : IAccessAdministrationRepository
+public sealed class AccessAdministrationRepository(Application.Contracts.IDbConnectionFactory factory) : IAccessAdministrationRepository
 {
     private const string RoleProjection = """r.id Id,r.code Code,r.name Name,r.description Description,r.is_system IsSystem,r.status Status,r.version Version,(SELECT count(*)::int FROM valorapesquisa.user_roles ur WHERE ur.role_id=r.id) UserCount,COALESCE((SELECT array_agg(p.code ORDER BY p.code) FROM valorapesquisa.role_permissions rp JOIN valorapesquisa.permissions p ON p.id=rp.permission_id WHERE rp.role_id=r.id),ARRAY[]::text[]) Permissions""";
 

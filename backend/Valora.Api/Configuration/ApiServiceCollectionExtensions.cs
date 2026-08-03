@@ -1,5 +1,8 @@
 using Valora.Application.Communication;
 using Valora.Application.Services;
+using Valora.Application.Access;
+using Valora.Api.Authorization;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Valora.Api.Configuration;
 
@@ -25,7 +28,12 @@ public static class ApiServiceCollectionExtensions
         services.Configure<EmailOptions>(configuration.GetSection("Email"));
         services.Configure<AuthenticationOptions>(configuration.GetSection("Authentication"));
         services.AddJwtAuthentication(configuration);
-        services.AddAuthorization();
+        services.AddAuthorization(options =>
+        {
+            foreach (var permission in ValoraPermissions.All)
+                options.AddPolicy(permission, policy => policy.RequireAuthenticatedUser().AddRequirements(new PermissionRequirement(permission)));
+        });
+        services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
         return services;
     }
 }

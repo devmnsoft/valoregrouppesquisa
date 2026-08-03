@@ -14,7 +14,11 @@ BEGIN
 END;
 $$;
 
-CREATE TABLE IF NOT EXISTS valorapesquisa.schema_migrations (version text PRIMARY KEY, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now(), applied_by text NOT NULL DEFAULT current_user);
+CREATE TABLE IF NOT EXISTS valorapesquisa.schema_migrations (version text PRIMARY KEY, checksum text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now(), applied_by text NOT NULL DEFAULT current_user, application_version text);
+ALTER TABLE valorapesquisa.schema_migrations ADD COLUMN IF NOT EXISTS checksum text;
+ALTER TABLE valorapesquisa.schema_migrations ADD COLUMN IF NOT EXISTS applied_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.schema_migrations ADD COLUMN IF NOT EXISTS applied_by text NOT NULL DEFAULT current_user;
+ALTER TABLE valorapesquisa.schema_migrations ADD COLUMN IF NOT EXISTS application_version text;
 CREATE TABLE IF NOT EXISTS valorapesquisa.organizations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, slug text NOT NULL UNIQUE, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.business_groups (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), name text NOT NULL, tax_id text, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.legal_entities (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), business_group_id uuid REFERENCES valorapesquisa.business_groups(id), legal_name text NOT NULL, trade_name text, cnpj text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
@@ -22,8 +26,34 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_legal_entities_cnpj_active ON valorapesquis
 CREATE TABLE IF NOT EXISTS valorapesquisa.units (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), legal_entity_id uuid NOT NULL REFERENCES valorapesquisa.legal_entities(id), name text NOT NULL, code text, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.departments (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), unit_id uuid REFERENCES valorapesquisa.units(id), name text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.users (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), email text NOT NULL, name text NOT NULL, password_hash text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz, UNIQUE(organization_id,email));
-CREATE TABLE IF NOT EXISTS valorapesquisa.roles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), code text NOT NULL, name text NOT NULL, is_system boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz, UNIQUE(organization_id,code));
+-- Access catalog is converged before any seed, index, trigger or query uses its columns.
+CREATE TABLE IF NOT EXISTS valorapesquisa.modules (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE, name text NOT NULL, category text NOT NULL DEFAULT 'core', status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
+ALTER TABLE valorapesquisa.modules ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE valorapesquisa.modules ADD COLUMN IF NOT EXISTS category text NOT NULL DEFAULT 'core';
+ALTER TABLE valorapesquisa.modules ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+ALTER TABLE valorapesquisa.modules ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.modules ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+ALTER TABLE valorapesquisa.modules ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+
 CREATE TABLE IF NOT EXISTS valorapesquisa.permissions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE, name text NOT NULL, description text, module_code text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
+ALTER TABLE valorapesquisa.permissions ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE valorapesquisa.permissions ADD COLUMN IF NOT EXISTS module_code text;
+ALTER TABLE valorapesquisa.permissions ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.permissions ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+ALTER TABLE valorapesquisa.permissions ADD COLUMN IF NOT EXISTS functional_group text NOT NULL DEFAULT 'general';
+ALTER TABLE valorapesquisa.permissions ADD COLUMN IF NOT EXISTS risk_level text NOT NULL DEFAULT 'low';
+ALTER TABLE valorapesquisa.permissions ADD COLUMN IF NOT EXISTS is_system boolean NOT NULL DEFAULT true;
+ALTER TABLE valorapesquisa.permissions ADD COLUMN IF NOT EXISTS assignable_to_custom_roles boolean NOT NULL DEFAULT true;
+ALTER TABLE valorapesquisa.permissions ADD COLUMN IF NOT EXISTS display_order integer NOT NULL DEFAULT 100;
+ALTER TABLE valorapesquisa.permissions ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+CREATE INDEX IF NOT EXISTS ix_permissions_module_code ON valorapesquisa.permissions(module_code);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.roles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), code text NOT NULL, name text NOT NULL, is_system boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz, UNIQUE(organization_id,code));
+ALTER TABLE valorapesquisa.roles ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE valorapesquisa.roles ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+ALTER TABLE valorapesquisa.roles ADD COLUMN IF NOT EXISTS version bigint NOT NULL DEFAULT 1;
+ALTER TABLE valorapesquisa.roles ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+ALTER TABLE valorapesquisa.roles ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
 CREATE TABLE IF NOT EXISTS valorapesquisa.role_permissions (role_id uuid NOT NULL REFERENCES valorapesquisa.roles(id), permission_id uuid NOT NULL REFERENCES valorapesquisa.permissions(id), created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(role_id, permission_id));
 CREATE TABLE IF NOT EXISTS valorapesquisa.user_sessions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), expires_at timestamptz NOT NULL, revoked_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS valorapesquisa.refresh_tokens (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), token_hash text NOT NULL UNIQUE, expires_at timestamptz NOT NULL, revoked_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
@@ -169,7 +199,9 @@ BEGIN
 END $$;
 CREATE TABLE IF NOT EXISTS valorapesquisa.support_tickets (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), subject text NOT NULL, status text NOT NULL DEFAULT 'open', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.integrations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), provider text NOT NULL, status text NOT NULL DEFAULT 'inactive', config jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
-CREATE TABLE IF NOT EXISTS valorapesquisa.audit_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), actor_id uuid, action text NOT NULL, entity_name text, entity_id uuid, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.audit_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), actor_id uuid, action text NOT NULL, entity_name text, entity_id uuid, details jsonb, correlation_id text, created_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS details jsonb;
+ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS correlation_id text;
 CREATE TABLE IF NOT EXISTS valorapesquisa.operational_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), level text NOT NULL, message text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS valorapesquisa.migration_batches (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), source_type text NOT NULL, source_name text NOT NULL, mode text NOT NULL, status text NOT NULL DEFAULT 'created', requested_by text, started_at timestamptz NOT NULL DEFAULT now(), finished_at timestamptz, total_records int NOT NULL DEFAULT 0, valid_records int NOT NULL DEFAULT 0, invalid_records int NOT NULL DEFAULT 0, imported_records int NOT NULL DEFAULT 0, skipped_records int NOT NULL DEFAULT 0, conflict_records int NOT NULL DEFAULT 0, error_records int NOT NULL DEFAULT 0, summary_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS valorapesquisa.migration_source_files (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), batch_id uuid REFERENCES valorapesquisa.migration_batches(id), file_name text NOT NULL, content_type text, size_bytes bigint NOT NULL, sha256 text NOT NULL, stored_path text, status text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
@@ -195,6 +227,7 @@ ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS onboarding_sta
 ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS version bigint NOT NULL DEFAULT 1;
 
 ALTER TABLE valorapesquisa.users ADD COLUMN IF NOT EXISTS phone text;
+ALTER TABLE valorapesquisa.users ADD COLUMN IF NOT EXISTS access_version bigint NOT NULL DEFAULT 1;
 ALTER TABLE valorapesquisa.users ADD COLUMN IF NOT EXISTS password_reset_required boolean NOT NULL DEFAULT false;
 ALTER TABLE valorapesquisa.users ADD COLUMN IF NOT EXISTS last_login_at timestamptz;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_users_email_active ON valorapesquisa.users(lower(email)) WHERE deleted_at IS NULL;
@@ -307,6 +340,10 @@ ALTER TABLE valorapesquisa.outbox_messages ADD COLUMN IF NOT EXISTS attempts int
 ALTER TABLE valorapesquisa.outbox_messages ADD COLUMN IF NOT EXISTS next_attempt_at timestamptz NOT NULL DEFAULT now();
 CREATE UNIQUE INDEX IF NOT EXISTS ux_outbox_idempotency ON valorapesquisa.outbox_messages(idempotency_key) WHERE idempotency_key IS NOT NULL;
 
+INSERT INTO valorapesquisa.modules(code,name,category,status) VALUES
+('identity','Identidade','core','active'),('organization','Organização','core','active'),('forms','Diagnósticos','product','active'),('surveys','Pesquisas','product','active'),('distribution','Distribuição','product','active'),('responses','Respostas','product','active'),('results','Resultados','product','active'),('certificates','Certificados','product','active'),('communications','Comunicações','support','active'),('audit','Auditoria','governance','active'),('settings','Configurações','governance','active'),('operations','Operações','governance','active')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,category=EXCLUDED.category,status=EXCLUDED.status,updated_at=now();
+
 INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
 ('organization.current.read','Visualizar organização','Consulta a organização corrente.','identity'),
 ('organization.current.update','Atualizar organização','Atualiza a organização corrente.','identity'),
@@ -319,9 +356,9 @@ INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
 ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code;
 
 INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
-('organization.read','Visualizar organização','Consulta os dados organizacionais.','identity'),('organization.update','Atualizar organização','Atualiza dados organizacionais.','identity'),
-('organization.branding.read','Visualizar branding','Consulta a identidade visual.','identity'),('organization.branding.update','Atualizar branding','Atualiza a identidade visual.','identity'),
-('organization.subscription.read','Visualizar assinatura','Consulta plano e assinatura.','identity'),('organization.usage.read','Visualizar consumo','Consulta consumo e limites.','identity'),
+('organization.read','Visualizar organização','Consulta os dados organizacionais.','organization'),('organization.update','Atualizar organização','Atualiza dados organizacionais.','organization'),
+('organization.branding.read','Visualizar branding','Consulta a identidade visual.','organization'),('organization.branding.update','Atualizar branding','Atualiza a identidade visual.','organization'),
+('organization.subscription.read','Visualizar assinatura','Consulta plano e assinatura.','organization'),('organization.usage.read','Visualizar consumo','Consulta consumo e limites.','organization'),
 ('organization.onboarding.read','Visualizar onboarding','Consulta o onboarding.','identity'),('organization.onboarding.update','Atualizar onboarding','Conclui passos manuais.','identity'),
 ('invitations.read','Visualizar convites','Consulta convites de usuários.','identity'),('invitations.create','Criar convites','Cria convites de usuários.','identity'),('invitations.resend','Reenviar convites','Reenvia convites pendentes.','identity'),('invitations.cancel','Cancelar convites','Cancela convites pendentes.','identity'),
 ('business_groups.read','Visualizar grupos','Consulta grupos econômicos.','organization'),('business_groups.create','Criar grupos','Cria grupos econômicos.','organization'),('business_groups.update','Atualizar grupos','Atualiza grupos econômicos.','organization'),('business_groups.disable','Desativar grupos','Desativa grupos econômicos.','organization'),('business_groups.delete','Excluir grupos','Exclui logicamente grupos econômicos.','organization'),
@@ -329,6 +366,25 @@ INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
 ('units.read','Visualizar unidades','Consulta unidades.','organization'),('units.create','Criar unidades','Cria unidades.','organization'),('units.update','Atualizar unidades','Atualiza unidades.','organization'),('units.disable','Desativar unidades','Desativa unidades.','organization'),('units.delete','Excluir unidades','Exclui logicamente unidades.','organization'),
 ('departments.read','Visualizar setores','Consulta setores.','organization'),('departments.create','Criar setores','Cria setores.','organization'),('departments.update','Atualizar setores','Atualiza setores.','organization'),('departments.disable','Desativar setores','Desativa setores.','organization'),('departments.delete','Excluir setores','Exclui logicamente setores.','organization')
 ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code;
+
+
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code,functional_group,risk_level,display_order) VALUES
+('users.assign_roles','Associar papéis','Altera os papéis de um usuário.','identity','users','high',50),('users.assign_scopes','Associar escopos','Altera os escopos de um usuário.','identity','users','high',60),
+('roles.read','Visualizar papéis','Consulta papéis e suas permissões.','identity','roles','low',100),('roles.create','Criar papéis','Cria papéis personalizados.','identity','roles','medium',110),('roles.update','Editar papéis','Edita papéis personalizados.','identity','roles','high',120),('roles.delete','Excluir papéis','Exclui papéis personalizados sem usuários.','identity','roles','high',130),('roles.assign_permissions','Associar permissões','Substitui permissões e invalida sessões afetadas.','identity','roles','critical',140),
+('forms.read','Visualizar formulários','Consulta diagnósticos.','forms','forms','low',200),('forms.create','Criar formulários','Cria diagnósticos.','forms','forms','medium',210),('forms.update','Editar formulários','Edita diagnósticos.','forms','forms','medium',220),('forms.publish','Publicar formulários','Publica diagnósticos.','forms','forms','high',230),('forms.archive','Arquivar formulários','Arquiva diagnósticos.','forms','forms','high',240),('forms.restore','Restaurar formulários','Restaura diagnósticos.','forms','forms','medium',250),
+('surveys.read','Visualizar pesquisas','Consulta pesquisas.','surveys','surveys','low',300),('surveys.create','Criar pesquisas','Cria pesquisas.','surveys','surveys','medium',310),('surveys.update','Editar pesquisas','Edita pesquisas.','surveys','surveys','medium',320),('surveys.publish','Publicar pesquisas','Publica pesquisas.','surveys','surveys','high',330),('surveys.distribute','Distribuir pesquisas','Distribui pesquisas.','distribution','surveys','high',340),('surveys.close','Encerrar pesquisas','Encerra pesquisas.','surveys','surveys','high',350),
+('responses.read','Visualizar respostas','Consulta respostas.','responses','responses','high',400),('responses.export','Exportar respostas','Exporta respostas.','responses','responses','high',410),('responses.anonymize','Anonimizar respostas','Remove identificadores de respostas.','responses','responses','critical',420),
+('results.read','Visualizar resultados','Consulta resultados.','results','results','low',500),('results.export','Exportar resultados','Exporta resultados.','results','results','medium',510),('results.compare','Comparar resultados','Compara ciclos.','results','results','medium',520),
+('certificates.read','Visualizar certificados','Consulta certificados.','certificates','certificates','low',600),('certificates.generate','Gerar certificados','Gera certificados.','certificates','certificates','medium',610),('certificates.revoke','Revogar certificados','Revoga certificados.','certificates','certificates','high',620),
+('communications.read','Visualizar comunicações','Consulta comunicações.','communications','communications','low',700),('communications.send','Enviar comunicações','Envia comunicações.','communications','communications','high',710),('communications.retry','Reprocessar comunicações','Reprocessa falhas.','communications','communications','high',720),('communications.cancel','Cancelar comunicações','Cancela envios.','communications','communications','high',730),
+('audit.read','Visualizar auditoria','Consulta trilha de auditoria.','audit','governance','high',800),('operations.read','Visualizar operações','Consulta operações.','operations','operations','high',900),('operations.execute','Executar operações','Executa operação administrativa.','operations','operations','critical',910),('settings.read','Visualizar configurações','Consulta configurações.','settings','settings','low',1000),('settings.update','Editar configurações','Edita configurações.','settings','settings','high',1010)
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code,functional_group=EXCLUDED.functional_group,risk_level=EXCLUDED.risk_level,display_order=EXCLUDED.display_order,updated_at=now();
+
+-- Known legacy aliases are converged to the single canonical code; unknown codes remain nullable and visible for review.
+UPDATE valorapesquisa.permissions SET code='responses.read',module_code='responses',updated_at=now() WHERE code='canViewResponses' AND NOT EXISTS(SELECT 1 FROM valorapesquisa.permissions WHERE code='responses.read');
+UPDATE valorapesquisa.permissions SET module_code=split_part(code,'.',1),updated_at=now() WHERE module_code IS NULL AND split_part(code,'.',1)=ANY(ARRAY['identity','organization','forms','surveys','distribution','responses','results','certificates','communications','audit','settings','operations']);
+CREATE TABLE IF NOT EXISTS valorapesquisa.permission_migration_reviews(permission_id uuid PRIMARY KEY REFERENCES valorapesquisa.permissions(id),permission_code text NOT NULL,reason text NOT NULL,first_seen_at timestamptz NOT NULL DEFAULT now(),last_seen_at timestamptz NOT NULL DEFAULT now(),resolved_at timestamptz);
+INSERT INTO valorapesquisa.permission_migration_reviews(permission_id,permission_code,reason) SELECT id,code,'module_code não pôde ser inferido com segurança' FROM valorapesquisa.permissions WHERE module_code IS NULL ON CONFLICT(permission_id) DO UPDATE SET permission_code=EXCLUDED.permission_code,last_seen_at=now();
 
 
 DO $$
@@ -616,6 +672,22 @@ BEGIN
   IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='plan_usage_reservations' AND column_name='amount') THEN RAISE EXCEPTION 'Coluna legada amount ainda presente'; END IF;
 END
 $validation$;
+
+
+-- Phase 2V.2 is registered only after catalog validations succeed. A changed checksum requires an explicit new migration version.
+DO $migration$
+DECLARE expected_checksum constant text := 'sha256:phase-2v2-access-v1'; actual_checksum text;
+BEGIN
+ SELECT checksum INTO actual_checksum FROM valorapesquisa.schema_migrations WHERE version='2026_08_phase_2v2_permissions_convergence';
+ IF actual_checksum IS NOT NULL AND actual_checksum<>expected_checksum THEN RAISE EXCEPTION 'schema_migrations: checksum divergente para 2026_08_phase_2v2_permissions_convergence (banco=%, esperado=%)',actual_checksum,expected_checksum; END IF;
+ IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='permissions' AND column_name='module_code' AND data_type='text' AND is_nullable='YES') THEN RAISE EXCEPTION 'permissions.module_code: contrato incompatível; esperado text nullable'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='valorapesquisa' AND tablename='permissions' AND indexname='ix_permissions_module_code' AND pg_get_indexdef(indexname::regclass) LIKE '%(module_code)%') THEN RAISE EXCEPTION 'permissions.module_code: índice ix_permissions_module_code ausente ou incompatível'; END IF;
+ IF EXISTS (SELECT code FROM valorapesquisa.permissions GROUP BY code HAVING count(*)>1) THEN RAISE EXCEPTION 'permissions.code: códigos duplicados'; END IF;
+ IF EXISTS (SELECT 1 FROM valorapesquisa.permissions p WHERE p.module_code IS NOT NULL AND NOT EXISTS(SELECT 1 FROM valorapesquisa.modules m WHERE m.code=p.module_code)) THEN RAISE EXCEPTION 'permissions.module_code: módulo conhecido ausente do catálogo'; END IF;
+END $migration$;
+INSERT INTO valorapesquisa.schema_migrations(version,checksum,applied_at,applied_by,application_version)
+VALUES('2026_08_phase_2v2_permissions_convergence','sha256:phase-2v2-access-v1',now(),current_user,current_setting('valora.application_version',true))
+ON CONFLICT(version) DO UPDATE SET applied_at=valorapesquisa.schema_migrations.applied_at;
 
 -- 36. COMMIT
 COMMIT;

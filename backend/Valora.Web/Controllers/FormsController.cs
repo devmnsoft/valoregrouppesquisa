@@ -17,4 +17,11 @@ public sealed class FormsController(ILogger<FormsController> logger) : Controlle
             throw;
         }
     }
+
+    [HttpGet("Forms/{formId:guid}/Builder")]
+    public IActionResult Builder(Guid formId)
+    {
+        ViewData["Title"] = "Estúdio de Diagnósticos";
+        return View(formId);
+    }
 }

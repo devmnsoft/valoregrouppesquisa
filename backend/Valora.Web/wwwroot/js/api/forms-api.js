@@ -6,6 +6,7 @@
     get: id => AjaxClient.get(base + '/' + encodeURIComponent(id)),
     create: data => AjaxClient.post(base, data),
     update: (id, data) => AjaxClient.put(base + '/' + encodeURIComponent(id), data),
+    archive: (id, data) => AjaxClient.delete(base + '/' + encodeURIComponent(id), data),
     publish: (id, data) => AjaxClient.post(base + '/' + encodeURIComponent(id) + '/publish', data),
     reorder: (id, data) => AjaxClient.post(base + '/' + encodeURIComponent(id) + '/reorder', data)
   };

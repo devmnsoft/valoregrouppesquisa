@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Valora.Application.Certificates;
 using Valora.Application.Communication;
 using Valora.Application.FreeDiagnostics;
+using Valora.Application.Forms;
 using Valora.Application.Results;
 using Valora.Application.Services;
 using Valora.Application.Security;
@@ -63,6 +64,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IOrganizationAdministrationService, OrganizationAdministrationService>();
         services.AddScoped<IOrganizationBrandingService, OrganizationBrandingService>();
         services.AddScoped<IUserAdministrationService, UserAdministrationService>();
+        services.AddScoped<IFormAdministrationService, FormAdministrationService>();
 
         services.AddScoped<Valora.Application.Contracts.ILegacyDataNormalizer, LegacyDataNormalizer>();
         services.AddScoped<Valora.Application.Contracts.ILegacyMappingService, LegacyMappingService>();

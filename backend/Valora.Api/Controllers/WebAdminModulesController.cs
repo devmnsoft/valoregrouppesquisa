@@ -16,7 +16,6 @@ public sealed class WebAdminModulesController(
     ILogger<WebAdminModulesController> logger,
     IOrganizationRepository organizations,
     IUserRepository users,
-    IFormRepository forms,
     ISurveyRepository surveys,
     IResponseRepository responses,
     IAuditRepository audit,
@@ -49,15 +48,6 @@ public sealed class WebAdminModulesController(
 
     [HttpGet("/organization/current/limits")]
     public Task<IActionResult> Limits() => Safe(async () => { var planId = await plans.GetCurrentPlanIdAsync(OrganizationId) ?? "free"; var plan = await plans.GetByIdAsync(planId); return new { ok = true, planId, limits = plan?.Limits ?? new Dictionary<string,int>(), capabilities = plan?.Capabilities ?? new Dictionary<string,string>(), correlationId = CorrelationId }; }, "organization.limits");
-
-    [HttpGet("/forms")]
-    public Task<IActionResult> Forms() => Safe(async () => new { ok = true, data = await forms.ListAdminAsync(OrganizationId), correlationId = CorrelationId }, "forms.list");
-    [HttpGet("/forms/{formId:guid}")]
-    public Task<IActionResult> Form(Guid formId) => Safe(async () => new { ok = true, data = await forms.GetByIdAsync(formId), questions = await forms.GetQuestionsAsync(formId), options = await forms.GetQuestionOptionsAsync(formId), correlationId = CorrelationId }, "forms.get");
-    [HttpPost("/forms")]
-    public Task<IActionResult> CreateForm([FromBody] JsonElement request) => Safe(async () => { var id = await forms.CreateAdminAsync(OrganizationId, Text(request,"name") ?? "Novo formulário", Text(request,"description"), Text(request,"status") ?? "draft"); await Audit("form.created", "form", id); return new { ok = true, id, status = "draft", correlationId = CorrelationId }; }, "forms.create");
-    [HttpPut("/forms/{formId:guid}")]
-    public Task<IActionResult> UpdateForm(Guid formId, [FromBody] JsonElement request) => Safe(async () => { await forms.UpdateAdminAsync(OrganizationId, formId, Text(request,"name"), Text(request,"description"), Text(request,"status")); await Audit("form.updated", "form", formId); return new { ok = true, id = formId, correlationId = CorrelationId }; }, "forms.update");
 
     [HttpGet("/surveys")]
     public Task<IActionResult> Surveys() => Safe(async () => new { ok = true, data = await surveys.ListAdminAsync(OrganizationId), correlationId = CorrelationId }, "surveys.list");

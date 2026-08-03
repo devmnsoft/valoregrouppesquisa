@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Valora.Application.Contracts;
+using Valora.Application.Forms;
 using Valora.Infrastructure.Database;
 using Valora.Infrastructure.Email;
 using Valora.Infrastructure.Repositories;
@@ -27,6 +28,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ISurveyRepository, SurveyRepository>();
         services.AddScoped<IResponseRepository, ResponseRepository>();
         services.AddScoped<IFormRepository, FormRepository>();
+        services.AddScoped<IFormAdministrationRepository, FormAdministrationRepository>();
         services.AddScoped<IResultRepository, ResultRepository>();
         services.AddScoped<ICertificateRepository, CertificateRepository>();
         services.AddScoped<ICommunicationRepository, CommunicationRepository>();

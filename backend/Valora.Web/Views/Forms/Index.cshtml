@@ -1,12 +1,28 @@
-@{ ViewData["Title"] = "Formulários"; }
-<section class="page-card official-module" data-page="forms-page">
-  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-    <div><p class="eyebrow">Valora.Web oficial</p><h1>Formulários</h1><p class="text-muted">Catálogo de formulários, dimensões e perguntas.</p></div>
-    <button class="btn btn-primary" data-refresh>Atualizar</button>
-  </div>
-  <div class="row g-3 mt-2" data-summary-cards><div class="col-md-4"><div class="metric-card"><span>Formulários</span><strong data-card="formulários">Aguardando API</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Dimensões</span><strong data-card="dimensões">Aguardando API</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Perguntas</span><strong data-card="perguntas">Aguardando API</strong></div></div></div>
-  <div class="alert alert-warning d-none mt-3" data-gap-controlled="true" data-gap-card>Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.</div>
-  <div class="alert alert-danger d-none mt-3" role="alert" data-error></div>
-  <div class="table-responsive mt-3"><table class="table table-sm align-middle"><thead><tr><th>Nome</th><th>Status</th><th>Detalhes</th><th>Ação</th></tr></thead><tbody data-items></tbody></table></div>
-</section>
+@{ ViewData["Title"] = "Formulários de diagnóstico"; }
+<main class="forms-workspace" data-page="forms-page">
+  <header class="workspace-header">
+    <div><p class="eyebrow">Estúdio de Diagnósticos</p><h1>Formulários de diagnóstico</h1><p>Crie, organize, publique e reutilize estruturas de avaliação para diferentes ciclos.</p></div>
+    <button class="btn btn-primary" type="button" data-new-form>Novo formulário</button>
+  </header>
+  <section class="metric-grid" aria-label="Resumo dos formulários">
+    <article class="metric-card"><span>Rascunhos</span><strong data-metric="draft">0</strong></article>
+    <article class="metric-card"><span>Publicados</span><strong data-metric="published">0</strong></article>
+    <article class="metric-card"><span>Arquivados</span><strong data-metric="archived">0</strong></article>
+    <article class="metric-card"><span>Em uso</span><strong data-metric="inUse">0</strong></article>
+  </section>
+  <section class="workspace-section" aria-labelledby="forms-list-title">
+    <div class="workspace-toolbar"><div><h2 id="forms-list-title">Biblioteca</h2><p>Versões publicadas permanecem imutáveis para preservar os resultados históricos.</p></div><button class="btn btn-outline-secondary" type="button" data-refresh>Atualizar</button></div>
+    <div class="alert alert-danger d-none" role="alert" data-error></div>
+    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Nome</th><th>Categoria</th><th>Versão</th><th>Estrutura</th><th>Tempo</th><th>Status</th><th>Atualização</th><th><span class="visually-hidden">Ações</span></th></tr></thead><tbody data-items></tbody></table></div>
+    <div class="empty-state d-none" data-empty><h3>Comece pelo primeiro diagnóstico</h3><p>Crie um formulário e organize suas dimensões e perguntas no estúdio.</p><button class="btn btn-primary" type="button" data-new-form>Novo formulário</button></div>
+  </section>
+</main>
+<dialog class="valora-dialog" data-form-dialog aria-labelledby="new-form-title">
+  <form method="dialog" data-form-create><header><h2 id="new-form-title">Novo formulário</h2><button type="button" class="btn-close" data-dialog-close aria-label="Fechar"></button></header>
+    <label class="form-label" for="form-name">Nome</label><input class="form-control" id="form-name" name="name" required maxlength="160" autofocus>
+    <label class="form-label mt-3" for="form-description">Descrição</label><textarea class="form-control" id="form-description" name="description" rows="3" maxlength="1000"></textarea>
+    <div class="row mt-3"><div class="col"><label class="form-label" for="form-category">Categoria</label><input class="form-control" id="form-category" name="category" maxlength="80"></div><div class="col"><label class="form-label" for="form-minutes">Tempo estimado</label><input class="form-control" id="form-minutes" name="estimatedMinutes" type="number" min="1" max="480" value="15" required></div></div>
+    <footer><button type="button" class="btn btn-outline-secondary" data-dialog-close>Cancelar</button><button type="submit" class="btn btn-primary">Criar formulário</button></footer>
+  </form>
+</dialog>
 @section Scripts { <script src="/js/pages/forms-page.js"></script> }

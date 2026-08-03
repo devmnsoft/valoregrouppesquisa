@@ -6,6 +6,7 @@ using Valora.Infrastructure.Database;
 using Valora.Infrastructure.Email;
 using Valora.Infrastructure.Repositories;
 using Valora.Infrastructure.Security;
+using Valora.Application.Access;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -24,6 +25,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<ISessionRepository, SessionRepository>();
         services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
         services.AddScoped<IPermissionRepository, PermissionRepository>();
+        services.AddScoped<IAccessAdministrationRepository, AccessAdministrationRepository>();
         services.AddScoped<IPlanRepository, PlanRepository>();
         services.AddScoped<ISurveyRepository, SurveyRepository>();
         services.AddScoped<IResponseRepository, ResponseRepository>();

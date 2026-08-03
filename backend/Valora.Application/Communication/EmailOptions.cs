@@ -4,7 +4,7 @@ public sealed class EmailOptions
 {
     public bool Enabled { get; set; }
     public string Provider { get; set; } = "Smtp";
-    public string FromName { get; set; } = "Valora Group";
+    public string FromName { get; set; } = "Valora Grup";
     public string FromEmail { get; set; } = "valoragroup@mnsoft.com.br";
     public string ReplyTo { get; set; } = "valoragroup@mnsoft.com.br";
     public SmtpOptions Smtp { get; set; } = new();

@@ -31,13 +31,51 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
 
         context.Response.Clear();
         context.Response.StatusCode = status;
-        context.Response.ContentType = "application/json; charset=utf-8";
+        context.Response.ContentType = "application/problem+json; charset=utf-8";
         context.Response.Headers[CorrelationIdMiddleware.HeaderName] = correlationId;
 
-        var payload = new Dictionary<string, object?> { ["ok"] = false, ["message"] = message, ["code"] = code, ["traceId"] = traceId, ["correlationId"] = correlationId };
+        var payload = new Dictionary<string, object?>
+        {
+            ["type"] = $"https://httpstatuses.io/{status}",
+            ["status"] = status,
+            ["code"] = code,
+            ["title"] = TitleFor(status),
+            ["detail"] = message,
+            ["correlationId"] = correlationId,
+            ["fieldErrors"] = new Dictionary<string, string[]>(),
+            ["suggestedAction"] = SuggestedActionFor(status),
+            // Transitional fields retained for existing BFF clients.
+            ["ok"] = false,
+            ["message"] = message,
+            ["traceId"] = traceId
+        };
         if (environment.IsDevelopment()) payload["exceptionType"] = ex.GetType().Name;
         await context.Response.WriteAsync(JsonSerializer.Serialize(payload, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
     }
+
+    private static string TitleFor(int status) => status switch
+    {
+        400 => "Revise os dados informados",
+        401 => "Sua sessão precisa ser renovada",
+        403 => "Você não possui acesso a esta ação",
+        404 => "Não encontramos este recurso",
+        409 => "O registro foi atualizado",
+        422 => "Não foi possível concluir a operação",
+        503 => "Serviço temporariamente indisponível",
+        504 => "A operação levou mais tempo que o esperado",
+        _ => "Ocorreu um erro inesperado"
+    };
+
+    private static string SuggestedActionFor(int status) => status switch
+    {
+        400 or 422 => "Revise os campos destacados e tente novamente.",
+        401 => "Entre novamente para continuar.",
+        403 => "Solicite a permissão necessária ao administrador da organização.",
+        404 => "Volte à listagem e confirme se o registro ainda existe.",
+        409 => "Atualize a página antes de repetir a alteração.",
+        503 or 504 => "Aguarde alguns instantes e tente novamente.",
+        _ => "Tente novamente. Se o problema continuar, informe o código de correlação ao suporte."
+    };
 
     private static string SanitizePathAndQuery(string? path, string? query)
     {

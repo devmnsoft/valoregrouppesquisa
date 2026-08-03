@@ -39,12 +39,14 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
     public async Task<FormDetailResponse?> GetAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken)
     {
         const string formSql = """
-            SELECT id, organization_id AS OrganizationId, name, description, category,
-                   estimated_minutes AS EstimatedMinutes, status,
-                   current_draft_version_id AS CurrentDraftVersionId,
-                   latest_published_version_id AS LatestPublishedVersionId, version
-              FROM valorapesquisa.forms
-             WHERE id = @formId AND organization_id = @organizationId AND deleted_at IS NULL;
+            SELECT f.id, f.organization_id AS OrganizationId, f.name, f.description, f.category,
+                   f.estimated_minutes AS EstimatedMinutes, f.status,
+                   f.current_draft_version_id AS CurrentDraftVersionId,
+                   f.latest_published_version_id AS LatestPublishedVersionId, f.version,
+                   fv.version AS DraftVersion
+              FROM valorapesquisa.forms f
+              LEFT JOIN valorapesquisa.form_versions fv ON fv.id=f.current_draft_version_id
+             WHERE f.id = @formId AND f.organization_id = @organizationId AND f.deleted_at IS NULL;
             """;
         using var connection = connections.Create();
         var row = await connection.QuerySingleOrDefaultAsync<FormRow>(new CommandDefinition(formSql, new { organizationId, formId }, cancellationToken: cancellationToken));
@@ -52,7 +54,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         var sections = row.CurrentDraftVersionId is null
             ? []
             : await LoadSectionsAsync(connection, row.CurrentDraftVersionId.Value, cancellationToken);
-        return new(row.Id, row.OrganizationId, row.Name, row.Description, row.Category, row.EstimatedMinutes, row.Status, row.CurrentDraftVersionId, row.LatestPublishedVersionId, row.Version, sections);
+        return new(row.Id, row.OrganizationId, row.Name, row.Description, row.Category, row.EstimatedMinutes, row.Status, row.CurrentDraftVersionId, row.LatestPublishedVersionId, row.Version, row.DraftVersion, sections);
     }
 
     public async Task<FormDetailResponse> CreateAsync(Guid organizationId, Guid userId, CreateFormRequest request, CancellationToken cancellationToken)
@@ -93,7 +95,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
 
     public async Task<bool> ArchiveAsync(Guid organizationId, Guid formId, ArchiveFormRequest request, CancellationToken cancellationToken)
     {
-        const string sql = "UPDATE valorapesquisa.forms SET status='archived', deleted_at=now(), updated_at=now(), version=version+1 WHERE id=@formId AND organization_id=@organizationId AND deleted_at IS NULL AND version=@expectedVersion;";
+        const string sql = "UPDATE valorapesquisa.forms SET status='archived', updated_at=now(), version=version+1 WHERE id=@formId AND organization_id=@organizationId AND deleted_at IS NULL AND status<>'archived' AND version=@expectedVersion;";
         using var connection = connections.Create();
         return await connection.ExecuteAsync(new CommandDefinition(sql, new { organizationId, formId, request.ExpectedVersion }, cancellationToken: cancellationToken)) == 1;
     }
@@ -144,12 +146,45 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
 
     private static async Task<IReadOnlyList<FormSectionResponse>> LoadSectionsAsync(System.Data.IDbConnection connection, Guid versionId, CancellationToken cancellationToken)
     {
-        const string sql = "SELECT id, form_version_id AS FormVersionId, title, description, position, version FROM valorapesquisa.form_section_versions WHERE form_version_id=@versionId AND deleted_at IS NULL ORDER BY position;";
-        var sections = (await connection.QueryAsync<SectionRow>(new CommandDefinition(sql, new { versionId }, cancellationToken: cancellationToken))).AsList();
-        return sections.Select(s => new FormSectionResponse(s.Id, s.FormVersionId, s.Title, s.Description, s.Position, s.Version, [])).ToList();
+        const string sql = """
+            SELECT id, form_version_id AS FormVersionId, title, description, position, version
+              FROM valorapesquisa.form_section_versions
+             WHERE form_version_id=@versionId AND deleted_at IS NULL
+             ORDER BY position,id;
+            SELECT q.id, q.section_id AS SectionId, q.code, q.type, q.title, q.description,
+                   q.required, q.dimension_code AS DimensionCode, q.weight, q.position,
+                   q.settings::text AS Settings, q.version
+              FROM valorapesquisa.question_versions q
+              JOIN valorapesquisa.form_section_versions s ON s.id=q.section_id
+             WHERE s.form_version_id=@versionId AND s.deleted_at IS NULL AND q.deleted_at IS NULL
+             ORDER BY q.section_id,q.position,q.id;
+            SELECT o.id, o.question_id AS QuestionId, o.label, o.value, o.score, o.position, o.version
+              FROM valorapesquisa.question_option_versions o
+              JOIN valorapesquisa.question_versions q ON q.id=o.question_id
+              JOIN valorapesquisa.form_section_versions s ON s.id=q.section_id
+             WHERE s.form_version_id=@versionId AND s.deleted_at IS NULL
+               AND q.deleted_at IS NULL AND o.deleted_at IS NULL
+             ORDER BY o.question_id,o.position,o.id;
+            """;
+        using var grid = await connection.QueryMultipleAsync(new CommandDefinition(sql, new { versionId }, cancellationToken: cancellationToken));
+        var sections = (await grid.ReadAsync<SectionRow>()).AsList();
+        var questions = (await grid.ReadAsync<QuestionRow>()).AsList();
+        var options = (await grid.ReadAsync<OptionRow>()).AsList();
+        var optionsByQuestion = options.ToLookup(option => option.QuestionId);
+        var questionsBySection = questions
+            .Select(question => new QuestionResponse(question.Id, question.SectionId, question.Code, question.Type,
+                question.Title, question.Description, question.Required, question.DimensionCode, question.Weight,
+                question.Position, question.Settings, question.Version,
+                optionsByQuestion[question.Id].Select(option => new QuestionOptionResponse(option.Id, option.QuestionId,
+                    option.Label, option.Value, option.Score, option.Position, option.Version)).ToList()))
+            .ToLookup(question => question.SectionId);
+        return sections.Select(section => new FormSectionResponse(section.Id, section.FormVersionId, section.Title,
+            section.Description, section.Position, section.Version, questionsBySection[section.Id].ToList())).ToList();
     }
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    private sealed record FormRow(Guid Id, Guid OrganizationId, string Name, string? Description, string? Category, int EstimatedMinutes, string Status, Guid? CurrentDraftVersionId, Guid? LatestPublishedVersionId, long Version);
+    private sealed record FormRow(Guid Id, Guid OrganizationId, string Name, string? Description, string? Category, int EstimatedMinutes, string Status, Guid? CurrentDraftVersionId, Guid? LatestPublishedVersionId, long Version, long? DraftVersion);
     private sealed record SectionRow(Guid Id, Guid FormVersionId, string Title, string? Description, int Position, long Version);
+    private sealed record QuestionRow(Guid Id, Guid SectionId, string Code, string Type, string Title, string? Description, bool Required, string? DimensionCode, decimal Weight, int Position, string Settings, long Version);
+    private sealed record OptionRow(Guid Id, Guid QuestionId, string Label, string Value, decimal? Score, int Position, long Version);
 }

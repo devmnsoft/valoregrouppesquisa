@@ -2,7 +2,7 @@ namespace Valora.Application.Forms;
 
 public sealed record FormListQuery(string? Search = null, string? Status = null, int Page = 1, int PageSize = 20);
 public sealed record FormListItemResponse(Guid Id, string Name, string? Description, string? Category, int EstimatedMinutes, string Status, int VersionNumber, int Sections, int Questions, int Dimensions, DateTimeOffset UpdatedAt, long Version);
-public sealed record FormDetailResponse(Guid Id, Guid OrganizationId, string Name, string? Description, string? Category, int EstimatedMinutes, string Status, Guid? CurrentDraftVersionId, Guid? LatestPublishedVersionId, long Version, IReadOnlyList<FormSectionResponse> Sections);
+public sealed record FormDetailResponse(Guid Id, Guid OrganizationId, string Name, string? Description, string? Category, int EstimatedMinutes, string Status, Guid? CurrentDraftVersionId, Guid? LatestPublishedVersionId, long Version, long? DraftVersion, IReadOnlyList<FormSectionResponse> Sections);
 public sealed record CreateFormRequest(string Name, string? Description, string? Category, int EstimatedMinutes);
 public sealed record UpdateFormRequest(string Name, string? Description, string? Category, int EstimatedMinutes, long ExpectedVersion);
 public sealed record ArchiveFormRequest(long ExpectedVersion);

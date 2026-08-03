@@ -25,7 +25,7 @@ public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IR
             await results.SaveDimensionScoresAsync(survey.OrganizationId, responseId, dimensions, transaction);
             logger.LogInformation("Public response dimension_scores saved. SurveyId={SurveyId} ResponseId={ResponseId} DimensionCount={DimensionCount}", survey.Id, responseId, dimensions.Count);
             var code = $"VAL-{responseId:N}"[..14]; var name = Val(request.Participant, "name"); var email = Val(request.Participant, "email");
-            await certificates.CreateMetadataAsync(survey.OrganizationId, responseId, code, name, "Valora Group", survey.Title, calc.Level, transaction);
+            await certificates.CreateMetadataAsync(survey.OrganizationId, responseId, code, name, "Valora Grup", survey.Title, calc.Level, transaction);
             logger.LogInformation("Public response certificate metadata saved. SurveyId={SurveyId} ResponseId={ResponseId}", survey.Id, responseId);
             var emailStatus = await SaveCommunicationAsync(survey, request, responseId, email, transaction);
             logger.LogInformation("Public response email job {EmailStatus}. SurveyId={SurveyId} ResponseId={ResponseId} Email={Email}", emailStatus, survey.Id, responseId, LogSanitizer.MaskEmail(email));
@@ -33,7 +33,7 @@ public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IR
             logger.LogInformation("Public response audit_log created. SurveyId={SurveyId} ResponseId={ResponseId}", survey.Id, responseId);
             transaction.Commit();
             logger.LogInformation("Public response transaction committed. SurveyId={SurveyId} OrganizationId={OrganizationId} ResponseId={ResponseId}", survey.Id, survey.OrganizationId, responseId);
-            return new(true, responseId, token, emailStatus, new CertificateMetadataDto(responseId, code, "metadata-ready", name, "Valora Group", survey.Title, DateTime.UtcNow), MapResult(calc, dimensions));
+            return new(true, responseId, token, emailStatus, new CertificateMetadataDto(responseId, code, "metadata-ready", name, "Valora Grup", survey.Title, DateTime.UtcNow), MapResult(calc, dimensions));
         }
         catch (Exception ex)
         {

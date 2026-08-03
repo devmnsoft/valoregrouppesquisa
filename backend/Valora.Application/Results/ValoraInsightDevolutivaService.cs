@@ -29,7 +29,7 @@ public sealed class ValoraInsightDevolutivaService
             "Risco se nada mudar" => $"{section}: {result.Risk}",
             "Próximo nível" => $"{section}: {result.NextLevel}",
             "Transição para solução" => $"{section}: o diagnóstico encerra a fase de percepção e abre a fase de decisão; o próximo passo é organizar prioridades, responsáveis e ritmo de execução.",
-            _ => $"{section}: fale com a Valora Group pelo WhatsApp para estruturar o plano de evolução. CTA: WhatsApp Valora."
+            _ => $"{section}: fale com a Valora Grup pelo WhatsApp para estruturar o plano de evolução. CTA: WhatsApp Valora."
         }));
     }
 }

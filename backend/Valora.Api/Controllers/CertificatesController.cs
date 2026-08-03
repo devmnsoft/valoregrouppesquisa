@@ -102,7 +102,7 @@ public sealed class CertificatesController(IResponseRepository responses, ICerti
     private object BuildSafeCertificatePayload(Guid responseId, Valora.Application.ReadModels.ResponseReadModel response, Valora.Application.ReadModels.CertificateReadModel? certificate, string format)
     {
         var participant = string.IsNullOrWhiteSpace(certificate?.ParticipantName) ? response.ParticipantName ?? "Participante" : certificate.ParticipantName;
-        var company = string.IsNullOrWhiteSpace(certificate?.IssuerName) ? "Valora Group" : certificate.IssuerName;
+        var company = string.IsNullOrWhiteSpace(certificate?.IssuerName) ? "Valora Grup" : certificate.IssuerName;
         var survey = string.IsNullOrWhiteSpace(certificate?.SurveyName) ? "Pesquisa Valora" : certificate.SurveyName;
         var level = string.IsNullOrWhiteSpace(certificate?.MaturityLabel) ? "metadata-ready" : certificate.MaturityLabel;
         var code = string.IsNullOrWhiteSpace(certificate?.CertificateCode) ? $"VAL-{responseId:N}" : certificate.CertificateCode;

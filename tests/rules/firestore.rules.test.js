@@ -38,7 +38,7 @@ async function seed() {
       'users/participante-b': { uid: 'participante-b', role: 'participante', companyId: 'empresa-b', status: 'active', name: 'Participante B' },
       'organizations/empresa-a': { companyId: 'empresa-a', name: 'Empresa A', planId: 'pro', billingStatus: 'active' },
       'organizations/empresa-b': { companyId: 'empresa-b', name: 'Empresa B', planId: 'pro', billingStatus: 'active' },
-      'settings/public': { appName: 'Valora Pulse' },
+      'settings/public': { appName: 'Valora Insight™' },
       'settings/private': { smtp: 'secret' },
       'logs/log-1': { action: 'seed', companyId: 'empresa-a' },
       'forms/form-a': { companyId: 'empresa-a', name: 'Form A', isGlobal: false },

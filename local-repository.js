@@ -2,7 +2,8 @@
 'use strict';
 
 function deepCleanForFirestore(value,seen=new WeakSet()){if(value===undefined||typeof value==='function')return undefined;if(value===null||typeof value!=='object')return value;if(seen.has(value))return undefined;seen.add(value);if(Array.isArray(value))return value.map(v=>deepCleanForFirestore(v,seen)).filter(v=>v!==undefined);const out={};Object.keys(value).forEach(k=>{if(['__collection','__dirty','__temp','_ui','_local','_editing','_selected','_expanded','_cache','_diagnostics'].includes(k))return;const v=deepCleanForFirestore(value[k],seen);if(v!==undefined)out[k]=v;});return out;}
-function clone(v){return JSON.parse(JSON.stringify(v));}
+function clone(v){return JSON.parse(JSON.stringify(window.ValoraDataNormalization?.sanitizeVisibleContentBeforePersist?window.ValoraDataNormalization.sanitizeVisibleContentBeforePersist(v):v));}
+function sanitizeVisible(v){return window.ValoraDataNormalization?.sanitizeVisibleContentBeforePersist?window.ValoraDataNormalization.sanitizeVisibleContentBeforePersist(v):v;}
 function isDeletedResponse(response={}){return response.deleted===true||response.status==='deleted'||!!response.deletedAt;}
 function activeResponsesOnly(responses=[]){return (responses||[]).filter(response=>!isDeletedResponse(response));}
 function productionMode(){return window.ValoraDataNormalization?.isProductionEnvironment?.()===true;}
@@ -33,12 +34,12 @@ window.ValoraLocalRepository={
     };
     try{
       let raw=localStorage.getItem(storeKey);
-      if(!raw){for(const legacyKey of (window.ValoraConfig?.LEGACY_STORE_KEYS||[])){const legacy=localStorage.getItem(legacyKey);if(legacy){raw=legacy;try{localStorage.setItem(storeKey,legacy);}catch(_){}break;}}}
-      if(raw&&!firebaseProvider){const obj=JSON.parse(raw);normalizeState(obj);if(productionMode()){['companies','organizations','forms','surveys','responses','invitations'].forEach(k=>{obj[k]=withoutProductionDemoRows(obj[k]);});}return obj;}
+      if(!raw){for(const legacyKey of (window.ValoraConfig?.LEGACY_STORE_KEYS||[])){const legacy=localStorage.getItem(legacyKey);if(legacy){raw=legacy;try{const migrated=sanitizeVisible(JSON.parse(legacy));localStorage.setItem(storeKey,JSON.stringify(migrated));localStorage.setItem(`${storeKey}:legacyBrandMigration`,'valora-insight-visible-v1');raw=JSON.stringify(migrated);if(localStorage.getItem(storeKey)===raw)localStorage.removeItem(legacyKey);}catch(_){ }break;}}}
+      if(raw&&!firebaseProvider){const obj=sanitizeVisible(JSON.parse(raw));normalizeState(obj);try{localStorage.setItem(storeKey,JSON.stringify(obj));}catch(_){}if(productionMode()){['companies','organizations','forms','surveys','responses','invitations'].forEach(k=>{obj[k]=withoutProductionDemoRows(obj[k]);});}return obj;}
     }catch(err){return resetCorruptedLocalStore(err);}
     return resetCorruptedLocalStore(firebaseProvider?'Firebase em produção: seed local filtrado apenas como contingência.':'Base local ausente.');
   },
-  saveStore({storeKey,state}={}){if(!state)return;try{localStorage.setItem(storeKey,JSON.stringify(state));}catch(err){console.warn('[Valora Insight] Não foi possível salvar base local.',err);}},
+  saveStore({storeKey,state}={}){if(!state)return;try{localStorage.setItem(storeKey,JSON.stringify(sanitizeVisible(state)));}catch(err){console.warn('[Valora Insight] Não foi possível salvar base local.',err);}},
   login({state,email,password,nowIso}={}){
     const user=(state?.users||[]).find(x=>x.email.toLowerCase()===email.toLowerCase()&&x.password===password&&x.status==='active');
     if(!user)return null;
@@ -49,28 +50,28 @@ window.ValoraLocalRepository={
   currentUser({state}={}){return (state?.users||[]).find(u=>u.id===state?.session?.userId)||null;},
   listOrganizations({state}={}){return Promise.resolve(clone(state?.companies||[]));},
   getOrganization(id,{state}={}){return Promise.resolve(clone((state?.companies||[]).find(x=>x.id===id)||null));},
-  createOrganization(data,{state}={}){const item={id:data.id||`org_${Date.now().toString(36)}`,...data};state?.companies?.push(item);return Promise.resolve(clone(item));},
+  createOrganization(data,{state}={}){const item=sanitizeVisible({id:data.id||`org_${Date.now().toString(36)}`,...data});state?.companies?.push(item);return Promise.resolve(clone(item));},
   registerCompany(data,{state}={}){const item={id:data.id||`org_${Date.now().toString(36)}`,type:data.type||'juridica',name:data.companyName||data.name||data.legalName||'',publicName:data.publicName||data.companyName||data.name||'',slug:data.slug||'',planId:data.planId||'free',status:'active',...data};state?.companies?.push(item);return Promise.resolve({ok:true,id:item.id,companyId:item.id,organizationId:item.id,slug:item.slug||'',status:'active',profile:item});},
-  updateOrganization(id,data,{state}={}){const item=(state?.companies||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},updateOrganizationBrand(id,brand,{state}={}){return this.updateOrganization(id,{brand},{state});},updateOrganizationSubscription(id,subscription,{state}={}){return this.updateOrganization(id,{subscription,planId:subscription?.planId},{state});},updateOrganizationSettings(id,settings,{state}={}){return this.updateOrganization(id,{settings},{state});},updateOrganizationLimits(id,limitsOverride,{state}={}){return this.updateOrganization(id,{limitsOverride},{state});},getOrganizationBySlug(slug,{state}={}){return Promise.resolve(clone((state?.companies||[]).find(x=>x.slug===slug)||null));},checkSlugAvailability(slug,{state}={}){return Promise.resolve(!(state?.companies||[]).some(x=>x.slug===slug));},
+  updateOrganization(id,data,{state}={}){const item=(state?.companies||[]).find(x=>x.id===id);if(item)Object.assign(item,sanitizeVisible(data),{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},updateOrganizationBrand(id,brand,{state}={}){return this.updateOrganization(id,{brand},{state});},updateOrganizationSubscription(id,subscription,{state}={}){return this.updateOrganization(id,{subscription,planId:subscription?.planId},{state});},updateOrganizationSettings(id,settings,{state}={}){return this.updateOrganization(id,{settings},{state});},updateOrganizationLimits(id,limitsOverride,{state}={}){return this.updateOrganization(id,{limitsOverride},{state});},getOrganizationBySlug(slug,{state}={}){return Promise.resolve(clone((state?.companies||[]).find(x=>x.slug===slug)||null));},checkSlugAvailability(slug,{state}={}){return Promise.resolve(!(state?.companies||[]).some(x=>x.slug===slug));},
   listUsers(companyId,{state}={}){const rows=state?.users||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
   createUserProfile(data,{state}={}){const item={id:data.id||`u_${Date.now().toString(36)}`,...data};state?.users?.push(item);return Promise.resolve(clone(item));},
-  updateUserProfile(id,data,{state}={}){const item=(state?.users||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
+  updateUserProfile(id,data,{state}={}){const item=(state?.users||[]).find(x=>x.id===id);if(item)Object.assign(item,sanitizeVisible(data),{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
   listPlans({state}={}){return Promise.resolve(clone(state?.plans||[]));},
   createPlan(data,{state}={}){const item={id:data.id||`plan_${Date.now().toString(36)}`,...data};state?.plans?.push(item);return Promise.resolve(clone(item));},
-  updatePlan(id,data,{state}={}){const item=(state?.plans||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
+  updatePlan(id,data,{state}={}){const item=(state?.plans||[]).find(x=>x.id===id);if(item)Object.assign(item,sanitizeVisible(data),{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
   listModules({state}={}){return Promise.resolve(clone(state?.modules||[]));},
-  updateModule(data,{state}={}){const item=(state?.modules||[]).find(x=>x.id===data.id);if(item)Object.assign(item,data);return Promise.resolve(clone(item));},
+  updateModule(data,{state}={}){const item=(state?.modules||[]).find(x=>x.id===data.id);if(item)Object.assign(item,sanitizeVisible(data));return Promise.resolve(clone(item));},
   listForms(companyId,{state}={}){const rows=withoutProductionDemoRows(state?.forms||[]);return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
   createForm(data,{state}={}){const item={id:data.id||`form_${Date.now().toString(36)}`,...data};state?.forms?.push(item);return Promise.resolve(clone(item));},
-  updateForm(id,data,{state}={}){const item=(state?.forms||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
+  updateForm(id,data,{state}={}){const item=(state?.forms||[]).find(x=>x.id===id);if(item)Object.assign(item,sanitizeVisible(data),{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
   listSurveys(companyId,{state}={}){const rows=withoutProductionDemoRows(state?.surveys||[]);return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
   createSurvey(data,{state}={}){const item={id:data.id||`survey_${Date.now().toString(36)}`,...data};state?.surveys?.push(item);return Promise.resolve(clone(item));},
-  updateSurvey(id,data,{state}={}){const item=(state?.surveys||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
+  updateSurvey(id,data,{state}={}){const item=(state?.surveys||[]).find(x=>x.id===id);if(item)Object.assign(item,sanitizeVisible(data),{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
   listResponses(companyId,{state}={}){const rows=activeResponsesOnly(state?.responses||[]);return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
   adminDeleteResponse(responseId,{state}={}){if(!state&&typeof localStorage!=='undefined'){const key=Object.keys(localStorage).find(k=>/valora/i.test(k));if(key){const loaded=JSON.parse(localStorage.getItem(key)||'{}');loaded.responses=(loaded.responses||[]).map(response=>response.id!==responseId?response:{...response,deleted:true,deletedAt:new Date().toISOString(),status:'deleted'});localStorage.setItem(key,JSON.stringify(loaded));}}if(state){state.responses=(state.responses||[]).map(response=>response.id!==responseId?response:{...response,deleted:true,deletedAt:new Date().toISOString(),status:'deleted'});}return Promise.resolve({ok:true,responseId});},
   listInvitations(companyId,{state}={}){const rows=state?.invitations||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
   createInvitation(data,{state}={}){const item={id:data.id||`invite_${Date.now().toString(36)}`,...data};state?.invitations?.push(item);return Promise.resolve(clone(item));},
-  updateInvitation(id,data,{state}={}){const item=(state?.invitations||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
+  updateInvitation(id,data,{state}={}){const item=(state?.invitations||[]).find(x=>x.id===id);if(item)Object.assign(item,sanitizeVisible(data),{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
   loadCompanies({state}={}){return withoutProductionDemoRows(state?.companies||[]);},
   loadUsers({state}={}){return state?.users||[];},
   loadForms({state}={}){return withoutProductionDemoRows(state?.forms||[]);},
@@ -80,7 +81,7 @@ window.ValoraLocalRepository={
   listUserNotifications(userId,{state}={}){return Promise.resolve(clone((state?.notifications||[]).filter(x=>x.userId===userId)));},
   listCompanyNotifications(companyId,{state}={}){return Promise.resolve(clone((state?.notifications||[]).filter(x=>x.companyId===companyId)));},
   createNotification(data,{state}={}){const item={id:data.id||`ntf_${Date.now().toString(36)}`,...data};state?.notifications?.push(item);return Promise.resolve(clone(item));},
-  updateNotification(id,data,{state}={}){const item=(state?.notifications||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
+  updateNotification(id,data,{state}={}){const item=(state?.notifications||[]).find(x=>x.id===id);if(item)Object.assign(item,sanitizeVisible(data),{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
   markNotificationRead(id,{state}={}){const item=(state?.notifications||[]).find(x=>x.id===id);if(item)Object.assign(item,{read:true,readAt:new Date().toISOString(),updatedAt:new Date().toISOString()});return Promise.resolve(clone(item));},
   dismissNotification(id,{state}={}){const item=(state?.notifications||[]).find(x=>x.id===id);if(item)Object.assign(item,{dismissed:true,dismissedAt:new Date().toISOString(),updatedAt:new Date().toISOString()});return Promise.resolve(clone(item));},
   markAllNotificationsRead(userId,{state}={}){(state?.notifications||[]).filter(x=>!x.userId||x.userId===userId).forEach(x=>Object.assign(x,{read:true,readAt:new Date().toISOString(),updatedAt:new Date().toISOString()}));return Promise.resolve(true);},
@@ -88,7 +89,7 @@ window.ValoraLocalRepository={
   listInvoices(companyId, filters={}, {state}={}){let rows=state?.invoices||[];if(companyId)rows=rows.filter(x=>x.companyId===companyId||x.organizationId===companyId);Object.entries(filters||{}).forEach(([k,v])=>{if(v)rows=rows.filter(x=>String(x[k]||'')===String(v));});return Promise.resolve(clone(rows));},
   getInvoice(id,{state}={}){return Promise.resolve(clone((state?.invoices||[]).find(x=>x.id===id)||null));},
   createInvoice(data,{state}={}){const item={id:data.id||`inv_${Date.now().toString(36)}`,...data};state?.invoices?.push(item);return Promise.resolve(clone(item));},
-  updateInvoice(id,data,{state}={}){const item=(state?.invoices||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
+  updateInvoice(id,data,{state}={}){const item=(state?.invoices||[]).find(x=>x.id===id);if(item)Object.assign(item,sanitizeVisible(data),{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
   markInvoicePaid(id,{state}={}){const item=(state?.invoices||[]).find(x=>x.id===id);if(item)Object.assign(item,{status:'paid',paidAt:new Date().toISOString(),updatedAt:new Date().toISOString()});return Promise.resolve(clone(item));},
   cancelInvoice(id,{state}={}){const item=(state?.invoices||[]).find(x=>x.id===id);if(item)Object.assign(item,{status:'cancelled',cancelledAt:new Date().toISOString(),updatedAt:new Date().toISOString()});return Promise.resolve(clone(item));},
   getSubscription(companyId,{state}={}){return Promise.resolve(clone((state?.companies||[]).find(x=>x.id===companyId)?.subscription||null));},
@@ -97,7 +98,7 @@ window.ValoraLocalRepository={
   requestPlanUpgrade(companyId,planId,{state}={}){return this.createNotification({companyId,type:'upgrade_recommended',severity:'info',title:'Solicitação de upgrade',message:`Plano solicitado: ${planId}`,createdAt:new Date().toISOString(),read:false},{state});},
   listActionPlans(companyId,{state,filters}={}){let rows=state?.actionPlans||[];if(companyId)rows=rows.filter(x=>x.companyId===companyId);if(filters)Object.entries(filters).forEach(([k,v])=>{if(v)rows=rows.filter(x=>String(x[k]||'')===String(v));});return Promise.resolve(clone(rows));},
   createActionPlan(data,{state}={}){const item={id:data.id||`act_${Date.now().toString(36)}`,...data};state?.actionPlans?.push(item);return Promise.resolve(clone(item));},
-  updateActionPlan(id,data,{state}={}){const item=(state?.actionPlans||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
+  updateActionPlan(id,data,{state}={}){const item=(state?.actionPlans||[]).find(x=>x.id===id);if(item)Object.assign(item,sanitizeVisible(data),{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
   deleteActionPlan(id,{state}={}){if(state)state.actionPlans=(state.actionPlans||[]).filter(x=>x.id!==id);return Promise.resolve(true);},
   addActionComment(actionId,comment,{state}={}){const item=(state?.actionPlans||[]).find(x=>x.id===actionId);if(item)(item.comments||(item.comments=[])).push(comment);return Promise.resolve(clone(item));},
   markActionCompleted(actionId,{state}={}){const item=(state?.actionPlans||[]).find(x=>x.id===actionId);if(item)Object.assign(item,{status:'completed',progress:100,completedAt:new Date().toISOString()});return Promise.resolve(clone(item));},
@@ -105,14 +106,14 @@ window.ValoraLocalRepository={
 
   listIntegrations(companyId,{state}={}){const rows=state?.integrations||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows));},
   createIntegration(data,{state}={}){const item={id:data.id||`int_${Date.now().toString(36)}`,...data};(state.integrations||(state.integrations=[])).push(item);return Promise.resolve(clone(item));},
-  updateIntegration(id,data,{state}={}){const item=(state?.integrations||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
+  updateIntegration(id,data,{state}={}){const item=(state?.integrations||[]).find(x=>x.id===id);if(item)Object.assign(item,sanitizeVisible(data),{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
   deleteIntegration(id,{state}={}){if(state)state.integrations=(state.integrations||[]).filter(x=>x.id!==id);return Promise.resolve(true);},
   listApiKeys(companyId,{state}={}){const rows=state?.apiKeys||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows).map(x=>({...x,keyHash:x.keyHash?'[protected]':''})));},
   createApiKey(data,{state}={}){const item={id:data.id||`key_${Date.now().toString(36)}`,...data};(state.apiKeys||(state.apiKeys=[])).push(item);return Promise.resolve(clone(item));},
   revokeApiKey(id,{state}={}){const item=(state?.apiKeys||[]).find(x=>x.id===id);if(item)Object.assign(item,{status:'revoked',revokedAt:new Date().toISOString()});return Promise.resolve(clone(item));},
   listWebhooks(companyId,{state}={}){const rows=state?.webhooks||[];return Promise.resolve(clone(companyId?rows.filter(x=>x.companyId===companyId):rows).map(x=>({...x,secretHash:x.secretHash?'[protected]':''})));},
   createWebhook(data,{state}={}){const item={id:data.id||`wh_${Date.now().toString(36)}`,...data};(state.webhooks||(state.webhooks=[])).push(item);return Promise.resolve(clone(item));},
-  updateWebhook(id,data,{state}={}){const item=(state?.webhooks||[]).find(x=>x.id===id);if(item)Object.assign(item,data,{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
+  updateWebhook(id,data,{state}={}){const item=(state?.webhooks||[]).find(x=>x.id===id);if(item)Object.assign(item,sanitizeVisible(data),{updatedAt:data.updatedAt||new Date().toISOString()});return Promise.resolve(clone(item));},
   deleteWebhook(id,{state}={}){if(state)state.webhooks=(state.webhooks||[]).filter(x=>x.id!==id);return Promise.resolve(true);},
   testWebhook(id,{state}={}){const item=(state?.webhooks||[]).find(x=>x.id===id);if(item)Object.assign(item,{lastDeliveryAt:new Date().toISOString(),lastDeliveryStatus:'success'});return Promise.resolve(clone(item));},
   importEmployees(rows,{state}={}){(state.users||(state.users=[])).push(...rows);return Promise.resolve({created:rows.length,updated:0,ignored:0,errors:[]});},

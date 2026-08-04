@@ -1,8 +1,8 @@
 # Template de Resultado por E-mail
 
-Assunto: Seu diagnóstico gratuito Valora Pulse está pronto
+Assunto: Seu diagnóstico gratuito Valora Insight™ está pronto
 
-Conteúdo: Valora Pulse™, Valora Group, participante, pesquisa, pontuação total, nível de maturidade, dimensões, recomendação, links de resultado/certificado, CTA WhatsApp e rodapé LGPD.
+Conteúdo: Valora Insight™, Valora Group, participante, pesquisa, pontuação total, nível de maturidade, dimensões, recomendação, links de resultado/certificado, CTA WhatsApp e rodapé LGPD.
 
 ## Evidências Sprint 46
 - Home pública: sem cards comerciais; CTA principal é Diagnóstico gratuito Valora Insight.

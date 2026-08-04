@@ -1,7 +1,7 @@
 # Paridade visual ASP.NET Web com index.html raiz
 
 ## Similaridades implementadas
-- Marca textual/CSS `Valora Pulse™` com símbolo `V`.
+- Marca textual/CSS `Valora Insight™` com símbolo `V`.
 - Paleta do front antigo: primary #0b3d4d, secondary #d7a94b, accent #18a0fb, background #eef7f9 e text #082a37.
 - Layout com topbar, sidebar, cards, modais Bootstrap, toasts e responsividade mobile.
 

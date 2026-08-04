@@ -38,6 +38,25 @@ function isActiveSurvey(row){const status=String(row?.status||'').toLowerCase();
 function isPublicSelectableSurvey(row){const status=String(row?.status||'').toLowerCase();return !isDeletedRecord(row)&&!row?.revoked&&!row?.revokedAt&&['active','published','open'].includes(status)&&String(row?.visibility||'').toLowerCase()==='public';}
 function isActiveForm(row){const status=String(row?.status||'active').toLowerCase();return !isDeletedRecord(row)&&['active','draft','published'].includes(status||'active');}
 
+
+const PRODUCT_NAME='Valora Insight™';
+const LEGACY_VISIBLE_BRAND_PATTERN=/\bValora\s*(?:Pulse|Pulso)\b\s*™?|\bValoraPulse\b\s*™?/gi;
+const VISIBLE_TEXT_KEYS=new Set(['question','answer','title','name','publicName','subtitle','description','content','text','message','subject','body','label','helpText','tooltip','placeholder','summary','recommendation','conclusion','introduction','footer','header','certificateText','reportText','inviteSubject','inviteBody','resultSubject','resultBody','faq','q','a','pergunta','resposta','titulo','texto','lgpdText','lgpdTitle','lgpdCheckbox','lgpdCardText','slogan','notes','category','html','whatsappMessage','emailHtml','metaDescription','ariaLabel','alt','documentTitle']);
+const TECHNICAL_KEYS=/^(id|uid|token|accessToken|resultToken|tokenHash|hash|key|keyHash|secret|secretHash|password|email|senderEmail|contactEmail|url|link|href|src|slug|companyId|organizationId|projectId|firebaseProjectId|auth|credential|collection|storeKey|legacyStoreKey)$/i;
+function normalizeVisibleBrandText(value){return typeof value==='string'?value.replace(LEGACY_VISIBLE_BRAND_PATTERN,PRODUCT_NAME):value;}
+function shouldSanitizeKey(key=''){return VISIBLE_TEXT_KEYS.has(String(key))&&!TECHNICAL_KEYS.test(String(key));}
+function sanitizeVisibleContentBeforePersist(value,key='',seen=new WeakSet()){
+  if(typeof value==='string')return shouldSanitizeKey(key)||!key?normalizeVisibleBrandText(value):value;
+  if(value===null||value===undefined||typeof value!=='object')return value;
+  if(seen.has(value))return value;
+  seen.add(value);
+  if(Array.isArray(value))return value.map(item=>sanitizeVisibleContentBeforePersist(item,key,seen));
+  const out={...value};
+  Object.keys(out).forEach(k=>{out[k]=sanitizeVisibleContentBeforePersist(out[k],k,seen);});
+  return out;
+}
+function sanitizeVisibleArrayItems(items=[]){return asArray(items).map(item=>sanitizeVisibleContentBeforePersist(item));}
+
 function asString(value,fallback=''){if(value===null||value===undefined)return fallback;if(typeof value==='object')return fallback;return String(value);}
 function asNumber(value,fallback=0){const n=Number(value);return Number.isFinite(n)?n:fallback;}
 function asBoolean(value,fallback=false){if(typeof value==='boolean')return value;if(value==='true')return true;if(value==='false')return false;return fallback;}
@@ -62,13 +81,13 @@ function parseFaq(text){
 const FAQ_META_KEYS=new Set(['id','uid','createdAt','updatedAt','updatedBy','createdBy','migratedAt','migratedBy','source','version','storeKey','metadata','settings','email','contactEmail','whatsappNumber','whatsappEnabled','featuredSurveyId','inviteSubject','inviteBody','resultSubject','resultBody','lgpdText']);
 function isFaqLikeItem(item){return !!(item&&typeof item==='object'&&!Array.isArray(item)&&(item.question||item.pergunta||item.title||item.titulo||item.answer||item.resposta||item.content||item.texto));}
 function normalizeFaqItem(item,index){
-  if(typeof item==='string')return {id:`faq_${index+1}`,question:item.trim(),answer:''};
+  if(typeof item==='string')return {id:`faq_${index+1}`,question:normalizeVisibleBrandText(item.trim()),answer:''};
   if(!isFaqLikeItem(item))return null;
   const question=item.question||item.pergunta||item.title||item.titulo||'';
   const answer=item.answer||item.resposta||item.content||item.texto||'';
   const q=String(question||'').trim(),a=String(answer||'').trim();
   if(!q&&!a)return null;
-  return {id:item.id||`faq_${index+1}`,question:q,answer:a};
+  return {id:item.id||`faq_${index+1}`,question:normalizeVisibleBrandText(q),answer:normalizeVisibleBrandText(a)};
 }
 function normalizeFaqItems(value,fallback=defaultFaq()){
   let raw=value;
@@ -91,19 +110,19 @@ function normalizeFaqItems(value,fallback=defaultFaq()){
       const lower=key.toLowerCase();
       return key.includes('?')||key.length>12||lower.startsWith('o que')||lower.startsWith('como')||lower.startsWith('qual')||lower.startsWith('existe');
     }).map(([question,answer],index)=>({id:`faq_pair_${index+1}`,question,answer}));
-    if(possibleFaqPairs.length)return possibleFaqPairs;
+    if(possibleFaqPairs.length)return possibleFaqPairs.map(normalizeFaqItem).filter(Boolean);
   }
   return fallback;
 }
-function normalizeEmailSettings(email={}){const e=asObject(email);return {...e,mode:asString(e.mode,'disabled'),senderName:asString(e.senderName,'Valora Group'),senderEmail:asString(e.senderEmail,'valoragroup@mnsoft.com.br')};}
-function normalizeSettings(settings={}){const s=asObject(settings);return {...s,featuredSurveyId:asString(s.featuredSurveyId,''),contactEmail:asString(s.contactEmail,''),whatsappEnabled:asBoolean(s.whatsappEnabled,true),whatsappNumber:asString(s.whatsappNumber,'+55 91 99254-5353'),inviteSubject:asString(s.inviteSubject,'Convite para responder o diagnóstico'),inviteBody:asString(s.inviteBody,'Olá, você foi convidado para responder um diagnóstico de maturidade organizacional.'),resultSubject:asString(s.resultSubject,'Seu resultado Valora Insight™'),resultBody:asString(s.resultBody,'Seu resultado está disponível para consulta.'),lgpdText:asString(s.lgpdText,''),faq:normalizeFaqItems(s.faq,defaultFaq()),email:normalizeEmailSettings(s.email)};}
-function normalizePlanSafe(plan={}){const p=asObject(plan);return {...p,id:asString(p.id,''),name:asString(p.name||p.title,''),features:asArray(p.features).map(x=>asString(x)).filter(Boolean),enabledModules:asArray(p.enabledModules)};}
-function normalizeOrganizationSafe(org={}){const o=asObject(org);return {...o,id:asString(o.id||o.uid,''),name:asString(o.name||o.publicName||o.legalName,'Empresa sem nome'),publicName:asString(o.publicName||o.name||o.legalName,'Empresa sem nome'),settings:asObject(o.settings)};}
-function normalizeFormSafe(form={}){const f=asObject(form);return {...f,dimensions:asArray(f.dimensions),questions:asArray(f.questions),resultBands:asArray(f.resultBands)};}
-function normalizeSurveySafe(survey={}){const s=asObject(survey);return {...s,questions:asArray(s.questions),status:asString(s.status,'draft')};}
+function normalizeEmailSettings(email={}){const e=sanitizeVisibleContentBeforePersist(asObject(email));return {...e,mode:asString(e.mode,'disabled'),senderName:normalizeVisibleBrandText(asString(e.senderName,'Valora Group')),senderEmail:asString(e.senderEmail,'valoragroup@mnsoft.com.br')};}
+function normalizeSettings(settings={}){const s=sanitizeVisibleContentBeforePersist(asObject(settings));return {...s,featuredSurveyId:asString(s.featuredSurveyId,''),contactEmail:asString(s.contactEmail,''),whatsappEnabled:asBoolean(s.whatsappEnabled,true),whatsappNumber:asString(s.whatsappNumber,'+55 91 99254-5353'),inviteSubject:normalizeVisibleBrandText(asString(s.inviteSubject,'Convite para responder o diagnóstico')),inviteBody:normalizeVisibleBrandText(asString(s.inviteBody,'Olá, você foi convidado para responder um diagnóstico de maturidade organizacional.')),resultSubject:normalizeVisibleBrandText(asString(s.resultSubject,'Seu resultado Valora Insight™')),resultBody:normalizeVisibleBrandText(asString(s.resultBody,'Seu resultado está disponível para consulta.')),lgpdText:normalizeVisibleBrandText(asString(s.lgpdText,'')),faq:normalizeFaqItems(s.faq,defaultFaq()),email:normalizeEmailSettings(s.email)};}
+function normalizePlanSafe(plan={}){const p=sanitizeVisibleContentBeforePersist(asObject(plan));return {...p,id:asString(p.id,''),name:normalizeVisibleBrandText(asString(p.name||p.title,'')),features:asArray(p.features).map(x=>normalizeVisibleBrandText(asString(x))).filter(Boolean),enabledModules:asArray(p.enabledModules)};}
+function normalizeOrganizationSafe(org={}){const o=sanitizeVisibleContentBeforePersist(asObject(org));return {...o,id:asString(o.id||o.uid,''),name:normalizeVisibleBrandText(asString(o.name||o.publicName||o.legalName,'Empresa sem nome')),publicName:normalizeVisibleBrandText(asString(o.publicName||o.name||o.legalName,'Empresa sem nome')),settings:sanitizeVisibleContentBeforePersist(asObject(o.settings))};}
+function normalizeFormSafe(form={}){const f=sanitizeVisibleContentBeforePersist(asObject(form));return {...f,dimensions:sanitizeVisibleArrayItems(f.dimensions),questions:sanitizeVisibleArrayItems(f.questions),resultBands:sanitizeVisibleArrayItems(f.resultBands)};}
+function normalizeSurveySafe(survey={}){const s=sanitizeVisibleContentBeforePersist(asObject(survey));return {...s,questions:sanitizeVisibleArrayItems(s.questions),status:asString(s.status,'draft')};}
 function normalizeResponseSafe(response={}){const r=asObject(response),participant=asObject(r.participant);return {...r,participant:{...participant,name:asString(participant.name,'Participante'),email:asString(participant.email,'')},answers:Array.isArray(r.answers)?r.answers:asObject(r.answers),normalized5:asNumber(r.normalized5??r.average,0),percentage:asNumber(r.percentage,0),rawScore:asNumber(r.rawScore??r.totalScore,0),maxScore:asNumber(r.maxScore??r.totalMax,0)};}
 function normalizeAppState(rawState={}){const raw=asObject(rawState);const normalized={...raw};normalized.settings=normalizeSettings(raw.settings);['modules','plans','companies','organizations','users','forms','surveys','responses','invitations','invoices','actionPlans','notifications','knowledgeBase','supportCategories','supportSlaPolicies','supportTickets','supportMessages','integrations','webhooks','apiKeys','logs','integrationLogs','chatbotConversations','chatbotUnansweredQuestions'].forEach(k=>{normalized[k]=asArray(raw[k]);});normalized.plans=normalized.plans.map(normalizePlanSafe);normalized.companies=normalized.companies.map(normalizeOrganizationSafe);normalized.organizations=normalized.organizations.map(normalizeOrganizationSafe);normalized.forms=normalized.forms.map(normalizeFormSafe);normalized.surveys=normalized.surveys.map(normalizeSurveySafe);normalized.responses=normalized.responses.map(normalizeResponseSafe);return normalized;}
-const api={asArray,asObject,isLegacyOrDemoRecord,isProductionRuntime,shouldBlockLegacyDemo,isDemoRecord,isProductionEnvironment,isBlockedInProduction,isProductionVisibleRecord,isDeletedRecord,isActiveSurvey,isPublicSelectableSurvey,isActiveForm,asString,asNumber,asBoolean,defaultFaq,parseFaq,normalizeFaqItems,normalizeEmailSettings,normalizeSettings,normalizePlanSafe,normalizeOrganizationSafe,normalizeFormSafe,normalizeSurveySafe,normalizeResponseSafe,normalizeAppState};
+const api={PRODUCT_NAME,LEGACY_VISIBLE_BRAND_PATTERN,normalizeVisibleBrandText,sanitizeVisibleContentBeforePersist,asArray,asObject,isLegacyOrDemoRecord,isProductionRuntime,shouldBlockLegacyDemo,isDemoRecord,isProductionEnvironment,isBlockedInProduction,isProductionVisibleRecord,isDeletedRecord,isActiveSurvey,isPublicSelectableSurvey,isActiveForm,asString,asNumber,asBoolean,defaultFaq,parseFaq,normalizeFaqItems,normalizeEmailSettings,normalizeSettings,normalizePlanSafe,normalizeOrganizationSafe,normalizeFormSafe,normalizeSurveySafe,normalizeResponseSafe,normalizeAppState};
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 root.ValoraDataNormalization=api;
 })(typeof window!=='undefined'?window:globalThis);

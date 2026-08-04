@@ -1,6 +1,6 @@
 # QA visual automatizado
 
-Esta pasta contém o smoke test visual do Valora Pulse com Playwright.
+Esta pasta contém o smoke test visual do Valora Insight™ com Playwright.
 
 ## Como rodar
 

@@ -20,6 +20,23 @@ ALTER TABLE valorapesquisa.schema_migrations ADD COLUMN IF NOT EXISTS applied_at
 ALTER TABLE valorapesquisa.schema_migrations ADD COLUMN IF NOT EXISTS applied_by text NOT NULL DEFAULT current_user;
 ALTER TABLE valorapesquisa.schema_migrations ADD COLUMN IF NOT EXISTS application_version text;
 CREATE TABLE IF NOT EXISTS valorapesquisa.organizations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, slug text NOT NULL UNIQUE, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS slug text;
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+UPDATE valorapesquisa.organizations SET name=COALESCE(NULLIF(name,''),'Organização sem nome'),slug=COALESCE(NULLIF(slug,''),'legacy-'||replace(id::text,'-','')),status=COALESCE(NULLIF(status,''),'active'),created_at=COALESCE(created_at,now());
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN name SET NOT NULL;
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN slug SET NOT NULL;
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN status SET DEFAULT 'active';
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN status SET NOT NULL;
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN created_at SET DEFAULT now();
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN created_at SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_organizations_slug ON valorapesquisa.organizations(slug);
+INSERT INTO valorapesquisa.organizations(name,slug,status)
+VALUES('Valora Grup','valora-platform','active')
+ON CONFLICT(slug) DO UPDATE SET name=EXCLUDED.name,status='active',deleted_at=NULL,updated_at=now();
 CREATE TABLE IF NOT EXISTS valorapesquisa.business_groups (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), name text NOT NULL, tax_id text, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.legal_entities (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), business_group_id uuid REFERENCES valorapesquisa.business_groups(id), legal_name text NOT NULL, trade_name text, cnpj text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_legal_entities_cnpj_active ON valorapesquisa.legal_entities(cnpj) WHERE deleted_at IS NULL;
@@ -61,6 +78,28 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.password_reset_tokens (id uuid PRIMARY
 CREATE TABLE IF NOT EXISTS valorapesquisa.plans (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE, name text NOT NULL, is_public boolean NOT NULL, is_active boolean NOT NULL, is_legacy boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.plan_limits (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), plan_id uuid NOT NULL REFERENCES valorapesquisa.plans(id), limit_key text NOT NULL, limit_value integer, period text NOT NULL DEFAULT 'lifetime', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, UNIQUE(plan_id,limit_key));
 CREATE TABLE IF NOT EXISTS valorapesquisa.plan_capabilities (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), plan_id uuid NOT NULL REFERENCES valorapesquisa.plans(id), capability_key text NOT NULL, enabled boolean NOT NULL DEFAULT true, metadata jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, UNIQUE(plan_id,capability_key));
+ALTER TABLE valorapesquisa.plan_capabilities ADD COLUMN IF NOT EXISTS capability text;
+ALTER TABLE valorapesquisa.plan_capabilities ADD COLUMN IF NOT EXISTS capability_code text;
+ALTER TABLE valorapesquisa.plan_capabilities ADD COLUMN IF NOT EXISTS capability_key text;
+ALTER TABLE valorapesquisa.plan_capabilities ADD COLUMN IF NOT EXISTS enabled boolean DEFAULT true;
+ALTER TABLE valorapesquisa.plan_capabilities ADD COLUMN IF NOT EXISTS is_enabled boolean DEFAULT true;
+ALTER TABLE valorapesquisa.plan_capabilities ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb;
+ALTER TABLE valorapesquisa.plan_capabilities ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.plan_capabilities ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+UPDATE valorapesquisa.plan_capabilities SET capability_key=COALESCE(NULLIF(capability_key,''),NULLIF(capability_code,''),NULLIF(capability,''),'legacy-'||replace(id::text,'-','')),capability_code=COALESCE(NULLIF(capability_code,''),NULLIF(capability_key,''),NULLIF(capability,''),'legacy-'||replace(id::text,'-','')),capability=COALESCE(NULLIF(capability,''),NULLIF(capability_key,''),NULLIF(capability_code,''),'legacy-'||replace(id::text,'-','')),enabled=COALESCE(enabled,is_enabled,true),is_enabled=COALESCE(is_enabled,enabled,true),metadata=COALESCE(metadata,'{}'::jsonb),created_at=COALESCE(created_at,now());
+DELETE FROM valorapesquisa.plan_capabilities a USING valorapesquisa.plan_capabilities b WHERE a.plan_id=b.plan_id AND a.capability_key=b.capability_key AND a.id>b.id;
+ALTER TABLE valorapesquisa.plan_capabilities ALTER COLUMN capability SET NOT NULL;
+ALTER TABLE valorapesquisa.plan_capabilities ALTER COLUMN capability_code SET NOT NULL;
+ALTER TABLE valorapesquisa.plan_capabilities ALTER COLUMN capability_key SET NOT NULL;
+ALTER TABLE valorapesquisa.plan_capabilities ALTER COLUMN enabled SET DEFAULT true;
+ALTER TABLE valorapesquisa.plan_capabilities ALTER COLUMN enabled SET NOT NULL;
+ALTER TABLE valorapesquisa.plan_capabilities ALTER COLUMN is_enabled SET DEFAULT true;
+ALTER TABLE valorapesquisa.plan_capabilities ALTER COLUMN is_enabled SET NOT NULL;
+ALTER TABLE valorapesquisa.plan_capabilities ALTER COLUMN metadata SET DEFAULT '{}'::jsonb;
+ALTER TABLE valorapesquisa.plan_capabilities ALTER COLUMN metadata SET NOT NULL;
+ALTER TABLE valorapesquisa.plan_capabilities ALTER COLUMN created_at SET DEFAULT now();
+ALTER TABLE valorapesquisa.plan_capabilities ALTER COLUMN created_at SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_capabilities_plan_key ON valorapesquisa.plan_capabilities(plan_id,capability_key);
 CREATE TABLE IF NOT EXISTS valorapesquisa.subscriptions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), plan_id uuid NOT NULL REFERENCES valorapesquisa.plans(id), status text NOT NULL, starts_at timestamptz NOT NULL DEFAULT now(), ends_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.usage_monthly (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), usage_key text NOT NULL, year int NOT NULL, month int NOT NULL, quantity bigint NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, UNIQUE(organization_id,usage_key,year,month));
 CREATE TABLE IF NOT EXISTS valorapesquisa.usage_lifetime (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), usage_key text NOT NULL, quantity bigint NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, UNIQUE(organization_id,usage_key));
@@ -87,12 +126,23 @@ ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS latest_published_versi
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS created_by_user_id uuid REFERENCES valorapesquisa.users(id);
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS version bigint NOT NULL DEFAULT 1;
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+UPDATE valorapesquisa.forms SET organization_id=(SELECT id FROM valorapesquisa.organizations WHERE slug='valora-platform') WHERE organization_id IS NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN organization_id SET NOT NULL;
 ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES valorapesquisa.organizations(id);
+ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS version int;
 ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS version_number int;
-UPDATE valorapesquisa.form_versions SET version_number=version WHERE version_number IS NULL;
+ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS max_score int DEFAULT 125;
+ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS maximum_score int DEFAULT 125;
+UPDATE valorapesquisa.form_versions fv SET organization_id=f.organization_id FROM valorapesquisa.forms f WHERE f.id=fv.form_id AND fv.organization_id IS NULL;
+UPDATE valorapesquisa.form_versions SET version=COALESCE(version,version_number,1),version_number=COALESCE(version_number,version,1),max_score=COALESCE(max_score,maximum_score,125);
+ALTER TABLE valorapesquisa.form_versions ALTER COLUMN organization_id SET NOT NULL;
+ALTER TABLE valorapesquisa.form_versions ALTER COLUMN version SET NOT NULL;
 ALTER TABLE valorapesquisa.form_versions ALTER COLUMN version_number SET NOT NULL;
 ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'published';
-ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS maximum_score int NOT NULL DEFAULT 125;
+ALTER TABLE valorapesquisa.form_versions ALTER COLUMN maximum_score SET DEFAULT 125;
+UPDATE valorapesquisa.form_versions SET maximum_score=COALESCE(maximum_score,max_score,125),max_score=COALESCE(max_score,maximum_score,125);
+ALTER TABLE valorapesquisa.form_versions ALTER COLUMN maximum_score SET NOT NULL;
+ALTER TABLE valorapesquisa.form_versions ALTER COLUMN max_score SET NOT NULL;
 ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS published_at timestamptz;
 ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS published_by_user_id uuid REFERENCES valorapesquisa.users(id);
 ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS updated_at timestamptz;
@@ -145,17 +195,47 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.question_option_versions (
     deleted_at timestamptz,
     UNIQUE(question_id, value)
 );
+ALTER TABLE valorapesquisa.form_section_versions ADD COLUMN IF NOT EXISTS position int;
+ALTER TABLE valorapesquisa.form_section_versions ADD COLUMN IF NOT EXISTS display_order int;
+UPDATE valorapesquisa.form_section_versions SET position=COALESCE(position,display_order,0),display_order=COALESCE(display_order,position,0);
+ALTER TABLE valorapesquisa.form_section_versions ALTER COLUMN position SET NOT NULL;
+ALTER TABLE valorapesquisa.form_section_versions ALTER COLUMN display_order SET NOT NULL;
+ALTER TABLE valorapesquisa.question_versions ADD COLUMN IF NOT EXISTS position int;
+ALTER TABLE valorapesquisa.question_versions ADD COLUMN IF NOT EXISTS display_order int;
+UPDATE valorapesquisa.question_versions SET position=COALESCE(position,display_order,0),display_order=COALESCE(display_order,position,0);
+ALTER TABLE valorapesquisa.question_versions ALTER COLUMN position SET NOT NULL;
+ALTER TABLE valorapesquisa.question_versions ALTER COLUMN display_order SET NOT NULL;
+ALTER TABLE valorapesquisa.question_option_versions ADD COLUMN IF NOT EXISTS position int;
+ALTER TABLE valorapesquisa.question_option_versions ADD COLUMN IF NOT EXISTS display_order int;
+UPDATE valorapesquisa.question_option_versions SET position=COALESCE(position,display_order,0),display_order=COALESCE(display_order,position,0);
+ALTER TABLE valorapesquisa.question_option_versions ALTER COLUMN position SET NOT NULL;
+ALTER TABLE valorapesquisa.question_option_versions ALTER COLUMN display_order SET NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_forms_organization_status ON valorapesquisa.forms(organization_id,status) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS ix_form_sections_version_position ON valorapesquisa.form_section_versions(form_version_id,position) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS ix_question_versions_section_position ON valorapesquisa.question_versions(section_id,position) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS ix_question_option_versions_question_position ON valorapesquisa.question_option_versions(question_id,position) WHERE deleted_at IS NULL;
 CREATE TABLE IF NOT EXISTS valorapesquisa.form_translations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), form_version_id uuid NOT NULL REFERENCES valorapesquisa.form_versions(id), language text NOT NULL, title text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(form_version_id,language));
 CREATE TABLE IF NOT EXISTS valorapesquisa.dimensions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), form_version_id uuid NOT NULL REFERENCES valorapesquisa.form_versions(id), code text NOT NULL, name text NOT NULL, display_order int NOT NULL, max_score int NOT NULL DEFAULT 25, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(form_version_id,code));
+ALTER TABLE valorapesquisa.dimensions ADD COLUMN IF NOT EXISTS display_order int;
 CREATE TABLE IF NOT EXISTS valorapesquisa.questions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), dimension_id uuid REFERENCES valorapesquisa.dimensions(id), code text NOT NULL, text text NOT NULL, display_order int NOT NULL, min_value int, max_value int, is_qualitative boolean NOT NULL DEFAULT false, is_required boolean NOT NULL DEFAULT true, max_text_length int, anonymity_protected boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(dimension_id,code));
+ALTER TABLE valorapesquisa.dimensions ADD COLUMN IF NOT EXISTS position int;
+UPDATE valorapesquisa.dimensions SET position=COALESCE(position,display_order,0),display_order=COALESCE(display_order,position,0);
+ALTER TABLE valorapesquisa.dimensions ALTER COLUMN position SET NOT NULL;
+ALTER TABLE valorapesquisa.dimensions ALTER COLUMN display_order SET NOT NULL;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS display_order int;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS position int;
+UPDATE valorapesquisa.questions SET position=COALESCE(position,display_order,0),display_order=COALESCE(display_order,position,0);
+ALTER TABLE valorapesquisa.questions ALTER COLUMN position SET NOT NULL;
+ALTER TABLE valorapesquisa.questions ALTER COLUMN display_order SET NOT NULL;
 ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS is_required boolean NOT NULL DEFAULT true;
 ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS max_text_length int;
 ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS anonymity_protected boolean NOT NULL DEFAULT false;
 CREATE TABLE IF NOT EXISTS valorapesquisa.question_options (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), question_id uuid NOT NULL REFERENCES valorapesquisa.questions(id), value int NOT NULL, label text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(question_id,value));
+ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS position int;
+ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS display_order int;
+UPDATE valorapesquisa.question_options SET position=COALESCE(position,display_order,value,0),display_order=COALESCE(display_order,position,value,0);
+ALTER TABLE valorapesquisa.question_options ALTER COLUMN position SET NOT NULL;
+ALTER TABLE valorapesquisa.question_options ALTER COLUMN display_order SET NOT NULL;
 CREATE TABLE IF NOT EXISTS valorapesquisa.surveys (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), form_version_id uuid NOT NULL REFERENCES valorapesquisa.form_versions(id), name text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.survey_cycles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), survey_id uuid NOT NULL REFERENCES valorapesquisa.surveys(id), name text NOT NULL, starts_at timestamptz, ends_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.survey_scopes (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), survey_id uuid NOT NULL REFERENCES valorapesquisa.surveys(id), unit_id uuid REFERENCES valorapesquisa.units(id), department_id uuid REFERENCES valorapesquisa.departments(id), created_at timestamptz NOT NULL DEFAULT now());
@@ -420,19 +500,24 @@ WITH capabilities(capability_key) AS (VALUES
 ('multipleUnits'),('unitComparison'),('consolidatedReports'),('franchiseMode'),
 ('multipleLegalEntities'),('businessGroupManagement'),('intercompanyComparison'),('groupDashboard'),
 ('whiteLabel'),('integrations'),('executiveFollowUp'))
-INSERT INTO valorapesquisa.plan_capabilities(plan_id,capability_key,enabled)
-SELECT p.id,c.capability_key,
+INSERT INTO valorapesquisa.plan_capabilities(plan_id,capability,capability_code,capability_key,enabled,is_enabled)
+SELECT p.id,c.capability_key,c.capability_key,c.capability_key,
+CASE p.code
+ WHEN 'free' THEN c.capability_key IN ('officialValoraProgram','shareLink','shareEmail','whatsappPreview','basicResult')
+ WHEN 'professional' THEN c.capability_key IN ('officialValoraProgram','shareLink','shareEmail','whatsappPreview','crossSurveyAnalysis','crossDepartmentAnalysis','actionPlan','organizationReport')
+ WHEN 'corporate' THEN c.capability_key IN ('officialValoraProgram','shareLink','shareEmail','whatsappPreview','crossSurveyAnalysis','crossDepartmentAnalysis','actionPlan','organizationReport','multipleUnits','unitComparison','consolidatedReports','franchiseMode')
+ ELSE true END,
 CASE p.code
  WHEN 'free' THEN c.capability_key IN ('officialValoraProgram','shareLink','shareEmail','whatsappPreview','basicResult')
  WHEN 'professional' THEN c.capability_key IN ('officialValoraProgram','shareLink','shareEmail','whatsappPreview','crossSurveyAnalysis','crossDepartmentAnalysis','actionPlan','organizationReport')
  WHEN 'corporate' THEN c.capability_key IN ('officialValoraProgram','shareLink','shareEmail','whatsappPreview','crossSurveyAnalysis','crossDepartmentAnalysis','actionPlan','organizationReport','multipleUnits','unitComparison','consolidatedReports','franchiseMode')
  ELSE true END
 FROM plans p CROSS JOIN capabilities c WHERE p.code IN ('free','professional','corporate','enterprise')
-ON CONFLICT(plan_id,capability_key) DO UPDATE SET enabled=EXCLUDED.enabled,updated_at=now();
-INSERT INTO valorapesquisa.forms(code,name,status) VALUES('valora-official','Pesquisa Oficial Valora','active') ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,updated_at=now();
-INSERT INTO valorapesquisa.form_versions(form_id,version,language,is_immutable,max_score) SELECT id,1,'pt-BR',true,125 FROM forms WHERE code='valora-official' ON CONFLICT(form_id,version,language) DO UPDATE SET max_score=125;
+ON CONFLICT(plan_id,capability_key) DO UPDATE SET capability=EXCLUDED.capability,capability_code=EXCLUDED.capability_code,enabled=EXCLUDED.enabled,is_enabled=EXCLUDED.is_enabled,updated_at=now();
+INSERT INTO valorapesquisa.forms(organization_id,code,name,status) SELECT id,'valora-official','Pesquisa Oficial Valora','active' FROM valorapesquisa.organizations WHERE slug='valora-platform' ON CONFLICT(code) DO UPDATE SET organization_id=EXCLUDED.organization_id,name=EXCLUDED.name,status='active',deleted_at=NULL,updated_at=now();
+INSERT INTO valorapesquisa.form_versions(form_id,organization_id,version,version_number,language,is_immutable,maximum_score,max_score,status,published_at) SELECT id,organization_id,1,1,'pt-BR',true,125,125,'published',now() FROM forms WHERE code='valora-official' ON CONFLICT(form_id,version,language) DO UPDATE SET organization_id=EXCLUDED.organization_id,version_number=1,maximum_score=125,max_score=125,status='published',is_immutable=true,published_at=COALESCE(form_versions.published_at,now()),updated_at=now();
 INSERT INTO valorapesquisa.form_translations(form_version_id,language,title) SELECT id,lang,'Valora Insight' FROM form_versions CROSS JOIN (VALUES('pt-BR'),('en'),('es'),('zh-Hans')) l(lang) ON CONFLICT(form_version_id,language) DO NOTHING;
-WITH fv AS (SELECT id FROM form_versions WHERE form_id=(SELECT id FROM forms WHERE code='valora-official') AND version=1 AND language='pt-BR'), d(code,name,ord) AS (VALUES ('culture','Cultura e Propósito',1),('governance','Gestão e Governança',2),('leadership','Liderança',3),('people','Pessoas e Talentos',4),('growth','Resultados e Crescimento',5)) INSERT INTO valorapesquisa.dimensions(form_version_id,code,name,display_order,max_score) SELECT fv.id,d.code,d.name,d.ord,25 FROM fv,d ON CONFLICT(form_version_id,code) DO UPDATE SET name=EXCLUDED.name;
+WITH fv AS (SELECT id FROM form_versions WHERE form_id=(SELECT id FROM forms WHERE code='valora-official') AND version=1 AND language='pt-BR'), d(code,name,ord) AS (VALUES ('culture','Cultura e Propósito',1),('governance','Gestão e Governança',2),('leadership','Liderança',3),('people','Pessoas e Talentos',4),('growth','Resultados e Crescimento',5)) INSERT INTO valorapesquisa.dimensions(form_version_id,code,name,position,display_order,max_score) SELECT fv.id,d.code,d.name,d.ord,d.ord,25 FROM fv,d ON CONFLICT(form_version_id,code) DO UPDATE SET name=EXCLUDED.name,position=EXCLUDED.position,display_order=EXCLUDED.display_order,max_score=EXCLUDED.max_score;
 WITH official(code,dimension_code,display_order,text) AS (VALUES
 ('culture-q1','culture',1,'As pessoas compreendem claramente o propósito e os valores da empresa.'),
 ('culture-q2','culture',2,'Existe alinhamento entre o que a liderança comunica e o que é praticado no dia a dia.'),
@@ -459,11 +544,11 @@ WITH official(code,dimension_code,display_order,text) AS (VALUES
 ('growth-q3','growth',3,'Os processos favorecem produtividade e eficiência.'),
 ('growth-q4','growth',4,'Problemas recorrentes são tratados na causa, e não apenas nos sintomas.'),
 ('growth-q5','growth',5,'A empresa está preparada para sustentar o crescimento nos próximos anos.'))
-INSERT INTO valorapesquisa.questions(dimension_id,code,text,display_order,min_value,max_value,is_qualitative,is_required,max_text_length,anonymity_protected)
-SELECT d.id,o.code,o.text,o.display_order,1,5,false,true,NULL,false FROM official o JOIN dimensions d ON d.code=o.dimension_code JOIN form_versions fv ON fv.id=d.form_version_id JOIN forms f ON f.id=fv.form_id AND f.code='valora-official'
-ON CONFLICT(dimension_id,code) DO UPDATE SET text=EXCLUDED.text,display_order=EXCLUDED.display_order,min_value=1,max_value=5,is_qualitative=false,is_required=true;
-INSERT INTO valorapesquisa.questions(dimension_id,code,text,display_order,min_value,max_value,is_qualitative,is_required,max_text_length,anonymity_protected)
-SELECT d.id,'qualitative-work-feeling','Em suas palavras, como você se sente trabalhando nesta empresa hoje?',6,NULL,NULL,true,false,4000,true FROM dimensions d JOIN form_versions fv ON fv.id=d.form_version_id JOIN forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND d.code='growth'
+INSERT INTO valorapesquisa.questions(dimension_id,code,text,position,display_order,min_value,max_value,is_qualitative,is_required,max_text_length,anonymity_protected)
+SELECT d.id,o.code,o.text,o.display_order,o.display_order,1,5,false,true,NULL,false FROM official o JOIN dimensions d ON d.code=o.dimension_code JOIN form_versions fv ON fv.id=d.form_version_id JOIN forms f ON f.id=fv.form_id AND f.code='valora-official'
+ON CONFLICT(dimension_id,code) DO UPDATE SET text=EXCLUDED.text,position=EXCLUDED.position,display_order=EXCLUDED.display_order,min_value=1,max_value=5,is_qualitative=false,is_required=true;
+INSERT INTO valorapesquisa.questions(dimension_id,code,text,position,display_order,min_value,max_value,is_qualitative,is_required,max_text_length,anonymity_protected)
+SELECT d.id,'qualitative-work-feeling','Em suas palavras, como você se sente trabalhando nesta empresa hoje?',6,6,NULL,NULL,true,false,4000,true FROM dimensions d JOIN form_versions fv ON fv.id=d.form_version_id JOIN forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND d.code='growth'
 ON CONFLICT(dimension_id,code) DO UPDATE SET text=EXCLUDED.text,is_qualitative=true,is_required=false,max_text_length=4000,anonymity_protected=true;
 INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('script_completo_2026_07','script-completo-v1') ON CONFLICT(version) DO UPDATE SET checksum=EXCLUDED.checksum,applied_at=now();
 -- Fase 2G: invariantes multiempresa, RBAC por escopo e reservas de limites.

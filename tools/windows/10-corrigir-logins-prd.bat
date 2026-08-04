@@ -3,7 +3,7 @@ cd /d C:\DBBACK\valoregrouppesquisa
 set GOOGLE_APPLICATION_CREDENTIALS=C:\FirebaseKeys\gestordepesquisa-firebase-adminsdk-fbsvc-fe4f2380fd.json
 
 echo ========================================
-echo CORRIGIR LOGINS PRD - VALORA PULSE
+echo CORRIGIR LOGINS PRD - VALORA INSIGHT
 echo ========================================
 
 echo [1/3] Diagnosticando usuarios Auth...

@@ -4,6 +4,8 @@
   window.ValoraConfig = Object.freeze({
     APP_VERSION: '8.8.0',
     RUNTIME_ENV: 'production',
+    BRAND: Object.freeze({ productName: 'Valora Insight™', companyName: 'Valora Group', assistantName: 'ValoraBot' }),
+    CONTACTS: Object.freeze({ whatsappDisplay: '+55 91 99254-5353', whatsappDigits: '5591992545353', whatsappUrl: 'https://wa.me/5591992545353' }),
     APP_PUBLIC_URL: 'https://valoragroup.mnsoft.com.br',
     APP_TEST_URL: 'https://valorateste.mnsoft.com.br/',
     ALLOWED_ORIGINS: ['https://valoragroup.mnsoft.com.br','https://valorateste.mnsoft.com.br','https://gestordepesquisa.web.app','https://gestordepesquisa.firebaseapp.com'],
@@ -43,7 +45,8 @@
       appId: '1:319806178218:web:e8a0c3f39825e6d9d4a1d3',
       measurementId: 'G-KP0VV5MSHJ'
     },
-    STORE_KEY: 'valoraPulseFinal800'
+    STORE_KEY: 'valoraInsightFinal800',
+    LEGACY_STORE_KEYS: Object.freeze(['valoraPulseFinal800'])
   });
 })();
 

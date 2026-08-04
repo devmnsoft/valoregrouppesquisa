@@ -11,7 +11,7 @@ function Ask-DataFile() { Read-Host "Informe o caminho do export JSON (.\exports
 do {
   Clear-Host
   Write-Host "========================================"
-  Write-Host " PUBLICADOR VALORA PULSE - PRD / IIS"
+  Write-Host " PUBLICADOR VALORA INSIGHT - PRD / IIS"
   Write-Host "========================================"
   Write-Host "1. Simular publicação"
   Write-Host "2. Publicar em produção"

@@ -2,7 +2,7 @@
   "_instructions": "Seed de referência. Substitua SERVER_TIMESTAMP por FieldValue.serverTimestamp() em script Admin SDK. Não contém senhas; crie senhas no Firebase Authentication.",
   "settings": {
     "public": {
-      "appName": "Valora Pulse",
+      "appName": "Valora Insight",
       "version": "8.6.0",
       "publicLgpdText": "Texto público de LGPD a validar juridicamente antes da produção.",
       "contactEmail": "contato@valoragroup.example",
@@ -349,7 +349,7 @@
   },
   "forms": {
     "form_example": {
-      "name": "Diagnóstico exemplo Valora Pulse",
+      "name": "Diagnóstico exemplo Valora Insight",
       "companyId": "global",
       "isGlobal": true,
       "scoringMethod": "weightedAverage",

@@ -11,7 +11,8 @@ function no(re,msg){ok(!re.test(combined),msg)}
 function has(re,msg){ok(re.test(combined),msg)}
 no(/Baixar certificado/,'Não pode existir "Baixar certificado" no código fonte operacional.');
 no(/Certificado simples/,'Não pode existir "Certificado simples" no código fonte operacional.');
-has(/Entrar no Valora Pulse™/,'Login deve conter título oficial.');
+has(/Entrar no Valora Insight™/,'Login deve conter título oficial.');
+no(/Valora Pulse/i,'Marca legada não pode existir no código operacional.');
 has(/Acesse a gestão do Valora Insight™\./,'Login deve conter subtítulo oficial.');
 has(/Fale com o Valora Group/,'CTA oficial de WhatsApp ausente.');
 no(/Fale com a Valora Group/,'CTA antigo encontrado.');

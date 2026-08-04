@@ -14,7 +14,7 @@ let services={app:null,auth:null,db:null,functions:null,initialized:false,availa
 let authPersistenceResolve;
 const authPersistenceReady=new Promise(resolve=>{authPersistenceResolve=resolve;});
 function recordPersistenceFallback(kind,error){window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};window.ValoraRuntimeDiagnostics.lastAuthPersistence={kind,code:String(error?.code||'').slice(0,80),at:new Date().toISOString()};}
-async function configureAuthPersistence(auth){const modes=[['LOCAL',window.firebase.auth.Auth.Persistence.LOCAL],['SESSION',window.firebase.auth.Auth.Persistence.SESSION],['NONE',window.firebase.auth.Auth.Persistence.NONE]];for(const [kind,value] of modes){try{await auth.setPersistence(value);recordPersistenceFallback(kind,null);authPersistenceResolve({kind});return {kind};}catch(error){recordPersistenceFallback(kind,error);console.warn('[Valora Pulse] Fallback de persistência Firebase Auth.',{kind,code:error?.code||''});}}authPersistenceResolve({kind:'unavailable'});return {kind:'unavailable'};}
+async function configureAuthPersistence(auth){const modes=[['LOCAL',window.firebase.auth.Auth.Persistence.LOCAL],['SESSION',window.firebase.auth.Auth.Persistence.SESSION],['NONE',window.firebase.auth.Auth.Persistence.NONE]];for(const [kind,value] of modes){try{await auth.setPersistence(value);recordPersistenceFallback(kind,null);authPersistenceResolve({kind});return {kind};}catch(error){recordPersistenceFallback(kind,error);console.warn('[Valora Insight] Fallback de persistência Firebase Auth.',{kind,code:error?.code||''});}}authPersistenceResolve({kind:'unavailable'});return {kind:'unavailable'};}
 window.ValoraFirebaseAuthPersistenceReady=authPersistenceReady;
 
 try{
@@ -23,7 +23,7 @@ try{
     services.app=window.firebase.apps?.length?window.firebase.app():window.firebase.initializeApp(firebaseConfig);
     services.auth=window.firebase.auth();
     services.db=window.firebase.firestore();
-    try{services.functions=typeof window.firebase.functions==='function'?window.firebase.functions():null;}catch(functionsError){services.functions=null;recordFunctionsError(functionsError);console.warn('[Valora Pulse] Cloud Functions não inicializadas.',sanitizeError(functionsError));}
+    try{services.functions=typeof window.firebase.functions==='function'?window.firebase.functions():null;}catch(functionsError){services.functions=null;recordFunctionsError(functionsError);console.warn('[Valora Insight] Cloud Functions não inicializadas.',sanitizeError(functionsError));}
     services.initialized=true;
     services.available=true;
     configureAuthPersistence(services.auth).catch(error=>{recordPersistenceFallback('unhandled',error);});
@@ -32,13 +32,13 @@ try{
     if(!hasFirebaseSdk())missing.push('SDK compat Firebase');
     if(!hasFirebaseConfig(firebaseConfig))missing.push('FIREBASE_CONFIG com apiKey, authDomain, projectId e appId');
     services.error=`Firebase não configurado: ${missing.join(' e ')} ausente(s). Confira config.js, SDKs compat e ordem dos scripts no index.html.`;
-    console.error(`[Valora Pulse] ${services.error}`);
+    console.error(`[Valora Insight] ${services.error}`);
   }
 }catch(err){
   services.error=err?.message||String(err);
   window.ValoraRuntimeDiagnostics=window.ValoraRuntimeDiagnostics||{};
   window.ValoraRuntimeDiagnostics.lastFirebaseInitError=sanitizeError(err);
-  console.error('[Valora Pulse] Falha ao inicializar Firebase.',sanitizeError(err));
+  console.error('[Valora Insight] Falha ao inicializar Firebase.',sanitizeError(err));
 }
 
 window.ValoraFirebaseConfig=firebaseConfig;

@@ -4,6 +4,8 @@
   window.ValoraConfig = Object.freeze({
     APP_VERSION: '8.8.0',
     RUNTIME_ENV: 'production',
+    BRAND: Object.freeze({ productName: 'Valora Insight™', companyName: 'Valora Group', assistantName: 'ValoraBot' }),
+    CONTACTS: Object.freeze({ whatsappDisplay: '+55 91 99254-5353', whatsappDigits: '5591992545353', whatsappUrl: 'https://wa.me/5591992545353' }),
 
     APP_PUBLIC_URL: 'https://valoragroup.mnsoft.com.br',
     APP_TEST_URL: 'https://valorateste.mnsoft.com.br/',
@@ -73,7 +75,8 @@
       measurementId: 'G-KP0VV5MSHJ'
     },
 
-    STORE_KEY: 'valoraPulseFinal800',
+    STORE_KEY: 'valoraInsightFinal800',
+    LEGACY_STORE_KEYS: Object.freeze(['valoraPulseFinal800']),
     certificateFeatureEnabled: true,
     LEGACY_SAAS_CONSOLIDATION_V2: true,
     PLAN_UPGRADE_REQUESTS_COLLECTION: 'plan_upgrade_requests'
@@ -83,7 +86,7 @@
 // Public-result final stabilization constants (kept non-secret; secrets stay in Firebase Functions secrets).
 window.ValoraPublicResultFinalFix = Object.freeze({
   publicProductName: 'Valora Insight™',
-  platformName: 'Valora Pulse™',
+  platformName: 'Valora Insight™',
   companyDisplayName: 'Valora Group',
   whatsappNumber: '5591992545353',
   certificateFeatureEnabled: true,

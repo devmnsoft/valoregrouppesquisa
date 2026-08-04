@@ -7,7 +7,7 @@ function Invoke-Valora($argsLine) {
 while ($true) {
   Clear-Host
   Write-Host "========================================"
-  Write-Host " VALORA PULSE - PUBLICADOR DE PRODUÇÃO"
+  Write-Host " VALORA INSIGHT - PUBLICADOR DE PRODUÇÃO"
   Write-Host "========================================"
   Write-Host ""
   Write-Host "1. Simular entrada em produção"

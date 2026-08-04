@@ -23,21 +23,22 @@ window.ValoraLocalRepository={
     purgeLegacyLocalStorageKeys();
     const firebaseProvider=String(window.ValoraConfig?.DATA_PROVIDER||'').toLowerCase()==='firebase';
     const resetCorruptedLocalStore=reason=>{
-      console.warn('[Valora Pulse] Base local incompatível. Recriando seed.',reason);
+      console.warn('[Valora Insight] Base local incompatível. Recriando seed.',reason);
       try{localStorage.removeItem(storeKey);}catch(_){ }
       const seeded=seedStore();
       if(productionMode()){['companies','organizations','forms','surveys','responses','invitations'].forEach(k=>{seeded[k]=withoutProductionDemoRows(seeded[k]);});}
       normalizeState(seeded);
-      try{localStorage.setItem(storeKey,JSON.stringify(seeded));}catch(err){console.warn('[Valora Pulse] Não foi possível salvar seed local.',err);}
+      try{localStorage.setItem(storeKey,JSON.stringify(seeded));}catch(err){console.warn('[Valora Insight] Não foi possível salvar seed local.',err);}
       return seeded;
     };
     try{
-      const raw=localStorage.getItem(storeKey);
+      let raw=localStorage.getItem(storeKey);
+      if(!raw){for(const legacyKey of (window.ValoraConfig?.LEGACY_STORE_KEYS||[])){const legacy=localStorage.getItem(legacyKey);if(legacy){raw=legacy;try{localStorage.setItem(storeKey,legacy);}catch(_){}break;}}}
       if(raw&&!firebaseProvider){const obj=JSON.parse(raw);normalizeState(obj);if(productionMode()){['companies','organizations','forms','surveys','responses','invitations'].forEach(k=>{obj[k]=withoutProductionDemoRows(obj[k]);});}return obj;}
     }catch(err){return resetCorruptedLocalStore(err);}
     return resetCorruptedLocalStore(firebaseProvider?'Firebase em produção: seed local filtrado apenas como contingência.':'Base local ausente.');
   },
-  saveStore({storeKey,state}={}){if(!state)return;try{localStorage.setItem(storeKey,JSON.stringify(state));}catch(err){console.warn('[Valora Pulse] Não foi possível salvar base local.',err);}},
+  saveStore({storeKey,state}={}){if(!state)return;try{localStorage.setItem(storeKey,JSON.stringify(state));}catch(err){console.warn('[Valora Insight] Não foi possível salvar base local.',err);}},
   login({state,email,password,nowIso}={}){
     const user=(state?.users||[]).find(x=>x.email.toLowerCase()===email.toLowerCase()&&x.password===password&&x.status==='active');
     if(!user)return null;

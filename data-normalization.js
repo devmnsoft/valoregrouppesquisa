@@ -46,7 +46,7 @@ function defaultFaq(){return [
   {id:'faq_tempo',question:'Quanto tempo leva para responder?',answer:'O diagnóstico essencial foi pensado para ser rápido e objetivo, levando poucos minutos para ser respondido.'},
   {id:'faq_resultado',question:'O que recebo ao final?',answer:'Você recebe uma leitura de maturidade com pontuação, nível, principais dimensões analisadas e uma devolutiva estratégica conforme o plano contratado.'},
   {id:'faq_gratis',question:'Existe um diagnóstico gratuito?',answer:'Sim. O plano Grátis permite iniciar com uma pesquisa ativa, até 10 respostas, resultado individual, devolutiva resumida e certificado simples.'},
-  {id:'faq_empresa',question:'A plataforma serve para qualquer empresa?',answer:'Sim. O Valora Pulse™ pode ser usado por empresas em diferentes estágios para organizar diagnósticos, respostas, relatórios e planos de evolução.'}
+  {id:'faq_empresa',question:'A plataforma serve para qualquer empresa?',answer:'Sim. O Valora Insight™ pode ser usado por empresas em diferentes estágios para organizar diagnósticos, respostas, relatórios e planos de evolução.'}
 ];}
 function parseFaq(text){
   const lines=String(text||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);

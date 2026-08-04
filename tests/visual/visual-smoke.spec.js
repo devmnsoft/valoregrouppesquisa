@@ -123,7 +123,7 @@ test('certificate PDF and PNG downloads use safe non-empty files', async ({ page
 test('ValoraBot public, public survey and logged profile smoke', async ({ page }) => {
   await resetDemo(page);
   await page.goto('/');
-  for (const q of ['O que é o Valora Pulse?', 'Como respondo uma pesquisa?', 'Quais são os planos?', 'Quero falar com suporte.']) await askBot(page, q);
+  for (const q of ['O que é o Valora Insight™?', 'Como respondo uma pesquisa?', 'Quais são os planos?', 'Quero falar com suporte.']) await askBot(page, q);
   await expect(page.getByText(/Falar com atendente/i)).toBeVisible();
 
   const links = await demoLinks(page);

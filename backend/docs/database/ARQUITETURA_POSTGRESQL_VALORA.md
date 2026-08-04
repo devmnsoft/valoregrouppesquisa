@@ -1,4 +1,4 @@
-# Arquitetura PostgreSQL Valora Pulse™
+# Arquitetura PostgreSQL Valora Insight™
 
 ## Decisão arquitetural
 
@@ -7,7 +7,7 @@ Recomenda-se uma migração gradual, mantendo o Firebase/Firestore ativo enquant
 ## Arquitetura final proposta
 
 ```text
-Frontend Valora Pulse™
+Frontend Valora Insight™
   -> ASP.NET Core API
       -> PostgreSQL
       -> SMTP/Communication Service

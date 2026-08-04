@@ -2,7 +2,7 @@
   "createdAt": "2026-06-30T12:19:50.441Z",
   "allowed": false,
   "to": "",
-  "subject": "Teste controlado Valora Pulse — produção",
+  "subject": "Teste controlado Valora Insight™ — produção",
   "sent": false,
   "errors": [
     "ALLOW_PRODUCTION_EMAIL_TEST diferente de true; nenhum envio realizado."

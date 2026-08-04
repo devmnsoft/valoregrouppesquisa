@@ -117,7 +117,7 @@ def build_message(payload: dict, cfg: dict) -> EmailMessage:
     to_address = str(payload.get("to", "")).strip()
     if not to_address or "@" not in to_address:
         raise ValueError("Destinatário de e-mail inválido.")
-    subject = str(payload.get("subject", "Valora Pulse™"))[:250]
+    subject = str(payload.get("subject", "Valora Insight™"))[:250]
     text = str(payload.get("text", ""))
     html = str(payload.get("html", ""))
     msg = EmailMessage()
@@ -127,7 +127,7 @@ def build_message(payload: dict, cfg: dict) -> EmailMessage:
     msg["To"] = to_address
     msg["Subject"] = subject
     msg["X-Valora-Pulse"] = APP_VERSION
-    msg.set_content(text or "Mensagem Valora Pulse™")
+    msg.set_content(text or "Mensagem Valora Insight™")
     if html:
         msg.add_alternative(html, subtype="html")
         if LOGO_FILE.exists():
@@ -184,14 +184,14 @@ def deliver_message(msg: EmailMessage, cfg: dict) -> dict:
 def fetch_json(url: str) -> dict:
     request = urllib.request.Request(
         url,
-        headers={"User-Agent": f"ValoraPulse/{APP_VERSION} (+local diagnostic platform)"},
+        headers={"User-Agent": f"ValoraInsight/{APP_VERSION} (+local diagnostic platform)"},
     )
     with urllib.request.urlopen(request, timeout=12) as response:
         return json.loads(response.read().decode("utf-8"))
 
 
 class ValoraHandler(SimpleHTTPRequestHandler):
-    server_version = f"ValoraPulseLocal/{APP_VERSION}"
+    server_version = f"ValoraInsightLocal/{APP_VERSION}"
 
     def end_headers(self) -> None:
         self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
@@ -346,7 +346,7 @@ def main() -> None:
     server, port = create_server()
     url = f"http://127.0.0.1:{port}/index.html?v={APP_VERSION}"
     print("===============================================")
-    print(f" VALORA PULSE {APP_VERSION} - SERVIDOR LOCAL")
+    print(f" VALORA INSIGHT {APP_VERSION} - SERVIDOR LOCAL")
     print("===============================================")
     print(f"Sistema disponível em {url}")
     print("Se o navegador não abrir automaticamente, copie o endereço acima.")

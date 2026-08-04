@@ -1,5 +1,5 @@
 {
-  "officialProductNames": ["Valora", "Valora Pulse", "Valora Insight", "Valora Group"],
+  "officialProductNames": ["Valora", "Valora Insight", "Valora Group"],
   "forbiddenProductNames": ["HabitFlow", "InovaGed", "IntegraRP", "SIGOV", "PlantaoPro", "OrcaFacil"],
   "exactlyOneSolution": "backend/Valora.sln",
   "officialSolution": "backend/Valora.sln",

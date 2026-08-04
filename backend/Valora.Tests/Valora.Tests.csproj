@@ -16,5 +16,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Valora.Api\Valora.Api.csproj" />
+    <ProjectReference Include="..\Valora.Web\Valora.Web.csproj" Aliases="ValoraWeb" />
   </ItemGroup>
 </Project>

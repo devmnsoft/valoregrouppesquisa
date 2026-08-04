@@ -61,12 +61,18 @@ jobs:
   postgres-15-partial:
     uses: ./.github/workflows/run-postgres-contract.yml
     with: { postgres-version: '15', scenario: partial, executions: 3 }
+  postgres-15-legacy:
+    uses: ./.github/workflows/run-postgres-contract.yml
+    with: { postgres-version: '15', scenario: legacy, executions: 3 }
   postgres-16-clean:
     uses: ./.github/workflows/run-postgres-contract.yml
     with: { postgres-version: '16', scenario: clean, executions: 1 }
   postgres-16-rerun:
     uses: ./.github/workflows/run-postgres-contract.yml
     with: { postgres-version: '16', scenario: clean, executions: 3 }
+  postgres-16-partial:
+    uses: ./.github/workflows/run-postgres-contract.yml
+    with: { postgres-version: '16', scenario: partial, executions: 3 }
   postgres-16-revoked-at:
     uses: ./.github/workflows/run-postgres-contract.yml
     with: { postgres-version: '16', scenario: revoked-at, executions: 3 }
@@ -154,7 +160,7 @@ jobs:
 
   release-gate:
     if: always()
-    needs: [repository-boundaries, restore, build, unit-tests, architecture-tests, static-contract-tests, postgres-15-clean, postgres-15-rerun, postgres-15-partial, postgres-16-clean, postgres-16-rerun, postgres-16-revoked-at, postgres-16-legacy, database-contract-tests, integration-tests, api-integration-tests, bff-integration-tests, publish-api, publish-web, playwright, accessibility, format-check, phase-validation]
+    needs: [repository-boundaries, restore, build, unit-tests, architecture-tests, static-contract-tests, postgres-15-clean, postgres-15-rerun, postgres-15-partial, postgres-15-legacy, postgres-16-clean, postgres-16-rerun, postgres-16-partial, postgres-16-revoked-at, postgres-16-legacy, database-contract-tests, integration-tests, api-integration-tests, bff-integration-tests, publish-api, publish-web, playwright, accessibility, format-check, phase-validation]
     runs-on: ubuntu-latest
     steps:
       - name: Require every Phase 2K.3 gate

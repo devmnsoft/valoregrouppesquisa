@@ -24,7 +24,7 @@ jobs:
       - env:
           VALORA_TEST_POSTGRES_CONNECTION: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
           ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
-        run: tools/ci/run-filtered-tests.sh '${{ inputs.category }}' '${{ inputs.artifact }}.trx'
+        run: ../tools/ci/run-filtered-tests.sh '${{ inputs.category }}' '${{ inputs.artifact }}.trx'
         working-directory: backend
       - if: always()
         uses: actions/upload-artifact@v4

@@ -63,6 +63,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IEmailSenderService, EmailSenderService>();
         services.AddScoped<IEmailStatusService, EmailStatusService>();
         services.AddScoped<IOrganizationAdministrationService, OrganizationAdministrationService>();
+        services.AddScoped<IOrganizationStructureService, OrganizationStructureService>();
         services.AddScoped<IOrganizationBrandingService, OrganizationBrandingService>();
         services.AddScoped<IUserAdministrationService, UserAdministrationService>();
         services.AddScoped<IFormAdministrationService, FormAdministrationService>();

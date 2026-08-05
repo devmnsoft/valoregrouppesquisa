@@ -18,6 +18,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IDbTransactionFactory, DbTransactionFactory>();
         services.AddScoped<MigrationRunner>();
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+        services.AddScoped<IOrganizationStructureRepository, OrganizationStructureRepository>();
         services.AddScoped<IOrganizationBrandingRepository, OrganizationBrandingRepository>();
         services.AddScoped<IUserAdministrationRepository, UserAdministrationRepository>();
         services.AddScoped<Valora.Application.CompanyRegistration.ICompanyRegistrationRepository, CompanyRegistrationRepository>();

@@ -9,6 +9,7 @@ using Valora.Application.Security;
 using Valora.Application.Contracts;
 using Valora.Application.CompanyRegistration;
 using Valora.Application.Access;
+using Valora.Application.OperationalIntelligence;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -68,6 +69,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IUserAdministrationService, UserAdministrationService>();
         services.AddScoped<IFormAdministrationService, FormAdministrationService>();
         services.AddScoped<IAccessAdministrationService, AccessAdministrationService>();
+        services.AddScoped<AccountHealthService>();
+        services.AddSingleton<ComparisonEntitlementPolicy>();
 
         services.AddScoped<Valora.Application.Contracts.ILegacyDataNormalizer, LegacyDataNormalizer>();
         services.AddScoped<Valora.Application.Contracts.ILegacyMappingService, LegacyMappingService>();

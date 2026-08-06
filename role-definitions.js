@@ -12,8 +12,13 @@ const ROLE_DEFINITIONS={
  participante:{...BASE,id:'participante',label:'Participante',scope:'participante',description:'Responde pesquisas e consulta histórico, certificados e privacidade quando permitido.',canAccessPortal:true,canAnswerSurveys:true},
  convidado_externo:{...BASE,id:'convidado_externo',label:'Convidado Externo',scope:'externo',description:'Responde por link seguro e não acessa o portal administrativo.',canAnswerSurveys:true,defaultPortalAccess:false}
 };
+// Perfis operacionais V4 mantêm as capacidades legadas para não romper regras e dados existentes.
+ROLE_DEFINITIONS.gestor_unidade={...ROLE_DEFINITIONS.gestor_pesquisa,id:'gestor_unidade',label:'Gestor de Unidade',description:'Opera pesquisas e acompanha resultados vinculados à sua unidade.',restrictedToUnit:true};
+ROLE_DEFINITIONS.gestor_setor={...ROLE_DEFINITIONS.gestor_area,id:'gestor_setor',label:'Gestor de Setor',description:'Acompanha resultados e planos de ação vinculados ao seu setor.',restrictedToDepartment:true};
+ROLE_DEFINITIONS.analista={...ROLE_DEFINITIONS.analista_resultados,id:'analista',label:'Analista',description:'Analisa dashboards, resultados e relatórios sem administrar cadastros.'};
+ROLE_DEFINITIONS.respondente={...ROLE_DEFINITIONS.participante,id:'respondente',label:'Respondente',description:'Responde pesquisas e consulta os próprios resultados e certificados.'};
 const GLOBAL_ROLES=['admin_valora','consultor_valora'];
-const COMPANY_ROLES=['empresa_admin','gestor_pesquisa','analista_resultados','gestor_area','participante','convidado_externo'];
+const COMPANY_ROLES=['empresa_admin','gestor_pesquisa','gestor_unidade','gestor_setor','analista_resultados','analista','gestor_area','participante','respondente','convidado_externo'];
 function getRoleDefinition(role){return ROLE_DEFINITIONS[role]||{...BASE,id:role||'',label:role||'Sem perfil',scope:'unknown',description:'Perfil não reconhecido.'};}
 function can(user,permission){if(!user)return false;if(user.role==='admin_valora')return true;return !!getRoleDefinition(user.role)[permission];}
 function canAccessCompany(user,companyId){if(!user)return false;if(GLOBAL_ROLES.includes(user.role))return true;return !!companyId&&user.companyId===companyId;}

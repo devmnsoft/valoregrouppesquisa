@@ -1,6 +1,6 @@
 (function(){
 'use strict';
-const TYPES=['survey_expiring','survey_expired','invitation_pending','invitation_failed','new_response','low_response_rate','action_overdue','action_critical','plan_limit_warning','plan_limit_exceeded','trial_ending','trial_expired','invoice_created','invoice_due_soon','invoice_paid','payment_failed','payment_overdue','subscription_suspended','upgrade_recommended','white_label_incomplete','onboarding_stalled','report_ready','system_error'];
+const TYPES=['survey_published','survey_closed','survey_expiring','survey_expired','invitation_pending','invitation_accepted','invitation_failed','new_response','low_response_rate','certificate_ready','permission_alert','action_overdue','action_critical','plan_limit_warning','plan_limit_exceeded','trial_ending','trial_expired','invoice_created','invoice_due_soon','invoice_paid','payment_failed','payment_overdue','subscription_suspended','upgrade_recommended','white_label_incomplete','onboarding_stalled','report_ready','system_error'];
 const SEVERITIES=['info','success','warning','danger','critical'];
 const GLOBAL_ROLES=['admin_valora','consultor_valora'];
 const ADMIN_TYPES=new Set(['plan_limit_warning','plan_limit_exceeded','trial_ending','trial_expired','invoice_created','invoice_due_soon','invoice_paid','payment_failed','payment_overdue','subscription_suspended','upgrade_recommended','white_label_incomplete','onboarding_stalled','invitation_failed','system_error']);

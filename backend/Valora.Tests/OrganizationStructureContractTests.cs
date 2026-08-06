@@ -15,6 +15,9 @@ public sealed class OrganizationStructureContractTests
         Assert.Contains("/api/v1/departments", controller);
         Assert.Contains("/api/v1/departments/{id:guid}/deactivate", controller);
         Assert.Contains("/api/v1/departments/{id:guid}/reactivate", controller);
+        Assert.Contains("ValoraPermissions.Units.Read", controller);
+        Assert.Contains("ValoraPermissions.Departments.Disable", controller);
+        Assert.Contains("Guid.TryParse", controller);
     }
 
     [Fact]
@@ -24,6 +27,9 @@ public sealed class OrganizationStructureContractTests
         Assert.Contains("Seu plano atual não permite esta ação", service);
         Assert.Contains("CheckLimitAsync(organizationId, \"units\", 1)", service);
         Assert.Contains("CheckLimitAsync(organizationId, \"departments\", 1)", service);
+        Assert.Contains("ValidateUnitScopeAsync", service);
+        Assert.Contains("não pertence à sua empresa", service);
+        Assert.Contains("department.deactivated", service);
     }
 
     [Fact]
@@ -35,5 +41,7 @@ public sealed class OrganizationStructureContractTests
         Assert.Contains("/bff/departments", api);
         Assert.Contains("data-add-unit", page);
         Assert.Contains("Confirma alterar o status", page);
+        Assert.Contains("data-structure-status", File.ReadAllText(Path.Combine("..", "..", "..", "..", "backend", "Valora.Web", "Views", "Organization", "Index.cshtml")));
+        Assert.Contains("unitId", page);
     }
 }

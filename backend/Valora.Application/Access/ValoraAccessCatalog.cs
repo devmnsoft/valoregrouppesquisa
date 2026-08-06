@@ -16,6 +16,8 @@ public static class ValoraModules
 public static class ValoraPermissions
 {
     public static class Organization { public const string Read="organization.read", Update="organization.update", BrandingRead="organization.branding.read", BrandingUpdate="organization.branding.update", SubscriptionRead="organization.subscription.read", UsageRead="organization.usage.read"; }
+    public static class Units { public const string Read="units.read", Create="units.create", Update="units.update", Disable="units.disable"; }
+    public static class Departments { public const string Read="departments.read", Create="departments.create", Update="departments.update", Disable="departments.disable"; }
     public static class Users { public const string Read="users.read", Create="users.create", Update="users.update", Disable="users.disable", AssignRoles="users.assign_roles", AssignScopes="users.assign_scopes"; }
     public static class Roles { public const string Read="roles.read", Create="roles.create", Update="roles.update", Delete="roles.delete", AssignPermissions="roles.assign_permissions"; }
     public static class Forms { public const string Read="forms.read", Create="forms.create", Update="forms.update", Publish="forms.publish", Archive="forms.archive", Restore="forms.restore"; }

@@ -1,0 +1,13 @@
+@{ ViewData["Title"] = "Comparativos"; }
+<section class="ops-page" data-page="comparisons">
+  <header class="ops-hero"><div><p class="eyebrow">Inteligência operacional</p><h1>Comparativos</h1><p>Encontre diferenças relevantes entre ciclos, unidades, setores e dimensões.</p></div><span class="ops-plan">Recurso conforme o plano</span></header>
+  <form class="ops-filters" aria-label="Filtros dos comparativos"><label>Período<select><option>Últimos 12 meses</option><option>Últimos 6 meses</option></select></label><label>Pesquisa<select><option>Todas as pesquisas</option></select></label><label>Unidade<select><option>Todas as unidades</option></select></label><label>Setor<select><option>Todos os setores</option></select></label><label>Dimensão<select><option>Todas as dimensões</option></select></label><button class="valora-button valora-button--primary" type="submit">Aplicar filtros</button></form>
+  <div class="ops-grid ops-grid--3">
+    <article class="ops-card"><span class="ops-icon">↗</span><h2>Pesquisa atual × anterior</h2><p>Visualize evolução de score e adesão entre ciclos.</p><a href="/Results">Ver resultados</a></article>
+    <article class="ops-card" data-entitlement="professional"><span class="ops-icon">◫</span><h2>Setor × setor</h2><p>Compare áreas no mesmo contexto e descubra disparidades.</p><button type="button" data-upgrade>Selecionar setores</button></article>
+    <article class="ops-card" data-entitlement="corporate"><span class="ops-icon">◇</span><h2>Unidade × unidade</h2><p>Analise filiais com filtros equivalentes e dados consolidados.</p><button type="button" data-upgrade>Selecionar unidades</button></article>
+    <article class="ops-card" data-entitlement="enterprise"><span class="ops-icon">◎</span><h2>Grupo empresarial</h2><p>Benchmark multiempresa para holdings e franquias.</p><button type="button" data-upgrade>Configurar benchmark</button></article>
+  </div>
+  <dialog class="ops-dialog" data-upgrade-modal><form method="dialog"><button class="ops-close" aria-label="Fechar">×</button><p class="eyebrow">Evolua seu plano</p><h2>Inteligência comparativa avançada</h2><p>Este recurso não está disponível no seu plano atual. Para liberar esta funcionalidade, fale com a Valora.</p><div class="ops-actions"><a class="valora-button valora-button--primary" href="https://wa.me/5591992545353" target="_blank" rel="noopener">Falar com a Valora</a><button class="valora-button" value="cancel">Agora não</button></div></form></dialog>
+</section>
+@section Scripts { <script src="/js/pages/operational-intelligence.js" asp-append-version="true"></script> }

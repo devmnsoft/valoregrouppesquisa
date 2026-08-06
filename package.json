@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "check": "npm run app:syntax && node --check functions/index.js && npm run actions:handlers && npm run public:boot-no-reference && node scripts/validate-legacy-plan-catalog.js && node scripts/validate-admin-result-share-cors.js && npm run legacy:identity",
+    "check": "npm run app:syntax && npm run test:operational-v4 && node --check functions/index.js && npm run actions:handlers && npm run public:boot-no-reference && node scripts/validate-legacy-plan-catalog.js && node scripts/validate-admin-result-share-cors.js && npm run legacy:identity",
+    "test:operational-v4": "node --test tests/operational-v4.test.js",
     "security:check": "node tests/security-check-classification.test.js && node scripts/security-check.js",
     "build:prod": "npm run check && npm run check:critical-runner && npm run check:critical && node scripts/build-production.js && npm run dist:actions-windows-path && npm run dist:actions",
     "test:rules": "npx firebase emulators:exec --only firestore \"npx mocha tests/rules/**/*.test.js --timeout 20000\"",

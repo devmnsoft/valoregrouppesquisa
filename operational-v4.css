@@ -1,0 +1,25 @@
+/* Camada V4: refinamento progressivo sem alterar os contratos do legado. */
+.app-shell{background:radial-gradient(circle at 100% 0,rgba(117,220,232,.14),transparent 30%),#f5fafb}
+.content{padding:clamp(18px,3vw,38px)}
+.dashboard-grid>.card,.onboarding-card,.notification-summary{border-color:rgba(148,190,202,.62);box-shadow:0 12px 34px rgba(5,52,68,.07)}
+.kpi{position:relative;overflow:hidden;background:linear-gradient(145deg,#fff,#f7fcfd);border-color:#d5e7eb}
+.kpi::after{content:"";position:absolute;inset:auto -24px -28px auto;width:72px;height:72px;border-radius:50%;background:rgba(117,220,232,.13)}
+.kpi strong{font-size:clamp(1.65rem,2.6vw,2.4rem);letter-spacing:-.045em}
+.onboarding-card{background:linear-gradient(135deg,#fff 62%,#edfafd)}
+.onboarding-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.onboarding-step{border:0;background:#f4fafb}
+.onboarding-step.done{background:#edfbf4}
+.onboarding-step.current{box-shadow:inset 4px 0 var(--accent-strong)}
+.notification-summary{border-left:4px solid var(--accent-strong)}
+.plan-card.featured{background:linear-gradient(150deg,#fff,#ecfbfd);outline:2px solid rgba(45,185,200,.35)}
+.modal-layer .modal{border:1px solid rgba(117,220,232,.5);box-shadow:0 32px 90px rgba(5,45,58,.24)}
+.auth-shell{background:radial-gradient(circle at 12% 16%,rgba(117,220,232,.28),transparent 30%),linear-gradient(145deg,#062c37,#0f4b5b)}
+.auth-card{animation:v4-enter .35s ease-out;box-shadow:0 30px 80px rgba(2,27,34,.25)}
+@keyframes v4-enter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (max-width:760px){
+  .content{padding:16px 12px 90px}.onboarding-list{grid-template-columns:1fr}.onboarding-head{align-items:flex-start}
+  .onboarding-step{grid-template-columns:auto minmax(0,1fr)}.onboarding-step .btn{grid-column:2;width:100%}
+  .auth-shell{min-height:calc(100dvh - 76px);padding:18px 10px}.auth-card{padding:22px 18px}
+  .dashboard-grid>.card{padding:20px}.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+@media (prefers-reduced-motion:reduce){.auth-card{animation:none}}

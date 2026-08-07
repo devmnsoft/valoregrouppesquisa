@@ -3,13 +3,14 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Enterprise;
+using Valora.Domain.Operations;
 
 namespace Valora.Api.Controllers;
 
 [Authorize]
 [ApiController]
 [Route("api/v1/enterprise")]
-public sealed class EnterpriseController(EnterpriseService service) : ControllerBase
+public sealed class EnterpriseController(EnterpriseService service, IConfiguration configuration, IHostEnvironment hostEnvironment) : ControllerBase
 {
     private Guid UserId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty;
     private Guid? OrganizationId => Guid.TryParse(User.FindFirstValue("organization_id"), out var id) ? id : null;
@@ -17,6 +18,28 @@ public sealed class EnterpriseController(EnterpriseService service) : Controller
 
     [HttpGet("summary")]
     public async Task<IActionResult> Summary(CancellationToken ct) => IsValoraAdmin ? Ok(await service.SummaryAsync(ct)) : PermissionDenied();
+
+    [HttpGet("release-info")]
+    public IActionResult ReleaseInfo()
+    {
+        if (!IsValoraAdmin) return PermissionDenied();
+        var configured = configuration["Valora:Environment"]?.ToLowerInvariant();
+        var environment = configured is "development" or "homologation" or "production" ? configured : hostEnvironment.EnvironmentName.ToLowerInvariant();
+        return Ok(new
+        {
+            product = "Valora Insight™", version = configuration["Valora:Version"] ?? "8.0.0",
+            releaseDate = configuration["Valora:ReleaseDate"] ?? "2026-08-07", environment,
+            build = configuration["Valora:BuildId"] ?? "local", isHomologation = environment == "homologation"
+        });
+    }
+
+    [HttpGet("anonymity/check")]
+    public IActionResult CheckAnonymity([FromQuery] bool anonymous, [FromQuery] int responses, [FromQuery] int minimum = 5)
+    {
+        if (OrganizationId is null && !IsValoraAdmin) return PermissionDenied();
+        var allowed = AnonymityPolicy.CanExposeSegment(anonymous, responses, minimum);
+        return Ok(new { allowed, individualAllowed = AnonymityPolicy.CanExposeIndividual(anonymous), message = allowed ? null : AnonymityPolicy.InsufficientDataMessage });
+    }
 
     [HttpGet("companies")]
     public async Task<IActionResult> Companies([FromQuery] EnterpriseListQuery query, CancellationToken ct) => IsValoraAdmin ? Ok(await service.CompaniesAsync(query,ct)) : PermissionDenied();
@@ -38,11 +61,11 @@ public sealed class EnterpriseController(EnterpriseService service) : Controller
 
     [HttpPost("items")]
     public async Task<IActionResult> CreateItem([FromBody] UpsertEnterpriseItemRequest request,CancellationToken ct)
-    { if(!IsValoraAdmin && request.Kind is "plan" or "template" or "automation")return PermissionDenied(); var id=await service.SaveItemAsync(IsValoraAdmin?null:OrganizationId,null,request,UserId,ct); return Created($"/api/v1/enterprise/items/{id}",new{id}); }
+    { if(!IsValoraAdmin && IsValoraOnly(request.Kind))return PermissionDenied(); var id=await service.SaveItemAsync(IsValoraAdmin?null:OrganizationId,null,request,UserId,ct); return Created($"/api/v1/enterprise/items/{id}",new{id}); }
 
     [HttpPut("items/{id:guid}")]
     public async Task<IActionResult> UpdateItem(Guid id,[FromBody] UpsertEnterpriseItemRequest request,CancellationToken ct)
-    { if(!IsValoraAdmin && request.Kind is "plan" or "template" or "automation")return PermissionDenied(); await service.SaveItemAsync(IsValoraAdmin?null:OrganizationId,id,request,UserId,ct); return NoContent(); }
+    { if(!IsValoraAdmin && IsValoraOnly(request.Kind))return PermissionDenied(); await service.SaveItemAsync(IsValoraAdmin?null:OrganizationId,id,request,UserId,ct); return NoContent(); }
 
     [HttpPost("api-keys")]
     public async Task<IActionResult> ApiKey([FromBody] CreateApiKeyRequest request,CancellationToken ct)
@@ -50,8 +73,11 @@ public sealed class EnterpriseController(EnterpriseService service) : Controller
 
     [RequestSizeLimit(2_000_000), HttpPost("imports/{type}/preview")]
     public IActionResult Preview(string type,[FromBody] CsvPreviewRequest request)
-    { if(OrganizationId is null)return PermissionDenied(); return Ok(service.PreviewCsv(type,request.Content)); }
+    { if(OrganizationId is null && !IsValoraAdmin)return PermissionDenied(); return Ok(service.PreviewCsv(type,request.Content)); }
 
+    private static bool IsValoraOnly(string kind) => kind is "plan" or "template" or "automation" or "implementation"
+        or "production-checklist" or "backup" or "release-note" or "data-quality" or "permission-governance"
+        or "plan-governance" or "lgpd-request";
     private ObjectResult PermissionDenied()=>StatusCode(403,new{code="PERMISSION_DENIED",message="Seu perfil não possui permissão para acessar esta área.",correlationId=HttpContext.TraceIdentifier});
     public sealed record ChangeStatusRequest(string Status);
     public sealed record CreateLeadRequest(string Name,string? CompanyName,string? Email,string? Phone,string? IntendedPlan,string? Owner,DateTime? NextActionAt,string? Notes);

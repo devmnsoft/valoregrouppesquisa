@@ -4,6 +4,7 @@ using System.Text.Json;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
 using Valora.Application.Exceptions;
+using Valora.Domain.Operations;
 
 namespace Valora.Application.Enterprise;
 
@@ -34,6 +35,7 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
     {
         var normalized = request with { Kind = ValidateKind(request.Kind), Name = request.Name.Trim(), Status = request.Status.Trim().ToLowerInvariant() };
         if (normalized.Name.Length is < 2 or > 160) throw new ValidationAppException("Informe um nome entre 2 e 160 caracteres.");
+        ValidateOperationalItem(normalized);
         var itemId = await repository.UpsertItemAsync(organizationId, id, normalized, ct);
         await audit.AddAsync(new AuditEntry(organizationId, userId, $"enterprise.{normalized.Kind}.saved", normalized.Kind, itemId.ToString(), "Configuração enterprise atualizada", "{}"));
         return itemId;
@@ -52,7 +54,7 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
 
     public CsvPreview PreviewCsv(string type, string csv)
     {
-        string[] types = ["units", "departments", "members", "respondents", "organization-structure"];
+        string[] types = ["companies", "users", "units", "departments", "surveys", "responses", "members", "respondents", "organization-structure"];
         if (!types.Contains(type)) throw new ValidationAppException("Tipo de importação inválido.");
         var lines = csv.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries);
         if (lines.Length < 2) throw new ValidationAppException("O CSV precisa conter cabeçalho e pelo menos uma linha.");
@@ -61,8 +63,7 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
             var values = line.Split(';'); var errors = new List<string>();
             if (values.Length != headers.Length) errors.Add("Quantidade de colunas diferente do cabeçalho.");
             var data = headers.Select((h, i) => (h, value: i < values.Length ? values[i].Trim() : "")).ToDictionary(x => x.h, x => x.value);
-            if (!data.TryGetValue("nome", out var name) || string.IsNullOrWhiteSpace(name)) errors.Add("Nome é obrigatório.");
-            if (data.TryGetValue("email", out var email) && email.Length > 0 && !email.Contains('@')) errors.Add("E-mail inválido.");
+            errors.AddRange(MigrationSafetyPolicy.Validate(type, data));
             return new CsvPreviewRow(index + 2, data, errors);
         }).ToList();
         var token = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(type + "|" + csv))).ToLowerInvariant();
@@ -70,5 +71,33 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
     }
 
     private static EnterpriseListQuery Normalize(EnterpriseListQuery q) => q with { Page = Math.Max(1, q.Page), PageSize = Math.Clamp(q.PageSize, 10, 100) };
-    private static string ValidateKind(string kind) => kind.Trim().ToLowerInvariant() switch { "plan" or "subscription" or "integration" or "template" or "alert" or "automation" or "branding" => kind.Trim().ToLowerInvariant(), _ => throw new ValidationAppException("Módulo enterprise inválido.") };
+    private static void ValidateOperationalItem(UpsertEnterpriseItemRequest item)
+    {
+        var statuses = item.Kind switch
+        {
+            "implementation" => new[] { "planned", "in_progress", "blocked", "homologation", "completed", "cancelled" },
+            "production-checklist" => new[] { "pending", "in_progress", "completed", "blocked", "waived" },
+            "backup" => new[] { "current", "delayed", "failed", "not_configured", "validating" },
+            "lgpd-request" => new[] { "received", "under_review", "processing", "completed", "justifiably_refused" },
+            _ => Array.Empty<string>()
+        };
+        if (statuses.Length > 0 && !statuses.Contains(item.Status)) throw new ValidationAppException("Status inválido para este módulo.");
+        if (item.Kind == "implementation")
+        {
+            string[] required = ["organizationId", "internalOwner", "clientOwner", "plan", "startDate", "targetDate", "steps"];
+            if (required.Any(x => !item.Configuration.TryGetProperty(x, out _))) throw new ValidationAppException("Preencha empresa, responsáveis, plano, datas e etapas da implantação.");
+            if (!item.Configuration.GetProperty("steps").EnumerateArray().Any()) throw new ValidationAppException("A implantação precisa conter etapas.");
+        }
+        if (item.Kind == "release-note" && (!item.Configuration.TryGetProperty("version", out var version) || string.IsNullOrWhiteSpace(version.GetString())))
+            throw new ValidationAppException("Informe a versão da release.");
+        if (item.Kind == "backup" && item.Configuration.TryGetProperty("providerSecret", out _))
+            throw new ValidationAppException("Segredos de backup devem ser configurados no provedor de infraestrutura, nunca nesta tela.");
+    }
+    private static string ValidateKind(string kind) => kind.Trim().ToLowerInvariant() switch
+    {
+        "plan" or "subscription" or "integration" or "template" or "alert" or "automation" or "branding"
+        or "implementation" or "production-checklist" or "backup" or "release-note" or "data-quality"
+        or "permission-governance" or "plan-governance" or "lgpd-request" => kind.Trim().ToLowerInvariant(),
+        _ => throw new ValidationAppException("Módulo de governança inválido.")
+    };
 }

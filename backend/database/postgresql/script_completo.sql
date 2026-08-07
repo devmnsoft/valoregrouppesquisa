@@ -774,5 +774,42 @@ INSERT INTO valorapesquisa.schema_migrations(version,checksum,applied_at,applied
 VALUES('2026_08_phase_2v2_permissions_convergence','sha256:phase-2v2-access-v1',now(),current_user,current_setting('valora.application_version',true))
 ON CONFLICT(version) DO UPDATE SET applied_at=valorapesquisa.schema_migrations.applied_at;
 
+-- 35.1 VALORA ENTERPRISE V6: carteira, CRM, integrações, automações e API segura
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS account_status text NOT NULL DEFAULT 'active';
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS account_health text NOT NULL DEFAULT 'healthy';
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS email text;
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS last_activity_at timestamptz;
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS trial_ends_at timestamptz;
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS usage_percent integer NOT NULL DEFAULT 0 CHECK(usage_percent BETWEEN 0 AND 100);
+CREATE INDEX IF NOT EXISTS ix_organizations_enterprise_portfolio ON valorapesquisa.organizations(account_status,account_health,created_at DESC) WHERE deleted_at IS NULL;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS billing_cycle text NOT NULL DEFAULT 'monthly';
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS contracted_value numeric(14,2) NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS renewal_at timestamptz;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS payment_method text;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS financial_contact text;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS notes text;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.crm_leads(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, company_name text, email text, phone text,
+ commercial_status text NOT NULL DEFAULT 'new' CHECK(commercial_status IN('new','contact','meeting','proposal','negotiation','won','lost','active_customer')),
+ intended_plan text, owner_name text, next_action_at timestamptz, notes text, converted_organization_id uuid REFERENCES valorapesquisa.organizations(id),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_crm_leads_pipeline ON valorapesquisa.crm_leads(commercial_status,next_action_at) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.enterprise_items(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id),
+ kind text NOT NULL CHECK(kind IN('plan','subscription','integration','template','alert','automation','branding')),
+ name text NOT NULL, status text NOT NULL DEFAULT 'active', configuration jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_enterprise_items_scope ON valorapesquisa.enterprise_items(kind,organization_id,status) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.api_keys(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), name text NOT NULL,
+ key_prefix text NOT NULL, key_hash text NOT NULL, scopes text[] NOT NULL DEFAULT '{}', status text NOT NULL DEFAULT 'active',
+ last_used_at timestamptz, use_count bigint NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), revoked_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_api_keys_hash ON valorapesquisa.api_keys(key_hash);
+CREATE INDEX IF NOT EXISTS ix_api_keys_tenant_active ON valorapesquisa.api_keys(organization_id,status) WHERE revoked_at IS NULL;
+INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_enterprise_v6','sha256:enterprise-v6-portfolio-crm-automation-api-v1') ON CONFLICT(version) DO NOTHING;
+
 -- 36. COMMIT
 COMMIT;

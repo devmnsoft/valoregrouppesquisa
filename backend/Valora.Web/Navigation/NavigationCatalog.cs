@@ -8,6 +8,8 @@ public sealed class NavigationCatalog
 
     public IReadOnlyList<NavigationSection> Sections { get; } =
     [
+        Section("valora", "Admin Valora", 5,
+            Item("valora.overview", "Visão Geral Valora", "Carteira, CRM e operação SaaS", "Enterprise", "sparkles", null, null, "enterprise", null, 10, Roles("admin_valora"))),
         Section("executive", "Visão Executiva", 10,
             Item("executive.overview", "Visão Geral", "Indicadores e prioridades da organização", "Dashboard", "layout-dashboard", null, null, "dashboard", null, 10, Results),
             Item("executive.company", "Minha Empresa", "Central operacional da sua conta", "Organization", "building", null, null, "organization", "organization", 20, Administrators)),

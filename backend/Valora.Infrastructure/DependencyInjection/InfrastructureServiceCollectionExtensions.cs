@@ -7,6 +7,7 @@ using Valora.Infrastructure.Email;
 using Valora.Infrastructure.Repositories;
 using Valora.Infrastructure.Security;
 using Valora.Application.Access;
+using Valora.Application.Enterprise;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -56,6 +57,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IJwtTokenService, JwtTokenService>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
+        services.AddScoped<IEnterpriseRepository, EnterpriseRepository>();
         return services;
     }
 

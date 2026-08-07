@@ -1,0 +1,17 @@
+@{ ViewData["Title"]="Admin Valora"; }
+<section class="enterprise-console" data-enterprise-console data-module="@ViewData["Module"]">
+  <header class="enterprise-hero">
+    <div><p class="eyebrow">Valora Insight™ · Operação enterprise</p><h1>Admin Valora</h1><p>Clientes, receita, relacionamento, automações e inteligência em uma visão protegida e auditável.</p></div>
+    <a class="btn btn-light" href="https://wa.me/5591992545353" target="_blank" rel="noopener">WhatsApp oficial</a>
+  </header>
+  <nav class="enterprise-tabs" aria-label="Módulos Admin Valora">
+    <button data-module="overview">Visão Geral</button><button data-module="companies">Clientes</button><button data-module="crm">CRM</button><button data-module="plan">Planos</button><button data-module="subscription">Assinaturas</button><button data-module="alert">Alertas</button><button data-module="template">Templates</button><button data-module="integration">Integrações</button><button data-module="automation">Automações</button><button data-module="branding">White label</button><button data-module="imports">Importação</button><button data-module="api">API</button>
+  </nav>
+  <div class="enterprise-loading" data-loading><span class="spinner-border"></span><span>Carregando informações seguras…</span></div>
+  <div class="alert alert-danger d-none" data-error>Não foi possível concluir esta operação agora. Tente novamente em alguns instantes.</div>
+  <main data-content aria-live="polite"></main>
+</section>
+
+<template id="enterprise-empty"><div class="enterprise-empty"><strong>Nenhum registro encontrado</strong><p>Use a ação principal para começar. Os registros críticos serão auditados automaticamente.</p></div></template>
+
+@section Scripts { <script src="/js/pages/enterprise-page.js" asp-append-version="true"></script> }

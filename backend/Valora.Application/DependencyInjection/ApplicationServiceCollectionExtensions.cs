@@ -11,6 +11,7 @@ using Valora.Application.CompanyRegistration;
 using Valora.Application.Access;
 using Valora.Application.OperationalIntelligence;
 using Valora.Application.Enterprise;
+using Valora.Application.OrganizationalIntelligence;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -73,6 +74,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<AccountHealthService>();
         services.AddSingleton<ComparisonEntitlementPolicy>();
         services.AddScoped<EnterpriseService>();
+        services.AddScoped<OrganizationalIntelligenceService>();
 
         services.AddScoped<Valora.Application.Contracts.ILegacyDataNormalizer, LegacyDataNormalizer>();
         services.AddScoped<Valora.Application.Contracts.ILegacyMappingService, LegacyMappingService>();

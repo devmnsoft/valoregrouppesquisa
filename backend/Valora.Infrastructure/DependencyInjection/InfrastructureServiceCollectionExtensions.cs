@@ -8,6 +8,7 @@ using Valora.Infrastructure.Repositories;
 using Valora.Infrastructure.Security;
 using Valora.Application.Access;
 using Valora.Application.Enterprise;
+using Valora.Application.OrganizationalIntelligence;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -58,6 +59,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<IEnterpriseRepository, EnterpriseRepository>();
+        services.AddScoped<IOrganizationalIntelligenceRepository, OrganizationalIntelligenceRepository>();
         return services;
     }
 

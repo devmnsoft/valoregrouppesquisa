@@ -813,3 +813,48 @@ INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_e
 
 -- 36. COMMIT
 COMMIT;
+
+-- 37. VALORA V10: monetização e base operacional de produção (aditiva e idempotente)
+BEGIN;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS discount_value numeric(14,2) NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS due_at timestamptz;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS financial_email text;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS financial_phone text;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_subscriptions_organization_active ON valorapesquisa.subscriptions(organization_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_subscriptions_status_due ON valorapesquisa.subscriptions(status,due_at) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.manual_payments(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), subscription_id uuid NOT NULL REFERENCES valorapesquisa.subscriptions(id),
+ organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), amount numeric(14,2) NOT NULL CHECK(amount>0),
+ paid_at timestamptz NOT NULL, method text NOT NULL, reference text, notes text, registered_by uuid REFERENCES valorapesquisa.users(id),
+ created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_manual_payments_tenant_date ON valorapesquisa.manual_payments(organization_id,paid_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.campaigns(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), survey_id uuid NOT NULL REFERENCES valorapesquisa.surveys(id),
+ unit_id uuid REFERENCES valorapesquisa.units(id), department_id uuid REFERENCES valorapesquisa.departments(id), name text NOT NULL,
+ audience text, response_goal integer NOT NULL DEFAULT 0 CHECK(response_goal>=0), starts_at timestamptz, ends_at timestamptz,
+ public_token_hash text, status text NOT NULL DEFAULT 'draft' CHECK(status IN('draft','scheduled','active','paused','closed','cancelled')),
+ created_by uuid REFERENCES valorapesquisa.users(id), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_campaigns_tenant_status ON valorapesquisa.campaigns(organization_id,status,created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_campaigns_survey ON valorapesquisa.campaigns(survey_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.processing_jobs(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), user_id uuid REFERENCES valorapesquisa.users(id),
+ type text NOT NULL, status text NOT NULL DEFAULT 'pending' CHECK(status IN('pending','processing','completed','failed','cancelled')),
+ payload jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text NOT NULL, attempts integer NOT NULL DEFAULT 0,
+ error_message text, created_at timestamptz NOT NULL DEFAULT now(), started_at timestamptz, completed_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_processing_jobs_queue ON valorapesquisa.processing_jobs(status,created_at);
+CREATE INDEX IF NOT EXISTS ix_processing_jobs_tenant ON valorapesquisa.processing_jobs(organization_id,type,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.operational_errors(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), correlation_id text NOT NULL, module text NOT NULL,
+ organization_id uuid REFERENCES valorapesquisa.organizations(id), user_id uuid REFERENCES valorapesquisa.users(id), severity text NOT NULL,
+ technical_message text NOT NULL, friendly_message text NOT NULL, status text NOT NULL DEFAULT 'open', owner text, resolution text,
+ created_at timestamptz NOT NULL DEFAULT now(), resolved_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_operational_errors_correlation ON valorapesquisa.operational_errors(correlation_id);
+CREATE INDEX IF NOT EXISTS ix_operational_errors_triage ON valorapesquisa.operational_errors(status,severity,created_at DESC);
+
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_08_valora_v10_operations','sha256:v10-monetization-campaign-jobs-errors-v1') ON CONFLICT(version) DO NOTHING;
+COMMIT;

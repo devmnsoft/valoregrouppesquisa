@@ -814,6 +814,38 @@ INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_e
 -- 36. COMMIT
 COMMIT;
 
+-- 38. VALORA ACTION™ E EVOLUTION™ (aditivo e idempotente)
+BEGIN;
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+ ('organizational_intelligence.action.create','Criar ação baseada em evidências','Cria ações rastreáveis no Valora Action™.','organizational_intelligence')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code,updated_at=now();
+INSERT INTO valorapesquisa.role_permissions(role_id,permission_id)
+SELECT r.id,p.id FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p
+WHERE r.deleted_at IS NULL AND r.code IN('admin_valora','consultor_valora','empresa_admin','gestor_pesquisa','analista_resultados')
+ AND p.code='organizational_intelligence.action.create' ON CONFLICT(role_id,permission_id) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_actions(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), code text NOT NULL,
+ title text NOT NULL, description text NOT NULL, evidence_justification text NOT NULL, capability text NOT NULL,
+ priority text NOT NULL CHECK(priority IN('critical','high','medium','low')), owner_name text, executive_sponsor text, due_at timestamptz,
+ complexity text NOT NULL CHECK(complexity IN('low','medium','high')), indicators text NOT NULL, expected_result text NOT NULL,
+ completion_criteria text NOT NULL, status text NOT NULL DEFAULT 'recommended' CHECK(status IN('recommended','planned','in_progress','waiting','completed','cancelled','reviewed')),
+ created_by uuid REFERENCES valorapesquisa.users(id), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_valora_actions_code ON valorapesquisa.valora_actions(organization_id,code) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_valora_actions_priority ON valorapesquisa.valora_actions(organization_id,status,priority,due_at) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_action_history(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), action_id uuid NOT NULL REFERENCES valorapesquisa.valora_actions(id) ON DELETE CASCADE,
+ status text NOT NULL, notes text NOT NULL, changed_by uuid REFERENCES valorapesquisa.users(id), changed_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_valora_action_history_action ON valorapesquisa.valora_action_history(action_id,changed_at DESC);
+DROP TRIGGER IF EXISTS trg_valora_actions_updated_at ON valorapesquisa.valora_actions;
+CREATE TRIGGER trg_valora_actions_updated_at BEFORE UPDATE ON valorapesquisa.valora_actions FOR EACH ROW EXECUTE FUNCTION valorapesquisa.set_updated_at();
+INSERT INTO valorapesquisa.plan_capabilities(plan_id,capability,capability_code,capability_key,enabled,is_enabled)
+SELECT id,x.code,x.code,x.code,true,true FROM valorapesquisa.plans CROSS JOIN (VALUES('valora_action'),('valora_evolution'),('valora_heatmap'),('valora_journey')) x(code)
+WHERE lower(plans.code) IN('professional','corporate','enterprise')
+ON CONFLICT(plan_id,capability_key) DO UPDATE SET enabled=true,is_enabled=true,updated_at=now();
+INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_valora_action_evolution','sha256:valora-action-evolution-v1') ON CONFLICT(version) DO UPDATE SET checksum=EXCLUDED.checksum;
+COMMIT;
+
 -- 36.1 INTELIGÊNCIA ORGANIZACIONAL: leituras agregadas, insights e jornada (sem dados pessoais)
 BEGIN;
 INSERT INTO valorapesquisa.modules(code,name,category,status) VALUES('organizational_intelligence','Inteligência Organizacional','intelligence','active')
@@ -837,6 +869,8 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.organizational_intelligence_runs(
  confidence_level text NOT NULL CHECK(confidence_level IN('very_high','high','moderate','low')), warning text, heatmap jsonb NOT NULL DEFAULT '[]',
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS ix_oi_runs_tenant_date ON valorapesquisa.organizational_intelligence_runs(organization_id,created_at DESC);
+ALTER TABLE valorapesquisa.organizational_intelligence_runs DROP CONSTRAINT IF EXISTS organizational_intelligence_runs_confidence_level_check;
+ALTER TABLE valorapesquisa.organizational_intelligence_runs ADD CONSTRAINT organizational_intelligence_runs_confidence_level_check CHECK(confidence_level IN('high','medium','low','insufficient_evidence','very_high','moderate'));
 CREATE TABLE IF NOT EXISTS valorapesquisa.organizational_intelligence_insights(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), run_id uuid NOT NULL REFERENCES valorapesquisa.organizational_intelligence_runs(id) ON DELETE CASCADE,
  dimension text NOT NULL, observation text NOT NULL, evidence text NOT NULL, correlation text NOT NULL, probable_cause text NOT NULL,

@@ -31,6 +31,13 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     }
     [HttpGet("indicators")]
     public async Task<IActionResult> Indicators([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", _ => service.IndicatorsAsync(ct));
+    [HttpGet("evolution")]
+    public async Task<IActionResult> Evolution([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.EvolutionAsync(id, ct));
+    [HttpGet("actions")]
+    public async Task<IActionResult> Actions([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.ActionsAsync(id, ct));
+    [HttpPost("actions")]
+    public async Task<IActionResult> CreateAction([FromBody] CreateValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct)
+    { var access = await Validate(organizationId, "organizational_intelligence.action.create"); if (access.Error is not null) return access.Error; return StatusCode(201, await service.CreateActionAsync(access.OrganizationId, UserId, request, ct)); }
 
     private async Task<IActionResult> Read<T>(Guid? requested, string permission, Func<Guid, Task<T>> action)
     { var access = await Validate(requested, permission); return access.Error ?? Ok(await action(access.OrganizationId)); }

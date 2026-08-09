@@ -27,9 +27,19 @@ public interface IOrganizationalIntelligenceRepository
     Task<OrganizationalIntelligenceDashboardDto> GetDashboardAsync(Guid organizationId, CancellationToken ct);
     Task<IReadOnlyList<OrganizationalIntelligenceRunDto>> ListRunsAsync(Guid organizationId, CancellationToken ct);
     Task<OrganizationalIntelligenceRunDto?> GetRunAsync(Guid organizationId, Guid id, CancellationToken ct);
-    Task SaveRunAsync(OrganizationalIntelligenceRunDto run, CancellationToken ct);
-    Task SaveInsightsAsync(IReadOnlyList<OrganizationalInsightDto> insights, CancellationToken ct);
+    Task SaveAnalysisAsync(OrganizationalIntelligenceRunDto run, CancellationToken ct);
     Task<IReadOnlyList<OrganizationalJourneyEventDto>> ListJourneyAsync(Guid organizationId, CancellationToken ct);
     Task<OrganizationalJourneyEventDto> CreateJourneyEventAsync(OrganizationalJourneyEventDto item, CancellationToken ct);
     Task<IReadOnlyList<ValoraIndicatorDefinitionDto>> ListIndicatorsAsync(CancellationToken ct);
+}
+
+public interface IOrganizationalIntelligenceService
+{
+    Task<OrganizationalIntelligenceDashboardDto> DashboardAsync(Guid organizationId, CancellationToken ct);
+    Task<IReadOnlyList<OrganizationalIntelligenceRunDto>> RunsAsync(Guid organizationId, CancellationToken ct);
+    Task<OrganizationalIntelligenceRunDto?> RunAsync(Guid organizationId, Guid id, CancellationToken ct);
+    Task<OrganizationalIntelligenceRunDto> GenerateAsync(Guid organizationId, CancellationToken ct);
+    Task<IReadOnlyList<OrganizationalJourneyEventDto>> JourneyAsync(Guid organizationId, CancellationToken ct);
+    Task<OrganizationalJourneyEventDto> CreateJourneyAsync(Guid organizationId, Guid userId, CreateJourneyEventRequest request, CancellationToken ct);
+    Task<IReadOnlyList<ValoraIndicatorDefinitionDto>> IndicatorsAsync(CancellationToken ct);
 }

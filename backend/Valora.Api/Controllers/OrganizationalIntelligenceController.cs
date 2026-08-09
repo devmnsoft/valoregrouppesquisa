@@ -7,7 +7,7 @@ using Valora.Application.OrganizationalIntelligence;
 namespace Valora.Api.Controllers;
 
 [Authorize, ApiController, Route("api/v1/intelligence")]
-public sealed class OrganizationalIntelligenceController(OrganizationalIntelligenceService service, IPermissionService permissions, IEntitlementService entitlements) : ControllerBase
+public sealed class OrganizationalIntelligenceController(IOrganizationalIntelligenceService service, IPermissionService permissions, IEntitlementService entitlements) : ControllerBase
 {
     [HttpGet("dashboard")]
     public async Task<IActionResult> Dashboard([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", (id) => service.DashboardAsync(id, ct));
@@ -36,7 +36,9 @@ public sealed class OrganizationalIntelligenceController(OrganizationalIntellige
     { var access = await Validate(requested, permission); return access.Error ?? Ok(await action(access.OrganizationId)); }
     private async Task<(Guid OrganizationId, IActionResult? Error)> Validate(Guid? requested, string permission)
     {
-        var organizationId = IsAdmin ? requested ?? ClaimOrganizationId : ClaimOrganizationId;
+        if (requested.HasValue && !CanSelectOrganization && requested != ClaimOrganizationId)
+            return (Guid.Empty, Denied("ORGANIZATION_SCOPE_DENIED", "Seu perfil não pode selecionar outra organização."));
+        var organizationId = CanSelectOrganization ? requested ?? ClaimOrganizationId : ClaimOrganizationId;
         if (organizationId is not Guid id) return (Guid.Empty, Denied("ORGANIZATION_REQUIRED", "Informe uma organização válida."));
         if (!IsAdmin && (!await permissions.HasPermissionAsync(UserId, permission, id) || !await entitlements.CanUseAsync(id, "organizational_intelligence")))
             return (id, Denied("PERMISSION_DENIED", "Seu perfil ou plano não possui acesso à Inteligência Organizacional."));
@@ -44,6 +46,8 @@ public sealed class OrganizationalIntelligenceController(OrganizationalIntellige
     }
     private Guid UserId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty;
     private Guid? ClaimOrganizationId => Guid.TryParse(User.FindFirstValue("organization_id"), out var id) ? id : null;
-    private bool IsAdmin => User.IsInRole("admin_valora") || User.Claims.Any(x => (x.Type is ClaimTypes.Role or "role") && x.Value == "admin_valora");
+    private bool CanSelectOrganization => HasRole("admin_valora") || HasRole("consultor_valora");
+    private bool IsAdmin => HasRole("admin_valora");
+    private bool HasRole(string role) => User.IsInRole(role) || User.Claims.Any(x => (x.Type is ClaimTypes.Role or "role") && string.Equals(x.Value, role, StringComparison.OrdinalIgnoreCase));
     private ObjectResult Denied(string code, string message) => StatusCode(403, new { code, message, correlationId = HttpContext.TraceIdentifier });
 }

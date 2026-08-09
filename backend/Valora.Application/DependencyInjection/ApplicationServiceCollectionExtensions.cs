@@ -74,7 +74,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<AccountHealthService>();
         services.AddSingleton<ComparisonEntitlementPolicy>();
         services.AddScoped<EnterpriseService>();
-        services.AddScoped<OrganizationalIntelligenceService>();
+        services.AddScoped<IOrganizationalIntelligenceService, OrganizationalIntelligenceService>();
 
         services.AddScoped<Valora.Application.Contracts.ILegacyDataNormalizer, LegacyDataNormalizer>();
         services.AddScoped<Valora.Application.Contracts.ILegacyMappingService, LegacyMappingService>();

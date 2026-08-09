@@ -1,0 +1,9 @@
+@{ ViewData["Title"] = "Templates oficiais"; }
+<main class="v9-page" data-page="templates-v9">
+  <header class="v9-hero"><div><p class="eyebrow">Biblioteca Valora</p><h1>Comece com a pesquisa certa</h1><p>Modelos oficiais, desenhados para transformar escuta em decisões claras.</p></div><a class="valora-button valora-button--ghost" href="/Forms">Meus formulários</a></header>
+  <div class="v9-toolbar"><label class="v9-search">Buscar template<input type="search" data-template-search placeholder="Ex.: liderança ou governança"></label><span data-template-count aria-live="polite">Carregando…</span></div>
+  <div class="v9-template-grid" data-template-grid aria-busy="true"><div class="valora-skeleton"></div><div class="valora-skeleton"></div><div class="valora-skeleton"></div></div>
+  <div class="valora-alert valora-alert--danger" data-error hidden></div>
+  <dialog class="v9-dialog" data-template-preview><button class="v9-dialog__close" data-close aria-label="Fechar">×</button><div data-preview-body></div></dialog>
+</main>
+@section Scripts { <script src="/js/pages/experience-v9.js"></script> }

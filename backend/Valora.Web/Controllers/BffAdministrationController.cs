@@ -55,6 +55,11 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
     public Task<IActionResult> Forms(string? resource, CancellationToken cancellationToken) =>
         ForwardAsync($"/api/v1/forms/{resource}", cancellationToken);
 
+    [AcceptVerbs("GET", "POST")]
+    [Route("experience/{**resource}")]
+    public Task<IActionResult> Experience(string? resource, CancellationToken cancellationToken) =>
+        ForwardAsync($"/api/v1/experience/{resource}", cancellationToken);
+
     private async Task<IActionResult> ForwardAsync(string path, CancellationToken cancellationToken)
     {
         var session = await authentication.GetAsync(HttpContext, cancellationToken);

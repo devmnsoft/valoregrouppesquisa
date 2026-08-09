@@ -12,10 +12,13 @@ public sealed class NavigationCatalog
             Item("valora.overview", "Visão Geral Valora", "Carteira, CRM e operação SaaS", "Enterprise", "sparkles", null, null, "enterprise", null, 10, Roles("admin_valora"))),
         Section("executive", "Visão Executiva", 10,
             Item("executive.overview", "Visão Geral", "Indicadores e prioridades da organização", "Dashboard", "layout-dashboard", null, null, "dashboard", null, 10, Results),
+            ItemAction("executive.cockpit", "Cockpit Executivo", "Riscos, tendências e prioridades da alta gestão", "Experience", "Cockpit", "chart-radar", "results", 15, Results),
             Item("executive.company", "Minha Empresa", "Central operacional da sua conta", "Organization", "building", null, null, "organization", "organization", 20, Administrators)),
         Section("diagnostics", "Diagnósticos", 20,
+            ItemAction("diagnostics.templates", "Templates", "Biblioteca oficial Valora", "Experience", "Templates", "layers", "forms", 5, Diagnostics),
             Item("diagnostics.forms", "Formulários", "Crie e publique diagnósticos", "Forms", "file-text", null, "forms", "forms", "organization", 10, Diagnostics),
             Item("diagnostics.surveys", "Pesquisas", "Configure campanhas, períodos e distribuição", "Surveys", "file-question", null, "surveys", "surveys", "organization", 20, Diagnostics),
+            ItemAction("diagnostics.campaigns", "Campanhas", "Envio, adesão e lembretes", "Experience", "Campaigns", "message-circle", "surveys", 25, Diagnostics),
             Item("diagnostics.responses", "Respostas", "Acompanhe a participação", "Responses", "activity", "canViewResponses", "responses", "responses", "organization", 30, Results)),
         Section("intelligence", "Inteligência", 30,
             Item("intelligence.results", "Resultados", "Devolutivas e análises executivas", "Results", "chart-radar", null, "results", "results", "organization", 10, Results),
@@ -30,7 +33,9 @@ public sealed class NavigationCatalog
             Item("administration.access", "Central de Acessos", "Usuários, papéis e escopos", "Users", "users", null, null, "users", "organization", 10, Administrators),
             Item("administration.communications", "Comunicações", "Templates e entregas", "Communications", "message-circle", null, null, "communications", "organization", 20, Administrators),
             Item("administration.audit", "Auditoria", "Histórico de atividades", "Audit", "activity", null, null, "audit", "organization", 30, Roles("admin_valora", "consultor_valora")),
-            Item("administration.settings", "Configurações", "Preferências da plataforma", "Settings", "settings", null, null, "settings", "organization", 40, Administrators))
+            Item("administration.settings", "Configurações", "Preferências da plataforma", "Settings", "settings", null, null, "settings", "organization", 40, Administrators)),
+        Section("support", "Suporte", 60,
+            ItemAction("support.help", "Ajuda", "Guias rápidos e atendimento", "Experience", "Help", "file-question", "organization", 10, Results))
     ];
 
     private static NavigationSection Section(string code, string label, int order, params NavigationItem[] items) => new(code, label, order, items);

@@ -1,0 +1,10 @@
+@{ ViewData["Title"] = "Campanhas"; }
+<main class="v9-page" data-page="campaigns-v9">
+  <header class="v9-hero"><div><p class="eyebrow">Distribuição e adesão</p><h1>Campanhas de pesquisa</h1><p>Publique, compartilhe e acompanhe cada ciclo em um só lugar.</p></div><button class="valora-button valora-button--primary" data-new-campaign>Nova campanha</button></header>
+  <section class="v9-kpis"><article><span>Campanhas</span><strong data-campaign-kpi="total">—</strong></article><article><span>Ativas</span><strong data-campaign-kpi="active">—</strong></article><article><span>Respostas</span><strong data-campaign-kpi="responses">—</strong></article><article><span>Adesão estimada</span><strong data-campaign-kpi="rate">—</strong></article></section>
+  <section class="valora-card"><div class="v9-section-title"><div><p class="eyebrow">Operação</p><h2>Acompanhamento</h2></div><button class="valora-button valora-button--ghost" data-refresh>Atualizar</button></div><div class="v9-campaign-list" data-campaigns></div></section>
+  <dialog class="v9-dialog" data-campaign-dialog><button class="v9-dialog__close" data-close aria-label="Fechar">×</button><form class="valora-form" data-campaign-form><p class="eyebrow">Novo ciclo</p><h2>Criar campanha</h2><label>Pesquisa base<select name="formId" required data-form-options><option value="">Selecione um formulário</option></select></label><label>Nome da campanha<input name="title" required maxlength="120"></label><label>Descrição<textarea name="description" rows="3"></textarea></label><div class="v9-form-grid"><label>Início<input name="startsAt" type="date"></label><label>Encerramento<input name="expiresAt" type="date"></label></div><button class="valora-button valora-button--primary" type="submit">Salvar rascunho</button></form></dialog>
+  <dialog class="v9-dialog v9-dialog--compact" data-share-dialog><button class="v9-dialog__close" data-close aria-label="Fechar">×</button><div data-share-body></div></dialog>
+  <div class="valora-alert valora-alert--danger" data-error hidden></div>
+</main>
+@section Scripts { <script src="/js/pages/experience-v9.js"></script> }

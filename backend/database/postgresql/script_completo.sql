@@ -870,7 +870,9 @@ ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS discount_value
 ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS due_at timestamptz;
 ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS financial_email text;
 ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS financial_phone text;
-CREATE UNIQUE INDEX IF NOT EXISTS ux_subscriptions_organization_active ON valorapesquisa.subscriptions(organization_id) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_subscriptions_active_organization
+ON valorapesquisa.subscriptions(organization_id)
+WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS ix_subscriptions_status_due ON valorapesquisa.subscriptions(status,due_at) WHERE deleted_at IS NULL;
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.manual_payments(

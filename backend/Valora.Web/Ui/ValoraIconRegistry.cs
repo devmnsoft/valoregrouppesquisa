@@ -29,6 +29,7 @@ public sealed class ValoraIconRegistry
         ["folder-tree"] = "<path d=\"M3 3v18M3 7h5M3 17h5M8 5h6v4H8zM8 15h6v4H8zM14 7h3v8\"/>",
         ["file-text"] = "<path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z M14 2v6h6M8 13h8M8 17h8M8 9h2\"/>",
         ["chart-radar"] = "<path d=\"m12 2 9 7-3.5 11h-11L3 9l9-7Z M12 2v18M3 9l14.5 11M21 9 6.5 20\"/>",
+        ["brain"] = "<path d=\"M9.5 4.5A3 3 0 0 0 4 6v.5A3.5 3.5 0 0 0 3 13a3 3 0 0 0 3 4 3 3 0 0 0 3.5 2.5V4.5Zm5 0A3 3 0 0 1 20 6v.5a3.5 3.5 0 0 1 1 6.5 3 3 0 0 1-3 4 3 3 0 0 1-3.5 2.5V4.5ZM9.5 9H7.75A1.75 1.75 0 0 0 6 10.75M14.5 9h1.75A1.75 1.75 0 0 1 18 10.75M9.5 15H8a2 2 0 0 1-2-2m8.5 2H16a2 2 0 0 0 2-2\"/>",
         ["chart-line"] = "<path d=\"M3 3v18h18M7 16l4-5 4 3 5-7\"/>",
         ["bar-chart"] = "<path d=\"M3 3v18h18M7 16v-4M12 16V8M17 16V5\"/>",
         ["award"] = "<circle cx=\"12\" cy=\"8\" r=\"6\"/><path d=\"m15.5 13 1.5 9-5-3-5 3 1.5-9\"/>",

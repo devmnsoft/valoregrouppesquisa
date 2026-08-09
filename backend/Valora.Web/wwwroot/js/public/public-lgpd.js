@@ -24,7 +24,7 @@
     })
     .catch(()=>{
       setText('[data-result-date]', 'Data não informada');
-      setText('[data-executive-reading]', 'Resultado em preparação. Tente novamente em instantes ou fale com a Valora Grup.');
+      setText('[data-executive-reading]', 'Resultado em preparação. Tente novamente em instantes ou fale com a Valora Group.');
     });
-  document.querySelector('[data-send-result-email]')?.addEventListener('click',()=>vp.toast('Solicitação de envio registrada. Se o relatório ainda estiver em preparação, tente novamente em instantes ou fale com a Valora Grup.'));
+  document.querySelector('[data-send-result-email]')?.addEventListener('click',()=>vp.toast('Solicitação de envio registrada. Se o relatório ainda estiver em preparação, tente novamente em instantes ou fale com a Valora Group.'));
 })();

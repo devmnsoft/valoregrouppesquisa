@@ -1,0 +1,27 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20, cache: npm }
+      - uses: actions/setup-dotnet@v4
+        with: { global-json-file: backend/global.json }
+      - run: npm ci
+      - run: npm run check
+      - run: npm run security:no-secrets-committed
+      - name: Validate V10 SQL contract
+        run: node -e "const s=require('fs').readFileSync('backend/database/postgresql/script_completo.sql','utf8'); for(const t of ['manual_payments','campaigns','processing_jobs','operational_errors']) if(!s.includes('CREATE TABLE IF NOT EXISTS valorapesquisa.'+t)) throw Error('missing '+t)"
+      - run: npm --prefix functions ci
+      - run: npm --prefix functions run build
+      - run: dotnet restore backend/Valora.sln
+      - run: dotnet format backend/Valora.sln --verify-no-changes --no-restore
+      - run: dotnet build backend/Valora.sln --configuration Release --no-restore
+      - run: dotnet test backend/Valora.sln --configuration Release --no-build

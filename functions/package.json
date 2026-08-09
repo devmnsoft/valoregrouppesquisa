@@ -7,7 +7,8 @@
     "node": "22"
   },
   "scripts": {
-    "lint": "node scripts/check-functions-syntax.js"
+    "lint": "node scripts/check-functions-syntax.js",
+    "build": "npm run lint"
   },
   "dependencies": {
     "firebase-admin": "^12.7.0",

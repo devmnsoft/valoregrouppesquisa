@@ -39,7 +39,7 @@ public sealed class PublicResultsController(IPublicResultService service, ICerti
         var result = await service.GetAsync(responseId, new PublicResultRequest(token));
         var to = body?.GetValueOrDefault("toEmail") ?? result.Response.ParticipantEmail;
         if (string.IsNullOrWhiteSpace(to)) return BadRequest(new { ok = false, code = "EMAIL_REQUIRED" });
-        var jobId = await communications.AddEmailJobAsync(result.Company.Id, responseId, to, "Seu resultado do diagnóstico Valora Grup está pronto", "result-ready", "pending", System.Text.Json.JsonSerializer.Serialize(new { responseId, result.Survey.Title, result.Result.Percentage, result.Result.MaturityLabel, resultUrl = $"/public/results/{responseId}?token={token}", whatsapp = "https://wa.me/5591992545353" }));
+        var jobId = await communications.AddEmailJobAsync(result.Company.Id, responseId, to, "Seu resultado do diagnóstico Valora Group está pronto", "result-ready", "pending", System.Text.Json.JsonSerializer.Serialize(new { responseId, result.Survey.Title, result.Result.Percentage, result.Result.MaturityLabel, resultUrl = $"/public/results/{responseId}?token={token}", whatsapp = "https://wa.me/5591992545353" }));
         return Ok(new { ok = true, emailStatus = "pending", emailJobId = jobId });
     }
 }

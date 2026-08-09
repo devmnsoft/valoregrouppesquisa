@@ -35,7 +35,7 @@ ALTER TABLE valorapesquisa.organizations ALTER COLUMN created_at SET DEFAULT now
 ALTER TABLE valorapesquisa.organizations ALTER COLUMN created_at SET NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_organizations_slug ON valorapesquisa.organizations(slug);
 INSERT INTO valorapesquisa.organizations(name,slug,status)
-VALUES('Valora Grup','valora-platform','active')
+VALUES('Valora Group','valora-platform','active')
 ON CONFLICT(slug) DO UPDATE SET name=EXCLUDED.name,status='active',deleted_at=NULL,updated_at=now();
 CREATE TABLE IF NOT EXISTS valorapesquisa.business_groups (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), name text NOT NULL, tax_id text, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.legal_entities (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), business_group_id uuid REFERENCES valorapesquisa.business_groups(id), legal_name text NOT NULL, trade_name text, cnpj text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);

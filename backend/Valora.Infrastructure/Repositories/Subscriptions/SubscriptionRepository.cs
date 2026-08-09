@@ -40,7 +40,8 @@ public sealed class SubscriptionRepository(IDbConnectionFactory connections) : I
     public async Task UpsertAsync(SubscriptionDto subscription)
     {
         const string sql = """
-            INSERT INTO valorapesquisa.subscriptions (
+            INSERT INTO valorapesquisa.subscriptions
+            (
                 id,
                 organization_id,
                 plan_id,
@@ -58,7 +59,8 @@ public sealed class SubscriptionRepository(IDbConnectionFactory connections) : I
                 payment_method,
                 notes
             )
-            VALUES (
+            VALUES
+            (
                 @Id,
                 @OrganizationId,
                 @PlanId,
@@ -103,7 +105,8 @@ public sealed class SubscriptionRepository(IDbConnectionFactory connections) : I
     {
         const string sql = """
             UPDATE valorapesquisa.subscriptions
-            SET status = @status,
+            SET
+                status = @status,
                 updated_at = now()
             WHERE organization_id = @organizationId
               AND deleted_at IS NULL;
@@ -119,13 +122,18 @@ public sealed class SubscriptionRepository(IDbConnectionFactory connections) : I
         RegisterManualPaymentRequest request)
     {
         const string sql = """
-            INSERT INTO valorapesquisa.manual_payments (
-                id, subscription_id, organization_id, amount, paid_at, method,
-                reference, notes, registered_by
-            )
+            INSERT INTO valorapesquisa.manual_payments
+                (id, subscription_id, organization_id, amount, paid_at, method, reference, notes, registered_by)
             SELECT
-                gen_random_uuid(), id, organization_id, @Amount, @PaidAt, @Method,
-                @Reference, @Notes, @userId
+                gen_random_uuid(),
+                id,
+                organization_id,
+                @Amount,
+                @PaidAt,
+                @Method,
+                @Reference,
+                @Notes,
+                @userId
             FROM valorapesquisa.subscriptions
             WHERE organization_id = @organizationId
               AND deleted_at IS NULL
@@ -177,7 +185,7 @@ public sealed class SubscriptionRepository(IDbConnectionFactory connections) : I
             """;
 
         using var connection = connections.Create();
-        var payments = await connection.QueryAsync<ManualPaymentDto>(sql, new { organizationId });
-        return payments.AsList();
+        var items = await connection.QueryAsync<ManualPaymentDto>(sql, new { organizationId });
+        return items.AsList();
     }
 }

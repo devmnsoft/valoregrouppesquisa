@@ -5,7 +5,7 @@ using Valora.Application.OrganizationalIntelligence;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class OrganizationalIntelligenceRepository(IDbConnectionFactory connections) : IOrganizationalIntelligenceRepository
+public sealed class OrganizationalIntelligenceRepository(IDbConnectionFactory connections, IDbTransactionFactory transactions) : IOrganizationalIntelligenceRepository
 {
     public async Task<EvidenceSummaryDto> GetEvidenceAsync(Guid organizationId, CancellationToken ct)
     {
@@ -20,7 +20,10 @@ public sealed class OrganizationalIntelligenceRepository(IDbConnectionFactory co
             """;
         const string counts = """
             SELECT (SELECT count(*) FROM valorapesquisa.responses WHERE organization_id=@organizationId)::int Responses,
-              (SELECT count(*) FROM valorapesquisa.results WHERE organization_id=@organizationId)::int ScoredResults,
+              (SELECT count(DISTINCT res.id) FROM valorapesquisa.results res
+                 JOIN valorapesquisa.result_scores rs ON rs.id=res.result_score_id
+                 JOIN valorapesquisa.response_answers ra ON ra.response_id=rs.response_id
+                WHERE res.organization_id=@organizationId)::int ScoredResults,
               (SELECT count(*) FROM valorapesquisa.surveys WHERE organization_id=@organizationId AND deleted_at IS NULL)::int Surveys,
               (SELECT count(*) FROM valorapesquisa.action_plans WHERE organization_id=@organizationId)::int ActionPlans
             """;
@@ -49,18 +52,22 @@ public sealed class OrganizationalIntelligenceRepository(IDbConnectionFactory co
     public async Task<OrganizationalIntelligenceRunDto?> GetRunAsync(Guid organizationId, Guid id, CancellationToken ct) =>
         (await ListRunsAsync(organizationId, ct)).FirstOrDefault(x => x.Id == id);
 
-    public async Task SaveRunAsync(OrganizationalIntelligenceRunDto x, CancellationToken ct)
+    public async Task SaveAnalysisAsync(OrganizationalIntelligenceRunDto x, CancellationToken ct)
     {
         const string sql = "INSERT INTO valorapesquisa.organizational_intelligence_runs(id,organization_id,maturity_index,culture_trust_index,governance_execution_index,structural_gap,strongest_dimension,weakest_dimension,evidence_count,confidence_level,warning,heatmap,created_at) VALUES(@Id,@OrganizationId,@MaturityIndex,@CultureTrustIndex,@GovernanceExecutionIndex,@StructuralGap,@StrongestDimension,@WeakestDimension,@EvidenceCount,@ConfidenceLevel,@Warning,CAST(@Heatmap AS jsonb),@CreatedAt)";
-        using var c = connections.Create();
-        await c.ExecuteAsync(new CommandDefinition(sql, new { x.Id, x.OrganizationId, x.MaturityIndex, x.CultureTrustIndex, x.GovernanceExecutionIndex, x.StructuralGap, x.StrongestDimension, x.WeakestDimension, x.EvidenceCount, x.ConfidenceLevel, x.Warning, Heatmap = JsonSerializer.Serialize(x.Heatmap), x.CreatedAt }, cancellationToken: ct));
-    }
-
-    public async Task SaveInsightsAsync(IReadOnlyList<OrganizationalInsightDto> insights, CancellationToken ct)
-    {
-        const string sql = "INSERT INTO valorapesquisa.organizational_intelligence_insights(id,run_id,dimension,observation,evidence,correlation,probable_cause,impact,priority,evolution_plan,created_at) VALUES(@Id,@RunId,@Dimension,@Observation,@Evidence,@Correlation,@ProbableCause,@Impact,@Priority,@EvolutionPlan,@CreatedAt)";
-        using var c = connections.Create();
-        await c.ExecuteAsync(new CommandDefinition(sql, insights, cancellationToken: ct));
+        const string insightSql = "INSERT INTO valorapesquisa.organizational_intelligence_insights(id,run_id,dimension,observation,evidence,correlation,probable_cause,impact,priority,evolution_plan,created_at) VALUES(@Id,@RunId,@Dimension,@Observation,@Evidence,@Correlation,@ProbableCause,@Impact,@Priority,@EvolutionPlan,@CreatedAt)";
+        await using var unit = await transactions.BeginAsync(ct);
+        try
+        {
+            await unit.Connection.ExecuteAsync(new CommandDefinition(sql, new { x.Id, x.OrganizationId, x.MaturityIndex, x.CultureTrustIndex, x.GovernanceExecutionIndex, x.StructuralGap, x.StrongestDimension, x.WeakestDimension, x.EvidenceCount, x.ConfidenceLevel, x.Warning, Heatmap = JsonSerializer.Serialize(x.Heatmap), x.CreatedAt }, unit.Transaction, cancellationToken: ct));
+            await unit.Connection.ExecuteAsync(new CommandDefinition(insightSql, x.Insights, unit.Transaction, cancellationToken: ct));
+            await unit.CommitAsync();
+        }
+        catch
+        {
+            await unit.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<IReadOnlyList<OrganizationalJourneyEventDto>> ListJourneyAsync(Guid organizationId, CancellationToken ct)

@@ -1,6 +1,6 @@
 namespace Valora.Application.OrganizationalIntelligence;
 
-public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenceRepository repository)
+public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenceRepository repository) : IOrganizationalIntelligenceService
 {
     public Task<OrganizationalIntelligenceDashboardDto> DashboardAsync(Guid organizationId, CancellationToken ct) => repository.GetDashboardAsync(organizationId, ct);
     public Task<IReadOnlyList<OrganizationalIntelligenceRunDto>> RunsAsync(Guid organizationId, CancellationToken ct) => repository.ListRunsAsync(organizationId, ct);
@@ -21,20 +21,23 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
         var confidence = evidence.Responses >= 30 && ordered.Count >= 4 ? "very_high" : evidence.Responses >= 15 && ordered.Count >= 3 ? "high" : evidence.Responses >= 5 && ordered.Count >= 2 ? "moderate" : "low";
         const string warning = "As informações disponíveis ainda não permitem concluir esta análise com segurança. Amplie a participação e gere uma nova leitura.";
         var runId = Guid.NewGuid();
-        var insights = ordered.TakeLast(Math.Min(3, ordered.Count)).Select((dimension, index) => new OrganizationalInsightDto(
+        var insights = ordered.TakeLast(Math.Min(3, ordered.Count)).Select((dimension, index) =>
+        {
+            var convergent = dimension.EvidenceCount >= 3;
+            return new OrganizationalInsightDto(
             Guid.NewGuid(), runId, dimension.Name,
             $"A dimensão {dimension.Name} apresenta índice consolidado de {dimension.Score:0.#}%.",
             $"Leitura agregada de {dimension.EvidenceCount} avaliações válidas; nenhuma resposta individual é exposta.",
             "A posição relativa foi calculada somente entre dimensões observadas no mesmo conjunto de evidências.",
-            confidence == "low" ? "Evidência insuficiente para atribuir uma causa com segurança." : "Hipótese: práticas e rotinas associadas à dimensão ainda não estão consistentes.",
-            confidence == "low" ? "Impacto ainda indeterminado." : "Pode reduzir a consistência da execução e a confiança organizacional.",
+            !convergent ? "Menos de 3 evidências convergentes: não é seguro formular uma causa provável." : "Hipótese a validar: práticas e rotinas associadas à dimensão podem não estar consistentes.",
+            !convergent ? "Impacto não concluído por insuficiência de evidências convergentes." : "Hipótese de impacto: pode reduzir a consistência da execução; requer validação pela organização.",
             index == 0 ? "high" : "medium",
-            "Validar a hipótese com os responsáveis, definir uma ação mensurável e reavaliar no próximo ciclo.", DateTime.UtcNow)).ToList();
+            "Validar a observação com os responsáveis, definir uma ação mensurável e reavaliar no próximo ciclo.", DateTime.UtcNow);
+        }).ToList();
         var run = new OrganizationalIntelligenceRunDto(runId, organizationId, maturity, culture, governance, gap,
             ordered.FirstOrDefault()?.Name ?? "Sem evidências", ordered.LastOrDefault()?.Name ?? "Sem evidências",
             evidence.Total, confidence, confidence == "low" ? warning : null, ordered, insights, DateTime.UtcNow);
-        await repository.SaveRunAsync(run, ct);
-        await repository.SaveInsightsAsync(insights, ct);
+        await repository.SaveAnalysisAsync(run, ct);
         return run;
     }
 

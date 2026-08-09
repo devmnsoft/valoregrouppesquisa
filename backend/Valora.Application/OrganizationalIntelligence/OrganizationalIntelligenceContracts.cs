@@ -20,6 +20,14 @@ public sealed record OrganizationalIntelligenceDashboardDto(OrganizationalIntell
     IReadOnlyList<ValoraIndicatorDefinitionDto> Indicators);
 public sealed record GenerateOrganizationalIntelligenceRequest(string? Notes = null);
 public sealed record CreateJourneyEventRequest(string Title, string Description, string EventType, DateTime? OccurredAt = null);
+public sealed record EvolutionPointDto(DateTime CycleAt, decimal MaturityIndex, decimal Change, string Classification, bool HasSufficientHistory, decimal? EstimatedNextCycle);
+public sealed record ValoraActionDto(Guid Id, Guid OrganizationId, string Code, string Title, string Description,
+    string EvidenceJustification, string Capability, string Priority, string? Owner, string? ExecutiveSponsor,
+    DateTime? DueAt, string Complexity, string Indicators, string ExpectedResult, string CompletionCriteria,
+    string Status, DateTime CreatedAt, DateTime UpdatedAt);
+public sealed record CreateValoraActionRequest(string Title, string Description, string EvidenceJustification,
+    string Capability, string Priority, string? Owner, string? ExecutiveSponsor, DateTime? DueAt,
+    string Complexity, string Indicators, string ExpectedResult, string CompletionCriteria);
 
 public interface IOrganizationalIntelligenceRepository
 {
@@ -31,6 +39,8 @@ public interface IOrganizationalIntelligenceRepository
     Task<IReadOnlyList<OrganizationalJourneyEventDto>> ListJourneyAsync(Guid organizationId, CancellationToken ct);
     Task<OrganizationalJourneyEventDto> CreateJourneyEventAsync(OrganizationalJourneyEventDto item, CancellationToken ct);
     Task<IReadOnlyList<ValoraIndicatorDefinitionDto>> ListIndicatorsAsync(CancellationToken ct);
+    Task<IReadOnlyList<ValoraActionDto>> ListActionsAsync(Guid organizationId, CancellationToken ct);
+    Task<ValoraActionDto> CreateActionAsync(ValoraActionDto item, Guid userId, CancellationToken ct);
 }
 
 public interface IOrganizationalIntelligenceService
@@ -42,4 +52,7 @@ public interface IOrganizationalIntelligenceService
     Task<IReadOnlyList<OrganizationalJourneyEventDto>> JourneyAsync(Guid organizationId, CancellationToken ct);
     Task<OrganizationalJourneyEventDto> CreateJourneyAsync(Guid organizationId, Guid userId, CreateJourneyEventRequest request, CancellationToken ct);
     Task<IReadOnlyList<ValoraIndicatorDefinitionDto>> IndicatorsAsync(CancellationToken ct);
+    Task<IReadOnlyList<EvolutionPointDto>> EvolutionAsync(Guid organizationId, CancellationToken ct);
+    Task<IReadOnlyList<ValoraActionDto>> ActionsAsync(Guid organizationId, CancellationToken ct);
+    Task<ValoraActionDto> CreateActionAsync(Guid organizationId, Guid userId, CreateValoraActionRequest request, CancellationToken ct);
 }

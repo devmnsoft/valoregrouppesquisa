@@ -7,6 +7,34 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
     public Task<OrganizationalIntelligenceRunDto?> RunAsync(Guid organizationId, Guid id, CancellationToken ct) => repository.GetRunAsync(organizationId, id, ct);
     public Task<IReadOnlyList<OrganizationalJourneyEventDto>> JourneyAsync(Guid organizationId, CancellationToken ct) => repository.ListJourneyAsync(organizationId, ct);
     public Task<IReadOnlyList<ValoraIndicatorDefinitionDto>> IndicatorsAsync(CancellationToken ct) => repository.ListIndicatorsAsync(ct);
+    public Task<IReadOnlyList<ValoraActionDto>> ActionsAsync(Guid organizationId, CancellationToken ct) => repository.ListActionsAsync(organizationId, ct);
+
+    public async Task<IReadOnlyList<EvolutionPointDto>> EvolutionAsync(Guid organizationId, CancellationToken ct)
+    {
+        var runs = (await repository.ListRunsAsync(organizationId, ct)).OrderBy(x => x.CreatedAt).ToList();
+        return runs.Select((run, index) =>
+        {
+            var change = index == 0 ? 0 : Math.Round(run.MaturityIndex - runs[index - 1].MaturityIndex, 2);
+            var classification = index == 0 ? "baseline" : change >= 2 ? "evolution" : change <= -2 ? "regression" : Math.Abs(change) < .5m ? "stagnation" : "stable";
+            var sufficient = index >= 2;
+            decimal? estimate = sufficient ? Math.Clamp(Math.Round(run.MaturityIndex + (run.MaturityIndex - runs[index - 2].MaturityIndex) / 2, 2), 0, 100) : null;
+            return new EvolutionPointDto(run.CreatedAt, run.MaturityIndex, change, classification, sufficient, estimate);
+        }).ToList();
+    }
+
+    public Task<ValoraActionDto> CreateActionAsync(Guid organizationId, Guid userId, CreateValoraActionRequest request, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.EvidenceJustification) || string.IsNullOrWhiteSpace(request.CompletionCriteria))
+            throw new ArgumentException("Título, justificativa baseada em evidências e critério de conclusão são obrigatórios.");
+        if (request.EvidenceJustification.Trim().Length < 20)
+            throw new ArgumentException("Descreva as evidências que sustentam a ação (mínimo de 20 caracteres).");
+        var now = DateTime.UtcNow;
+        var item = new ValoraActionDto(Guid.NewGuid(), organizationId, $"ACT-{now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
+            request.Title.Trim(), request.Description.Trim(), request.EvidenceJustification.Trim(), request.Capability.Trim(),
+            request.Priority.Trim().ToLowerInvariant(), request.Owner?.Trim(), request.ExecutiveSponsor?.Trim(), request.DueAt,
+            request.Complexity.Trim().ToLowerInvariant(), request.Indicators.Trim(), request.ExpectedResult.Trim(), request.CompletionCriteria.Trim(), "recommended", now, now);
+        return repository.CreateActionAsync(item, userId, ct);
+    }
 
     public async Task<OrganizationalIntelligenceRunDto> GenerateAsync(Guid organizationId, CancellationToken ct)
     {
@@ -18,7 +46,7 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
         if (culture == 0) culture = maturity;
         if (governance == 0) governance = maturity;
         var gap = ordered.Count < 2 ? 0 : Math.Round(ordered.First().Score - ordered.Last().Score, 2);
-        var confidence = evidence.Responses >= 30 && ordered.Count >= 4 ? "very_high" : evidence.Responses >= 15 && ordered.Count >= 3 ? "high" : evidence.Responses >= 5 && ordered.Count >= 2 ? "moderate" : "low";
+        var confidence = evidence.Responses >= 30 && ordered.Count >= 4 ? "high" : evidence.Responses >= 15 && ordered.Count >= 3 ? "medium" : evidence.Responses >= 5 && ordered.Count >= 2 ? "low" : "insufficient_evidence";
         const string warning = "As informações disponíveis ainda não permitem concluir esta análise com segurança. Amplie a participação e gere uma nova leitura.";
         var runId = Guid.NewGuid();
         var insights = ordered.TakeLast(Math.Min(3, ordered.Count)).Select((dimension, index) =>
@@ -36,7 +64,7 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
         }).ToList();
         var run = new OrganizationalIntelligenceRunDto(runId, organizationId, maturity, culture, governance, gap,
             ordered.FirstOrDefault()?.Name ?? "Sem evidências", ordered.LastOrDefault()?.Name ?? "Sem evidências",
-            evidence.Total, confidence, confidence == "low" ? warning : null, ordered, insights, DateTime.UtcNow);
+            evidence.Total, confidence, confidence == "insufficient_evidence" ? warning : null, ordered, insights, DateTime.UtcNow);
         await repository.SaveAnalysisAsync(run, ct);
         return run;
     }

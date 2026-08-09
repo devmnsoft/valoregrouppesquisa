@@ -1,8 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Valora.Application.Contracts.Repositories;
-using Valora.Application.DTOs.PublicSurveys;
+using Valora.Application.Contracts;
+using Valora.Application.DTOs;
 using Valora.Application.Experience;
 using Valora.Application.Forms;
 

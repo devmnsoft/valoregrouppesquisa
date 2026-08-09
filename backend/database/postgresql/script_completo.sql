@@ -814,6 +814,56 @@ INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_e
 -- 36. COMMIT
 COMMIT;
 
+-- 36.1 INTELIGÊNCIA ORGANIZACIONAL: leituras agregadas, insights e jornada (sem dados pessoais)
+BEGIN;
+INSERT INTO valorapesquisa.modules(code,name,category,status) VALUES('organizational_intelligence','Inteligência Organizacional','intelligence','active')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,category=EXCLUDED.category,status='active',deleted_at=NULL,updated_at=now();
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+ ('organizational_intelligence.read','Consultar inteligência organizacional','Consulta leituras agregadas e jornada.','organizational_intelligence'),
+ ('organizational_intelligence.generate','Gerar inteligência organizacional','Gera uma leitura determinística a partir de evidências.','organizational_intelligence'),
+ ('organizational_intelligence.journey.create','Criar marco da jornada','Registra marcos organizacionais sem dados pessoais.','organizational_intelligence')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code,updated_at=now();
+INSERT INTO valorapesquisa.role_permissions(role_id,permission_id)
+SELECT r.id,p.id FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p
+WHERE r.deleted_at IS NULL AND r.code IN('admin_valora','consultor_valora','empresa_admin','gestor_pesquisa','analista_resultados')
+  AND p.code IN('organizational_intelligence.read','organizational_intelligence.generate','organizational_intelligence.journey.create')
+ON CONFLICT(role_id,permission_id) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.organizational_intelligence_runs(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ maturity_index numeric(6,2) NOT NULL CHECK(maturity_index BETWEEN 0 AND 100), culture_trust_index numeric(6,2) NOT NULL CHECK(culture_trust_index BETWEEN 0 AND 100),
+ governance_execution_index numeric(6,2) NOT NULL CHECK(governance_execution_index BETWEEN 0 AND 100), structural_gap numeric(6,2) NOT NULL CHECK(structural_gap BETWEEN 0 AND 100),
+ strongest_dimension text NOT NULL, weakest_dimension text NOT NULL, evidence_count integer NOT NULL CHECK(evidence_count>=0),
+ confidence_level text NOT NULL CHECK(confidence_level IN('very_high','high','moderate','low')), warning text, heatmap jsonb NOT NULL DEFAULT '[]',
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_oi_runs_tenant_date ON valorapesquisa.organizational_intelligence_runs(organization_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.organizational_intelligence_insights(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), run_id uuid NOT NULL REFERENCES valorapesquisa.organizational_intelligence_runs(id) ON DELETE CASCADE,
+ dimension text NOT NULL, observation text NOT NULL, evidence text NOT NULL, correlation text NOT NULL, probable_cause text NOT NULL,
+ impact text NOT NULL, priority text NOT NULL CHECK(priority IN('high','medium','low')), evolution_plan text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_oi_insights_run ON valorapesquisa.organizational_intelligence_insights(run_id,created_at);
+CREATE TABLE IF NOT EXISTS valorapesquisa.organizational_journey_events(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), title text NOT NULL,
+ description text NOT NULL, event_type text NOT NULL DEFAULT 'milestone', occurred_at timestamptz NOT NULL, created_by uuid REFERENCES valorapesquisa.users(id),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_oi_journey_tenant_date ON valorapesquisa.organizational_journey_events(organization_id,occurred_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_indicator_definitions(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE, name text NOT NULL, description text NOT NULL, category text NOT NULL,
+ weight numeric(6,3) NOT NULL DEFAULT 1 CHECK(weight>0), is_active boolean NOT NULL DEFAULT true,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+INSERT INTO valorapesquisa.valora_indicator_definitions(code,name,description,category,weight) VALUES
+ ('organizational_maturity','Maturidade organizacional','Média ponderada das dimensões efetivamente avaliadas.','maturity',1),
+ ('culture_trust','Cultura e confiança','Leitura das dimensões identificadas como cultura, confiança, pessoas ou liderança.','culture',1),
+ ('governance_execution','Governança e execução','Leitura das dimensões identificadas como governança, execução, processos ou estratégia.','governance',1),
+ ('structural_gap','Gap estrutural','Diferença entre as dimensões mais forte e mais frágil.','structure',1)
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,category=EXCLUDED.category,weight=EXCLUDED.weight,is_active=true,updated_at=now();
+DO $triggers$ DECLARE table_name text; BEGIN FOREACH table_name IN ARRAY ARRAY['organizational_intelligence_runs','organizational_journey_events','valora_indicator_definitions'] LOOP EXECUTE format('DROP TRIGGER IF EXISTS trg_%s_updated_at ON valorapesquisa.%I',table_name,table_name); EXECUTE format('CREATE TRIGGER trg_%s_updated_at BEFORE UPDATE ON valorapesquisa.%I FOR EACH ROW EXECUTE FUNCTION valorapesquisa.set_updated_at()',table_name,table_name); END LOOP; END $triggers$;
+INSERT INTO valorapesquisa.plan_capabilities(plan_id,capability,capability_code,capability_key,enabled,is_enabled)
+SELECT id,'organizational_intelligence','organizational_intelligence','organizational_intelligence',true,true FROM valorapesquisa.plans WHERE lower(code) IN('professional','corporate','enterprise')
+ON CONFLICT(plan_id,capability_key) DO UPDATE SET capability=EXCLUDED.capability,capability_code=EXCLUDED.capability_code,enabled=true,is_enabled=true,updated_at=now();
+INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_organizational_intelligence','sha256:organizational-intelligence-v1') ON CONFLICT(version) DO NOTHING;
+COMMIT;
+
 -- 37. VALORA V10: monetização e base operacional de produção (aditiva e idempotente)
 BEGIN;
 ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS discount_value numeric(14,2) NOT NULL DEFAULT 0;

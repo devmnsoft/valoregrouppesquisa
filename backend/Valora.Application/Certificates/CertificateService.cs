@@ -1,30 +1,29 @@
 using System.Text;
-using Microsoft.Extensions.Logging;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
 
 namespace Valora.Application.Certificates;
 
-public sealed class CertificateService(IPublicResultService results, ILogger<CertificateService> logger) : ICertificateService
+public sealed class CertificateService(IPublicResultService results) : ICertificateService
 {
-    public object Plan(Guid responseId, string format) { logger.LogInformation("Certificate plan requested. ResponseId={ResponseId} Format={Format}", responseId, format); return new { product="Valora Insight™", issuer="Valora Grup", title="Certificado de Diagnóstico", responseId, format, status = "implemented" }; }
-
     public async Task<string> BuildCertificateHtmlAsync(Guid responseId, string resultToken)
     {
         var data = await results.GetAsync(responseId, new PublicResultRequest(resultToken));
         var issuedAt = data.Certificate.IssuedAt ?? DateTime.UtcNow;
         return $"""
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Certificado Valora Grup</title></head>
-<body style="font-family:Arial,sans-serif;margin:40px;color:#16213e">
-<section style="border:6px solid #d4af37;border-radius:24px;padding:40px;text-align:center;max-width:980px;margin:auto">
-<h1 style="font-size:42px;margin:0">Valora Grup</h1>
-<h2>Certificado de participação no diagnóstico Valora Grup.</h2>
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Certificado Valora Insight™</title></head>
+<body style="font-family:Arial,sans-serif;margin:0;padding:clamp(16px,5vw,48px);color:#102f36;background:#f3f6f4">
+<section style="border:6px solid #b9974b;border-radius:24px;padding:clamp(24px,6vw,64px);text-align:center;max-width:980px;margin:auto;background:#fff;box-shadow:0 24px 60px #102f3620">
+<p style="color:#8b6d2c;letter-spacing:.22em;text-transform:uppercase;font-weight:bold">Valora Group</p>
+<h1 style="font-size:clamp(36px,7vw,64px);margin:0;color:#102f36">Valora Insight™</h1>
+<h2 style="font-weight:normal">Certificado de conclusão</h2>
 <p>Certificamos que <strong>{Esc(data.Response.ParticipantName ?? "Participante")}</strong> concluiu a pesquisa <strong>{Esc(data.Survey.Title)}</strong>.</p>
+<p>Organização: <strong>{Esc(data.Company.PublicName ?? data.Company.Name ?? "Valora Group")}</strong></p>
 <p>Data de emissão: {issuedAt:dd/MM/yyyy HH:mm} UTC</p>
 <p>Código do certificado: <strong>{Esc(data.Certificate.CertificateCode)}</strong></p>
 <p>Score: <strong>{data.Result.Percentage:N2}%</strong> • Nível: <strong>{Esc(data.Result.MaturityLabel)}</strong></p>
 <p>{Esc(data.Result.RadarText)}</p>
-<p>Validação: /public/results/{responseId}?token=seu-token</p>
+<p>Valide a autenticidade em <strong>/certificado/validar/{Uri.EscapeDataString(data.Certificate.CertificateCode)}</strong></p>
 </section></body></html>
 """;
     }
@@ -32,7 +31,7 @@ public sealed class CertificateService(IPublicResultService results, ILogger<Cer
     public async Task<byte[]> RenderPdfAsync(Guid responseId, string resultToken)
     {
         var data = await results.GetAsync(responseId, new PublicResultRequest(resultToken));
-        var text = $"Certificado Valora Grup\\nParticipante: {data.Response.ParticipantName ?? "Participante"}\\nPesquisa: {data.Survey.Title}\\nCódigo: {data.Certificate.CertificateCode}\\nScore: {data.Result.Percentage:N2}%\\nNível: {data.Result.MaturityLabel}";
+        var text = $"VALORA INSIGHT - CERTIFICADO\\nValora Group\\n\\nParticipante: {data.Response.ParticipantName ?? "Participante"}\\nOrganizacao: {data.Company.PublicName ?? data.Company.Name ?? "Valora Group"}\\nPesquisa: {data.Survey.Title}\\nEmissao: {(data.Certificate.IssuedAt ?? DateTime.UtcNow):dd/MM/yyyy}\\nResultado: {data.Result.Percentage:N2}% - {data.Result.MaturityLabel}\\nCodigo de validacao: {data.Certificate.CertificateCode}\\nValidacao: /certificado/validar/{data.Certificate.CertificateCode}";
         return MinimalPdf(text);
     }
 
@@ -47,7 +46,7 @@ public sealed class CertificateService(IPublicResultService results, ILogger<Cer
     static byte[] MinimalPdf(string text)
     {
         static string PdfEsc(string s) => s.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)").Replace("\r", "").Replace("\n", ") Tj 0 -18 Td (");
-        var stream = $"BT /F1 18 Tf 72 760 Td ({PdfEsc(text)}) Tj ET";
+        var stream = $"0.063 0.184 0.212 rg 0 0 595 842 re f\n0.725 0.592 0.294 RG 5 w 28 28 539 786 re S\n1 1 1 rg BT /F1 18 Tf 72 740 Td ({PdfEsc(text)}) Tj ET";
         var objects = new[]
         {
             "1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj\n",

@@ -29,7 +29,7 @@ public sealed class Phase2YCanonicalDatabaseConvergenceTests
     [Fact]
     public void OfficialFormIsOwnedByStablePlatformOrganization()
     {
-        Assert.Contains("VALUES('Valora Grup','valora-platform','active')", Sql);
+        Assert.Contains("VALUES('Valora Group','valora-platform','active')", Sql);
         Assert.Matches(new Regex(@"INSERT INTO valorapesquisa\.forms\(organization_id,code,name,status\).*'valora-official'", RegexOptions.Singleline), Sql);
         Assert.Contains("ALTER TABLE valorapesquisa.forms ALTER COLUMN organization_id SET NOT NULL", Sql);
     }

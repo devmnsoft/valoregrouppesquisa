@@ -78,7 +78,8 @@ public sealed class SubscriptionRepository(IDbConnectionFactory connections) : I
                 @PaymentMethod,
                 @Notes
             )
-            ON CONFLICT (organization_id) WHERE deleted_at IS NULL
+            ON CONFLICT (organization_id)
+            WHERE deleted_at IS NULL
             DO UPDATE SET
                 plan_id = EXCLUDED.plan_id,
                 status = EXCLUDED.status,

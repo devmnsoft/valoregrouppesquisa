@@ -736,7 +736,7 @@ CASE p.code
 FROM plans p CROSS JOIN capabilities c WHERE p.code IN ('free','professional','corporate','enterprise')
 ON CONFLICT(plan_id,capability_key) DO UPDATE SET capability=EXCLUDED.capability,capability_code=EXCLUDED.capability_code,enabled=EXCLUDED.enabled,is_enabled=EXCLUDED.is_enabled,updated_at=now();
 INSERT INTO valorapesquisa.forms(organization_id,code,name,title,slug,form_key,status,questions_count,version,estimated_minutes,created_at)
-SELECT id,'valora-official','Pesquisa Oficial Valora','Pesquisa Oficial Valora','valora-official','valora-official','active',26,1,15,now()
+SELECT id,'valora-official','Pesquisa Oficial Valora','Pesquisa Oficial Valora','valora-official','valora-official','active',25,1,15,now()
 FROM valorapesquisa.organizations WHERE slug='valora-platform'
 ON CONFLICT(code) DO UPDATE SET organization_id=EXCLUDED.organization_id,name=EXCLUDED.name,title=EXCLUDED.title,slug=EXCLUDED.slug,form_key=EXCLUDED.form_key,status='active',questions_count=EXCLUDED.questions_count,version=GREATEST(forms.version,1),estimated_minutes=15,deleted_at=NULL,updated_at=now();
 INSERT INTO valorapesquisa.form_versions(form_id,organization_id,version,version_number,language,is_immutable,maximum_score,max_score,status,published_at) SELECT id,organization_id,1,1,'pt-BR',true,125,125,'published',now() FROM forms WHERE code='valora-official' ON CONFLICT(form_id,version,language) DO UPDATE SET organization_id=EXCLUDED.organization_id,version_number=1,maximum_score=125,max_score=125,status='published',is_immutable=true,published_at=COALESCE(form_versions.published_at,now()),updated_at=now();
@@ -772,10 +772,10 @@ INSERT INTO valorapesquisa.questions(organization_id,form_id,form_version_id,dim
 SELECT f.organization_id,f.id,fv.id,d.id,o.code,o.text,o.text,NULL,valorapesquisa.compatible_scale_question_type(),1,5,true,true,true,false,1.00,o.display_order,o.display_order,1,NULL,now(),now(),NULL,false
 FROM official o JOIN dimensions d ON d.code=o.dimension_code JOIN form_versions fv ON fv.id=d.form_version_id JOIN forms f ON f.id=fv.form_id AND f.code='valora-official'
 ON CONFLICT(dimension_id,code) DO UPDATE SET organization_id=EXCLUDED.organization_id,form_id=EXCLUDED.form_id,form_version_id=EXCLUDED.form_version_id,title=EXCLUDED.title,text=EXCLUDED.text,type=EXCLUDED.type,position=EXCLUDED.position,display_order=EXCLUDED.display_order,min_value=1,max_value=5,required=true,is_required=true,is_active=true,is_qualitative=false,weight=1.00,version=1,deleted_at=NULL,updated_at=now();
-INSERT INTO valorapesquisa.questions(organization_id,form_id,form_version_id,dimension_id,code,title,text,description,type,min_value,max_value,required,is_required,is_active,is_qualitative,weight,position,display_order,version,deleted_at,created_at,updated_at,max_text_length,anonymity_protected)
-SELECT f.organization_id,f.id,fv.id,d.id,'qualitative-work-feeling','Em suas palavras, como você se sente trabalhando nesta empresa hoje?','Em suas palavras, como você se sente trabalhando nesta empresa hoje?',NULL,valorapesquisa.compatible_text_question_type(),NULL,NULL,false,false,true,true,1.00,6,6,1,NULL,now(),now(),4000,true
-FROM dimensions d JOIN form_versions fv ON fv.id=d.form_version_id JOIN forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND d.code='growth'
-ON CONFLICT(dimension_id,code) DO UPDATE SET organization_id=EXCLUDED.organization_id,form_id=EXCLUDED.form_id,form_version_id=EXCLUDED.form_version_id,title=EXCLUDED.title,text=EXCLUDED.text,type=EXCLUDED.type,required=false,is_required=false,is_active=true,is_qualitative=true,weight=1.00,position=6,display_order=6,version=1,deleted_at=NULL,max_text_length=4000,anonymity_protected=true,updated_at=now();
+-- A versão oficial pontuada possui exatamente 25 questões (5 x 5). Remove
+-- apenas a antiga questão qualitativa criada por este próprio bootstrap.
+DELETE FROM valorapesquisa.questions q USING valorapesquisa.forms f
+WHERE q.form_id=f.id AND f.code='valora-official' AND q.code='qualitative-work-feeling';
 INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('script_completo_2026_07','script-completo-v1') ON CONFLICT(version) DO UPDATE SET checksum=EXCLUDED.checksum,applied_at=now();
 -- Fase 2G: invariantes multiempresa, RBAC por escopo e reservas de limites.
 -- Migration aditiva e idempotente; não remove dados ou tabelas legadas.
@@ -1029,12 +1029,119 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.enterprise_items(
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
 CREATE INDEX IF NOT EXISTS ix_enterprise_items_scope ON valorapesquisa.enterprise_items(kind,organization_id,status) WHERE deleted_at IS NULL;
 
+-- Convergência de API keys. Este bloco deliberadamente antecede qualquer
+-- índice, FK ou uso de key_hash: CREATE TABLE IF NOT EXISTS sozinho não migra
+-- uma tabela criada por versões antigas.
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE TABLE IF NOT EXISTS valorapesquisa.api_keys(
- id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), name text NOT NULL,
- key_prefix text NOT NULL, key_hash text NOT NULL, scopes text[] NOT NULL DEFAULT '{}', status text NOT NULL DEFAULT 'active',
- last_used_at timestamptz, use_count bigint NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), revoked_at timestamptz);
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid()
+);
+
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS id uuid DEFAULT gen_random_uuid();
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS key_prefix text;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS key_hash text;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS scopes text[] DEFAULT '{}';
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS last_used_at timestamptz;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS use_count bigint DEFAULT 0;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS revoked_at timestamptz;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+
+UPDATE valorapesquisa.api_keys SET id=gen_random_uuid() WHERE id IS NULL;
+-- Colunas legadas só podem aparecer em SQL dinâmico: uma referência estática
+-- falha no parse mesmo quando protegida por uma condição.
+DO $api_key_legacy$
+DECLARE legacy_column text;
+BEGIN
+  FOREACH legacy_column IN ARRAY ARRAY['secret_hash','hash','api_key_hash'] LOOP
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema='valorapesquisa' AND table_name='api_keys'
+        AND column_name=legacy_column
+    ) THEN
+      EXECUTE format(
+        'UPDATE valorapesquisa.api_keys SET key_hash=%I::text WHERE key_hash IS NULL AND %I IS NOT NULL',
+        legacy_column, legacy_column
+      );
+    END IF;
+  END LOOP;
+END $api_key_legacy$;
+
+UPDATE valorapesquisa.api_keys
+SET key_hash=COALESCE(NULLIF(key_hash,''),encode(digest('valora-api-key:'||id::text,'sha256'),'hex')),
+    key_prefix=COALESCE(NULLIF(key_prefix,''),'legacy_'||left(replace(id::text,'-',''),12)),
+    name=COALESCE(NULLIF(name,''),'Chave migrada '||left(id::text,8)),
+    status=COALESCE(NULLIF(status,''),'active'),
+    scopes=COALESCE(scopes,'{}'::text[]),
+    use_count=COALESCE(use_count,0),
+    created_at=COALESCE(created_at,now()),
+    updated_at=COALESCE(updated_at,created_at,now()),
+    organization_id=COALESCE(
+      (SELECT o.id FROM valorapesquisa.organizations o WHERE o.id=api_keys.organization_id),
+      (SELECT o.id FROM valorapesquisa.organizations o WHERE o.slug='valora-platform')
+    );
+
+-- Mantém todas as chaves antigas, mas torna hashes repetidos inequivocamente
+-- técnicos antes de criar a garantia usada pelo repositório.
+WITH duplicate_hashes AS (
+  SELECT id,key_hash,row_number() OVER (PARTITION BY key_hash ORDER BY created_at,id) occurrence
+  FROM valorapesquisa.api_keys
+)
+UPDATE valorapesquisa.api_keys k
+SET key_hash=encode(digest('valora-api-key:duplicate:'||d.key_hash||':'||d.id::text,'sha256'),'hex'),
+    updated_at=now()
+FROM duplicate_hashes d WHERE d.id=k.id AND d.occurrence>1;
+
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN id SET NOT NULL;
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN organization_id SET NOT NULL;
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN name SET NOT NULL;
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN key_prefix SET NOT NULL;
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN key_hash SET NOT NULL;
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN scopes SET DEFAULT '{}';
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN scopes SET NOT NULL;
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN status SET DEFAULT 'active';
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN status SET NOT NULL;
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN use_count SET DEFAULT 0;
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN use_count SET NOT NULL;
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN created_at SET DEFAULT now();
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN created_at SET NOT NULL;
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN updated_at SET DEFAULT now();
+ALTER TABLE valorapesquisa.api_keys ALTER COLUMN updated_at SET NOT NULL;
+DO $api_key_constraints$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='valorapesquisa.api_keys'::regclass AND contype='p'
+  ) THEN
+    ALTER TABLE valorapesquisa.api_keys ADD CONSTRAINT pk_api_keys PRIMARY KEY(id);
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='valorapesquisa.api_keys'::regclass
+      AND contype='f' AND conname='fk_api_keys_organizations'
+  ) THEN
+    ALTER TABLE valorapesquisa.api_keys ADD CONSTRAINT fk_api_keys_organizations
+      FOREIGN KEY(organization_id) REFERENCES valorapesquisa.organizations(id);
+  END IF;
+END $api_key_constraints$;
+DO $api_key_index$
+BEGIN
+  -- IF NOT EXISTS não corrige um índice homônimo antigo que não seja UNIQUE.
+  IF EXISTS (
+    SELECT 1 FROM pg_class i JOIN pg_namespace n ON n.oid=i.relnamespace
+    JOIN pg_index x ON x.indexrelid=i.oid
+    WHERE n.nspname='valorapesquisa' AND i.relname='ux_api_keys_hash' AND NOT x.indisunique
+  ) THEN
+    DROP INDEX valorapesquisa.ux_api_keys_hash;
+  END IF;
+END $api_key_index$;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_api_keys_hash ON valorapesquisa.api_keys(key_hash);
-CREATE INDEX IF NOT EXISTS ix_api_keys_tenant_active ON valorapesquisa.api_keys(organization_id,status) WHERE revoked_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_api_keys_tenant_active ON valorapesquisa.api_keys(organization_id,status) WHERE revoked_at IS NULL AND deleted_at IS NULL;
 INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_enterprise_v6','sha256:enterprise-v6-portfolio-crm-automation-api-v1') ON CONFLICT(version) DO NOTHING;
 
 -- 36. COMMIT
@@ -1215,10 +1322,11 @@ BEGIN
   IF EXISTS (SELECT plan_id,capability_key FROM valorapesquisa.plan_capabilities GROUP BY plan_id,capability_key HAVING count(*)>1) THEN RAISE EXCEPTION 'Validação falhou: plan_capabilities(plan_id,capability_key) duplicado'; END IF;
   IF EXISTS (SELECT form_id,version,language FROM valorapesquisa.form_versions GROUP BY form_id,version,language HAVING count(*)>1) THEN RAISE EXCEPTION 'Validação falhou: form_versions(form_id,version,language) duplicado'; END IF;
   IF (SELECT count(*) FROM valorapesquisa.dimensions d JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND d.code IN('culture','governance','leadership','people','growth')) <> 5 THEN RAISE EXCEPTION 'Validação falhou: dimensões oficiais incompletas'; END IF;
-  IF (SELECT count(*) FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official') < 26 THEN RAISE EXCEPTION 'Validação falhou: perguntas oficiais incompletas'; END IF;
+  IF (SELECT count(*) FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND q.deleted_at IS NULL) <> 25 THEN RAISE EXCEPTION 'Validação falhou: o formulário oficial deve conter exatamente 25 perguntas'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM valorapesquisa.form_versions fv JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND fv.maximum_score=125 AND fv.max_score=125) THEN RAISE EXCEPTION 'Validação falhou: pontuação máxima oficial deve ser 125'; END IF;
   IF EXISTS (SELECT 1 FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND (q.title IS NULL OR q.text IS NULL OR q.type IS NULL OR q.organization_id IS NULL OR q.form_id IS NULL OR q.form_version_id IS NULL OR q.position IS NULL OR q.display_order IS NULL OR q.weight IS NULL OR q.version IS NULL OR q.is_active IS NULL OR q.required IS NULL OR q.is_required IS NULL)) THEN RAISE EXCEPTION 'Validação falhou: contrato de questions contém NULL obrigatório'; END IF;
   IF NOT EXISTS (SELECT 1 FROM valorapesquisa.users u JOIN valorapesquisa.user_roles ur ON ur.user_id=u.id JOIN valorapesquisa.roles r ON r.id=ur.role_id WHERE lower(u.email)='superadmin@valoragroup.local' AND u.status='active' AND r.code='admin_valora') THEN RAISE EXCEPTION 'Validação falhou: super administrador não configurado'; END IF;
   IF NOT EXISTS (SELECT 1 FROM valorapesquisa.plan_capabilities pc JOIN valorapesquisa.plans p ON p.id=pc.plan_id WHERE p.code IN('free','professional','corporate','enterprise')) THEN RAISE EXCEPTION 'Validação falhou: capabilities dos planos ausentes'; END IF;
   IF to_regclass('valorapesquisa.result_scores') IS NULL OR to_regclass('valorapesquisa.certificates') IS NULL OR to_regclass('valorapesquisa.organizational_intelligence_runs') IS NULL THEN RAISE EXCEPTION 'Validação falhou: tabelas de resultado, certificado ou inteligência ausentes'; END IF;
-  RAISE NOTICE 'Validação Valora concluída: constraints, formulário oficial, 5 dimensões, 26 perguntas e capabilities OK';
+  RAISE NOTICE 'Validação Valora concluída: constraints, formulário oficial, 5 dimensões, 25 perguntas e capabilities OK';
 END $validation$;

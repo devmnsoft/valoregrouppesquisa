@@ -33,7 +33,17 @@ ALTER TABLE valorapesquisa.organizations ALTER COLUMN status SET DEFAULT 'active
 ALTER TABLE valorapesquisa.organizations ALTER COLUMN status SET NOT NULL;
 ALTER TABLE valorapesquisa.organizations ALTER COLUMN created_at SET DEFAULT now();
 ALTER TABLE valorapesquisa.organizations ALTER COLUMN created_at SET NOT NULL;
-CREATE UNIQUE INDEX IF NOT EXISTS ux_organizations_slug ON valorapesquisa.organizations(slug);
+-- Nunca reutilize o nome histórico ux_organizations_slug aqui. Em instalações
+-- antigas esse nome foi criado como índice não-único; IF NOT EXISTS o ignorava
+-- e o ON CONFLICT(slug) abaixo falhava por não encontrar uma chave elegível.
+WITH duplicate_keys AS (
+  SELECT id, row_number() OVER (PARTITION BY slug ORDER BY created_at NULLS LAST, id) AS occurrence
+  FROM valorapesquisa.organizations
+)
+UPDATE valorapesquisa.organizations o
+SET slug=o.slug || '-legacy-' || left(replace(o.id::text,'-',''),8), updated_at=now()
+FROM duplicate_keys d WHERE d.id=o.id AND d.occurrence>1;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_organizations_slug_v2 ON valorapesquisa.organizations(slug);
 INSERT INTO valorapesquisa.organizations(name,slug,status)
 VALUES('Valora Group','valora-platform','active')
 ON CONFLICT(slug) DO UPDATE SET name=EXCLUDED.name,status='active',deleted_at=NULL,updated_at=now();
@@ -483,6 +493,74 @@ ALTER TABLE valorapesquisa.outbox_messages ADD COLUMN IF NOT EXISTS attempts int
 ALTER TABLE valorapesquisa.outbox_messages ADD COLUMN IF NOT EXISTS next_attempt_at timestamptz NOT NULL DEFAULT now();
 CREATE UNIQUE INDEX IF NOT EXISTS ux_outbox_idempotency ON valorapesquisa.outbox_messages(idempotency_key) WHERE idempotency_key IS NOT NULL;
 
+-- CONVERGÊNCIA DE CHAVES NATURAIS ------------------------------------------------
+-- CREATE TABLE IF NOT EXISTS não adiciona constraints a uma tabela que já
+-- existia. Esta fase é, por isso, deliberadamente anterior a TODOS os seeds a
+-- seguir. Linhas legadas não-canônicas são preservadas e recebem uma chave
+-- técnica inequívoca; IDs e todas as referências continuam inalterados.
+CREATE TABLE IF NOT EXISTS valorapesquisa.constraint_convergence_audit (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), table_name text NOT NULL,
+ canonical_key text NOT NULL, preserved_row_id text NOT NULL,
+ resolution text NOT NULL, recorded_at timestamptz NOT NULL DEFAULT now());
+
+DO $converge$
+DECLARE target record; changed record;
+BEGIN
+  FOR target IN SELECT * FROM (VALUES
+    ('modules','code','created_at'),('permissions','code','created_at'),
+    ('plans','code','created_at'),('forms','code','created_at')
+  ) AS natural_key(table_name,column_name,order_column)
+  LOOP
+    FOR changed IN EXECUTE format(
+      'SELECT id_text, old_key FROM (SELECT %1$I::text id_text, %2$I::text old_key, row_number() OVER (PARTITION BY %2$I ORDER BY %3$I NULLS LAST, %1$I) occurrence FROM valorapesquisa.%4$I) d WHERE occurrence>1',
+      'id',target.column_name,target.order_column,target.table_name)
+    LOOP
+      EXECUTE format('UPDATE valorapesquisa.%I SET %I=%I || ''-legacy-'' || left(md5(%I::text),8) WHERE %I::text=$1',
+        target.table_name,target.column_name,target.column_name,
+        'id','id') USING changed.id_text;
+      INSERT INTO valorapesquisa.constraint_convergence_audit(table_name,canonical_key,preserved_row_id,resolution)
+      VALUES(target.table_name,changed.old_key,changed.id_text,'chave legada renomeada; linha e referências preservadas');
+    END LOOP;
+  END LOOP;
+END $converge$;
+
+-- schema_migrations pode não ter PK em bancos parciais e não possui UUID.
+WITH d AS (SELECT ctid,version,row_number() OVER(PARTITION BY version ORDER BY applied_at NULLS LAST,ctid) n FROM valorapesquisa.schema_migrations)
+UPDATE valorapesquisa.schema_migrations x SET version=x.version||'-legacy-'||d.n::text FROM d WHERE x.ctid=d.ctid AND d.n>1;
+
+-- Chaves compostas: apenas a chave natural da ocorrência excedente é
+-- rebatizada. Isso evita DELETE silencioso e não invalida FKs pelo ID.
+WITH d AS (SELECT id,limit_key,row_number() OVER(PARTITION BY plan_id,limit_key ORDER BY created_at NULLS LAST,id) n FROM valorapesquisa.plan_limits)
+UPDATE valorapesquisa.plan_limits x SET limit_key=x.limit_key||'-legacy-'||left(replace(x.id::text,'-',''),8),updated_at=now() FROM d WHERE d.id=x.id AND d.n>1;
+WITH d AS (SELECT id,capability_key,row_number() OVER(PARTITION BY plan_id,capability_key ORDER BY created_at NULLS LAST,id) n FROM valorapesquisa.plan_capabilities)
+UPDATE valorapesquisa.plan_capabilities x SET capability_key=x.capability_key||'-legacy-'||left(replace(x.id::text,'-',''),8),updated_at=now() FROM d WHERE d.id=x.id AND d.n>1;
+WITH d AS (
+ SELECT id, row_number() OVER(PARTITION BY form_id,version,language ORDER BY created_at NULLS LAST,id) n,
+        max(version) OVER(PARTITION BY form_id,language) max_version
+ FROM valorapesquisa.form_versions
+)
+UPDATE valorapesquisa.form_versions x SET version=d.max_version+d.n-1,version_number=d.max_version+d.n-1,updated_at=now() FROM d WHERE d.id=x.id AND d.n>1;
+WITH d AS (SELECT id,language,row_number() OVER(PARTITION BY form_version_id,language ORDER BY created_at NULLS LAST,id) n FROM valorapesquisa.form_translations)
+UPDATE valorapesquisa.form_translations x SET language=x.language||'-legacy-'||left(replace(x.id::text,'-',''),8) FROM d WHERE d.id=x.id AND d.n>1;
+WITH d AS (SELECT id,code,row_number() OVER(PARTITION BY form_version_id,code ORDER BY created_at NULLS LAST,id) n FROM valorapesquisa.dimensions)
+UPDATE valorapesquisa.dimensions x SET code=x.code||'-legacy-'||left(replace(x.id::text,'-',''),8) FROM d WHERE d.id=x.id AND d.n>1;
+WITH d AS (SELECT id,code,row_number() OVER(PARTITION BY dimension_id,code ORDER BY created_at NULLS LAST,id) n FROM valorapesquisa.questions)
+UPDATE valorapesquisa.questions x SET code=x.code||'-legacy-'||left(replace(x.id::text,'-',''),8) FROM d WHERE d.id=x.id AND d.n>1;
+
+-- Nomes versionados evitam o caso perigoso em que um índice antigo, com o
+-- mesmo nome porém sem UNIQUE, faz CREATE UNIQUE INDEX IF NOT EXISTS “pular”.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_modules_code_v2 ON valorapesquisa.modules(code);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_permissions_code_v2 ON valorapesquisa.permissions(code);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plans_code_v2 ON valorapesquisa.plans(code);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_limits_plan_key_v2 ON valorapesquisa.plan_limits(plan_id,limit_key);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_capabilities_plan_key_v2 ON valorapesquisa.plan_capabilities(plan_id,capability_key);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_forms_code_v2 ON valorapesquisa.forms(code);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_form_versions_identity_v2 ON valorapesquisa.form_versions(form_id,version,language);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_form_translations_identity_v2 ON valorapesquisa.form_translations(form_version_id,language);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_dimensions_identity_v2 ON valorapesquisa.dimensions(form_version_id,code);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_questions_identity_v2 ON valorapesquisa.questions(dimension_id,code);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_schema_migrations_version_v2 ON valorapesquisa.schema_migrations(version);
+
 INSERT INTO valorapesquisa.modules(code,name,category,status) VALUES
 ('identity','Identidade','core','active'),('organization','Organização','core','active'),('forms','Diagnósticos','product','active'),('surveys','Pesquisas','product','active'),('distribution','Distribuição','product','active'),('responses','Respostas','product','active'),('results','Resultados','product','active'),('certificates','Certificados','product','active'),('communications','Comunicações','support','active'),('audit','Auditoria','governance','active'),('settings','Configurações','governance','active'),('operations','Operações','governance','active')
 ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,category=EXCLUDED.category,status=EXCLUDED.status,updated_at=now();
@@ -527,6 +605,29 @@ ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.descript
 UPDATE valorapesquisa.permissions SET code='responses.read',module_code='responses',updated_at=now() WHERE code='canViewResponses' AND NOT EXISTS(SELECT 1 FROM valorapesquisa.permissions WHERE code='responses.read');
 UPDATE valorapesquisa.permissions SET module_code=split_part(code,'.',1),updated_at=now() WHERE module_code IS NULL AND split_part(code,'.',1)=ANY(ARRAY['identity','organization','forms','surveys','distribution','responses','results','certificates','communications','audit','settings','operations']);
 CREATE TABLE IF NOT EXISTS valorapesquisa.permission_migration_reviews(permission_id uuid PRIMARY KEY REFERENCES valorapesquisa.permissions(id),permission_code text NOT NULL,reason text NOT NULL,first_seen_at timestamptz NOT NULL DEFAULT now(),last_seen_at timestamptz NOT NULL DEFAULT now(),resolved_at timestamptz);
+ALTER TABLE valorapesquisa.permission_migration_reviews ADD COLUMN IF NOT EXISTS permission_id uuid;
+ALTER TABLE valorapesquisa.permission_migration_reviews ADD COLUMN IF NOT EXISTS permission_code text;
+ALTER TABLE valorapesquisa.permission_migration_reviews ADD COLUMN IF NOT EXISTS reason text;
+ALTER TABLE valorapesquisa.permission_migration_reviews ADD COLUMN IF NOT EXISTS first_seen_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.permission_migration_reviews ADD COLUMN IF NOT EXISTS last_seen_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.permission_migration_reviews ADD COLUMN IF NOT EXISTS resolved_at timestamptz;
+UPDATE valorapesquisa.permission_migration_reviews SET first_seen_at=COALESCE(first_seen_at,now()),last_seen_at=COALESCE(last_seen_at,first_seen_at,now()),permission_code=COALESCE(permission_code,'legacy-review'),reason=COALESCE(reason,'revisão legada importada');
+-- O erro reportado ocorria exatamente no ON CONFLICT(permission_id) abaixo:
+-- uma tabela legada já existia sem PK/UNIQUE e o CREATE TABLE era ignorado.
+-- Consolidamos somente duplicatas desta fila de revisão (mantendo a ocorrência
+-- mais antiga e o last_seen_at mais recente) e instalamos uma chave nova cujo
+-- nome não colide com o índice legado ux_permission_migration_reviews.
+WITH ranked AS (
+ SELECT ctid,permission_id,row_number() OVER(PARTITION BY permission_id ORDER BY first_seen_at NULLS LAST,ctid) n,
+        max(last_seen_at) OVER(PARTITION BY permission_id) newest_seen
+ FROM valorapesquisa.permission_migration_reviews
+), merged AS (
+ UPDATE valorapesquisa.permission_migration_reviews r SET last_seen_at=ranked.newest_seen
+ FROM ranked WHERE r.ctid=ranked.ctid AND ranked.n=1 RETURNING r.permission_id
+)
+DELETE FROM valorapesquisa.permission_migration_reviews r USING ranked
+WHERE r.ctid=ranked.ctid AND ranked.n>1;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_permission_migration_reviews_permission_v2 ON valorapesquisa.permission_migration_reviews(permission_id);
 INSERT INTO valorapesquisa.permission_migration_reviews(permission_id,permission_code,reason) SELECT id,code,'module_code não pôde ser inferido com segurança' FROM valorapesquisa.permissions WHERE module_code IS NULL ON CONFLICT(permission_id) DO UPDATE SET permission_code=EXCLUDED.permission_code,last_seen_at=now();
 
 
@@ -953,6 +1054,9 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.valora_indicator_definitions(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE, name text NOT NULL, description text NOT NULL, category text NOT NULL,
  weight numeric(6,3) NOT NULL DEFAULT 1 CHECK(weight>0), is_active boolean NOT NULL DEFAULT true,
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+WITH d AS (SELECT id,code,row_number() OVER(PARTITION BY code ORDER BY created_at NULLS LAST,id) n FROM valorapesquisa.valora_indicator_definitions)
+UPDATE valorapesquisa.valora_indicator_definitions x SET code=x.code||'-legacy-'||left(replace(x.id::text,'-',''),8),updated_at=now() FROM d WHERE d.id=x.id AND d.n>1;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_valora_indicator_definitions_code_v2 ON valorapesquisa.valora_indicator_definitions(code);
 INSERT INTO valorapesquisa.valora_indicator_definitions(code,name,description,category,weight) VALUES
  ('organizational_maturity','Maturidade organizacional','Média ponderada das dimensões efetivamente avaliadas.','maturity',1),
  ('culture_trust','Cultura e confiança','Leitura das dimensões identificadas como cultura, confiança, pessoas ou liderança.','culture',1),
@@ -1018,22 +1122,17 @@ COMMIT;
 -- bootstrap com uma mensagem objetiva em vez de deixar um banco semiconfigurado.
 DO $validation$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM valorapesquisa.forms WHERE form_key='valora-official' AND title IS NOT NULL) THEN
-    RAISE EXCEPTION 'Validação falhou: formulário oficial Valora ausente';
-  END IF;
-  IF EXISTS (SELECT 1 FROM valorapesquisa.forms WHERE title IS NULL) THEN
-    RAISE EXCEPTION 'Validação falhou: forms.title contém NULL';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM valorapesquisa.plan_capabilities) THEN
-    RAISE EXCEPTION 'Validação falhou: capabilities dos planos ausentes';
-  END IF;
-  IF NOT EXISTS (SELECT 1 FROM valorapesquisa.permissions WHERE code IN ('surveys.read','surveys.create','results.read')) THEN
-    RAISE EXCEPTION 'Validação falhou: permissões principais ausentes';
-  END IF;
-  IF to_regclass('valorapesquisa.result_scores') IS NULL
-     OR to_regclass('valorapesquisa.certificates') IS NULL
-     OR to_regclass('valorapesquisa.organizational_intelligence_runs') IS NULL THEN
-    RAISE EXCEPTION 'Validação falhou: tabelas de resultado, certificado ou inteligência ausentes';
-  END IF;
-  RAISE NOTICE 'Validação Valora concluída: formulário, planos, permissões e tabelas essenciais OK';
+  IF EXISTS (SELECT 1 FROM valorapesquisa.forms WHERE title IS NULL) THEN RAISE EXCEPTION 'Validação falhou: forms.title contém NULL'; END IF;
+  IF EXISTS (SELECT 1 FROM valorapesquisa.forms WHERE name IS NULL) THEN RAISE EXCEPTION 'Validação falhou: forms.name contém NULL'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM valorapesquisa.forms WHERE code='valora-official' AND title='Pesquisa Oficial Valora') THEN RAISE EXCEPTION 'Validação falhou: forms.code=valora-official ausente ou título incorreto'; END IF;
+  IF EXISTS (SELECT code FROM valorapesquisa.modules GROUP BY code HAVING count(*)>1) THEN RAISE EXCEPTION 'Validação falhou: modules.code duplicado'; END IF;
+  IF EXISTS (SELECT code FROM valorapesquisa.permissions GROUP BY code HAVING count(*)>1) THEN RAISE EXCEPTION 'Validação falhou: permissions.code duplicado'; END IF;
+  IF EXISTS (SELECT code FROM valorapesquisa.plans GROUP BY code HAVING count(*)>1) THEN RAISE EXCEPTION 'Validação falhou: plans.code duplicado'; END IF;
+  IF EXISTS (SELECT plan_id,capability_key FROM valorapesquisa.plan_capabilities GROUP BY plan_id,capability_key HAVING count(*)>1) THEN RAISE EXCEPTION 'Validação falhou: plan_capabilities(plan_id,capability_key) duplicado'; END IF;
+  IF EXISTS (SELECT form_id,version,language FROM valorapesquisa.form_versions GROUP BY form_id,version,language HAVING count(*)>1) THEN RAISE EXCEPTION 'Validação falhou: form_versions(form_id,version,language) duplicado'; END IF;
+  IF (SELECT count(*) FROM valorapesquisa.dimensions d JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND d.code IN('culture','governance','leadership','people','growth')) <> 5 THEN RAISE EXCEPTION 'Validação falhou: dimensões oficiais incompletas'; END IF;
+  IF (SELECT count(*) FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official') < 26 THEN RAISE EXCEPTION 'Validação falhou: perguntas oficiais incompletas'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM valorapesquisa.plan_capabilities pc JOIN valorapesquisa.plans p ON p.id=pc.plan_id WHERE p.code IN('free','professional','corporate','enterprise')) THEN RAISE EXCEPTION 'Validação falhou: capabilities dos planos ausentes'; END IF;
+  IF to_regclass('valorapesquisa.result_scores') IS NULL OR to_regclass('valorapesquisa.certificates') IS NULL OR to_regclass('valorapesquisa.organizational_intelligence_runs') IS NULL THEN RAISE EXCEPTION 'Validação falhou: tabelas de resultado, certificado ou inteligência ausentes'; END IF;
+  RAISE NOTICE 'Validação Valora concluída: constraints, formulário oficial, 5 dimensões, 26 perguntas e capabilities OK';
 END $validation$;

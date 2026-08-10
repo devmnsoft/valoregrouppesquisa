@@ -30,6 +30,7 @@ public sealed class PublicPagesController(ILogger<PublicPagesController> logger)
 
     [HttpGet("privacy")]
     [HttpGet("Privacy")]
+    [HttpGet("lgpd")]
     [HttpGet("PublicPages/Privacy")]
     public IActionResult Privacy() => PublicView("Privacy", "Política de Privacidade");
 

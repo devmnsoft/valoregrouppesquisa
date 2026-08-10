@@ -22,7 +22,7 @@ public sealed class NavigationCatalog
             Item("diagnostics.responses", "Respostas", "Acompanhe a participação", "Responses", "activity", "canViewResponses", "responses", "responses", "organization", 30, Results)),
         Section("intelligence", "Inteligência", 30,
             Item("intelligence.results", "Resultados", "Devolutivas e análises executivas", "Results", "chart-radar", null, "results", "results", "organization", 10, Results),
-            Item("intelligence.organizational", "Inteligência Organizacional", "Maturidade, confiança e evolução orientadas por evidências", "Intelligence", "brain", "organizational_intelligence.read", "organizational_intelligence", "organizational_intelligence", "organization", 15, Results),
+            Item("intelligence.organizational", "Inteligência Organizacional", "Dashboard, Heatmap, Evolution, Journey e Action Valora™", "Intelligence", "brain", "organizational_intelligence.read", "organizational_intelligence", "organizational_intelligence", "organization", 15, Results),
             ItemAction("intelligence.comparisons", "Comparativos", "Evolução entre ciclos e áreas", "OperationalIntelligence", "Comparisons", "activity", "results", 20, Results),
             ItemAction("intelligence.recommendations", "Recomendações", "Prioridades orientadas por evidências", "OperationalIntelligence", "Recommendations", "sparkles", "results", 30, Results),
             ItemAction("intelligence.actions", "Plano de Ação", "Kanban de melhoria contínua", "OperationalIntelligence", "ActionPlans", "layers", "results", 40, Results),

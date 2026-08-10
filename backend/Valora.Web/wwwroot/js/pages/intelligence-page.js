@@ -4,7 +4,7 @@
   const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
   const showError = error => { errorBox.hidden = false; errorBox.textContent = error?.status === 403 ? 'Seu perfil ou plano não possui acesso a este módulo.' : (error?.message || 'Não foi possível carregar a leitura.'); };
   const percent = value => `${Number(value || 0).toLocaleString('pt-BR', {maximumFractionDigits: 1})}%`;
-  const band = score => score >= 85 ? ['Excelente','excellent'] : score >= 70 ? ['Saudável','healthy'] : score >= 55 ? ['Em atenção','attention'] : score >= 35 ? ['Crítico','critical'] : ['Muito crítico','very-critical'];
+  const band = score => score >= 85 ? ['Maduro','excellent'] : score >= 70 ? ['Estruturado','healthy'] : score >= 55 ? ['Em desenvolvimento','attention'] : score >= 35 ? ['Atenção','critical'] : ['Crítico','very-critical'];
   function render(data) {
     const run = data.latestRun, evidence = data.evidence;
     root.querySelector('[data-kpi="maturity"]').textContent = run ? percent(run.maturityIndex) : '—';

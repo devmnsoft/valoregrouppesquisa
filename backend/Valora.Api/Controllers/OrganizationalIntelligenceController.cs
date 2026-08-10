@@ -33,11 +33,22 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     public async Task<IActionResult> Indicators([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", _ => service.IndicatorsAsync(ct));
     [HttpGet("evolution")]
     public async Task<IActionResult> Evolution([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.EvolutionAsync(id, ct));
+    [HttpGet("heatmap")]
+    public async Task<IActionResult> Heatmap([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", async id => (await service.DashboardAsync(id, ct)).Evidence.Dimensions);
+    [HttpGet("action-plans")]
     [HttpGet("actions")]
     public async Task<IActionResult> Actions([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.ActionsAsync(id, ct));
+    [HttpPost("action-plans")]
     [HttpPost("actions")]
     public async Task<IActionResult> CreateAction([FromBody] CreateValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct)
-    { var access = await Validate(organizationId, "organizational_intelligence.action.create"); if (access.Error is not null) return access.Error; return StatusCode(201, await service.CreateActionAsync(access.OrganizationId, UserId, request, ct)); }
+    { var access = await Validate(organizationId, "organizational_intelligence.generate"); if (access.Error is not null) return access.Error; return StatusCode(201, await service.CreateActionAsync(access.OrganizationId, UserId, request, ct)); }
+    [HttpPatch("action-plans/{id:guid}")]
+    public async Task<IActionResult> UpdateAction(Guid id, [FromBody] UpdateValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct)
+    {
+        var access = await Validate(organizationId, "organizational_intelligence.generate"); if (access.Error is not null) return access.Error;
+        var action = await service.UpdateActionAsync(access.OrganizationId, id, UserId, request, ct);
+        return action is null ? NotFound(new { code = "ACTION_PLAN_NOT_FOUND", message = "Plano de ação não encontrado." }) : Ok(action);
+    }
 
     private async Task<IActionResult> Read<T>(Guid? requested, string permission, Func<Guid, Task<T>> action)
     { var access = await Validate(requested, permission); return access.Error ?? Ok(await action(access.OrganizationId)); }

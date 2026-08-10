@@ -28,6 +28,8 @@ public sealed record ValoraActionDto(Guid Id, Guid OrganizationId, string Code, 
 public sealed record CreateValoraActionRequest(string Title, string Description, string EvidenceJustification,
     string Capability, string Priority, string? Owner, string? ExecutiveSponsor, DateTime? DueAt,
     string Complexity, string Indicators, string ExpectedResult, string CompletionCriteria);
+public sealed record UpdateValoraActionRequest(string Status, string? Owner = null, string? ExecutiveSponsor = null,
+    DateTime? DueAt = null, string? Priority = null, string? Notes = null);
 
 public interface IOrganizationalIntelligenceRepository
 {
@@ -41,6 +43,7 @@ public interface IOrganizationalIntelligenceRepository
     Task<IReadOnlyList<ValoraIndicatorDefinitionDto>> ListIndicatorsAsync(CancellationToken ct);
     Task<IReadOnlyList<ValoraActionDto>> ListActionsAsync(Guid organizationId, CancellationToken ct);
     Task<ValoraActionDto> CreateActionAsync(ValoraActionDto item, Guid userId, CancellationToken ct);
+    Task<ValoraActionDto?> UpdateActionAsync(Guid organizationId, Guid actionId, UpdateValoraActionRequest request, Guid userId, CancellationToken ct);
 }
 
 public interface IOrganizationalIntelligenceService
@@ -55,4 +58,5 @@ public interface IOrganizationalIntelligenceService
     Task<IReadOnlyList<EvolutionPointDto>> EvolutionAsync(Guid organizationId, CancellationToken ct);
     Task<IReadOnlyList<ValoraActionDto>> ActionsAsync(Guid organizationId, CancellationToken ct);
     Task<ValoraActionDto> CreateActionAsync(Guid organizationId, Guid userId, CreateValoraActionRequest request, CancellationToken ct);
+    Task<ValoraActionDto?> UpdateActionAsync(Guid organizationId, Guid actionId, Guid userId, UpdateValoraActionRequest request, CancellationToken ct);
 }

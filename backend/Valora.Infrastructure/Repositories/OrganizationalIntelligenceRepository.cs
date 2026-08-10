@@ -108,6 +108,31 @@ public sealed class OrganizationalIntelligenceRepository(IDbConnectionFactory co
         return (await ListActionsAsync(organizationId, ct)).FirstOrDefault(x => x.Id == actionId);
     }
 
+    public async Task<IReadOnlyList<ValoraActionHistoryDto>> ListActionHistoryAsync(Guid organizationId, Guid actionId, CancellationToken ct)
+    {
+        const string sql = "SELECT h.id,h.action_id ActionId,h.status,h.notes,h.changed_by ChangedBy,h.changed_at ChangedAt FROM valorapesquisa.valora_action_history h JOIN valorapesquisa.valora_actions a ON a.id=h.action_id WHERE a.organization_id=@organizationId AND a.id=@actionId ORDER BY h.changed_at DESC";
+        using var c = connections.Create();
+        return (await c.QueryAsync<ValoraActionHistoryDto>(new CommandDefinition(sql, new { organizationId, actionId }, cancellationToken: ct))).ToList();
+    }
+
+    public async Task<bool> DeleteActionAsync(Guid organizationId, Guid actionId, Guid userId, CancellationToken ct)
+    {
+        const string updateSql = "UPDATE valorapesquisa.valora_actions SET deleted_at=now(),updated_at=now() WHERE id=@actionId AND organization_id=@organizationId AND deleted_at IS NULL";
+        const string historySql = "INSERT INTO valorapesquisa.valora_action_history(action_id,status,notes,changed_by) VALUES(@actionId,'cancelled','Ação arquivada pelo usuário.',@userId)";
+        const string journeySql = "INSERT INTO valorapesquisa.organizational_journey_events(organization_id,title,description,event_type,occurred_at,created_by) SELECT organization_id,'Plano de ação arquivado',title,'action_archived',now(),@userId FROM valorapesquisa.valora_actions WHERE id=@actionId AND organization_id=@organizationId";
+        await using var unit = await transactions.BeginAsync(ct);
+        try
+        {
+            var changed = await unit.Connection.ExecuteAsync(new CommandDefinition(updateSql, new { actionId, organizationId }, unit.Transaction, cancellationToken: ct));
+            if (changed == 0) { await unit.RollbackAsync(); return false; }
+            await unit.Connection.ExecuteAsync(new CommandDefinition(historySql, new { actionId, userId }, unit.Transaction, cancellationToken: ct));
+            await unit.Connection.ExecuteAsync(new CommandDefinition(journeySql, new { actionId, organizationId, userId }, unit.Transaction, cancellationToken: ct));
+            await unit.CommitAsync();
+            return true;
+        }
+        catch { await unit.RollbackAsync(); throw; }
+    }
+
     private static async Task<IReadOnlyList<OrganizationalInsightDto>> InsightsAsync(System.Data.IDbConnection c, Guid runId, CancellationToken ct) =>
         (await c.QueryAsync<OrganizationalInsightDto>(new CommandDefinition("SELECT id,run_id RunId,dimension,observation,evidence,correlation,probable_cause ProbableCause,impact,priority,evolution_plan EvolutionPlan,created_at CreatedAt FROM valorapesquisa.organizational_intelligence_insights WHERE run_id=@runId ORDER BY created_at", new { runId }, cancellationToken: ct))).ToList();
     private static OrganizationalIntelligenceRunDto Map(RunRow x, IReadOnlyList<OrganizationalInsightDto> insights) => new(x.Id, x.OrganizationId, x.MaturityIndex, x.CultureTrustIndex, x.GovernanceExecutionIndex, x.StructuralGap, x.StrongestDimension, x.WeakestDimension, x.EvidenceCount, x.ConfidenceLevel, x.Warning, JsonSerializer.Deserialize<List<DimensionHeatmapDto>>(x.Heatmap) ?? [], insights, x.CreatedAt);

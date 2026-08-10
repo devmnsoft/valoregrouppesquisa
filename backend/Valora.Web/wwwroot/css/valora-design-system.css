@@ -1,16 +1,17 @@
 :root {
-  --valora-navy:#0c3448;
-  --valora-navy-dark:#062c37;
-  --valora-navy-soft:#123f4f;
-  --valora-aqua:#75dce8;
-  --valora-aqua-strong:#2db9c8;
-  --valora-gold:#c79a3b;
-  --valora-gold-soft:#f4e7c8;
-  --valora-bg:#f4fafb;
+  --valora-deep:#071b28;
+  --valora-navy:#102f43;
+  --valora-navy-dark:#071b28;
+  --valora-navy-soft:#1c465c;
+  --valora-aqua:#83ccd1;
+  --valora-aqua-strong:#318f99;
+  --valora-gold:#c8a45b;
+  --valora-gold-soft:#f3e8ce;
+  --valora-bg:#f5f4ef;
   --valora-surface:#fff;
   --valora-text:#082a37;
-  --valora-muted:#557785;
-  --valora-line:#c8dde4;
+  --valora-muted:#526470;
+  --valora-line:#d6d9d7;
   --valora-success:#08764e;
   --valora-warning:#945400;
   --valora-danger:#b5262b;
@@ -114,6 +115,9 @@ body {
   background:linear-gradient(145deg,var(--valora-navy),var(--valora-navy-soft));
   color:#fff
 }
+.valora-card--dark h2,.valora-card--dark h3,.valora-card--dark .lead {color:#fff}
+.valora-card--dark p {color:#dce7eb}
+.valora-card--dark .eyebrow {color:#e6c979}
 .valora-button {
   display:inline-flex;
   align-items:center;

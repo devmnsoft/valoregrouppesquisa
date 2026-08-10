@@ -281,6 +281,51 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.form_translations (id uuid PRIMARY KEY
 CREATE TABLE IF NOT EXISTS valorapesquisa.dimensions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), form_version_id uuid NOT NULL REFERENCES valorapesquisa.form_versions(id), code text NOT NULL, name text NOT NULL, display_order int NOT NULL, max_score int NOT NULL DEFAULT 25, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(form_version_id,code));
 ALTER TABLE valorapesquisa.dimensions ADD COLUMN IF NOT EXISTS display_order int;
 CREATE TABLE IF NOT EXISTS valorapesquisa.questions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), dimension_id uuid REFERENCES valorapesquisa.dimensions(id), code text NOT NULL, text text NOT NULL, display_order int NOT NULL, min_value int, max_value int, is_qualitative boolean NOT NULL DEFAULT false, is_required boolean NOT NULL DEFAULT true, max_text_length int, anonymity_protected boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(dimension_id,code));
+-- Compatibilidade do contrato de perguntas. CREATE TABLE IF NOT EXISTS não
+-- converge instalações anteriores, que podem exigir title/type/form/tenant.
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES valorapesquisa.organizations(id);
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS form_id uuid REFERENCES valorapesquisa.forms(id);
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS form_version_id uuid REFERENCES valorapesquisa.form_versions(id);
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS dimension_id uuid REFERENCES valorapesquisa.dimensions(id);
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS code text;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS title text;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS text text;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS type text;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS min_value int;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS max_value int;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS required boolean DEFAULT true;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS is_required boolean DEFAULT true;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS is_active boolean DEFAULT true;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS is_qualitative boolean DEFAULT false;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS weight numeric(8,2) DEFAULT 1.00;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS version bigint DEFAULT 1;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+CREATE OR REPLACE FUNCTION valorapesquisa.compatible_scale_question_type()
+RETURNS text LANGUAGE plpgsql STABLE AS $$
+DECLARE checks text;
+BEGIN
+ SELECT string_agg(pg_get_constraintdef(c.oid),' ') INTO checks FROM pg_constraint c
+ JOIN pg_class t ON t.oid=c.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace
+ WHERE n.nspname='valorapesquisa' AND t.relname='questions' AND c.contype='c'
+   AND pg_get_constraintdef(c.oid) ILIKE '%type%';
+ IF checks ILIKE '%likert_1_5%' THEN RETURN 'likert_1_5'; END IF;
+ RETURN 'scale';
+END $$;
+CREATE OR REPLACE FUNCTION valorapesquisa.compatible_text_question_type()
+RETURNS text LANGUAGE plpgsql STABLE AS $$
+DECLARE checks text;
+BEGIN
+ SELECT string_agg(pg_get_constraintdef(c.oid),' ') INTO checks FROM pg_constraint c
+ JOIN pg_class t ON t.oid=c.conrelid JOIN pg_namespace n ON n.oid=t.relnamespace
+ WHERE n.nspname='valorapesquisa' AND t.relname='questions' AND c.contype='c'
+   AND pg_get_constraintdef(c.oid) ILIKE '%type%';
+ IF checks ILIKE '%long_text%' THEN RETURN 'long_text'; END IF;
+ IF checks ILIKE '%''text''%' THEN RETURN 'text'; END IF;
+ RETURN valorapesquisa.compatible_scale_question_type();
+END $$;
 ALTER TABLE valorapesquisa.dimensions ADD COLUMN IF NOT EXISTS position int;
 UPDATE valorapesquisa.dimensions SET position=COALESCE(position,display_order,0),display_order=COALESCE(display_order,position,0);
 ALTER TABLE valorapesquisa.dimensions ALTER COLUMN position SET NOT NULL;
@@ -288,11 +333,23 @@ ALTER TABLE valorapesquisa.dimensions ALTER COLUMN display_order SET NOT NULL;
 ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS display_order int;
 ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS position int;
 UPDATE valorapesquisa.questions SET position=COALESCE(position,display_order,0),display_order=COALESCE(display_order,position,0);
+UPDATE valorapesquisa.questions q SET
+ organization_id=COALESCE(q.organization_id,f.organization_id), form_id=COALESCE(q.form_id,f.id),
+ form_version_id=COALESCE(q.form_version_id,fv.id), title=COALESCE(NULLIF(q.title,''),NULLIF(q.text,''),'Pergunta sem título'),
+ text=COALESCE(NULLIF(q.text,''),NULLIF(q.title,''),'Pergunta sem texto'),
+ type=COALESCE(NULLIF(q.type,''),CASE WHEN q.is_qualitative THEN valorapesquisa.compatible_text_question_type() ELSE valorapesquisa.compatible_scale_question_type() END),
+ required=COALESCE(q.required,q.is_required,true),is_required=COALESCE(q.is_required,q.required,true),
+ is_active=COALESCE(q.is_active,true),is_qualitative=COALESCE(q.is_qualitative,false),
+ weight=COALESCE(q.weight,1.00),version=COALESCE(q.version,1),created_at=COALESCE(q.created_at,now())
+FROM valorapesquisa.dimensions d JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id
+JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE q.dimension_id=d.id;
 ALTER TABLE valorapesquisa.questions ALTER COLUMN position SET NOT NULL;
 ALTER TABLE valorapesquisa.questions ALTER COLUMN display_order SET NOT NULL;
 ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS is_required boolean NOT NULL DEFAULT true;
 ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS max_text_length int;
 ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS anonymity_protected boolean NOT NULL DEFAULT false;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_questions_dimension_code_v2 ON valorapesquisa.questions(dimension_id,code);
+
 CREATE TABLE IF NOT EXISTS valorapesquisa.question_options (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), question_id uuid NOT NULL REFERENCES valorapesquisa.questions(id), value int NOT NULL, label text NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(question_id,value));
 ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS position int;
 ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS display_order int;
@@ -711,12 +768,14 @@ WITH official(code,dimension_code,display_order,text) AS (VALUES
 ('growth-q3','growth',3,'Os processos favorecem produtividade e eficiência.'),
 ('growth-q4','growth',4,'Problemas recorrentes são tratados na causa, e não apenas nos sintomas.'),
 ('growth-q5','growth',5,'A empresa está preparada para sustentar o crescimento nos próximos anos.'))
-INSERT INTO valorapesquisa.questions(dimension_id,code,text,position,display_order,min_value,max_value,is_qualitative,is_required,max_text_length,anonymity_protected)
-SELECT d.id,o.code,o.text,o.display_order,o.display_order,1,5,false,true,NULL,false FROM official o JOIN dimensions d ON d.code=o.dimension_code JOIN form_versions fv ON fv.id=d.form_version_id JOIN forms f ON f.id=fv.form_id AND f.code='valora-official'
-ON CONFLICT(dimension_id,code) DO UPDATE SET text=EXCLUDED.text,position=EXCLUDED.position,display_order=EXCLUDED.display_order,min_value=1,max_value=5,is_qualitative=false,is_required=true;
-INSERT INTO valorapesquisa.questions(dimension_id,code,text,position,display_order,min_value,max_value,is_qualitative,is_required,max_text_length,anonymity_protected)
-SELECT d.id,'qualitative-work-feeling','Em suas palavras, como você se sente trabalhando nesta empresa hoje?',6,6,NULL,NULL,true,false,4000,true FROM dimensions d JOIN form_versions fv ON fv.id=d.form_version_id JOIN forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND d.code='growth'
-ON CONFLICT(dimension_id,code) DO UPDATE SET text=EXCLUDED.text,is_qualitative=true,is_required=false,max_text_length=4000,anonymity_protected=true;
+INSERT INTO valorapesquisa.questions(organization_id,form_id,form_version_id,dimension_id,code,title,text,description,type,min_value,max_value,required,is_required,is_active,is_qualitative,weight,position,display_order,version,deleted_at,created_at,updated_at,max_text_length,anonymity_protected)
+SELECT f.organization_id,f.id,fv.id,d.id,o.code,o.text,o.text,NULL,valorapesquisa.compatible_scale_question_type(),1,5,true,true,true,false,1.00,o.display_order,o.display_order,1,NULL,now(),now(),NULL,false
+FROM official o JOIN dimensions d ON d.code=o.dimension_code JOIN form_versions fv ON fv.id=d.form_version_id JOIN forms f ON f.id=fv.form_id AND f.code='valora-official'
+ON CONFLICT(dimension_id,code) DO UPDATE SET organization_id=EXCLUDED.organization_id,form_id=EXCLUDED.form_id,form_version_id=EXCLUDED.form_version_id,title=EXCLUDED.title,text=EXCLUDED.text,type=EXCLUDED.type,position=EXCLUDED.position,display_order=EXCLUDED.display_order,min_value=1,max_value=5,required=true,is_required=true,is_active=true,is_qualitative=false,weight=1.00,version=1,deleted_at=NULL,updated_at=now();
+INSERT INTO valorapesquisa.questions(organization_id,form_id,form_version_id,dimension_id,code,title,text,description,type,min_value,max_value,required,is_required,is_active,is_qualitative,weight,position,display_order,version,deleted_at,created_at,updated_at,max_text_length,anonymity_protected)
+SELECT f.organization_id,f.id,fv.id,d.id,'qualitative-work-feeling','Em suas palavras, como você se sente trabalhando nesta empresa hoje?','Em suas palavras, como você se sente trabalhando nesta empresa hoje?',NULL,valorapesquisa.compatible_text_question_type(),NULL,NULL,false,false,true,true,1.00,6,6,1,NULL,now(),now(),4000,true
+FROM dimensions d JOIN form_versions fv ON fv.id=d.form_version_id JOIN forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND d.code='growth'
+ON CONFLICT(dimension_id,code) DO UPDATE SET organization_id=EXCLUDED.organization_id,form_id=EXCLUDED.form_id,form_version_id=EXCLUDED.form_version_id,title=EXCLUDED.title,text=EXCLUDED.text,type=EXCLUDED.type,required=false,is_required=false,is_active=true,is_qualitative=true,weight=1.00,position=6,display_order=6,version=1,deleted_at=NULL,max_text_length=4000,anonymity_protected=true,updated_at=now();
 INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('script_completo_2026_07','script-completo-v1') ON CONFLICT(version) DO UPDATE SET checksum=EXCLUDED.checksum,applied_at=now();
 -- Fase 2G: invariantes multiempresa, RBAC por escopo e reservas de limites.
 -- Migration aditiva e idempotente; não remove dados ou tabelas legadas.
@@ -1118,6 +1177,31 @@ INSERT INTO valorapesquisa.schema_migrations(version,checksum)
 VALUES('2026_08_valora_v10_operations','sha256:v10-monetization-campaign-jobs-errors-v1') ON CONFLICT(version) DO NOTHING;
 COMMIT;
 
+-- Conta técnica de homologação local. A credencial abaixo é BCrypt cost 12 e
+-- nunca representa senha em texto puro no banco.
+BEGIN;
+UPDATE valorapesquisa.users u SET organization_id=o.id,name='Super Administrador Valora',
+ password_hash='$2y$12$9P5OMINImu0isB5uMCSqmOC0JIZjfuv/IDSEjC0WyepMU2gIQr9nm',status='active',
+ password_reset_required=false,deleted_at=NULL,updated_at=now()
+FROM valorapesquisa.organizations o
+WHERE lower(u.email)='superadmin@valoragroup.local' AND o.slug='valora-platform';
+INSERT INTO valorapesquisa.users(organization_id,email,name,password_hash,status,password_reset_required,created_at,updated_at,deleted_at)
+SELECT o.id,'superadmin@valoragroup.local','Super Administrador Valora',
+ '$2y$12$9P5OMINImu0isB5uMCSqmOC0JIZjfuv/IDSEjC0WyepMU2gIQr9nm','active',false,now(),now(),NULL
+FROM valorapesquisa.organizations o WHERE o.slug='valora-platform'
+ AND NOT EXISTS(SELECT 1 FROM valorapesquisa.users WHERE lower(email)='superadmin@valoragroup.local');
+INSERT INTO valorapesquisa.user_roles(user_id,role_id,created_at)
+SELECT u.id,r.id,now() FROM valorapesquisa.users u CROSS JOIN LATERAL (
+ SELECT id FROM valorapesquisa.roles WHERE code='admin_valora' AND deleted_at IS NULL
+ ORDER BY organization_id NULLS FIRST LIMIT 1) r
+WHERE lower(u.email)='superadmin@valoragroup.local' ON CONFLICT(user_id,role_id) DO NOTHING;
+-- admin_valora recebe o catálogo completo, inclusive permissões acrescentadas
+-- por fases futuras do próprio bootstrap.
+INSERT INTO valorapesquisa.role_permissions(role_id,permission_id,created_at)
+SELECT r.id,p.id,now() FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p
+WHERE r.code='admin_valora' AND r.deleted_at IS NULL ON CONFLICT(role_id,permission_id) DO NOTHING;
+COMMIT;
+
 -- Validações finais executáveis: qualquer regressão essencial interrompe o
 -- bootstrap com uma mensagem objetiva em vez de deixar um banco semiconfigurado.
 DO $validation$
@@ -1132,6 +1216,8 @@ BEGIN
   IF EXISTS (SELECT form_id,version,language FROM valorapesquisa.form_versions GROUP BY form_id,version,language HAVING count(*)>1) THEN RAISE EXCEPTION 'Validação falhou: form_versions(form_id,version,language) duplicado'; END IF;
   IF (SELECT count(*) FROM valorapesquisa.dimensions d JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND d.code IN('culture','governance','leadership','people','growth')) <> 5 THEN RAISE EXCEPTION 'Validação falhou: dimensões oficiais incompletas'; END IF;
   IF (SELECT count(*) FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official') < 26 THEN RAISE EXCEPTION 'Validação falhou: perguntas oficiais incompletas'; END IF;
+  IF EXISTS (SELECT 1 FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND (q.title IS NULL OR q.text IS NULL OR q.type IS NULL OR q.organization_id IS NULL OR q.form_id IS NULL OR q.form_version_id IS NULL OR q.position IS NULL OR q.display_order IS NULL OR q.weight IS NULL OR q.version IS NULL OR q.is_active IS NULL OR q.required IS NULL OR q.is_required IS NULL)) THEN RAISE EXCEPTION 'Validação falhou: contrato de questions contém NULL obrigatório'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM valorapesquisa.users u JOIN valorapesquisa.user_roles ur ON ur.user_id=u.id JOIN valorapesquisa.roles r ON r.id=ur.role_id WHERE lower(u.email)='superadmin@valoragroup.local' AND u.status='active' AND r.code='admin_valora') THEN RAISE EXCEPTION 'Validação falhou: super administrador não configurado'; END IF;
   IF NOT EXISTS (SELECT 1 FROM valorapesquisa.plan_capabilities pc JOIN valorapesquisa.plans p ON p.id=pc.plan_id WHERE p.code IN('free','professional','corporate','enterprise')) THEN RAISE EXCEPTION 'Validação falhou: capabilities dos planos ausentes'; END IF;
   IF to_regclass('valorapesquisa.result_scores') IS NULL OR to_regclass('valorapesquisa.certificates') IS NULL OR to_regclass('valorapesquisa.organizational_intelligence_runs') IS NULL THEN RAISE EXCEPTION 'Validação falhou: tabelas de resultado, certificado ou inteligência ausentes'; END IF;
   RAISE NOTICE 'Validação Valora concluída: constraints, formulário oficial, 5 dimensões, 26 perguntas e capabilities OK';

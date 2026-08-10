@@ -1085,3 +1085,23 @@ canvas  {
 .result-method{margin:2rem 0;padding:clamp(1.3rem,3vw,2rem);border-radius:24px;background:var(--valora-deep);color:#d8e4e8}.result-method h2{color:#fff}.result-method__grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin:1.5rem 0}.result-method__grid article{padding:1rem;border:1px solid rgba(255,255,255,.14);border-radius:14px;background:rgba(255,255,255,.06)}.result-method__grid small{color:#e6c979;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.result-method__grid p{margin:.5rem 0 0;color:#d8e4e8}.result-method .insufficient-state{margin-bottom:0}
 @media(max-width:1000px){.home-hero__grid,.proof-grid{grid-template-columns:1fr}.method-flow{grid-template-columns:repeat(4,1fr)}.capability-grid{grid-template-columns:repeat(3,1fr)}.deliverables-grid{grid-template-columns:repeat(2,1fr)}.final-cta__panel{display:block}.final-cta .cta-row{margin-top:1.5rem}}
 @media(max-width:700px){.home-hero{padding-top:2rem}.public-hero-copy h1{font-size:clamp(2.45rem,12vw,3.7rem)}.not-grid,.capability-grid,.journey-line,.faq-grid,.result-method__grid{grid-template-columns:1fr}.method-flow{grid-template-columns:repeat(2,1fr)}.capability-grid article{min-height:0}.deliverables-grid{grid-template-columns:1fr}.home-hero .valora-button,.final-cta .valora-button{width:100%}.brand-card__top{flex-direction:column}.final-cta__panel{border-radius:20px}}
+
+/* Public experience 2026: executive hierarchy, AA contrast and stable nav. */
+.public-body{overflow-x:hidden;background:#f7f8f6;color:#172b35}
+.public-nav{max-width:1240px;min-height:76px;padding:.65rem 1.25rem;flex-wrap:nowrap}
+.brand{min-width:max-content}.brand-symbol-img{width:44px;height:44px;border-radius:12px;object-fit:cover}
+.brand-text strong{color:#0b3041}.brand-text small{font-size:.68rem;letter-spacing:.035em}
+.public-menu{margin-left:auto;gap:clamp(.65rem,1.35vw,1.15rem);white-space:nowrap}.public-menu>a:not(.btn-whatsapp){font-size:.9rem;color:#173f50}
+.btn-whatsapp{flex:0 0 auto;padding:.72rem 1rem;background:#b98b35;color:#102a35;box-shadow:0 7px 18px rgba(93,66,16,.16)}
+.home-hero{min-height:min(680px,calc(100svh - 76px));display:flex;align-items:center;padding:clamp(3rem,7vh,5.25rem) 0}
+.public-hero-copy h1{max-width:780px;color:#fff;font-size:clamp(2.65rem,5.1vw,4.75rem);line-height:1.02;letter-spacing:-.045em}
+.public-hero-copy .lead{max-width:720px;color:#dce8eb}.hero-note{color:#d7e3e7!important}
+.hero-brand-card,.deliverables-grid article,.method-flow li{color:#eef5f6}.hero-brand-card h2,.hero-brand-card strong,.deliverables-grid b,.method-flow strong{color:#fff}
+.section-heading--light h2{color:#fff}.section-heading--light>p:last-child{color:#d4e1e5}
+.not-grid article,.capability-grid article,.evidence-card{box-shadow:0 16px 44px rgba(10,45,59,.08)}
+.deliverables-grid{grid-template-columns:repeat(5,minmax(0,1fr))}.deliverables-grid article{min-height:165px;background:linear-gradient(150deg,rgba(255,255,255,.1),rgba(255,255,255,.045));border-color:rgba(230,201,121,.24)}
+.deliverables-grid b{color:#efd386}.deliverables-grid p{color:#d8e4e7}
+.valora-button{min-height:48px}.valora-button--gold{background:#d1a54c;color:#142f3a}.valora-button--gold:hover{background:#e1bd70;color:#102a35}
+@media(max-width:1120px){.brand-text small{display:none}.public-menu{gap:.65rem}.public-menu>a:not(.btn-whatsapp){font-size:.82rem}.deliverables-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:900px){.public-nav{flex-wrap:wrap}.public-menu{white-space:normal}.deliverables-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.public-nav{min-height:68px}.brand-text small{display:none}.home-hero{min-height:auto;padding:3.25rem 0}.public-hero-copy h1{font-size:clamp(2.35rem,11vw,3.35rem)}.home-hero__grid{gap:2rem}.deliverables-grid{grid-template-columns:1fr}.deliverables-grid article{min-height:0}.method-flow li{min-height:125px}.public-menu{width:100%}.public-menu a{width:100%}.btn-whatsapp{margin-top:.25rem}}

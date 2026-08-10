@@ -21,6 +21,14 @@
       if(dims.length){
         setText('[data-dimensions-text]', dims.map(d=>`${d.dimensionName || d.name}: ${d.percentage ?? d.score ?? 'em análise'}`).join(' • '));
       }
+      const insight=result.insight || r?.insight || {};
+      setText('[data-method-observation]', safe(insight.observation || result.observation || 'Leitura consolidada das dimensões respondidas.'));
+      setText('[data-method-evidence]', safe(insight.evidence || result.evidence || 'Base amostral e convergência em validação.'));
+      setText('[data-method-correlation]', safe(insight.correlation || result.correlation || 'Relações consideradas apenas no conjunto observado.'));
+      setText('[data-method-cause]', safe(insight.probableCause || result.probableCause || 'Hipótese condicionada à suficiência de evidências.'));
+      setText('[data-method-impact]', safe(insight.impact || result.impact || 'Efeito organizacional e criticidade em análise.'));
+      setText('[data-method-plan]', safe(insight.evolutionPlan || result.nextLevel || 'Próximo movimento mensurável e verificável.'));
+      setText('[data-evidence-warning]', safe(result.warning || 'Validação responsável: conclusões fortes exigem evidências convergentes; caso contrário, o resultado indicará dados insuficientes.'));
     })
     .catch(()=>{
       setText('[data-result-date]', 'Data não informada');

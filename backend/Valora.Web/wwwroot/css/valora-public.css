@@ -210,6 +210,17 @@ h2 {
 .diagnostic-section {
   background:var(--accent-soft)
 }
+.contact-premium,.privacy-premium { background:linear-gradient(145deg,#f8f5ec 0%,#edf3f5 58%,#fff 100%) }
+.contact-form { margin-top:2rem; border-top:4px solid var(--accent) }
+.contact-form label { font-weight:700 }
+.contact-form small { display:block; color:#647783; font-weight:400; margin-top:.35rem }
+.contact-form input:invalid:not(:focus):not(:placeholder-shown),.contact-form.was-validated :invalid { border-color:#a43f46 }
+.form-summary { padding:1rem; border-radius:12px; background:#fff0f0; color:#842e35; border-left:4px solid #a43f46 }
+.contact-success { padding:1rem; border-radius:14px; background:#e8f6ef; color:#155c42 }
+.contact-aside { align-self:start; position:sticky; top:7rem }
+.contact-seal { display:inline-flex; padding:.4rem .75rem; border-radius:999px; background:var(--brand); color:#fff; font-weight:800 }
+.privacy-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin:2rem 0 }
+@media(max-width:800px){.privacy-grid{grid-template-columns:1fr}.contact-aside{position:static}}
 .footer {
   background:var(--brand-3);
   color:#dbe7ef;

@@ -115,9 +115,16 @@ ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS public
 ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
 ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS updated_at timestamptz;
 ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS version bigint NOT NULL DEFAULT 1;
-CREATE TABLE IF NOT EXISTS valorapesquisa.forms (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE, name text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.forms (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), title text NOT NULL, name text NOT NULL, code text NOT NULL UNIQUE, slug text NOT NULL, form_key text NOT NULL, status text NOT NULL DEFAULT 'active', questions_count int NOT NULL DEFAULT 0, estimated_minutes int NOT NULL DEFAULT 15, version bigint NOT NULL DEFAULT 1, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.form_versions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), form_id uuid NOT NULL REFERENCES valorapesquisa.forms(id), version int NOT NULL, language text NOT NULL DEFAULT 'pt-BR', is_immutable boolean NOT NULL DEFAULT true, max_score int NOT NULL DEFAULT 125, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(form_id,version,language));
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES valorapesquisa.organizations(id);
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS title text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS code text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS slug text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS form_key text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS questions_count int DEFAULT 0;
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS description text;
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS category text;
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS estimated_minutes int NOT NULL DEFAULT 15;
@@ -126,6 +133,32 @@ ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS latest_published_versi
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS created_by_user_id uuid REFERENCES valorapesquisa.users(id);
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS version bigint NOT NULL DEFAULT 1;
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+-- Convergência de bancos limpos, parciais e históricos: todos os aliases usados
+-- pelas versões da aplicação recebem valor antes de qualquer NOT NULL ou seed.
+UPDATE valorapesquisa.forms
+SET title=COALESCE(NULLIF(title,''),NULLIF(name,''),'Pesquisa Oficial Valora'),
+    name=COALESCE(NULLIF(name,''),NULLIF(title,''),'Pesquisa Oficial Valora'),
+    code=COALESCE(NULLIF(code,''),'legacy-'||replace(id::text,'-','')),
+    slug=COALESCE(NULLIF(slug,''),NULLIF(code,''),'legacy-'||replace(id::text,'-','')),
+    form_key=COALESCE(NULLIF(form_key,''),NULLIF(code,''),'legacy-'||replace(id::text,'-','')),
+    status=COALESCE(NULLIF(status,''),'active'), questions_count=COALESCE(questions_count,0),
+    estimated_minutes=COALESCE(estimated_minutes,15), version=COALESCE(version,1);
+ALTER TABLE valorapesquisa.forms ALTER COLUMN title SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN name SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN code SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN slug SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN form_key SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN status SET DEFAULT 'active';
+ALTER TABLE valorapesquisa.forms ALTER COLUMN status SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN questions_count SET DEFAULT 0;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN questions_count SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN estimated_minutes SET DEFAULT 15;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN estimated_minutes SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN version SET DEFAULT 1;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN version SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_forms_code ON valorapesquisa.forms(code);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_forms_slug ON valorapesquisa.forms(slug);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_forms_form_key ON valorapesquisa.forms(form_key);
 UPDATE valorapesquisa.forms SET organization_id=(SELECT id FROM valorapesquisa.organizations WHERE slug='valora-platform') WHERE organization_id IS NULL;
 ALTER TABLE valorapesquisa.forms ALTER COLUMN organization_id SET NOT NULL;
 ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES valorapesquisa.organizations(id);
@@ -524,7 +557,12 @@ CASE p.code
  ELSE true END
 FROM plans p CROSS JOIN capabilities c WHERE p.code IN ('free','professional','corporate','enterprise')
 ON CONFLICT(plan_id,capability_key) DO UPDATE SET capability=EXCLUDED.capability,capability_code=EXCLUDED.capability_code,enabled=EXCLUDED.enabled,is_enabled=EXCLUDED.is_enabled,updated_at=now();
-INSERT INTO valorapesquisa.forms(organization_id,code,name,status) SELECT id,'valora-official','Pesquisa Oficial Valora','active' FROM valorapesquisa.organizations WHERE slug='valora-platform' ON CONFLICT(code) DO UPDATE SET organization_id=EXCLUDED.organization_id,name=EXCLUDED.name,status='active',deleted_at=NULL,updated_at=now();
+INSERT INTO valorapesquisa.forms(organization_id,title,name,code,slug,form_key,status,questions_count,estimated_minutes,version,deleted_at)
+SELECT id,'Pesquisa Oficial Valora','Pesquisa Oficial Valora','valora-official','valora-official','valora-official','active',25,15,1,NULL
+FROM valorapesquisa.organizations WHERE slug='valora-platform'
+ON CONFLICT(code) DO UPDATE SET organization_id=EXCLUDED.organization_id,title=EXCLUDED.title,name=EXCLUDED.name,
+slug=EXCLUDED.slug,form_key=EXCLUDED.form_key,status=EXCLUDED.status,questions_count=EXCLUDED.questions_count,
+estimated_minutes=EXCLUDED.estimated_minutes,deleted_at=NULL,updated_at=now();
 INSERT INTO valorapesquisa.form_versions(form_id,organization_id,version,version_number,language,is_immutable,maximum_score,max_score,status,published_at) SELECT id,organization_id,1,1,'pt-BR',true,125,125,'published',now() FROM forms WHERE code='valora-official' ON CONFLICT(form_id,version,language) DO UPDATE SET organization_id=EXCLUDED.organization_id,version_number=1,maximum_score=125,max_score=125,status='published',is_immutable=true,published_at=COALESCE(form_versions.published_at,now()),updated_at=now();
 INSERT INTO valorapesquisa.form_translations(form_version_id,language,title) SELECT id,lang,'Valora Insight' FROM form_versions CROSS JOIN (VALUES('pt-BR'),('en'),('es'),('zh-Hans')) l(lang) ON CONFLICT(form_version_id,language) DO NOTHING;
 WITH fv AS (SELECT id FROM form_versions WHERE form_id=(SELECT id FROM forms WHERE code='valora-official') AND version=1 AND language='pt-BR'), d(code,name,ord) AS (VALUES ('culture','Cultura e Propósito',1),('governance','Gestão e Governança',2),('leadership','Liderança',3),('people','Pessoas e Talentos',4),('growth','Resultados e Crescimento',5)) INSERT INTO valorapesquisa.dimensions(form_version_id,code,name,position,display_order,max_score) SELECT fv.id,d.code,d.name,d.ord,d.ord,25 FROM fv,d ON CONFLICT(form_version_id,code) DO UPDATE SET name=EXCLUDED.name,position=EXCLUDED.position,display_order=EXCLUDED.display_order,max_score=EXCLUDED.max_score;
@@ -954,4 +992,17 @@ CREATE INDEX IF NOT EXISTS ix_operational_errors_triage ON valorapesquisa.operat
 
 INSERT INTO valorapesquisa.schema_migrations(version,checksum)
 VALUES('2026_08_valora_v10_operations','sha256:v10-monetization-campaign-jobs-errors-v1') ON CONFLICT(version) DO NOTHING;
+
+-- Validações de aceite: falhar a transação é preferível a concluir um bootstrap parcial.
+DO $final_validation$
+BEGIN
+ IF EXISTS (SELECT 1 FROM valorapesquisa.forms WHERE title IS NULL) THEN RAISE EXCEPTION 'forms.title possui valor nulo'; END IF;
+ IF EXISTS (SELECT 1 FROM valorapesquisa.forms WHERE name IS NULL) THEN RAISE EXCEPTION 'forms.name possui valor nulo'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM valorapesquisa.forms WHERE code='valora-official' AND title='Pesquisa Oficial Valora' AND name='Pesquisa Oficial Valora' AND status='active' AND questions_count=25 AND estimated_minutes=15 AND deleted_at IS NULL) THEN RAISE EXCEPTION 'Formulário oficial Valora ausente ou inválido'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM valorapesquisa.forms f JOIN valorapesquisa.organizations o ON o.id=f.organization_id WHERE f.code='valora-official' AND o.slug='valora-platform') THEN RAISE EXCEPTION 'Formulário oficial sem organização valora-platform'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM valorapesquisa.form_versions fv JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND fv.status='published' AND fv.published_at IS NOT NULL) THEN RAISE EXCEPTION 'Versão publicada do formulário oficial ausente'; END IF;
+ IF (SELECT count(*) FROM valorapesquisa.dimensions d JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official') < 5 THEN RAISE EXCEPTION 'Dimensões oficiais ausentes'; END IF;
+ IF (SELECT count(*) FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND q.is_qualitative=false) < 25 THEN RAISE EXCEPTION 'Perguntas oficiais ausentes'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM valorapesquisa.plan_capabilities pc JOIN valorapesquisa.plans p ON p.id=pc.plan_id WHERE p.code IN ('free','professional','corporate','enterprise') AND pc.capability_key='officialValoraProgram') THEN RAISE EXCEPTION 'Capabilities dos planos ausentes'; END IF;
+END $final_validation$;
 COMMIT;

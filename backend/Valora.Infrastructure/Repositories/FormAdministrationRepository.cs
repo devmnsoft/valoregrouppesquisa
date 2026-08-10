@@ -64,11 +64,12 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         var versionId = Guid.NewGuid();
         const string sql = """
             INSERT INTO valorapesquisa.forms
-                (id, code, organization_id, name, description, category, estimated_minutes, status,
-                 current_draft_version_id, created_by_user_id, created_at, updated_at, version)
+                (id, organization_id, title, name, code, slug, form_key, description, category,
+                 estimated_minutes, status, questions_count, current_draft_version_id,
+                 created_by_user_id, created_at, updated_at, version, deleted_at)
             VALUES
-                (@formId, @code, @organizationId, @name, @description, @category, @estimatedMinutes, 'draft',
-                 @versionId, @userId, now(), now(), 1);
+                (@formId, @organizationId, @name, @name, @code, @code, @code, @description, @category,
+                 @estimatedMinutes, 'draft', 0, @versionId, @userId, now(), now(), 1, NULL);
 
             INSERT INTO valorapesquisa.form_versions
                 (id, organization_id, form_id, version, version_number, status, is_immutable, maximum_score, max_score, created_at, updated_at)
@@ -83,7 +84,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
     {
         const string sql = """
             UPDATE valorapesquisa.forms
-               SET name = @name, description = @description, category = @category,
+               SET title = @name, name = @name, description = @description, category = @category,
                    estimated_minutes = @estimatedMinutes, updated_at = now(), version = version + 1
              WHERE id = @formId AND organization_id = @organizationId AND deleted_at IS NULL
                AND status = 'draft' AND version = @expectedVersion;

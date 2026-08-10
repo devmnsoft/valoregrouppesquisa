@@ -7,6 +7,7 @@ public sealed class PublicPagesController(ILogger<PublicPagesController> logger)
     [Route("diagnostico-gratuito")]
     public IActionResult FreeDiagnostic() => PublicView("FreeDiagnostic", "Diagnóstico gratuito");
 
+    [Route("PublicPages/Contact")]
     [Route("contato")]
     public IActionResult Contact() => PublicView("Contact", "Contato");
 

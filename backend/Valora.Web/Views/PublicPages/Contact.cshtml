@@ -1,3 +1,29 @@
+@model Valora.Web.Models.ContactRequest
 @{ Layout = "_PublicLayout"; ViewData["Title"] = "Contato"; }
-<section class="section" data-page="public-contact"><div class="container-public two-col"><div><p class="eyebrow">Contato</p><h1>Fale com a Valora Group</h1><p class="lead">Solicite atendimento comercial sobre diagnóstico, governança, controller ou advisory.</p><form class="form-public" data-contact-form><input name="name" placeholder="Nome" required><input name="email" type="email" placeholder="E-mail corporativo" required><textarea name="message" placeholder="Como podemos ajudar?" required></textarea><button class="btn-public primary" type="submit">Enviar solicitação</button></form></div><div class="public-card"><h2>Atendimento consultivo</h2><p>Também estamos disponíveis pelo CTA de WhatsApp.</p><a class="btn-public ghost" href="https://wa.me/5591992545353?text=Ol%C3%A1%2C%20quero%20falar%20com%20a%20Valora%20Group%20sobre%20o%20Diagn%C3%B3stico%20Valora%20Insight%E2%84%A2." target="_blank" rel="noopener noreferrer">Fale com a Valora Group</a></div></div></section>
-@section Scripts { <script src="/js/public/public-whatsapp.js"></script> }
+<section class="section contact-page" data-page="public-contact">
+  <div class="container-public two-col contact-grid">
+    <div>
+      <p class="eyebrow">Conversa executiva</p><h1>Vamos transformar diagnóstico em evolução.</h1>
+      <p class="lead">Fale com especialistas da Valora Group sobre o Valora Insight™, governança, controller e advisory.</p>
+      <div class="contact-channels">
+        <a class="public-card contact-channel" href="https://wa.me/5591992545353" target="_blank" rel="noopener"><strong>WhatsApp comercial</strong><span>+55 91 99254-5353</span></a>
+        <a class="public-card contact-channel" href="mailto:contato@valoragroup.com.br"><strong>E-mail</strong><span>contato@valoragroup.com.br</span></a>
+      </div>
+    </div>
+    <div class="public-card contact-form-card">
+      <h2>Solicite atendimento</h2><p class="form-help">Campos marcados com <span class="required-mark">*</span> são obrigatórios.</p>
+      @if (TempData["ContactSuccess"] is string success) { <div class="form-success" role="status">@success</div> }
+      <form asp-action="Contact" asp-controller="PublicPages" method="post" class="form-public valora-public-form" data-professional-form novalidate>
+        <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+        <label asp-for="Name">Nome <span class="required-mark">*</span><input asp-for="Name" autocomplete="name" aria-describedby="name-help"><small id="name-help">Como prefere ser chamado?</small><span asp-validation-for="Name" class="field-error"></span></label>
+        <label asp-for="Email">E-mail corporativo <span class="required-mark">*</span><input asp-for="Email" type="email" autocomplete="email"><span asp-validation-for="Email" class="field-error"></span></label>
+        <label asp-for="Phone">WhatsApp<input asp-for="Phone" type="tel" inputmode="tel" autocomplete="tel" data-mask="phone" placeholder="(00) 00000-0000"><span asp-validation-for="Phone" class="field-error"></span></label>
+        <label asp-for="Subject">Assunto <span class="required-mark">*</span><select asp-for="Subject"><option value="">Selecione</option><option>Valora Insight™</option><option>Governança e advisory</option><option>Planos e contratação</option><option>Suporte</option></select><span asp-validation-for="Subject" class="field-error"></span></label>
+        <label asp-for="Message">Como podemos ajudar? <span class="required-mark">*</span><textarea asp-for="Message" rows="5" minlength="10"></textarea><span asp-validation-for="Message" class="field-error"></span></label>
+        <label class="consent-row"><input asp-for="PrivacyAccepted" type="checkbox"><span>Li a <a href="/privacy">Política de Privacidade</a> e autorizo o contato. <span class="required-mark">*</span></span></label><span asp-validation-for="PrivacyAccepted" class="field-error"></span>
+        <button class="btn-public primary submit-premium" type="submit" data-loading-text="Enviando com segurança…"><span data-button-label>Enviar solicitação</span><span class="button-spinner" aria-hidden="true"></span></button>
+      </form>
+    </div>
+  </div>
+</section>
+@section Scripts { <partial name="_ValidationScriptsPartial" /><script src="/js/public/valora-forms.js" asp-append-version="true"></script> }

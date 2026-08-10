@@ -9,4 +9,6 @@ window.IntelligenceApi = {
   ,actions: () => AjaxClient.get('/bff/intelligence/action-plans')
   ,createAction: payload => AjaxClient.post('/bff/intelligence/action-plans', payload)
   ,updateAction: (id, payload) => AjaxClient.patch(`/bff/intelligence/action-plans/${encodeURIComponent(id)}`, payload)
+  ,actionHistory: id => AjaxClient.get(`/bff/intelligence/action-plans/${encodeURIComponent(id)}/history`)
+  ,deleteAction: id => AjaxClient.delete(`/bff/intelligence/action-plans/${encodeURIComponent(id)}`)
 };

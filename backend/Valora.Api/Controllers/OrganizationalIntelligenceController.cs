@@ -49,6 +49,14 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
         var action = await service.UpdateActionAsync(access.OrganizationId, id, UserId, request, ct);
         return action is null ? NotFound(new { code = "ACTION_PLAN_NOT_FOUND", message = "Plano de ação não encontrado." }) : Ok(action);
     }
+    [HttpGet("action-plans/{id:guid}/history")]
+    public async Task<IActionResult> ActionHistory(Guid id, [FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", organization => service.ActionHistoryAsync(organization, id, ct));
+    [HttpDelete("action-plans/{id:guid}")]
+    public async Task<IActionResult> DeleteAction(Guid id, [FromQuery] Guid? organizationId, CancellationToken ct)
+    {
+        var access = await Validate(organizationId, "organizational_intelligence.generate"); if (access.Error is not null) return access.Error;
+        return await service.DeleteActionAsync(access.OrganizationId, id, UserId, ct) ? Ok(new { archived = true }) : NotFound(new { code = "ACTION_PLAN_NOT_FOUND", message = "Plano de ação não encontrado." });
+    }
 
     private async Task<IActionResult> Read<T>(Guid? requested, string permission, Func<Guid, Task<T>> action)
     { var access = await Validate(requested, permission); return access.Error ?? Ok(await action(access.OrganizationId)); }

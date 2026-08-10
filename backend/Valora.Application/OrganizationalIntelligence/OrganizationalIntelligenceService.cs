@@ -8,6 +8,8 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
     public Task<IReadOnlyList<OrganizationalJourneyEventDto>> JourneyAsync(Guid organizationId, CancellationToken ct) => repository.ListJourneyAsync(organizationId, ct);
     public Task<IReadOnlyList<ValoraIndicatorDefinitionDto>> IndicatorsAsync(CancellationToken ct) => repository.ListIndicatorsAsync(ct);
     public Task<IReadOnlyList<ValoraActionDto>> ActionsAsync(Guid organizationId, CancellationToken ct) => repository.ListActionsAsync(organizationId, ct);
+    public Task<IReadOnlyList<ValoraActionHistoryDto>> ActionHistoryAsync(Guid organizationId, Guid actionId, CancellationToken ct) => repository.ListActionHistoryAsync(organizationId, actionId, ct);
+    public Task<bool> DeleteActionAsync(Guid organizationId, Guid actionId, Guid userId, CancellationToken ct) => repository.DeleteActionAsync(organizationId, actionId, userId, ct);
 
     public Task<ValoraActionDto?> UpdateActionAsync(Guid organizationId, Guid actionId, Guid userId, UpdateValoraActionRequest request, CancellationToken ct)
     {

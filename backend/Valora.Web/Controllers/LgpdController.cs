@@ -4,7 +4,7 @@ namespace Valora.Web.Controllers;
 
 public sealed class LgpdController : Controller
 {
-    [Route("lgpd")]
+    [Route("lgpd/gestao")]
     public IActionResult Index() => View();
 
     [Route("lgpd/solicitacao")]

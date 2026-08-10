@@ -4,6 +4,8 @@
   --valora-navy-soft:#123f4f;
   --valora-aqua:#75dce8;
   --valora-aqua-strong:#2db9c8;
+  --valora-gold:#c79a3b;
+  --valora-gold-soft:#f4e7c8;
   --valora-bg:#f4fafb;
   --valora-surface:#fff;
   --valora-text:#082a37;
@@ -62,6 +64,52 @@ body {
   box-shadow:var(--valora-shadow-soft);
   padding:clamp(1.1rem,2.5vw,1.75rem)
 }
+.valora-card--executive {
+  position:relative;
+  overflow:hidden;
+  border-color:rgba(199,154,59,.34);
+  background:linear-gradient(145deg,#fff 0%,#fff 72%,#fbf6ea 100%)
+}
+.valora-card--executive:before {
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:4px;
+  background:linear-gradient(var(--valora-gold),#e4c77e)
+}
+.insight-method {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:.75rem;
+  counter-reset:insight-step
+}
+.insight-method > * {
+  counter-increment:insight-step;
+  min-height:8rem;
+  padding:1rem;
+  border:1px solid var(--valora-line);
+  border-radius:18px;
+  background:linear-gradient(155deg,#fff,#f4fafb);
+  box-shadow:0 10px 28px rgba(5,52,68,.07)
+}
+.insight-method > *:before {
+  content:counter(insight-step,decimal-leading-zero);
+  display:block;
+  margin-bottom:.7rem;
+  color:var(--valora-gold);
+  font-weight:900;
+  letter-spacing:.08em
+}
+.validation-summary-errors {
+  border:1px solid rgba(181,38,43,.28);
+  border-left:4px solid var(--valora-danger);
+  border-radius:14px;
+  padding:.8rem 1rem;
+  background:#fff5f5;
+  color:#872026
+}
+.field-validation-error {display:block;margin-top:.35rem;color:var(--valora-danger);font-size:.82rem;font-weight:700}
+.valora-form button[disabled],.form-public button[disabled] {cursor:wait;opacity:.68;transform:none}
 .valora-card--dark {
   background:linear-gradient(145deg,var(--valora-navy),var(--valora-navy-soft));
   color:#fff
@@ -159,6 +207,8 @@ body {
   outline:3px solid rgba(117,220,232,.35);
   border-color:var(--valora-aqua-strong)
 }
+@media (max-width:900px) {.insight-method {grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px) {.insight-method {grid-template-columns:1fr}.valora-card {border-radius:18px}}
 .valora-alert {
   border-radius:18px;
   border:1px solid var(--valora-line);
@@ -312,4 +362,3 @@ body {
   }
 
 }
-

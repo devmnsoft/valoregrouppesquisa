@@ -117,6 +117,59 @@ ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS update
 ALTER TABLE valorapesquisa.organization_branding ADD COLUMN IF NOT EXISTS version bigint NOT NULL DEFAULT 1;
 CREATE TABLE IF NOT EXISTS valorapesquisa.forms (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), title text NOT NULL, name text NOT NULL, code text NOT NULL UNIQUE, slug text NOT NULL, form_key text NOT NULL, status text NOT NULL DEFAULT 'active', questions_count int NOT NULL DEFAULT 0, estimated_minutes int NOT NULL DEFAULT 15, version bigint NOT NULL DEFAULT 1, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.form_versions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), form_id uuid NOT NULL REFERENCES valorapesquisa.forms(id), version int NOT NULL, language text NOT NULL DEFAULT 'pt-BR', is_immutable boolean NOT NULL DEFAULT true, max_score int NOT NULL DEFAULT 125, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(form_id,version,language));
+-- Converge contratos antigos/parciais antes de ler ou popular forms. Alguns
+-- bancos legados possuem title NOT NULL, enquanto outros usam apenas code/name.
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS title text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS slug text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS form_key text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS questions_count integer DEFAULT 0;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS version bigint DEFAULT 1;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS code text;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
+UPDATE valorapesquisa.forms
+SET code = COALESCE(NULLIF(code, ''), NULLIF(form_key, ''), NULLIF(slug, ''), 'legacy-' || replace(id::text, '-', '')),
+    form_key = COALESCE(NULLIF(form_key, ''), NULLIF(code, ''), NULLIF(slug, ''), 'legacy-' || replace(id::text, '-', '')),
+    slug = COALESCE(NULLIF(slug, ''), NULLIF(form_key, ''), NULLIF(code, ''), 'legacy-' || replace(id::text, '-', '')),
+    name = COALESCE(NULLIF(name, ''), NULLIF(title, ''), 'Formulário sem nome'),
+    title = COALESCE(NULLIF(title, ''), NULLIF(name, ''), 'Formulário sem título'),
+    status = COALESCE(NULLIF(status, ''), 'active'),
+    questions_count = COALESCE(questions_count, 0),
+    version = COALESCE(version, 1);
+-- Bancos parciais podem ter recebido duplicatas antes dos índices oficiais.
+-- Preservamos todas as linhas e tornamos apenas as chaves técnicas inequívocas.
+WITH duplicates AS (
+  SELECT id, row_number() OVER (PARTITION BY code ORDER BY created_at NULLS LAST, id) AS occurrence
+  FROM valorapesquisa.forms
+)
+UPDATE valorapesquisa.forms f SET code=f.code || '-' || left(replace(f.id::text,'-',''),8)
+FROM duplicates d WHERE f.id=d.id AND d.occurrence>1;
+WITH duplicates AS (
+  SELECT id, row_number() OVER (PARTITION BY slug ORDER BY created_at NULLS LAST, id) AS occurrence
+  FROM valorapesquisa.forms
+)
+UPDATE valorapesquisa.forms f SET slug=f.slug || '-' || left(replace(f.id::text,'-',''),8)
+FROM duplicates d WHERE f.id=d.id AND d.occurrence>1;
+WITH duplicates AS (
+  SELECT id, row_number() OVER (PARTITION BY form_key ORDER BY created_at NULLS LAST, id) AS occurrence
+  FROM valorapesquisa.forms
+)
+UPDATE valorapesquisa.forms f SET form_key=f.form_key || '-' || left(replace(f.id::text,'-',''),8)
+FROM duplicates d WHERE f.id=d.id AND d.occurrence>1;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN code SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN title SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN name SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN slug SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN form_key SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN status SET DEFAULT 'active';
+ALTER TABLE valorapesquisa.forms ALTER COLUMN status SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN questions_count SET DEFAULT 0;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN questions_count SET NOT NULL;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN version SET DEFAULT 1;
+ALTER TABLE valorapesquisa.forms ALTER COLUMN version SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_forms_slug ON valorapesquisa.forms(slug);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_forms_form_key ON valorapesquisa.forms(form_key);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_forms_code ON valorapesquisa.forms(code);
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES valorapesquisa.organizations(id);
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS title text;
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS name text;
@@ -862,6 +915,8 @@ INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_e
 -- 36. COMMIT
 COMMIT;
 
+
+
 -- 38. VALORA ACTION™ E EVOLUTION™ (aditivo e idempotente)
 BEGIN;
 INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
@@ -1006,3 +1061,27 @@ BEGIN
  IF NOT EXISTS (SELECT 1 FROM valorapesquisa.plan_capabilities pc JOIN valorapesquisa.plans p ON p.id=pc.plan_id WHERE p.code IN ('free','professional','corporate','enterprise') AND pc.capability_key='officialValoraProgram') THEN RAISE EXCEPTION 'Capabilities dos planos ausentes'; END IF;
 END $final_validation$;
 COMMIT;
+
+-- Validações finais executáveis: qualquer regressão essencial interrompe o
+-- bootstrap com uma mensagem objetiva em vez de deixar um banco semiconfigurado.
+DO $validation$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM valorapesquisa.forms WHERE form_key='valora-official' AND title IS NOT NULL) THEN
+    RAISE EXCEPTION 'Validação falhou: formulário oficial Valora ausente';
+  END IF;
+  IF EXISTS (SELECT 1 FROM valorapesquisa.forms WHERE title IS NULL) THEN
+    RAISE EXCEPTION 'Validação falhou: forms.title contém NULL';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM valorapesquisa.plan_capabilities) THEN
+    RAISE EXCEPTION 'Validação falhou: capabilities dos planos ausentes';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM valorapesquisa.permissions WHERE code IN ('surveys.read','surveys.create','results.read')) THEN
+    RAISE EXCEPTION 'Validação falhou: permissões principais ausentes';
+  END IF;
+  IF to_regclass('valorapesquisa.result_scores') IS NULL
+     OR to_regclass('valorapesquisa.certificates') IS NULL
+     OR to_regclass('valorapesquisa.organizational_intelligence_runs') IS NULL THEN
+    RAISE EXCEPTION 'Validação falhou: tabelas de resultado, certificado ou inteligência ausentes';
+  END IF;
+  RAISE NOTICE 'Validação Valora concluída: formulário, planos, permissões e tabelas essenciais OK';
+END $validation$;

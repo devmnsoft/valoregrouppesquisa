@@ -5,6 +5,8 @@ window.IntelligenceApi = {
   createJourney: payload => AjaxClient.post('/bff/intelligence/journey', payload),
   indicators: () => AjaxClient.get('/bff/intelligence/indicators')
   ,evolution: () => AjaxClient.get('/bff/intelligence/evolution')
-  ,actions: () => AjaxClient.get('/bff/intelligence/actions')
-  ,createAction: payload => AjaxClient.post('/bff/intelligence/actions', payload)
+  ,heatmap: () => AjaxClient.get('/bff/intelligence/heatmap')
+  ,actions: () => AjaxClient.get('/bff/intelligence/action-plans')
+  ,createAction: payload => AjaxClient.post('/bff/intelligence/action-plans', payload)
+  ,updateAction: (id, payload) => AjaxClient.patch(`/bff/intelligence/action-plans/${encodeURIComponent(id)}`, payload)
 };

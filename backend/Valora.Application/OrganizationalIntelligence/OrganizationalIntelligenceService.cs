@@ -9,6 +9,14 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
     public Task<IReadOnlyList<ValoraIndicatorDefinitionDto>> IndicatorsAsync(CancellationToken ct) => repository.ListIndicatorsAsync(ct);
     public Task<IReadOnlyList<ValoraActionDto>> ActionsAsync(Guid organizationId, CancellationToken ct) => repository.ListActionsAsync(organizationId, ct);
 
+    public Task<ValoraActionDto?> UpdateActionAsync(Guid organizationId, Guid actionId, Guid userId, UpdateValoraActionRequest request, CancellationToken ct)
+    {
+        string[] statuses = ["recommended", "planned", "in_progress", "waiting", "completed", "cancelled", "reviewed"];
+        if (!statuses.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
+            throw new ArgumentException("Status inválido para o plano de ação.");
+        return repository.UpdateActionAsync(organizationId, actionId, request with { Status = request.Status.ToLowerInvariant() }, userId, ct);
+    }
+
     public async Task<IReadOnlyList<EvolutionPointDto>> EvolutionAsync(Guid organizationId, CancellationToken ct)
     {
         var runs = (await repository.ListRunsAsync(organizationId, ct)).OrderBy(x => x.CreatedAt).ToList();

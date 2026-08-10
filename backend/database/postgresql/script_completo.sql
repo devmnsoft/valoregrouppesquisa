@@ -257,6 +257,16 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.whatsapp_messages (id uuid PRIMARY KEY
 CREATE TABLE IF NOT EXISTS valorapesquisa.communications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), channel text NOT NULL, recipient_hash text NOT NULL, status text NOT NULL DEFAULT 'pending', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), user_id uuid REFERENCES valorapesquisa.users(id), title text NOT NULL, body text NOT NULL, read_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS valorapesquisa.action_plans (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), result_id uuid REFERENCES valorapesquisa.results(id), title text NOT NULL, status text NOT NULL DEFAULT 'open', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
+ALTER TABLE valorapesquisa.action_plans
+  ADD COLUMN IF NOT EXISTS priority text NOT NULL DEFAULT 'medium',
+  ADD COLUMN IF NOT EXISTS owner_name text,
+  ADD COLUMN IF NOT EXISTS executive_sponsor text,
+  ADD COLUMN IF NOT EXISTS due_at timestamptz,
+  ADD COLUMN IF NOT EXISTS complexity text NOT NULL DEFAULT 'medium',
+  ADD COLUMN IF NOT EXISTS expected_impact text,
+  ADD COLUMN IF NOT EXISTS evidence jsonb NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS linked_indicator text,
+  ADD COLUMN IF NOT EXISTS history jsonb NOT NULL DEFAULT '[]'::jsonb;
 CREATE TABLE IF NOT EXISTS valorapesquisa.lgpd_consents (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), participant_id uuid REFERENCES valorapesquisa.participants(id), consent_type text NOT NULL, granted_at timestamptz NOT NULL DEFAULT now(), revoked_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.privacy_requests (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), requester_hash text NOT NULL, request_type text NOT NULL, protocol text NOT NULL DEFAULT encode(gen_random_bytes(24), 'hex'), status text NOT NULL DEFAULT 'open', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 ALTER TABLE valorapesquisa.privacy_requests ADD COLUMN IF NOT EXISTS protocol text;

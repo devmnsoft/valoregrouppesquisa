@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+data/email_config.json
+data/outbox/*.eml
+.env
+.firebase/
+.firebase-debug.log

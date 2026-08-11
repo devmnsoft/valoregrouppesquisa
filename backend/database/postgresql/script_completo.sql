@@ -6,6 +6,10 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE SCHEMA IF NOT EXISTS valorapesquisa;
 SET LOCAL search_path TO valorapesquisa, public;
 
+-- COMPATIBILIDADE PARA BANCOS EXISTENTES
+-- O bootstrap converge contratos antigos antes de normalizar, indexar ou
+-- semear cada entidade, permanecendo aditivo e seguro para reexecução.
+
 CREATE OR REPLACE FUNCTION valorapesquisa.set_updated_at()
 RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
@@ -137,6 +141,9 @@ ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS version bigint DEFAULT
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS name text;
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS code text;
 ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
 UPDATE valorapesquisa.forms
 SET code = COALESCE(NULLIF(code, ''), NULLIF(form_key, ''), NULLIF(slug, ''), 'legacy-' || replace(id::text, '-', '')),
     form_key = COALESCE(NULLIF(form_key, ''), NULLIF(code, ''), NULLIF(slug, ''), 'legacy-' || replace(id::text, '-', '')),
@@ -772,10 +779,21 @@ INSERT INTO valorapesquisa.questions(organization_id,form_id,form_version_id,dim
 SELECT f.organization_id,f.id,fv.id,d.id,o.code,o.text,o.text,NULL,valorapesquisa.compatible_scale_question_type(),1,5,true,true,true,false,1.00,o.display_order,o.display_order,1,NULL,now(),now(),NULL,false
 FROM official o JOIN dimensions d ON d.code=o.dimension_code JOIN form_versions fv ON fv.id=d.form_version_id JOIN forms f ON f.id=fv.form_id AND f.code='valora-official'
 ON CONFLICT(dimension_id,code) DO UPDATE SET organization_id=EXCLUDED.organization_id,form_id=EXCLUDED.form_id,form_version_id=EXCLUDED.form_version_id,title=EXCLUDED.title,text=EXCLUDED.text,type=EXCLUDED.type,position=EXCLUDED.position,display_order=EXCLUDED.display_order,min_value=1,max_value=5,required=true,is_required=true,is_active=true,is_qualitative=false,weight=1.00,version=1,deleted_at=NULL,updated_at=now();
--- A versão oficial pontuada possui exatamente 25 questões (5 x 5). Remove
--- apenas a antiga questão qualitativa criada por este próprio bootstrap.
-DELETE FROM valorapesquisa.questions q USING valorapesquisa.forms f
-WHERE q.form_id=f.id AND f.code='valora-official' AND q.code='qualitative-work-feeling';
+-- A versão oficial contém 25 questões pontuadas (5 x 5) e uma questão aberta,
+-- que amplia contexto sem alterar a pontuação máxima de 125.
+INSERT INTO valorapesquisa.questions(organization_id,form_id,form_version_id,dimension_id,code,title,text,description,type,min_value,max_value,required,is_required,is_active,is_qualitative,weight,position,display_order,version,deleted_at,created_at,updated_at,max_text_length,anonymity_protected)
+SELECT f.organization_id,f.id,fv.id,d.id,'qualitative-work-feeling',
+ 'Na sua percepção, o que mais ajudaria esta organização a evoluir?',
+ 'Na sua percepção, o que mais ajudaria esta organização a evoluir?',
+ 'Resposta aberta, opcional e não pontuada.',valorapesquisa.compatible_text_question_type(),1,5,
+ false,false,true,true,0.00,6,6,1,NULL,now(),now(),2000,true
+FROM valorapesquisa.forms f
+JOIN valorapesquisa.form_versions fv ON fv.form_id=f.id AND fv.version=1 AND fv.language='pt-BR'
+JOIN valorapesquisa.dimensions d ON d.form_version_id=fv.id AND d.code='growth'
+WHERE f.code='valora-official'
+ON CONFLICT(dimension_id,code) DO UPDATE SET title=EXCLUDED.title,text=EXCLUDED.text,
+ description=EXCLUDED.description,type=EXCLUDED.type,required=false,is_required=false,is_active=true,
+ is_qualitative=true,weight=0.00,position=6,display_order=6,deleted_at=NULL,updated_at=now();
 INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('script_completo_2026_07','script-completo-v1') ON CONFLICT(version) DO UPDATE SET checksum=EXCLUDED.checksum,applied_at=now();
 -- Fase 2G: invariantes multiempresa, RBAC por escopo e reservas de limites.
 -- Migration aditiva e idempotente; não remove dados ou tabelas legadas.
@@ -1284,6 +1302,7 @@ INSERT INTO valorapesquisa.schema_migrations(version,checksum)
 VALUES('2026_08_valora_v10_operations','sha256:v10-monetization-campaign-jobs-errors-v1') ON CONFLICT(version) DO NOTHING;
 COMMIT;
 
+-- Assets oficiais: /img/brand/valora-logo-full.svg (com fallback textual acessível).
 -- Conta técnica de homologação local. A credencial abaixo é BCrypt cost 12 e
 -- nunca representa senha em texto puro no banco.
 BEGIN;
@@ -1322,11 +1341,12 @@ BEGIN
   IF EXISTS (SELECT plan_id,capability_key FROM valorapesquisa.plan_capabilities GROUP BY plan_id,capability_key HAVING count(*)>1) THEN RAISE EXCEPTION 'Validação falhou: plan_capabilities(plan_id,capability_key) duplicado'; END IF;
   IF EXISTS (SELECT form_id,version,language FROM valorapesquisa.form_versions GROUP BY form_id,version,language HAVING count(*)>1) THEN RAISE EXCEPTION 'Validação falhou: form_versions(form_id,version,language) duplicado'; END IF;
   IF (SELECT count(*) FROM valorapesquisa.dimensions d JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND d.code IN('culture','governance','leadership','people','growth')) <> 5 THEN RAISE EXCEPTION 'Validação falhou: dimensões oficiais incompletas'; END IF;
-  IF (SELECT count(*) FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND q.deleted_at IS NULL) <> 25 THEN RAISE EXCEPTION 'Validação falhou: o formulário oficial deve conter exatamente 25 perguntas'; END IF;
+  IF (SELECT count(*) FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND q.deleted_at IS NULL AND q.is_qualitative=false) <> 25 THEN RAISE EXCEPTION 'Validação falhou: o formulário oficial deve conter 25 perguntas quantitativas'; END IF;
+  IF (SELECT count(*) FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND q.deleted_at IS NULL AND q.is_qualitative=true) <> 1 THEN RAISE EXCEPTION 'Validação falhou: o formulário oficial deve conter 1 pergunta qualitativa'; END IF;
   IF NOT EXISTS (SELECT 1 FROM valorapesquisa.form_versions fv JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND fv.maximum_score=125 AND fv.max_score=125) THEN RAISE EXCEPTION 'Validação falhou: pontuação máxima oficial deve ser 125'; END IF;
   IF EXISTS (SELECT 1 FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND (q.title IS NULL OR q.text IS NULL OR q.type IS NULL OR q.organization_id IS NULL OR q.form_id IS NULL OR q.form_version_id IS NULL OR q.position IS NULL OR q.display_order IS NULL OR q.weight IS NULL OR q.version IS NULL OR q.is_active IS NULL OR q.required IS NULL OR q.is_required IS NULL)) THEN RAISE EXCEPTION 'Validação falhou: contrato de questions contém NULL obrigatório'; END IF;
   IF NOT EXISTS (SELECT 1 FROM valorapesquisa.users u JOIN valorapesquisa.user_roles ur ON ur.user_id=u.id JOIN valorapesquisa.roles r ON r.id=ur.role_id WHERE lower(u.email)='superadmin@valoragroup.local' AND u.status='active' AND r.code='admin_valora') THEN RAISE EXCEPTION 'Validação falhou: super administrador não configurado'; END IF;
   IF NOT EXISTS (SELECT 1 FROM valorapesquisa.plan_capabilities pc JOIN valorapesquisa.plans p ON p.id=pc.plan_id WHERE p.code IN('free','professional','corporate','enterprise')) THEN RAISE EXCEPTION 'Validação falhou: capabilities dos planos ausentes'; END IF;
   IF to_regclass('valorapesquisa.result_scores') IS NULL OR to_regclass('valorapesquisa.certificates') IS NULL OR to_regclass('valorapesquisa.organizational_intelligence_runs') IS NULL THEN RAISE EXCEPTION 'Validação falhou: tabelas de resultado, certificado ou inteligência ausentes'; END IF;
-  RAISE NOTICE 'Validação Valora concluída: constraints, formulário oficial, 5 dimensões, 25 perguntas e capabilities OK';
+  RAISE NOTICE 'Validação Valora concluída: formulário oficial, 5 dimensões, 25 perguntas quantitativas, 1 qualitativa e capabilities OK';
 END $validation$;

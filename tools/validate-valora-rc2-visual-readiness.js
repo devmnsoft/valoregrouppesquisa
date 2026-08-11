@@ -11,16 +11,15 @@ const files = {
   manual: 'VALORA_BRAND_ASSETS_MANUAL_SETUP.md',
   publicLayout: 'backend/Valora.Web/Views/Shared/_PublicLayout.cshtml',
   adminLayout: 'backend/Valora.Web/Views/Shared/_AdminLayout.cshtml',
-  home: 'backend/Valora.Web/Views/Home/Index.cshtml',
+  home: 'backend/Valora.Web/Views/Shared/Public/_PublicTopbar.cshtml',
   result: 'backend/Valora.Web/Views/Results/Public.cshtml',
   certDetails: 'backend/Valora.Web/Views/Certificates/Details.cshtml',
   certValidate: 'backend/Valora.Web/Views/Certificates/Validate.cshtml',
-  sidebar: 'backend/Valora.Web/Views/Shared/_Sidebar.cshtml',
+  sidebar: 'backend/Valora.Web/Views/Shared/Components/Navigation/Default.cshtml',
   topbar: 'backend/Valora.Web/Views/Shared/_Topbar.cshtml',
   cssPublic: 'backend/Valora.Web/wwwroot/css/valora-public.css',
   cssAdmin: 'backend/Valora.Web/wwwroot/css/valora-admin.css',
-  sqlRoot: 'scriptbd_completo.sql',
-  sqlDb: 'backend/database/postgresql/scriptbd_completo.sql'
+  sqlDb: 'backend/database/postgresql/script_completo.sql'
 };
 ok(exists(files.diagnostic), 'Diagnóstico inicial RC2 não existe');
 ok(exists(files.checklist), 'Checklist visual RC2 não existe');
@@ -29,15 +28,15 @@ const fallbackSources = [files.home, files.result, files.certDetails, files.cert
 ok(/brand-fallback-text/.test(fallbackSources) && /brand-fallback-active/.test(fallbackSources), 'Fallback visual de marca não encontrado');
 for (const [label, file] of Object.entries({ home: files.home, result: files.result, certDetails: files.certDetails, certValidate: files.certValidate, sidebar: files.sidebar, topbar: files.topbar })) {
   const text = read(file);
-  ok(/\/img\/brand\/valora-(logo-full|symbol)\.jpeg/.test(text), `${label} não usa logo/símbolo oficial`);
+  ok(/\/img\/brand\/valora-(logo-full|symbol)\.(jpeg|svg)/.test(text), `${label} não usa logo/símbolo oficial`);
   ok(/brand-fallback-text/.test(text), `${label} não possui fallback textual`);
 }
 ok(!/_Sidebar/.test(read(files.publicLayout)), 'Layout público referencia sidebar/admin');
 ok(/auth-session|guards|logoutButton|_Sidebar|_Topbar/.test(read(files.adminLayout)), 'Layout admin não indica sessão/guard/login');
-const sql = `${read(files.sqlRoot)}\n${read(files.sqlDb)}`;
-ok(sql.includes('/img/brand/valora-logo-full.jpeg'), 'SQL não possui path da logo completa');
-ok(sql.includes('/img/brand/valora-symbol.jpeg'), 'SQL não possui path do símbolo');
-const scanTargets = ['backend/Valora.Web/Views', 'backend/Valora.Web/wwwroot/css', 'backend/Valora.Web/wwwroot/js', 'backend/database/postgresql', 'scriptbd_completo.sql'];
+const sql = read(files.sqlDb);
+ok(sql.includes('/img/brand/valora-logo-full.svg'), 'SQL não possui path da logo completa');
+ok(sql.includes('/img/brand/valora-logo-full.svg'), 'SQL não possui path do símbolo');
+const scanTargets = ['backend/Valora.Web/Views', 'backend/Valora.Web/wwwroot/css', 'backend/Valora.Web/wwwroot/js', files.sqlDb];
 for (const target of scanTargets) {
   const full = path.join(root, target);
   if (!fs.existsSync(full)) continue;

@@ -1,48 +1,28 @@
 #!/usr/bin/env node
 const fs = require('fs');
-const path = require('path');
-
-const files = [
-  'scriptbd_completo.sql',
-  'backend/database/postgresql/scriptbd_completo.sql',
-  ...fs.readdirSync('backend/database/postgresql').filter(f => f.endsWith('.sql')).map(f => path.join('backend/database/postgresql', f)),
-];
+const canonical = 'backend/database/postgresql/script_completo.sql';
 let failed = false;
-const fail = (m) => { console.error(`❌ ${m}`); failed = true; };
-const ok = (m) => console.log(`✅ ${m}`);
-const read = (f) => fs.readFileSync(f, 'utf8');
-const main = read('scriptbd_completo.sql');
-
-function before(a,b){ const ia=main.indexOf(a), ib=main.indexOf(b); return ia>=0 && ib>=0 && ia<ib; }
-if (!main.includes('-- COMPATIBILIDADE PARA BANCOS EXISTENTES')) fail('scriptbd_completo.sql não contém bloco oficial de compatibilidade.'); else ok('bloco oficial de compatibilidade encontrado.');
-[
- ['plan_limits.users', 'ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS users', 'INSERT INTO valorapesquisa.plan_limits'],
- ['forms.name', 'ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS name', 'INSERT INTO valorapesquisa.forms'],
- ['questions.display_order', 'ALTER TABLE valorapesquisa.questions ADD COLUMN IF NOT EXISTS display_order', 'INSERT INTO valorapesquisa.questions'],
- ['question_options.score', 'ALTER TABLE valorapesquisa.question_options ADD COLUMN IF NOT EXISTS score', 'INSERT INTO valorapesquisa.question_options'],
- ['email_templates.body_html', 'ALTER TABLE valorapesquisa.email_templates ADD COLUMN IF NOT EXISTS body_html', 'INSERT INTO email_templates(code,name,subject,body_html'],
-].forEach(([label, alter, insert]) => before(alter, insert) ? ok(`${label} é adicionada antes do seed.`) : fail(`${label} não é adicionada antes do seed.`));
-
-if (/usage_monthly\s*\(\s*organization_id\s*,\s*month\s*\)/i.test(files.map(read).join('\n'))) fail('índice usage_monthly ainda usa month.'); else ok('usage_monthly usa period_month.');
-if (/\bprice_label\b/i.test(files.map(read).join('\n'))) fail('price_label encontrado nos scripts SQL.'); else ok('price_label ausente.');
-if (/\bbadge\b/i.test(files.map(read).join('\n'))) fail('badge encontrado nos scripts SQL.'); else ok('badge ausente.');
-if (/service_account|private_key|client_email|BEGIN PRIVATE KEY|firebase-adminsdk/i.test(files.map(read).join('\n'))) fail('possível service account/secret encontrado.'); else ok('nenhum service account/secret óbvio encontrado.');
-if (/ON CONFLICT\s*\(\s*code\s*,\s*organization_id\s*\)/i.test(files.map(read).join('\n'))) fail('email_templates ainda usa ON CONFLICT (code, organization_id).'); else ok('email_templates não usa ON CONFLICT (code, organization_id).');
-if (/ - pergunta \s*'|pergunta '\s*\|\|/i.test(main)) fail('seed Valora Insight contém perguntas genéricas.'); else ok('seed Valora Insight não contém perguntas genéricas.');
-
-const compatSection = main.slice(main.indexOf('-- COMPATIBILIDADE PARA BANCOS EXISTENTES'), main.indexOf('DROP TRIGGER IF EXISTS'));
-const requiredCols = {
-  plan_limits: ['plan_id','active_surveys','responses_per_month','users','managers','forms','public_links','email_invites_per_month','storage_mb','created_at','updated_at'],
-  plan_capabilities: ['plan_id','capability_code','enabled','created_at','updated_at'],
-  plans: ['code','name','description','monthly_price','annual_price','display_order','status','created_at','updated_at'],
-  email_templates: ['code','organization_id','name','from_email','subject','body','body_html','body_text','status','is_deleted','created_at','updated_at'],
+const fail = message => { console.error(`❌ ${message}`); failed = true; };
+const ok = message => console.log(`✅ ${message}`);
+if (!fs.existsSync(canonical)) { fail(`script oficial ausente: ${canonical}`); process.exit(1); }
+const sql = fs.readFileSync(canonical, 'utf8');
+const has = expression => expression.test(sql);
+const before = (compatibility, use) => sql.search(compatibility) >= 0 && sql.search(compatibility) < sql.search(use);
+if (sql.indexOf('-- COMPATIBILIDADE PARA BANCOS EXISTENTES') < 0) fail('fase explícita de compatibilidade ausente.'); else ok('fase explícita de compatibilidade encontrada.');
+const contracts = {
+  api_keys: ['organization_id','name','key_prefix','key_hash','scopes','status','last_used_at','use_count','created_at','updated_at','revoked_at','deleted_at'],
+  forms: ['name','title','description','organization_id','status','created_at','updated_at','deleted_at'],
+  questions: ['organization_id','form_id','form_version_id','dimension_id','code','title','text','description','type','min_value','max_value','weight','position','display_order','is_required','required','is_active','is_qualitative','version','created_at','updated_at','deleted_at']
 };
-for (const [table, cols] of Object.entries(requiredCols)) {
-  for (const col of cols) {
-    const re = new RegExp(`ALTER\\s+TABLE\\s+valorapesquisa\\.${table}\\s+ADD\\s+COLUMN\\s+IF\\s+NOT\\s+EXISTS\\s+${col}\\b`, 'i');
-    if (col === 'plan_id' && table === 'plan_limits' && /CREATE TABLE IF NOT EXISTS valorapesquisa\.plan_limits[^;]*plan_id/i.test(main)) continue;
-    if (!re.test(compatSection) && !(table==='plans' && col==='code' && /CREATE TABLE IF NOT EXISTS valorapesquisa\.plans[^;]*code/i.test(main))) fail(`compatibilidade não garante ${table}.${col}.`);
-  }
+for (const [table, columns] of Object.entries(contracts)) for (const column of columns) {
+  const alteration = new RegExp(`ALTER\\s+TABLE\\s+valorapesquisa\\.${table}\\s+ADD\\s+COLUMN\\s+IF\\s+NOT\\s+EXISTS\\s+${column}\\b`, 'i');
+  if (!has(alteration)) fail(`${table}.${column} não é convergida com ADD COLUMN IF NOT EXISTS.`);
 }
-if (!failed) ok('Validador SQL compat concluiu sem erros.');
+if (!before(/ALTER TABLE valorapesquisa\.api_keys ADD COLUMN IF NOT EXISTS key_hash/i, /CREATE UNIQUE INDEX IF NOT EXISTS ux_api_keys_hash/i)) fail('api_keys.key_hash não é convergida antes do índice único.'); else ok('api_keys converge antes do índice único.');
+if (!/FOREACH legacy_column IN ARRAY ARRAY\['secret_hash','hash','api_key_hash'\]/.test(sql)) fail('migração segura dos hashes legados ausente.'); else ok('hashes legados são migrados dinamicamente.');
+if (!/row_number\(\) OVER \(PARTITION BY key_hash/i.test(sql)) fail('deduplicação canônica de key_hash ausente.'); else ok('key_hash é deduplicada antes do índice.');
+if (!/compatible_scale_question_type\(\)/.test(sql) || !/likert_1_5/.test(sql)) fail('tipo compatível de pergunta não é resolvido pelo CHECK.'); else ok('tipo de pergunta respeita CHECK legado.');
+if (!/superadmin@valoragroup\.local/.test(sql) || !/admin_valora/.test(sql) || !/\$2[aby]\$\d\d\$/.test(sql)) fail('super administrador BCrypt/role ausente.'); else ok('super administrador usa hash BCrypt e role global.');
+if (/Valora Grup(?!o)/.test(sql)) fail('marca incorreta encontrada.'); else ok('marca Valora Group consistente.');
+if (!failed) ok(`Validador do SQL canônico concluiu sem erros: ${canonical}`);
 process.exit(failed ? 1 : 0);

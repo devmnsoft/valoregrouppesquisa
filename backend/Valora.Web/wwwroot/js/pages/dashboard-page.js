@@ -36,7 +36,7 @@
       ['Publicar pesquisa', surveys.some(x => ['active','published'].includes(String(x.status).toLowerCase())), '/Forms', 'Revise e publique a versão.'],
       ['Acompanhar respostas', responses.length > 0, '/Responses', 'Monitore a adesão do ciclo.'],
       ['Gerar relatório', responses.length > 0, '/Reports', 'Compartilhe a leitura executiva.'],
-      ['Criar plano de ação', false, '/OperationalIntelligence/ActionPlans', 'Transforme evidências em execução.']
+      ['Criar plano de ação', false, '/PlanoDeAcao', 'Transforme evidências em execução.']
     ];
     const progress = Math.round(steps.filter(x => x[1]).length / steps.length * 100);
     root.querySelector('[data-onboarding-progress]').textContent = `${progress}% concluído`; root.querySelector('[data-onboarding-bar]').style.width = `${progress}%`;

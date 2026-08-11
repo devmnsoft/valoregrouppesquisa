@@ -21,7 +21,7 @@ const result = read('backend/Valora.Web/Views/Results/Public.cshtml');
 ['Valora Insight™ — Devolutiva Estratégica','Radar visual','Diagnóstico por dimensão','Benchmarking','Verdade estratégica','Risco se nada mudar','Próximo nível','Enviar por e-mail'].forEach(t=>result.includes(t)?ok(`Resultado contém ${t}.`):fail(`Resultado não contém ${t}.`));
 read('backend/Valora.Web/wwwroot/css/valora-print.css').includes('@media print') ? ok('Certificado tem CSS print.') : fail('Certificado não tem CSS print.');
 read('backend/Valora.Web/Views/PublicPages/FreeDiagnostic.cshtml').includes('diagnostic-progress') ? ok('Diagnóstico tem progresso.') : fail('Diagnóstico não tem progresso.');
-const sidebar = read('backend/Valora.Web/Views/Shared/_Sidebar.cshtml');
+const sidebar = read('backend/Valora.Web/Navigation/NavigationCatalog.cs');
 ['Visão Geral','Gestão','Diagnósticos','Inteligência','Operação'].forEach(t=>sidebar.includes(t)?ok(`Menu agrupado: ${t}.`):fail(`Menu sem grupo ${t}.`));
 publicLayout.includes('_Sidebar') ? fail('Layout público referencia sidebar admin.') : ok('Layout público não possui sidebar admin.');
 const allPublic = files('backend/Valora.Web/Views').filter(f=>f.endsWith('.cshtml')).map(read).join('\n') + read('backend/Valora.Web/wwwroot/css/valora-public.css');

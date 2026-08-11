@@ -17,16 +17,17 @@ public sealed class ValoraInsightDevolutivaService
     {
         var evidence = (evidencias ?? Array.Empty<string>())
             .Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value.Trim()).Distinct().ToArray();
-        // Uma única observação não demonstra correlação nem causalidade. Duas fontes são
-        // o mínimo técnico para permitir uma hipótese, nunca uma afirmação causal.
-        var sufficient = evidence.Length >= 2 && !string.IsNullOrWhiteSpace(correlacao);
+        // A metodologia exige três sinais convergentes antes de permitir qualquer
+        // conclusão. Correlação continua sendo hipótese e nunca prova causalidade.
+        var confidence = EvidenceConfidence.Classify(evidence.Length);
+        var sufficient = EvidenceConfidence.AllowsConclusion(evidence.Length) && !string.IsNullOrWhiteSpace(correlacao);
         if (!sufficient)
-            return new(observacao, evidence, null, null, null, null, Array.Empty<string>(), InsufficientEvidenceMessage, false);
+            return new(observacao, evidence, null, null, null, null, Array.Empty<string>(), InsufficientEvidenceMessage, false, confidence);
 
         return new(observacao, evidence, correlacao, causaProvavel, impacto, prioridade,
             (plano ?? Array.Empty<string>()).Where(x => !string.IsNullOrWhiteSpace(x)).ToArray(),
             string.IsNullOrWhiteSpace(limites) ? "A correlação observada não comprova causalidade; valide a hipótese no próximo ciclo." : limites,
-            true);
+            true, confidence);
     }
 
     public string Build(ValoraInsightResult result)

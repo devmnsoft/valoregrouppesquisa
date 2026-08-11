@@ -10,4 +10,5 @@ public sealed record ValoraAnalysis(
     string? Prioridade,
     IReadOnlyList<string> PlanoDeEvolucao,
     string LimitesDaAnalise,
-    bool EvidenciasSuficientes);
+    bool EvidenciasSuficientes,
+    string Confianca);

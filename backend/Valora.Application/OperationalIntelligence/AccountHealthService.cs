@@ -34,7 +34,7 @@ public sealed class AccountHealthService
         if (value.PublishedSurveyCount == 0) actions.Add(new("survey", "Publicar primeira pesquisa", "Inicie o primeiro ciclo de escuta da empresa.", "/Surveys", "Alta", "file-question"));
         else if (value.ResponseCount > 0) actions.Add(new("results", "Analisar respostas recebidas", "Identifique tendências e dimensões prioritárias.", "/Results", "Alta", "chart-radar"));
         if (value.ResponseCount > 0 && value.GeneratedReportCount == 0) actions.Add(new("report", "Gerar relatório executivo", "Compartilhe a leitura consolidada com a liderança.", "/Reports", "Média", "file-text"));
-        if (value.PendingRecommendationCount > 0 && value.ActiveActionCount == 0) actions.Add(new("action", "Criar plano de ação", "Transforme recomendações prioritárias em execução.", "/ActionPlans", "Alta", "activity"));
+        if (value.PendingRecommendationCount > 0 && value.ActiveActionCount == 0) actions.Add(new("action", "Criar plano de ação", "Transforme recomendações prioritárias em execução.", "/OperationalIntelligence/ActionPlans", "Alta", "activity"));
         if (!value.PlanWithinLimits) actions.Add(new("plan", "Revisar plano e limites", "Libere capacidade para manter sua operação ativa.", "/Plans", "Crítica", "sparkles"));
         return actions.Take(4).ToArray();
     }

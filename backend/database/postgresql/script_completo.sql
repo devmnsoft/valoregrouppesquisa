@@ -51,6 +51,32 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_organizations_slug_v2 ON valorapesquisa.org
 INSERT INTO valorapesquisa.organizations(name,slug,status)
 VALUES('Valora Group','valora-platform','active')
 ON CONFLICT(slug) DO UPDATE SET name=EXCLUDED.name,status='active',deleted_at=NULL,updated_at=now();
+
+-- Contrato mínimo de API keys também pertence à compatibilidade inicial. Ele
+-- precisa existir antes de qualquer fase posterior tentar semear ou indexar a
+-- tabela em instalações antigas/parciais.
+CREATE TABLE IF NOT EXISTS valorapesquisa.api_keys(id uuid PRIMARY KEY DEFAULT gen_random_uuid());
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS key_prefix text;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS key_hash text;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS scopes text[] DEFAULT '{}';
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS last_used_at timestamptz;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS use_count bigint DEFAULT 0;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS revoked_at timestamptz;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+DO $initial_api_key_legacy$
+DECLARE legacy_column text;
+BEGIN
+  FOREACH legacy_column IN ARRAY ARRAY['secret_hash','hash','api_key_hash'] LOOP
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='api_keys' AND column_name=legacy_column) THEN
+      EXECUTE format('UPDATE valorapesquisa.api_keys SET key_hash=%I::text WHERE key_hash IS NULL AND %I IS NOT NULL',legacy_column,legacy_column);
+    END IF;
+  END LOOP;
+END $initial_api_key_legacy$;
 CREATE TABLE IF NOT EXISTS valorapesquisa.business_groups (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), name text NOT NULL, tax_id text, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.legal_entities (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), business_group_id uuid REFERENCES valorapesquisa.business_groups(id), legal_name text NOT NULL, trade_name text, cnpj text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz, deleted_at timestamptz);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_legal_entities_cnpj_active ON valorapesquisa.legal_entities(cnpj) WHERE deleted_at IS NULL;

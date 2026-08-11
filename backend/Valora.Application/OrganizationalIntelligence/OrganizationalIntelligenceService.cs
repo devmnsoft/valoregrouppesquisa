@@ -1,3 +1,5 @@
+using Valora.Application.Results;
+
 namespace Valora.Application.OrganizationalIntelligence;
 
 public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenceRepository repository) : IOrganizationalIntelligenceService
@@ -56,8 +58,14 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
         if (culture == 0) culture = maturity;
         if (governance == 0) governance = maturity;
         var gap = ordered.Count < 2 ? 0 : Math.Round(ordered.First().Score - ordered.Last().Score, 2);
-        var confidence = evidence.Responses >= 30 && ordered.Count >= 4 ? "high" : evidence.Responses >= 15 && ordered.Count >= 3 ? "medium" : evidence.Responses >= 5 && ordered.Count >= 2 ? "low" : "insufficient_evidence";
-        const string warning = "As informações disponíveis ainda não permitem concluir esta análise com segurança. Amplie a participação e gere uma nova leitura.";
+        var confidence = EvidenceConfidence.Classify(evidence.Total) switch
+        {
+            "muito alta" => "very_high",
+            "alta" => "high",
+            "moderada" => "moderate",
+            _ => "low"
+        };
+        const string warning = ValoraInsightDevolutivaService.InsufficientEvidenceMessage;
         var runId = Guid.NewGuid();
         var insights = ordered.TakeLast(Math.Min(3, ordered.Count)).Select((dimension, index) =>
         {
@@ -74,7 +82,7 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
         }).ToList();
         var run = new OrganizationalIntelligenceRunDto(runId, organizationId, maturity, culture, governance, gap,
             ordered.FirstOrDefault()?.Name ?? "Sem evidências", ordered.LastOrDefault()?.Name ?? "Sem evidências",
-            evidence.Total, confidence, confidence == "insufficient_evidence" ? warning : null, ordered, insights, DateTime.UtcNow);
+            evidence.Total, confidence, evidence.Total < 3 ? warning : null, ordered, insights, DateTime.UtcNow);
         await repository.SaveAnalysisAsync(run, ct);
         return run;
     }

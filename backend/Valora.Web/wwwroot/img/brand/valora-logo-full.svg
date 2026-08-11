@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 92" role="img" aria-labelledby="title"><title id="title">Valora Group</title><path fill="#c6a15b" d="M18 18h18l17 42 17-42h18L58 78H47z"/><circle cx="53" cy="18" r="7" fill="#37b7ad"/><text x="100" y="55" fill="#0c3448" font-family="Arial,sans-serif" font-size="43" font-weight="700">Valora Group</text><text x="102" y="78" fill="#56707a" font-family="Arial,sans-serif" font-size="14" letter-spacing="3">INSIGHT™</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 118" role="img" aria-labelledby="title description">
+  <title id="title">Valora Group™</title><desc id="description">Governance • Controller • Advisory</desc>
+  <rect x="5" y="5" width="94" height="94" rx="27" fill="#0b4050"/>
+  <path d="M28 51 45 68 76 34" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M34 29 52 73 78 29" fill="none" stroke="#59c8c4" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" opacity=".42"/>
+  <text x="120" y="59" fill="#0b4050" font-family="Inter,Arial,sans-serif" font-size="43" font-weight="720" letter-spacing="-.8">Valora Group<tspan dy="-17" font-size="14">™</tspan></text>
+  <line x1="121" y1="75" x2="506" y2="75" stroke="#c29a50" stroke-width="2"/>
+  <text x="121" y="98" fill="#49646c" font-family="Inter,Arial,sans-serif" font-size="15" font-weight="600" letter-spacing="2.1">Governance • Controller • Advisory</text>
+</svg>

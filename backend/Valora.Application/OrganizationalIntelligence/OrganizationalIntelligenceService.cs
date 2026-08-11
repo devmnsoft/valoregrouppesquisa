@@ -57,7 +57,7 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
         if (governance == 0) governance = maturity;
         var gap = ordered.Count < 2 ? 0 : Math.Round(ordered.First().Score - ordered.Last().Score, 2);
         var confidence = evidence.Responses >= 30 && ordered.Count >= 4 ? "high" : evidence.Responses >= 15 && ordered.Count >= 3 ? "medium" : evidence.Responses >= 5 && ordered.Count >= 2 ? "low" : "insufficient_evidence";
-        const string warning = "As informações disponíveis ainda não permitem concluir esta análise com segurança. Amplie a participação e gere uma nova leitura.";
+        const string warning = "As informações disponíveis ainda não permitem concluir essa análise com segurança. Recomenda-se ampliar a coleta de evidências antes de definir uma causa ou prioridade.";
         var runId = Guid.NewGuid();
         var insights = ordered.TakeLast(Math.Min(3, ordered.Count)).Select((dimension, index) =>
         {

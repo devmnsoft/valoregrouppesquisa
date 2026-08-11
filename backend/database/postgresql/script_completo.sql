@@ -6,6 +6,11 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE SCHEMA IF NOT EXISTS valorapesquisa;
 SET LOCAL search_path TO valorapesquisa, public;
 
+-- COMPATIBILIDADE PARA BANCOS EXISTENTES
+-- Cada contrato abaixo é criado e imediatamente convergido antes de seu
+-- primeiro seed, índice único, trigger ou ON CONFLICT. Assim, o mesmo bootstrap
+-- atende bases limpas, legadas, parciais e já inicializadas.
+
 CREATE OR REPLACE FUNCTION valorapesquisa.set_updated_at()
 RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN

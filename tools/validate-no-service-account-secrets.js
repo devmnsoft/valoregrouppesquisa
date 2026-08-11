@@ -9,7 +9,7 @@ function check(file){const r=rel(file);const ext=path.extname(file).toLowerCase(
   try{const json=JSON.parse(text); if(json && json.type==='service_account') findings.push(`${r}: JSON service_account`);}catch{}
   if(/firebase-adminsdk/i.test(r)) findings.push(`${r}: nome de credencial Firebase Admin SDK`);
  }
- const protectedArea=/^(backend\/|database\/postgresql\/|scriptbd_completo\.sql$)/.test(r) || /\/wwwroot\//.test(r);
+ const protectedArea=/^(backend\/|database\/postgresql\/)/.test(r) || /\/wwwroot\//.test(r);
  const patterns=[[/-----BEGIN PRIVATE KEY-----/,'bloco de chave privada'],[/"private_key"\s*:/,'campo private_key'],[/"client_email"\s*:\s*"[^"]+@[^"]+\.iam\.gserviceaccount\.com"/,'e-mail de service account'],[/firebase-adminsdk-[\w-]+\.json/i,'arquivo de credencial Firebase Admin SDK']];
  for(const [re,label] of patterns){ if(re.test(text) && protectedArea) findings.push(`${r}: ${label}`); }
 }

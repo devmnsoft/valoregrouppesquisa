@@ -30,8 +30,8 @@ const files = [
   'backend/Valora.Web/Views/Account/Login.cshtml',
   'backend/Valora.Web/wwwroot/css/valora-public.css',
   'backend/Valora.Web/wwwroot/css/valora-admin.css',
-  'scriptbd_completo.sql',
-  'backend/database/postgresql/scriptbd_completo.sql'
+  'backend/database/postgresql/script_completo.sql',
+  'backend/database/postgresql/script_completo.sql'
 ];
 for (const file of files) {
   const text = read(file);
@@ -47,8 +47,8 @@ ok(read('backend/Valora.Web/Views/Shared/_Topbar.cshtml').includes('brand-fallba
 ok(read('backend/Valora.Web/Views/Home/Index.cshtml').includes('/img/brand/valora-logo-full.jpeg'), 'Home não usa path oficial da logo completa');
 ok(read('backend/Valora.Web/Views/Results/Public.cshtml').includes('/img/brand/valora-symbol.jpeg'), 'Resultado não usa símbolo oficial');
 ok(read('backend/Valora.Web/Views/Certificates/Details.cshtml').includes('/img/brand/valora-logo-full.jpeg'), 'Certificado não usa logo completa');
-ok(read('scriptbd_completo.sql').includes('/img/brand/valora-logo-full.jpeg') || read('backend/database/postgresql/scriptbd_completo.sql').includes('/img/brand/valora-logo-full.jpeg'), 'SQL não contém path da logo completa');
-ok(read('scriptbd_completo.sql').includes('/img/brand/valora-symbol.jpeg') || read('backend/database/postgresql/scriptbd_completo.sql').includes('/img/brand/valora-symbol.jpeg'), 'SQL não contém path do símbolo');
+ok(read('backend/database/postgresql/script_completo.sql').includes('/img/brand/valora-logo-full.jpeg') || read('backend/database/postgresql/script_completo.sql').includes('/img/brand/valora-logo-full.jpeg'), 'SQL não contém path da logo completa');
+ok(read('backend/database/postgresql/script_completo.sql').includes('/img/brand/valora-symbol.jpeg') || read('backend/database/postgresql/script_completo.sql').includes('/img/brand/valora-symbol.jpeg'), 'SQL não contém path do símbolo');
 if (warn.length) console.warn('validate-valora-brand-assets: WARN\n' + warn.join('\n'));
 if (fail.length) { console.error('Validação de branding Valora falhou:\n' + fail.join('\n')); process.exit(1); }
 console.log('validate-valora-brand-assets: PASS' + (allowMissing ? ' (diagnóstico)' : ''));

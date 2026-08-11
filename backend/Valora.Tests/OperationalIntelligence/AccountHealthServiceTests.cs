@@ -23,6 +23,15 @@ public sealed class AccountHealthServiceTests
         Assert.Empty(result.NextActions);
     }
 
+    [Fact]
+    public void Evaluate_PendingRecommendation_UsesExistingActionPlanRoute()
+    {
+        var result = new AccountHealthService().Evaluate(new(true, true, 1, 1, 1, 10, true, 1, 1, 0));
+
+        Assert.Contains(result.NextActions, action =>
+            action.Code == "action" && action.Route == "/OperationalIntelligence/ActionPlans");
+    }
+
     [Theory]
     [InlineData("Gratuito", ComparisonScope.Department, false)]
     [InlineData("Profissional", ComparisonScope.Department, true)]

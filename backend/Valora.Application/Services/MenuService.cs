@@ -19,7 +19,7 @@ public sealed class MenuService(IEntitlementService entitlements, IPermissionSer
             new("surveys", "Pesquisas", "/Surveys", "clipboard", 20, Array.Empty<MenuItemDto>())
         };
         if (!organizationId.HasValue || Has("organizational_intelligence", "inteligenciaOrganizacional"))
-            items.Add(new("organizational_intelligence", "Inteligência Organizacional", "/Recomendacoes", "chart-radar", 25, Array.Empty<MenuItemDto>()));
+            items.Add(new("organizational_intelligence", "Inteligência Organizacional", "/Intelligence", "chart-radar", 25, Array.Empty<MenuItemDto>()));
         if (!organizationId.HasValue || Has("relatorios")) items.Add(new("reports", "Relatórios", "/Reports", "bar-chart", 30, Array.Empty<MenuItemDto>()));
         if (!organizationId.HasValue || Has("certificados")) items.Add(new("certificates", "Certificados", "/Certificates", "award", 40, Array.Empty<MenuItemDto>()));
         if (!organizationId.HasValue || Has("exportacoes")) items.Add(new("exports", "Exportações", "/Exports", "download", 50, Array.Empty<MenuItemDto>()));

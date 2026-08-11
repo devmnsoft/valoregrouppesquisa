@@ -46,10 +46,7 @@ dotnet format Valora.sln --verify-no-changes
 
 ## Execução
 
-```bash
-dotnet run --project Valora.Api/Valora.Api.csproj
-dotnet run --project Valora.Web/Valora.Web.csproj
-```
+Linux/macOS: `./run-local.sh`. Windows: `run-local.bat`. Os scripts iniciam os dois processos, com a API em `http://localhost:5080` e o Web em `http://localhost:5088`/`https://localhost:7088`. Para diagnosticar a dependência sem tentar autenticar, consulte `GET /health/web/api` no Web.
 
 ## Migrations
 

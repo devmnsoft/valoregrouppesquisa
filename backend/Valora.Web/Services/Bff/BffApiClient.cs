@@ -10,13 +10,38 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
+    public async Task CheckHealthAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var response = await httpClient.GetAsync("/health", cancellationToken);
+            await EnsureSuccessAsync(response, cancellationToken);
+        }
+        catch (Exception exception) when (IsConnectivityFailure(exception, cancellationToken))
+        {
+            throw new BffApiUnavailableException(options.Value.BaseUrl, exception);
+        }
+    }
+
     public async Task<BffAuthenticationResult> PostAuthenticationAsync(string path, object request, CancellationToken cancellationToken)
     {
-        using var response = await httpClient.PostAsJsonAsync(path, request, JsonOptions, cancellationToken);
-        await EnsureSuccessAsync(response, cancellationToken);
-        return await response.Content.ReadFromJsonAsync<BffAuthenticationResult>(JsonOptions, cancellationToken)
-            ?? throw new HttpRequestException("A API retornou uma resposta de autenticação vazia.");
+        try
+        {
+            using var response = await httpClient.PostAsJsonAsync(path, request, JsonOptions, cancellationToken);
+            await EnsureSuccessAsync(response, cancellationToken);
+            return await response.Content.ReadFromJsonAsync<BffAuthenticationResult>(JsonOptions, cancellationToken)
+                ?? throw new HttpRequestException("A API retornou uma resposta de autenticação vazia.");
+        }
+        catch (Exception exception) when (IsConnectivityFailure(exception, cancellationToken))
+        {
+            throw new BffApiUnavailableException(options.Value.BaseUrl, exception);
+        }
     }
+
+    private static bool IsConnectivityFailure(Exception exception, CancellationToken requestCancellation) =>
+        exception is HttpRequestException { StatusCode: null }
+        || exception is TimeoutException
+        || exception is TaskCanceledException && !requestCancellation.IsCancellationRequested;
 
     public async Task PostAsync(string path, object? request, string? bearer, CancellationToken cancellationToken)
     {

@@ -7,11 +7,30 @@ namespace Valora.Web.Controllers;
 [ApiController]
 [AutoValidateAntiforgeryToken]
 [Route("bff/auth")]
-public sealed class BffAuthController(BffAuthenticationService authentication, IBffApiClient api) : ControllerBase
+public sealed class BffAuthController(BffAuthenticationService authentication, IBffApiClient api,
+    ILogger<BffAuthController> logger, IWebHostEnvironment environment) : ControllerBase
 {
     [AllowAnonymous, HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] object request, CancellationToken cancellationToken) =>
-        Ok(await authentication.SignInAsync(HttpContext, "/api/v1/auth/login", request, cancellationToken));
+    public async Task<IActionResult> Login([FromBody] object request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await authentication.SignInAsync(HttpContext, "/api/v1/auth/login", request, cancellationToken));
+        }
+        catch (BffApiUnavailableException exception)
+        {
+            var correlationId = CorrelationId();
+            logger.LogError(exception, "Valora API unavailable during BFF login. CorrelationId={CorrelationId} ApiBaseUrl={ApiBaseUrl}",
+                correlationId, exception.BaseUrl);
+            var message = environment.IsDevelopment()
+                ? $"A API Valora não está disponível em {exception.BaseUrl}. Inicie a Valora.Api ou ajuste Api:BaseUrl."
+                : "O serviço de autenticação está temporariamente indisponível. Tente novamente em instantes.";
+            return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "API_UNAVAILABLE", message, correlationId });
+        }
+    }
+
+    private string CorrelationId() => Request.Headers.TryGetValue("X-Correlation-Id", out var value)
+        && !string.IsNullOrWhiteSpace(value) ? value.ToString() : HttpContext.TraceIdentifier;
 
     [AllowAnonymous, HttpPost("register-company")]
     public async Task<IActionResult> Register([FromBody] object request, CancellationToken cancellationToken) =>

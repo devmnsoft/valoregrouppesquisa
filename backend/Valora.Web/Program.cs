@@ -21,12 +21,13 @@ builder.Services.AddSingleton<NavigationCatalog>();
 builder.Services.AddScoped<NavigationService>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<INavigationRouteResolver, EndpointNavigationRouteResolver>();
+var isDevelopment = builder.Environment.IsDevelopment();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.Cookie.Name = "__Host-Valora.Session";
+        options.Cookie.Name = isDevelopment ? "Valora.Session" : "__Host-Valora.Session";
         options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+        options.Cookie.SecurePolicy = isDevelopment ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.LoginPath = "/Account/Login";
     });

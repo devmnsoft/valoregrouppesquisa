@@ -1328,7 +1328,53 @@ INSERT INTO valorapesquisa.schema_migrations(version,checksum)
 VALUES('2026_08_valora_v10_operations','sha256:v10-monetization-campaign-jobs-errors-v1') ON CONFLICT(version) DO NOTHING;
 COMMIT;
 
--- Assets oficiais: /img/brand/valora-logo-full.svg (com fallback textual acessível).
+-- 38. VALORABOT: orientação determinística, histórico, dúvidas e feedback.
+BEGIN;
+CREATE TABLE IF NOT EXISTS valorapesquisa.valorabot_knowledge_base(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), intent text NOT NULL, question_patterns text NOT NULL, answer text NOT NULL,
+ action_label text, action_url text, priority integer NOT NULL DEFAULT 0, is_active boolean NOT NULL DEFAULT true,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE UNIQUE INDEX IF NOT EXISTS ux_valorabot_knowledge_intent ON valorapesquisa.valorabot_knowledge_base(intent);
+CREATE TABLE IF NOT EXISTS valorapesquisa.valorabot_sessions(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), user_id uuid REFERENCES valorapesquisa.users(id),
+ context text, created_at timestamptz NOT NULL DEFAULT now(), last_activity_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_valorabot_sessions_activity ON valorapesquisa.valorabot_sessions(last_activity_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.valorabot_messages(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), session_id uuid NOT NULL REFERENCES valorapesquisa.valorabot_sessions(id) ON DELETE CASCADE,
+ role text NOT NULL CHECK(role IN('user','assistant')), content text NOT NULL, intent text, confidence numeric(4,3), created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_valorabot_messages_session ON valorapesquisa.valorabot_messages(session_id,created_at);
+CREATE TABLE IF NOT EXISTS valorapesquisa.valorabot_unanswered_questions(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), session_id uuid NOT NULL REFERENCES valorapesquisa.valorabot_sessions(id) ON DELETE CASCADE,
+ question text NOT NULL, normalized_question text NOT NULL, status text NOT NULL DEFAULT 'open' CHECK(status IN('open','reviewed','resolved')),
+ created_at timestamptz NOT NULL DEFAULT now(), resolved_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_valorabot_unanswered_status ON valorapesquisa.valorabot_unanswered_questions(status,created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.valorabot_feedback(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), session_id uuid NOT NULL REFERENCES valorapesquisa.valorabot_sessions(id) ON DELETE CASCADE,
+ message_id uuid NOT NULL REFERENCES valorapesquisa.valorabot_messages(id) ON DELETE CASCADE, helpful boolean NOT NULL, comment text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(session_id,message_id));
+
+INSERT INTO valorapesquisa.valorabot_knowledge_base(intent,question_patterns,answer,action_label,action_url,priority) VALUES
+('valora_insight','valora insight|metodologia valora|metodologia|observacao|evidencias','Valora Insight™ transforma evidências em uma leitura responsável: Observação, Evidências, Correlação, Causa provável, Impacto organizacional, Prioridade e Plano de evolução. Uma causa só é apresentada como hipótese e exige ao menos 3 evidências convergentes.','Conhecer o diagnóstico','/diagnostico-gratuito',100),
+('free_diagnostic','diagnostico gratuito|diagnostico|comecar avaliacao','O diagnóstico gratuito coleta respostas estruturadas, calcula a maturidade pelas dimensões avaliadas e entrega uma devolutiva. Responda com sinceridade; o sistema não inventa dados quando as evidências são insuficientes.','Iniciar diagnóstico','/diagnostico-gratuito',90),
+('result','resultado|devolutiva|pontuacao','O resultado apresenta a leitura consolidada e o nível de evidência disponível. Se houver menos de 3 evidências convergentes, não conclui causa ou prioridade com segurança.','Ver orientações','/contato',80),
+('certificate','certificado|baixar certificado|download certificado|erro certificado','O certificado fica disponível após a conclusão e o processamento do diagnóstico. Se o download falhar, atualize a página, confira o link recebido e tente novamente; persistindo, fale com a equipe e informe a referência exibida na tela.','Validar certificado','/certificado/validar',90),
+('lgpd','lgpd|privacidade|dados pessoais|excluir dados','A Valora trata dados conforme finalidade, necessidade e segurança. Na área LGPD você pode consultar informações e solicitar atendimento sobre seus direitos. Nunca envie dados sensíveis pelo chat.','Consultar LGPD','/lgpd',90),
+('plans','planos|plano|assinatura|preco','Os planos liberam capacidades conforme o contexto contratado. Consulte a página de planos ou converse com a equipe para entender as funcionalidades, sem compromisso.','Conhecer planos','/planos',70),
+('access','login|entrar|acesso|senha|esqueci senha','Para acessar, use a página Entrar. Se esqueceu a senha, escolha a recuperação de acesso. O ValoraBot nunca solicita senha, token ou documento.','Entrar','/entrar',85),
+('survey_error','erro pesquisa|nao consigo responder|responder pesquisa|enviar respostas','Se a pesquisa não carregar ou não enviar, confira a conexão, mantenha a mesma janela aberta e tente novamente. Não duplique envios. Se persistir, informe ao suporte o horário e a referência do erro, sem enviar respostas pessoais.','Falar com suporte','https://wa.me/5591992545353',90),
+('dashboard','dashboard|painel|indicadores','O Dashboard consolida indicadores permitidos para a organização. Estados sem dados são informativos: ausência de evidência não é resultado negativo.','Abrir Dashboard','/Dashboard',65),
+('heatmap','heatmap|mapa de calor','Heatmap evidencia intensidades e lacunas entre dimensões no mesmo conjunto observado. Ele não determina causa sozinho e deve ser interpretado com as demais evidências.','Abrir Inteligência','/Intelligence/heatmap',75),
+('benchmark','benchmark|comparacao|ranking','Benchmark compara referências de forma contextual e agregada. A Valora não o utiliza como ranking público, nem como prova isolada de desempenho ou causalidade.','Abrir Benchmark','/Intelligence/benchmark',80),
+('action','action|plano de acao|acao','Action transforma uma prioridade sustentada por evidências em ação com responsável, prazo, indicador e critério de conclusão.','Abrir Action','/OperationalIntelligence/ActionPlans',75),
+('evolution','evolution|evolucao|historico','Evolution acompanha mudanças entre ciclos comparáveis. Tendências só são apresentadas quando existe histórico suficiente.','Abrir Evolution','/Intelligence/evolution',70),
+('journey','journey|jornada|marcos','Journey registra marcos da evolução organizacional e conecta decisões, ações e novos ciclos de evidência.','Abrir Journey','/Intelligence/journey',70),
+('executive_report','executive report|relatorio executivo|relatorio','Executive Report organiza a leitura para decisão executiva, preservando limites de evidência e evitando transformar sintomas em causas.','Abrir relatório','/Intelligence/executive-report',70),
+('whatsapp','whatsapp|telefone|contato|atendimento humano','O WhatsApp oficial da Valora Group é +55 91 99254-5353.','Abrir WhatsApp','https://wa.me/5591992545353',100)
+ON CONFLICT(intent) DO UPDATE SET question_patterns=EXCLUDED.question_patterns,answer=EXCLUDED.answer,action_label=EXCLUDED.action_label,action_url=EXCLUDED.action_url,priority=EXCLUDED.priority,is_active=true,updated_at=now();
+INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_valorabot','sha256:valorabot-deterministic-v1') ON CONFLICT(version) DO UPDATE SET checksum=EXCLUDED.checksum;
+COMMIT;
+
+-- Assets oficiais: /img/brand/valora-logo-full.svg e /img/brand/valora-symbol.svg (com fallback textual acessível).
 -- Conta técnica de homologação local. A credencial abaixo é BCrypt cost 12 e
 -- nunca representa senha em texto puro no banco.
 BEGIN;

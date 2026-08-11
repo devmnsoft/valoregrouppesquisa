@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "profiles": {
     "Valora.Api": {
       "commandName": "Project",
@@ -10,3 +11,18 @@
     }
   }
 }
+=======
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Valora.Api": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "applicationUrl": "http://localhost:5080",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+>>>>>>> 10c6eac9a530ed4819f200846808e2a97b943409

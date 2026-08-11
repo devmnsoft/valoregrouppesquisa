@@ -1378,6 +1378,16 @@ COMMIT;
 -- Conta técnica de homologação local. A credencial abaixo é BCrypt cost 12 e
 -- nunca representa senha em texto puro no banco.
 BEGIN;
+UPDATE valorapesquisa.users u SET organization_id=o.id,name='Administrador E2E Valora',
+ password_hash='$2y$12$9P5OMINImu0isB5uMCSqmOC0JIZjfuv/IDSEjC0WyepMU2gIQr9nm',status='active',
+ password_reset_required=false,deleted_at=NULL,updated_at=now()
+FROM valorapesquisa.organizations o
+WHERE lower(u.email)='e2e-admin@valoragroup.local' AND o.slug='valora-platform';
+INSERT INTO valorapesquisa.users(organization_id,email,name,password_hash,status,password_reset_required,created_at,updated_at,deleted_at)
+SELECT o.id,'e2e-admin@valoragroup.local','Administrador E2E Valora',
+ '$2y$12$9P5OMINImu0isB5uMCSqmOC0JIZjfuv/IDSEjC0WyepMU2gIQr9nm','active',false,now(),now(),NULL
+FROM valorapesquisa.organizations o WHERE o.slug='valora-platform'
+ AND NOT EXISTS(SELECT 1 FROM valorapesquisa.users WHERE lower(email)='e2e-admin@valoragroup.local');
 UPDATE valorapesquisa.users u SET organization_id=o.id,name='Super Administrador Valora',
  password_hash='$2y$12$9P5OMINImu0isB5uMCSqmOC0JIZjfuv/IDSEjC0WyepMU2gIQr9nm',status='active',
  password_reset_required=false,deleted_at=NULL,updated_at=now()
@@ -1393,6 +1403,17 @@ SELECT u.id,r.id,now() FROM valorapesquisa.users u CROSS JOIN LATERAL (
  SELECT id FROM valorapesquisa.roles WHERE code='admin_valora' AND deleted_at IS NULL
  ORDER BY organization_id NULLS FIRST LIMIT 1) r
 WHERE lower(u.email)='superadmin@valoragroup.local' ON CONFLICT(user_id,role_id) DO NOTHING;
+INSERT INTO valorapesquisa.user_roles(user_id,role_id,created_at)
+SELECT u.id,r.id,now() FROM valorapesquisa.users u CROSS JOIN LATERAL (
+ SELECT id FROM valorapesquisa.roles WHERE code='admin_valora' AND deleted_at IS NULL
+ ORDER BY organization_id NULLS FIRST LIMIT 1) r
+WHERE lower(u.email)='e2e-admin@valoragroup.local' ON CONFLICT(user_id,role_id) DO NOTHING;
+INSERT INTO valorapesquisa.subscriptions(organization_id,plan_id,status,starts_at,ends_at,created_at,updated_at,deleted_at)
+SELECT o.id,p.id,'active',now(),now()+interval '10 years',now(),now(),NULL
+FROM valorapesquisa.organizations o JOIN valorapesquisa.plans p ON p.code='enterprise'
+WHERE o.slug='valora-platform'
+ON CONFLICT (organization_id) WHERE status='active' AND deleted_at IS NULL
+DO UPDATE SET plan_id=EXCLUDED.plan_id,ends_at=EXCLUDED.ends_at,updated_at=now(),deleted_at=NULL;
 -- admin_valora recebe o catálogo completo, inclusive permissões acrescentadas
 -- por fases futuras do próprio bootstrap.
 INSERT INTO valorapesquisa.role_permissions(role_id,permission_id,created_at)
@@ -1418,6 +1439,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM valorapesquisa.form_versions fv JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND fv.maximum_score=125 AND fv.max_score=125) THEN RAISE EXCEPTION 'Validação falhou: pontuação máxima oficial deve ser 125'; END IF;
   IF EXISTS (SELECT 1 FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.form_versions fv ON fv.id=d.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE f.code='valora-official' AND (q.title IS NULL OR q.text IS NULL OR q.type IS NULL OR q.organization_id IS NULL OR q.form_id IS NULL OR q.form_version_id IS NULL OR q.position IS NULL OR q.display_order IS NULL OR q.weight IS NULL OR q.version IS NULL OR q.is_active IS NULL OR q.required IS NULL OR q.is_required IS NULL)) THEN RAISE EXCEPTION 'Validação falhou: contrato de questions contém NULL obrigatório'; END IF;
   IF NOT EXISTS (SELECT 1 FROM valorapesquisa.users u JOIN valorapesquisa.user_roles ur ON ur.user_id=u.id JOIN valorapesquisa.roles r ON r.id=ur.role_id WHERE lower(u.email)='superadmin@valoragroup.local' AND u.status='active' AND r.code='admin_valora') THEN RAISE EXCEPTION 'Validação falhou: super administrador não configurado'; END IF;
+  IF NOT EXISTS (SELECT 1 FROM valorapesquisa.users u JOIN valorapesquisa.organizations o ON o.id=u.organization_id JOIN valorapesquisa.user_roles ur ON ur.user_id=u.id JOIN valorapesquisa.roles r ON r.id=ur.role_id JOIN valorapesquisa.subscriptions s ON s.organization_id=o.id WHERE lower(u.email)='e2e-admin@valoragroup.local' AND u.status='active' AND o.name='Valora Group' AND o.status='active' AND r.code='admin_valora' AND s.status='active' AND (s.ends_at IS NULL OR s.ends_at>now())) THEN RAISE EXCEPTION 'Validação falhou: administrador E2E, organização, perfil ou assinatura não configurados'; END IF;
   IF NOT EXISTS (SELECT 1 FROM valorapesquisa.plan_capabilities pc JOIN valorapesquisa.plans p ON p.id=pc.plan_id WHERE p.code IN('free','professional','corporate','enterprise')) THEN RAISE EXCEPTION 'Validação falhou: capabilities dos planos ausentes'; END IF;
   IF to_regclass('valorapesquisa.result_scores') IS NULL OR to_regclass('valorapesquisa.certificates') IS NULL OR to_regclass('valorapesquisa.organizational_intelligence_runs') IS NULL THEN RAISE EXCEPTION 'Validação falhou: tabelas de resultado, certificado ou inteligência ausentes'; END IF;
   RAISE NOTICE 'Validação Valora concluída: formulário oficial, 5 dimensões, 25 perguntas quantitativas, 1 qualitativa e capabilities OK';

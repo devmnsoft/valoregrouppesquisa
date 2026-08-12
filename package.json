@@ -462,7 +462,8 @@
     "test:auth-hotfix": "npx mocha tests/auth/firebase-repository-auth-flow.spec.js",
     "release:groups:check": "node scripts/validate-release-groups.js",
     "repository:boundaries": "node --test scripts/repository/validate-project-boundaries.test.js && node scripts/repository/validate-project-boundaries.js",
-    "legacy:identity": "node scripts/validate-legacy-identity-contract.js"
+    "legacy:identity": "node scripts/validate-legacy-identity-contract.js",
+    "public:survey-error-preservation": "node scripts/validate-public-survey-error-preservation.js"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

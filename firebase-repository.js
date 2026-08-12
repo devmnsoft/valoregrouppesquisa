@@ -318,16 +318,16 @@ async function resolveFeaturedHomeSurveyPublic(){
 }
 async function getFeaturedHomeSurveyUrlPublic(){try{const r=await resolveFeaturedHomeSurveyPublic();return r?.url||'';}catch(err){recordFirestoreError('functions.getFeaturedHomeSurvey.controlled',err);return '';}}
 
-async function validatePublicSurveyPublic({surveyId,token,org}={}){
+async function validatePublicSurveyPublic({surveyId,token,org,correlationId}={}){
   try{
-    const remote=await callFunction('validateSurveyLink',{surveyId,token,org});
+    const remote=await callFunction('validateSurveyLink',{surveyId,token,org,correlationId});
     if(remote?.survey){
       if(remote.survey.formId!==remote.form?.id)throw Object.assign(new Error('Formulário incompatível com a pesquisa.'),{code:'survey_form_mismatch'});publicSurveyCache.set(remote.survey.id,{survey:remote.survey,form:remote.form,company:remote.company,token,url:remote.url,org:remote.org,consistency:remote.consistency});
       return {...remote,ok:remote.ok!==false};
     }
   }catch(err){
     recordFirestoreError('functions.validateSurveyLink',err);
-    if(!session.authUser)return {ok:false,errorCode:err?.code||'public_validation_unavailable',message:'Não foi possível validar esta pesquisa agora. Tente novamente em instantes.'};
+    if(!session.authUser){const details=err?.details||err?.originalError?.details||{};const functionalCode=details.code||details.errorCode||'';if(functionalCode)throw Object.assign(new Error(details.friendlyMessage||err?.message||'Não foi possível validar esta pesquisa.'),{code:functionalCode,details:{...details,correlationId:details.correlationId||correlationId||''},friendlyMessage:details.friendlyMessage||''});throw Object.assign(new Error('Não conseguimos validar o diagnóstico neste momento. Tente novamente em alguns instantes.'),{code:'public_validation_unavailable',details:{code:'public_validation_unavailable',providerCode:err?.code||'unknown',correlationId:correlationId||''}});}
   }
   if(!session.authUser)return {ok:false,errorCode:'public_validation_unavailable',message:'Validação pública indisponível.'};
   const survey=await getDoc('surveys',surveyId);

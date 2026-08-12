@@ -8,6 +8,18 @@ namespace Valora.Infrastructure.Repositories;
 
 public sealed class UserRepository(IDbConnectionFactory factory, ILogger<UserRepository> logger) : IUserRepository
 {
+    private sealed class AuthUserRow
+    {
+        public Guid Id { get; set; }
+        public Guid OrganizationId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string PasswordHash { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public string? RoleCodesCsv { get; set; }
+    }
+
     private const string UserProjection = """
         u.id AS Id, u.organization_id AS OrganizationId, u.name AS Name, u.email AS Email,
         u.status AS Status, u.phone AS Phone, u.password_reset_required AS PasswordResetRequired,
@@ -23,16 +35,27 @@ public sealed class UserRepository(IDbConnectionFactory factory, ILogger<UserRep
             using var connection = factory.Create();
             const string sql = """
                 SELECT u.id AS Id, u.organization_id AS OrganizationId, u.name AS Name, u.email AS Email,
-                       u.password_hash AS PasswordHash, u.status AS Status, u.phone AS Phone, u.deleted_at AS DeletedAt,
+                       u.password_hash AS PasswordHash, u.status AS Status, u.phone AS Phone,
                        COALESCE((SELECT string_agg(r.code, ',' ORDER BY r.code)
                          FROM valorapesquisa.user_roles ur JOIN valorapesquisa.roles r ON r.id=ur.role_id
                          WHERE ur.user_id=u.id), '') AS RoleCodesCsv
                 FROM valorapesquisa.users u
-                WHERE lower(u.email)=lower(@email)
-                ORDER BY u.deleted_at NULLS FIRST, u.updated_at DESC NULLS LAST
+                WHERE lower(u.email)=lower(@email) AND u.deleted_at IS NULL
+                ORDER BY u.updated_at DESC NULLS LAST
                 LIMIT 1
                 """;
-            return await connection.QuerySingleOrDefaultAsync<UserAuthenticationRecord>(sql, new { email });
+            var row = await connection.QuerySingleOrDefaultAsync<AuthUserRow>(sql, new { email });
+            return row is null
+                ? null
+                : new UserAuthenticationRecord(
+                    row.Id,
+                    row.OrganizationId,
+                    row.Name,
+                    row.Email,
+                    row.PasswordHash,
+                    row.Status,
+                    row.Phone,
+                    row.RoleCodesCsv ?? string.Empty);
         }
         catch (Exception ex) { logger.LogError(ex, "Erro ao buscar usuário por e-mail. Email={Email}", LogSanitizer.MaskEmail(email)); throw; }
     }

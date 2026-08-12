@@ -23,12 +23,14 @@ public sealed class UserRepository(IDbConnectionFactory factory, ILogger<UserRep
             using var connection = factory.Create();
             const string sql = """
                 SELECT u.id AS Id, u.organization_id AS OrganizationId, u.name AS Name, u.email AS Email,
-                       u.password_hash AS PasswordHash, u.status AS Status, u.phone AS Phone,
+                       u.password_hash AS PasswordHash, u.status AS Status, u.phone AS Phone, u.deleted_at AS DeletedAt,
                        COALESCE((SELECT string_agg(r.code, ',' ORDER BY r.code)
                          FROM valorapesquisa.user_roles ur JOIN valorapesquisa.roles r ON r.id=ur.role_id
                          WHERE ur.user_id=u.id), '') AS RoleCodesCsv
                 FROM valorapesquisa.users u
-                WHERE lower(u.email)=lower(@email) AND u.deleted_at IS NULL
+                WHERE lower(u.email)=lower(@email)
+                ORDER BY u.deleted_at NULLS FIRST, u.updated_at DESC NULLS LAST
+                LIMIT 1
                 """;
             return await connection.QuerySingleOrDefaultAsync<UserAuthenticationRecord>(sql, new { email });
         }

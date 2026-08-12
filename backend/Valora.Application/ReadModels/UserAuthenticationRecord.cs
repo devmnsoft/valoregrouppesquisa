@@ -8,7 +8,8 @@ public sealed record UserAuthenticationRecord(
     string PasswordHash,
     string Status,
     string? Phone,
-    string RoleCodesCsv)
+    string RoleCodesCsv,
+    DateTimeOffset? DeletedAt = null)
 {
     public IReadOnlyList<string> RoleCodes => RoleCodesCsv
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

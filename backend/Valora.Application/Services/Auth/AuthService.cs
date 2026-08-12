@@ -49,17 +49,45 @@ public sealed class AuthService(
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
-        var user = await users.GetByEmailAsync(request.Email)
-            ?? throw new UnauthorizedAccessException("Credenciais inválidas.");
-
-        if (!hasher.Verify(request.Password, user.PasswordHash))
+        var maskedEmail = LogSanitizer.MaskEmail(request.Email);
+        var user = await users.GetByEmailAsync(request.Email);
+        if (user is null)
         {
+            logger.LogWarning("Login rejected: user not found. Email={Email}", maskedEmail);
+            throw new UnauthorizedAccessException("Credenciais inválidas.");
+        }
+
+        if (user.DeletedAt is not null)
+        {
+            logger.LogWarning("Login rejected: user deleted. Email={Email}", maskedEmail);
+            throw new UnauthorizedAccessException("Credenciais inválidas.");
+        }
+
+        if (!string.Equals(user.Status, "active", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogWarning("Login rejected: user inactive. Email={Email} Status={Status}", maskedEmail, user.Status);
+            throw new UnauthorizedAccessException("Credenciais inválidas.");
+        }
+
+        if (string.IsNullOrWhiteSpace(user.PasswordHash) || !IsBcryptHash(user.PasswordHash))
+        {
+            logger.LogWarning("Login rejected: password hash empty or incompatible. Email={Email}", maskedEmail);
+            throw new UnauthorizedAccessException("Credenciais inválidas.");
+        }
+
+        if (!VerifyPasswordSafely(request.Password, user.PasswordHash))
+        {
+            logger.LogWarning("Login rejected: invalid password. Email={Email}", maskedEmail);
+            throw new UnauthorizedAccessException("Credenciais inválidas.");
+        }
+
+        if (user.RoleCodes.Count == 0)
+        {
+            logger.LogWarning("Login rejected: role missing. Email={Email}", maskedEmail);
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
         await users.TouchLoginAsync(user.Id);
-        logger.LogInformation("Login succeeded. UserId={UserId} Email={Email}", user.Id, LogSanitizer.MaskEmail(user.Email));
-
         await audit.LogAsync(new AuditEntry(
             user.OrganizationId,
             user.Id,
@@ -70,12 +98,17 @@ public sealed class AuthService(
 
         var organization = await organizations.GetAsync(user.OrganizationId);
 
-        var planId = await plans.GetCurrentPlanIdAsync(user.OrganizationId) ?? "free";
+        var planId = await plans.GetCurrentPlanIdAsync(user.OrganizationId);
+        if (planId is null)
+            logger.LogWarning("Login continuing with safe free fallback: active subscription missing. Email={Email} OrganizationId={OrganizationId}", maskedEmail, user.OrganizationId);
+        planId ??= "free";
         var currentPlan = await plans.GetByIdAsync(planId);
         var role = user.RoleCodes.FirstOrDefault() ?? "empresa_admin";
 
         var tokens = await authenticationSessions.CreateAsync(user.Id, user.OrganizationId, user.Email, role,
             organization?.DefaultLanguageCode ?? "pt-BR");
+        logger.LogInformation("Login succeeded. UserId={UserId} Email={Email} Role={Role} Plan={Plan}",
+            user.Id, maskedEmail, role, planId);
         return CreateAuthenticationResult(tokens,
             new AuthenticatedUserDto(user.Id, user.Name, user.Email, role),
             organization is null ? null : new AuthenticatedOrganizationDto(organization.Id, organization.Name, organization.PublicName, organization.Slug),
@@ -108,7 +141,7 @@ public sealed class AuthService(
         logger.LogInformation("Password reset requested. Email={Email}", LogSanitizer.MaskEmail(email));
 
         var user = string.IsNullOrWhiteSpace(email) ? null : await users.GetByEmailAsync(email);
-        if (user is not null)
+        if (user is { DeletedAt: null } && string.Equals(user.Status, "active", StringComparison.OrdinalIgnoreCase))
         {
             var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
                 .Replace("+", "-").Replace("/", "_").TrimEnd('=');
@@ -138,6 +171,8 @@ public sealed class AuthService(
 
         var user = await users.GetByEmailAsync(request.Email)
             ?? throw new UnauthorizedAccessException("Token inválido ou expirado.");
+        if (user.DeletedAt is not null || !string.Equals(user.Status, "active", StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("Token inválido ou expirado.");
         var token = await users.GetValidPasswordResetTokenAsync(HashToken(request.Token))
             ?? throw new UnauthorizedAccessException("Token inválido ou expirado.");
         if (token.UserId != user.Id)
@@ -173,6 +208,18 @@ public sealed class AuthService(
     private static string HashToken(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
     private static string? HashNullable(string? value) => string.IsNullOrWhiteSpace(value) ? null : HashToken(value);
+
+    private static bool IsBcryptHash(string hash) =>
+        hash.Length == 60 && (hash.StartsWith("$2a$", StringComparison.Ordinal)
+            || hash.StartsWith("$2b$", StringComparison.Ordinal)
+            || hash.StartsWith("$2y$", StringComparison.Ordinal));
+
+    private bool VerifyPasswordSafely(string password, string hash)
+    {
+        try { return hasher.Verify(password, hash); }
+        catch (ArgumentException) { return false; }
+        catch (FormatException) { return false; }
+    }
 
     private static AuthenticationResult CreateAuthenticationResult(
         TokenPair tokens,

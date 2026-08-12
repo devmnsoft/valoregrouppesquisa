@@ -936,6 +936,9 @@ INSERT INTO valorapesquisa.roles(code,name,is_system) VALUES
 ('participante','Participante',true),
 ('convidado_externo','Convidado externo',true)
 ON CONFLICT DO NOTHING;
+UPDATE valorapesquisa.roles
+SET name='Administrador Valora',is_system=true,deleted_at=NULL,updated_at=now()
+WHERE code='admin_valora' AND organization_id IS NULL;
 
 INSERT INTO valorapesquisa.schema_migrations(version,checksum)
 VALUES ('20260731_006_multiempresa_rbac_plan_limits','phase-02g-v1')
@@ -1378,14 +1381,14 @@ COMMIT;
 -- Conta técnica de homologação local. A credencial abaixo é BCrypt cost 12 e
 -- nunca representa senha em texto puro no banco.
 BEGIN;
-UPDATE valorapesquisa.users u SET organization_id=o.id,name='Administrador E2E Valora',
- password_hash='$2y$12$9P5OMINImu0isB5uMCSqmOC0JIZjfuv/IDSEjC0WyepMU2gIQr9nm',status='active',
+UPDATE valorapesquisa.users u SET organization_id=o.id,name='Super Administrador Valora',
+ password_hash=public.crypt('Valora!12345',public.gen_salt('bf',12)),status='active',
  password_reset_required=false,deleted_at=NULL,updated_at=now()
 FROM valorapesquisa.organizations o
 WHERE lower(u.email)='e2e-admin@valoragroup.local' AND o.slug='valora-platform';
 INSERT INTO valorapesquisa.users(organization_id,email,name,password_hash,status,password_reset_required,created_at,updated_at,deleted_at)
-SELECT o.id,'e2e-admin@valoragroup.local','Administrador E2E Valora',
- '$2y$12$9P5OMINImu0isB5uMCSqmOC0JIZjfuv/IDSEjC0WyepMU2gIQr9nm','active',false,now(),now(),NULL
+SELECT o.id,'e2e-admin@valoragroup.local','Super Administrador Valora',
+ public.crypt('Valora!12345',public.gen_salt('bf',12)),'active',false,now(),now(),NULL
 FROM valorapesquisa.organizations o WHERE o.slug='valora-platform'
  AND NOT EXISTS(SELECT 1 FROM valorapesquisa.users WHERE lower(email)='e2e-admin@valoragroup.local');
 UPDATE valorapesquisa.users u SET organization_id=o.id,name='Super Administrador Valora',

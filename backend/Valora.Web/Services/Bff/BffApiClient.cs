@@ -23,11 +23,16 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
         }
     }
 
-    public async Task<BffAuthenticationResult> PostAuthenticationAsync(string path, object request, CancellationToken cancellationToken)
+    public async Task<BffAuthenticationResult> PostAuthenticationAsync(string path, object request, string correlationId, CancellationToken cancellationToken)
     {
         try
         {
-            using var response = await httpClient.PostAsJsonAsync(path, request, JsonOptions, cancellationToken);
+            using var message = new HttpRequestMessage(HttpMethod.Post, path)
+            {
+                Content = JsonContent.Create(request, options: JsonOptions)
+            };
+            message.Headers.TryAddWithoutValidation("X-Correlation-Id", correlationId);
+            using var response = await httpClient.SendAsync(message, cancellationToken);
             await EnsureSuccessAsync(response, cancellationToken);
             return await response.Content.ReadFromJsonAsync<BffAuthenticationResult>(JsonOptions, cancellationToken)
                 ?? throw new HttpRequestException("A API retornou uma resposta de autenticação vazia.");

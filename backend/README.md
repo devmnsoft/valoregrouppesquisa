@@ -46,7 +46,7 @@ dotnet format Valora.sln --verify-no-changes
 
 ## Execução
 
-Linux/macOS: `./run-local.sh`. Windows: `run-local.bat`. Os scripts iniciam os dois processos, com a API em `http://localhost:5080` e o Web em `http://localhost:5088`/`https://localhost:7088`. Para diagnosticar a dependência sem tentar autenticar, consulte `GET /health/web/api` no Web.
+Linux/macOS: `./run-local.sh`. Windows: `run-local.bat`. Os scripts iniciam a API em `http://localhost:5080`, aguardam uma resposta saudável de `/health` e somente então iniciam o Web em `http://localhost:5088`/`https://localhost:7088`. Se a API não ficar pronta em 60 segundos, o script encerra com erro em vez de abrir um Web incapaz de autenticar. Para diagnosticar a dependência sem tentar autenticar, consulte `GET /health/web/api` no Web; detalhes de URL são exibidos apenas em Development.
 
 ## Migrations
 

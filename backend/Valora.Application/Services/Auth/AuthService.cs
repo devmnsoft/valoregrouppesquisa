@@ -75,7 +75,14 @@ public sealed class AuthService(
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
-        if (!VerifyPasswordSafely(request.Password, user.PasswordHash))
+        var passwordMatches = VerifyPasswordSafely(request.Password, user.PasswordHash);
+        if (passwordMatches is null)
+        {
+            logger.LogWarning("Login rejected: password hash could not be verified. Email={Email}", maskedEmail);
+            throw new UnauthorizedAccessException("Credenciais inválidas.");
+        }
+
+        if (!passwordMatches.Value)
         {
             logger.LogWarning("Login rejected: invalid password. Email={Email}", maskedEmail);
             throw new UnauthorizedAccessException("Credenciais inválidas.");
@@ -214,11 +221,11 @@ public sealed class AuthService(
             || hash.StartsWith("$2b$", StringComparison.Ordinal)
             || hash.StartsWith("$2y$", StringComparison.Ordinal));
 
-    private bool VerifyPasswordSafely(string password, string hash)
+    private bool? VerifyPasswordSafely(string password, string hash)
     {
         try { return hasher.Verify(password, hash); }
-        catch (ArgumentException) { return false; }
-        catch (FormatException) { return false; }
+        catch (ArgumentException) { return null; }
+        catch (FormatException) { return null; }
     }
 
     private static AuthenticationResult CreateAuthenticationResult(

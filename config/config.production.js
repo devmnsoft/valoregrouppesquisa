@@ -2,7 +2,7 @@
   'use strict';
 
   window.ValoraConfig = Object.freeze({
-    APP_VERSION: '8.8.1',
+    APP_VERSION: '8.8.2',
     RUNTIME_ENV: 'production',
     BRAND: Object.freeze({ productName: 'Valora Insight™', companyName: 'Valora Group', assistantName: 'ValoraBot' }),
     CONTACTS: Object.freeze({ whatsappDisplay: '+55 91 99254-5353', whatsappDigits: '5591992545353', whatsappUrl: 'https://wa.me/5591992545353' }),

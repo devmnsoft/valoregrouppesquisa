@@ -72,7 +72,16 @@ public sealed class WebHealthController : ControllerBase
     {
         try
         {
-            return Ok(new { service = "Valora.Web", environment = _environment.EnvironmentName, version = _web.Version, apiBaseUrl = MaskUrl(_api.BaseUrl), publicUrl = _web.PublicUrl, timeoutMs = _api.TimeoutMs, correlationId = CorrelationId() });
+            return Ok(new
+            {
+                service = "Valora.Web",
+                environment = _environment.EnvironmentName,
+                version = _web.Version,
+                apiBaseUrl = _environment.IsDevelopment() ? _api.BaseUrl : "configured",
+                publicUrl = _environment.IsDevelopment() ? _web.PublicUrl : "configured",
+                timeoutMs = _api.TimeoutMs,
+                correlationId = CorrelationId()
+            });
         }
         catch (Exception ex)
         {
@@ -82,5 +91,4 @@ public sealed class WebHealthController : ControllerBase
     }
 
     private string CorrelationId() => Request.Headers.TryGetValue("X-Correlation-Id", out var id) && !string.IsNullOrWhiteSpace(id) ? id.ToString() : HttpContext.TraceIdentifier;
-    private static string MaskUrl(string? url) => string.IsNullOrWhiteSpace(url) ? string.Empty : url.Replace("//", "//***@", StringComparison.Ordinal);
 }

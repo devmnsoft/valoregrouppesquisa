@@ -9,7 +9,7 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
 {
     public async Task<BffSafeSession> SignInAsync(HttpContext context, string endpoint, object request, CancellationToken cancellationToken)
     {
-        var result = await api.PostAuthenticationAsync(endpoint, request, cancellationToken);
+        var result = await api.PostAuthenticationAsync(endpoint, request, CorrelationId(context), cancellationToken);
         var ticket = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         var safe = new BffSafeSession(result.User, result.Organization, result.Plan);
         await sessions.SetAsync(ticket, new(result.AccessToken, result.AccessTokenExpiresAt, result.RefreshToken,
@@ -42,7 +42,7 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
         var current = await sessions.GetAsync(ticket, cancellationToken);
         if (current is null) return null;
         var result = await api.PostAuthenticationAsync("/api/v1/auth/refresh",
-            new { refreshToken = current.RefreshToken }, cancellationToken);
+            new { refreshToken = current.RefreshToken }, CorrelationId(context), cancellationToken);
         var safe = new BffSafeSession(result.User, result.Organization, result.Plan);
         await sessions.SetAsync(ticket, new(result.AccessToken, result.AccessTokenExpiresAt, result.RefreshToken,
             result.RefreshTokenExpiresAt, safe), cancellationToken);
@@ -61,4 +61,9 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
         }
         await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     }
+
+    private static string CorrelationId(HttpContext context) =>
+        context.Request.Headers.TryGetValue("X-Correlation-Id", out var value) && !string.IsNullOrWhiteSpace(value)
+            ? value.ToString()
+            : context.TraceIdentifier;
 }

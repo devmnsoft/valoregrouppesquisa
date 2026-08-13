@@ -8,6 +8,7 @@ using Valora.Application.Security;
 using Valora.Application.DTOs;
 using Valora.Domain.ValueObjects;
 using Valora.Application.CompanyRegistration;
+using Valora.Application.Exceptions;
 
 namespace Valora.Application.Services;
 
@@ -34,10 +35,12 @@ public sealed class AuthService(
         var tokens = await authenticationSessions.CreateAsync(registration.UserId, registration.OrganizationId,
             request.AdministratorEmail, "empresa_admin", request.Language);
         var freePlan = await plans.GetByIdAsync("free");
+        if (freePlan is null)
+            throw new ApplicationConfigurationException("Required system plan 'free' was not found.");
         return CreateAuthenticationResult(tokens,
             new AuthenticatedUserDto(registration.UserId, request.AdministratorName, request.AdministratorEmail, "empresa_admin"),
             new AuthenticatedOrganizationDto(registration.OrganizationId, request.CompanyName, request.TradeName, string.Empty),
-            new AuthenticatedPlanDto("free", freePlan?.Name ?? "Gratuito"));
+            new AuthenticatedPlanDto("free", freePlan.Name));
     }
 
     public async Task<AuthenticationResult> LoginAsync(LoginRequest request)
@@ -111,6 +114,11 @@ public sealed class AuthService(
             logger.LogWarning("Login continuing with safe free fallback: active subscription missing. Email={Email} OrganizationId={OrganizationId}", maskedEmail, user.OrganizationId);
         planId ??= "free";
         var currentPlan = await plans.GetByIdAsync(planId);
+        if (currentPlan is null)
+        {
+            logger.LogError("Login failed because the configured plan is unavailable. OrganizationId={OrganizationId} PlanCode={PlanCode}", user.OrganizationId, planId);
+            throw new ApplicationConfigurationException($"Configured plan '{planId}' was not found or is inactive.");
+        }
         var role = user.RoleCodes.FirstOrDefault() ?? "empresa_admin";
 
         var tokens = await authenticationSessions.CreateAsync(user.Id, user.OrganizationId, user.Email, role,
@@ -120,7 +128,7 @@ public sealed class AuthService(
         return CreateAuthenticationResult(tokens,
             new AuthenticatedUserDto(user.Id, user.Name, user.Email, role),
             new AuthenticatedOrganizationDto(organization.Id, organization.Name, organization.PublicName, organization.Slug),
-            new AuthenticatedPlanDto(planId, currentPlan?.Name ?? planId));
+            new AuthenticatedPlanDto(planId, currentPlan.Name));
     }
 
     public async Task<AuthenticationResult> RefreshAsync(RefreshRequest request)
@@ -130,11 +138,13 @@ public sealed class AuthService(
         var organization = await organizations.GetAsync(tokens.OrganizationId);
         var planId = await plans.GetCurrentPlanIdAsync(tokens.OrganizationId) ?? "free";
         var plan = await plans.GetByIdAsync(planId);
+        if (plan is null)
+            throw new ApplicationConfigurationException($"Configured plan '{planId}' was not found or is inactive.");
         var role = user.RoleCodes.FirstOrDefault() ?? "empresa_admin";
         return CreateAuthenticationResult(tokens,
             new AuthenticatedUserDto(user.Id, user.Name, user.Email, role),
             organization is null ? null : new AuthenticatedOrganizationDto(organization.Id, organization.Name, organization.PublicName, organization.Slug),
-            new AuthenticatedPlanDto(planId, plan?.Name ?? planId));
+            new AuthenticatedPlanDto(planId, plan.Name));
     }
 
     public Task LogoutAsync(Guid userId, LogoutRequest request) => authenticationSessions.LogoutAsync(userId, request.RefreshToken);

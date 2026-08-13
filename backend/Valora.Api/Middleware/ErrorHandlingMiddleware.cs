@@ -57,6 +57,7 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
 
     private static string TitleFor(string code, int status) => code == "DATABASE_SCHEMA_MISMATCH"
         ? "Falha de configuração do ambiente"
+        : code == "APPLICATION_CONFIGURATION_ERROR" ? "Falha de configuração da aplicação"
         : status switch
     {
         400 => "Revise os dados informados",
@@ -90,8 +91,11 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
 
     private static (int Status, string Code, string Message) MapException(Exception ex) => ex switch
     {
-        ValidationAppException or ArgumentException => (StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Requisição inválida."),
-        UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "UNAUTHORIZED", "Acesso não autorizado."),
+        ValidationAppException => (StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Requisição inválida."),
+        ArgumentNullException => (StatusCodes.Status500InternalServerError, "INTERNAL_ERROR", "Erro interno. Tente novamente ou acione o suporte."),
+        ArgumentException => (StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Requisição inválida."),
+        UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "AUTH_INVALID_CREDENTIALS", "E-mail ou senha inválidos."),
+        ApplicationConfigurationException => (StatusCodes.Status500InternalServerError, "APPLICATION_CONFIGURATION_ERROR", "A configuração da aplicação está incompleta."),
         ForbiddenAppException => (StatusCodes.Status403Forbidden, "FORBIDDEN", "Acesso proibido."),
         NotFoundAppException or KeyNotFoundException => (StatusCodes.Status404NotFound, "NOT_FOUND", "Recurso não encontrado."),
         ConflictAppException or ConcurrencyConflictException => (StatusCodes.Status409Conflict, "CONCURRENCY_CONFLICT", "O recurso foi alterado por outra sessão."),

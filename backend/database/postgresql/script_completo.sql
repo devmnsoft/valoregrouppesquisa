@@ -651,9 +651,9 @@ UPDATE valorapesquisa.schema_migrations x SET version=x.version||'-legacy-'||d.n
 
 -- Chaves compostas: apenas a chave natural da ocorrência excedente é
 -- rebatizada. Isso evita DELETE silencioso e não invalida FKs pelo ID.
-WITH d AS (SELECT id,limit_key,row_number() OVER(PARTITION BY plan_id,limit_key ORDER BY created_at NULLS LAST,id) n FROM valorapesquisa.plan_limits)
+WITH d AS (SELECT id,limit_key,row_number() OVER(PARTITION BY plan_id,lower(limit_key) ORDER BY created_at NULLS LAST,id) n FROM valorapesquisa.plan_limits)
 UPDATE valorapesquisa.plan_limits x SET limit_key=x.limit_key||'-legacy-'||left(replace(x.id::text,'-',''),8),updated_at=now() FROM d WHERE d.id=x.id AND d.n>1;
-WITH d AS (SELECT id,capability_key,row_number() OVER(PARTITION BY plan_id,capability_key ORDER BY created_at NULLS LAST,id) n FROM valorapesquisa.plan_capabilities)
+WITH d AS (SELECT id,capability_key,row_number() OVER(PARTITION BY plan_id,lower(capability_key) ORDER BY created_at NULLS LAST,id) n FROM valorapesquisa.plan_capabilities)
 UPDATE valorapesquisa.plan_capabilities x SET capability_key=x.capability_key||'-legacy-'||left(replace(x.id::text,'-',''),8),updated_at=now() FROM d WHERE d.id=x.id AND d.n>1;
 WITH d AS (
  SELECT id, row_number() OVER(PARTITION BY form_id,version,language ORDER BY created_at NULLS LAST,id) n,
@@ -675,6 +675,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_permissions_code_v2 ON valorapesquisa.permi
 CREATE UNIQUE INDEX IF NOT EXISTS ux_plans_code_v2 ON valorapesquisa.plans(code);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_limits_plan_key_v2 ON valorapesquisa.plan_limits(plan_id,limit_key);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_capabilities_plan_key_v2 ON valorapesquisa.plan_capabilities(plan_id,capability_key);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_limits_plan_key_ci ON valorapesquisa.plan_limits(plan_id,lower(limit_key));
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_capabilities_plan_key_ci ON valorapesquisa.plan_capabilities(plan_id,lower(capability_key));
 CREATE UNIQUE INDEX IF NOT EXISTS ux_forms_code_v2 ON valorapesquisa.forms(code);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_form_versions_identity_v2 ON valorapesquisa.form_versions(form_id,version,language);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_form_translations_identity_v2 ON valorapesquisa.form_translations(form_version_id,language);

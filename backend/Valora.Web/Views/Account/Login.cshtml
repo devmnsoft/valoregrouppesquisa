@@ -2,15 +2,15 @@
 <section class="auth-card" data-page="login-page" aria-labelledby="login-title">
   <header class="auth-card__header">
     <p class="auth-kicker">Valora Insight™</p>
-    <h2 id="login-title">Acesse o Valora Insight™</h2>
+    <h2 id="login-title">Acesse sua conta</h2>
     <p>Entre para acompanhar diagnósticos, devolutivas, evidências e planos de evolução organizacional.</p>
   </header>
-  <div class="error-state d-none" role="alert" aria-live="assertive" tabindex="-1">
+  <div class="auth-error d-none" role="alert" aria-live="assertive" tabindex="-1">
     <strong>Não foi possível concluir o acesso</strong><span data-error-message></span><small data-error-reference hidden></small>
   </div>
   <form class="valora-form" novalidate>
-    <div class="field-group"><label for="email">E-mail corporativo</label><input id="email" class="form-control" type="email" name="email" inputmode="email" autocomplete="email" placeholder="voce@empresa.com.br" required autofocus><span class="field-error">Informe um e-mail válido.</span></div>
-    <div class="field-group"><div class="field-label-row"><label for="password">Senha</label><a href="/Account/ForgotPassword">Esqueci minha senha</a></div><div class="password-field"><input id="password" class="form-control" type="password" name="password" autocomplete="current-password" required minlength="6"><button class="password-toggle" type="button" data-action="toggle-password" aria-label="Mostrar senha" aria-pressed="false"><span aria-hidden="true">Mostrar</span></button></div><span class="field-error">Informe sua senha.</span></div>
+    <div class="field-group"><label for="email">E-mail corporativo</label><input id="email" class="auth-field" type="email" name="email" inputmode="email" autocomplete="email" placeholder="voce@empresa.com.br" required autofocus><span class="field-error">Informe um e-mail válido.</span></div>
+    <div class="field-group"><div class="field-label-row"><label for="password">Senha</label><a href="/Account/ForgotPassword">Esqueci minha senha</a></div><div class="password-field"><input id="password" class="auth-field" type="password" name="password" autocomplete="current-password" required minlength="6"><button class="password-toggle" type="button" data-action="toggle-password" aria-label="Mostrar senha" aria-pressed="false"><span aria-hidden="true">Mostrar</span></button></div><span class="field-error">Informe sua senha.</span></div>
     <label class="remember-session"><input type="checkbox" name="rememberMe" value="true"><span>Lembrar minha sessão neste dispositivo</span></label>
     <button class="auth-submit" type="submit"><span data-submit-label>Entrar com segurança</span><span class="spinner-border spinner-border-sm d-none" data-submit-spinner aria-hidden="true"></span></button>
   </form>

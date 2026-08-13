@@ -1,4 +1,11 @@
 using Valora.Application.DTOs;
 namespace Valora.Application.Contracts;
 
-public sealed record PlanCapabilityRecord(string CapabilityKey,bool Enabled);
+public sealed class PlanCapabilityRecord
+{
+    public string? CapabilityKey { get; init; }
+    public bool Enabled { get; init; }
+    public DateTimeOffset? UpdatedAt { get; init; }
+    public DateTimeOffset CreatedAt { get; init; }
+    public Guid Id { get; init; }
+}

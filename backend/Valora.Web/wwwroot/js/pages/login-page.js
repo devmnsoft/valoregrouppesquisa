@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   form.addEventListener('submit', async event => {
     event.preventDefault();
-    const errorBox = document.querySelector('.error-state');
+    const errorBox = document.querySelector('.auth-error');
     const message = errorBox.querySelector('[data-error-message]');
     const reference = errorBox.querySelector('[data-error-reference]');
     errorBox.classList.add('d-none');
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const spinner = button.querySelector('[data-submit-spinner]');
     button.disabled = true;
     button.setAttribute('aria-busy', 'true');
-    label.textContent = 'Validando acesso…';
+    label.textContent = 'Entrando...';
     spinner.classList.remove('d-none');
     try {
       await AuthApi.login({ email: form.email.value.trim(), password: form.password.value });
@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
       window.location.assign('/Dashboard');
     } catch (error) {
       form.password.value = '';
-      message.textContent = error.status === 401 ? 'Confira seu e-mail e sua senha e tente novamente.' : 'Encontramos uma inconsistência ao processar sua solicitação. Tente novamente; se continuar, informe a referência ao suporte.';
+      message.textContent = error.status === 401 ? 'E-mail ou senha inválidos. Confira os dados e tente novamente.' : 'Não foi possível concluir o acesso agora. Tente novamente. Se continuar, informe a referência ao suporte.';
       if (error.correlationId) { reference.textContent = `Referência: ${error.correlationId}`; reference.hidden = false; } else { reference.hidden = true; }
       errorBox.classList.remove('d-none');
       errorBox.focus();

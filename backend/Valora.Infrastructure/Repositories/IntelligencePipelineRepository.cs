@@ -13,11 +13,11 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
         const string sql = """
             INSERT INTO valorapesquisa.evidence_items
               (organization_id,survey_id,response_id,form_id,question_id,concept_code,capability_code,dimension_code,
-               evidence_type,source_type,source_id,normalized_value,raw_value,weight,confidence_weight,text_excerpt,metadata_json)
+               metric_code,index_code,evidence_type,source_type,source_id,normalized_value,raw_value,weight,polarity,confidence_weight,text_excerpt,metadata_json)
             SELECT r.organization_id,r.survey_id,r.id,r.form_id,ra.question_id,qcm.concept_code,qcm.capability_code,qcm.dimension_code,
-              qcm.evidence_type,'response',ra.id,
+              qmm.metric_code,qim.index_code,qcm.evidence_type,'response',ra.id,
               CASE WHEN ra.max_score>0 THEN round((ra.score/ra.max_score*100)::numeric,4) END,
-              coalesce(ra.answer_text,ra.answer_json::text),qcm.weight,
+              coalesce(ra.answer_text,ra.answer_json::text),qcm.weight,qcm.polarity,
               CASE WHEN ra.score IS NULL THEN .60 ELSE 1 END,
               CASE WHEN ra.answer_text IS NULL THEN NULL ELSE left(ra.answer_text,500) END,
               jsonb_build_object('metricCode',qmm.metric_code,'indexCode',qim.index_code,'polarity',qcm.polarity)
@@ -32,7 +32,8 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             WHERE r.id=@responseId AND r.organization_id=@organizationId
             ON CONFLICT(response_id,question_id,concept_code) WHERE deleted_at IS NULL DO UPDATE SET
               normalized_value=EXCLUDED.normalized_value,raw_value=EXCLUDED.raw_value,weight=EXCLUDED.weight,
-              confidence_weight=EXCLUDED.confidence_weight,text_excerpt=EXCLUDED.text_excerpt,metadata_json=EXCLUDED.metadata_json
+              metric_code=EXCLUDED.metric_code,index_code=EXCLUDED.index_code,polarity=EXCLUDED.polarity,confidence_weight=EXCLUDED.confidence_weight,
+              text_excerpt=EXCLUDED.text_excerpt,metadata_json=EXCLUDED.metadata_json
             RETURNING id
             """;
         using var db = connections.Create();

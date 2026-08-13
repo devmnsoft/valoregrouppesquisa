@@ -41,6 +41,11 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     public async Task<IActionResult> Evolution([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.EvolutionAsync(id, ct));
     [HttpGet("heatmap")]
     public async Task<IActionResult> Heatmap([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", async id => (await service.DashboardAsync(id, ct)).Evidence.Dimensions);
+    [HttpGet("evidence")]
+    public async Task<IActionResult> Evidence([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.EvidenceItemsAsync(id, ct));
+    [HttpGet("modules/{module}")]
+    public async Task<IActionResult> Module(string module, [FromQuery] Guid? organizationId, CancellationToken ct) =>
+        await Read(organizationId, "organizational_intelligence.read", id => service.ModuleRecordsAsync(id, module, ct));
     [HttpGet("action-plans")]
     [HttpGet("actions")]
     public async Task<IActionResult> Actions([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.ActionsAsync(id, ct));

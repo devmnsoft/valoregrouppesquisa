@@ -62,35 +62,27 @@
     const csrf = document.querySelector('meta[name="csrf-token"]');
     const headers = { 'X-Correlation-Id': correlationId, 'X-CSRF-TOKEN': csrf ? csrf.content : '' };
 
-    return $.ajax({
-      url: apiBaseUrl() + path,
-      method: method,
-      headers: headers,
-      timeout: (window.ValoraWebConfig && window.ValoraWebConfig.API_TIMEOUT_MS) || defaultTimeout,
-      contentType: 'application/json; charset=utf-8',
-      dataType: (options && options.dataType) || 'json',
-      xhrFields: { withCredentials: true },
-      data: data === undefined || data === null ? undefined : JSON.stringify(data)
-    }).catch(function (xhr) {
-      throw normalizeApiError(xhr, correlationId);
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), (window.ValoraWebConfig && window.ValoraWebConfig.API_TIMEOUT_MS) || defaultTimeout);
+    headers.Accept = 'application/json';
+    if (data !== undefined && data !== null) headers['Content-Type'] = 'application/json; charset=utf-8';
+    return fetch(apiBaseUrl() + path, { method, headers, credentials: 'same-origin', signal: controller.signal, body: data === undefined || data === null ? undefined : JSON.stringify(data) })
+      .then(async response => {
+        const responseText = await response.text();
+        let body = null; try { body = responseText ? JSON.parse(responseText) : null; } catch { body = null; }
+        if (!response.ok) throw normalizeApiError({ status: response.status, responseJSON: body, responseText, getResponseHeader: name => response.headers.get(name) }, correlationId);
+        return body;
+      }).catch(error => { if (error?.ok === false) throw error; throw normalizeApiError({ status: 0, responseText: '', getResponseHeader: () => '' }, correlationId); })
+      .finally(() => clearTimeout(timeout));
   }
 
   function requestBinary(method, path, data) {
     const correlationId = generateCorrelationId();
     const headers = { 'X-Correlation-Id': correlationId };
 
-    return $.ajax({
-      url: apiBaseUrl() + path,
-      method: method,
-      headers: headers,
-      timeout: (window.ValoraWebConfig && window.ValoraWebConfig.API_TIMEOUT_MS) || defaultTimeout,
-      contentType: data ? 'application/json; charset=utf-8' : false,
-      data: data ? JSON.stringify(data) : undefined,
-      xhrFields: { responseType: 'blob', withCredentials: true }
-    }).catch(function (xhr) {
-      throw normalizeApiError(xhr, correlationId);
-    });
+    if (data) headers['Content-Type'] = 'application/json; charset=utf-8';
+    return fetch(apiBaseUrl() + path, { method, headers, credentials: 'same-origin', body: data ? JSON.stringify(data) : undefined })
+      .then(async response => { if (!response.ok) { const responseText=await response.text(); throw normalizeApiError({status:response.status,responseText,getResponseHeader:name=>response.headers.get(name)},correlationId); } return response.blob(); });
   }
 
   window.AjaxClient = {

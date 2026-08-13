@@ -9,6 +9,7 @@ public sealed class ReportsController(IReportService reports):ControllerBase{ Gu
 [HttpGet("/reports/surveys/{surveyId:guid}")] public IActionResult Survey(Guid surveyId)=>Safe(async()=>new{ok=true,report=await reports.GenerateSurveyAsync(Org,surveyId,"html",UserId)});
 [HttpGet("/reports/responses/{responseId:guid}")] public IActionResult Response(Guid responseId)=>Safe(async()=>new{ok=true,report=await reports.GenerateResponseAsync(Org,responseId,"html",UserId)});
 [HttpGet("/reports/organization")] public IActionResult Organization()=>Safe(async()=>new{ok=true,report=await reports.GenerateOrganizationAsync(Org,"html",UserId)});
+[HttpPost("/reports/organization/generate")] public IActionResult GenerateOrganization([FromBody]GenerateReportRequest req)=>Safe(async()=>new{ok=true,report=await reports.GenerateOrganizationAsync(Org,req.Format,UserId)});
 [HttpPost("/reports/surveys/{surveyId:guid}/generate")] public IActionResult Generate(Guid surveyId,[FromBody]GenerateReportRequest req)=>Safe(async()=>new{ok=true,report=await reports.GenerateSurveyAsync(Org,surveyId,req.Format,UserId)});
 [HttpGet("/reports/generated")] public async Task<IActionResult> Generated()=>Ok(new{ok=true,data=await reports.ListGeneratedAsync(Org)});
 [HttpGet("/reports/generated/{id:guid}")] public async Task<IActionResult> Get(Guid id){var r=await reports.GetGeneratedAsync(Org,id); return r is null?NotFound(new{ok=false,code="NOT_FOUND"}):Ok(new{ok=true,report=r});}}

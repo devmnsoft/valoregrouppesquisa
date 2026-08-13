@@ -14,19 +14,44 @@
   const number = value => value === null || value === undefined ? '—' : new Intl.NumberFormat('pt-BR').format(Number(value));
   const unavailable = selector => { const node = root.querySelector(selector); if (node) { node.textContent = '—'; node.title = 'Este indicador será exibido após o primeiro ciclo de respostas.'; } };
 
-  function renderKpis({ surveys, responses, usage }) {
+  function renderKpis({ surveys, responses, usage, intelligence, actions }) {
     const activeSurveys = surveys.filter(item => ['active', 'scheduled'].includes(String(item.status).toLowerCase())).length;
     const completed = responses.filter(item => ['completed', 'submitted'].includes(String(item.status).toLowerCase())).length;
     const completionRate = responses.length ? Math.round((completed / responses.length) * 100) : 0;
     setText('[data-kpi="responses"]', responses.length ? number(responses.length) : '—');
     setText('[data-kpi="activeSurveys"]', number(activeSurveys));
     setText('[data-kpi="completionRate"]', responses.length ? `${completionRate}%` : '—');
-    unavailable('[data-kpi="averageLevel"]');
-    setText('[data-kpi="certificates"]', usage.certificatesIssued == null ? '—' : number(usage.certificatesIssued));
-    setText('[data-kpi="lgpdAlerts"]', usage.lgpdAlerts == null ? '—' : number(usage.lgpdAlerts));
+    const run = intelligence.latestRun;
+    setText('[data-kpi="averageLevel"]', run ? `${number(run.maturityIndex)}%` : '—');
+    setText('[data-kpi="evidence"]', intelligence.evidence?.total == null ? '—' : number(intelligence.evidence.total));
+    setText('[data-kpi="actions"]', number(actions.filter(item => !['completed', 'cancelled', 'reviewed'].includes(String(item.status).toLowerCase())).length));
     root.querySelector('[data-metric-empty]').hidden = responses.length > 0;
     renderJourney(surveys, responses, usage);
     renderAttention(surveys, responses, completionRate);
+    renderStrategicReading(intelligence, actions);
+  }
+
+  function renderStrategicReading(intelligence, actions) {
+    const panel = root.querySelector('[data-strategic-reading]');
+    if (!panel) return;
+    panel.hidden = false;
+    const run = intelligence.latestRun;
+    const enoughEvidence = Boolean(run && !run.warning && Number(run.evidenceCount) >= 3);
+    root.querySelector('[data-score-panel]').hidden = !enoughEvidence;
+    root.querySelector('[data-empty-score]').hidden = enoughEvidence;
+    if (!enoughEvidence) return;
+    const score = Number(run.maturityIndex);
+    const level = score >= 85 ? 'Maduro' : score >= 70 ? 'Estruturado' : score >= 55 ? 'Em desenvolvimento' : score >= 35 ? 'Atenção' : 'Crítico';
+    setText('[data-score]', `${number(score)}%`);
+    setText('[data-level]', level);
+    setText('[data-maturity-score]', number(score));
+    setText('[data-maturity-level]', level);
+    setText('[data-maturity-explanation]', `${number(run.evidenceCount)} evidências sustentam esta leitura. Hipóteses devem ser validadas com as lideranças.`);
+    setText('[data-strongest]', run.strongestDimension || 'Não determinada');
+    setText('[data-weakest]', run.weakestDimension || 'Não determinada');
+    const openCritical = actions.find(item => item.priority === 'critical' && !['completed', 'cancelled'].includes(item.status));
+    setText('[data-blocker]', openCritical?.title || `Validar a dimensão ${run.weakestDimension || 'mais frágil'} com os responsáveis.`);
+    setText('[data-next-step]', openCritical ? 'Definir responsável e prazo para a ação crítica.' : `Criar uma ação mensurável para ${run.weakestDimension || 'a principal fragilidade'}.`);
   }
 
   function renderJourney(surveys, responses, usage) {
@@ -78,13 +103,15 @@
     error.hidden = true;
     try {
       window.Loading?.show('Atualizando leitura executiva…');
-      const [surveysResult, responsesResult, usageResult] = await Promise.allSettled([
-        SurveysApi.list(), ResponsesApi.list({}), UsageApi.usage()
+      const [surveysResult, responsesResult, usageResult, intelligenceResult, actionsResult] = await Promise.allSettled([
+        SurveysApi.list(), ResponsesApi.list({}), UsageApi.usage(), IntelligenceApi.dashboard(), IntelligenceApi.actions()
       ]);
       const surveys = surveysResult.status === 'fulfilled' ? arrayOf(surveysResult.value) : [];
       const responses = responsesResult.status === 'fulfilled' ? arrayOf(responsesResult.value) : [];
       const usage = usageResult.status === 'fulfilled' ? unwrap(usageResult.value) : {};
-      renderKpis({ surveys, responses, usage });
+      const intelligence = intelligenceResult.status === 'fulfilled' ? unwrap(intelligenceResult.value) : {};
+      const actions = actionsResult.status === 'fulfilled' ? arrayOf(actionsResult.value) : [];
+      renderKpis({ surveys, responses, usage, intelligence, actions });
       renderActivity([...surveys, ...responses]);
       setText('[data-last-update]', `Atualizado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`);
     } catch (exception) {

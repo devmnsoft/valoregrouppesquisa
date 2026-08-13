@@ -43,13 +43,16 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     public async Task<IActionResult> Heatmap([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", async id => (await service.DashboardAsync(id, ct)).Evidence.Dimensions);
     [HttpGet("evidence")]
     public async Task<IActionResult> Evidence([FromQuery] Guid? organizationId, [FromQuery] Guid? surveyId,
-        [FromQuery] Guid? questionId, [FromQuery] string? concept, [FromQuery] string? index,
+        [FromQuery] Guid? responseId, [FromQuery] Guid? questionId, [FromQuery] string? concept,
+        [FromQuery] string? metric, [FromQuery] string? index,
         [FromQuery] string? mappingStatus, CancellationToken ct) =>
         await Read(organizationId, "organizational_intelligence.read", async id =>
             (await service.EvidenceItemsAsync(id, ct)).Where(item =>
                 (!surveyId.HasValue || item.SurveyId == surveyId) &&
+                (!responseId.HasValue || item.ResponseId == responseId) &&
                 (!questionId.HasValue || item.QuestionId == questionId) &&
                 (string.IsNullOrWhiteSpace(concept) || string.Equals(item.ConceptCode, concept, StringComparison.OrdinalIgnoreCase)) &&
+                (string.IsNullOrWhiteSpace(metric) || string.Equals(item.MetricCode, metric, StringComparison.OrdinalIgnoreCase)) &&
                 (string.IsNullOrWhiteSpace(index) || string.Equals(item.IndexCode, index, StringComparison.OrdinalIgnoreCase)) &&
                 (string.IsNullOrWhiteSpace(mappingStatus) || string.Equals(item.MappingStatus, mappingStatus, StringComparison.OrdinalIgnoreCase))).ToList());
     [HttpGet("modules/{module}")]

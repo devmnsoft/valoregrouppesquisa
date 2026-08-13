@@ -13,8 +13,17 @@
     <div class="v9-section-title"><div><p class="eyebrow">Leitura atual</p><h2>Dados reais da organização</h2></div><a class="valora-button" href="/Intelligence">Abrir central completa</a></div>
     @if (Model.Slug == "evidence")
     {
+      <div class="intelligence-module__evidence-summary" data-evidence-summary hidden>
+        <article class="valora-card"><small>Total de evidências</small><strong data-summary-total>0</strong></article>
+        <article class="valora-card"><small>Evidências mapeadas</small><strong data-summary-mapped>0</strong></article>
+        <article class="valora-card"><small>Pendências de mapeamento</small><strong data-summary-pending>0</strong></article>
+        <article class="valora-card"><small>Confiança média</small><strong data-summary-confidence>0%</strong></article>
+      </div>
       <div class="intelligence-module__filters" data-evidence-filters>
+        <label>Diagnóstico <input class="valora-input" type="search" placeholder="ID do diagnóstico" data-filter-survey /></label>
+        <label>Resposta <input class="valora-input" type="search" placeholder="ID da resposta" data-filter-response /></label>
         <label>Conceito <input class="valora-input" type="search" placeholder="Filtrar conceito" data-filter-concept /></label>
+        <label>Métrica <input class="valora-input" type="search" placeholder="Filtrar métrica" data-filter-metric /></label>
         <label>Índice <input class="valora-input" type="search" placeholder="Ex.: IGO" data-filter-index /></label>
         <label>Mapeamento <select class="valora-input" data-filter-mapping><option value="">Todos</option><option value="mapped">Mapeado</option><option value="pending">Pendência metodológica</option></select></label>
       </div>

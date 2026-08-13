@@ -6,7 +6,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="csrf-token" content="@csrf">
+  <meta name="theme-color" content="#073b45">
   <title>@ViewData["Title"] — Valora Insight™</title>
+  <link rel="icon" type="image/svg+xml" href="~/img/brand/valora-symbol.svg">
   <link rel="stylesheet" href="~/lib/bootstrap/bootstrap.min.css" asp-append-version="true">
   <link rel="stylesheet" href="~/css/design-system/tokens.css" asp-append-version="true">
   <link rel="stylesheet" href="~/css/design-system/typography.css" asp-append-version="true">
@@ -16,19 +18,28 @@
   <link rel="stylesheet" href="~/css/valora-auth.css" asp-append-version="true">
 </head>
 <body class="valora-auth">
-  <a class="skip-link" href="#auth-content">Ir para o formulário</a>
+  <a class="skip-link" href="#auth-content">Ir para o formulário de acesso</a>
   <main class="auth-shell" id="auth-content">
-    <aside class="auth-story" aria-label="Sobre o Valora Insight">
-      <a class="auth-brand" href="/" aria-label="Valora Group — página inicial">Valora <small>GROUP</small></a>
-      <div>
-        <p class="eyebrow">Inteligência organizacional</p>
-        <h1>Clareza para compreender e decidir.</h1>
-        <p>Uma leitura executiva baseada em evidências para orientar a evolução da organização.</p>
-        <img src="~/img/illustrations/auth-insight.svg" width="560" height="360" alt="Radar representando as cinco dimensões do diagnóstico" asp-append-version="true" decoding="async">
+    <aside class="auth-story" aria-label="Valora Insight">
+      <a class="auth-brand" href="/" aria-label="Valora Group, página inicial">
+        <img src="~/img/brand/valora-logo-full.svg" width="184" height="54" alt="Valora Group" asp-append-version="true">
+        <span>Governance • Controller • Advisory</span>
+      </a>
+      <div class="auth-story__content">
+        <p class="auth-kicker">Inteligência organizacional baseada em evidências</p>
+        <h1>Clareza para compreender, priorizar e evoluir.</h1>
+        <p>Veja onde a organização está travando e acompanhe decisões, evidências e planos de evolução em um só ambiente.</p>
+        <div class="auth-diagnostic" aria-label="Dimensões do diagnóstico Valora Insight">
+          <div class="auth-diagnostic__head"><strong>Leitura organizacional</strong><span>Visão executiva</span></div>
+          <div class="auth-dimensions"><span>Cultura</span><i style="--score:76%"></i><span>Governança</span><i style="--score:64%"></i><span>Liderança</span><i style="--score:82%"></i><span>Pessoas</span><i style="--score:69%"></i><span>Resultados</span><i style="--score:73%"></i></div>
+        </div>
       </div>
-      <ul class="auth-trust" aria-label="Compromissos de confiança"><li>Privacidade e LGPD</li><li>Segurança por padrão</li><li>Trilha auditável</li></ul>
+      <ul class="auth-trust" aria-label="Compromissos Valora"><li>Governança</li><li>Evidência</li><li>Plano de evolução</li></ul>
     </aside>
-    <section class="auth-content">@RenderBody()<footer><a href="/privacy">Privacidade</a><a href="/PublicPages/Contact">Suporte</a></footer></section>
+    <section class="auth-content">
+      @RenderBody()
+      <footer><span>Ambiente seguro Valora Insight™</span><a href="/privacy">Privacidade</a><a href="/contato">Suporte</a></footer>
+    </section>
   </main>
   <script src="~/js/api/auth-api.js" asp-append-version="true" defer></script>
   <script src="~/js/shell/auth-shell.js" asp-append-version="true" defer></script>

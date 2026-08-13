@@ -1,7 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
   const form = document.querySelector('[data-page="login-page"] form');
   if (!form) return;
-  form.email.focus();
+  const passwordToggle = document.querySelector('[data-action="toggle-password"]');
+  form.email.focus({ preventScroll: true });
+  passwordToggle?.addEventListener('click', () => {
+    const reveal = form.password.type === 'password';
+    form.password.type = reveal ? 'text' : 'password';
+    passwordToggle.setAttribute('aria-label', reveal ? 'Ocultar senha' : 'Mostrar senha');
+    passwordToggle.setAttribute('aria-pressed', String(reveal));
+    passwordToggle.querySelector('span').textContent = reveal ? 'Ocultar' : 'Mostrar';
+    form.password.focus();
+  });
   form.addEventListener('submit', async event => {
     event.preventDefault();
     const errorBox = document.querySelector('.error-state');
@@ -14,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const spinner = button.querySelector('[data-submit-spinner]');
     button.disabled = true;
     button.setAttribute('aria-busy', 'true');
-    label.textContent = 'Entrando…';
+    label.textContent = 'Validando acesso…';
     spinner.classList.remove('d-none');
     try {
       await AuthApi.login({ email: form.email.value.trim(), password: form.password.value });
@@ -30,7 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } finally {
       button.disabled = false;
       button.removeAttribute('aria-busy');
-      label.textContent = 'Entrar';
+      label.textContent = 'Entrar com segurança';
       spinner.classList.add('d-none');
     }
   });

@@ -103,7 +103,8 @@ public sealed class AuthService(
             user.Id.ToString(),
             "Login realizado."));
 
-        var organization = await organizations.GetAsync(user.OrganizationId);
+        var organization = await organizations.GetAsync(user.OrganizationId)
+            ?? throw new InvalidOperationException($"Organização ativa não encontrada para o usuário {user.Id}.");
 
         var planId = await plans.GetCurrentPlanIdAsync(user.OrganizationId);
         if (planId is null)
@@ -113,12 +114,12 @@ public sealed class AuthService(
         var role = user.RoleCodes.FirstOrDefault() ?? "empresa_admin";
 
         var tokens = await authenticationSessions.CreateAsync(user.Id, user.OrganizationId, user.Email, role,
-            organization?.DefaultLanguageCode ?? "pt-BR");
+            organization.DefaultLanguageCode);
         logger.LogInformation("Login succeeded. UserId={UserId} Email={Email} Role={Role} Plan={Plan}",
             user.Id, maskedEmail, role, planId);
         return CreateAuthenticationResult(tokens,
             new AuthenticatedUserDto(user.Id, user.Name, user.Email, role),
-            organization is null ? null : new AuthenticatedOrganizationDto(organization.Id, organization.Name, organization.PublicName, organization.Slug),
+            new AuthenticatedOrganizationDto(organization.Id, organization.Name, organization.PublicName, organization.Slug),
             new AuthenticatedPlanDto(planId, currentPlan?.Name ?? planId));
     }
 

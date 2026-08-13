@@ -22,7 +22,9 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
         var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
         var safePath = SanitizePathAndQuery(context.Request.Path.Value, context.Request.QueryString.Value);
 
-        if (status >= 500)
+        if (ex is PostgresException postgresException)
+            logger.LogError(ex, "PostgreSQL failure. SqlState={SqlState} TableName={TableName} ColumnName={ColumnName} ConstraintName={ConstraintName} CorrelationId={CorrelationId}", postgresException.SqlState, postgresException.TableName, postgresException.ColumnName, postgresException.ConstraintName, correlationId);
+        else if (status >= 500)
             logger.LogError(ex, "API exception. StatusCode={StatusCode} ErrorCode={ErrorCode} TraceId={TraceId} CorrelationId={CorrelationId} Path={Path}", status, code, traceId, correlationId, safePath);
         else
             logger.LogWarning(ex, "Expected API exception. StatusCode={StatusCode} ErrorCode={ErrorCode} TraceId={TraceId} CorrelationId={CorrelationId} Path={Path}", status, code, traceId, correlationId, safePath);
@@ -39,7 +41,7 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
             ["type"] = $"https://httpstatuses.io/{status}",
             ["status"] = status,
             ["code"] = code,
-            ["title"] = TitleFor(status),
+            ["title"] = TitleFor(code, status),
             ["detail"] = message,
             ["correlationId"] = correlationId,
             ["fieldErrors"] = new Dictionary<string, string[]>(),
@@ -53,7 +55,9 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
         await context.Response.WriteAsync(JsonSerializer.Serialize(payload, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
     }
 
-    private static string TitleFor(int status) => status switch
+    private static string TitleFor(string code, int status) => code == "DATABASE_SCHEMA_MISMATCH"
+        ? "Falha de configuração do ambiente"
+        : status switch
     {
         400 => "Revise os dados informados",
         401 => "Sua sessão precisa ser renovada",
@@ -95,7 +99,11 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
         BusinessRuleAppException business when business.Message.StartsWith("LAST_ADMINISTRATOR:", StringComparison.Ordinal) => (StatusCodes.Status422UnprocessableEntity, "LAST_ADMINISTRATOR", "O último administrador não pode ser desativado."),
         BusinessRuleAppException business when business.Message.StartsWith("LAST_ADMIN_ROLE:", StringComparison.Ordinal) => (StatusCodes.Status422UnprocessableEntity, "LAST_ADMIN_ROLE", "A última role administrativa não pode ser removida."),
         BusinessRuleAppException or InvalidOperationException => (StatusCodes.Status422UnprocessableEntity, "BUSINESS_RULE_ERROR", "Não foi possível concluir a operação."),
-        NpgsqlException => (StatusCodes.Status503ServiceUnavailable, "DATABASE_ERROR", "Banco de dados indisponível."),
+        PostgresException postgres when postgres.SqlState is "42703" or "42P01" or "42883" =>
+            (StatusCodes.Status500InternalServerError, "DATABASE_SCHEMA_MISMATCH", "A estrutura de dados da aplicação precisa ser atualizada."),
+        PostgresException postgres when postgres.SqlState.StartsWith("08", StringComparison.Ordinal) =>
+            (StatusCodes.Status503ServiceUnavailable, "DATABASE_UNAVAILABLE", "Banco de dados temporariamente indisponível."),
+        NpgsqlException => (StatusCodes.Status503ServiceUnavailable, "DATABASE_UNAVAILABLE", "Banco de dados temporariamente indisponível."),
         TimeoutException => (StatusCodes.Status504GatewayTimeout, "TIMEOUT", "Tempo limite excedido."),
         HttpRequestException => (StatusCodes.Status502BadGateway, "EXTERNAL_SERVICE_ERROR", "Falha em integração externa."),
         _ => (StatusCodes.Status500InternalServerError, "INTERNAL_ERROR", "Erro interno. Tente novamente ou acione o suporte.")

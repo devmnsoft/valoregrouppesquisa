@@ -12,5 +12,6 @@
   --radius-sm: .375rem; --radius-md: .5rem; --radius-lg: .75rem;
   --shadow-soft: 0 12px 32px rgb(8 45 61 / 8%); --shadow-dialog: 0 24px 64px rgb(8 45 61 / 24%);
   --transition-fast: 180ms ease; --transition-standard: 240ms ease;
-  --z-dropdown: 1000; --z-sticky: 1020; --z-overlay: 1080; --topbar-height: 64px;
+  --z-dropdown: 1000; --z-sticky: 1020; --z-overlay: 1080; --topbar-height: 72px;
+  --content-max-width: 1440px; --content-gutter: clamp(1rem, 3vw, 2.5rem);
 }

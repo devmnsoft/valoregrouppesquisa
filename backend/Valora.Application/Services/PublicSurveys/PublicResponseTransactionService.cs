@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text;
+using Dapper;
 using Microsoft.Extensions.Logging;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
@@ -18,6 +21,7 @@ public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IR
             var token = tokens.CreateToken(); var tokenHash = tokens.HashToken(token);
             var responseId = await responses.CreateResponseAsync(survey.OrganizationId, survey.Id, survey.FormId, Val(request.Participant, "name"), Val(request.Participant, "email"), Val(request.Participant, "phone"), tokenHash, connection, transaction);
             logger.LogInformation("Public response created. SurveyId={SurveyId} OrganizationId={OrganizationId} ResponseId={ResponseId}", survey.Id, survey.OrganizationId, responseId);
+            await SaveLgpdConsentAsync(survey, request, responseId, Val(request.Participant, "email"), connection, transaction);
             await responses.AddAnswersAsync(responseId, scored, connection, transaction);
             logger.LogInformation("Public response answers saved. SurveyId={SurveyId} ResponseId={ResponseId} AnswerCount={AnswerCount}", survey.Id, responseId, scored.Count);
             await results.SaveResultAsync(survey.OrganizationId, responseId, calc.TotalScore, calc.MaxScore, Percent(calc), calc.Level, "Radar calculado com respostas reais por dimensão.", calc.StrategicTruth, calc.Risk, calc.NextLevel, transaction);
@@ -48,4 +52,20 @@ public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IR
     static ResultScoreDto MapResult(ValoraInsightResult calc, IReadOnlyList<DimensionScoreInput> dims) => new(calc.TotalScore, calc.MaxScore, Percent(calc), calc.Level, dims.OrderByDescending(x => x.Score).FirstOrDefault()?.DimensionName, dims.OrderBy(x => x.Score).FirstOrDefault()?.DimensionName, "Radar calculado com respostas reais por dimensão.", calc.StrategicTruth, calc.Risk, calc.NextLevel);
     static decimal Percent(ValoraInsightResult c) => c.MaxScore == 0 ? 0 : Math.Round(c.TotalScore / c.MaxScore * 100, 2);
     static string? Val(Dictionary<string, object>? d, string k) => d != null && d.TryGetValue(k, out var v) ? v?.ToString() : null;
+
+    static Task SaveLgpdConsentAsync(SurveyPublicReadModel survey, SubmitSurveyResponseRequest request, Guid responseId, string? email, System.Data.IDbConnection connection, System.Data.IDbTransaction transaction)
+    {
+        var suppliedVersion = Val(request.Participant, "consentVersion");
+        var version = string.IsNullOrWhiteSpace(suppliedVersion) || suppliedVersion.Length > 32 ? "8.0" : suppliedVersion.Trim();
+        var emailHash = string.IsNullOrWhiteSpace(email)
+            ? null
+            : Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(email.Trim().ToLowerInvariant()))).ToLowerInvariant();
+        const string consentText = "Autorizo o tratamento das respostas para gerar o diagnóstico, conforme a Política de Privacidade Valora.";
+        return connection.ExecuteAsync("""
+            INSERT INTO valorapesquisa.lgpd_consents
+                (organization_id, survey_id, response_id, participant_email_hash, consent_text, consent_version, accepted, accepted_at)
+            VALUES
+                (@organizationId, @surveyId, @responseId, @emailHash, @consentText, @version, true, now())
+            """, new { organizationId = survey.OrganizationId, surveyId = survey.Id, responseId, emailHash, consentText, version }, transaction);
+    }
 }

@@ -1,12 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Contracts;
-using Valora.Application.DTOs;
-using Valora.Application.Services;
 
 namespace Valora.Api.Controllers;
 
 [ApiController]
-public sealed class SurveysController(ISurveyRepository surveys, AuditService audit) : ControllerBase
+public sealed class SurveysController(ISurveyRepository surveys) : ControllerBase
 {
     [HttpGet("/surveys/public/{token}")]
     public async Task<IActionResult> Public(string token)
@@ -16,10 +14,17 @@ public sealed class SurveysController(ISurveyRepository surveys, AuditService au
     }
 
     [HttpPost("/surveys/{surveyId:guid}/responses")]
-    public async Task<IActionResult> Submit(Guid surveyId, SubmitResponseRequest request)
+    public IActionResult Submit(Guid surveyId)
     {
-        var id = await surveys.SaveResponseAsync(surveyId, request);
-        await audit.LogAsync(new(null, null, "survey.submit_response", "response", id.ToString(), "Resposta recebida pela API."));
-        return Created($"/responses/{id}/result", new { id });
+        // Kept as an explicit tombstone so old clients cannot bypass public-token,
+        // plan-limit, answer validation and LGPD-consent enforcement.
+        return StatusCode(StatusCodes.Status410Gone, new
+        {
+            ok = false,
+            code = "LEGACY_SURVEY_SUBMISSION_DISABLED",
+            message = "Use POST /public/surveys/{surveyId}/responses com token público e consentimento LGPD.",
+            surveyId,
+            correlationId = HttpContext.TraceIdentifier
+        });
     }
 }

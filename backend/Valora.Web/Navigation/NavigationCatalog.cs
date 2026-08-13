@@ -25,7 +25,7 @@ public sealed class NavigationCatalog
             Item("intelligence.organizational", "Inteligência Organizacional", "Dashboard, Heatmap, Evolution, Journey e Action Valora™", "Intelligence", "brain", "organizational_intelligence.read", "organizational_intelligence", "organizational_intelligence", "organization", 15, Results),
             ItemAction("intelligence.comparisons", "Comparativos", "Evolução entre ciclos e áreas", "OperationalIntelligence", "Comparisons", "activity", "results", 20, Results),
             ItemAction("intelligence.recommendations", "Recomendações", "Prioridades orientadas por evidências", "OperationalIntelligence", "Recommendations", "sparkles", "results", 30, Results),
-            ItemAction("intelligence.actions", "Plano de Ação", "Kanban de melhoria contínua", "OperationalIntelligence", "ActionPlans", "layers", "results", 40, Results),
+            Item("intelligence.actions", "Plano de Ação", "Kanban de melhoria contínua", "ActionPlans", "layers", "organizational_intelligence.read", "organizational_intelligence", "organizational_intelligence", "organization", 40, Results),
             Item("intelligence.reports", "Relatórios", "Central de geração e downloads", "Reports", "file-text", null, null, "reports", "organization", 50, Results),
             Item("intelligence.certificates", "Certificados", "Emissão e reimpressão", "Certificates", "award", null, "certificates", "certificates", "organization", 60, Results)),
         Section("structure", "Gestão", 40,

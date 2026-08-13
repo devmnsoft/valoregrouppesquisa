@@ -11,12 +11,14 @@
   let timer;
 
   const commands = [
-    ['Criar diagnóstico', 'Novo ciclo de escuta', '/Forms'], ['Dashboard', 'Visão executiva', '/Dashboard'],
+    ['Criar diagnóstico', 'Novo ciclo de escuta', '/Surveys'], ['Criar formulário', 'Abrir o estúdio de diagnósticos', '/Forms'], ['Dashboard', 'Visão executiva', '/Dashboard'],
     ['Diagnósticos', 'Pesquisas e campanhas', '/Surveys'], ['Formulários', 'Estúdio de diagnósticos', '/Forms'],
     ['Resultados', 'Respostas e devolutivas', '/Responses'], ['Certificados', 'Emissão e validação', '/Certificates/Validate'],
     ['Usuários', 'Pessoas, papéis e acessos', '/Users'], ['Organização', 'Estrutura e identidade', '/Organization'],
     ['Planos', 'Plano atual e limites', '/Plans'], ['Auditoria', 'Eventos e rastreabilidade', '/Audit'],
-    ['Inteligência', 'Evidências e recomendações', '/Intelligence'], ['Configurações', 'Preferências e segurança', '/Settings']
+    ['Inteligência', 'Evidências e recomendações', '/Intelligence'], ['Plano de ação', 'Compromissos e evolução', '/ActionPlans'],
+    ['Relatórios executivos', 'Preview e exportações seguras', '/Reports'], ['Configurações', 'Preferências e segurança', '/Settings'],
+    ['Sair', 'Encerrar a sessão com segurança', '/Account/Logout']
   ];
   const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const setText = (selector, value) => document.querySelectorAll(selector).forEach(node => { node.textContent = value || 'Não informado'; });

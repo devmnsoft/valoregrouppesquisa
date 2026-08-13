@@ -1,6 +1,12 @@
-@{ ViewData["Title"] = "Reports"; }
-<div class="container-fluid py-3" data-module="Reports">
-  <div class="d-flex justify-content-between align-items-center mb-3"><h1 class="h3">Reports</h1><span class="badge text-bg-info">Backend oficial</span></div>
-  <div class="card shadow-sm"><div class="card-body"><p class="text-muted">Tela MVC/Razor oficial com Bootstrap 5 e AJAX seguro. Dados sensíveis como senha, hash, token e segredo SMTP não são exibidos.</p><div class="alert alert-secondary empty-state">Use as ações disponíveis para carregar dados reais da API oficial.</div><button class="btn btn-primary" data-load-operational>Carregar</button><div class="mt-3 d-none text-break small bg-light border rounded p-3" data-result></div></div></div>
-</div>
-@section Scripts { <script src="/js/api/operational-api.js"></script> }
+@{ ViewData["Title"] = "Relatórios executivos"; }
+<main class="valora-page reports-page" data-reports-page>
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Valora Executive Report™", "Transforme respostas reais em uma leitura executiva rastreável, sem conclusões artificiais.", "Relatórios executivos", "Inteligência", new[] { new PageHeaderAction("Gerar consolidado", DataAction: "generate-organization", Style: "primary", Icon: "file-text") }))" />
+  <div class="valora-alert valora-alert--danger" data-error role="alert" aria-live="assertive" hidden></div>
+  <section class="report-toolbar valora-card" aria-label="Gerar relatório">
+    <div><p class="eyebrow">Nova análise</p><h2>Relatório por diagnóstico</h2><p>Selecione um diagnóstico. A plataforma declara explicitamente quando a amostra não sustenta uma conclusão.</p></div>
+    <form data-generate-form><label for="reportSurvey">Diagnóstico</label><select id="reportSurvey" name="surveyId" class="form-select" required><option value="">Carregando diagnósticos…</option></select><label for="reportFormat">Formato</label><select id="reportFormat" name="format" class="form-select"><option value="html">Preview executivo</option><option value="csv">CSV tabular</option></select><button class="valora-button valora-button--primary" type="submit">Gerar relatório</button></form>
+  </section>
+  <section aria-labelledby="availableReports"><div class="reports-heading"><div><p class="eyebrow">Biblioteca segura</p><h2 id="availableReports">Relatórios disponíveis</h2></div><button class="valora-button" type="button" data-refresh>Atualizar</button></div><div class="report-list" data-report-list aria-live="polite"><div class="report-skeleton">Carregando relatórios…</div></div></section>
+  <dialog class="report-preview" data-preview-dialog aria-labelledby="reportPreviewTitle"><div class="report-preview__frame"><header><div><p class="eyebrow">Preview antes do download</p><h2 id="reportPreviewTitle" data-preview-title>Relatório executivo</h2></div><button class="icon-button" type="button" data-close-preview aria-label="Fechar preview">×</button></header><div data-preview-body></div><footer><button class="valora-button" type="button" data-close-preview>Voltar</button><button class="valora-button valora-button--primary" type="button" data-download>Baixar arquivo</button></footer></div></dialog>
+</main>
+@section Scripts { <script src="/js/api/reports-api.js" asp-append-version="true"></script><script src="/js/pages/reports-page.js" asp-append-version="true"></script> }

@@ -32,7 +32,7 @@
     }
   }
 
-  host.querySelectorAll('[data-new-form]').forEach(button => button.addEventListener('click', () => dialog.showModal()));
+  host.querySelectorAll('[data-new-form], [data-action="new-form"]').forEach(button => button.addEventListener('click', () => dialog.showModal()));
   document.querySelectorAll('[data-dialog-close]').forEach(button => button.addEventListener('click', () => dialog.close()));
   host.querySelector('[data-refresh]').addEventListener('click', load);
   dialog.querySelector('form').addEventListener('submit', async event => {

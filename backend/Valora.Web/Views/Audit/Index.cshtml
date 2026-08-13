@@ -1,9 +1,6 @@
 @{ ViewData["Title"] = "Auditoria"; }
-<section class="page-card official-module" data-page="audit-page">
-  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-    <div><p class="eyebrow">Valora.Web oficial</p><h1>Auditoria</h1><p class="text-muted">Eventos de negócio sem dados sensíveis.</p></div>
-    <button class="btn btn-primary" data-refresh>Atualizar</button>
-  </div>
+<section class="valora-page page-card official-module" data-page="audit-page">
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Auditoria", "Eventos de negócio, contexto e rastreabilidade sem exposição de dados sensíveis.", "Governança · Evidências", Actions: new[] { new PageHeaderAction("Atualizar", DataAction: "refresh", Style: "primary", Icon: "refresh") }))" />
   <div class="row g-3 mt-2" data-summary-cards><div class="col-md-4"><div class="metric-card"><span>Eventos</span><strong data-card="eventos">Carregando…</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Filtros</span><strong data-card="filtros">Carregando…</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Recursos</span><strong data-card="recursos">Carregando…</strong></div></div></div>
   <div class="alert alert-warning d-none mt-3" data-gap-controlled="true" data-gap-card>Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.</div>
   <div class="alert alert-danger d-none mt-3" role="alert" data-error></div>

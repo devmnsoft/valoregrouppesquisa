@@ -1,4 +1,10 @@
 .valora-empty { background: var(--surface-secondary); border: 1px dashed var(--border-subtle); border-radius: 8px; color: var(--text-secondary); padding: 28px; text-align: center; }
+.valora-empty-state, .empty-state, .valora-error-state { display: grid; place-items: center; gap: .65rem; min-height: 12rem; padding: 2rem; border: 1px dashed var(--border-subtle); border-radius: var(--radius-lg); background: var(--surface-secondary); color: var(--text-secondary); text-align: center; }
+.valora-error-state { border-color: #efc8c5; background: #fff8f7; color: var(--semantic-danger); }
+.valora-skeleton, .skeleton-line { display: block; min-height: .9rem; border-radius: var(--radius-sm); background: linear-gradient(90deg, var(--surface-tertiary) 25%, #f7fafb 50%, var(--surface-tertiary) 75%); background-size: 200% 100%; animation: valora-skeleton 1.4s ease-in-out infinite; }
+@keyframes valora-skeleton { to { background-position-x: -200%; } }
+.valora-drawer { position: fixed; z-index: var(--z-overlay); inset: 0 0 0 auto; width: min(32rem, 100vw); overflow: auto; padding: 1.5rem; border-left: 1px solid var(--border-subtle); background: #fff; box-shadow: var(--shadow-dialog); }
+.valora-modal { width: min(38rem, calc(100vw - 2rem)); max-height: calc(100dvh - 2rem); padding: 0; overflow: auto; border: 0; border-radius: var(--radius-lg); box-shadow: var(--shadow-dialog); }
 .valora-alert { border-left: 4px solid var(--semantic-info); padding: 14px 16px; } .valora-alert--danger { border-color: var(--semantic-danger); }
 .valora-dialog-open { overflow: hidden; }
 .valora-dialog-layer { position: fixed; inset: 0; z-index: 1080; display: grid; place-items: center; padding: var(--space-4, 1rem); }

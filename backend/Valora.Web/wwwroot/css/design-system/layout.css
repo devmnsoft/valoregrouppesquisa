@@ -42,3 +42,10 @@ html, body { max-width: 100%; overflow-x: clip; }
   .valora-breadcrumbs, .search-trigger span, .search-trigger kbd, .user-summary, .quick-action { display: none; }
   .topbar-actions { gap: .25rem; }
 }
+.navigation-collapsed .app-shell { grid-template-columns: var(--sidebar-collapsed-width) minmax(0, 1fr); }
+.navigation-collapsed .app-sidebar.valora-sidebar { width: var(--sidebar-collapsed-width); }
+.navigation-collapsed .sidebar-context, .navigation-collapsed .sidebar-group > p, .navigation-collapsed .nav-link span, .navigation-collapsed .sidebar-footer a span, .navigation-collapsed .brand-text { display: none; }
+.navigation-collapsed .valora-sidebar-nav .nav-link { justify-content: center; }
+.navigation-collapsed .sidebar-footer .icon-button { display: inline-flex; transform: rotate(180deg); }
+.app-footer { padding: 1.25rem var(--content-gutter) 2rem; color: var(--text-muted); text-align: center; }
+.offcanvas { background: var(--valora-900); color: #fff; }.offcanvas .btn-close { filter: invert(1); }.offcanvas .nav-link { color: var(--valora-100); }

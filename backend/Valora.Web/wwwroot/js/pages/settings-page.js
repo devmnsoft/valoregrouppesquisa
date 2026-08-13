@@ -8,5 +8,5 @@
   function renderSettingsForm(items){ renderModuleCards(normalizeItems(items)); }
   async function saveSettings(payload){ if(window.Toast) Toast.success('Solicitação enviada para processamento.'); return payload || { ok: true }; }
   window.loadSettings = loadSettings;
-  $(function(){ moduleHost().find('[data-refresh]').on('click', loadSettings); loadSettings(); });
+  $(function(){ moduleHost().find('[data-refresh], [data-action="refresh"]').on('click', loadSettings); loadSettings(); });
 }());

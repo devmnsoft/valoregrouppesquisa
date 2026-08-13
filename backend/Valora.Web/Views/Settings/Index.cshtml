@@ -1,9 +1,6 @@
 @{ ViewData["Title"] = "Configurações"; }
-<section class="page-card official-module" data-page="settings-page">
-  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-    <div><p class="eyebrow">Valora.Web oficial</p><h1>Configurações</h1><p class="text-muted">Preferências do usuário e segurança.</p></div>
-    <button class="btn btn-primary" data-refresh>Atualizar</button>
-  </div>
+<section class="valora-page page-card official-module" data-page="settings-page">
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Configurações", "Preferências da experiência, idioma e controles de segurança.", "Conta · Preferências", Actions: new[] { new PageHeaderAction("Atualizar", DataAction: "refresh", Style: "primary", Icon: "refresh") }))" />
   <div class="row g-3 mt-2" data-summary-cards><div class="col-md-4"><div class="metric-card"><span>Usuário</span><strong data-card="usuário">Carregando…</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Preferências</span><strong data-card="preferências">Carregando…</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Segurança</span><strong data-card="segurança">Carregando…</strong></div></div></div>
   <div class="alert alert-warning d-none mt-3" data-gap-controlled="true" data-gap-card>Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.</div>
   <div class="alert alert-danger d-none mt-3" role="alert" data-error></div>

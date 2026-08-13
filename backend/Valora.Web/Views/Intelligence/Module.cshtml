@@ -1,6 +1,6 @@
 @model Valora.Web.Models.ViewModels.IntelligenceModuleViewModel
 @{ ViewData["Title"] = Model.ProductName; }
-<main class="v9-page intelligence-module" data-intelligence-module data-resource="@Model.ApiResource">
+<main class="v9-page intelligence-module" data-intelligence-module data-module="@Model.Slug" data-resource="@Model.ApiResource">
   <nav class="v9-breadcrumb" aria-label="Navegação estrutural"><a href="/Intelligence">Inteligência Organizacional</a><span aria-hidden="true">/</span><span>@Model.ProductName</span></nav>
   <header class="v9-hero v9-hero--executive intelligence-module__hero">
     <div><p class="eyebrow">@Model.Eyebrow</p><h1>@Model.ProductName</h1><p>@Model.Title</p><small>@Model.Description</small></div>
@@ -16,6 +16,6 @@
     <div data-module-content hidden></div>
     <div class="valora-empty" data-module-empty hidden><h3>Sem evidência suficiente</h3><p>@Model.EmptyMessage</p><small>As informações disponíveis ainda não permitem concluir essa análise com segurança. Recomenda-se ampliar a coleta de evidências antes de definir uma causa ou prioridade.</small></div>
   </section>
-  @if (Model.Slug == "power-bi") { <aside class="valora-alert"><strong>Integração preparada.</strong> A conexão externa com Power BI™ permanece desativada até a configuração segura de credenciais e consentimento da organização.</aside> }
+  @if (Model.Slug == "power-bi") { <aside class="valora-alert"><strong>Integração Power BI™ preparada para configuração.</strong> Nenhum dado será enviado sem autorização.</aside> }
 </main>
 @section Scripts { <script src="/js/pages/intelligence-module.js"></script> }

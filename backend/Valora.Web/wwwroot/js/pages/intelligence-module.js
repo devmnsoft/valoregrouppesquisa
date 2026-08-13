@@ -7,7 +7,8 @@
     const list = Array.isArray(data) ? data : data.latestRun?.insights || data.evidence?.dimensions || data.journey || data.indicators || [];
     return `<div class="intelligence-module__results"><strong>${Array.isArray(list) ? list.length : 1}</strong><span>registros agregados disponíveis</span><p>Os detalhes são apresentados na Central de Inteligência para preservar contexto, confiança e rastreabilidade.</p></div>`;
   };
-  fetch(`/bff/intelligence/${encodeURIComponent(root.dataset.resource)}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+  const prefix = ['methodology', 'dictionary', 'cognitive-map'].includes(root.dataset.module) ? 'methodology' : 'intelligence';
+  fetch(`/bff/${prefix}/${root.dataset.resource.split('/').map(encodeURIComponent).join('/')}`, { credentials: 'same-origin', headers: { Accept: 'application/json' } })
     .then(async response => { if (!response.ok) { const body = await response.json().catch(() => ({})); throw { status: response.status, message: body.message }; } return response.json(); })
     .then(data => { meaningful(data) ? (content.innerHTML = summary(data), content.hidden = false) : empty.hidden = false; })
     .catch(reason => { error.textContent = reason.status === 403 ? 'Este módulo não está incluído no plano ou perfil atual.' : (reason.message || 'Não foi possível consultar os dados neste momento.'); error.hidden = false; })

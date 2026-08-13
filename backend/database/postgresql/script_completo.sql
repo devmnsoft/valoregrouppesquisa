@@ -1480,3 +1480,110 @@ BEGIN
   IF to_regclass('valorapesquisa.result_scores') IS NULL OR to_regclass('valorapesquisa.certificates') IS NULL OR to_regclass('valorapesquisa.organizational_intelligence_runs') IS NULL THEN RAISE EXCEPTION 'Validação falhou: tabelas de resultado, certificado ou inteligência ausentes'; END IF;
   RAISE NOTICE 'Validação Valora concluída: formulário oficial, 5 dimensões, 25 perguntas quantitativas, 1 qualitativa e capabilities OK';
 END $validation$;
+
+-- Núcleo Metodológico Valora™: catálogo global, versionado e somente administrável
+-- pela plataforma. Leituras organizacionais permanecem segregadas nas tabelas abaixo.
+BEGIN;
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_concepts(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code varchar(80) NOT NULL UNIQUE, name varchar(180) NOT NULL,
+ pillar varchar(100) NOT NULL, definition text NOT NULL, evolution_guidance text NOT NULL,
+ related_indices text[] NOT NULL DEFAULT '{}', deprecated_terms text[] NOT NULL DEFAULT '{}', version integer NOT NULL DEFAULT 1,
+ is_active boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_methodology_concepts_pillar ON valorapesquisa.methodology_concepts(pillar) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_relations(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), source_concept_id uuid NOT NULL REFERENCES valorapesquisa.methodology_concepts(id),
+ target_concept_id uuid NOT NULL REFERENCES valorapesquisa.methodology_concepts(id), relation_type varchar(60) NOT NULL,
+ influence_weight numeric(5,4) NOT NULL DEFAULT 1, rationale text NOT NULL, version integer NOT NULL DEFAULT 1,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ UNIQUE(source_concept_id,target_concept_id,relation_type,version));
+CREATE INDEX IF NOT EXISTS ix_methodology_relations_source ON valorapesquisa.methodology_relations(source_concept_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_methodology_relations_target ON valorapesquisa.methodology_relations(target_concept_id) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_evidence_patterns(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), concept_id uuid NOT NULL REFERENCES valorapesquisa.methodology_concepts(id),
+ pattern_type varchar(40) NOT NULL CHECK(pattern_type IN('expected','low_maturity','risk','opportunity')),
+ description text NOT NULL, minimum_occurrences integer NOT NULL DEFAULT 3 CHECK(minimum_occurrences>=1), weight numeric(5,4) NOT NULL DEFAULT 1,
+ version integer NOT NULL DEFAULT 1, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_maturity_levels(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code varchar(30) NOT NULL UNIQUE, name varchar(100) NOT NULL,
+ minimum_score numeric(5,2) NOT NULL, maximum_score numeric(5,2) NOT NULL, description text NOT NULL,
+ version integer NOT NULL DEFAULT 1, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_inference_rules(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code varchar(80) NOT NULL UNIQUE, name varchar(180) NOT NULL,
+ minimum_evidence integer NOT NULL DEFAULT 3 CHECK(minimum_evidence>=3), condition_definition jsonb NOT NULL DEFAULT '{}',
+ outcome_definition jsonb NOT NULL DEFAULT '{}', methodology_version integer NOT NULL DEFAULT 1, is_active boolean NOT NULL DEFAULT true,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+
+INSERT INTO valorapesquisa.methodology_maturity_levels(code,name,minimum_score,maximum_score,description) VALUES
+ ('initial','Nível 1 — Inicial',0,25,'Práticas incipientes e dependentes de iniciativas isoladas.'),
+ ('structuring','Nível 2 — Estruturante',26,50,'Práticas em estruturação, ainda com integração limitada.'),
+ ('integrated','Nível 3 — Integrado',51,75,'Capacidades conectadas e evidências recorrentes.'),
+ ('mature','Nível 4 — Maduro',76,100,'Arquitetura integrada, adaptativa e sustentável.') ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,minimum_score=EXCLUDED.minimum_score,maximum_score=EXCLUDED.maximum_score,description=EXCLUDED.description,updated_at=now();
+
+INSERT INTO valorapesquisa.methodology_concepts(code,name,pillar,definition,evolution_guidance,related_indices,deprecated_terms) VALUES
+ ('company','Empresa','Fundamentos','Entidade econômica e jurídica na qual uma organização opera.','Alinhar identidade empresarial e funcionamento organizacional.','{}','{}'),
+ ('organization','Organização','Fundamentos','Sistema humano e técnico orientado por propósito, relações, decisões e resultados.','Compreender relações e padrões antes de intervir.','{IMO}','{}'),
+ ('system','Sistema','Fundamentos','Menor unidade de análise Valora: conjunto interdependente de capacidades, fluxos e decisões.','Evoluir interfaces, critérios e ciclos de aprendizagem.','{IIS}','{}'),
+ ('organizational-architecture','Arquitetura Organizacional','Arquitetura','Configuração integrada de cultura, governança, liderança, pessoas e sistemas.','Tratar causas sistêmicas e efeitos cascata.','{IMO,IIS}','{"estrutura organizacional"}'),
+ ('organizational-maturity','Maturidade Organizacional','Arquitetura','Capacidade recorrente de operar, aprender, integrar e evoluir de modo sustentável.','Fortalecer consistência e integração entre capacidades.','{IMO}','{}'),
+ ('systemic-clarity','Clareza Sistêmica™','Arquitetura','Compreensão compartilhada de propósito, papéis, responsabilidades, critérios e interfaces.','Tornar explícitos papéis, decisões e indicadores.','{ICS}','{"clareza operacional"}'),
+ ('organizational-intelligence','Inteligência Organizacional','Inteligência','Capacidade de converter evidências e aprendizagem em decisões melhores.','Instituir ciclos confiáveis de evidência, decisão e aprendizagem.','{IIO}','{}'),
+ ('organizational-governance','Governança Organizacional','Governança','Capacidade organizacional que orienta decisões, responsabilidades, riscos e resultados.','Definir critérios, alçadas, accountability e indicadores.','{IGO}','{}'),
+ ('organizational-culture','Cultura Organizacional','Cultura','Padrões compartilhados que orientam comportamentos, relações e decisões.','Alinhar práticas recorrentes aos princípios declarados.','{ICO}','{}'),
+ ('leadership','Liderança','Liderança','Capacidade de produzir clareza, contexto, desenvolvimento e responsabilidade.','Fortalecer decisões, aprendizagem e segurança para contribuir.','{ILI}','{}'),
+ ('people','Pessoas','Pessoas','Participantes do sistema organizacional, nunca indicadores isolados ou objetos de controle.','Criar condições de contribuição, desenvolvimento e pertencimento.','{IPO}','{}'),
+ ('organizational-development','Desenvolvimento Organizacional','Evolução','Capacidade planejada de transformar a arquitetura e sustentar aprendizagem.','Conectar diagnóstico, ação, aprendizagem e novo ciclo.','{IDO}','{}'),
+ ('organizational-sustainability','Sustentabilidade Organizacional','Evolução','Capacidade de preservar resultados, relações e adaptação no tempo.','Equilibrar resultados presentes e capacidade futura.','{ISO}','{}'),
+ ('organizational-role','Papel Organizacional','Clareza','Contribuição esperada de uma função no sistema.','Explicitar propósito, interfaces e decisões do papel.','{ICS}','{}'),
+ ('organizational-responsibility','Responsabilidade Organizacional','Clareza','Compromisso explícito associado a um resultado ou decisão.','Vincular responsabilidade a autonomia e critérios.','{ICS,IAC}','{}'),
+ ('accountability','Accountability','Governança','Prática de assumir, prestar contas e aprender sobre compromissos e resultados.','Criar acordos verificáveis e ciclos de prestação de contas.','{IAC}','{}'),
+ ('responsible-autonomy','Autonomia Responsável™','Governança','Liberdade para decidir dentro de contexto, critérios, limites e accountability.','Clarificar alçadas e ampliar autonomia com evidências.','{IAR}','{"autonomia"}'),
+ ('organizational-decision','Decisão Organizacional','Governança','Escolha rastreável orientada por contexto, critérios e evidências.','Registrar critérios, responsáveis e aprendizagem.','{IGO,IIO}','{}'),
+ ('organizational-indicators','Indicadores Organizacionais','Inteligência','Evidências quantitativas ou qualitativas para compreender o sistema, não controlar pessoas.','Interpretar indicadores em conjunto e no tempo.','{IIO}','{}'),
+ ('organizational-results','Resultados Organizacionais','Resultados','Efeitos sustentáveis produzidos pela arquitetura organizacional.','Relacionar resultados às capacidades e evidências que os sustentam.','{IMO,ISO}','{}')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,pillar=EXCLUDED.pillar,definition=EXCLUDED.definition,evolution_guidance=EXCLUDED.evolution_guidance,related_indices=EXCLUDED.related_indices,deprecated_terms=EXCLUDED.deprecated_terms,updated_at=now(),deleted_at=NULL;
+
+WITH edges(source,target,rationale) AS (VALUES
+ ('systemic-clarity','organizational-role','Clareza explicita a contribuição esperada de cada papel.'),
+ ('systemic-clarity','organizational-responsibility','Clareza torna responsabilidades verificáveis.'),
+ ('systemic-clarity','organizational-decision','Clareza melhora critérios e alçadas de decisão.'),
+ ('systemic-clarity','responsible-autonomy','Clareza oferece contexto e limites para autonomia.'),
+ ('systemic-clarity','accountability','Clareza permite compromissos e prestação de contas.'),
+ ('organizational-governance','organizational-decision','Governança define critérios e alçadas.'),
+ ('organizational-governance','responsible-autonomy','Governança define limites e mecanismos de responsabilidade.'),
+ ('leadership','systemic-clarity','Liderança produz contexto e alinhamento.'),
+ ('leadership','organizational-culture','Práticas de liderança reforçam padrões culturais.'),
+ ('organizational-culture','organizational-decision','Padrões culturais condicionam decisões recorrentes.'),
+ ('organizational-intelligence','organizational-decision','Evidência e aprendizagem qualificam decisões.'),
+ ('organizational-intelligence','organizational-governance','Inteligência fortalece governança adaptativa.'))
+INSERT INTO valorapesquisa.methodology_relations(source_concept_id,target_concept_id,relation_type,influence_weight,rationale)
+SELECT s.id,t.id,'influences',1,e.rationale FROM edges e JOIN valorapesquisa.methodology_concepts s ON s.code=e.source JOIN valorapesquisa.methodology_concepts t ON t.code=e.target
+ON CONFLICT(source_concept_id,target_concept_id,relation_type,version) DO UPDATE SET rationale=EXCLUDED.rationale,updated_at=now(),deleted_at=NULL;
+
+INSERT INTO valorapesquisa.methodology_inference_rules(code,name,minimum_evidence,condition_definition,outcome_definition) VALUES
+ ('convergent-evidence','Evidências convergentes mínimas',3,'{"distinctEvidence":true,"isolatedIndicator":false}','{"belowMinimum":"Dados insuficientes","confidence":{"3":"Moderada","4-6":"Alta","7+":"Muito Alta"}}')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,minimum_evidence=EXCLUDED.minimum_evidence,condition_definition=EXCLUDED.condition_definition,outcome_definition=EXCLUDED.outcome_definition,updated_at=now();
+COMMIT;
+
+-- Persistência multiempresa dos módulos profissionais. O payload versionado evita
+-- inventar resultados durante a implantação e mantém escopo, autoria e auditoria.
+DO $modules$
+DECLARE table_name text;
+BEGIN
+ FOREACH table_name IN ARRAY ARRAY[
+ 'inference_runs','inference_results','inference_evidence','inference_rule_matches',
+ 'metrics_catalog','metric_values','metric_targets','metric_history','metric_alerts',
+ 'valora_indices','index_values','index_components','index_history','index_interpretations',
+ 'radar_snapshots','radar_dimensions','radar_interpretations','heatmap_snapshots','heatmap_cells','heatmap_interpretations','heatmap_alerts',
+ 'insight_runs','insights','insight_evidence','insight_related_concepts','insight_actions',
+ 'evolution_cycles','evolution_index_history','evolution_trends','evolution_alerts','evolution_projections',
+ 'journey_events','journey_event_links','journey_narratives','journey_milestones',
+ 'benchmark_runs','benchmark_groups','benchmark_results','benchmark_interpretations','external_benchmark_reference_sets',
+ 'executive_reports','executive_report_sections','executive_report_exports','executive_report_access_links',
+ 'one_on_one_sessions','one_on_one_topics','one_on_one_commitments','one_on_one_history','one_on_one_suggestions',
+ 'integration_connectors','integration_exports','integration_audit_events','platform_governance_events',
+ 'configuration_change_history','permission_change_history','data_export_history','governance_cycles']
+ LOOP
+  EXECUTE format('CREATE TABLE IF NOT EXISTS valorapesquisa.%I (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), code varchar(100), status varchar(40) NOT NULL DEFAULT ''draft'', data jsonb NOT NULL DEFAULT ''{}''::jsonb, methodology_version integer NOT NULL DEFAULT 1, version integer NOT NULL DEFAULT 1, created_by uuid REFERENCES valorapesquisa.users(id), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz)',table_name);
+  EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON valorapesquisa.%I(organization_id,created_at DESC) WHERE deleted_at IS NULL','ix_'||table_name||'_organization',table_name);
+ END LOOP;
+END $modules$;

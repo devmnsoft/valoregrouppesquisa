@@ -8,7 +8,16 @@ public sealed class SurveyResultCalculator
 
     public SurveyResultOutput Calculate(IEnumerable<SurveyQuestionInput> questions, IEnumerable<SurveyAnswerInput> answers)
     {
-        var answerMap = answers.ToDictionary(a => a.QuestionId, a => a.Value);
+        ArgumentNullException.ThrowIfNull(questions);
+        ArgumentNullException.ThrowIfNull(answers);
+
+        // A client can retry/autosave the same question before submitting the final
+        // payload. Treat the last occurrence as authoritative instead of allowing
+        // ToDictionary to turn a recoverable request into a runtime exception.
+        var answerMap = answers
+            .Where(answer => !string.IsNullOrWhiteSpace(answer.QuestionId))
+            .GroupBy(answer => answer.QuestionId, StringComparer.Ordinal)
+            .ToDictionary(group => group.Key, group => group.Last().Value, StringComparer.Ordinal);
         var scores = questions.Select(q =>
         {
             var (raw, max) = _question.Calculate(q, answerMap.GetValueOrDefault(q.Id));

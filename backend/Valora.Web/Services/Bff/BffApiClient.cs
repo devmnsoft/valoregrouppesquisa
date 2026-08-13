@@ -74,13 +74,16 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
     {
         if (response.IsSuccessStatusCode) return;
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        var headerCorrelationId = response.Headers.TryGetValues("X-Correlation-Id", out var correlationValues)
+            ? correlationValues.FirstOrDefault()
+            : null;
         try
         {
             using var document = JsonDocument.Parse(content);
             var root = document.RootElement;
-            var code = root.TryGetProperty("code", out var codeValue) ? codeValue.GetString() : null;
-            var message = root.TryGetProperty("message", out var messageValue) ? messageValue.GetString() : null;
-            var correlationId = root.TryGetProperty("correlationId", out var correlationValue) ? correlationValue.GetString() : null;
+            var code = ReadString(root, "code") ?? ReadString(root, "error");
+            var message = ReadString(root, "detail") ?? ReadString(root, "message");
+            var correlationId = ReadString(root, "correlationId") ?? headerCorrelationId;
             throw new BffApiException(
                 response.StatusCode,
                 code ?? "API_ERROR",
@@ -89,7 +92,13 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
         }
         catch (JsonException)
         {
-            throw new BffApiException(response.StatusCode, "API_ERROR", "Não foi possível concluir a solicitação.", null);
+            throw new BffApiException(response.StatusCode, "API_ERROR", "Não foi possível concluir a solicitação.", headerCorrelationId);
         }
+    }
+
+    private static string? ReadString(JsonElement root, string propertyName)
+    {
+        if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(propertyName, out var value)) return null;
+        return value.ValueKind == JsonValueKind.String ? value.GetString() : null;
     }
 }

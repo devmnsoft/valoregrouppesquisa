@@ -7,7 +7,7 @@ using Valora.Application.OrganizationalIntelligence;
 namespace Valora.Api.Controllers;
 
 [Authorize, ApiController, Route("api/v1/intelligence")]
-public sealed class OrganizationalIntelligenceController(IOrganizationalIntelligenceService service, IPermissionService permissions, IEntitlementService entitlements) : ControllerBase
+public sealed class OrganizationalIntelligenceController(IOrganizationalIntelligenceService service, IOrganizationalIntelligencePipeline pipeline, IPermissionService permissions, IEntitlementService entitlements) : ControllerBase
 {
     [HttpGet("dashboard")]
     public async Task<IActionResult> Dashboard([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", (id) => service.DashboardAsync(id, ct));
@@ -21,6 +21,12 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     }
     [HttpPost("generate")]
     public async Task<IActionResult> Generate([FromBody] GenerateOrganizationalIntelligenceRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.generate", (id) => service.GenerateAsync(id, ct));
+    [HttpPost("pipeline/recalculate")]
+    public async Task<IActionResult> Recalculate([FromQuery] Guid? organizationId, CancellationToken ct)
+    {
+        var access = await Validate(organizationId, "organizational_intelligence.generate"); if (access.Error is not null) return access.Error;
+        return Ok(await pipeline.ProcessResponseAsync(new(access.OrganizationId, UserId: UserId, Trigger: "manual_recalculation"), ct));
+    }
     [HttpGet("journey")]
     public async Task<IActionResult> Journey([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", (id) => service.JourneyAsync(id, ct));
     [HttpPost("journey")]

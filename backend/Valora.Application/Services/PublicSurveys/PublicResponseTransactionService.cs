@@ -7,10 +7,11 @@ using Valora.Application.DTOs;
 using Valora.Application.ReadModels;
 using Valora.Application.Results;
 using Valora.Application.Security;
+using Valora.Application.OrganizationalIntelligence;
 
 namespace Valora.Application.Services;
 
-public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IResponseRepository responses, IResultRepository results, ICertificateRepository certificates, ICommunicationRepository communications, IAuditRepository audit, IResultTokenService tokens, ILogger<PublicResponseTransactionService> logger)
+public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IResponseRepository responses, IResultRepository results, ICertificateRepository certificates, ICommunicationRepository communications, IAuditRepository audit, IResultTokenService tokens, IOrganizationalIntelligencePipeline intelligencePipeline, ILogger<PublicResponseTransactionService> logger)
 {
     public async Task<SubmitSurveyResponseResult> SaveAsync(SurveyPublicReadModel survey, SubmitSurveyResponseRequest request, IReadOnlyList<ScoredAnswer> scored, ValoraInsightResult calc, IReadOnlyList<DimensionScoreInput> dimensions)
     {
@@ -37,6 +38,18 @@ public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IR
             logger.LogInformation("Public response audit_log created. SurveyId={SurveyId} ResponseId={ResponseId}", survey.Id, responseId);
             transaction.Commit();
             logger.LogInformation("Public response transaction committed. SurveyId={SurveyId} OrganizationId={OrganizationId} ResponseId={ResponseId}", survey.Id, survey.OrganizationId, responseId);
+            try
+            {
+                await intelligencePipeline.ProcessResponseAsync(new(survey.OrganizationId, survey.Id, responseId, survey.FormId), CancellationToken.None);
+                logger.LogInformation("Organizational intelligence pipeline completed. SurveyId={SurveyId} ResponseId={ResponseId}", survey.Id, responseId);
+            }
+            catch (Exception pipelineError)
+            {
+                // The response is already durably committed. Preserve it and expose the
+                // processing failure through operations instead of asking the respondent
+                // to submit the same evidence twice.
+                logger.LogError(pipelineError, "Organizational intelligence pipeline failed after response commit. SurveyId={SurveyId} ResponseId={ResponseId}", survey.Id, responseId);
+            }
             return new(true, responseId, token, emailStatus, new CertificateMetadataDto(responseId, code, "metadata-ready", name, "Valora Group", survey.Title, DateTime.UtcNow), MapResult(calc, dimensions));
         }
         catch (Exception ex)

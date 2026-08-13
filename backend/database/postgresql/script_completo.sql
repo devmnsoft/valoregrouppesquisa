@@ -1587,3 +1587,83 @@ BEGIN
   EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON valorapesquisa.%I(organization_id,created_at DESC) WHERE deleted_at IS NULL','ix_'||table_name||'_organization',table_name);
  END LOOP;
 END $modules$;
+
+-- 41. PIPELINE VIVO DE INTELIGÊNCIA ORGANIZACIONAL (aditivo, rastreável e multiempresa)
+BEGIN;
+ALTER TABLE valorapesquisa.responses ADD COLUMN IF NOT EXISTS form_id uuid REFERENCES valorapesquisa.forms(id);
+ALTER TABLE valorapesquisa.response_answers ADD COLUMN IF NOT EXISTS answer_json jsonb NOT NULL DEFAULT '{}';
+ALTER TABLE valorapesquisa.response_answers ADD COLUMN IF NOT EXISTS answer_text text;
+ALTER TABLE valorapesquisa.response_answers ADD COLUMN IF NOT EXISTS score numeric(10,4);
+ALTER TABLE valorapesquisa.response_answers ADD COLUMN IF NOT EXISTS max_score numeric(10,4);
+CREATE TABLE IF NOT EXISTS valorapesquisa.question_concept_mappings(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id),
+ form_id uuid NOT NULL REFERENCES valorapesquisa.forms(id), question_id uuid NOT NULL REFERENCES valorapesquisa.questions(id),
+ concept_code varchar(80) NOT NULL, capability_code varchar(80) NOT NULL, dimension_code varchar(80) NOT NULL,
+ weight numeric(8,4) NOT NULL DEFAULT 1 CHECK(weight>0), polarity smallint NOT NULL DEFAULT 1 CHECK(polarity IN(-1,1)),
+ evidence_type varchar(40) NOT NULL DEFAULT 'quantitative_response', calculation_rule jsonb NOT NULL DEFAULT '{"normalization":"score_percentage"}',
+ is_official boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_question_concept_mapping ON valorapesquisa.question_concept_mappings(question_id,concept_code,coalesce(organization_id,'00000000-0000-0000-0000-000000000000'::uuid)) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_question_concept_form ON valorapesquisa.question_concept_mappings(form_id,question_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.question_metric_mappings(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), form_id uuid NOT NULL REFERENCES valorapesquisa.forms(id),
+ question_id uuid NOT NULL REFERENCES valorapesquisa.questions(id), metric_code varchar(80) NOT NULL, weight numeric(8,4) NOT NULL DEFAULT 1 CHECK(weight>0),
+ is_official boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_question_metric_mapping ON valorapesquisa.question_metric_mappings(question_id,metric_code,coalesce(organization_id,'00000000-0000-0000-0000-000000000000'::uuid)) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.question_index_mappings(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), form_id uuid NOT NULL REFERENCES valorapesquisa.forms(id),
+ question_id uuid NOT NULL REFERENCES valorapesquisa.questions(id), index_code varchar(12) NOT NULL, weight numeric(8,4) NOT NULL DEFAULT 1 CHECK(weight>0),
+ is_official boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_question_index_mapping ON valorapesquisa.question_index_mappings(question_id,index_code,coalesce(organization_id,'00000000-0000-0000-0000-000000000000'::uuid)) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.evidence_items(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), survey_id uuid REFERENCES valorapesquisa.surveys(id),
+ response_id uuid REFERENCES valorapesquisa.responses(id), form_id uuid REFERENCES valorapesquisa.forms(id), question_id uuid REFERENCES valorapesquisa.questions(id),
+ concept_code varchar(80) NOT NULL, capability_code varchar(80) NOT NULL, dimension_code varchar(80) NOT NULL, evidence_type varchar(40) NOT NULL,
+ source_type varchar(40) NOT NULL, source_id uuid NOT NULL, normalized_value numeric(10,4), raw_value text, weight numeric(8,4) NOT NULL DEFAULT 1,
+ confidence_weight numeric(8,4) NOT NULL DEFAULT 1 CHECK(confidence_weight BETWEEN 0 AND 1), text_excerpt varchar(500), metadata_json jsonb NOT NULL DEFAULT '{}',
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_evidence_response_question_concept ON valorapesquisa.evidence_items(response_id,question_id,concept_code) WHERE deleted_at IS NULL AND response_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_evidence_org_concept ON valorapesquisa.evidence_items(organization_id,concept_code,created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_evidence_source ON valorapesquisa.evidence_items(source_type,source_id) WHERE deleted_at IS NULL;
+
+-- Evolui a tabela histórica de notificações sem destruir mensagens existentes.
+ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS type varchar(60) NOT NULL DEFAULT 'information';
+ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS message text;
+ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS related_module varchar(80);
+ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS related_entity_id uuid;
+UPDATE valorapesquisa.notifications SET message=body WHERE message IS NULL;
+ALTER TABLE valorapesquisa.notifications ALTER COLUMN message SET NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_notifications_user_unread ON valorapesquisa.notifications(organization_id,user_id,created_at DESC) WHERE read_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligent_alerts(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), evidence_id uuid NOT NULL REFERENCES valorapesquisa.evidence_items(id),
+ severity varchar(20) NOT NULL CHECK(severity IN('critical','high','moderate','informational')), indicator_code varchar(80), capability_code varchar(80),
+ systemic_relation text NOT NULL, possible_impact text NOT NULL, priority varchar(20) NOT NULL, cta_module varchar(80) NOT NULL, status varchar(30) NOT NULL DEFAULT 'open',
+ suggested_owner_id uuid REFERENCES valorapesquisa.users(id), source_module varchar(80) NOT NULL, created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_intelligent_alerts_open ON valorapesquisa.intelligent_alerts(organization_id,severity,created_at DESC) WHERE deleted_at IS NULL AND status='open';
+
+-- Templates oficiais recebem mapeamento explícito. Não há inferência por texto da resposta:
+-- o vínculo nasce da dimensão metodológica versionada do formulário.
+INSERT INTO valorapesquisa.question_concept_mappings(form_id,question_id,concept_code,capability_code,dimension_code,weight,polarity,evidence_type,is_official)
+SELECT q.form_id,q.id,
+ CASE WHEN lower(d.code) LIKE '%govern%' THEN 'organizational-governance' WHEN lower(d.code) LIKE '%lider%' OR lower(d.code)='leadership' THEN 'leadership'
+      WHEN lower(d.code) LIKE '%cultur%' THEN 'organizational-culture' WHEN lower(d.code) LIKE '%people%' OR lower(d.code) LIKE '%pessoa%' THEN 'people'
+      ELSE 'organizational-maturity' END,
+ d.code,d.code,coalesce(q.weight,1),1,CASE WHEN q.is_qualitative THEN 'qualitative_response' ELSE 'quantitative_response' END,true
+FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.forms f ON f.id=q.form_id
+WHERE f.code='valora-official' AND q.deleted_at IS NULL
+ON CONFLICT DO NOTHING;
+INSERT INTO valorapesquisa.question_metric_mappings(form_id,question_id,metric_code,weight,is_official)
+SELECT q.form_id,q.id,'metric-'||d.code,coalesce(q.weight,1),true FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.forms f ON f.id=q.form_id
+WHERE f.code='valora-official' AND q.deleted_at IS NULL ON CONFLICT DO NOTHING;
+INSERT INTO valorapesquisa.question_index_mappings(form_id,question_id,index_code,weight,is_official)
+SELECT q.form_id,q.id,CASE WHEN lower(d.code) LIKE '%govern%' THEN 'IGO' WHEN lower(d.code) LIKE '%lider%' OR lower(d.code)='leadership' THEN 'ILI'
+ WHEN lower(d.code) LIKE '%cultur%' THEN 'ICO' WHEN lower(d.code) LIKE '%people%' OR lower(d.code) LIKE '%pessoa%' THEN 'IPO' ELSE 'IMO' END,coalesce(q.weight,1),true
+FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.forms f ON f.id=q.form_id
+WHERE f.code='valora-official' AND q.deleted_at IS NULL ON CONFLICT DO NOTHING;
+
+INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_intelligence_pipeline','sha256:evidence-mapping-pipeline-v1')
+ON CONFLICT(version) DO UPDATE SET checksum=EXCLUDED.checksum;
+COMMIT;

@@ -59,4 +59,8 @@
 .valora-command-result:hover, .valora-command-result.is-active, .command-results a:hover, .command-results a.is-active { background: var(--surface-tertiary); }
 .command-palette footer { display: flex; gap: 1rem; padding: .65rem 1rem; border-top: 1px solid var(--border-subtle); color: var(--text-muted); font-size: .75rem; }
 :where(a, button, input, select, textarea, [tabindex]):focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+.survey-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: .4rem; }
+.survey-skeleton { display: grid; gap: .75rem; }
+.survey-skeleton span { display: block; min-height: 4.5rem; border-radius: var(--radius-md); background: linear-gradient(90deg,var(--surface-tertiary),var(--surface-secondary),var(--surface-tertiary)); background-size: 200% 100%; animation: survey-loading 1.4s ease infinite; }
+@keyframes survey-loading { to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto; transition-duration: .01ms; animation-duration: .01ms; animation-iteration-count: 1; } }

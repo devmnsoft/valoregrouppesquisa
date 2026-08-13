@@ -55,6 +55,16 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
     public Task<IActionResult> Forms(string? resource, CancellationToken cancellationToken) =>
         ForwardAsync($"/api/v1/forms/{resource}", cancellationToken);
 
+    [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
+    [Route("surveys/{**resource}")]
+    public Task<IActionResult> Surveys(string? resource, CancellationToken cancellationToken) =>
+        ForwardAsync($"/surveys/{resource}", cancellationToken);
+
+    [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
+    [Route("survey-links/{**resource}")]
+    public Task<IActionResult> SurveyLinks(string? resource, CancellationToken cancellationToken) =>
+        ForwardAsync($"/survey-links/{resource}", cancellationToken);
+
     [AcceptVerbs("GET", "POST", "PATCH")]
     [Route("experience/{**resource}")]
     public Task<IActionResult> Experience(string? resource, CancellationToken cancellationToken) =>

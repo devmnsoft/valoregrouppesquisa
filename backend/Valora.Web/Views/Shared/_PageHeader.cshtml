@@ -1,0 +1,43 @@
+@model PageHeaderViewModel
+<header class="valora-page-header">
+  <div class="valora-page-header__copy">
+    <nav class="valora-page-header__breadcrumb" aria-label="Breadcrumb">
+      <a href="/Dashboard">Início</a><span aria-hidden="true">/</span>
+      @if (Model.Breadcrumb is { Count: > 0 })
+      {
+        @foreach (var item in Model.Breadcrumb) { <span>@item</span><span aria-hidden="true">/</span> }
+      }
+      <span aria-current="page">@Model.Title</span>
+    </nav>
+    <p class="eyebrow">@Model.Eyebrow</p>
+    <div class="valora-page-header__title">
+      <h1>@Model.Title</h1>
+      @if (!string.IsNullOrWhiteSpace(Model.Badge)) { <span class="valora-status valora-status--info">@Model.Badge</span> }
+    </div>
+    <p class="valora-page-header__subtitle">@Model.Subtitle</p>
+  </div>
+  @if (Model.Actions is { Count: > 0 })
+  {
+    <div class="valora-page-header__actions">
+      @foreach (var action in Model.Actions)
+      {
+        if (!string.IsNullOrWhiteSpace(action.Href))
+        {
+          <a class="valora-button valora-button--@action.Style" href="@action.Href">
+            @if (action.Icon is not null) { <valora-icon name="@action.Icon" size="18" decorative="true" /> } @action.Label
+          </a>
+        }
+        else
+        {
+          <button class="valora-button valora-button--@action.Style" type="button" data-action="@action.DataAction">
+            @if (action.Icon is not null) { <valora-icon name="@action.Icon" size="18" decorative="true" /> } @action.Label
+          </button>
+        }
+      }
+    </div>
+  }
+  @if (Model.FiltersPartial is not null)
+  {
+    <div class="valora-page-header__filters"><partial name="@Model.FiltersPartial" /></div>
+  }
+</header>

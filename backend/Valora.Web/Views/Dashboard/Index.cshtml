@@ -1,5 +1,6 @@
 @{ ViewData["Title"] = "Visão Executiva"; }
-<section data-page="dashboard-page">
+<section class="valora-page" data-page="dashboard-page">
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Visão Executiva", "Evidências, riscos e próximas decisões da sua organização em uma leitura segura.", "Cockpit Valora Insight™", "Atualização contínua", new[] { new PageHeaderAction("Novo diagnóstico", "/Surveys", Style: "primary", Icon: "plus"), new PageHeaderAction("Abrir inteligência", "/Intelligence", Icon: "brain") }))" />
   <header class="executive-hero valora-card">
     <div>
       <p class="eyebrow">Cockpit Executivo Valora</p>

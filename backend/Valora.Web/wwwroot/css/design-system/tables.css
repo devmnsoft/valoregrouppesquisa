@@ -1,5 +1,7 @@
-.table-responsive { border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); }
+.valora-table-shell, .table-responsive { overflow: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); background: #fff; }
 .valora-table { color: var(--text-primary); margin: 0; } .valora-table th { background: var(--surface-secondary); color: var(--text-muted); font-size: .76rem; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+.table { margin: 0; color: var(--text-primary); }.table thead th { padding: .8rem 1rem; border-bottom: 1px solid var(--border-subtle); background: var(--surface-secondary); color: var(--text-muted); font-size: .75rem; letter-spacing: .045em; text-transform: uppercase; white-space: nowrap; }.table tbody td { padding: .9rem 1rem; border-color: var(--border-subtle); vertical-align: middle; }.table tbody tr:hover { background: var(--valora-025); }
+.valora-table-shell__footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .8rem 1rem; border-top: 1px solid var(--border-subtle); color: var(--text-muted); }
 .valora-table > :not(caption) > * > * { border-color: var(--border-subtle); padding: 12px; }
 .valora-table tbody tr { transition: background var(--transition-fast); }
 .valora-table tbody tr:hover { background: var(--valora-025); }

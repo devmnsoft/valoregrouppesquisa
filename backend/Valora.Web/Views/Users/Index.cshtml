@@ -1,6 +1,6 @@
 @{ ViewData["Title"] = "Central de Acessos"; }
-<section class="page-card access-center" data-page="users-page">
-<header class="module-heading"><div><p class="eyebrow">Administração · Segurança</p><h1>Central de Acessos</h1><p class="text-muted">Gerencie pessoas, papéis e acesso efetivo da organização.</p></div><button class="btn btn-primary" data-new-role>Novo papel</button></header>
+<section class="valora-page page-card access-center" data-page="users-page">
+<partial name="_PageHeader" model="@(new PageHeaderViewModel("Central de Acessos", "Gerencie pessoas, papéis, sessões e acesso efetivo da organização.", "Administração · Segurança", Actions: new[] { new PageHeaderAction("Novo papel", DataAction: "new-role", Style: "primary", Icon: "plus") }))" />
 <div class="alert alert-danger d-none" role="alert" data-error></div>
 <nav class="nav nav-tabs access-tabs" aria-label="Áreas da Central de Acessos">
 <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#users-list">Usuários</button><button class="nav-link" data-bs-toggle="tab" data-bs-target="#roles-list">Papéis</button><button class="nav-link" data-bs-toggle="tab" data-bs-target="#permissions-list">Permissões</button><button class="nav-link" data-bs-toggle="tab" data-bs-target="#invitations-list">Convites</button><button class="nav-link" data-bs-toggle="tab" data-bs-target="#sessions-list">Sessões</button><button class="nav-link" data-bs-toggle="tab" data-bs-target="#scopes-list">Escopos</button>

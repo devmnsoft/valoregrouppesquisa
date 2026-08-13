@@ -11,16 +11,20 @@
     const element = root.querySelector(selector);
     if (element) element.textContent = value;
   };
-  const number = value => new Intl.NumberFormat('pt-BR').format(Number(value) || 0);
+  const number = value => value === null || value === undefined ? '—' : new Intl.NumberFormat('pt-BR').format(Number(value));
+  const unavailable = selector => { const node = root.querySelector(selector); if (node) { node.textContent = '—'; node.title = 'Este indicador será exibido após o primeiro ciclo de respostas.'; } };
 
   function renderKpis({ surveys, responses, usage }) {
     const activeSurveys = surveys.filter(item => ['active', 'scheduled'].includes(String(item.status).toLowerCase())).length;
     const completed = responses.filter(item => ['completed', 'submitted'].includes(String(item.status).toLowerCase())).length;
     const completionRate = responses.length ? Math.round((completed / responses.length) * 100) : 0;
-    setText('[data-kpi="responses"]', number(responses.length));
+    setText('[data-kpi="responses"]', responses.length ? number(responses.length) : '—');
     setText('[data-kpi="activeSurveys"]', number(activeSurveys));
-    setText('[data-kpi="completionRate"]', `${completionRate}%`);
-    setText('[data-kpi="activeUsers"]', number(usage.activeUsers ?? usage.usersActive ?? 0));
+    setText('[data-kpi="completionRate"]', responses.length ? `${completionRate}%` : '—');
+    unavailable('[data-kpi="averageLevel"]');
+    setText('[data-kpi="certificates"]', usage.certificatesIssued == null ? '—' : number(usage.certificatesIssued));
+    setText('[data-kpi="lgpdAlerts"]', usage.lgpdAlerts == null ? '—' : number(usage.lgpdAlerts));
+    root.querySelector('[data-metric-empty]').hidden = responses.length > 0;
     renderJourney(surveys, responses, usage);
     renderAttention(surveys, responses, completionRate);
   }
@@ -36,7 +40,7 @@
       ['Publicar pesquisa', surveys.some(x => ['active','published'].includes(String(x.status).toLowerCase())), '/Forms', 'Revise e publique a versão.'],
       ['Acompanhar respostas', responses.length > 0, '/Responses', 'Monitore a adesão do ciclo.'],
       ['Gerar relatório', responses.length > 0, '/Reports', 'Compartilhe a leitura executiva.'],
-      ['Criar plano de ação', false, '/PlanoDeAcao', 'Transforme evidências em execução.']
+      ['Criar plano de ação', false, '/Intelligence#action', 'Transforme evidências em execução.']
     ];
     const progress = Math.round(steps.filter(x => x[1]).length / steps.length * 100);
     root.querySelector('[data-onboarding-progress]').textContent = `${progress}% concluído`; root.querySelector('[data-onboarding-bar]').style.width = `${progress}%`;
@@ -84,7 +88,8 @@
       renderActivity([...surveys, ...responses]);
       setText('[data-last-update]', `Atualizado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`);
     } catch (exception) {
-      error.textContent = 'Não foi possível atualizar a leitura executiva. Tente novamente em instantes.';
+      const correlationId = exception?.correlationId || exception?.details?.correlationId;
+      error.textContent = `Não foi possível atualizar a leitura executiva. Tente novamente em instantes.${correlationId ? ` Referência: ${correlationId}` : ''}`;
       error.hidden = false;
     } finally {
       window.Loading?.hide();

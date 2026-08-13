@@ -4,3 +4,11 @@
 .form-control:disabled, .form-select:disabled { background: var(--surface-tertiary); color: var(--text-muted); cursor: not-allowed; }
 .form-control[readonly] { background: var(--surface-secondary); }
 .invalid-feedback { color: var(--semantic-danger); }
+.form-control, .form-select, textarea, input, select { accent-color: var(--valora-800); }
+.form-text, .valora-field__helper { color: var(--text-muted); font-size: .8rem; }
+.valora-field { display: grid; gap: .4rem; }
+.valora-field[data-required] > label::after { margin-left: .2rem; color: var(--semantic-danger); content: "*"; }
+.form-check-input { width: 1.15rem; height: 1.15rem; border-color: var(--valora-500); }
+.form-switch .form-check-input { width: 2.35rem; }
+.form-control[type="file"] { padding: .55rem; }
+.btn:disabled, .valora-button:disabled, [aria-disabled="true"] { opacity: .55; cursor: not-allowed; }

@@ -70,11 +70,6 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
     public Task<IActionResult> Experience(string? resource, CancellationToken cancellationToken) =>
         ForwardAsync($"/api/v1/experience/{resource}", cancellationToken);
 
-    [AcceptVerbs("GET", "POST", "PATCH", "DELETE")]
-    [Route("intelligence/{**resource}")]
-    public Task<IActionResult> Intelligence(string? resource, CancellationToken cancellationToken) =>
-        ForwardAsync($"/api/v1/intelligence/{resource}", cancellationToken);
-
     [AcceptVerbs("GET", "POST")]
     [Route("methodology/{**resource}")]
     public Task<IActionResult> Methodology(string? resource, CancellationToken cancellationToken) =>

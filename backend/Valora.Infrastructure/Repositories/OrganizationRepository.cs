@@ -11,9 +11,40 @@ public sealed class OrganizationRepository(IDbConnectionFactory factory, ILogger
 {
     public async Task<OrganizationRecord?> GetAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        using var c=factory.Create();
-        const string sql="SELECT id AS Id,name AS Name,public_name AS PublicName,slug AS Slug,email AS Email,phone AS Phone,status AS Status,default_language_code AS DefaultLanguageCode,time_zone AS TimeZone,onboarding_status AS OnboardingStatus,created_at AS CreatedAt,updated_at AS UpdatedAt,version AS Version FROM valorapesquisa.organizations WHERE id=@id AND deleted_at IS NULL";
-        return await c.QuerySingleOrDefaultAsync<OrganizationRecord>(new CommandDefinition(sql,new{id}, cancellationToken: cancellationToken));
+        const string sql = """
+            SELECT
+                o.id AS "Id",
+                o.name AS "Name",
+                o.public_name AS "PublicName",
+                o.slug AS "Slug",
+                o.email AS "Email",
+                o.phone AS "Phone",
+                o.status AS "Status",
+                o.default_language_code AS "DefaultLanguageCode",
+                o.time_zone AS "TimeZone",
+                o.onboarding_status AS "OnboardingStatus",
+                o.created_at AS "CreatedAt",
+                o.updated_at AS "UpdatedAt",
+                o.version AS "Version"
+            FROM valorapesquisa.organizations o
+            WHERE o.id = @id
+              AND o.deleted_at IS NULL
+            LIMIT 1;
+            """;
+
+        try
+        {
+            using var connection = factory.Create();
+            var command = new CommandDefinition(sql, new { id }, cancellationToken: cancellationToken);
+            var organization = await connection.QuerySingleOrDefaultAsync<OrganizationRecord>(command);
+            logger.LogDebug("Organization lookup completed. OrganizationId={OrganizationId} Found={Found}", id, organization is not null);
+            return organization;
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Organization lookup failed. OrganizationId={OrganizationId}", id);
+            throw;
+        }
     }
 
     public async Task<Guid> CreateAsync(string name,string email,string slug,string planId)

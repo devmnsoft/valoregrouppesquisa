@@ -1,15 +1,20 @@
 @{ ViewData["Title"] = "Entrar"; Layout = "_AuthLayout"; }
-<section class="page-card auth-card" data-page="login-page">
-  <p class="eyebrow">Valora Insight™</p><h1>Acesse sua conta</h1>
-  <p class="text-muted">Use suas credenciais corporativas para continuar.</p>
-  <form class="needs-validation valora-form" novalidate>
-    <label class="form-label" for="email">E-mail</label><input id="email" class="form-control form-control-lg" type="email" name="email" autocomplete="email" required>
-    <label class="form-label mt-3" for="password">Senha</label><div class="password-field"><input id="password" class="form-control form-control-lg" type="password" name="password" autocomplete="current-password" required minlength="6"><button class="icon-button" type="button" data-action="toggle-password" aria-label="Mostrar senha" title="Mostrar senha"><valora-icon name="eye" size="20" decorative="true" /></button></div>
-    <label class="remember-session"><input type="checkbox" name="rememberMe" value="true"> <span>Lembrar minha sessão neste dispositivo</span></label>
-    <button class="btn btn-primary btn-lg w-100 mt-4" type="submit"><span data-submit-label>Entrar</span><span class="spinner-border spinner-border-sm d-none" data-submit-spinner aria-hidden="true"></span></button>
+<section class="auth-card" data-page="login-page" aria-labelledby="login-title">
+  <header class="auth-card__header">
+    <p class="auth-kicker">Valora Insight™</p>
+    <h2 id="login-title">Acesse o Valora Insight™</h2>
+    <p>Entre para acompanhar diagnósticos, devolutivas, evidências e planos de evolução organizacional.</p>
+  </header>
+  <div class="error-state d-none" role="alert" aria-live="assertive" tabindex="-1">
+    <strong>Não foi possível concluir o acesso</strong><span data-error-message></span><small data-error-reference hidden></small>
+  </div>
+  <form class="valora-form" novalidate>
+    <div class="field-group"><label for="email">E-mail corporativo</label><input id="email" class="form-control" type="email" name="email" inputmode="email" autocomplete="email" placeholder="voce@empresa.com.br" required autofocus><span class="field-error">Informe um e-mail válido.</span></div>
+    <div class="field-group"><div class="field-label-row"><label for="password">Senha</label><a href="/Account/ForgotPassword">Esqueci minha senha</a></div><div class="password-field"><input id="password" class="form-control" type="password" name="password" autocomplete="current-password" required minlength="6"><button class="password-toggle" type="button" data-action="toggle-password" aria-label="Mostrar senha" aria-pressed="false"><span aria-hidden="true">Mostrar</span></button></div><span class="field-error">Informe sua senha.</span></div>
+    <label class="remember-session"><input type="checkbox" name="rememberMe" value="true"><span>Lembrar minha sessão neste dispositivo</span></label>
+    <button class="auth-submit" type="submit"><span data-submit-label>Entrar com segurança</span><span class="spinner-border spinner-border-sm d-none" data-submit-spinner aria-hidden="true"></span></button>
   </form>
-  <div class="alert alert-danger d-none mt-3 error-state" role="alert" tabindex="-1"><strong>Não foi possível concluir o acesso</strong><span data-error-message></span><small data-error-reference hidden></small></div><div class="d-flex justify-content-between gap-3 flex-wrap mt-3"><a href="/Account/ForgotPassword">Esqueci minha senha</a><a href="/Account/Register">Criar conta da empresa</a></div>
-  <p class="small text-muted mt-3">Sua sessão é protegida e seus dados não são armazenados no navegador.</p>
-  <a class="back-to-site" href="/">Voltar ao site</a>
+  <div class="auth-secondary"><span>Ainda não usa o Valora Insight™?</span><a href="/Account/Register">Criar conta da empresa</a></div>
+  <a class="back-to-site" href="/">← Voltar ao site institucional</a>
 </section>
 @section Scripts { <script src="~/js/pages/login-page.js" asp-append-version="true" defer></script> }

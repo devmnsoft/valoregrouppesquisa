@@ -479,6 +479,27 @@ ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS time_zone text
 ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS onboarding_status text NOT NULL DEFAULT 'pending';
 ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS version bigint NOT NULL DEFAULT 1;
 
+-- Reconcile installations created by earlier releases before enforcing the
+-- canonical organization contract. This block is safe to execute repeatedly.
+UPDATE valorapesquisa.organizations SET status = 'active' WHERE status IS NULL OR btrim(status) = '';
+UPDATE valorapesquisa.organizations SET default_language_code = 'pt-BR' WHERE default_language_code IS NULL OR btrim(default_language_code) = '';
+UPDATE valorapesquisa.organizations SET time_zone = 'America/Belem' WHERE time_zone IS NULL OR btrim(time_zone) = '';
+UPDATE valorapesquisa.organizations SET onboarding_status = 'pending' WHERE onboarding_status IS NULL OR btrim(onboarding_status) = '';
+UPDATE valorapesquisa.organizations SET version = 1 WHERE version IS NULL OR version < 1;
+UPDATE valorapesquisa.organizations SET created_at = now() WHERE created_at IS NULL;
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN status SET DEFAULT 'active';
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN status SET NOT NULL;
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN default_language_code SET DEFAULT 'pt-BR';
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN default_language_code SET NOT NULL;
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN time_zone SET DEFAULT 'America/Belem';
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN time_zone SET NOT NULL;
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN onboarding_status SET DEFAULT 'pending';
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN onboarding_status SET NOT NULL;
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN version SET DEFAULT 1;
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN version SET NOT NULL;
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN created_at SET DEFAULT now();
+ALTER TABLE valorapesquisa.organizations ALTER COLUMN created_at SET NOT NULL;
+
 ALTER TABLE valorapesquisa.users ADD COLUMN IF NOT EXISTS phone text;
 ALTER TABLE valorapesquisa.users ADD COLUMN IF NOT EXISTS access_version bigint NOT NULL DEFAULT 1;
 ALTER TABLE valorapesquisa.users ADD COLUMN IF NOT EXISTS password_reset_required boolean NOT NULL DEFAULT false;

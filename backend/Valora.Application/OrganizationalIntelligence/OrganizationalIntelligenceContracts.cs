@@ -7,7 +7,7 @@ public sealed record IntelligenceModuleRecordDto(Guid Id, string? Code, string S
 public sealed record EvidenceItemDto(Guid Id, Guid? SurveyId, Guid? ResponseId, Guid? FormId, Guid? QuestionId,
     string ConceptCode, string CapabilityCode, string DimensionCode, string? MetricCode, string? IndexCode,
     string EvidenceType, string SourceType, decimal? NormalizedValue, decimal Weight, decimal ConfidenceWeight,
-    string? TextExcerpt, DateTime CreatedAt);
+    string? TextExcerpt, string MappingStatus, DateTime CreatedAt);
 
 public sealed record DimensionHeatmapDto(Guid DimensionId, string Code, string Name, decimal Score, int EvidenceCount);
 public sealed record EvidenceSummaryDto(int Responses, int ScoredResults, int Surveys, int ActionPlans, IReadOnlyList<DimensionHeatmapDto> Dimensions)

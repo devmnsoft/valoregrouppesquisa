@@ -1575,6 +1575,7 @@ BEGIN
  'valora_indices','index_values','index_components','index_history','index_interpretations',
  'radar_snapshots','radar_dimensions','radar_interpretations','heatmap_snapshots','heatmap_cells','heatmap_interpretations','heatmap_alerts',
  'insight_runs','insights','insight_evidence','insight_related_concepts','insight_actions',
+ 'action_items','action_history',
  'evolution_cycles','evolution_index_history','evolution_trends','evolution_alerts','evolution_projections',
  'journey_events','journey_event_links','journey_narratives','journey_milestones',
  'benchmark_runs','benchmark_groups','benchmark_results','benchmark_interpretations','external_benchmark_reference_sets',
@@ -1634,6 +1635,13 @@ UPDATE valorapesquisa.evidence_items SET metric_code=metadata_json->>'metricCode
 WHERE metric_code IS NULL OR index_code IS NULL;
 CREATE INDEX IF NOT EXISTS ix_evidence_org_metric ON valorapesquisa.evidence_items(organization_id,metric_code,created_at DESC) WHERE deleted_at IS NULL AND metric_code IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_evidence_org_index ON valorapesquisa.evidence_items(organization_id,index_code,created_at DESC) WHERE deleted_at IS NULL AND index_code IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_evidence_org_survey ON valorapesquisa.evidence_items(organization_id,survey_id,created_at DESC) WHERE deleted_at IS NULL;
+UPDATE valorapesquisa.evidence_items
+SET metadata_json=metadata_json || jsonb_build_object(
+  'mappingStatus',CASE WHEN concept_code<>'unmapped' AND metric_code IS NOT NULL AND index_code IS NOT NULL THEN 'mapped' ELSE 'pending' END,
+  'missingMappings',array_remove(ARRAY[CASE WHEN concept_code='unmapped' THEN 'concept' END,CASE WHEN metric_code IS NULL THEN 'metric' END,CASE WHEN index_code IS NULL THEN 'index' END],NULL)),
+  updated_at=now()
+WHERE NOT metadata_json ? 'mappingStatus';
 
 -- Evolui a tabela histórica de notificações sem destruir mensagens existentes.
 ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS type varchar(60) NOT NULL DEFAULT 'information';

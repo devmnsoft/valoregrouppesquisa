@@ -1626,6 +1626,14 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.evidence_items(
 CREATE UNIQUE INDEX IF NOT EXISTS ux_evidence_response_question_concept ON valorapesquisa.evidence_items(response_id,question_id,concept_code) WHERE deleted_at IS NULL AND response_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_evidence_org_concept ON valorapesquisa.evidence_items(organization_id,concept_code,created_at DESC) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS ix_evidence_source ON valorapesquisa.evidence_items(source_type,source_id) WHERE deleted_at IS NULL;
+ALTER TABLE valorapesquisa.evidence_items ADD COLUMN IF NOT EXISTS metric_code varchar(80);
+ALTER TABLE valorapesquisa.evidence_items ADD COLUMN IF NOT EXISTS index_code varchar(12);
+ALTER TABLE valorapesquisa.evidence_items ADD COLUMN IF NOT EXISTS polarity smallint NOT NULL DEFAULT 1 CHECK(polarity IN(-1,1));
+UPDATE valorapesquisa.evidence_items SET metric_code=metadata_json->>'metricCode',index_code=metadata_json->>'indexCode',
+ polarity=coalesce((metadata_json->>'polarity')::smallint,1)
+WHERE metric_code IS NULL OR index_code IS NULL;
+CREATE INDEX IF NOT EXISTS ix_evidence_org_metric ON valorapesquisa.evidence_items(organization_id,metric_code,created_at DESC) WHERE deleted_at IS NULL AND metric_code IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_evidence_org_index ON valorapesquisa.evidence_items(organization_id,index_code,created_at DESC) WHERE deleted_at IS NULL AND index_code IS NOT NULL;
 
 -- Evolui a tabela histórica de notificações sem destruir mensagens existentes.
 ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS type varchar(60) NOT NULL DEFAULT 'information';

@@ -1,4 +1,13 @@
+using System.Text.Json;
+
 namespace Valora.Application.OrganizationalIntelligence;
+
+public sealed record IntelligenceModuleRecordDto(Guid Id, string? Code, string Status, JsonElement Data,
+    int MethodologyVersion, int Version, DateTime CreatedAt, DateTime UpdatedAt);
+public sealed record EvidenceItemDto(Guid Id, Guid? SurveyId, Guid? ResponseId, Guid? FormId, Guid? QuestionId,
+    string ConceptCode, string CapabilityCode, string DimensionCode, string? MetricCode, string? IndexCode,
+    string EvidenceType, string SourceType, decimal? NormalizedValue, decimal Weight, decimal ConfidenceWeight,
+    string? TextExcerpt, DateTime CreatedAt);
 
 public sealed record DimensionHeatmapDto(Guid DimensionId, string Code, string Name, decimal Score, int EvidenceCount);
 public sealed record EvidenceSummaryDto(int Responses, int ScoredResults, int Surveys, int ActionPlans, IReadOnlyList<DimensionHeatmapDto> Dimensions)
@@ -47,6 +56,8 @@ public interface IOrganizationalIntelligenceRepository
     Task<ValoraActionDto?> UpdateActionAsync(Guid organizationId, Guid actionId, UpdateValoraActionRequest request, Guid userId, CancellationToken ct);
     Task<IReadOnlyList<ValoraActionHistoryDto>> ListActionHistoryAsync(Guid organizationId, Guid actionId, CancellationToken ct);
     Task<bool> DeleteActionAsync(Guid organizationId, Guid actionId, Guid userId, CancellationToken ct);
+    Task<IReadOnlyList<EvidenceItemDto>> ListEvidenceItemsAsync(Guid organizationId, CancellationToken ct);
+    Task<IReadOnlyList<IntelligenceModuleRecordDto>> ListModuleRecordsAsync(Guid organizationId, string module, CancellationToken ct);
 }
 
 public interface IOrganizationalIntelligenceService
@@ -64,4 +75,6 @@ public interface IOrganizationalIntelligenceService
     Task<ValoraActionDto?> UpdateActionAsync(Guid organizationId, Guid actionId, Guid userId, UpdateValoraActionRequest request, CancellationToken ct);
     Task<IReadOnlyList<ValoraActionHistoryDto>> ActionHistoryAsync(Guid organizationId, Guid actionId, CancellationToken ct);
     Task<bool> DeleteActionAsync(Guid organizationId, Guid actionId, Guid userId, CancellationToken ct);
+    Task<IReadOnlyList<EvidenceItemDto>> EvidenceItemsAsync(Guid organizationId, CancellationToken ct);
+    Task<IReadOnlyList<IntelligenceModuleRecordDto>> ModuleRecordsAsync(Guid organizationId, string module, CancellationToken ct);
 }

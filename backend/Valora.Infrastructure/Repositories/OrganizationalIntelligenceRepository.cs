@@ -7,6 +7,41 @@ namespace Valora.Infrastructure.Repositories;
 
 public sealed class OrganizationalIntelligenceRepository(IDbConnectionFactory connections, IDbTransactionFactory transactions) : IOrganizationalIntelligenceRepository
 {
+    private static readonly IReadOnlyDictionary<string, string> ModuleTables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["metrics"] = "metric_values", ["indices"] = "index_values", ["inferences"] = "inference_results",
+        ["insights"] = "insights", ["radar"] = "radar_snapshots", ["heatmap-snapshots"] = "heatmap_snapshots",
+        ["benchmark"] = "benchmark_runs", ["evolution-cycles"] = "evolution_cycles", ["journey-events"] = "journey_events",
+        ["executive-reports"] = "executive_reports", ["one-on-one"] = "one_on_one_sessions",
+        ["integrations"] = "integration_connectors", ["platform-governance"] = "platform_governance_events"
+    };
+
+    public async Task<IReadOnlyList<EvidenceItemDto>> ListEvidenceItemsAsync(Guid organizationId, CancellationToken ct)
+    {
+        const string sql = """
+            SELECT id,survey_id SurveyId,response_id ResponseId,form_id FormId,question_id QuestionId,
+              concept_code ConceptCode,capability_code CapabilityCode,dimension_code DimensionCode,
+              metric_code MetricCode,index_code IndexCode,
+              evidence_type EvidenceType,source_type SourceType,normalized_value NormalizedValue,weight,
+              confidence_weight ConfidenceWeight,text_excerpt TextExcerpt,created_at CreatedAt
+            FROM valorapesquisa.evidence_items
+            WHERE organization_id=@organizationId AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 250
+            """;
+        using var c = connections.Create();
+        return (await c.QueryAsync<EvidenceItemDto>(new CommandDefinition(sql, new { organizationId }, cancellationToken: ct))).ToList();
+    }
+
+    public async Task<IReadOnlyList<IntelligenceModuleRecordDto>> ListModuleRecordsAsync(Guid organizationId, string module, CancellationToken ct)
+    {
+        if (!ModuleTables.TryGetValue(module, out var table)) throw new ArgumentException("Módulo de inteligência inválido.", nameof(module));
+        var sql = $"SELECT id,code,status,data::text DataJson,methodology_version MethodologyVersion,version,created_at CreatedAt,updated_at UpdatedAt FROM valorapesquisa.{table} WHERE organization_id=@organizationId AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 100";
+        using var c = connections.Create();
+        var rows = await c.QueryAsync<ModuleRow>(new CommandDefinition(sql, new { organizationId }, cancellationToken: ct));
+        return rows.Select(x => new IntelligenceModuleRecordDto(x.Id, x.Code, x.Status,
+            JsonSerializer.Deserialize<JsonElement>(x.DataJson), x.MethodologyVersion, x.Version, x.CreatedAt, x.UpdatedAt)).ToList();
+    }
+
+    private sealed record ModuleRow(Guid Id, string? Code, string Status, string DataJson, int MethodologyVersion, int Version, DateTime CreatedAt, DateTime UpdatedAt);
     public async Task<EvidenceSummaryDto> GetEvidenceAsync(Guid organizationId, CancellationToken ct)
     {
         const string dimensions = """

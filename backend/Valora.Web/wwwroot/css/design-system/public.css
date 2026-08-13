@@ -1,1 +1,5 @@
 .public-brand { color: var(--valora-900); } .public-hero { background: var(--surface-secondary); padding: clamp(48px, 8vw, 96px) 24px; }
+/* Progress is driven only by answers actually entered in the public survey. */
+.public-progress { height: .45rem; overflow: hidden; margin-bottom: 1.25rem; border-radius: 999px; background: var(--surface-tertiary); }
+.public-progress > span { display: block; height: 100%; border-radius: inherit; background: var(--valora-700); transition: width var(--transition-fast); }
+.public-feedback { min-height: 1.5rem; color: var(--text-secondary); }

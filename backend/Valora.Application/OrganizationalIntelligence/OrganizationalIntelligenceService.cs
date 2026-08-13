@@ -67,16 +67,21 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
         };
         const string warning = ValoraInsightDevolutivaService.InsufficientEvidenceMessage;
         var runId = Guid.NewGuid();
-        var insights = ordered.TakeLast(Math.Min(3, ordered.Count)).Select((dimension, index) =>
+        // An insight is a recommendation, not merely a formatted score.  Do not persist
+        // recommendations until the aggregate contains the minimum evidence required by
+        // the method.  The run is still persisted so the UI can honestly explain why a
+        // reading was not produced and the attempt remains auditable.
+        var insights = evidence.Total < 3
+            ? new List<OrganizationalInsightDto>()
+            : ordered.Where(dimension => dimension.EvidenceCount >= 3).TakeLast(Math.Min(3, ordered.Count)).Select((dimension, index) =>
         {
-            var convergent = dimension.EvidenceCount >= 3;
             return new OrganizationalInsightDto(
             Guid.NewGuid(), runId, dimension.Name,
             $"A dimensão {dimension.Name} apresenta índice consolidado de {dimension.Score:0.#}%.",
             $"Leitura agregada de {dimension.EvidenceCount} avaliações válidas; nenhuma resposta individual é exposta.",
             "A posição relativa foi calculada somente entre dimensões observadas no mesmo conjunto de evidências.",
-            !convergent ? "Menos de 3 evidências convergentes: não é seguro formular uma causa provável." : "Hipótese a validar: práticas e rotinas associadas à dimensão podem não estar consistentes.",
-            !convergent ? "Impacto não concluído por insuficiência de evidências convergentes." : "Hipótese de impacto: pode reduzir a consistência da execução; requer validação pela organização.",
+            "Hipótese a validar: práticas e rotinas associadas à dimensão podem não estar consistentes.",
+            "Hipótese de impacto: pode reduzir a consistência da execução; requer validação pela organização.",
             index == 0 ? "high" : "medium",
             "Validar a observação com os responsáveis, definir uma ação mensurável e reavaliar no próximo ciclo.", DateTime.UtcNow);
         }).ToList();

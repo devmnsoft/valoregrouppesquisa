@@ -29,8 +29,8 @@
     <article class="valora-card metric-card"><span>Diagnósticos ativos</span><strong data-kpi="activeSurveys"></strong><small>Diagnósticos aceitando respostas</small></article>
     <article class="valora-card metric-card"><span>Taxa de conclusão</span><strong data-kpi="completionRate"></strong><small>Envios concluídos sobre iniciados</small></article>
     <article class="valora-card metric-card"><span>Nível médio</span><strong data-kpi="averageLevel"></strong><small>Maturidade consolidada no escopo atual</small></article>
-      <article class="valora-card metric-card"><span>Certificados emitidos</span><strong data-kpi="certificates"></strong><small>Acompanhamento de rastreabilidade</small></article>
-    <article class="valora-card metric-card"><span>Alertas LGPD</span><strong data-kpi="lgpdAlerts"></strong><small>Avisos que exigem governança</small></article>
+    <article class="valora-card metric-card"><span>Evidências consolidadas</span><strong data-kpi="evidence"></strong><small>Base agregada da leitura executiva</small></article>
+    <article class="valora-card metric-card"><span>Ações pendentes</span><strong data-kpi="actions"></strong><small>Compromissos ainda não concluídos</small></article>
   </div>
   <p class="metric-empty-guidance" data-metric-empty hidden>Ainda não há dados suficientes para este indicador.</p>
   <section class="valora-card mt-3 v9-onboarding" data-onboarding>
@@ -39,9 +39,9 @@
     <div class="v9-checklist" data-onboarding-items></div>
   </section>
   <section class="valora-card mt-3"><div class="v9-section-title"><div><p class="eyebrow">Prioridades</p><h2>O que merece sua atenção agora</h2></div><a class="valora-button valora-button--ghost" href="/Experience/Cockpit">Abrir Cockpit Executivo</a></div><div class="v9-attention" data-dashboard-attention></div></section>
-  <div class="ops-grid ops-grid--2 mt-3">
-    <article class="ops-card account-health"><div class="account-health__ring" aria-label="Saúde da conta: atenção"><strong>60</strong><span>/100</span></div><div><p class="eyebrow">Saúde da Conta</p><h2>Atenção</h2><p>Sua conta está quase pronta. Cadastre pelo menos um setor e publique a primeira pesquisa para começar a gerar indicadores.</p><a href="/Organization">Ver pendências da conta</a></div></article>
-    <article class="ops-card"><p class="eyebrow">O que fazer agora</p><h2>Próximos passos</h2><ol class="next-actions"><li><span>1</span><div><strong>Cadastrar setores</strong><small>Organize a leitura por área.</small></div><a href="/Organization#org-structure">Começar</a></li><li><span>2</span><div><strong>Publicar primeira pesquisa</strong><small>Inicie o ciclo de escuta.</small></div><a href="/Surveys">Publicar</a></li><li><span>3</span><div><strong>Convidar gestores</strong><small>Delegue com escopo seguro.</small></div><a href="/Users">Convidar</a></li></ol></article>
+  <div class="ops-grid ops-grid--2 mt-3" data-strategic-reading hidden>
+    <article class="ops-card account-health"><div class="account-health__ring" data-maturity-ring><strong data-maturity-score>—</strong><span>/100</span></div><div><p class="eyebrow">Leitura baseada em evidências</p><h2 data-maturity-level>Dados insuficientes</h2><p data-maturity-explanation>Conclua o primeiro ciclo para habilitar esta leitura.</p><a href="/Intelligence">Abrir evidências</a></div></article>
+    <article class="ops-card"><p class="eyebrow">Síntese executiva</p><h2>Forças, fragilidades e próximo passo</h2><dl class="dashboard-findings"><div><dt>Dimensão mais forte</dt><dd data-strongest>—</dd></div><div><dt>Dimensão mais frágil</dt><dd data-weakest>—</dd></div><div><dt>Principal bloqueio</dt><dd data-blocker>Dados insuficientes para esta leitura.</dd></div><div><dt>Próximo passo recomendado</dt><dd data-next-step>Concluir respostas válidas no diagnóstico ativo.</dd></div></dl></article>
   </div>
 
   <div class="row g-3 mt-1">
@@ -50,4 +50,4 @@
   </div>
   <div class="valora-alert valora-alert--danger mt-3" role="alert" data-error hidden></div>
 </section>
-@section Scripts { <script src="/js/pages/dashboard-page.js"></script> }
+@section Scripts { <script src="/js/api/intelligence-api.js" asp-append-version="true"></script><script src="/js/pages/dashboard-page.js" asp-append-version="true"></script> }

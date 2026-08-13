@@ -23,7 +23,9 @@ public sealed class OrganizationalIntelligenceRepository(IDbConnectionFactory co
               concept_code ConceptCode,capability_code CapabilityCode,dimension_code DimensionCode,
               metric_code MetricCode,index_code IndexCode,
               evidence_type EvidenceType,source_type SourceType,normalized_value NormalizedValue,weight,
-              confidence_weight ConfidenceWeight,text_excerpt TextExcerpt,created_at CreatedAt
+              confidence_weight ConfidenceWeight,text_excerpt TextExcerpt,
+              coalesce(metadata_json->>'mappingStatus',CASE WHEN metric_code IS NOT NULL AND index_code IS NOT NULL AND concept_code<>'unmapped' THEN 'mapped' ELSE 'pending' END) MappingStatus,
+              created_at CreatedAt
             FROM valorapesquisa.evidence_items
             WHERE organization_id=@organizationId AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 250
             """;

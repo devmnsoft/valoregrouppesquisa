@@ -7,7 +7,8 @@ public sealed class EvidenceExtractionService(IIntelligencePipelineRepository re
         var ids = await repository.ExtractResponseEvidenceAsync(context, ct);
         return new("evidence", ids.Count, ids.Count >= 3, ids.Count == 0
             ? "A resposta não possui perguntas com mapeamento metodológico; nenhum cálculo foi realizado."
-            : ids.Count < 3 ? "Dados insuficientes para uma inferência moderada." : "Evidências metodológicas extraídas e rastreáveis.", ids);
+            : ids.Count < 3 ? "Evidências registradas, mas a base ainda é insuficiente para uma inferência moderada."
+            : "Respostas normalizadas; pendências metodológicas foram preservadas e não participam da inferência.", ids);
     }
 }
 public sealed class MetricCalculationService(IIntelligencePipelineRepository repository) : IMetricCalculationService
@@ -44,7 +45,7 @@ public sealed class PlatformGovernanceService(IIntelligencePipelineRepository re
 
 public sealed class OrganizationalIntelligencePipeline(IEvidenceExtractionService evidence, IMetricCalculationService metrics,
     IValoraIndexCalculationService indices, IInferenceEngine inference, IInsightGenerationService insights,
-    IActionRecommendationService actions, IEvolutionService evolution, IHeatmapService heatmap, IRadarService radar,
+    IEvolutionService evolution, IHeatmapService heatmap, IRadarService radar,
     IBenchmarkService benchmark, IExecutiveReportService reports, IJourneyService journey, INotificationService notifications,
     IPlatformGovernanceService governance) : IOrganizationalIntelligencePipeline
 {
@@ -66,7 +67,6 @@ public sealed class OrganizationalIntelligencePipeline(IEvidenceExtractionServic
             stages.Add(await heatmap.RefreshAsync(c, ids, ct));
             stages.Add(await radar.RefreshAsync(c, ids, ct));
             stages.Add(await evolution.RefreshAsync(c, ids, ct));
-            stages.Add(await actions.RecommendAsync(c, ids, ct));
             stages.Add(await benchmark.RefreshAsync(c, ids, ct));
             if (includeReport) stages.Add(await reports.SnapshotAsync(c, ids, ct));
         }

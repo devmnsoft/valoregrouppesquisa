@@ -1,0 +1,20 @@
+@model Valora.Web.Models.ViewModels.IntelligenceWorkspaceViewModel
+<main class="valora-page v9-page intelligence-module" data-intelligence-workspace data-endpoint="@Model.Endpoint" data-label="@Model.ItemLabel" data-fields="@string.Join(',', Model.DetailFields)" data-action="@Model.PrimaryAction">
+  <nav class="v9-breadcrumb" aria-label="Navegação estrutural"><a href="/Intelligence">Inteligência Organizacional</a><span>/</span><span>@Model.Title</span></nav>
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel(Model.Title, Model.Purpose, Model.Eyebrow, "Método Valora"))" />
+  <section class="v9-kpis" aria-label="Resumo"><article><span>Total</span><strong data-kpi-total>—</strong><small>@(Model.ItemLabel)s autorizados</small></article><article><span>Com evidência</span><strong data-kpi-evidence>—</strong><small>Origem rastreável</small></article><article><span>Pendências</span><strong data-kpi-pending>—</strong><small>Limitação explícita</small></article><article><span>Confiança média</span><strong data-kpi-confidence>—</strong><small>Quando informada</small></article></section>
+  <section class="valora-card intelligence-module__workspace">
+    <div class="v9-section-title"><div><p class="eyebrow">Leitura atual</p><h2>Dados reais da organização</h2></div>@if (Model.PrimaryAction == "preview") { <button class="valora-button valora-button--primary" type="button" data-preview>Gerar preview</button> }</div>
+    <div class="intelligence-module__filters" data-filters>
+      <label>Busca<input class="valora-input" type="search" data-search placeholder="Buscar @Model.ItemLabel" /></label>
+      @foreach (var filter in Model.Filters) { <label>@filter<select class="valora-input" data-filter="@filter"><option value="">Todos</option></select></label> }
+    </div>
+    <div class="valora-skeleton" data-loading>Consultando registros autorizados…</div>
+    <div class="valora-alert valora-alert--danger" data-error hidden></div>
+    <div class="intelligence-module__records" data-records hidden></div>
+    <div class="valora-empty" data-empty hidden><h3>Sem dados suficientes</h3><p>@Model.Limitation</p></div>
+  </section>
+  <aside class="valora-alert"><strong>Limite da leitura.</strong> @Model.Limitation</aside>
+  @if (Model.Notice is not null) { <aside class="valora-alert">@Model.Notice</aside> }
+  <dialog class="valora-card intelligence-module__drawer" data-drawer><button class="valora-button valora-button--ghost" type="button" data-close>Fechar</button><div data-detail></div></dialog>
+</main>

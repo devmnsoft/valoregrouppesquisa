@@ -45,7 +45,7 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     public async Task<IActionResult> Evidence([FromQuery] Guid? organizationId, [FromQuery] Guid? surveyId,
         [FromQuery] Guid? responseId, [FromQuery] Guid? questionId, [FromQuery] string? concept,
         [FromQuery] string? metric, [FromQuery] string? index,
-        [FromQuery] string? mappingStatus, CancellationToken ct) =>
+        [FromQuery] string? mappingStatus, [FromQuery] string? evidenceType, CancellationToken ct) =>
         await Read(organizationId, "organizational_intelligence.read", async id =>
             (await service.EvidenceItemsAsync(id, ct)).Where(item =>
                 (!surveyId.HasValue || item.SurveyId == surveyId) &&
@@ -54,10 +54,37 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
                 (string.IsNullOrWhiteSpace(concept) || string.Equals(item.ConceptCode, concept, StringComparison.OrdinalIgnoreCase)) &&
                 (string.IsNullOrWhiteSpace(metric) || string.Equals(item.MetricCode, metric, StringComparison.OrdinalIgnoreCase)) &&
                 (string.IsNullOrWhiteSpace(index) || string.Equals(item.IndexCode, index, StringComparison.OrdinalIgnoreCase)) &&
+                (string.IsNullOrWhiteSpace(evidenceType) || string.Equals(item.EvidenceType, evidenceType, StringComparison.OrdinalIgnoreCase)) &&
                 (string.IsNullOrWhiteSpace(mappingStatus) || string.Equals(item.MappingStatus, mappingStatus, StringComparison.OrdinalIgnoreCase))).ToList());
     [HttpGet("modules/{module}")]
     public async Task<IActionResult> Module(string module, [FromQuery] Guid? organizationId, CancellationToken ct) =>
         await Read(organizationId, "organizational_intelligence.read", id => service.ModuleRecordsAsync(id, module, ct));
+    [HttpGet("metrics")]
+    public async Task<IActionResult> Metrics([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("metrics", organizationId, ct);
+    [HttpGet("indices")]
+    public async Task<IActionResult> Indices([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("indices", organizationId, ct);
+    [HttpGet("inference")]
+    public async Task<IActionResult> Inference([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("inferences", organizationId, ct);
+    [HttpGet("insights")]
+    public async Task<IActionResult> Insights([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("insights", organizationId, ct);
+    [HttpPost("insights/{id:guid}/create-action")]
+    public async Task<IActionResult> CreateInsightAction(Guid id, [FromBody] CreateValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) => await CreateAction(request, organizationId, ct);
+    [HttpGet("radar")]
+    public async Task<IActionResult> Radar([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("radar", organizationId, ct);
+    [HttpGet("benchmark")]
+    public async Task<IActionResult> Benchmark([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("benchmark", organizationId, ct);
+    [HttpGet("executive-report")]
+    public async Task<IActionResult> ExecutiveReport([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("executive-reports", organizationId, ct);
+    [HttpPost("executive-report/preview")]
+    public async Task<IActionResult> ExecutiveReportPreview([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.DashboardAsync(id, ct));
+    [HttpGet("one-on-one")]
+    public async Task<IActionResult> OneOnOne([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("one-on-one", organizationId, ct);
+    [HttpPost("one-on-one")]
+    public async Task<IActionResult> CreateOneOnOne([FromBody] CreateJourneyEventRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) => await CreateJourney(request with { EventType = "one_on_one" }, organizationId, ct);
+    [HttpGet("platform-governance")]
+    public async Task<IActionResult> PlatformGovernance([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("platform-governance", organizationId, ct);
+    [HttpGet("integrations")]
+    public async Task<IActionResult> Integrations([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("integrations", organizationId, ct);
     [HttpGet("action-plans")]
     [HttpGet("actions")]
     public async Task<IActionResult> Actions([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.ActionsAsync(id, ct));

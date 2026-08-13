@@ -73,8 +73,23 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
     {
         if (response.IsSuccessStatusCode) return;
-        var detail = await response.Content.ReadAsStringAsync(cancellationToken);
-        throw new HttpRequestException(string.IsNullOrWhiteSpace(detail) ? "Não foi possível concluir a solicitação." : detail,
-            null, response.StatusCode == HttpStatusCode.Unauthorized ? HttpStatusCode.Unauthorized : response.StatusCode);
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+        try
+        {
+            using var document = JsonDocument.Parse(content);
+            var root = document.RootElement;
+            var code = root.TryGetProperty("code", out var codeValue) ? codeValue.GetString() : null;
+            var message = root.TryGetProperty("message", out var messageValue) ? messageValue.GetString() : null;
+            var correlationId = root.TryGetProperty("correlationId", out var correlationValue) ? correlationValue.GetString() : null;
+            throw new BffApiException(
+                response.StatusCode,
+                code ?? "API_ERROR",
+                message ?? "Não foi possível concluir a solicitação.",
+                correlationId);
+        }
+        catch (JsonException)
+        {
+            throw new BffApiException(response.StatusCode, "API_ERROR", "Não foi possível concluir a solicitação.", null);
+        }
     }
 }

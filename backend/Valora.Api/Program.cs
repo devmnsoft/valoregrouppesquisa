@@ -3,6 +3,7 @@ using Valora.Api.Configuration;
 using Valora.Api.Middleware;
 using Valora.Application.DependencyInjection;
 using Valora.Infrastructure.DependencyInjection;
+using Valora.Infrastructure.Database;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,12 @@ builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment() && builder.Configuration.GetValue("Database:ValidateSchema", true))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    await scope.ServiceProvider.GetRequiredService<SchemaContractValidator>().ValidateAsync();
+}
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();

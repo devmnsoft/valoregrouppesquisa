@@ -1,2 +1,6 @@
-.form-control, .form-select { border: 1px solid var(--border-subtle); border-radius: 6px; min-height: 44px; }
+.form-label { margin-bottom: .4rem; color: var(--text-primary); font-size: .9rem; font-weight: 650; }
+.form-control, .form-select { border: 1px solid var(--border-subtle); border-radius: var(--radius-md); min-height: 44px; color: var(--text-primary); background-color: var(--surface-primary); }
 .form-control:focus, .form-select:focus { border-color: var(--valora-600); box-shadow: 0 0 0 3px rgb(77 113 128 / 15%); }
+.form-control:disabled, .form-select:disabled { background: var(--surface-tertiary); color: var(--text-muted); cursor: not-allowed; }
+.form-control[readonly] { background: var(--surface-secondary); }
+.invalid-feedback { color: var(--semantic-danger); }

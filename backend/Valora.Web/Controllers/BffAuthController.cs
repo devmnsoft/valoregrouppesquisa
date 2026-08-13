@@ -27,6 +27,18 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
                 : "O serviço de autenticação está temporariamente indisponível. Tente novamente em instantes.";
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "API_UNAVAILABLE", message, correlationId });
         }
+        catch (BffApiException exception)
+        {
+            var correlationId = exception.CorrelationId ?? CorrelationId();
+            logger.LogWarning(exception, "Authentication API rejected BFF login. Status={Status} Code={Code} CorrelationId={CorrelationId}", (int)exception.StatusCode, exception.Code, correlationId);
+            return StatusCode((int)exception.StatusCode, new
+            {
+                status = (int)exception.StatusCode,
+                code = exception.Code,
+                message = exception.Message,
+                correlationId
+            });
+        }
     }
 
     private string CorrelationId() => Request.Headers.TryGetValue("X-Correlation-Id", out var value)

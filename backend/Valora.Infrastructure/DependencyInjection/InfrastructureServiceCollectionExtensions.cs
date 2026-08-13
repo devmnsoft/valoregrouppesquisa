@@ -20,6 +20,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IDbConnectionFactory, PostgresConnectionFactory>();
         services.AddScoped<IDbTransactionFactory, DbTransactionFactory>();
         services.AddScoped<MigrationRunner>();
+        services.AddScoped<SchemaContractValidator>();
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
         services.AddScoped<IOrganizationStructureRepository, OrganizationStructureRepository>();
         services.AddScoped<IOrganizationBrandingRepository, OrganizationBrandingRepository>();

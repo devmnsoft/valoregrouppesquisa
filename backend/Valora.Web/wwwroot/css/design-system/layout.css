@@ -1,5 +1,44 @@
-.admin-body { background: var(--surface-secondary); margin: 0; }
+html, body { max-width: 100%; overflow-x: clip; }
+.admin-body { margin: 0; background: var(--surface-secondary); color: var(--text-primary); }
 .app-shell { display: grid; grid-template-columns: var(--sidebar-width) minmax(0, 1fr); min-height: 100vh; }
-.app-main { min-width: 0; } .valora-admin-content { margin: 0 auto; max-width: 1560px; padding: 32px 40px 64px; }
-.valora-sidebar { background: var(--valora-900); color: #fff; display: flex; flex-direction: column; min-height: 100vh; padding: 24px 18px; position: sticky; top: 0; }
-.valora-topbar { background: rgb(255 255 255 / 94%); border-bottom: 1px solid var(--border-subtle); min-height: 88px; padding: 16px 40px; position: sticky; top: 0; z-index: 20; }
+.app-main { min-width: 0; }
+.valora-admin-content { width: 100%; max-width: var(--content-max-width); margin: 0 auto; padding: var(--space-8) var(--content-gutter) 4rem; }
+.app-sidebar.valora-sidebar { position: sticky; top: 0; display: flex; flex-direction: column; width: var(--sidebar-width); height: 100vh; padding: 1.5rem 1rem; overflow-y: auto; background: var(--valora-900); color: #fff; }
+.brand-mark { display: flex; align-items: center; gap: .65rem; min-height: 3.5rem; padding: 0 .5rem 1rem; border-bottom: 1px solid rgb(255 255 255 / 12%); color: #fff; text-decoration: none; }
+.brand-logo { max-width: 8.5rem; max-height: 2.25rem; }
+.brand-wordmark, .brand-fallback-text { display: none; }
+.brand-fallback-active .brand-wordmark { display: inline-flex; }
+.brand-text small { color: var(--valora-100); font-size: .7rem; }
+.sidebar-context { margin: 1rem 0; padding: .75rem; border-left: 2px solid var(--accent-gold); background: rgb(255 255 255 / 5%); }
+.sidebar-context small, .sidebar-context strong { display: block; }
+.sidebar-context small { color: var(--valora-100); font-size: .72rem; }
+.sidebar-context strong { margin-top: .2rem; font-size: .9rem; }
+.sidebar-nav { flex: 1; }
+.sidebar-group { margin: 0 0 1.25rem; }
+.sidebar-group > p { margin: 0 .7rem .4rem; color: var(--valora-500); font-size: .68rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.valora-sidebar-nav .nav-link { display: flex; align-items: center; gap: .7rem; min-height: 2.65rem; margin: .1rem 0; padding: .55rem .7rem; border-radius: var(--radius-md); color: var(--valora-100); text-decoration: none; transition: background var(--transition-fast), color var(--transition-fast); }
+.valora-sidebar-nav .nav-link:hover { background: rgb(255 255 255 / 7%); color: #fff; }
+.valora-sidebar-nav .nav-link.active { background: rgb(255 255 255 / 11%); box-shadow: inset 3px 0 var(--accent-gold); color: #fff; }
+.sidebar-footer { display: grid; gap: .2rem; padding-top: .85rem; border-top: 1px solid rgb(255 255 255 / 12%); }
+.sidebar-footer a { display: flex; align-items: center; gap: .55rem; min-height: 2.5rem; color: var(--valora-100); text-decoration: none; }
+.sidebar-footer .icon-button { display: none; }
+.topbar.valora-topbar { position: sticky; z-index: var(--z-sticky); top: 0; display: flex; align-items: center; gap: 1rem; min-height: var(--topbar-height); padding: .65rem var(--content-gutter); border-bottom: 1px solid var(--border-subtle); background: rgb(255 255 255 / 96%); }
+.topbar-brand { display: none; }
+.topbar-title { min-width: 0; }
+.topbar-title strong { display: block; overflow: hidden; font-size: 1rem; text-overflow: ellipsis; white-space: nowrap; }
+.valora-breadcrumbs { display: flex; gap: .4rem; color: var(--text-muted); font-size: .75rem; }
+.valora-breadcrumbs a { color: inherit; }
+.topbar-actions { display: flex; align-items: center; gap: .55rem; margin-left: auto; }
+.mobile-navigation-trigger { display: none; }
+@media (max-width: 991px) {
+  .app-shell { display: block; }
+  .topbar-brand, .mobile-navigation-trigger { display: inline-grid; }
+  .topbar-brand { width: 7rem; }
+  .topbar-brand img { max-width: 100%; }
+  .valora-admin-content { padding-top: var(--space-6); }
+}
+@media (max-width: 575px) {
+  .topbar-brand { display: none; }
+  .valora-breadcrumbs, .search-trigger span, .search-trigger kbd, .user-summary, .quick-action { display: none; }
+  .topbar-actions { gap: .25rem; }
+}

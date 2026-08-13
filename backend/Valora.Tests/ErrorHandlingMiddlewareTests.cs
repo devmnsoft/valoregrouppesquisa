@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
 using Valora.Api.Middleware;
 using Valora.Application.Exceptions;
+using Npgsql;
 using Xunit;
 
 namespace Valora.Tests;
@@ -35,6 +36,43 @@ public sealed class ErrorHandlingMiddlewareTests
         var context = new DefaultHttpContext(); context.Response.Body = new MemoryStream();
         await middleware.InvokeAsync(context);
         Assert.Equal(expected, context.Response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Undefined_column_is_a_schema_mismatch_not_database_unavailability()
+    {
+        var exception = new PostgresException("column missing", "ERROR", "ERROR", "42703");
+        var context = await Invoke(exception);
+        var body = await ReadBody(context);
+        Assert.Equal(500, context.Response.StatusCode);
+        Assert.Contains("DATABASE_SCHEMA_MISMATCH", body);
+        Assert.DoesNotContain("Banco de dados indisponível", body);
+        Assert.DoesNotContain("column missing", body);
+    }
+
+    [Fact]
+    public async Task Npgsql_connectivity_failure_is_service_unavailable()
+    {
+        var context = await Invoke(new NpgsqlException("connection failed"));
+        var body = await ReadBody(context);
+        Assert.Equal(503, context.Response.StatusCode);
+        Assert.Contains("DATABASE_UNAVAILABLE", body);
+        Assert.DoesNotContain("connection failed", body);
+    }
+
+    private static async Task<DefaultHttpContext> Invoke(Exception exception)
+    {
+        var middleware = new ErrorHandlingMiddleware(_ => throw exception, NullLogger<ErrorHandlingMiddleware>.Instance, new TestHostEnvironment());
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+        await middleware.InvokeAsync(context);
+        return context;
+    }
+
+    private static async Task<string> ReadBody(DefaultHttpContext context)
+    {
+        context.Response.Body.Position = 0;
+        return await new StreamReader(context.Response.Body).ReadToEndAsync();
     }
 }
 

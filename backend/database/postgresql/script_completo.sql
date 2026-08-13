@@ -421,6 +421,18 @@ ALTER TABLE valorapesquisa.action_plans
   ADD COLUMN IF NOT EXISTS linked_indicator text,
   ADD COLUMN IF NOT EXISTS history jsonb NOT NULL DEFAULT '[]'::jsonb;
 CREATE TABLE IF NOT EXISTS valorapesquisa.lgpd_consents (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), participant_id uuid REFERENCES valorapesquisa.participants(id), consent_type text NOT NULL, granted_at timestamptz NOT NULL DEFAULT now(), revoked_at timestamptz);
+ALTER TABLE valorapesquisa.lgpd_consents
+  ADD COLUMN IF NOT EXISTS survey_id uuid,
+  ADD COLUMN IF NOT EXISTS response_id uuid,
+  ADD COLUMN IF NOT EXISTS participant_email_hash text,
+  ADD COLUMN IF NOT EXISTS consent_text text,
+  ADD COLUMN IF NOT EXISTS consent_version varchar(32),
+  ADD COLUMN IF NOT EXISTS accepted boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS accepted_at timestamptz,
+  ADD COLUMN IF NOT EXISTS ip_hash text,
+  ADD COLUMN IF NOT EXISTS user_agent text,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.lgpd_consents ALTER COLUMN consent_type SET DEFAULT 'diagnostic_response';
 CREATE TABLE IF NOT EXISTS valorapesquisa.privacy_requests (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), requester_hash text NOT NULL, request_type text NOT NULL, protocol text NOT NULL DEFAULT encode(gen_random_bytes(24), 'hex'), status text NOT NULL DEFAULT 'open', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 ALTER TABLE valorapesquisa.privacy_requests ADD COLUMN IF NOT EXISTS protocol text;
 UPDATE valorapesquisa.privacy_requests SET protocol = encode(gen_random_bytes(24), 'hex') WHERE protocol IS NULL OR btrim(protocol) = '';

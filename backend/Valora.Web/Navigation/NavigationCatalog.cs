@@ -23,6 +23,7 @@ public sealed class NavigationCatalog
         Section("intelligence", "Inteligência", 30,
             Item("intelligence.results", "Resultados", "Devolutivas e análises executivas", "Results", "chart-radar", null, "results", "results", "organization", 10, Results),
             Item("intelligence.organizational", "Inteligência Organizacional", "Dashboard, Heatmap, Evolution, Journey e Action Valora™", "Intelligence", "brain", "organizational_intelligence.read", "organizational_intelligence", "organizational_intelligence", "organization", 15, Results),
+            ItemAction("intelligence.processing", "Centro de Processamento", "Fila, etapas, falhas e reprocessamentos", "Intelligence", "Processing", "activity", "organizational_intelligence", 15, Administrators),
             ItemAction("intelligence.evidence", "Evidências", "Origem verificável das leituras", "Intelligence", "Evidence", "activity", "organizational_intelligence", 16, Results),
             ItemAction("intelligence.metrics", "Metrics™", "Indicadores com contexto e evidência", "Intelligence", "Metrics", "chart-radar", "organizational_intelligence", 17, Results),
             ItemAction("intelligence.indices", "Índices Valora™", "Índices oficiais e composição", "Intelligence", "Indices", "layers", "organizational_intelligence", 18, Results),

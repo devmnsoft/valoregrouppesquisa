@@ -92,6 +92,10 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPlatformGovernanceService, PlatformGovernanceService>();
         services.AddScoped<IOrganizationalIntelligencePipeline, OrganizationalIntelligencePipeline>();
+        services.AddScoped<IIntelligenceProcessingJobService, IntelligenceProcessingJobService>();
+        services.AddScoped<IIntelligenceReprocessService>(sp => (IntelligenceProcessingJobService)sp.GetRequiredService<IIntelligenceProcessingJobService>());
+        services.AddScoped<IIntelligenceStageLogger, IntelligenceStageLogger>();
+        services.AddScoped<IIntelligenceProcessingOrchestrator, IntelligenceProcessingOrchestrator>();
         services.AddScoped<IValoraBotService, ValoraBotService>();
         services.AddScoped<IMethodologyService, MethodologyService>();
         services.AddSingleton<ValoraInferenceEngine>();

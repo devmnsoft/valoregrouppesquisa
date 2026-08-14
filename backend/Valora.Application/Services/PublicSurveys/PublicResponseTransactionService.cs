@@ -10,7 +10,7 @@ using Valora.Application.OrganizationalIntelligence;
 
 namespace Valora.Application.Services;
 
-public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IResponseRepository responses, IResultRepository results, ICertificateRepository certificates, ICommunicationRepository communications, IAuditRepository audit, ILgpdRepository lgpd, IResultTokenService tokens, IOrganizationalIntelligencePipeline intelligencePipeline, ILogger<PublicResponseTransactionService> logger)
+public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IResponseRepository responses, IResultRepository results, ICertificateRepository certificates, ICommunicationRepository communications, IAuditRepository audit, ILgpdRepository lgpd, IResultTokenService tokens, IIntelligenceProcessingJobService processingJobs, ILogger<PublicResponseTransactionService> logger)
 {
     public async Task<SubmitSurveyResponseResult> SaveAsync(SurveyPublicReadModel survey, SubmitSurveyResponseRequest request, IReadOnlyList<ScoredAnswer> scored, ValoraInsightResult calc, IReadOnlyList<DimensionScoreInput> dimensions)
     {
@@ -39,8 +39,8 @@ public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IR
             logger.LogInformation("Public response transaction committed. SurveyId={SurveyId} OrganizationId={OrganizationId} ResponseId={ResponseId}", survey.Id, survey.OrganizationId, responseId);
             try
             {
-                await intelligencePipeline.ProcessResponseAsync(new(survey.OrganizationId, survey.Id, responseId, survey.FormId), CancellationToken.None);
-                logger.LogInformation("Organizational intelligence pipeline completed. SurveyId={SurveyId} ResponseId={ResponseId}", survey.Id, responseId);
+                var jobId = await processingJobs.EnqueueResponseProcessingAsync(new(survey.OrganizationId, survey.Id, responseId, survey.FormId), $"public-response-{responseId:N}", CancellationToken.None);
+                logger.LogInformation("Organizational intelligence processing job {JobId} queued. SurveyId={SurveyId} ResponseId={ResponseId}", jobId, survey.Id, responseId);
             }
             catch (Exception pipelineError)
             {

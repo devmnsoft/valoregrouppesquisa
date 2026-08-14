@@ -1,5 +1,6 @@
 using Serilog;
 using Valora.Api.Configuration;
+using Valora.Api;
 using Valora.Api.Middleware;
 using Valora.Application.DependencyInjection;
 using Valora.Infrastructure.DependencyInjection;
@@ -17,6 +18,8 @@ builder.Services.Configure<Valora.Api.Configuration.FreeSurveySecurityOptions>(b
 builder.Services.AddApiServices(builder.Configuration);
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
+builder.Services.Configure<IntelligenceProcessingOptions>(builder.Configuration.GetSection("Valora:Processing"));
+builder.Services.AddHostedService<IntelligenceProcessingWorker>();
 
 var app = builder.Build();
 

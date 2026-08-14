@@ -43,6 +43,8 @@ public sealed class IntelligenceController : Controller
     public IActionResult ExecutiveReport() => Workspace("executive-report");
     public IActionResult OneOnOne() => Workspace("one-on-one");
     public IActionResult PlatformGovernance() => Workspace("platform-governance");
+    [HttpGet("Intelligence/Processing")]
+    public IActionResult Processing() => View();
     public IActionResult Integrations() => Workspace("integrations");
 
     [HttpGet("Intelligence/{module}")]

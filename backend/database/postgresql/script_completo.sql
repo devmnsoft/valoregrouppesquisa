@@ -1757,3 +1757,33 @@ ALTER TABLE valorapesquisa.insights ADD COLUMN IF NOT EXISTS job_id uuid;
 ALTER TABLE valorapesquisa.insights ADD COLUMN IF NOT EXISTS run_id uuid;
 ALTER TABLE valorapesquisa.insights ADD COLUMN IF NOT EXISTS is_current boolean NOT NULL DEFAULT true;
 ALTER TABLE valorapesquisa.insights ADD COLUMN IF NOT EXISTS superseded_at timestamptz;
+
+-- Workspace Executivo por Ciclo Diagnóstico (aditivo, idempotente e não destrutivo)
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnostic_cycles (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ survey_id uuid NOT NULL REFERENCES valorapesquisa.surveys(id), form_id uuid REFERENCES valorapesquisa.forms(id), title text NOT NULL,
+ description text, cycle_number int NOT NULL DEFAULT 1, methodology_version varchar(40) NOT NULL DEFAULT '1', status varchar(40) NOT NULL DEFAULT 'draft',
+ opened_at timestamptz, published_at timestamptz, closed_at timestamptz, processed_at timestamptz, report_generated_at timestamptz,
+ response_count int NOT NULL DEFAULT 0, evidence_count int NOT NULL DEFAULT 0, confidence_level numeric(6,2), processing_status varchar(40) NOT NULL DEFAULT 'pending',
+ created_by uuid, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_diagnostic_cycles_survey ON valorapesquisa.diagnostic_cycles(organization_id,survey_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_diagnostic_cycles_org_status ON valorapesquisa.diagnostic_cycles(organization_id,status,created_at DESC) WHERE deleted_at IS NULL;
+
+DO $workspace$
+DECLARE t text;
+BEGIN
+ FOREACH t IN ARRAY ARRAY['evidence_items','metric_values','index_values','inference_results','insights','valora_actions','evolution_cycles','journey_events','heatmap_snapshots','radar_snapshots','benchmark_runs','executive_reports','platform_governance_events','notifications','intelligent_alerts'] LOOP
+  IF to_regclass('valorapesquisa.'||t) IS NOT NULL THEN
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS survey_id uuid',t);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS cycle_id uuid',t);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS source_hash text',t);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS idempotency_key text',t);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS job_id uuid',t);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS run_id uuid',t);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS methodology_version varchar(40) NOT NULL DEFAULT ''1''',t);
+   EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON valorapesquisa.%I(organization_id,survey_id) WHERE survey_id IS NOT NULL','ix_'||t||'_workspace_survey',t);
+   EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON valorapesquisa.%I(organization_id,cycle_id) WHERE cycle_id IS NOT NULL','ix_'||t||'_workspace_cycle',t);
+  END IF;
+ END LOOP;
+END $workspace$;

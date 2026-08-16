@@ -9,7 +9,7 @@ namespace Valora.Web.Controllers;
 [Authorize, ApiController, AutoValidateAntiforgeryToken, Route("bff/intelligence")]
 public sealed class BffIntelligenceController(IBffApiClient api, BffAuthenticationService authentication) : ControllerBase
 {
-    [AcceptVerbs("GET", "POST", "PATCH")]
+    [AcceptVerbs("GET", "POST", "PATCH", "DELETE")]
     [Route("{**resource}")]
     public async Task<IActionResult> Forward(string? resource, CancellationToken ct)
     {

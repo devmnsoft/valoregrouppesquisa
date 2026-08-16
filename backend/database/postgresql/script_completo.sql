@@ -1260,6 +1260,9 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.valora_actions(
  created_by uuid REFERENCES valorapesquisa.users(id), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_valora_actions_code ON valorapesquisa.valora_actions(organization_id,code) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS ix_valora_actions_priority ON valorapesquisa.valora_actions(organization_id,status,priority,due_at) WHERE deleted_at IS NULL;
+ALTER TABLE valorapesquisa.valora_actions DROP CONSTRAINT IF EXISTS valora_actions_status_check;
+ALTER TABLE valorapesquisa.valora_actions ADD CONSTRAINT valora_actions_status_check
+ CHECK(status IN('recommended','planned','in_progress','waiting','overdue','completed','cancelled','reviewed','replanned'));
 CREATE TABLE IF NOT EXISTS valorapesquisa.valora_action_history(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), action_id uuid NOT NULL REFERENCES valorapesquisa.valora_actions(id) ON DELETE CASCADE,
  status text NOT NULL, notes text NOT NULL, changed_by uuid REFERENCES valorapesquisa.users(id), changed_at timestamptz NOT NULL DEFAULT now());

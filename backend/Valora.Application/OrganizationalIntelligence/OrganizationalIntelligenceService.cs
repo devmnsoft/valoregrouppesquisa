@@ -15,12 +15,28 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
     public Task<IReadOnlyList<EvidenceItemDto>> EvidenceItemsAsync(Guid organizationId, CancellationToken ct) => repository.ListEvidenceItemsAsync(organizationId, ct);
     public Task<IReadOnlyList<IntelligenceModuleRecordDto>> ModuleRecordsAsync(Guid organizationId, string module, CancellationToken ct) => repository.ListModuleRecordsAsync(organizationId, module, ct);
 
-    public Task<ValoraActionDto?> UpdateActionAsync(Guid organizationId, Guid actionId, Guid userId, UpdateValoraActionRequest request, CancellationToken ct)
+    public async Task<ValoraActionDto?> UpdateActionAsync(Guid organizationId, Guid actionId, Guid userId, UpdateValoraActionRequest request, CancellationToken ct)
     {
-        string[] statuses = ["recommended", "planned", "in_progress", "waiting", "completed", "cancelled", "reviewed"];
+        string[] statuses = ["recommended", "planned", "in_progress", "waiting", "overdue", "completed", "cancelled", "reviewed", "replanned"];
         if (!statuses.Contains(request.Status, StringComparer.OrdinalIgnoreCase))
             throw new ArgumentException("Status inválido para o plano de ação.");
-        return repository.UpdateActionAsync(organizationId, actionId, request with { Status = request.Status.ToLowerInvariant() }, userId, ct);
+
+        var current = (await repository.ListActionsAsync(organizationId, ct)).FirstOrDefault(action => action.Id == actionId);
+        if (current is null) return null;
+        var status = request.Status.ToLowerInvariant();
+        var owner = request.Owner ?? current.Owner;
+        var dueAt = request.DueAt ?? current.DueAt;
+        if (status is "planned" or "in_progress" or "replanned")
+        {
+            if (string.IsNullOrWhiteSpace(owner) || dueAt is null || string.IsNullOrWhiteSpace(current.CompletionCriteria))
+                throw new ArgumentException("Uma ação planejada precisa de responsável, prazo e critério de conclusão.");
+        }
+        if (status == "completed" && string.IsNullOrWhiteSpace(request.Notes))
+            throw new ArgumentException("Registre a aprendizagem obtida antes de concluir a ação.");
+        if (status == "cancelled" && string.IsNullOrWhiteSpace(request.Notes))
+            throw new ArgumentException("Informe a justificativa para cancelar a ação.");
+
+        return await repository.UpdateActionAsync(organizationId, actionId, request with { Status = status }, userId, ct);
     }
 
     public async Task<IReadOnlyList<EvolutionPointDto>> EvolutionAsync(Guid organizationId, CancellationToken ct)
@@ -42,6 +58,12 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
             throw new ArgumentException("Título, justificativa baseada em evidências e critério de conclusão são obrigatórios.");
         if (request.EvidenceJustification.Trim().Length < 20)
             throw new ArgumentException("Descreva as evidências que sustentam a ação (mínimo de 20 caracteres).");
+        if (string.IsNullOrWhiteSpace(request.Capability) || string.IsNullOrWhiteSpace(request.Indicators) || string.IsNullOrWhiteSpace(request.ExpectedResult))
+            throw new ArgumentException("Capacidade organizacional, indicador e resultado esperado são obrigatórios.");
+        if (!new[] { "critical", "high", "medium", "low" }.Contains(request.Priority, StringComparer.OrdinalIgnoreCase))
+            throw new ArgumentException("Prioridade inválida para o plano de ação.");
+        if (!new[] { "low", "medium", "high" }.Contains(request.Complexity, StringComparer.OrdinalIgnoreCase))
+            throw new ArgumentException("Complexidade inválida para o plano de ação.");
         var now = DateTime.UtcNow;
         var item = new ValoraActionDto(Guid.NewGuid(), organizationId, $"ACT-{now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
             request.Title.Trim(), request.Description.Trim(), request.EvidenceJustification.Trim(), request.Capability.Trim(),

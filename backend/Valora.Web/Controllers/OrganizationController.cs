@@ -17,4 +17,10 @@ public sealed class OrganizationController(ILogger<OrganizationController> logge
             throw;
         }
     }
+
+    [HttpGet("Organization/Structure")]
+    public IActionResult Structure() => Redirect("/Organization#org-structure");
+
+    [HttpGet("Onboarding")]
+    public IActionResult Onboarding() => Redirect("/Organization#org-onboarding");
 }

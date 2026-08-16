@@ -26,6 +26,11 @@ public sealed class OrganizationRepository(IDbConnectionFactory factory, ILogger
                 o.created_at AS "CreatedAt",
                 o.updated_at AS "UpdatedAt",
                 o.version AS "Version"
+                ,o.legal_name AS "LegalName", o.cnpj AS "Cnpj", o.segment AS "Segment", o.cnae AS "Cnae"
+                ,o.company_size AS "CompanySize", o.approximate_employee_count AS "ApproximateEmployeeCount"
+                ,o.leadership_count AS "LeadershipCount", o.business_model AS "BusinessModel", o.region AS "Region"
+                ,o.city AS "City", o.state AS "State", o.primary_contact_name AS "PrimaryContactName"
+                ,o.minimum_aggregation_size AS "MinimumAggregationSize"
             FROM valorapesquisa.organizations o
             WHERE o.id = @id
               AND o.deleted_at IS NULL
@@ -61,9 +66,19 @@ public sealed class OrganizationRepository(IDbConnectionFactory factory, ILogger
                 public_name=COALESCE(@PublicName,public_name), phone=COALESCE(@Phone,phone),
                 email=COALESCE(@Email,email), default_language_code=COALESCE(@DefaultLanguageCode,default_language_code),
                 time_zone=COALESCE(@TimeZone,time_zone), version=version+1, updated_at=now()
+                ,legal_name=COALESCE(@LegalName,legal_name), cnpj=COALESCE(@Cnpj,cnpj), segment=COALESCE(@Segment,segment)
+                ,cnae=COALESCE(@Cnae,cnae), company_size=COALESCE(@CompanySize,company_size)
+                ,approximate_employee_count=COALESCE(@ApproximateEmployeeCount,approximate_employee_count)
+                ,leadership_count=COALESCE(@LeadershipCount,leadership_count), business_model=COALESCE(@BusinessModel,business_model)
+                ,region=COALESCE(@Region,region), city=COALESCE(@City,city), state=COALESCE(@State,state)
+                ,primary_contact_name=COALESCE(@PrimaryContactName,primary_contact_name)
+                ,minimum_aggregation_size=COALESCE(@MinimumAggregationSize,minimum_aggregation_size)
             WHERE id=@id AND version=@ExpectedVersion AND deleted_at IS NULL
             RETURNING version
-            """,new{request.PublicName,request.Phone,request.Email,request.DefaultLanguageCode,request.TimeZone,request.ExpectedVersion,id}, cancellationToken: cancellationToken));
+            """,new{request.PublicName,request.Phone,request.Email,request.DefaultLanguageCode,request.TimeZone,request.ExpectedVersion,
+                request.LegalName,request.Cnpj,request.Segment,request.Cnae,request.CompanySize,request.ApproximateEmployeeCount,
+                request.LeadershipCount,request.BusinessModel,request.Region,request.City,request.State,request.PrimaryContactName,
+                request.MinimumAggregationSize,id}, cancellationToken: cancellationToken));
     }
 
     public async Task<int> CountManagersAsync(Guid organizationId)

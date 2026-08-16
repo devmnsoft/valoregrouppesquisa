@@ -11,11 +11,13 @@
   let timer;
 
   const commands = [
-    ['Criar diagnóstico', 'Novo ciclo de escuta', '/Surveys'], ['Criar formulário', 'Abrir o estúdio de diagnósticos', '/Forms'], ['Dashboard', 'Visão executiva', '/Dashboard'],
+    ['Criar Novo Diagnóstico', 'Assistente do próximo ciclo de escuta', '/Diagnostics/New'], ['Criar formulário', 'Abrir o estúdio de diagnósticos', '/Forms'], ['Dashboard', 'Visão executiva', '/Dashboard'],
     ['Diagnósticos', 'Pesquisas e campanhas', '/Surveys'], ['Formulários', 'Estúdio de diagnósticos', '/Forms'],
     ['Resultados', 'Respostas e devolutivas', '/Responses'], ['Certificados', 'Emissão e validação', '/Certificates/Validate'],
     ['Usuários', 'Pessoas, papéis e acessos', '/Users'], ['Organização', 'Estrutura e identidade', '/Organization'],
-    ['Planos', 'Plano atual e limites', '/Plans'], ['Auditoria', 'Eventos e rastreabilidade', '/Audit'],
+    ['Abrir Estrutura Organizacional', 'Unidades, áreas e lideranças', '/Organization/Structure'], ['Ver Templates Oficiais', 'Biblioteca metodológica Valora', '/Experience/Templates'],
+    ['Abrir Planos e Uso', 'Plano atual e limites', '/Plans'], ['Abrir Governança', 'Eventos executivos da plataforma', '/Intelligence/PlatformGovernance'], ['Auditoria', 'Eventos e rastreabilidade', '/Audit'],
+    ['Processar Inteligência', 'Centro de processamento organizacional', '/Intelligence/Processing'], ['Gerar Executive Report', 'Relatório executivo rastreável', '/Intelligence/ExecutiveReport'],
     ['Inteligência', 'Evidências e recomendações', '/Intelligence'], ['Plano de ação', 'Compromissos e evolução', '/ActionPlans'],
     ['Relatórios executivos', 'Preview e exportações seguras', '/Reports'], ['Configurações', 'Preferências e segurança', '/Settings'],
     ['Sair', 'Encerrar a sessão com segurança', '/Account/Logout']

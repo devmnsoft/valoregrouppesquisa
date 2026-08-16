@@ -1,5 +1,6 @@
 using Dapper;
 using Microsoft.Extensions.Logging;
+using Valora.Application.Contracts;
 using Valora.Infrastructure.Repositories;
 
 namespace Valora.Infrastructure.Database;

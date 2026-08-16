@@ -1790,3 +1790,163 @@ BEGIN
   END IF;
  END LOOP;
 END $workspace$;
+
+-- Base organizacional Valora Insight (aditiva, multiempresa e historicamente versionada)
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_structure_nodes (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ parent_id uuid REFERENCES valorapesquisa.organization_structure_nodes(id), type varchar(40) NOT NULL,
+ code varchar(80), name varchar(180) NOT NULL, description text, leader_user_id uuid, executive_sponsor_user_id uuid,
+ status varchar(30) NOT NULL DEFAULT 'active', display_order int NOT NULL DEFAULT 0, version int NOT NULL DEFAULT 1,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_structure_node_name ON valorapesquisa.organization_structure_nodes(organization_id,parent_id,type,lower(name)) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_structure_nodes_tree ON valorapesquisa.organization_structure_nodes(organization_id,parent_id,display_order) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_structure_edges (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ parent_node_id uuid NOT NULL REFERENCES valorapesquisa.organization_structure_nodes(id), child_node_id uuid NOT NULL REFERENCES valorapesquisa.organization_structure_nodes(id),
+ relation_type varchar(40) NOT NULL DEFAULT 'reports_to', status varchar(30) NOT NULL DEFAULT 'active', version int NOT NULL DEFAULT 1,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_structure_edges_active ON valorapesquisa.organization_structure_edges(organization_id,parent_node_id,child_node_id,relation_type) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_structure_snapshots (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), cycle_id uuid NOT NULL REFERENCES valorapesquisa.diagnostic_cycles(id),
+ version int NOT NULL DEFAULT 1, status varchar(30) NOT NULL DEFAULT 'active', methodology_version varchar(40) NOT NULL DEFAULT '1',
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_structure_snapshot_cycle ON valorapesquisa.organization_structure_snapshots(organization_id,cycle_id,version) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_structure_snapshot_items (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), snapshot_id uuid NOT NULL REFERENCES valorapesquisa.organization_structure_snapshots(id),
+ source_node_id uuid NOT NULL, parent_source_node_id uuid, type varchar(40) NOT NULL, code varchar(80), name varchar(180) NOT NULL,
+ leader_user_id uuid, executive_sponsor_user_id uuid, status varchar(30) NOT NULL, version int NOT NULL DEFAULT 1,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_structure_snapshot_items ON valorapesquisa.organization_structure_snapshot_items(organization_id,snapshot_id,type);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_positions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), node_id uuid REFERENCES valorapesquisa.organization_structure_nodes(id),
+ code varchar(80), name varchar(180) NOT NULL, hierarchical_level varchar(80), status varchar(30) NOT NULL DEFAULT 'active', version int NOT NULL DEFAULT 1,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_leadership_assignments (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), node_id uuid NOT NULL REFERENCES valorapesquisa.organization_structure_nodes(id),
+ user_id uuid NOT NULL, position_id uuid REFERENCES valorapesquisa.organization_positions(id), assignment_type varchar(40) NOT NULL DEFAULT 'leader',
+ starts_at timestamptz NOT NULL DEFAULT now(), ends_at timestamptz, status varchar(30) NOT NULL DEFAULT 'active', version int NOT NULL DEFAULT 1,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnostic_audiences (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), cycle_id uuid REFERENCES valorapesquisa.diagnostic_cycles(id),
+ name varchar(180) NOT NULL, description text, minimum_aggregation_size int NOT NULL DEFAULT 5 CHECK (minimum_aggregation_size >= 3),
+ anonymity_mode varchar(30) NOT NULL DEFAULT 'anonymous', opening_message text, lgpd_term text, communication_consent_enabled boolean NOT NULL DEFAULT false,
+ status varchar(30) NOT NULL DEFAULT 'draft', version int NOT NULL DEFAULT 1, methodology_version varchar(40) NOT NULL DEFAULT '1',
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_diagnostic_audiences_org ON valorapesquisa.diagnostic_audiences(organization_id,status,created_at DESC) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnostic_audience_segments (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), audience_id uuid NOT NULL REFERENCES valorapesquisa.diagnostic_audiences(id),
+ segment_type varchar(60) NOT NULL, structure_node_id uuid REFERENCES valorapesquisa.organization_structure_nodes(id), value text, required boolean NOT NULL DEFAULT false,
+ status varchar(30) NOT NULL DEFAULT 'active', version int NOT NULL DEFAULT 1, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnostic_participant_fields (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), audience_id uuid NOT NULL REFERENCES valorapesquisa.diagnostic_audiences(id),
+ field_key varchar(80) NOT NULL, label varchar(180) NOT NULL, field_type varchar(40) NOT NULL, required boolean NOT NULL DEFAULT false,
+ is_anonymous boolean NOT NULL DEFAULT true, is_sensitive boolean NOT NULL DEFAULT false, justification text, display_order int NOT NULL DEFAULT 0,
+ status varchar(30) NOT NULL DEFAULT 'active', version int NOT NULL DEFAULT 1, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnostic_participant_segment_values (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), cycle_id uuid REFERENCES valorapesquisa.diagnostic_cycles(id),
+ response_id uuid, audience_id uuid NOT NULL REFERENCES valorapesquisa.diagnostic_audiences(id), segment_id uuid NOT NULL REFERENCES valorapesquisa.diagnostic_audience_segments(id),
+ value_hash text NOT NULL, structure_snapshot_item_id uuid REFERENCES valorapesquisa.organization_structure_snapshot_items(id), status varchar(30) NOT NULL DEFAULT 'active',
+ version int NOT NULL DEFAULT 1, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_participant_segments_privacy ON valorapesquisa.diagnostic_participant_segment_values(organization_id,cycle_id,segment_id);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.form_templates (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), origin_template_id uuid REFERENCES valorapesquisa.form_templates(id),
+ name varchar(180) NOT NULL, description text, objective text NOT NULL, recommended_audience text, estimated_minutes int,
+ concepts_json jsonb NOT NULL DEFAULT '[]'::jsonb, indices_json jsonb NOT NULL DEFAULT '[]'::jsonb, metrics_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+ coverage_score numeric(5,2) NOT NULL DEFAULT 0, is_official boolean NOT NULL DEFAULT false, version int NOT NULL DEFAULT 1,
+ methodology_version varchar(40) NOT NULL DEFAULT '1', status varchar(30) NOT NULL DEFAULT 'draft', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_form_templates_catalog ON valorapesquisa.form_templates(is_official,organization_id,status,name) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.form_template_sections (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), template_id uuid NOT NULL REFERENCES valorapesquisa.form_templates(id), name varchar(180) NOT NULL,
+ description text, display_order int NOT NULL DEFAULT 0, weight numeric(8,4) NOT NULL DEFAULT 1, status varchar(30) NOT NULL DEFAULT 'active', version int NOT NULL DEFAULT 1,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.form_template_questions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), template_id uuid NOT NULL REFERENCES valorapesquisa.form_templates(id), section_id uuid REFERENCES valorapesquisa.form_template_sections(id),
+ text text NOT NULL, question_type varchar(40) NOT NULL DEFAULT 'scale', scale_min int, scale_max int, weight numeric(8,4) NOT NULL DEFAULT 1,
+ polarity varchar(20) NOT NULL DEFAULT 'positive', display_order int NOT NULL DEFAULT 0, status varchar(30) NOT NULL DEFAULT 'active', version int NOT NULL DEFAULT 1,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.form_template_mappings (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), template_id uuid NOT NULL REFERENCES valorapesquisa.form_templates(id), question_id uuid NOT NULL REFERENCES valorapesquisa.form_template_questions(id),
+ target_type varchar(40) NOT NULL, target_code varchar(100) NOT NULL, weight numeric(8,4) NOT NULL DEFAULT 1, status varchar(30) NOT NULL DEFAULT 'active', version int NOT NULL DEFAULT 1,
+ methodology_version varchar(40) NOT NULL DEFAULT '1', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.form_template_versions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), template_id uuid NOT NULL REFERENCES valorapesquisa.form_templates(id), version int NOT NULL,
+ snapshot_json jsonb NOT NULL, methodology_version varchar(40) NOT NULL, status varchar(30) NOT NULL DEFAULT 'published', correlation_id text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ UNIQUE(template_id,version));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_onboarding_state (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), hidden boolean NOT NULL DEFAULT false,
+ completed_at timestamptz, progress_percent int NOT NULL DEFAULT 0 CHECK(progress_percent BETWEEN 0 AND 100), status varchar(30) NOT NULL DEFAULT 'active',
+ version int NOT NULL DEFAULT 1, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_onboarding_state_org ON valorapesquisa.organization_onboarding_state(organization_id) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_onboarding_steps (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), step_key varchar(80) NOT NULL,
+ completed_at timestamptz, evidence_entity_type varchar(80), evidence_entity_id uuid, status varchar(30) NOT NULL DEFAULT 'pending', display_order int NOT NULL,
+ version int NOT NULL DEFAULT 1, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_onboarding_step_org ON valorapesquisa.organization_onboarding_steps(organization_id,step_key) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.plan_features (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), plan_id uuid NOT NULL, feature_key varchar(100) NOT NULL, enabled boolean NOT NULL DEFAULT false,
+ status varchar(30) NOT NULL DEFAULT 'active', version int NOT NULL DEFAULT 1, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_features ON valorapesquisa.plan_features(plan_id,feature_key) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.plan_limits (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), plan_id uuid NOT NULL, limit_key varchar(100) NOT NULL, limit_value bigint NOT NULL,
+ status varchar(30) NOT NULL DEFAULT 'active', version int NOT NULL DEFAULT 1, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_limits ON valorapesquisa.plan_limits(plan_id,limit_key) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.usage_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), subscription_id uuid,
+ feature_key varchar(100) NOT NULL, quantity bigint NOT NULL DEFAULT 1, allowed boolean NOT NULL DEFAULT true, reason text, correlation_id text,
+ status varchar(30) NOT NULL DEFAULT 'recorded', version int NOT NULL DEFAULT 1, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_usage_events_org ON valorapesquisa.usage_events(organization_id,feature_key,created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.subscription_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), subscription_id uuid,
+ action varchar(80) NOT NULL, before_json jsonb, after_json jsonb, reason text, correlation_id text, status varchar(30) NOT NULL DEFAULT 'recorded',
+ version int NOT NULL DEFAULT 1, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_subscription_events_org ON valorapesquisa.subscription_events(organization_id,created_at DESC);
+
+ALTER TABLE valorapesquisa.diagnostic_cycles ADD COLUMN IF NOT EXISTS template_id uuid REFERENCES valorapesquisa.form_templates(id);
+ALTER TABLE valorapesquisa.diagnostic_cycles ADD COLUMN IF NOT EXISTS audience_id uuid REFERENCES valorapesquisa.diagnostic_audiences(id);
+ALTER TABLE valorapesquisa.diagnostic_cycles ADD COLUMN IF NOT EXISTS structure_snapshot_id uuid REFERENCES valorapesquisa.organization_structure_snapshots(id);
+ALTER TABLE valorapesquisa.diagnostic_cycles ADD COLUMN IF NOT EXISTS template_snapshot_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE valorapesquisa.diagnostic_cycles ADD COLUMN IF NOT EXISTS collection_starts_at timestamptz;
+ALTER TABLE valorapesquisa.diagnostic_cycles ADD COLUMN IF NOT EXISTS collection_ends_at timestamptz;
+ALTER TABLE valorapesquisa.diagnostic_cycles ADD COLUMN IF NOT EXISTS correlation_id text;
+
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS legal_name varchar(180);
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS cnpj varchar(14);
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS segment varchar(120);
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS cnae varchar(16);
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS company_size varchar(40);
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS approximate_employee_count int;
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS leadership_count int;
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS business_model varchar(40);
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS region varchar(80);
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS city varchar(120);
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS state varchar(2);
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS primary_contact_name varchar(180);
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS minimum_aggregation_size int NOT NULL DEFAULT 5;
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS diagnostic_cycle_settings_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_organizations_cnpj ON valorapesquisa.organizations(cnpj) WHERE cnpj IS NOT NULL AND deleted_at IS NULL;
+
+ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS module varchar(80);
+ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS entity_type varchar(80);
+ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS entity_id uuid;
+ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS action varchar(100);
+ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS before_json jsonb;
+ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS after_json jsonb;
+ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS reason text;
+ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS correlation_id text;
+CREATE INDEX IF NOT EXISTS ix_platform_governance_entity ON valorapesquisa.platform_governance_events(organization_id,entity_type,entity_id,created_at DESC) WHERE deleted_at IS NULL;

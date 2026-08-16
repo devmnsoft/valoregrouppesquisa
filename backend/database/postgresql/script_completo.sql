@@ -1695,3 +1695,95 @@ WHERE f.code='valora-official' AND q.deleted_at IS NULL ON CONFLICT DO NOTHING;
 INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_intelligence_pipeline','sha256:evidence-mapping-pipeline-v1')
 ON CONFLICT(version) DO UPDATE SET checksum=EXCLUDED.checksum;
 COMMIT;
+
+-- Centro Operacional de Processamento Valora (fila interna idempotente e auditável)
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligence_processing_jobs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, survey_id uuid NULL, response_id uuid NULL,
+ form_id uuid NULL, source_entity_id uuid NULL, trigger text NOT NULL, status text NOT NULL DEFAULT 'pending', priority int NOT NULL DEFAULT 5,
+ attempts int NOT NULL DEFAULT 0, max_attempts int NOT NULL DEFAULT 3, scheduled_at timestamptz NOT NULL DEFAULT now(), started_at timestamptz NULL,
+ completed_at timestamptz NULL, failed_at timestamptz NULL, next_attempt_at timestamptz NULL, locked_at timestamptz NULL, locked_by text NULL,
+ error_code text NULL, error_message text NULL, correlation_id text NULL, run_id uuid NULL, idempotency_key text NOT NULL,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz NULL);
+ALTER TABLE valorapesquisa.intelligence_processing_jobs ADD COLUMN IF NOT EXISTS run_id uuid NULL;
+ALTER TABLE valorapesquisa.intelligence_processing_jobs ADD COLUMN IF NOT EXISTS idempotency_key text;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_intelligence_processing_active_key ON valorapesquisa.intelligence_processing_jobs(organization_id,idempotency_key) WHERE deleted_at IS NULL AND status IN ('pending','running','retry_scheduled');
+CREATE INDEX IF NOT EXISTS ix_intelligence_processing_jobs_org ON valorapesquisa.intelligence_processing_jobs(organization_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_intelligence_processing_jobs_status ON valorapesquisa.intelligence_processing_jobs(status,next_attempt_at,locked_at);
+CREATE INDEX IF NOT EXISTS ix_intelligence_processing_jobs_trigger ON valorapesquisa.intelligence_processing_jobs(trigger);
+CREATE INDEX IF NOT EXISTS ix_intelligence_processing_jobs_survey ON valorapesquisa.intelligence_processing_jobs(survey_id) WHERE survey_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_intelligence_processing_jobs_response ON valorapesquisa.intelligence_processing_jobs(response_id) WHERE response_id IS NOT NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligence_pipeline_runs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_id uuid NOT NULL REFERENCES valorapesquisa.intelligence_processing_jobs(id), organization_id uuid NOT NULL,
+ trigger text NOT NULL, status text NOT NULL, correlation_id text NULL, started_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz NULL,
+ error_code text NULL,error_message text NULL,metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_intelligence_pipeline_runs_job ON valorapesquisa.intelligence_pipeline_runs(job_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_intelligence_pipeline_runs_org ON valorapesquisa.intelligence_pipeline_runs(organization_id,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligence_pipeline_stage_runs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),job_id uuid NOT NULL REFERENCES valorapesquisa.intelligence_processing_jobs(id),run_id uuid NOT NULL,
+ organization_id uuid NOT NULL,stage text NOT NULL,status text NOT NULL,records int NOT NULL DEFAULT 0,sufficient_evidence boolean NOT NULL DEFAULT false,
+ message text NOT NULL,started_at timestamptz NOT NULL,completed_at timestamptz NULL,duration_ms bigint NULL,error_code text NULL,error_message text NULL,
+ evidence_ids jsonb NOT NULL DEFAULT '[]'::jsonb,metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_intelligence_stage_runs_job ON valorapesquisa.intelligence_pipeline_stage_runs(job_id,created_at);
+CREATE INDEX IF NOT EXISTS ix_intelligence_stage_runs_run ON valorapesquisa.intelligence_pipeline_stage_runs(run_id,created_at);
+CREATE INDEX IF NOT EXISTS ix_intelligence_stage_runs_status ON valorapesquisa.intelligence_pipeline_stage_runs(organization_id,status,stage);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligence_processing_failures (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL,job_id uuid NOT NULL,run_id uuid NULL,stage text NULL,error_code text NOT NULL,
+ error_message text NOT NULL,correlation_id text NULL,metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now(),resolved_at timestamptz NULL);
+CREATE INDEX IF NOT EXISTS ix_intelligence_failures_job ON valorapesquisa.intelligence_processing_failures(job_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligence_reprocess_requests (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL,job_id uuid NULL,requested_by uuid NULL,request_type text NOT NULL,status text NOT NULL,
+ correlation_id text NULL,metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_intelligence_reprocess_org ON valorapesquisa.intelligence_reprocess_requests(organization_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.module_refresh_queue (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL,job_id uuid NOT NULL,run_id uuid NULL,module text NOT NULL,status text NOT NULL DEFAULT 'pending',
+ idempotency_key text NOT NULL,metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_module_refresh_key ON valorapesquisa.module_refresh_queue(organization_id,idempotency_key) WHERE deleted_at IS NULL;
+
+-- Proveniência e versionamento preservam snapshots antigos sem remover dados reais.
+ALTER TABLE valorapesquisa.evidence_items ADD COLUMN IF NOT EXISTS source_hash text;
+ALTER TABLE valorapesquisa.evidence_items ADD COLUMN IF NOT EXISTS job_id uuid;
+ALTER TABLE valorapesquisa.evidence_items ADD COLUMN IF NOT EXISTS run_id uuid;
+ALTER TABLE valorapesquisa.metric_values ADD COLUMN IF NOT EXISTS source_hash text;
+ALTER TABLE valorapesquisa.metric_values ADD COLUMN IF NOT EXISTS job_id uuid;
+ALTER TABLE valorapesquisa.metric_values ADD COLUMN IF NOT EXISTS run_id uuid;
+ALTER TABLE valorapesquisa.index_values ADD COLUMN IF NOT EXISTS source_hash text;
+ALTER TABLE valorapesquisa.index_values ADD COLUMN IF NOT EXISTS job_id uuid;
+ALTER TABLE valorapesquisa.index_values ADD COLUMN IF NOT EXISTS run_id uuid;
+ALTER TABLE valorapesquisa.insights ADD COLUMN IF NOT EXISTS idempotency_key text;
+ALTER TABLE valorapesquisa.insights ADD COLUMN IF NOT EXISTS job_id uuid;
+ALTER TABLE valorapesquisa.insights ADD COLUMN IF NOT EXISTS run_id uuid;
+ALTER TABLE valorapesquisa.insights ADD COLUMN IF NOT EXISTS is_current boolean NOT NULL DEFAULT true;
+ALTER TABLE valorapesquisa.insights ADD COLUMN IF NOT EXISTS superseded_at timestamptz;
+
+-- Workspace Executivo por Ciclo Diagnóstico (aditivo, idempotente e não destrutivo)
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnostic_cycles (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ survey_id uuid NOT NULL REFERENCES valorapesquisa.surveys(id), form_id uuid REFERENCES valorapesquisa.forms(id), title text NOT NULL,
+ description text, cycle_number int NOT NULL DEFAULT 1, methodology_version varchar(40) NOT NULL DEFAULT '1', status varchar(40) NOT NULL DEFAULT 'draft',
+ opened_at timestamptz, published_at timestamptz, closed_at timestamptz, processed_at timestamptz, report_generated_at timestamptz,
+ response_count int NOT NULL DEFAULT 0, evidence_count int NOT NULL DEFAULT 0, confidence_level numeric(6,2), processing_status varchar(40) NOT NULL DEFAULT 'pending',
+ created_by uuid, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_diagnostic_cycles_survey ON valorapesquisa.diagnostic_cycles(organization_id,survey_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_diagnostic_cycles_org_status ON valorapesquisa.diagnostic_cycles(organization_id,status,created_at DESC) WHERE deleted_at IS NULL;
+
+DO $workspace$
+DECLARE t text;
+BEGIN
+ FOREACH t IN ARRAY ARRAY['evidence_items','metric_values','index_values','inference_results','insights','valora_actions','evolution_cycles','journey_events','heatmap_snapshots','radar_snapshots','benchmark_runs','executive_reports','platform_governance_events','notifications','intelligent_alerts'] LOOP
+  IF to_regclass('valorapesquisa.'||t) IS NOT NULL THEN
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS survey_id uuid',t);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS cycle_id uuid',t);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS source_hash text',t);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS idempotency_key text',t);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS job_id uuid',t);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS run_id uuid',t);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS methodology_version varchar(40) NOT NULL DEFAULT ''1''',t);
+   EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON valorapesquisa.%I(organization_id,survey_id) WHERE survey_id IS NOT NULL','ix_'||t||'_workspace_survey',t);
+   EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON valorapesquisa.%I(organization_id,cycle_id) WHERE cycle_id IS NOT NULL','ix_'||t||'_workspace_cycle',t);
+  END IF;
+ END LOOP;
+END $workspace$;

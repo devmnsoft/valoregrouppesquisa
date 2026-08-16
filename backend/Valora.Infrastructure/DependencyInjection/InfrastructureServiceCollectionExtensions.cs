@@ -11,6 +11,7 @@ using Valora.Application.Enterprise;
 using Valora.Application.OrganizationalIntelligence;
 using Valora.Application.ValoraBot;
 using Valora.Application.Methodology;
+using Valora.Application.DiagnosticWorkspace;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -64,8 +65,10 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IEnterpriseRepository, EnterpriseRepository>();
         services.AddScoped<IOrganizationalIntelligenceRepository, OrganizationalIntelligenceRepository>();
         services.AddScoped<IIntelligencePipelineRepository, IntelligencePipelineRepository>();
+        services.AddScoped<IIntelligenceProcessingJobRepository, IntelligenceProcessingJobRepository>();
         services.AddScoped<IValoraBotRepository, ValoraBotRepository>();
         services.AddScoped<IMethodologyRepository, MethodologyRepository>();
+        services.AddScoped<IDiagnosticWorkspaceRepository, DiagnosticWorkspaceRepository>();
         return services;
     }
 

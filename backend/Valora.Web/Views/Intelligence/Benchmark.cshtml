@@ -1,0 +1,4 @@
+@model Valora.Web.Models.ViewModels.IntelligenceWorkspaceViewModel
+@{ ViewData["Title"] = Model.Title; }
+<partial name="_Workspace" model="Model" />
+@section Scripts { <script src="/js/pages/intelligence-benchmark.js" asp-append-version="true"></script><script src="/js/pages/intelligence-workspace.js" asp-append-version="true"></script> }

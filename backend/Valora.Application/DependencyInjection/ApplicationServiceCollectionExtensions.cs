@@ -14,6 +14,7 @@ using Valora.Application.Enterprise;
 using Valora.Application.OrganizationalIntelligence;
 using Valora.Application.ValoraBot;
 using Valora.Application.Methodology;
+using Valora.Application.DiagnosticWorkspace;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -92,8 +93,13 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPlatformGovernanceService, PlatformGovernanceService>();
         services.AddScoped<IOrganizationalIntelligencePipeline, OrganizationalIntelligencePipeline>();
+        services.AddScoped<IIntelligenceProcessingJobService, IntelligenceProcessingJobService>();
+        services.AddScoped<IIntelligenceReprocessService>(sp => (IntelligenceProcessingJobService)sp.GetRequiredService<IIntelligenceProcessingJobService>());
+        services.AddScoped<IIntelligenceStageLogger, IntelligenceStageLogger>();
+        services.AddScoped<IIntelligenceProcessingOrchestrator, IntelligenceProcessingOrchestrator>();
         services.AddScoped<IValoraBotService, ValoraBotService>();
         services.AddScoped<IMethodologyService, MethodologyService>();
+        services.AddScoped<IDiagnosticWorkspaceService, DiagnosticWorkspaceService>();
         services.AddSingleton<ValoraInferenceEngine>();
 
         services.AddScoped<Valora.Application.Contracts.ILegacyDataNormalizer, LegacyDataNormalizer>();

@@ -16,5 +16,5 @@ public sealed class OperationalIntelligenceController : Controller
 
     [HttpGet("PlanoDeAcao")]
     [HttpGet("OperationalIntelligence/ActionPlans")]
-    public IActionResult ActionPlans() => View();
+    public IActionResult ActionPlans() => RedirectToAction("Index", "ActionPlans");
 }

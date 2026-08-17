@@ -32,6 +32,12 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
     [HttpGet("permissions")]
     public Task<IActionResult> Permissions(CancellationToken cancellationToken) => ForwardAsync("/api/v1/permissions", cancellationToken);
 
+    [HttpGet("plans/{**resource}")]
+    public Task<IActionResult> Plans(string? resource, CancellationToken cancellationToken) => ForwardAsync($"/api/v1/plans/{resource}", cancellationToken);
+
+    [HttpGet("audit")]
+    public Task<IActionResult> Audit(CancellationToken cancellationToken) => ForwardAsync("/api/v1/audit", cancellationToken);
+
     [AcceptVerbs("GET", "POST")]
     [Route("notifications/{**resource}")]
     public Task<IActionResult> Notifications(string? resource, CancellationToken cancellationToken) => ForwardAsync($"/api/v1/notifications/{resource}", cancellationToken);

@@ -14,6 +14,8 @@ public sealed class SaasAdministrationController(
     ISaasAdministrationRepository repository,
     IAccessAdministrationService access,
     IPlanRepository plans,
+    IPlanEntitlementService entitlements,
+    IAuditRepository audit,
     IWebHostEnvironment environment) : ControllerBase
 {
     [HttpGet("roles")]
@@ -45,6 +47,17 @@ public sealed class SaasAdministrationController(
 
     [HttpGet("plans/limits")]
     public async Task<IActionResult> PlanLimits() => Ok((await CurrentPlanRecord())?.Limits ?? new Dictionary<string, int>());
+
+    [HttpGet("plans/usage")]
+    public async Task<IActionResult> PlanUsage() => Ok(await entitlements.GetUsageAsync(OrganizationId));
+
+    [HttpGet("audit")]
+    [Authorize(Policy = ValoraPermissions.Audit.Read)]
+    public async Task<IActionResult> Audit(CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Ok(await audit.ListAdminAsync(OrganizationId));
+    }
 
     [HttpGet("platform-governance")]
     public async Task<IActionResult> Governance([FromQuery] string? action, [FromQuery] DateTimeOffset? from, [FromQuery] DateTimeOffset? to, CancellationToken ct) =>

@@ -13,7 +13,7 @@ public sealed class DiagnosticWorkspaceController(IDiagnosticWorkspaceService se
     [HttpGet("overview")] public Task<IActionResult> Overview(Guid id,CancellationToken ct)=>Read(id,(o)=>service.GetOverviewAsync(o,id,ct));
     [HttpGet("/api/v1/diagnostics/{id:guid}/participation")] public Task<IActionResult> Participation(Guid id,CancellationToken ct)=>Read(id,o=>service.GetModuleAsync(o,id,"participation",ct));
     [HttpGet("evidence")] public Task<IActionResult> Evidence(Guid id,CancellationToken ct)=>Read(id,(o)=>service.GetEvidenceAsync(o,id,ct));
-    [HttpGet("{module:regex(^responses|metrics|indices|inferences|insights|actions|heatmap|radar|evolution|journey|benchmark|report|governance$)}")]
+    [HttpGet("{module:regex(^participation|responses|metrics|indices|inferences|insights|actions|heatmap|radar|evolution|journey|benchmark|report|governance$)}")]
     public Task<IActionResult> Module(Guid id,string module,CancellationToken ct)=>Read(id,o=>service.GetModuleAsync(o,id,module,ct));
     [HttpPost("process")] public Task<IActionResult> Process(Guid id,CancellationToken ct)=>Write(id,"organizational_intelligence.generate",o=>service.ProcessAsync(o,id,UserId,HttpContext.TraceIdentifier,ct));
     [HttpPost("close")] public Task<IActionResult> Close(Guid id,CancellationToken ct)=>Write(id,"surveys.manage",o=>service.CloseCycleAsync(o,id,UserId,HttpContext.TraceIdentifier,ct));

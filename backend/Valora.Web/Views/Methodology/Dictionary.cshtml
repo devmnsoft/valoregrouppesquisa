@@ -1,0 +1,12 @@
+@{ ViewData["Title"] = "Dicionário Cognitivo Valora™"; }
+<main class="valora-page v9-page methodology-page" data-methodology-dictionary>
+  <nav class="v9-breadcrumb"><a href="/Intelligence">Inteligência Organizacional</a><span>/</span><span>Dicionário Cognitivo</span></nav>
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Dicionário Cognitivo Valora™", "A fonte oficial da linguagem usada por métricas, índices, inferências e Actions.", "Núcleo Metodológico", "Versão e rastreabilidade"))" />
+  <section class="v9-kpis"><article><span>Conceitos oficiais</span><strong data-total>—</strong><small>ativos na metodologia</small></article><article><span>Pilares</span><strong data-pillars>—</strong><small>arquitetura sistêmica</small></article><article><span>Versão</span><strong data-version>—</strong><small>metodologia vigente</small></article></section>
+  <section class="methodology-layout">
+    <aside class="valora-card methodology-filters"><h2>Explorar</h2><label>Buscar conceito<input class="valora-input" type="search" data-search placeholder="Nome, código ou definição"></label><label>Pilar<select class="valora-input" data-pillar><option value="">Todos os pilares</option></select></label><p class="valora-alert"><strong>Vocabulário governado.</strong> Os termos desta tela são a referência dos módulos de inteligência.</p></aside>
+    <section><div class="valora-skeleton" data-loading>Carregando catálogo oficial…</div><div class="valora-alert valora-alert--danger" data-error hidden></div><div class="methodology-grid" data-concepts hidden></div><div class="valora-empty" data-empty hidden><h3>Nenhum conceito encontrado</h3><p>Ajuste os filtros. O catálogo original permanece preservado.</p></div></section>
+  </section>
+  <dialog class="valora-card intelligence-module__drawer methodology-drawer" data-drawer><button class="valora-button valora-button--ghost" data-close>Fechar</button><div data-detail></div></dialog>
+</main>
+@section Scripts { <script src="/js/pages/methodology-dictionary.js" asp-append-version="true"></script> }

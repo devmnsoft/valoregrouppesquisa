@@ -24,6 +24,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<MigrationRunner>();
         services.AddScoped<SchemaContractValidator>();
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
+        services.AddScoped<ISaasAdministrationRepository, SaasAdministrationRepository>();
         services.AddScoped<IOrganizationStructureRepository, OrganizationStructureRepository>();
         services.AddScoped<IOrganizationBrandingRepository, OrganizationBrandingRepository>();
         services.AddScoped<IUserAdministrationRepository, UserAdministrationRepository>();

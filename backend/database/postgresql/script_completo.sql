@@ -2041,3 +2041,16 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.email_delivery_events (
  provider_reference text, error_code varchar(80), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text,
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
 CREATE INDEX IF NOT EXISTS ix_email_delivery_events_job ON valorapesquisa.email_delivery_events(email_job_id,created_at DESC) WHERE deleted_at IS NULL;
+
+-- Administração SaaS: evolução aditiva para notificações, governança e saúde.
+ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS severity varchar(30) NOT NULL DEFAULT 'information';
+ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.system_health_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), component varchar(80) NOT NULL, status varchar(30) NOT NULL,
+ message text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_system_health_events_component
+ ON valorapesquisa.system_health_events(component,created_at DESC) WHERE deleted_at IS NULL;

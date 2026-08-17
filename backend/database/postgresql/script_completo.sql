@@ -2013,6 +2013,31 @@ ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS deleted_at tim
 ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS severity varchar(30) NOT NULL DEFAULT 'information';
 ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
 
+-- Entregáveis executivos: evolução aditiva do Action canônico, sem criar um
+-- segundo conceito concorrente de plano de evolução.
+ALTER TABLE valorapesquisa.valora_actions ADD COLUMN IF NOT EXISTS insight_id uuid;
+ALTER TABLE valorapesquisa.valora_actions ADD COLUMN IF NOT EXISTS inference_id uuid;
+ALTER TABLE valorapesquisa.valora_actions ADD COLUMN IF NOT EXISTS concept_code varchar(100);
+ALTER TABLE valorapesquisa.valora_actions ADD COLUMN IF NOT EXISTS urgency varchar(30);
+ALTER TABLE valorapesquisa.valora_actions ADD COLUMN IF NOT EXISTS impact text;
+ALTER TABLE valorapesquisa.valora_actions ADD COLUMN IF NOT EXISTS learning_record text;
+ALTER TABLE valorapesquisa.valora_actions ADD COLUMN IF NOT EXISTS completed_at timestamptz;
+ALTER TABLE valorapesquisa.valora_actions ADD COLUMN IF NOT EXISTS cancelled_at timestamptz;
+ALTER TABLE valorapesquisa.valora_actions ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE valorapesquisa.valora_actions ADD COLUMN IF NOT EXISTS correlation_id text;
+ALTER TABLE valorapesquisa.valora_actions ADD COLUMN IF NOT EXISTS idempotency_key text;
+CREATE INDEX IF NOT EXISTS ix_valora_actions_origin
+ ON valorapesquisa.valora_actions(organization_id,insight_id,inference_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.action_learning_records (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ action_id uuid NOT NULL REFERENCES valorapesquisa.valora_actions(id), learning_record text NOT NULL,
+ created_by uuid REFERENCES valorapesquisa.users(id), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ correlation_id text, source_hash text, idempotency_key text, status varchar(30) NOT NULL DEFAULT 'recorded',
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_action_learning_action
+ ON valorapesquisa.action_learning_records(organization_id,action_id,created_at DESC) WHERE deleted_at IS NULL;
+
 CREATE TABLE IF NOT EXISTS valorapesquisa.system_health_events (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), component varchar(80) NOT NULL, status varchar(30) NOT NULL,
  message text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text,

@@ -33,12 +33,18 @@ public sealed record EvolutionPointDto(DateTime CycleAt, decimal MaturityIndex, 
 public sealed record ValoraActionDto(Guid Id, Guid OrganizationId, string Code, string Title, string Description,
     string EvidenceJustification, string Capability, string Priority, string? Owner, string? ExecutiveSponsor,
     DateTime? DueAt, string Complexity, string Indicators, string ExpectedResult, string CompletionCriteria,
-    string Status, DateTime CreatedAt, DateTime UpdatedAt);
+    string Status, DateTime CreatedAt, DateTime UpdatedAt, Guid? SurveyId = null, Guid? CycleId = null,
+    Guid? InsightId = null, Guid? InferenceId = null, string? ConceptCode = null, string? Urgency = null,
+    string? Impact = null, string? LearningRecord = null, DateTime? CompletedAt = null, DateTime? CancelledAt = null);
 public sealed record CreateValoraActionRequest(string Title, string Description, string EvidenceJustification,
     string Capability, string Priority, string? Owner, string? ExecutiveSponsor, DateTime? DueAt,
-    string Complexity, string Indicators, string ExpectedResult, string CompletionCriteria);
+    string Complexity, string Indicators, string ExpectedResult, string CompletionCriteria,
+    Guid? SurveyId = null, Guid? CycleId = null, Guid? InsightId = null, Guid? InferenceId = null,
+    string? ConceptCode = null, string? Urgency = null, string? Impact = null, string? SourceType = null);
 public sealed record UpdateValoraActionRequest(string Status, string? Owner = null, string? ExecutiveSponsor = null,
     DateTime? DueAt = null, string? Priority = null, string? Notes = null);
+public sealed record CompleteValoraActionRequest(string LearningRecord);
+public sealed record CancelValoraActionRequest(string Justification);
 public sealed record ValoraActionHistoryDto(Guid Id, Guid ActionId, string Status, string Notes, Guid? ChangedBy, DateTime ChangedAt);
 
 public interface IOrganizationalIntelligenceRepository

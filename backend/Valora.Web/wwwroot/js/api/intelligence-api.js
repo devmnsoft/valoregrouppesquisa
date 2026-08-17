@@ -9,6 +9,11 @@ window.IntelligenceApi = {
   ,actions: () => AjaxClient.get('/bff/intelligence/action-plans')
   ,createAction: payload => AjaxClient.post('/bff/intelligence/action-plans', payload)
   ,updateAction: (id, payload) => AjaxClient.patch(`/bff/intelligence/action-plans/${encodeURIComponent(id)}`, payload)
+  ,completeAction: (id, learningRecord) => AjaxClient.post(`/bff/intelligence/action-plans/${encodeURIComponent(id)}/complete`, {learningRecord})
+  ,cancelAction: (id, justification) => AjaxClient.post(`/bff/intelligence/action-plans/${encodeURIComponent(id)}/cancel`, {justification})
   ,actionHistory: id => AjaxClient.get(`/bff/intelligence/action-plans/${encodeURIComponent(id)}/history`)
   ,deleteAction: id => AjaxClient.delete(`/bff/intelligence/action-plans/${encodeURIComponent(id)}`)
+  ,generateBenchmark: () => AjaxClient.post('/bff/intelligence/benchmark/generate', {})
+  ,previewExecutiveReport: () => AjaxClient.post('/bff/intelligence/executive-report/preview', {})
+  ,generateExecutiveReport: () => AjaxClient.post('/bff/intelligence/executive-report/generate', {})
 };

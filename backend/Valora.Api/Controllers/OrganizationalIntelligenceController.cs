@@ -68,15 +68,20 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     [HttpGet("insights")]
     public async Task<IActionResult> Insights([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("insights", organizationId, ct);
     [HttpPost("insights/{id:guid}/create-action")]
-    public async Task<IActionResult> CreateInsightAction(Guid id, [FromBody] CreateValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) => await CreateAction(request, organizationId, ct);
+    public async Task<IActionResult> CreateInsightAction(Guid id, [FromBody] CreateValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) =>
+        await CreateAction(request with { InsightId = id, SourceType = "insight" }, organizationId, ct);
     [HttpGet("radar")]
     public async Task<IActionResult> Radar([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("radar", organizationId, ct);
     [HttpGet("benchmark")]
     public async Task<IActionResult> Benchmark([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("benchmark", organizationId, ct);
+    [HttpPost("benchmark/generate")]
+    public async Task<IActionResult> GenerateBenchmark([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.generate", id => pipeline.ProcessResponseAsync(new(id, UserId: UserId, Trigger: "benchmark_generated"), ct));
     [HttpGet("executive-report")]
     public async Task<IActionResult> ExecutiveReport([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("executive-reports", organizationId, ct);
     [HttpPost("executive-report/preview")]
     public async Task<IActionResult> ExecutiveReportPreview([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.DashboardAsync(id, ct));
+    [HttpPost("executive-report/generate")]
+    public async Task<IActionResult> GenerateExecutiveReport([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.generate", id => pipeline.ProcessExecutiveReportAsync(new(id, UserId: UserId, Trigger: "executive_report_generated"), ct));
     [HttpGet("one-on-one")]
     public async Task<IActionResult> OneOnOne([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("one-on-one", organizationId, ct);
     [HttpPost("one-on-one")]
@@ -101,11 +106,24 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     }
     [HttpGet("action-plans/{id:guid}/history")]
     public async Task<IActionResult> ActionHistory(Guid id, [FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", organization => service.ActionHistoryAsync(organization, id, ct));
+    [HttpPost("action-plans/{id:guid}/complete")]
+    public Task<IActionResult> CompleteAction(Guid id, [FromBody] CompleteValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) =>
+        TransitionAction(id, new("completed", Notes: request.LearningRecord), organizationId, ct);
+    [HttpPost("action-plans/{id:guid}/cancel")]
+    public Task<IActionResult> CancelAction(Guid id, [FromBody] CancelValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) =>
+        TransitionAction(id, new("cancelled", Notes: request.Justification), organizationId, ct);
     [HttpDelete("action-plans/{id:guid}")]
     public async Task<IActionResult> DeleteAction(Guid id, [FromQuery] Guid? organizationId, CancellationToken ct)
     {
         var access = await Validate(organizationId, "organizational_intelligence.generate"); if (access.Error is not null) return access.Error;
         return await service.DeleteActionAsync(access.OrganizationId, id, UserId, ct) ? Ok(new { archived = true }) : NotFound(new { code = "ACTION_PLAN_NOT_FOUND", message = "Plano de ação não encontrado." });
+    }
+
+    private async Task<IActionResult> TransitionAction(Guid id, UpdateValoraActionRequest request, Guid? organizationId, CancellationToken ct)
+    {
+        var access = await Validate(organizationId, "organizational_intelligence.generate"); if (access.Error is not null) return access.Error;
+        var action = await service.UpdateActionAsync(access.OrganizationId, id, UserId, request, ct);
+        return action is null ? NotFound(new { code = "ACTION_PLAN_NOT_FOUND", message = "Plano de ação não encontrado.", correlationId = HttpContext.TraceIdentifier }) : Ok(action);
     }
 
     private async Task<IActionResult> Read<T>(Guid? requested, string permission, Func<Guid, Task<T>> action)

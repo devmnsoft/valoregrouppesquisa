@@ -68,7 +68,8 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
         var item = new ValoraActionDto(Guid.NewGuid(), organizationId, $"ACT-{now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
             request.Title.Trim(), request.Description.Trim(), request.EvidenceJustification.Trim(), request.Capability.Trim(),
             request.Priority.Trim().ToLowerInvariant(), request.Owner?.Trim(), request.ExecutiveSponsor?.Trim(), request.DueAt,
-            request.Complexity.Trim().ToLowerInvariant(), request.Indicators.Trim(), request.ExpectedResult.Trim(), request.CompletionCriteria.Trim(), "recommended", now, now);
+            request.Complexity.Trim().ToLowerInvariant(), request.Indicators.Trim(), request.ExpectedResult.Trim(), request.CompletionCriteria.Trim(), "recommended", now, now,
+            request.SurveyId, request.CycleId, request.InsightId, request.InferenceId, request.ConceptCode?.Trim(), request.Urgency?.Trim(), request.Impact?.Trim());
         return repository.CreateActionAsync(item, userId, ct);
     }
 

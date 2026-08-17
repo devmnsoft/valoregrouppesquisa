@@ -18,6 +18,12 @@
     ['Abrir Estrutura Organizacional', 'Unidades, áreas e lideranças', '/Organization/Structure'], ['Ver Templates Oficiais', 'Biblioteca metodológica Valora', '/Experience/Templates'],
     ['Abrir Planos e Uso', 'Plano atual e limites', '/Plans'], ['Abrir Governança', 'Eventos executivos da plataforma', '/Intelligence/PlatformGovernance'], ['Auditoria', 'Eventos e rastreabilidade', '/Audit'],
     ['Processar Inteligência', 'Centro de processamento organizacional', '/Intelligence/Processing'], ['Gerar Executive Report', 'Relatório executivo rastreável', '/Intelligence/ExecutiveReport'],
+    ['Abrir Dicionário', 'Conceitos oficiais da Metodologia Valora', '/Methodology/Dictionary'], ['Abrir Mapa Cognitivo', 'Influências sistêmicas governadas', '/Methodology/CognitiveMap'],
+    ['Validar Mapeamento', 'Cobertura metodológica dos formulários', '/Methodology/Mappings'], ['Ver Evidências', 'Origem rastreável das leituras', '/Intelligence/Evidence'],
+    ['Ver Metrics', 'Métricas, contexto e limitações', '/Intelligence/Metrics'], ['Ver Índices', 'Índices oficiais e composição', '/Intelligence/Indices'],
+    ['Ver Inferências', 'Regras e evidências convergentes', '/Intelligence/Inference'], ['Ver Insights', 'Leituras executivas rastreáveis', '/Intelligence/Insights'],
+    ['Criar Action', 'Compromisso conectado a evidências', '/Intelligence/Action'], ['Abrir Journey', 'Memória organizacional', '/Intelligence/Journey'],
+    ['Gerar Report', 'Preview executivo baseado em inteligência', '/Intelligence/ExecutiveReport'],
     ['Inteligência', 'Evidências e recomendações', '/Intelligence'], ['Plano de ação', 'Compromissos e evolução', '/ActionPlans'],
     ['Relatórios executivos', 'Preview e exportações seguras', '/Reports'], ['Configurações', 'Preferências e segurança', '/Settings'],
     ['Sair', 'Encerrar a sessão com segurança', '/Account/Logout']

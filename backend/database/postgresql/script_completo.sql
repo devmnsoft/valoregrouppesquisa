@@ -1460,6 +1460,16 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_concepts(
  related_indices text[] NOT NULL DEFAULT '{}', deprecated_terms text[] NOT NULL DEFAULT '{}', version integer NOT NULL DEFAULT 1,
  is_active boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
 CREATE INDEX IF NOT EXISTS ix_methodology_concepts_pillar ON valorapesquisa.methodology_concepts(pillar) WHERE deleted_at IS NULL;
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS strategic_purpose text NOT NULL DEFAULT 'Orientar decisões e evolução organizacional com evidências.';
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS diagnostic_questions text[] NOT NULL DEFAULT '{}';
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS related_indicators text[] NOT NULL DEFAULT '{}';
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS organizational_impacts text[] NOT NULL DEFAULT '{}';
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS maturity_level varchar(30) NOT NULL DEFAULT 'structuring';
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS methodology_version varchar(30) NOT NULL DEFAULT '1.0';
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS status varchar(30) NOT NULL DEFAULT 'active';
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS display_order integer NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}';
+CREATE INDEX IF NOT EXISTS ix_methodology_concepts_order ON valorapesquisa.methodology_concepts(display_order, pillar) WHERE deleted_at IS NULL AND status='active';
 CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_relations(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), source_concept_id uuid NOT NULL REFERENCES valorapesquisa.methodology_concepts(id),
  target_concept_id uuid NOT NULL REFERENCES valorapesquisa.methodology_concepts(id), relation_type varchar(60) NOT NULL,

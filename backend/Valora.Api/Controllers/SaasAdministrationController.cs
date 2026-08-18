@@ -93,6 +93,15 @@ public sealed class SaasAdministrationController(
         IReadOnlyList<SaasHealthEvent> events = IsPlatformAdmin
             ? await repository.ListHealthEventsAsync(ct)
             : Array.Empty<SaasHealthEvent>();
+        IReadOnlyList<SchemaHealthItem> schema;
+        try
+        {
+            schema = await repository.GetSchemaHealthAsync(ct);
+        }
+        catch
+        {
+            schema = [new("database.schema", "critical")];
+        }
         return Ok(new
         {
             status = "operational",
@@ -101,6 +110,7 @@ public sealed class SaasAdministrationController(
             environment = environment.EnvironmentName,
             version = typeof(SaasAdministrationController).Assembly.GetName().Version?.ToString(),
             configuration = configurationValidation.Validate(),
+            schema,
             backup = new
             {
                 status = configuration.GetValue<bool>("Backup:Configured") ? "configured" : "not_configured",

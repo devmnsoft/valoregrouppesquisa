@@ -104,8 +104,8 @@ public sealed class DiagnosticCampaignRepository(IDbConnectionFactory connection
         await unit.Connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO valorapesquisa.platform_governance_events(organization_id,survey_id,module,entity_type,entity_id,action,code,status,correlation_id,data,metadata_json)
             VALUES(@organizationId,@surveyId,'communications','diagnostic_campaign',@campaignId,@action,@action,'completed',@correlationId,jsonb_build_object('userId',@userId),'{}');
-            INSERT INTO valorapesquisa.notifications(organization_id,user_id,title,body,message,type,related_module,related_entity_id)
-            SELECT @organizationId,id,'Comunicação do diagnóstico',@notification,@notification,@action,'communications',@campaignId
+            INSERT INTO valorapesquisa.notifications(organization_id,user_id,title,message,type,related_module,related_entity_id)
+            SELECT @organizationId,id,'Comunicação do diagnóstico',@notification,@action,'communications',@campaignId
             FROM valorapesquisa.users WHERE id=@userId AND organization_id=@organizationId AND coalesce(is_deleted,false)=false;
             """, new { organizationId, surveyId, campaignId, userId, action, correlationId, notification }, unit.Transaction, cancellationToken: ct));
 

@@ -44,4 +44,21 @@ public sealed class SaasAdministrationRepository(IDbConnectionFactory factory) :
         const string sql = "SELECT id Id,component Component,status Status,message Message,correlation_id CorrelationId,created_at CreatedAt FROM valorapesquisa.system_health_events WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT 20";
         return (await connection.QueryAsync<SaasHealthEvent>(new CommandDefinition(sql, cancellationToken: ct))).AsList();
     }
+
+    public async Task<IReadOnlyList<SchemaHealthItem>> GetSchemaHealthAsync(CancellationToken ct)
+    {
+        using var connection = factory.Create();
+        const string sql = """
+            SELECT required.component AS Component,
+                   CASE WHEN columns.column_name IS NULL THEN 'critical' ELSE 'configured' END AS Status
+            FROM (VALUES ('notifications.message','notifications','message'),('api_keys.key_hash','api_keys','key_hash'))
+                 AS required(component,table_name,column_name)
+            LEFT JOIN information_schema.columns columns
+              ON columns.table_schema='valorapesquisa'
+             AND columns.table_name=required.table_name
+             AND columns.column_name=required.column_name
+            ORDER BY required.component
+            """;
+        return (await connection.QueryAsync<SchemaHealthItem>(new CommandDefinition(sql, cancellationToken: ct))).AsList();
+    }
 }

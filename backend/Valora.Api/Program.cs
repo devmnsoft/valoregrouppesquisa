@@ -24,7 +24,7 @@ builder.Services.AddHostedService<IntelligenceProcessingWorker>();
 var app = builder.Build();
 
 var configurationValidation = app.Services.GetRequiredService<Valora.Api.Operations.IConfigurationValidationService>().Validate();
-if (app.Environment.IsProduction() && configurationValidation.Issues.Any(issue => issue.Code is "JWT_SIGNING_KEY" or "JWT_WEAK_KEY" or "DEMO_SEED_PRODUCTION" or "DETAILED_ERRORS_PRODUCTION"))
+if (app.Environment.IsProduction() && configurationValidation.Issues.Any(issue => issue.Code is "JWT_SIGNING_KEY" or "JWT_WEAK_KEY" or "JWT_DEMO_KEY_PRODUCTION" or "DEMO_SEED_PRODUCTION" or "DETAILED_ERRORS_PRODUCTION"))
     throw new InvalidOperationException("Configuração insegura para produção. Consulte os registros de inicialização e o painel de Saúde do Sistema.");
 
 if (app.Environment.IsDevelopment() && builder.Configuration.GetValue("Database:ValidateSchema", true))

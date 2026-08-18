@@ -52,7 +52,7 @@ public sealed class AssistedOperationsRepository(IDbConnectionFactory connection
         var id = await db.ExecuteScalarAsync<Guid>(new CommandDefinition(sql, parameters, cancellationToken: ct));
         await Audit(db, organizationId, userId, $"{resource}.created", resource, id, correlationId, ct);
         if (resource == "tickets" && values.TryGetValue("priority", out var priority) && string.Equals(priority?.ToString(), "critical", StringComparison.OrdinalIgnoreCase))
-            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.notifications(organization_id,user_id,title,body,status,correlation_id) VALUES(@OrganizationId,@UserId,'Chamado crítico aberto','Um chamado crítico requer triagem imediata.','unread',@CorrelationId)",new {OrganizationId=organizationId,UserId=userId,CorrelationId=correlationId},cancellationToken:ct));
+            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.notifications(organization_id,user_id,title,message,status,correlation_id) VALUES(@OrganizationId,@UserId,'Chamado crítico aberto','Um chamado crítico requer triagem imediata.','unread',@CorrelationId)",new {OrganizationId=organizationId,UserId=userId,CorrelationId=correlationId},cancellationToken:ct));
         return id;
     }
 

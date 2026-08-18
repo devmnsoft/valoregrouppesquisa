@@ -22,7 +22,9 @@ public sealed class JwtTokenService(IConfiguration configuration) : IJwtTokenSer
             new("role", role),
             new("locale", locale)
         };
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(options["Secret"]!));
+        var signingKey = options["SigningKey"]
+            ?? throw new InvalidOperationException("Jwt:SigningKey não está configurada.");
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey));
         var accessTokenMinutes = int.TryParse(options["AccessTokenMinutes"], out var configuredMinutes)
             ? configuredMinutes : 15;
         var expires = DateTime.UtcNow.AddMinutes(accessTokenMinutes);

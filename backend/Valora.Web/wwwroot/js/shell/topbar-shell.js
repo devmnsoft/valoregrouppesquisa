@@ -28,6 +28,12 @@
     ['Gerar Report', 'Preview executivo baseado em inteligência', '/Intelligence/ExecutiveReport'],
     ['Inteligência', 'Evidências e recomendações', '/Intelligence'], ['Plano de ação', 'Compromissos e evolução', '/ActionPlans'],
     ['Relatórios executivos', 'Preview e exportações seguras', '/Reports'], ['Configurações', 'Preferências e segurança', '/Settings'],
+    ['Abrir Suporte', 'Central de chamados', '/Support'], ['Criar Chamado', 'Registrar um bloqueio operacional', '/Support?new=true'],
+    ['Enviar Feedback', 'Compartilhar experiência de uso', '/Feedback?new=true'], ['Abrir Customer Success', 'Saúde da carteira', '/CustomerSuccess'],
+    ['Ver Organizações em Risco', 'Ranking de atenção e risco', '/CustomerSuccess?status=risk'], ['Abrir Métricas de Adoção', 'Uso real do produto', '/UsageAnalytics'],
+    ['Abrir Onboarding', 'Checklist pós-venda', '/Onboarding'], ['Solicitar Upgrade', 'Plano, limite ou recurso Enterprise', '/Commercial/UpgradeRequests?new=true'],
+    ['Abrir Incidentes', 'Saúde e mitigação operacional', '/Platform/Incidents'], ['Criar Release Note', 'Registrar evolução controlada', '/ReleaseNotes?new=true'],
+    ['Rodar Data Quality Check', 'Verificação segura e não destrutiva', '/Platform/DataQuality?run=true'],
     ['Sair', 'Encerrar a sessão com segurança', '/Account/Logout']
   ];
   const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

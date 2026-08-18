@@ -15,7 +15,7 @@
     'certificates-pdf': 'Geração e validação de certificados e documentos institucionais.',
     'assisted-import': 'Importação CSV com validação, preview e dry-run antes da confirmação.'
   };
-  const routes = { 'public-api': '/Integrations/ApiKeys', webhooks: '/Integrations/Webhooks', powerbi: '/Integrations/PowerBI', 'assisted-import': '/Administration/Imports' };
+  const routes = { 'public-api': '/Integrations/ApiKeys', webhooks: '/Integrations/Webhooks', powerbi: '/Integrations/PowerBI', 'assisted-import': '/Integrations/Imports' };
 
   fetch('/bff/integrations', { headers: { Accept: 'application/json' } })
     .then(async response => {

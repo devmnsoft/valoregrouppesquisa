@@ -2,7 +2,8 @@ using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Valora.Application.Contracts.Services;
+using Valora.Application.Common;
+using Valora.Application.Contracts;
 using Valora.Application.Enterprise;
 
 namespace Valora.Api.Controllers;
@@ -75,7 +76,7 @@ public sealed class EnterpriseIntegrationsController(EnterpriseService service, 
         if (!await IsEnterprise(organizationId)) return EnterpriseLocked();
         return Ok(await action(organizationId));
     }
-    private Task<bool> IsEnterprise(Guid organizationId) => entitlements.CanUseAsync(organizationId, "enterprise_integrations");
+    private Task<bool> IsEnterprise(Guid organizationId) => entitlements.CanUseAsync(organizationId, FeatureCodes.EnterpriseIntegrations);
     private ObjectResult EnterpriseLocked() => StatusCode(403, new { code = "ENTERPRISE_MODULE_REQUIRED", message = LockedMessage });
     private static string? ConfigCode(JsonElement value) => value.TryGetProperty("code", out var code) ? code.GetString() : null;
     private static string DisplayName(string code) => code switch { "public-api" => "API Pública", "webhooks" => "Webhooks", "powerbi" => "Power BI Prepared Dataset", "exports" => "Exportações BI", "smtp" => "E-mail / SMTP", "certificates-pdf" => "Certificados / PDF", "assisted-import" => "Importação Assistida", _ => code };

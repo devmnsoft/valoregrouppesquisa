@@ -19,7 +19,9 @@ public sealed class SchemaContractValidator(
             ["user_sessions"] = ["id", "organization_id", "user_id", "expires_at"],
             ["subscriptions"] = ["organization_id", "plan_id", "status"],
             ["plans"] = ["id", "name"],
-            ["audit_logs"] = ["id", "organization_id", "user_id", "action", "entity_type", "entity_id", "message", "metadata_json", "correlation_id", "created_at"]
+            ["audit_logs"] = ["id", "organization_id", "user_id", "action", "entity_type", "entity_id", "message", "metadata_json", "correlation_id", "created_at"],
+            ["notifications"] = ["id", "organization_id", "user_id", "title", "message", "read_at", "created_at"],
+            ["api_keys"] = ["id", "key_hash"]
         };
 
     public async Task ValidateAsync(CancellationToken cancellationToken = default)

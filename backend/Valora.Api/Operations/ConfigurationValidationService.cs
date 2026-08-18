@@ -33,21 +33,27 @@ public sealed class ConfigurationValidationService(IConfiguration configuration,
         Require(issues, "DB_CONNECTION", "database", ConnectionString(), true, "Configure ConnectionStrings__Postgres.");
         Require(issues, "JWT_ISSUER", "authentication", configuration["Jwt:Issuer"], true, "Configure Jwt__Issuer.");
         Require(issues, "JWT_AUDIENCE", "authentication", configuration["Jwt:Audience"], true, "Configure Jwt__Audience.");
-        var signingKey = configuration["Jwt:SigningKey"] ?? configuration["Jwt:Secret"];
+        var signingKey = configuration["Jwt:SigningKey"];
         Require(issues, "JWT_SIGNING_KEY", "authentication", signingKey, true, "Use uma chave aleatória com pelo menos 32 caracteres.");
-        if (environment.IsProduction() && !string.IsNullOrWhiteSpace(signingKey) && signingKey.Length < 32)
-            Add(issues, "JWT_WEAK_KEY", "authentication", "critical", "A chave JWT não atende ao mínimo de segurança de produção.", "Use uma chave aleatória com pelo menos 32 caracteres.", true);
+        if (!string.IsNullOrWhiteSpace(signingKey) && signingKey.Length < 32)
+            Add(issues, "JWT_WEAK_KEY", "authentication", "critical", "A chave JWT não atende ao mínimo de 32 caracteres.", "Configure Jwt__SigningKey com uma chave aleatória de pelo menos 32 caracteres.", true);
+        if (environment.IsProduction() && signingKey?.StartsWith("DEV_ONLY_", StringComparison.Ordinal) == true)
+            Add(issues, "JWT_DEMO_KEY_PRODUCTION", "authentication", "critical", "A chave JWT de demonstração não pode ser usada em produção.", "Forneça um segredo exclusivo por Jwt__SigningKey ou secret manager.", true);
 
         Require(issues, "PUBLIC_BASE_URL", "urls", configuration["App:PublicBaseUrl"], true, "Configure App__PublicBaseUrl com HTTPS.");
         Require(issues, "ADMIN_BASE_URL", "urls", configuration["App:AdminBaseUrl"], true, "Configure App__AdminBaseUrl com HTTPS.");
         Require(issues, "STORAGE_PROVIDER", "storage", configuration["Storage:Provider"], false, "Configure Storage__Provider.");
         Require(issues, "STORAGE_BASE_PATH", "storage", configuration["Storage:BasePath"], false, "Configure Storage__BasePath fora da pasta publicada.");
+        if (!configuration.GetValue<bool>("Certificates:PdfEnabled") && !configuration.GetValue<bool>("Reports:PdfEnabled"))
+            Add(issues, "PDF_NOT_CONFIGURED", "pdf", "warning", "Geração de PDF não configurada.", "Habilite e configure Certificates__PdfEnabled ou Reports__PdfEnabled quando o recurso for utilizado.", false);
 
         if (configuration.GetValue<bool>("Email:Enabled"))
         {
             Require(issues, "SMTP_HOST", "email", configuration["Email:SmtpHost"] ?? configuration["Email:Smtp:Host"], false, "Configure o host SMTP.");
             Require(issues, "EMAIL_FROM", "email", configuration["Email:From"] ?? configuration["Email:FromEmail"], false, "Configure o remetente.");
         }
+        else
+            Add(issues, "EMAIL_NOT_CONFIGURED", "email", "warning", "Envio de e-mail não configurado.", "Configure Email e defina Email__Enabled=true quando o recurso for utilizado.", false);
         if (environment.IsProduction() && configuration.GetValue<bool>("App:EnableDemoSeed", configuration.GetValue<bool>("Demo:SeedEnabled")))
             Add(issues, "DEMO_SEED_PRODUCTION", "seed", "critical", "Seed de demonstração não pode operar em produção.", "Defina App__EnableDemoSeed=false.", true);
         if (environment.IsProduction() && configuration.GetValue<bool>("App:EnableDetailedErrors"))

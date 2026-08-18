@@ -9,21 +9,25 @@ public static class JwtConfiguration
     public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         var jwt = configuration.GetSection("Jwt");
-        var secret = jwt["SigningKey"] ?? jwt["Secret"];
-        if (string.IsNullOrWhiteSpace(secret) || secret.Length < 32)
-            throw new InvalidOperationException("Jwt:SigningKey deve possuir pelo menos 32 caracteres.");
+        var signingKey = jwt["SigningKey"];
+        if (string.IsNullOrWhiteSpace(signingKey) || signingKey.Length < 32)
+            throw new InvalidOperationException(
+                "Jwt:SigningKey deve possuir pelo menos 32 caracteres. Configure Jwt:SigningKey em appsettings.Development.json, user-secrets ou variável de ambiente.");
+
+        var issuer = jwt["Issuer"];
+        var audience = jwt["Audience"];
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
+                    ValidateIssuer = !string.IsNullOrWhiteSpace(issuer),
+                    ValidateAudience = !string.IsNullOrWhiteSpace(audience),
                     ValidateIssuerSigningKey = true,
                     ValidateLifetime = true,
-                    ValidIssuer = jwt["Issuer"],
-                    ValidAudience = jwt["Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
+                    ValidIssuer = issuer,
+                    ValidAudience = audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
                     ClockSkew = TimeSpan.FromSeconds(jwt.GetValue("ClockSkewSeconds", 30))
                 };
             });

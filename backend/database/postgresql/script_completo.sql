@@ -408,7 +408,7 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.exports (id uuid PRIMARY KEY DEFAULT g
 CREATE TABLE IF NOT EXISTS valorapesquisa.emails (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), recipient_hash text NOT NULL, subject text, status text NOT NULL DEFAULT 'pending', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.whatsapp_messages (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), recipient_hash text NOT NULL, status text NOT NULL DEFAULT 'pending', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.communications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), channel text NOT NULL, recipient_hash text NOT NULL, status text NOT NULL DEFAULT 'pending', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
-CREATE TABLE IF NOT EXISTS valorapesquisa.notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), user_id uuid REFERENCES valorapesquisa.users(id), title text NOT NULL, body text NOT NULL, read_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), user_id uuid REFERENCES valorapesquisa.users(id), title text NOT NULL, message text NOT NULL, read_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS valorapesquisa.action_plans (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), result_id uuid REFERENCES valorapesquisa.results(id), title text NOT NULL, status text NOT NULL DEFAULT 'open', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 ALTER TABLE valorapesquisa.action_plans
   ADD COLUMN IF NOT EXISTS priority text NOT NULL DEFAULT 'medium',
@@ -1653,7 +1653,29 @@ ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS type varchar(6
 ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS message text;
 ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS related_module varchar(80);
 ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS related_entity_id uuid;
-UPDATE valorapesquisa.notifications SET message=body WHERE message IS NULL;
+DO $notification_message_migration$
+DECLARE
+  has_message boolean;
+  has_body boolean;
+  has_title boolean;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='notifications' AND column_name='message') INTO has_message;
+  SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='notifications' AND column_name='body') INTO has_body;
+  SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='notifications' AND column_name='title') INTO has_title;
+
+  IF has_message THEN
+    IF has_body THEN
+      EXECUTE 'UPDATE valorapesquisa.notifications SET message=body WHERE (message IS NULL OR btrim(message)='''') AND body IS NOT NULL AND btrim(body)<>''''';
+      -- Mantém a coluna legada para compatibilidade, mas novas gravações usam somente message.
+      EXECUTE 'ALTER TABLE valorapesquisa.notifications ALTER COLUMN body DROP NOT NULL';
+    END IF;
+    IF has_title THEN
+      EXECUTE 'UPDATE valorapesquisa.notifications SET message=title WHERE (message IS NULL OR btrim(message)='''') AND title IS NOT NULL AND btrim(title)<>''''';
+    END IF;
+    EXECUTE 'UPDATE valorapesquisa.notifications SET message=''Notificação'' WHERE message IS NULL OR btrim(message)=''''';
+  END IF;
+END
+$notification_message_migration$;
 ALTER TABLE valorapesquisa.notifications ALTER COLUMN message SET NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_notifications_user_unread ON valorapesquisa.notifications(organization_id,user_id,created_at DESC) WHERE read_at IS NULL;
 

@@ -158,7 +158,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
     {
         using var db = connections.Create();
         if (eventType.StartsWith("notification:"))
-            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.notifications(organization_id,user_id,type,title,body,message,related_module,related_entity_id) VALUES(@OrganizationId,@UserId,@type,@title,@description,@description,'organizational_intelligence',@runId)", new { c.OrganizationId, c.UserId, type = eventType[13..], title, description, runId }, cancellationToken: ct));
+            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.notifications(organization_id,user_id,type,title,message,related_module,related_entity_id) VALUES(@OrganizationId,@UserId,@type,@title,@description,'organizational_intelligence',@runId)", new { c.OrganizationId, c.UserId, type = eventType[13..], title, description, runId }, cancellationToken: ct));
         else if (eventType.StartsWith("governance:"))
             await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.platform_governance_events(organization_id,code,status,data,created_by) VALUES(@OrganizationId,@type,'recorded',jsonb_build_object('description',@description,'runId',@runId),@UserId)", new { c.OrganizationId, c.UserId, type = eventType[11..], description, runId }, cancellationToken: ct));
         else

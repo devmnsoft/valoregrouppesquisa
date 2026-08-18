@@ -12,6 +12,7 @@ using Valora.Application.OrganizationalIntelligence;
 using Valora.Application.ValoraBot;
 using Valora.Application.Methodology;
 using Valora.Application.DiagnosticWorkspace;
+using Valora.Application.CommercialDelivery;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -70,6 +71,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IValoraBotRepository, ValoraBotRepository>();
         services.AddScoped<IMethodologyRepository, MethodologyRepository>();
         services.AddScoped<IDiagnosticWorkspaceRepository, DiagnosticWorkspaceRepository>();
+        services.AddScoped<IDiagnosticCampaignRepository, DiagnosticCampaignRepository>();
         return services;
     }
 

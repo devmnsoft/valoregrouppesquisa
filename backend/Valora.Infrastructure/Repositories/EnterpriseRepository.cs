@@ -59,6 +59,12 @@ public sealed class EnterpriseRepository(IDbConnectionFactory connections) : IEn
     public async Task<ApiKeyIssued> CreateApiKeyAsync(Guid organizationId,string name,IReadOnlyList<string> scopes,string hash,string prefix,string secret,CancellationToken ct)
     { const string sql="INSERT INTO valorapesquisa.api_keys(organization_id,name,key_prefix,key_hash,scopes) VALUES(@organizationId,@name,@prefix,@hash,@scopes) RETURNING id"; using var c=connections.Create(); var id=await c.ExecuteScalarAsync<Guid>(new CommandDefinition(sql,new{organizationId,name,prefix,hash,scopes=scopes.ToArray()},cancellationToken:ct)); return new(id,name,prefix,secret,scopes,DateTime.UtcNow); }
 
+    public async Task<IReadOnlyList<ApiKeySummary>> ListApiKeysAsync(Guid organizationId,CancellationToken ct)
+    { const string sql="SELECT id Id,name Name,key_prefix Prefix,scopes Scopes,CASE WHEN revoked_at IS NOT NULL THEN 'revoked' WHEN expires_at IS NOT NULL AND expires_at<=now() THEN 'expired' ELSE 'active' END Status,created_at CreatedAt,expires_at ExpiresAt,last_used_at LastUsedAt FROM valorapesquisa.api_keys WHERE organization_id=@organizationId AND deleted_at IS NULL ORDER BY created_at DESC"; using var c=connections.Create(); return (await c.QueryAsync<ApiKeySummary>(new CommandDefinition(sql,new{organizationId},cancellationToken:ct))).ToList(); }
+
+    public async Task<bool> RevokeApiKeyAsync(Guid organizationId,Guid id,CancellationToken ct)
+    { const string sql="UPDATE valorapesquisa.api_keys SET revoked_at=now(),status='revoked',updated_at=now() WHERE id=@id AND organization_id=@organizationId AND revoked_at IS NULL AND deleted_at IS NULL"; using var c=connections.Create(); return await c.ExecuteAsync(new CommandDefinition(sql,new{organizationId,id},cancellationToken:ct))==1; }
+
     private static EnterpriseItem Map(EnterpriseRow x)=>new(x.Id,x.OrganizationId,x.Kind,x.Name,x.Status,JsonDocument.Parse(x.Configuration).RootElement.Clone(),x.CreatedAt,x.UpdatedAt);
     private sealed record EnterpriseRow(Guid Id,Guid? OrganizationId,string Kind,string Name,string Status,string Configuration,DateTime CreatedAt,DateTime UpdatedAt);
 }

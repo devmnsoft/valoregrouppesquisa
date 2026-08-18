@@ -27,8 +27,35 @@
     setText('[data-kpi="actions"]', number(actions.filter(item => !['completed', 'cancelled', 'reviewed'].includes(String(item.status).toLowerCase())).length));
     root.querySelector('[data-metric-empty]').hidden = responses.length > 0;
     renderJourney(surveys, responses, usage);
+    renderReadiness(surveys, responses, usage, intelligence, actions);
     renderAttention(surveys, responses, completionRate);
     renderStrategicReading(intelligence, actions);
+  }
+
+  function renderReadiness(surveys, responses, usage, intelligence, actions) {
+    const published = surveys.some(x => ['active', 'published'].includes(String(x.status).toLowerCase()));
+    const evidenceCount = Number(intelligence.evidence?.total || intelligence.latestRun?.evidenceCount || 0);
+    const checks = [
+      ['Organização configurada', Boolean(usage.organizationId || usage.organizationName || usage.activeUsers)],
+      ['Plano ativo', Boolean(usage.plan || usage.planName || usage.limits)],
+      ['Diagnóstico publicado', published],
+      ['Respostas recebidas', responses.length > 0],
+      ['Evidências processadas', evidenceCount > 0],
+      ['Índices calculados', Boolean(intelligence.latestRun)],
+      ['Insights disponíveis', Array.isArray(intelligence.insights) && intelligence.insights.length > 0],
+      ['Action registrado', actions.length > 0]
+    ];
+    const completed = checks.filter(([, done]) => done).length;
+    const percent = Math.round(completed / checks.length * 100);
+    setText('[data-readiness-percent]', `${percent}%`);
+    root.querySelector('[data-readiness-bar]').style.width = `${percent}%`;
+    root.querySelector('[data-readiness-items]').innerHTML = checks.map(([label, done]) => `<div class="${done ? 'is-complete' : ''}"><span>${done ? '✓' : '○'}</span><div><strong>${label}</strong><small>${done ? 'Confirmado por dados da operação' : 'Pendente de evidência real'}</small></div></div>`).join('');
+    const cta = root.querySelector('[data-readiness-cta]');
+    if (published && !responses.length) { cta.href = '/Responses'; cta.textContent = 'Acompanhar participação'; }
+    else if (responses.length && !intelligence.latestRun) { cta.href = '/Intelligence/Processing'; cta.textContent = 'Processar inteligência'; }
+    else if (intelligence.latestRun) { cta.href = '/Intelligence'; cta.textContent = 'Abrir inteligência'; }
+    const organization = String(usage.organizationName || usage.organization?.name || '');
+    root.querySelector('[data-demo-badge]').hidden = !organization.includes('[DEMO]');
   }
 
   function renderStrategicReading(intelligence, actions) {

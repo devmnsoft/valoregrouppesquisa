@@ -39,6 +39,45 @@ public sealed class WebHealthController : ControllerBase
         }
     }
 
+    [HttpGet("/bff/system-health")]
+    public async Task<IActionResult> SystemHealth(CancellationToken cancellationToken)
+    {
+        var correlationId = CorrelationId();
+        var checks = new[] { "/health", "/health/database", "/health/migration", "/health/email", "/health/storage", "/health/version", "/health/config" };
+        var results = new List<object>();
+
+        foreach (var path in checks)
+        {
+            var checkName = path.Split('/').LastOrDefault() is { Length: > 0 } value ? value : "api";
+            try
+            {
+                var payload = await _apiClient.GetHealthAsync(path, correlationId, cancellationToken);
+                results.Add(new { name = checkName, status = "healthy", payload });
+            }
+            catch (BffApiException exception)
+            {
+                results.Add(new { name = checkName, status = "critical", message = "A dependência não respondeu como esperado.", correlationId = exception.CorrelationId ?? correlationId });
+            }
+            catch (BffApiUnavailableException)
+            {
+                results.Add(new { name = checkName, status = "critical", message = "A API está indisponível neste momento.", correlationId });
+            }
+        }
+
+        var apiAvailable = results.Any(result => result.GetType().GetProperty("status")?.GetValue(result)?.ToString() == "healthy");
+        return Ok(new
+        {
+            code = apiAvailable ? "SYSTEM_HEALTH_AVAILABLE" : "SYSTEM_HEALTH_DEGRADED",
+            message = apiAvailable ? "Verificacao operacional concluida." : "Uma ou mais dependencias requerem atencao.",
+            status = apiAvailable ? "attention" : "critical",
+            correlationId,
+            environment = _environment.EnvironmentName,
+            version = _web.Version,
+            web = "healthy",
+            checks = results
+        });
+    }
+
     [HttpGet("/health/web")]
     public IActionResult Index()
     {

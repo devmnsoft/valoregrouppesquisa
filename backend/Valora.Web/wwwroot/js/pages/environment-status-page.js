@@ -1,11 +1,57 @@
-(function(){
-  function safeText(value){ return $('<div>').text(value == null ? '' : String(value)).html(); }
-  function normalizeItems(payload){ const data = payload && payload.data ? payload.data : payload; if (Array.isArray(data)) return data; if (data && Array.isArray(data.items)) return data.items; return data ? [data] : []; }
-  function moduleHost(){ return $('[data-page="environment-status-page"]'); }
-  function renderModuleTable(list){ const html = list.slice(0,20).map(function(item){ const title = item.name || item.title || item.publicName || item.email || item.id || 'Sem identificação'; const status = item.status || item.role || item.plan || 'Ativo'; const detail = item.description || item.message || item.contactEmail || item.level || 'Informação disponível'; return '<tr><td>'+safeText(title)+'</td><td><span class="badge text-bg-secondary">'+safeText(status)+'</span></td><td>'+safeText(detail)+'</td><td><button type="button" class="btn btn-sm btn-outline-primary" data-module-action="details">Ver detalhes</button></td></tr>'; }).join(''); moduleHost().find('[data-items]').html(html || '<tr><td colspan="4" class="text-muted">Nenhum registro disponível para este módulo.</td></tr>'); }
-  function renderModuleCards(list){ moduleHost().find('[data-summary-cards] strong').each(function(index){ $(this).text(index === 0 ? list.length : 'OK'); }); }
-  async function loadEnvironmentStatus(){ const host = moduleHost(); if(!host.length) return; if(window.Guards && !Guards.requireAuth({redirectTo:'/Account/Login'})) return; host.find('[data-error],[data-gap-card]').addClass('d-none'); try { if(window.Loading) Loading.show('Carregando módulo...'); const settled = await Promise.allSettled([function(){return HealthApi.all();},function(){return HealthApi.database();}].map(function(fn){ return fn(); })); const items = []; const gaps = []; settled.forEach(function(result){ if(result.status === 'fulfilled') items.push.apply(items, normalizeItems(result.value)); else gaps.push(result.reason || {}); }); renderModuleCards(items); renderModuleTable(items); renderHealthCards(items); if(gaps.length){ host.find('[data-gap-card]').removeClass('d-none').attr('data-gap-controlled','true').text('Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.'); } } catch(error) { host.find('[data-error]').removeClass('d-none').text('Não foi possível carregar este módulo com segurança.'); } finally { if(window.Loading) Loading.hide(); } }
-  function renderHealthCards(items){ renderModuleCards(normalizeItems(items)); }
-  window.loadEnvironmentStatus = loadEnvironmentStatus;
-  $(function(){ moduleHost().find('[data-refresh]').on('click', loadEnvironmentStatus); loadEnvironmentStatus(); });
-}());
+(() => {
+  const root = document.querySelector('[data-page="environment-status-page"]');
+  if (!root) return;
+
+  const labels = { api: 'API', database: 'PostgreSQL', migration: 'Schema', email: 'E-mail / SMTP', storage: 'Armazenamento', version: 'Versão e build', config: 'Configuração' };
+  const statusLabel = status => status === 'healthy' ? 'Saudável' : status === 'critical' ? 'Crítico' : 'Atenção';
+  const setCard = (name, status) => { const node = root.querySelector(`[data-card="${name}"]`); if (node) node.textContent = statusLabel(status); };
+
+  function safeDetail(check) {
+    const payload = check.payload || {};
+    if (payload.email === 'not_configured') return 'Este recurso ainda não está configurado neste ambiente.';
+    if (payload.postgresConfigured === false) return 'A conexão obrigatória com PostgreSQL não está configurada.';
+    if (payload.database === 'ok') return 'Conexão validada com sucesso.';
+    if (payload.version) return `Versão ${payload.version}; build ${payload.build || 'local'}.`;
+    return check.message || 'Dependência respondeu sem expor dados sensíveis.';
+  }
+
+  function render(data) {
+    const checks = Array.isArray(data.checks) ? data.checks : [];
+    setCard('web', 'healthy');
+    setCard('api', checks.some(x => x.name === 'api' && x.status === 'healthy') ? 'healthy' : 'critical');
+    setCard('database', checks.find(x => x.name === 'database')?.status || 'attention');
+    const config = checks.find(x => x.name === 'config');
+    setCard('config', config?.payload?.postgresConfigured === false ? 'critical' : config?.status || 'attention');
+    root.querySelector('[data-environment]').textContent = `${data.environment || 'Ambiente não identificado'} · versão ${data.version || 'local'} · referência ${data.correlationId}`;
+    root.querySelector('[data-items]').replaceChildren(...checks.map(check => {
+      const row = document.createElement('tr');
+      [labels[check.name] || check.name, statusLabel(check.status), safeDetail(check), check.correlationId || data.correlationId].forEach(value => {
+        const cell = document.createElement('td'); cell.textContent = value || '—'; row.append(cell);
+      });
+      return row;
+    }));
+    const warning = root.querySelector('[data-warning]');
+    const hasPending = checks.some(x => x.status !== 'healthy' || x.payload?.email === 'not_configured' || x.payload?.postgresConfigured === false);
+    warning.hidden = !hasPending;
+    warning.textContent = 'Há dependências indisponíveis ou não configuradas. Os módulos disponíveis continuam seguros para uso.';
+  }
+
+  async function load() {
+    const error = root.querySelector('[data-error]'); error.hidden = true;
+    try {
+      window.Loading?.show('Verificando saúde operacional…');
+      const response = await fetch('/bff/system-health', { headers: { Accept: 'application/json' }, credentials: 'same-origin' });
+      const payload = await response.json();
+      if (!response.ok) throw payload;
+      render(payload);
+    } catch (exception) {
+      const correlationId = exception?.correlationId || exception?.details?.correlationId;
+      error.textContent = `Não foi possível concluir a verificação. Os dados originais permanecem preservados.${correlationId ? ` Referência: ${correlationId}` : ''}`;
+      error.hidden = false;
+      ['web', 'api', 'database', 'config'].forEach(name => setCard(name, 'critical'));
+    } finally { window.Loading?.hide(); }
+  }
+
+  root.querySelector('[data-refresh]')?.addEventListener('click', load);
+  load();
+})();

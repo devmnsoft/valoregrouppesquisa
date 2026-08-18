@@ -23,6 +23,26 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
         }
     }
 
+    public async Task<JsonElement> GetHealthAsync(string path, string correlationId, CancellationToken cancellationToken)
+    {
+        if (!path.StartsWith("/health", StringComparison.Ordinal))
+            throw new ArgumentException("Somente endpoints de saude podem ser consultados sem uma sessao.", nameof(path));
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Get, path);
+            request.Headers.TryAddWithoutValidation("X-Correlation-Id", correlationId);
+            using var response = await httpClient.SendAsync(request, cancellationToken);
+            await EnsureSuccessAsync(response, cancellationToken);
+            using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+            return document.RootElement.Clone();
+        }
+        catch (Exception exception) when (IsConnectivityFailure(exception, cancellationToken))
+        {
+            throw new BffApiUnavailableException(options.Value.BaseUrl, exception);
+        }
+    }
+
     public async Task<BffAuthenticationResult> PostAuthenticationAsync(string path, object request, string correlationId, CancellationToken cancellationToken)
     {
         try

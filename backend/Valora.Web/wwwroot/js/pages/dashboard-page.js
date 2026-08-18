@@ -33,27 +33,37 @@
   }
 
   function renderReadiness(surveys, responses, usage, intelligence, actions) {
-    const published = surveys.some(x => ['active', 'published'].includes(String(x.status).toLowerCase()));
+    const published = surveys.__available === false ? null : surveys.some(x => ['active', 'published'].includes(String(x.status).toLowerCase()));
     const evidenceCount = Number(intelligence.evidence?.total || intelligence.latestRun?.evidenceCount || 0);
+    const usageAvailable = usage.__available !== false;
+    const intelligenceAvailable = intelligence.__available !== false;
     const checks = [
-      ['Organização configurada', Boolean(usage.organizationId || usage.organizationName || usage.activeUsers)],
-      ['Plano ativo', Boolean(usage.plan || usage.planName || usage.limits)],
+      ['Organização configurada', usageAvailable ? Boolean(usage.organizationId || usage.organizationName || usage.organization?.name) : null],
+      ['Plano ativo', usageAvailable ? Boolean(usage.plan || usage.planName || usage.limits) : null],
       ['Diagnóstico publicado', published],
-      ['Respostas recebidas', responses.length > 0],
-      ['Evidências processadas', evidenceCount > 0],
-      ['Índices calculados', Boolean(intelligence.latestRun)],
-      ['Insights disponíveis', Array.isArray(intelligence.insights) && intelligence.insights.length > 0],
-      ['Action registrado', actions.length > 0]
+      ['Link público e respostas', published === null || responses.__available === false ? null : published && responses.length > 0],
+      ['LGPD e participação', responses.__available === false ? null : responses.length > 0],
+      ['Inteligência processada', intelligenceAvailable ? Boolean(intelligence.latestRun) : null],
+      ['Evidências e índices', intelligenceAvailable ? evidenceCount > 0 && Boolean(intelligence.latestRun) : null],
+      ['Insights disponíveis', intelligenceAvailable ? Array.isArray(intelligence.insights) && intelligence.insights.length > 0 : null],
+      ['Action registrado', actions.__available === false ? null : actions.length > 0]
     ];
-    const completed = checks.filter(([, done]) => done).length;
+    const completed = checks.filter(([, done]) => done === true).length;
     const percent = Math.round(completed / checks.length * 100);
+    const critical = checks.filter(([, done]) => done !== true).length;
+    const status = percent === 100 ? 'Pronto' : percent >= 70 ? 'Atenção' : 'Pendente';
     setText('[data-readiness-percent]', `${percent}%`);
+    setText('[data-readiness-status]', status);
     root.querySelector('[data-readiness-bar]').style.width = `${percent}%`;
-    root.querySelector('[data-readiness-items]').innerHTML = checks.map(([label, done]) => `<div class="${done ? 'is-complete' : ''}"><span>${done ? '✓' : '○'}</span><div><strong>${label}</strong><small>${done ? 'Confirmado por dados da operação' : 'Pendente de evidência real'}</small></div></div>`).join('');
+    root.querySelector('[data-readiness-items]').innerHTML = checks.map(([label, done]) => `<div class="${done === true ? 'is-complete' : ''}"><span>${done === true ? '✓' : done === null ? '—' : '○'}</span><div><strong>${label}</strong><small>${done === true ? 'Confirmado por dados da operação' : done === null ? 'Não configurado ou indisponível neste ambiente' : 'Pendente de evidência real'}</small></div></div>`).join('');
+    const pending = root.querySelector('[data-readiness-pending]');
+    pending.hidden = critical === 0;
+    setText('[data-readiness-pending-count]', `${critical} pendência${critical === 1 ? '' : 's'} crítica${critical === 1 ? '' : 's'}. `);
     const cta = root.querySelector('[data-readiness-cta]');
     if (published && !responses.length) { cta.href = '/Responses'; cta.textContent = 'Acompanhar participação'; }
     else if (responses.length && !intelligence.latestRun) { cta.href = '/Intelligence/Processing'; cta.textContent = 'Processar inteligência'; }
     else if (intelligence.latestRun) { cta.href = '/Intelligence'; cta.textContent = 'Abrir inteligência'; }
+    setText('[data-readiness-next-action]', `Próxima ação: ${cta.textContent}.`);
     const organization = String(usage.organizationName || usage.organization?.name || '');
     root.querySelector('[data-demo-badge]').hidden = !organization.includes('[DEMO]');
   }
@@ -135,9 +145,12 @@
       ]);
       const surveys = surveysResult.status === 'fulfilled' ? arrayOf(surveysResult.value) : [];
       const responses = responsesResult.status === 'fulfilled' ? arrayOf(responsesResult.value) : [];
-      const usage = usageResult.status === 'fulfilled' ? unwrap(usageResult.value) : {};
-      const intelligence = intelligenceResult.status === 'fulfilled' ? unwrap(intelligenceResult.value) : {};
+      surveys.__available = surveysResult.status === 'fulfilled';
+      responses.__available = responsesResult.status === 'fulfilled';
+      const usage = usageResult.status === 'fulfilled' ? { ...unwrap(usageResult.value), __available: true } : { __available: false };
+      const intelligence = intelligenceResult.status === 'fulfilled' ? { ...unwrap(intelligenceResult.value), __available: true } : { __available: false };
       const actions = actionsResult.status === 'fulfilled' ? arrayOf(actionsResult.value) : [];
+      actions.__available = actionsResult.status === 'fulfilled';
       renderKpis({ surveys, responses, usage, intelligence, actions });
       renderActivity([...surveys, ...responses]);
       setText('[data-last-update]', `Atualizado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`);

@@ -43,13 +43,21 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
 
     public async Task<ApiKeyIssued> CreateApiKeyAsync(Guid organizationId, string name, IReadOnlyList<string> scopes, Guid userId, CancellationToken ct)
     {
-        var allowed = new HashSet<string>(["surveys:read", "results:read", "reports:read", "certificates:read", "units:read", "departments:read"]);
+        var allowed = new HashSet<string>(["diagnostics.read", "diagnostics.write", "responses.read_aggregated", "intelligence.read", "reports.read", "certificates.validate", "exports.create", "webhooks.manage"]);
         if (scopes.Count == 0 || scopes.Any(x => !allowed.Contains(x))) throw new ValidationAppException("Selecione apenas escopos válidos.");
         var secret = "vli_" + Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(secret))).ToLowerInvariant();
         var issued = await repository.CreateApiKeyAsync(organizationId, name.Trim(), scopes, hash, secret[..12], secret, ct);
         await audit.AddAsync(new AuditEntry(organizationId, userId, "api_key.created", "api_key", issued.Id.ToString(), "Chave de API criada", JsonSerializer.Serialize(new { issued.Prefix, Scopes = scopes })));
         return issued;
+    }
+
+    public Task<IReadOnlyList<ApiKeySummary>> ApiKeysAsync(Guid organizationId, CancellationToken ct) => repository.ListApiKeysAsync(organizationId, ct);
+
+    public async Task RevokeApiKeyAsync(Guid organizationId, Guid id, Guid userId, CancellationToken ct)
+    {
+        if (!await repository.RevokeApiKeyAsync(organizationId, id, ct)) throw new KeyNotFoundException("Chave de API não encontrada.");
+        await audit.AddAsync(new AuditEntry(organizationId, userId, "api_key.revoked", "api_key", id.ToString(), "Chave de API revogada", "{}"));
     }
 
     public CsvPreview PreviewCsv(string type, string csv)
@@ -95,7 +103,7 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
     }
     private static string ValidateKind(string kind) => kind.Trim().ToLowerInvariant() switch
     {
-        "plan" or "subscription" or "integration" or "template" or "alert" or "automation" or "branding"
+        "plan" or "subscription" or "integration" or "webhook" or "powerbi-dataset" or "one-on-one" or "benchmark-run" or "import-batch" or "template" or "alert" or "automation" or "branding"
         or "implementation" or "production-checklist" or "backup" or "release-note" or "data-quality"
         or "permission-governance" or "plan-governance" or "lgpd-request" => kind.Trim().ToLowerInvariant(),
         _ => throw new ValidationAppException("Módulo de governança inválido.")

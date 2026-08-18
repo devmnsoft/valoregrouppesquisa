@@ -17,6 +17,8 @@
     ['Usuários', 'Pessoas, papéis e acessos', '/Users'], ['Organização', 'Estrutura e identidade', '/Organization'],
     ['Abrir Estrutura Organizacional', 'Unidades, áreas e lideranças', '/Organization/Structure'], ['Ver Templates Oficiais', 'Biblioteca metodológica Valora', '/Experience/Templates'],
     ['Abrir Planos e Uso', 'Plano atual e limites', '/Plans'], ['Abrir Governança', 'Eventos executivos da plataforma', '/Intelligence/PlatformGovernance'], ['Auditoria', 'Eventos e rastreabilidade', '/Audit'],
+    ['Abrir Integrações', 'Central Enterprise e status real dos conectores', '/Integrations'], ['Criar API Key', 'Credencial por escopo exibida uma única vez', '/Integrations/ApiKeys'],
+    ['Configurar Webhook', 'Assinaturas e histórico de entregas', '/Integrations/Webhooks'], ['Gerar Dataset Power BI', 'Exportação preparada, agregada e autorizada', '/Integrations/PowerBI'],
     ['Processar Inteligência', 'Centro de processamento organizacional', '/Intelligence/Processing'], ['Gerar Executive Report', 'Relatório executivo rastreável', '/Intelligence/ExecutiveReport'],
     ['Abrir Dicionário', 'Conceitos oficiais da Metodologia Valora', '/Methodology/Dictionary'], ['Abrir Mapa Cognitivo', 'Influências sistêmicas governadas', '/Methodology/CognitiveMap'],
     ['Validar Mapeamento', 'Cobertura metodológica dos formulários', '/Methodology/Mappings'], ['Ver Evidências', 'Origem rastreável das leituras', '/Intelligence/Evidence'],

@@ -12,6 +12,7 @@ public sealed record UpsertEnterpriseItemRequest(string Kind, string Name, strin
 public sealed record CsvPreviewRow(int Line, IReadOnlyDictionary<string, string> Values, IReadOnlyList<string> Errors);
 public sealed record CsvPreview(string Type, IReadOnlyList<CsvPreviewRow> Rows, int Valid, int Invalid, string ConfirmationToken);
 public sealed record ApiKeyIssued(Guid Id, string Name, string Prefix, string Secret, IReadOnlyList<string> Scopes, DateTime CreatedAt);
+public sealed record ApiKeySummary(Guid Id, string Name, string Prefix, IReadOnlyList<string> Scopes, string Status, DateTime CreatedAt, DateTime? ExpiresAt, DateTime? LastUsedAt);
 
 public interface IEnterpriseRepository
 {
@@ -24,4 +25,6 @@ public interface IEnterpriseRepository
     Task<Guid> UpsertItemAsync(Guid? organizationId, Guid? id, UpsertEnterpriseItemRequest request, CancellationToken ct);
     Task SetItemStatusAsync(Guid? organizationId, Guid id, string status, CancellationToken ct);
     Task<ApiKeyIssued> CreateApiKeyAsync(Guid organizationId, string name, IReadOnlyList<string> scopes, string hash, string prefix, string secret, CancellationToken ct);
+    Task<IReadOnlyList<ApiKeySummary>> ListApiKeysAsync(Guid organizationId, CancellationToken ct) => throw new NotSupportedException();
+    Task<bool> RevokeApiKeyAsync(Guid organizationId, Guid id, CancellationToken ct) => throw new NotSupportedException();
 }

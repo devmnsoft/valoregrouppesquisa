@@ -2044,3 +2044,93 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.system_health_events (
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
 CREATE INDEX IF NOT EXISTS ix_system_health_events_component
  ON valorapesquisa.system_health_events(component,created_at DESC) WHERE deleted_at IS NULL;
+
+-- Enterprise & Integrações: estruturas operacionais isoladas por organização.
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS expires_at timestamptz;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_api_keys_hash_active ON valorapesquisa.api_keys(key_hash) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_api_keys_organization_status ON valorapesquisa.api_keys(organization_id,status,created_at DESC) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.integration_connections (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), code varchar(80) NOT NULL,
+ status varchar(30) NOT NULL DEFAULT 'not_configured', last_execution_at timestamptz, last_error_code varchar(80), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ correlation_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ UNIQUE(organization_id,code));
+CREATE INDEX IF NOT EXISTS ix_integration_connections_org ON valorapesquisa.integration_connections(organization_id,status) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.integration_settings (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), connection_id uuid NOT NULL REFERENCES valorapesquisa.integration_connections(id),
+ setting_key varchar(100) NOT NULL, value_protected text, value_hash text, status varchar(30) NOT NULL DEFAULT 'active', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ correlation_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, UNIQUE(connection_id,setting_key));
+CREATE TABLE IF NOT EXISTS valorapesquisa.api_key_usage_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), api_key_id uuid REFERENCES valorapesquisa.api_keys(id), scope varchar(100),
+ route text, status_code int, ip_hash text, user_agent_hash text, correlation_id text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, status varchar(30) NOT NULL DEFAULT 'recorded',
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_api_key_usage_org ON valorapesquisa.api_key_usage_events(organization_id,api_key_id,created_at DESC) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.webhook_subscriptions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), name varchar(160) NOT NULL, endpoint_url text NOT NULL,
+ events text[] NOT NULL DEFAULT '{}', secret_hash text, secret_protected text, status varchar(30) NOT NULL DEFAULT 'active', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ correlation_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_webhooks_org ON valorapesquisa.webhook_subscriptions(organization_id,status) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.webhook_deliveries (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), subscription_id uuid NOT NULL REFERENCES valorapesquisa.webhook_subscriptions(id),
+ event_type varchar(100) NOT NULL, payload_sanitized jsonb NOT NULL DEFAULT '{}'::jsonb, response_sanitized text, response_status int, attempt_count int NOT NULL DEFAULT 0,
+ next_attempt_at timestamptz, delivered_at timestamptz, status varchar(30) NOT NULL DEFAULT 'pending', idempotency_key text, correlation_id text,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_webhook_deliveries_pending ON valorapesquisa.webhook_deliveries(organization_id,status,next_attempt_at) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.powerbi_datasets (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), format varchar(20) NOT NULL, tables_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+ storage_key text, content_hash text, size_bytes bigint, minimum_sample_size int NOT NULL DEFAULT 5, status varchar(30) NOT NULL DEFAULT 'preparing', expires_at timestamptz,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text, source_hash text, idempotency_key text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_powerbi_datasets_org ON valorapesquisa.powerbi_datasets(organization_id,created_at DESC) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.powerbi_dataset_exports (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), dataset_id uuid NOT NULL REFERENCES valorapesquisa.powerbi_datasets(id),
+ exported_by uuid REFERENCES valorapesquisa.users(id), ip_hash text, status varchar(30) NOT NULL DEFAULT 'completed', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ correlation_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.one_on_one_sessions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), diagnostic_id uuid, insight_id uuid, action_id uuid,
+ participant_user_id uuid REFERENCES valorapesquisa.users(id), facilitator_user_id uuid REFERENCES valorapesquisa.users(id), agenda text NOT NULL, objective text NOT NULL,
+ agreements text, perceived_risks text, next_steps text, confidentiality varchar(30) NOT NULL DEFAULT 'restricted', scheduled_at timestamptz, completed_at timestamptz,
+ status varchar(30) NOT NULL DEFAULT 'draft', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_one_on_one_org ON valorapesquisa.one_on_one_sessions(organization_id,status,scheduled_at) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.one_on_one_notes (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), session_id uuid NOT NULL REFERENCES valorapesquisa.one_on_one_sessions(id),
+ note text NOT NULL, visibility varchar(30) NOT NULL DEFAULT 'restricted', status varchar(30) NOT NULL DEFAULT 'recorded', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ correlation_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.one_on_one_actions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), session_id uuid NOT NULL REFERENCES valorapesquisa.one_on_one_sessions(id),
+ action_id uuid REFERENCES valorapesquisa.valora_actions(id), evidence_reference text NOT NULL, status varchar(30) NOT NULL DEFAULT 'created', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ correlation_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_runs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), comparison_type varchar(40) NOT NULL, dimension varchar(100),
+ minimum_sample_size int NOT NULL DEFAULT 5, context text NOT NULL, status varchar(30) NOT NULL DEFAULT 'pending', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ correlation_id text, source_hash text, idempotency_key text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_benchmark_runs_org ON valorapesquisa.benchmark_runs(organization_id,created_at DESC) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_comparison_groups (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), run_id uuid NOT NULL REFERENCES valorapesquisa.benchmark_runs(id),
+ group_reference text NOT NULL, sample_size int NOT NULL, comparable boolean NOT NULL DEFAULT false, status varchar(30) NOT NULL DEFAULT 'evaluated', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ correlation_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_results (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), run_id uuid NOT NULL REFERENCES valorapesquisa.benchmark_runs(id),
+ metric_code varchar(100) NOT NULL, difference numeric(12,4), interpretation text, internal_practices text, opportunities text, status varchar(30) NOT NULL DEFAULT 'available',
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.import_batches (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), import_type varchar(60) NOT NULL, file_name text,
+ source_hash text NOT NULL, status varchar(30) NOT NULL DEFAULT 'uploaded', valid_rows int NOT NULL DEFAULT 0, invalid_rows int NOT NULL DEFAULT 0,
+ confirmed_at timestamptz, idempotency_key text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_import_batches_org ON valorapesquisa.import_batches(organization_id,created_at DESC) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.import_batch_rows (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), batch_id uuid NOT NULL REFERENCES valorapesquisa.import_batches(id),
+ line_number int NOT NULL, data_json jsonb NOT NULL DEFAULT '{}'::jsonb, errors_json jsonb NOT NULL DEFAULT '[]'::jsonb, status varchar(30) NOT NULL DEFAULT 'pending',
+ source_hash text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ UNIQUE(batch_id,line_number));
+CREATE TABLE IF NOT EXISTS valorapesquisa.import_templates (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), import_type varchar(60) NOT NULL, version int NOT NULL DEFAULT 1,
+ columns_json jsonb NOT NULL, status varchar(30) NOT NULL DEFAULT 'active', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, UNIQUE(organization_id,import_type,version));

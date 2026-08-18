@@ -1665,14 +1665,30 @@ BEGIN
 
   IF has_message THEN
     IF has_body THEN
-      EXECUTE 'UPDATE valorapesquisa.notifications SET message=body WHERE (message IS NULL OR btrim(message)='''') AND body IS NOT NULL AND btrim(body)<>''''';
+      EXECUTE $sql$
+        UPDATE valorapesquisa.notifications
+           SET message = body
+         WHERE (message IS NULL OR btrim(message) = '')
+           AND body IS NOT NULL
+           AND btrim(body) <> ''
+      $sql$;
       -- Mantém a coluna legada para compatibilidade, mas novas gravações usam somente message.
       EXECUTE 'ALTER TABLE valorapesquisa.notifications ALTER COLUMN body DROP NOT NULL';
     END IF;
     IF has_title THEN
-      EXECUTE 'UPDATE valorapesquisa.notifications SET message=title WHERE (message IS NULL OR btrim(message)='''') AND title IS NOT NULL AND btrim(title)<>''''';
+      EXECUTE $sql$
+        UPDATE valorapesquisa.notifications
+           SET message = title
+         WHERE (message IS NULL OR btrim(message) = '')
+           AND title IS NOT NULL
+           AND btrim(title) <> ''
+      $sql$;
     END IF;
-    EXECUTE 'UPDATE valorapesquisa.notifications SET message=''Notificação'' WHERE message IS NULL OR btrim(message)=''''';
+    EXECUTE $sql$
+      UPDATE valorapesquisa.notifications
+         SET message = 'Notificação'
+       WHERE message IS NULL OR btrim(message) = ''
+    $sql$;
   END IF;
 END
 $notification_message_migration$;

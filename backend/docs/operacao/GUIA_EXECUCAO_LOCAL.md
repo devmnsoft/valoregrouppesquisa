@@ -26,3 +26,4 @@ ASPNETCORE_ENVIRONMENT=Development dotnet run --project Valora.Api
 2. Consulte `/health`, `/health/database` e, autenticado, `/api/v1/system-health`.
 3. Não contorne a validação JWT. Se ela falhar, configure `Jwt:SigningKey` por User Secrets ou por `Jwt__SigningKey`.
 
+`/health/config` apresenta somente estados sanitizados (`configured`, `missing`, `invalid` ou `not_configured`) para JWT, PostgreSQL, e-mail, PDF e storage. A chave JWT e as demais credenciais nunca fazem parte da resposta. Em produção, uma chave iniciada por `DEV_ONLY_` aparece como `invalid` e a inicialização permanece bloqueada.

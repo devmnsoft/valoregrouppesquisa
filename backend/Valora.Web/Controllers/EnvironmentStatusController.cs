@@ -8,7 +8,7 @@ public sealed class EnvironmentStatusController(ILogger<EnvironmentStatusControl
     {
         try
         {
-            ViewData["Title"] = "EnvironmentStatus";
+            ViewData["Title"] = "Saúde do Sistema";
             return View();
         }
         catch (Exception ex)

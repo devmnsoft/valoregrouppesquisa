@@ -1,12 +1,18 @@
-@{ ViewData["Title"] = "Ambiente"; }
-<section class="page-card official-module" data-page="environment-status-page">
-  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-    <div><p class="eyebrow">Valora.Web oficial</p><h1>Ambiente</h1><p class="text-muted">Saúde da API, banco e dependências.</p></div>
-    <button class="btn btn-primary" data-refresh>Atualizar</button>
+@{ ViewData["Title"] = "Saúde do Sistema"; }
+<section class="valora-page" data-page="environment-status-page">
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Saúde do Sistema", "Acompanhe a disponibilidade do ambiente sem expor credenciais ou detalhes técnicos sensíveis.", "Operação", "Verificação sob demanda", new[] { new PageHeaderAction("Atualizar status", "#refresh-health", Style: "primary", Icon: "activity") }))" />
+  <div class="executive-grid" data-summary-cards>
+    <article class="valora-card metric-card"><span>Web</span><strong data-card="web">Verificando…</strong><small>Interface e sessão</small></article>
+    <article class="valora-card metric-card"><span>API</span><strong data-card="api">Verificando…</strong><small>Serviços de aplicação</small></article>
+    <article class="valora-card metric-card"><span>PostgreSQL</span><strong data-card="database">Verificando…</strong><small>Persistência oficial</small></article>
+    <article class="valora-card metric-card"><span>Configuração</span><strong data-card="config">Verificando…</strong><small>Dependências opcionais</small></article>
   </div>
-  <div class="row g-3 mt-2" data-summary-cards><div class="col-md-4"><div class="metric-card"><span>API</span><strong data-card="api">Carregando…</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Banco</span><strong data-card="banco">Carregando…</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Dependências</span><strong data-card="dependências">Carregando…</strong></div></div></div>
-  <div class="alert alert-warning d-none mt-3" data-gap-controlled="true" data-gap-card>Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.</div>
-  <div class="alert alert-danger d-none mt-3" role="alert" data-error></div>
-  <div class="table-responsive mt-3"><table class="table table-sm align-middle"><thead><tr><th>Nome</th><th>Status</th><th>Detalhes</th><th>Ação</th></tr></thead><tbody data-items></tbody></table></div>
+  <div class="valora-alert valora-alert--warning mt-3" data-warning hidden></div>
+  <div class="valora-alert valora-alert--danger mt-3" role="alert" data-error hidden></div>
+  <article class="valora-card mt-3">
+    <div class="v9-section-title"><div><p class="eyebrow">Dependências</p><h2>Última verificação operacional</h2><p class="text-muted" data-environment>Carregando ambiente…</p></div><button id="refresh-health" type="button" class="valora-button valora-button--ghost" data-refresh>Atualizar</button></div>
+    <div class="table-responsive"><table class="valora-table table"><thead><tr><th>Componente</th><th>Status</th><th>Leitura segura</th><th>Referência</th></tr></thead><tbody data-items><tr><td colspan="4">Verificando dependências…</td></tr></tbody></table></div>
+  </article>
+  <div class="mt-3"><a class="valora-button valora-button--ghost" href="/Audit">Abrir Governança e Auditoria</a></div>
 </section>
-@section Scripts { <script src="/js/pages/environment-status-page.js"></script> }
+@section Scripts { <script src="/js/pages/environment-status-page.js" asp-append-version="true"></script> }

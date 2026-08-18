@@ -43,7 +43,12 @@ public sealed class HealthController(
     public IActionResult Migration() => Ok(Base(new { migration = MigrationInfo() }));
 
     [HttpGet("/health/email")]
-    public IActionResult Email() => Ok(Base(new { email = string.IsNullOrWhiteSpace(configuration["Smtp:Host"]) ? "not_configured" : "configured" }));
+    public IActionResult Email() => Ok(Base(new
+    {
+        email = configuration.GetValue<bool>("Email:Enabled")
+            ? string.IsNullOrWhiteSpace(configuration["Email:Smtp:Host"]) ? "not_configured" : "configured"
+            : "disabled"
+    }));
 
     [HttpGet("/health/storage")]
     public IActionResult Storage() => Ok(Base(new { storage = "local_or_database", backupDirConfigured = !string.IsNullOrWhiteSpace(configuration["VALORA_BACKUP_DIR"]) }));
@@ -52,7 +57,15 @@ public sealed class HealthController(
     public IActionResult Version() => Ok(Base(new { version = VersionValue(), build = configuration["Build:Sha"] ?? "local" }));
 
     [HttpGet("/health/config")]
-    public IActionResult Config() => Ok(Base(new { postgresConfigured = !string.IsNullOrWhiteSpace(configuration.GetConnectionString("DefaultConnection")) }));
+    public IActionResult Config() => Ok(Base(new
+    {
+        postgresConfigured = !string.IsNullOrWhiteSpace(configuration.GetConnectionString("DefaultConnection")),
+        processingEnabled = configuration.GetValue("Valora:Processing:Enabled", true),
+        emailEnabled = configuration.GetValue<bool>("Email:Enabled"),
+        demoSeedEnabled = !environment.IsProduction() &&
+            (configuration.GetValue<bool>("Demo:SeedEnabled") ||
+             string.Equals(configuration["VALORA_SEED_DEMO"], "true", StringComparison.OrdinalIgnoreCase))
+    }));
 
     private object Base(object extra)
     {

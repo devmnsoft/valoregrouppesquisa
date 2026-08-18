@@ -11,6 +11,10 @@ public sealed class BffDiagnosticOperationsController(IBffApiClient api, BffAuth
     [HttpGet("participation")]
     public Task<IActionResult> Participation(Guid id, CancellationToken ct) => Forward(id, "participation", ct);
 
+    [AcceptVerbs("GET", "POST"), Route("campaign/{action?}")]
+    public Task<IActionResult> Campaign(Guid id, string? action, CancellationToken ct) =>
+        Forward(id, string.IsNullOrWhiteSpace(action) ? "campaign" : $"campaign/{action}", ct);
+
     [AcceptVerbs("GET", "POST"), Route("executive-report/{action?}")]
     public Task<IActionResult> ExecutiveReport(Guid id, string? action, CancellationToken ct) =>
         Forward(id, string.IsNullOrWhiteSpace(action) ? "executive-report" : $"executive-report/{action}", ct);

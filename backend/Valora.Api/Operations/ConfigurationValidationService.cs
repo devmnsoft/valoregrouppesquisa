@@ -35,9 +35,9 @@ public sealed class ConfigurationValidationService(IConfiguration configuration,
         Require(issues, "JWT_AUDIENCE", "authentication", configuration["Jwt:Audience"], true, "Configure Jwt__Audience.");
         var signingKey = configuration["Jwt:SigningKey"];
         Require(issues, "JWT_SIGNING_KEY", "authentication", signingKey, true, "Use uma chave aleatória com pelo menos 32 caracteres.");
-        if (!string.IsNullOrWhiteSpace(signingKey) && signingKey.Length < 32)
+        if (!string.IsNullOrWhiteSpace(signingKey) && signingKey.Trim().Length < 32)
             Add(issues, "JWT_WEAK_KEY", "authentication", "critical", "A chave JWT não atende ao mínimo de 32 caracteres.", "Configure Jwt__SigningKey com uma chave aleatória de pelo menos 32 caracteres.", true);
-        if (environment.IsProduction() && signingKey?.StartsWith("DEV_ONLY_", StringComparison.Ordinal) == true)
+        if (environment.IsProduction() && signingKey?.TrimStart().StartsWith("DEV_ONLY_", StringComparison.OrdinalIgnoreCase) == true)
             Add(issues, "JWT_DEMO_KEY_PRODUCTION", "authentication", "critical", "A chave JWT de demonstração não pode ser usada em produção.", "Forneça um segredo exclusivo por Jwt__SigningKey ou secret manager.", true);
 
         Require(issues, "PUBLIC_BASE_URL", "urls", configuration["App:PublicBaseUrl"], true, "Configure App__PublicBaseUrl com HTTPS.");

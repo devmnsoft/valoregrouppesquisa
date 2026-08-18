@@ -17,3 +17,5 @@ Jwt__SigningKey=CHANGE_ME_WITH_AT_LEAST_32_CHARACTERS_FOR_PRODUCTION
 ```
 
 Gere para `Jwt__SigningKey` um valor aleatório e exclusivo com pelo menos 32 caracteres. Valor ausente, em branco, curto ou iniciado por `DEV_ONLY_` bloqueia a inicialização/validação segura de produção. O painel de Saúde do Sistema informa apenas o estado da configuração e nunca devolve a chave.
+
+O check sanitizado `GET /health/config` permite confirmar a implantação sem revelar valores: `jwt.signingKey` deve estar como `configured`. Os estados `missing` e `invalid` são críticos; `not_configured` identifica integrações opcionais ainda desabilitadas.

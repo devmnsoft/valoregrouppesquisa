@@ -10,7 +10,8 @@ public static class JwtConfiguration
     {
         var jwt = configuration.GetSection("Jwt");
         var signingKey = jwt["SigningKey"];
-        if (string.IsNullOrWhiteSpace(signingKey) || signingKey.Length < 32)
+        // Espaços não aumentam artificialmente a entropia mínima exigida para a chave.
+        if (string.IsNullOrWhiteSpace(signingKey) || signingKey.Trim().Length < 32)
             throw new InvalidOperationException(
                 "Jwt:SigningKey deve possuir pelo menos 32 caracteres. Configure Jwt:SigningKey em appsettings.Development.json, user-secrets ou variável de ambiente.");
 
@@ -28,7 +29,8 @@ public static class JwtConfiguration
                     ValidIssuer = issuer,
                     ValidAudience = audience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
-                    ClockSkew = TimeSpan.FromSeconds(jwt.GetValue("ClockSkewSeconds", 30))
+                    // Evita que uma configuração incorreta aceite tokens expirados por tempo excessivo.
+                    ClockSkew = TimeSpan.FromSeconds(Math.Clamp(jwt.GetValue("ClockSkewSeconds", 30), 0, 300))
                 };
             });
         return services;

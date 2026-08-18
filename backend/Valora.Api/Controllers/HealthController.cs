@@ -57,15 +57,37 @@ public sealed class HealthController(
     public IActionResult Version() => Ok(Base(new { version = VersionValue(), build = configuration["Build:Sha"] ?? "local" }));
 
     [HttpGet("/health/config")]
-    public IActionResult Config() => Ok(Base(new
+    public IActionResult Config()
     {
-        postgresConfigured = !string.IsNullOrWhiteSpace(configuration.GetConnectionString("DefaultConnection")),
-        processingEnabled = configuration.GetValue("Valora:Processing:Enabled", true),
-        emailEnabled = configuration.GetValue<bool>("Email:Enabled"),
-        demoSeedEnabled = !environment.IsProduction() &&
-            (configuration.GetValue<bool>("Demo:SeedEnabled") ||
-             string.Equals(configuration["VALORA_SEED_DEMO"], "true", StringComparison.OrdinalIgnoreCase))
-    }));
+        var signingKey = configuration["Jwt:SigningKey"];
+        var isDemoKey = signingKey?.TrimStart().StartsWith("DEV_ONLY_", StringComparison.OrdinalIgnoreCase) == true;
+        var jwtStatus = string.IsNullOrWhiteSpace(signingKey)
+            ? "missing"
+            : signingKey.Trim().Length < 32 || environment.IsProduction() && isDemoKey
+                ? "invalid"
+                : "configured";
+
+        return Ok(Base(new
+        {
+            // Somente estados sanitizados: este endpoint nunca devolve chaves, senhas ou connection strings.
+            jwt = new
+            {
+                signingKey = jwtStatus,
+                issuer = Status(configuration["Jwt:Issuer"]),
+                audience = Status(configuration["Jwt:Audience"])
+            },
+            postgres = Status(configuration.GetConnectionString("Postgres") ?? configuration.GetConnectionString("DefaultConnection")),
+            postgresConfigured = !string.IsNullOrWhiteSpace(configuration.GetConnectionString("Postgres") ?? configuration.GetConnectionString("DefaultConnection")),
+            email = configuration.GetValue<bool>("Email:Enabled") ? Status(configuration["Email:Smtp:Host"] ?? configuration["Email:SmtpHost"]) : "not_configured",
+            emailEnabled = configuration.GetValue<bool>("Email:Enabled"),
+            pdf = configuration.GetValue<bool>("Certificates:PdfEnabled") || configuration.GetValue<bool>("Reports:PdfEnabled") ? "configured" : "not_configured",
+            storage = Status(configuration["Storage:Provider"]),
+            processingEnabled = configuration.GetValue("Valora:Processing:Enabled", true),
+            demoSeedEnabled = !environment.IsProduction() &&
+                (configuration.GetValue<bool>("Demo:SeedEnabled") ||
+                 string.Equals(configuration["VALORA_SEED_DEMO"], "true", StringComparison.OrdinalIgnoreCase))
+        }));
+    }
 
     private object Base(object extra)
     {
@@ -83,6 +105,7 @@ public sealed class HealthController(
     }
 
     private object MigrationInfo() => new { lastApplied = string.Empty, pendingCount = 0 };
+    private static string Status(string? value) => string.IsNullOrWhiteSpace(value) ? "missing" : "configured";
     private string VersionValue() => typeof(HealthController).Assembly.GetName().Version?.ToString() ?? "0.0.0";
     private string CorrelationId() => HttpContext.Items.TryGetValue(CorrelationIdMiddleware.ItemName, out var v) ? v?.ToString() ?? string.Empty : string.Empty;
 }

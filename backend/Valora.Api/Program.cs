@@ -23,6 +23,10 @@ builder.Services.AddHostedService<IntelligenceProcessingWorker>();
 
 var app = builder.Build();
 
+var configurationValidation = app.Services.GetRequiredService<Valora.Api.Operations.IConfigurationValidationService>().Validate();
+if (app.Environment.IsProduction() && configurationValidation.Issues.Any(issue => issue.Code is "JWT_SIGNING_KEY" or "JWT_WEAK_KEY" or "DEMO_SEED_PRODUCTION" or "DETAILED_ERRORS_PRODUCTION"))
+    throw new InvalidOperationException("Configuração insegura para produção. Consulte os registros de inicialização e o painel de Saúde do Sistema.");
+
 if (app.Environment.IsDevelopment() && builder.Configuration.GetValue("Database:ValidateSchema", true))
 {
     await using var scope = app.Services.CreateAsyncScope();
@@ -31,12 +35,26 @@ if (app.Environment.IsDevelopment() && builder.Configuration.GetValue("Database:
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();
+if (app.Environment.IsProduction())
+{
+    app.UseHsts();
+    if (builder.Configuration.GetValue("Security:RequireHttps", true)) app.UseHttpsRedirection();
+}
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    context.Response.Headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+    await next();
+});
 app.UseSwagger();
 app.UseSwaggerUI();
 app.UseSerilogRequestLogging();
 app.UseCors("ValoraWebCors");
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<MaintenanceModeMiddleware>();
 
 app.MapGet("/", () => Results.Json(new
 {

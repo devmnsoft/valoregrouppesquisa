@@ -3,6 +3,7 @@ using Valora.Application.Services;
 using Valora.Application.Access;
 using Valora.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using Valora.Api.Operations;
 
 namespace Valora.Api.Configuration;
 
@@ -34,6 +35,7 @@ public static class ApiServiceCollectionExtensions
                 options.AddPolicy(permission, policy => policy.RequireAuthenticatedUser().AddRequirements(new PermissionRequirement(permission)));
         });
         services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
+        services.AddSingleton<IConfigurationValidationService, ConfigurationValidationService>();
         return services;
     }
 }

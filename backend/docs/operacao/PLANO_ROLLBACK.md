@@ -1,0 +1,2 @@
+# Plano de rollback
+Critérios: health crítico persistente, erro de autenticação generalizado, perda/corrupção de dados ou rota pública indisponível. Congele escritas com modo manutenção, preserve logs/correlationIds, reverta o site IIS para o diretório publicado anterior e recicle o pool. Migrações são aditivas; não execute DROP. Se dados exigirem retorno, restaure em banco separado, valide e faça cutover assistido conforme runbook. Registre decisão, executores, horários e evidências em governança.

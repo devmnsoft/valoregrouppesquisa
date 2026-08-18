@@ -14,4 +14,7 @@ public sealed class EmailOptions
     public bool SmtpSecure { get => Smtp.UseSsl; set => Smtp.UseSsl = value; }
     public string SmtpUser { get => Smtp.Username; set => Smtp.Username = value ?? string.Empty; }
     public string SmtpPassword { get => Smtp.Password; set => Smtp.Password = value ?? string.Empty; }
+    public string Username { get => Smtp.Username; set => Smtp.Username = value ?? string.Empty; }
+    public string Password { get => Smtp.Password; set => Smtp.Password = value ?? string.Empty; }
+    public string From { get => FromEmail; set => FromEmail = value ?? string.Empty; }
 }

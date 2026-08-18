@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Access;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
+using Valora.Api.Operations;
 
 namespace Valora.Api.Controllers;
 
@@ -16,7 +17,9 @@ public sealed class SaasAdministrationController(
     IPlanRepository plans,
     IPlanEntitlementService entitlements,
     IAuditRepository audit,
-    IWebHostEnvironment environment) : ControllerBase
+    IWebHostEnvironment environment,
+    IConfiguration configuration,
+    IConfigurationValidationService configurationValidation) : ControllerBase
 {
     [HttpGet("roles")]
     [Authorize(Policy = ValoraPermissions.Roles.Read)]
@@ -97,6 +100,18 @@ public sealed class SaasAdministrationController(
             web = "operational",
             environment = environment.EnvironmentName,
             version = typeof(SaasAdministrationController).Assembly.GetName().Version?.ToString(),
+            configuration = configurationValidation.Validate(),
+            backup = new
+            {
+                status = configuration.GetValue<bool>("Backup:Configured") ? "configured" : "not_configured",
+                lastKnownAt = DateTimeOffset.TryParse(configuration["Backup:LastKnownAt"], out var backupAt) ? backupAt : (DateTimeOffset?)null,
+                runbook = "/docs/operacao/BACKUP_RESTORE_POSTGRESQL.md"
+            },
+            maintenance = new
+            {
+                enabled = configuration.GetValue<bool>("App:MaintenanceModeEnabled"),
+                status = configuration.GetValue<bool>("App:MaintenanceModeEnabled") ? "warning" : "healthy"
+            },
             details = events
         });
     }

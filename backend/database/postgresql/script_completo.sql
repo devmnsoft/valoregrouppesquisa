@@ -2134,3 +2134,30 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.import_templates (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), import_type varchar(60) NOT NULL, version int NOT NULL DEFAULT 1,
  columns_json jsonb NOT NULL, status varchar(30) NOT NULL DEFAULT 'active', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text,
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, UNIQUE(organization_id,import_type,version));
+
+-- Operational readiness ledger. Dumps and sensitive filesystem paths must never be stored here.
+CREATE TABLE IF NOT EXISTS valorapesquisa.schema_version (
+ version varchar(50) PRIMARY KEY, description text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now());
+INSERT INTO valorapesquisa.schema_version(version, description) VALUES ('2026.08-go-live', 'Operational readiness baseline') ON CONFLICT (version) DO NOTHING;
+CREATE TABLE IF NOT EXISTS valorapesquisa.operational_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), event_type varchar(80) NOT NULL,
+ status varchar(30) NOT NULL, performed_by uuid REFERENCES valorapesquisa.users(id), performed_at timestamptz NOT NULL DEFAULT now(),
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, notes text, correlation_id text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_operational_events_type_date ON valorapesquisa.operational_events(event_type, performed_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.backup_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), event_type varchar(80) NOT NULL DEFAULT 'backup',
+ status varchar(30) NOT NULL, performed_by uuid REFERENCES valorapesquisa.users(id), performed_at timestamptz NOT NULL DEFAULT now(),
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, notes text, correlation_id text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_backup_events_date ON valorapesquisa.backup_events(performed_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.restore_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), event_type varchar(80) NOT NULL DEFAULT 'restore',
+ status varchar(30) NOT NULL, performed_by uuid REFERENCES valorapesquisa.users(id), performed_at timestamptz NOT NULL DEFAULT now(),
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, notes text, correlation_id text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_restore_events_date ON valorapesquisa.restore_events(performed_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.configuration_validation_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), environment_name varchar(80) NOT NULL, overall_status varchar(30) NOT NULL,
+ issues_json jsonb NOT NULL DEFAULT '[]'::jsonb, correlation_id text, checked_at timestamptz NOT NULL DEFAULT now(), created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.maintenance_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), enabled boolean NOT NULL,
+ message text, performed_by uuid REFERENCES valorapesquisa.users(id), performed_at timestamptz NOT NULL DEFAULT now(), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ correlation_id text, created_at timestamptz NOT NULL DEFAULT now());

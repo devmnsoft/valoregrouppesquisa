@@ -9,9 +9,9 @@ public static class JwtConfiguration
     public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         var jwt = configuration.GetSection("Jwt");
-        var secret = jwt["Secret"];
+        var secret = jwt["SigningKey"] ?? jwt["Secret"];
         if (string.IsNullOrWhiteSpace(secret) || secret.Length < 32)
-            throw new InvalidOperationException("Jwt:Secret deve possuir pelo menos 32 caracteres.");
+            throw new InvalidOperationException("Jwt:SigningKey deve possuir pelo menos 32 caracteres.");
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {

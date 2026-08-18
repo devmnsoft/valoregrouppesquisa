@@ -1,4 +1,5 @@
 @inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 <!doctype html>
 <html lang="pt-BR">
 <head>
@@ -21,6 +22,10 @@
   <link rel="stylesheet" href="/css/print.css" asp-append-version="true">
 </head>
 <body class="valora-shell admin-body">
+  @if (Configuration.GetValue<bool>("App:MaintenanceModeEnabled"))
+  {
+    <div class="alert alert-warning rounded-0 mb-0 text-center" role="status"><strong>Manutenção programada:</strong> @(Configuration["App:MaintenanceMessage"] ?? "O sistema está em manutenção programada. Tente novamente mais tarde.")</div>
+  }
   <div id="loadingOverlay" class="loading-overlay d-none">
     <div class="spinner-border text-info"></div>
     <p id="loadingMessage">Carregando...</p>

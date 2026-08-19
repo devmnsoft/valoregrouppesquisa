@@ -1636,6 +1636,10 @@ CREATE INDEX IF NOT EXISTS ix_evidence_source ON valorapesquisa.evidence_items(s
 ALTER TABLE valorapesquisa.evidence_items ADD COLUMN IF NOT EXISTS metric_code varchar(80);
 ALTER TABLE valorapesquisa.evidence_items ADD COLUMN IF NOT EXISTS index_code varchar(12);
 ALTER TABLE valorapesquisa.evidence_items ADD COLUMN IF NOT EXISTS polarity smallint NOT NULL DEFAULT 1 CHECK(polarity IN(-1,1));
+ALTER TABLE valorapesquisa.evidence_items ADD COLUMN IF NOT EXISTS score numeric(10,4);
+ALTER TABLE valorapesquisa.evidence_items ADD COLUMN IF NOT EXISTS mapping_status varchar(30);
+ALTER TABLE valorapesquisa.evidence_items ADD COLUMN IF NOT EXISTS source_reference text;
+ALTER TABLE valorapesquisa.evidence_items ADD COLUMN IF NOT EXISTS can_be_used_for_inference boolean NOT NULL DEFAULT false;
 UPDATE valorapesquisa.evidence_items SET metric_code=metadata_json->>'metricCode',index_code=metadata_json->>'indexCode',
  polarity=coalesce((metadata_json->>'polarity')::smallint,1)
 WHERE metric_code IS NULL OR index_code IS NULL;
@@ -1644,10 +1648,18 @@ CREATE INDEX IF NOT EXISTS ix_evidence_org_index ON valorapesquisa.evidence_item
 CREATE INDEX IF NOT EXISTS ix_evidence_org_survey ON valorapesquisa.evidence_items(organization_id,survey_id,created_at DESC) WHERE deleted_at IS NULL;
 UPDATE valorapesquisa.evidence_items
 SET metadata_json=metadata_json || jsonb_build_object(
-  'mappingStatus',CASE WHEN concept_code<>'unmapped' AND metric_code IS NOT NULL AND index_code IS NOT NULL THEN 'mapped' ELSE 'pending' END,
+  'mappingStatus',CASE WHEN concept_code<>'unmapped' AND metric_code IS NOT NULL AND index_code IS NOT NULL THEN 'mapped' ELSE 'pending_mapping' END,
   'missingMappings',array_remove(ARRAY[CASE WHEN concept_code='unmapped' THEN 'concept' END,CASE WHEN metric_code IS NULL THEN 'metric' END,CASE WHEN index_code IS NULL THEN 'index' END],NULL)),
   updated_at=now()
 WHERE NOT metadata_json ? 'mappingStatus';
+UPDATE valorapesquisa.evidence_items
+SET mapping_status=CASE WHEN concept_code<>'unmapped' AND metric_code IS NOT NULL AND index_code IS NOT NULL THEN 'mapped' ELSE 'pending_mapping' END,
+    source_reference=coalesce(source_reference,source_id::text),
+    can_be_used_for_inference=(normalized_value IS NOT NULL AND concept_code<>'unmapped' AND metric_code IS NOT NULL AND index_code IS NOT NULL),
+    updated_at=now()
+WHERE mapping_status IS NULL OR mapping_status='pending' OR source_reference IS NULL;
+ALTER TABLE valorapesquisa.evidence_items ALTER COLUMN mapping_status SET DEFAULT 'pending_mapping';
+CREATE INDEX IF NOT EXISTS ix_evidence_mapping_status ON valorapesquisa.evidence_items(organization_id,mapping_status,created_at DESC) WHERE deleted_at IS NULL;
 
 -- Evolui a tabela histórica de notificações sem destruir mensagens existentes.
 ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS type varchar(60) NOT NULL DEFAULT 'information';

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Valora.Application.Results;
 
 namespace Valora.Application.OrganizationalIntelligence;
@@ -52,8 +53,27 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
         }).ToList();
     }
 
-    public Task<ValoraActionDto> CreateActionAsync(Guid organizationId, Guid userId, CreateValoraActionRequest request, CancellationToken ct)
+    public async Task<ValoraActionDto> CreateActionAsync(Guid organizationId, Guid userId, CreateValoraActionRequest request, CancellationToken ct)
     {
+        if (string.Equals(request.SourceType, "insight", StringComparison.OrdinalIgnoreCase))
+        {
+            if (request.InsightId is null)
+                throw new ArgumentException("Informe o Insight que sustenta a ação.");
+
+            var insight = (await repository.ListModuleRecordsAsync(organizationId, "insights", ct))
+                .FirstOrDefault(item => item.Id == request.InsightId.Value);
+            if (insight is null)
+                throw new ArgumentException("O Insight informado não existe no escopo desta organização.");
+            if (!HasTraceableEvidence(insight.Data))
+                throw new ArgumentException("O Insight ainda não possui evidências rastreáveis para ser transformado em Action.");
+
+            request = request with
+            {
+                InferenceId = ReadGuid(insight.Data, "inferenceId") ?? request.InferenceId,
+                ConceptCode = ReadText(insight.Data, "concept") ?? request.ConceptCode,
+                EvidenceJustification = BuildEvidenceJustification(insight.Data, request.EvidenceJustification)
+            };
+        }
         if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.EvidenceJustification) || string.IsNullOrWhiteSpace(request.CompletionCriteria))
             throw new ArgumentException("Título, justificativa baseada em evidências e critério de conclusão são obrigatórios.");
         if (request.EvidenceJustification.Trim().Length < 20)
@@ -70,8 +90,24 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
             request.Priority.Trim().ToLowerInvariant(), request.Owner?.Trim(), request.ExecutiveSponsor?.Trim(), request.DueAt,
             request.Complexity.Trim().ToLowerInvariant(), request.Indicators.Trim(), request.ExpectedResult.Trim(), request.CompletionCriteria.Trim(), "recommended", now, now,
             request.SurveyId, request.CycleId, request.InsightId, request.InferenceId, request.ConceptCode?.Trim(), request.Urgency?.Trim(), request.Impact?.Trim());
-        return repository.CreateActionAsync(item, userId, ct);
+        return await repository.CreateActionAsync(item, userId, ct);
     }
+
+    private static bool HasTraceableEvidence(JsonElement data) =>
+        data.TryGetProperty("evidenceIds", out var evidence) && evidence.ValueKind == JsonValueKind.Array && evidence.GetArrayLength() > 0;
+
+    private static string BuildEvidenceJustification(JsonElement data, string supplied)
+    {
+        var count = data.GetProperty("evidenceIds").GetArrayLength();
+        var summary = ReadText(data, "evidenceSummary") ?? $"Insight sustentado por {count} evidência(s) rastreável(is).";
+        return string.IsNullOrWhiteSpace(supplied) ? summary : $"{summary} {supplied.Trim()}";
+    }
+
+    private static string? ReadText(JsonElement data, string property) =>
+        data.TryGetProperty(property, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() : null;
+
+    private static Guid? ReadGuid(JsonElement data, string property) =>
+        Guid.TryParse(ReadText(data, property), out var value) ? value : null;
 
     public async Task<OrganizationalIntelligenceRunDto> GenerateAsync(Guid organizationId, CancellationToken ct)
     {

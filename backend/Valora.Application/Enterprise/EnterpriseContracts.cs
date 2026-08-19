@@ -11,8 +11,9 @@ public sealed record EnterpriseItem(Guid Id, Guid? OrganizationId, string Kind, 
 public sealed record UpsertEnterpriseItemRequest(string Kind, string Name, string Status, JsonElement Configuration);
 public sealed record CsvPreviewRow(int Line, IReadOnlyDictionary<string, string> Values, IReadOnlyList<string> Errors);
 public sealed record CsvPreview(string Type, IReadOnlyList<CsvPreviewRow> Rows, int Valid, int Invalid, string ConfirmationToken);
-public sealed record ApiKeyIssued(Guid Id, string Name, string Prefix, string Secret, IReadOnlyList<string> Scopes, DateTime CreatedAt);
+public sealed record ApiKeyIssued(Guid Id, string Name, string Prefix, string Secret, IReadOnlyList<string> Scopes, DateTime CreatedAt, DateTime? ExpiresAt);
 public sealed record ApiKeySummary(Guid Id, string Name, string Prefix, IReadOnlyList<string> Scopes, string Status, DateTime CreatedAt, DateTime? ExpiresAt, DateTime? LastUsedAt);
+public sealed record ApiKeyUsage(Guid Id, string Endpoint, string Method, int StatusCode, string? ScopeUsed, string? CorrelationId, DateTime CreatedAt);
 
 public interface IEnterpriseRepository
 {
@@ -24,7 +25,11 @@ public interface IEnterpriseRepository
     Task<IReadOnlyList<EnterpriseItem>> ListItemsAsync(Guid? organizationId, string kind, CancellationToken ct);
     Task<Guid> UpsertItemAsync(Guid? organizationId, Guid? id, UpsertEnterpriseItemRequest request, CancellationToken ct);
     Task SetItemStatusAsync(Guid? organizationId, Guid id, string status, CancellationToken ct);
-    Task<ApiKeyIssued> CreateApiKeyAsync(Guid organizationId, string name, IReadOnlyList<string> scopes, string hash, string prefix, string secret, CancellationToken ct);
+    Task<Guid> CreateApiKeyAsync(Guid organizationId, string name, IReadOnlyList<string> scopes, string hash, string prefix, DateTime? expiresAt, Guid createdBy, CancellationToken ct) => throw new NotSupportedException();
+    [Obsolete("Use the overload that never transports the clear-text secret to persistence.")]
+    Task<ApiKeyIssued> CreateApiKeyAsync(Guid organizationId, string name, IReadOnlyList<string> scopes, string hash, string prefix, string secret, CancellationToken ct) => throw new NotSupportedException();
     Task<IReadOnlyList<ApiKeySummary>> ListApiKeysAsync(Guid organizationId, CancellationToken ct) => throw new NotSupportedException();
+    Task<ApiKeySummary?> GetApiKeyAsync(Guid organizationId, Guid id, CancellationToken ct) => throw new NotSupportedException();
+    Task<IReadOnlyList<ApiKeyUsage>> ListApiKeyUsageAsync(Guid organizationId, Guid id, CancellationToken ct) => throw new NotSupportedException();
     Task<bool> RevokeApiKeyAsync(Guid organizationId, Guid id, CancellationToken ct) => throw new NotSupportedException();
 }

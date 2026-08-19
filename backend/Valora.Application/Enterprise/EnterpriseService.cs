@@ -41,18 +41,24 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
         return itemId;
     }
 
-    public async Task<ApiKeyIssued> CreateApiKeyAsync(Guid organizationId, string name, IReadOnlyList<string> scopes, Guid userId, CancellationToken ct)
+    public async Task<ApiKeyIssued> CreateApiKeyAsync(Guid organizationId, string name, IReadOnlyList<string> scopes, DateTime? expiresAt, Guid userId, CancellationToken ct)
     {
-        var allowed = new HashSet<string>(["diagnostics.read", "diagnostics.write", "responses.read_aggregated", "intelligence.read", "reports.read", "certificates.validate", "exports.create", "webhooks.manage"]);
+        if (string.IsNullOrWhiteSpace(name) || name.Trim().Length is < 2 or > 120) throw new ValidationAppException("Informe um nome entre 2 e 120 caracteres.");
+        if (expiresAt is not null && expiresAt <= DateTime.UtcNow) throw new ValidationAppException("A expiração precisa estar no futuro.");
+        var allowed = new HashSet<string>(["diagnostics.read", "diagnostics.write", "responses.read_aggregated", "intelligence.read", "reports.read", "certificates.validate", "exports.create", "webhooks.manage", "powerbi.export"]);
         if (scopes.Count == 0 || scopes.Any(x => !allowed.Contains(x))) throw new ValidationAppException("Selecione apenas escopos válidos.");
         var secret = "vli_" + Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(secret))).ToLowerInvariant();
-        var issued = await repository.CreateApiKeyAsync(organizationId, name.Trim(), scopes, hash, secret[..12], secret, ct);
+        var id = await repository.CreateApiKeyAsync(organizationId, name.Trim(), scopes, hash, secret[..12], expiresAt, userId, ct);
+        var issued = new ApiKeyIssued(id, name.Trim(), secret[..12], secret, scopes, DateTime.UtcNow, expiresAt);
         await audit.AddAsync(new AuditEntry(organizationId, userId, "api_key.created", "api_key", issued.Id.ToString(), "Chave de API criada", JsonSerializer.Serialize(new { issued.Prefix, Scopes = scopes })));
         return issued;
     }
 
     public Task<IReadOnlyList<ApiKeySummary>> ApiKeysAsync(Guid organizationId, CancellationToken ct) => repository.ListApiKeysAsync(organizationId, ct);
+    public async Task<ApiKeySummary> ApiKeyAsync(Guid organizationId, Guid id, CancellationToken ct) =>
+        await repository.GetApiKeyAsync(organizationId, id, ct) ?? throw new KeyNotFoundException("Chave de API não encontrada.");
+    public Task<IReadOnlyList<ApiKeyUsage>> ApiKeyUsageAsync(Guid organizationId, Guid id, CancellationToken ct) => repository.ListApiKeyUsageAsync(organizationId, id, ct);
 
     public async Task RevokeApiKeyAsync(Guid organizationId, Guid id, Guid userId, CancellationToken ct)
     {

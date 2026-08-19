@@ -69,7 +69,7 @@ public sealed class EnterpriseController(EnterpriseService service, IConfigurati
 
     [HttpPost("api-keys")]
     public async Task<IActionResult> ApiKey([FromBody] CreateApiKeyRequest request,CancellationToken ct)
-    { if(OrganizationId is not Guid organizationId)return PermissionDenied(); return Ok(await service.CreateApiKeyAsync(organizationId,request.Name,request.Scopes,UserId,ct)); }
+    { return StatusCode(410,new{code="ENDPOINT_MOVED",message="Use /api/v1/api-keys. A criação exige entitlement Enterprise.",correlationId=HttpContext.TraceIdentifier}); }
 
     [RequestSizeLimit(2_000_000), HttpPost("imports/{type}/preview")]
     public IActionResult Preview(string type,[FromBody] CsvPreviewRequest request)

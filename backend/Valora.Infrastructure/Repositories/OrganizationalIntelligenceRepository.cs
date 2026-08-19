@@ -28,7 +28,7 @@ public sealed class OrganizationalIntelligenceRepository(IDbConnectionFactory co
                    WHEN evidence_type IN ('qualitative','free_text','text') THEN '[conteúdo protegido]'
                    ELSE left(raw_value,32) END RawValueMasked,
               text_excerpt TextExcerpt,
-              coalesce(metadata_json->>'mappingStatus',CASE WHEN metric_code IS NOT NULL AND index_code IS NOT NULL AND concept_code<>'unmapped' THEN 'mapped' ELSE 'pending' END) MappingStatus,
+              coalesce(mapping_status,metadata_json->>'mappingStatus',CASE WHEN metric_code IS NOT NULL AND index_code IS NOT NULL AND concept_code<>'unmapped' THEN 'mapped' ELSE 'pending_mapping' END) MappingStatus,
               metadata_json::text MetadataJson,
               created_at CreatedAt
             FROM valorapesquisa.evidence_items

@@ -13,16 +13,19 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
         const string sql = """
             INSERT INTO valorapesquisa.evidence_items
               (organization_id,survey_id,response_id,form_id,question_id,concept_code,capability_code,dimension_code,
-               metric_code,index_code,evidence_type,source_type,source_id,normalized_value,raw_value,weight,polarity,confidence_weight,text_excerpt,metadata_json)
+               metric_code,index_code,evidence_type,source_type,source_id,source_reference,normalized_value,raw_value,score,weight,polarity,confidence_weight,
+               mapping_status,can_be_used_for_inference,text_excerpt,metadata_json)
             SELECT r.organization_id,r.survey_id,r.id,r.form_id,ra.question_id,coalesce(qcm.concept_code,'unmapped'),
               coalesce(qcm.capability_code,'unmapped'),coalesce(qcm.dimension_code,'unmapped'),
               qmm.metric_code,qim.index_code,coalesce(qcm.evidence_type,CASE WHEN ra.score IS NULL THEN 'qualitative_response' ELSE 'quantitative_response' END),'response',ra.id,
-              CASE WHEN ra.max_score>0 THEN round((ra.score/ra.max_score*100)::numeric,4) END,
-              coalesce(ra.answer_text,ra.answer_json::text),coalesce(qcm.weight,1),coalesce(qcm.polarity,1),
+              ra.id::text,CASE WHEN ra.max_score>0 THEN round((ra.score/ra.max_score*100)::numeric,4) END,
+              coalesce(ra.answer_text,ra.answer_json::text),ra.score,coalesce(qcm.weight,1),coalesce(qcm.polarity,1),
               CASE WHEN ra.score IS NULL THEN .60 ELSE 1 END,
+              CASE WHEN qcm.id IS NULL OR qmm.id IS NULL OR qim.id IS NULL THEN 'pending_mapping' ELSE 'mapped' END,
+              (ra.score IS NOT NULL AND qcm.id IS NOT NULL AND qmm.id IS NOT NULL AND qim.id IS NOT NULL),
               CASE WHEN ra.answer_text IS NULL THEN NULL ELSE left(ra.answer_text,500) END,
               jsonb_build_object('metricCode',qmm.metric_code,'indexCode',qim.index_code,'polarity',coalesce(qcm.polarity,1),
-                'mappingStatus',CASE WHEN qcm.id IS NULL OR qmm.id IS NULL OR qim.id IS NULL THEN 'pending' ELSE 'mapped' END,
+                'mappingStatus',CASE WHEN qcm.id IS NULL OR qmm.id IS NULL OR qim.id IS NULL THEN 'pending_mapping' ELSE 'mapped' END,
                 'missingMappings',array_remove(ARRAY[CASE WHEN qcm.id IS NULL THEN 'concept' END,CASE WHEN qmm.id IS NULL THEN 'metric' END,CASE WHEN qim.id IS NULL THEN 'index' END],NULL))
             FROM valorapesquisa.responses r
             JOIN valorapesquisa.response_answers ra ON ra.response_id=r.id
@@ -36,7 +39,8 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             ON CONFLICT(response_id,question_id,concept_code) WHERE deleted_at IS NULL DO UPDATE SET
               normalized_value=EXCLUDED.normalized_value,raw_value=EXCLUDED.raw_value,weight=EXCLUDED.weight,
               metric_code=EXCLUDED.metric_code,index_code=EXCLUDED.index_code,polarity=EXCLUDED.polarity,confidence_weight=EXCLUDED.confidence_weight,
-              text_excerpt=EXCLUDED.text_excerpt,metadata_json=EXCLUDED.metadata_json,updated_at=now()
+              score=EXCLUDED.score,source_reference=EXCLUDED.source_reference,mapping_status=EXCLUDED.mapping_status,
+              can_be_used_for_inference=EXCLUDED.can_be_used_for_inference,text_excerpt=EXCLUDED.text_excerpt,metadata_json=EXCLUDED.metadata_json,updated_at=now()
             RETURNING id
             """;
         using var db = connections.Create();
@@ -51,7 +55,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
                 sum((CASE WHEN polarity=-1 THEN 100-normalized_value ELSE normalized_value END)*weight*confidence_weight)/nullif(sum(weight*confidence_weight),0) value,
                 count(*)::int evidence_count,avg(confidence_weight) confidence
               FROM valorapesquisa.evidence_items WHERE organization_id=@organizationId AND id=ANY(@evidenceIds)
-                AND normalized_value IS NOT NULL AND metadata_json->>'mappingStatus'='mapped' AND metric_code IS NOT NULL GROUP BY 1)
+                AND normalized_value IS NOT NULL AND mapping_status='mapped' AND metric_code IS NOT NULL GROUP BY 1)
             INSERT INTO valorapesquisa.metric_values(organization_id,code,status,data,methodology_version,version)
             SELECT @organizationId,code,CASE WHEN evidence_count>=3 THEN 'calculated' ELSE 'insufficient_evidence' END,
               jsonb_build_object('value',round(value,2),'trend','baseline','confidence',round(confidence,2),'evidenceCount',evidence_count,
@@ -69,7 +73,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
                sum((CASE WHEN polarity=-1 THEN 100-normalized_value ELSE normalized_value END)*weight*confidence_weight)/nullif(sum(weight*confidence_weight),0) score,
                count(*)::int evidence_count,avg(confidence_weight) confidence
               FROM valorapesquisa.evidence_items WHERE organization_id=@organizationId AND id=ANY(@evidenceIds)
-                AND normalized_value IS NOT NULL AND metadata_json->>'mappingStatus'='mapped' AND index_code IS NOT NULL GROUP BY 1)
+                AND normalized_value IS NOT NULL AND mapping_status='mapped' AND index_code IS NOT NULL GROUP BY 1)
             INSERT INTO valorapesquisa.index_values(organization_id,code,status,data,methodology_version,version)
             SELECT @organizationId,code,CASE WHEN evidence_count>=3 THEN 'calculated' ELSE 'insufficient_evidence' END,
               jsonb_build_object('score',round(score,2),'classification',CASE WHEN score<=25 THEN 'Inicial' WHEN score<=50 THEN 'Estruturante' WHEN score<=75 THEN 'Integrado' ELSE 'Maduro' END,
@@ -85,7 +89,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
                 round(sum((CASE WHEN polarity=-1 THEN 100-normalized_value ELSE normalized_value END)*weight*confidence_weight)/nullif(sum(weight*confidence_weight),0),2) score,
                 array_agg(id) evidence
               FROM valorapesquisa.evidence_items WHERE organization_id=@organizationId AND id=ANY(@evidenceIds)
-                AND normalized_value IS NOT NULL AND metadata_json->>'mappingStatus'='mapped'
+                AND normalized_value IS NOT NULL AND mapping_status='mapped' AND can_be_used_for_inference
                 AND concept_code IS NOT NULL AND metric_code IS NOT NULL AND index_code IS NOT NULL GROUP BY concept_code),
             run AS (INSERT INTO valorapesquisa.inference_runs(organization_id,code,status,data) VALUES
               (@organizationId,@runCode,'completed',jsonb_build_object('source','evidence_pipeline','minimumEvidence',3)) RETURNING id)

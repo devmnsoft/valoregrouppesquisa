@@ -2,7 +2,7 @@ namespace Valora.Application.ReadModels;
 
 public sealed record UserAuthenticationRecord(
     Guid Id,
-    Guid OrganizationId,
+    Guid? OrganizationId,
     string Name,
     string Email,
     string PasswordHash,

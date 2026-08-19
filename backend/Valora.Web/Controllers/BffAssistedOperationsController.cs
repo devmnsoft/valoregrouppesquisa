@@ -8,7 +8,7 @@ namespace Valora.Web.Controllers;
 [Authorize,ApiController,AutoValidateAntiforgeryToken]
 public sealed class BffAssistedOperationsController(IBffApiClient api,BffAuthenticationService authentication):ControllerBase
 {
-    [Route("bff/support/{**path}"),Route("bff/feedback/{**path}"),Route("bff/customer-success/{**path}"),Route("bff/usage-analytics/{**path}"),Route("bff/onboarding/{**path}"),Route("bff/upgrade-requests/{**path}"),Route("bff/incidents/{**path}"),Route("bff/release-notes/{**path}"),Route("bff/data-quality/{**path}")]
+    [Route("bff/support/{**path}"),Route("bff/feedback/{**path}"),Route("bff/customer-success/{**path}"),Route("bff/usage-analytics/{**path}"),Route("bff/onboarding/{**path}"),Route("bff/upgrade-requests/{**path}"),Route("bff/incidents/{**path}"),Route("bff/release-notes/{**path}"),Route("bff/data-quality/{**path}"),Route("bff/product-backlog/{**path}"),Route("bff/operations/{**path}")]
     [AcceptVerbs("GET","POST","PATCH")]
     public async Task<IActionResult> Forward(string? path,CancellationToken ct)
     {

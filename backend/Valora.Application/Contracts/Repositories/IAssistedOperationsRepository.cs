@@ -9,4 +9,5 @@ public interface IAssistedOperationsRepository
     Task<IReadOnlyList<IDictionary<string, object?>>> CustomerHealthAsync(Guid? organizationId, CancellationToken ct = default);
     Task<IReadOnlyList<IDictionary<string, object?>>> UsageAsync(Guid? organizationId, CancellationToken ct = default);
     Task<Guid> RunDataQualityAsync(Guid? userId, string correlationId, CancellationToken ct = default);
+    Task<IDictionary<string, object?>> OperationsDashboardAsync(Guid? organizationId, CancellationToken ct = default);
 }

@@ -16,15 +16,18 @@ public sealed class AssistedOperationsRepository(IDbConnectionFactory connection
             ["onboarding"] = ("onboarding_checklists", ["status","notes","blocked_reason"]),
             ["upgrade-requests"] = ("upgrade_requests", ["type","current_plan","requested_resource","status","assigned_user_id","notes","usage_event_id","metadata_json"]),
             ["incidents"] = ("operational_incidents", ["title","description","severity","status","assigned_user_id","root_cause","corrective_action","lessons_learned","resolution_summary","metadata_json"]),
+            ["incident-updates"] = ("incident_updates", ["incident_id","message","status","metadata_json"]),
             ["release-notes"] = ("release_notes", ["version","title","content","type","visibility","status","release_date","published_at","metadata_json"]),
-            ["data-quality"] = ("data_quality_issues", ["run_id","check_code","entity_type","entity_id","severity","description","status","metadata_json"])
+            ["data-quality"] = ("data_quality_issues", ["run_id","check_code","entity_type","entity_id","severity","description","recommended_action","status","resolution_reason","resolved_at","metadata_json"]),
+            ["data-quality-runs"] = ("data_quality_runs", []),
+            ["product-backlog"] = ("product_improvement_backlog", ["source_type","source_id","title","description","priority","impact","estimated_effort","status","assigned_user_id","release_note_id","decision_reason","metadata_json"])
         };
 
     public async Task<IReadOnlyList<IDictionary<string, object?>>> ListAsync(string resource, Guid? organizationId, CancellationToken ct = default)
     {
         var definition = Definition(resource);
         using var db = connections.Create();
-        var orgClause = organizationId.HasValue && resource is not "release-notes" ? " WHERE organization_id=@OrganizationId" : "";
+        var orgClause = organizationId.HasValue && resource is not ("release-notes" or "data-quality-runs") ? " WHERE organization_id=@OrganizationId" : "";
         var rows = await db.QueryAsync(new CommandDefinition($"SELECT * FROM valorapesquisa.{definition.Table}{orgClause} ORDER BY created_at DESC LIMIT 200", new { OrganizationId = organizationId }, cancellationToken: ct));
         return rows.Select(ToDictionary).ToArray();
     }
@@ -43,8 +46,8 @@ public sealed class AssistedOperationsRepository(IDbConnectionFactory connection
         var definition = Definition(resource);
         var accepted = values.Where(x => definition.Writable.Contains(x.Key, StringComparer.OrdinalIgnoreCase)).ToArray();
         var columns = new List<string>(); var parameters = new DynamicParameters();
-        if (resource is not "release-notes") { columns.Add("organization_id"); parameters.Add("OrganizationId", organizationId); }
-        if (resource is "tickets" or "comments" or "feedback" or "upgrade-requests") { columns.Add("user_id"); parameters.Add("UserId", userId); }
+        if (resource is not ("release-notes" or "data-quality-runs")) { columns.Add("organization_id"); parameters.Add("OrganizationId", organizationId); }
+        if (resource is "tickets" or "comments" or "feedback" or "upgrade-requests" or "incident-updates") { columns.Add("user_id"); parameters.Add("UserId", userId); }
         foreach (var item in accepted) { columns.Add(item.Key); parameters.Add(item.Key, Normalize(item)); }
         columns.Add("correlation_id"); parameters.Add("CorrelationId", correlationId);
         var sql = $"INSERT INTO valorapesquisa.{definition.Table} ({string.Join(',', columns)}) VALUES ({string.Join(',', columns.Select(x => '@' + x))}) RETURNING id";
@@ -80,7 +83,15 @@ public sealed class AssistedOperationsRepository(IDbConnectionFactory connection
     { using var db = connections.Create(); var rows=await db.QueryAsync(new CommandDefinition("SELECT organization_id,period_start,period_end,active_users,logins,diagnostics_created,diagnostics_published,public_links,responses,reports_generated,certificates_generated,actions_created,actions_completed,blocked_features FROM valorapesquisa.usage_analytics_snapshots WHERE (@OrganizationId IS NULL OR organization_id=@OrganizationId) ORDER BY period_start DESC LIMIT 100",new {OrganizationId=organizationId},cancellationToken:ct)); return rows.Select(ToDictionary).ToArray(); }
 
     public async Task<Guid> RunDataQualityAsync(Guid? userId, string correlationId, CancellationToken ct = default)
-    { using var db=connections.Create(); var id=await db.ExecuteScalarAsync<Guid>(new CommandDefinition("INSERT INTO valorapesquisa.data_quality_runs(status,started_at,created_at,correlation_id,created_by_user_id) VALUES ('completed',now(),now(),@CorrelationId,@UserId) RETURNING id",new{CorrelationId=correlationId,UserId=userId},cancellationToken:ct)); await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.data_quality_issues(run_id,check_code,entity_type,entity_id,severity,description,status,created_at) SELECT @Id,'organization_without_plan','organization',o.id,'high','Organização sem plano ativo','open',now() FROM valorapesquisa.organizations o WHERE NOT EXISTS(SELECT 1 FROM valorapesquisa.subscriptions s WHERE s.organization_id=o.id AND s.status='active')",new{Id=id},cancellationToken:ct)); await Audit(db,null,userId,"data-quality.executed","data_quality_run",id,correlationId,ct); return id; }
+    { using var db=connections.Create(); var id=await db.ExecuteScalarAsync<Guid>(new CommandDefinition("INSERT INTO valorapesquisa.data_quality_runs(status,started_at,created_at,correlation_id,created_by_user_id) VALUES ('completed',now(),now(),@CorrelationId,@UserId) RETURNING id",new{CorrelationId=correlationId,UserId=userId},cancellationToken:ct)); await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.data_quality_issues(run_id,check_code,entity_type,entity_id,severity,description,status,created_at) SELECT @Id,'organization_without_plan','organization',o.id,'critical','Organização sem plano ativo','open',now() FROM valorapesquisa.organizations o WHERE NOT EXISTS(SELECT 1 FROM valorapesquisa.subscriptions s WHERE s.organization_id=o.id AND s.status='active')",new{Id=id},cancellationToken:ct)); await Audit(db,null,userId,"data-quality.executed","data_quality_run",id,correlationId,ct); return id; }
+
+    public async Task<IDictionary<string, object?>> OperationsDashboardAsync(Guid? organizationId, CancellationToken ct = default)
+    {
+        using var db = connections.Create();
+        const string sql = """SELECT (SELECT count(*) FROM valorapesquisa.organizations o WHERE @OrganizationId IS NULL OR o.id=@OrganizationId) organizations_active,(SELECT count(*) FROM valorapesquisa.onboarding_checklists x WHERE (@OrganizationId IS NULL OR x.organization_id=@OrganizationId) AND x.status<>'completed') onboarding_pending,(SELECT count(*) FROM valorapesquisa.support_tickets x WHERE (@OrganizationId IS NULL OR x.organization_id=@OrganizationId) AND x.status NOT IN ('closed','resolved','cancelled')) tickets_open,(SELECT count(*) FROM valorapesquisa.support_tickets x WHERE (@OrganizationId IS NULL OR x.organization_id=@OrganizationId) AND x.priority='critical' AND x.status NOT IN ('closed','resolved','cancelled')) tickets_critical,(SELECT count(*) FROM valorapesquisa.operational_incidents x WHERE (@OrganizationId IS NULL OR x.organization_id=@OrganizationId) AND x.status NOT IN ('closed','resolved')) incidents_open,(SELECT count(*) FROM valorapesquisa.customer_feedback x WHERE (@OrganizationId IS NULL OR x.organization_id=@OrganizationId) AND x.status='received') feedback_received,(SELECT count(*) FROM valorapesquisa.upgrade_requests x WHERE (@OrganizationId IS NULL OR x.organization_id=@OrganizationId) AND x.status='requested') upgrades_requested,(SELECT count(*) FROM valorapesquisa.data_quality_issues x WHERE (@OrganizationId IS NULL OR x.organization_id=@OrganizationId) AND x.severity IN ('high','critical') AND x.status='open') data_quality_critical,(SELECT version FROM valorapesquisa.release_notes WHERE status='published' ORDER BY published_at DESC NULLS LAST LIMIT 1) latest_release""";
+        var row = await db.QuerySingleAsync(new CommandDefinition(sql, new { OrganizationId = organizationId }, cancellationToken: ct));
+        return ToDictionary(row);
+    }
 
     private static (string Table,string[] Writable) Definition(string resource) => Resources.TryGetValue(resource,out var value)?value:throw new ArgumentOutOfRangeException(nameof(resource));
     private static object? Normalize(KeyValuePair<string,object?> item) => item.Key.EndsWith("_json",StringComparison.OrdinalIgnoreCase) && item.Value is not null ? JsonSerializer.Serialize(item.Value) : item.Value;

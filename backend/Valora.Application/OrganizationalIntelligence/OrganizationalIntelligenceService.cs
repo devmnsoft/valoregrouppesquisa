@@ -33,9 +33,11 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
                 throw new ArgumentException("Uma ação planejada precisa de responsável, prazo e critério de conclusão.");
         }
         if (status == "completed" && string.IsNullOrWhiteSpace(request.Notes))
-            throw new ArgumentException("Registre a aprendizagem obtida antes de concluir a ação.");
+            throw new ArgumentException("Registre a aprendizagem antes de concluir esta ação.");
         if (status == "cancelled" && string.IsNullOrWhiteSpace(request.Notes))
             throw new ArgumentException("Informe a justificativa para cancelar a ação.");
+        if (status == "replanned" && string.IsNullOrWhiteSpace(request.Notes))
+            throw new ArgumentException("Informe a justificativa para replanejar a ação.");
 
         return await repository.UpdateActionAsync(organizationId, actionId, request with { Status = status }, userId, ct);
     }

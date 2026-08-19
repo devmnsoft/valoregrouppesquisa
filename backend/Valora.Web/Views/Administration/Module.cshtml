@@ -1,0 +1,16 @@
+@using Valora.Web.Models
+@{ var module = (string?)ViewData["Module"] ?? "administration"; }
+<section class="valora-page page-card official-module" data-page="administration-module" data-module="@module" data-endpoint="@ViewData["Endpoint"]">
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel((string)ViewData["Title"]!, (string)ViewData["Subtitle"]!, "Administração", Actions: new[] { new PageHeaderAction("Atualizar", DataAction: "refresh", Style: "primary", Icon: "refresh") }))" />
+  <div class="row g-3 mt-2" data-summary>
+    <div class="col-md-4"><div class="metric-card"><span>Registros</span><strong data-total>—</strong></div></div>
+    <div class="col-md-4"><div class="metric-card"><span>Escopo</span><strong>Organização atual</strong></div></div>
+    <div class="col-md-4"><div class="metric-card"><span>Proteção</span><strong>Dados sanitizados</strong></div></div>
+  </div>
+  <div class="alert alert-danger d-none mt-3" role="alert" data-error></div>
+  <div class="table-responsive mt-3">
+    <table class="table table-sm align-middle"><thead><tr><th>Tipo</th><th>Descrição</th><th>Status</th><th>Data</th></tr></thead><tbody data-items><tr><td colspan="4">Carregando…</td></tr></tbody></table>
+  </div>
+  <div class="empty-state d-none" data-empty><strong>Nenhum registro encontrado.</strong><p>Os novos eventos aparecerão aqui respeitando o escopo e as permissões da organização.</p></div>
+</section>
+@section Scripts { <script src="/js/pages/administration-module.js" asp-append-version="true"></script> }

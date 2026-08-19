@@ -45,9 +45,6 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
     [HttpGet("platform-governance/{**resource}")]
     public Task<IActionResult> Governance(string? resource, CancellationToken cancellationToken) => ForwardAsync($"/api/v1/platform-governance/{resource}", cancellationToken);
 
-    [HttpGet("system-health")]
-    public Task<IActionResult> SystemHealth(CancellationToken cancellationToken) => ForwardAsync("/api/v1/system-health", cancellationToken);
-
     [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
     [Route("business-groups/{**resource}")]
     public Task<IActionResult> BusinessGroups(string? resource, CancellationToken cancellationToken) => ForwardAsync($"/api/v1/business-groups/{resource}", cancellationToken);

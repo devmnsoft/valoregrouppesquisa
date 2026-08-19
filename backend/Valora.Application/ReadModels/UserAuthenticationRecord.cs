@@ -11,6 +11,6 @@ public sealed record UserAuthenticationRecord(
     string RoleCodesCsv,
     DateTimeOffset? DeletedAt = null)
 {
-    public IReadOnlyList<string> RoleCodes => RoleCodesCsv
+    public IReadOnlyList<string> RoleCodes => (RoleCodesCsv ?? string.Empty)
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }

@@ -4,7 +4,8 @@ namespace Valora.Web.Controllers;
 
 public sealed class PlansController(ILogger<PlansController> logger) : Controller
 {
-    [Route("planos")]
+    [HttpGet("/Plans")]
+    [HttpGet("/planos")]
     public IActionResult Index()
     {
         try

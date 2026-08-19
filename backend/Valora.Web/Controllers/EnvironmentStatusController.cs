@@ -4,6 +4,8 @@ namespace Valora.Web.Controllers;
 
 public sealed class EnvironmentStatusController(ILogger<EnvironmentStatusController> logger) : Controller
 {
+    [HttpGet("/SystemHealth")]
+    [HttpGet("/EnvironmentStatus")]
     public IActionResult Index()
     {
         try

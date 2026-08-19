@@ -13,9 +13,17 @@ public sealed class DiagnosticWorkspaceController(IDiagnosticWorkspaceService se
     [HttpGet("overview")] public Task<IActionResult> Overview(Guid id,CancellationToken ct)=>Read(id,(o)=>service.GetOverviewAsync(o,id,ct));
     [HttpGet("/api/v1/diagnostics/{id:guid}/participation")] public Task<IActionResult> Participation(Guid id,CancellationToken ct)=>Read(id,o=>service.GetModuleAsync(o,id,"participation",ct));
     [HttpGet("evidence")] public Task<IActionResult> Evidence(Guid id,CancellationToken ct)=>Read(id,(o)=>service.GetEvidenceAsync(o,id,ct));
+    [HttpGet("/api/v1/diagnostics/{id:guid}/evidence")] public Task<IActionResult> DiagnosticEvidence(Guid id,CancellationToken ct)=>Evidence(id,ct);
+    [HttpGet("/api/v1/diagnostics/{id:guid}/processing-status")] public Task<IActionResult> ProcessingStatus(Guid id,CancellationToken ct)=>Overview(id,ct);
+    [HttpGet("/api/v1/diagnostics/{id:guid}/metrics")] public Task<IActionResult> DiagnosticMetrics(Guid id,CancellationToken ct)=>Module(id,"metrics",ct);
+    [HttpGet("/api/v1/diagnostics/{id:guid}/indices")] public Task<IActionResult> DiagnosticIndices(Guid id,CancellationToken ct)=>Module(id,"indices",ct);
+    [HttpGet("/api/v1/diagnostics/{id:guid}/inference")] public Task<IActionResult> DiagnosticInference(Guid id,CancellationToken ct)=>Module(id,"inferences",ct);
+    [HttpGet("/api/v1/diagnostics/{id:guid}/insights")] public Task<IActionResult> DiagnosticInsights(Guid id,CancellationToken ct)=>Module(id,"insights",ct);
     [HttpGet("{module:regex(^participation|responses|metrics|indices|inferences|insights|actions|heatmap|radar|evolution|journey|benchmark|report|governance$)}")]
     public Task<IActionResult> Module(Guid id,string module,CancellationToken ct)=>Read(id,o=>service.GetModuleAsync(o,id,module,ct));
     [HttpPost("process")] public Task<IActionResult> Process(Guid id,CancellationToken ct)=>Write(id,"organizational_intelligence.generate",o=>service.ProcessAsync(o,id,UserId,HttpContext.TraceIdentifier,ct));
+    [HttpPost("/api/v1/diagnostics/{id:guid}/process-intelligence")] public Task<IActionResult> ProcessIntelligence(Guid id,CancellationToken ct)=>Process(id,ct);
+    [HttpPost("/api/v1/diagnostics/{id:guid}/reprocess-intelligence")] public Task<IActionResult> ReprocessIntelligence(Guid id,CancellationToken ct)=>Process(id,ct);
     [HttpPost("close")] public Task<IActionResult> Close(Guid id,CancellationToken ct)=>Write(id,"surveys.manage",o=>service.CloseCycleAsync(o,id,UserId,HttpContext.TraceIdentifier,ct));
     [HttpPost("report/preview")] public Task<IActionResult> Preview(Guid id,CancellationToken ct)=>Write(id,"reports.generate",o=>service.GenerateReportAsync(o,id,UserId,true,ct));
     [HttpPost("report/generate")] public Task<IActionResult> Generate(Guid id,CancellationToken ct)=>Write(id,"reports.generate",o=>service.GenerateReportAsync(o,id,UserId,false,ct));

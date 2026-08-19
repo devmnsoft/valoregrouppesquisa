@@ -7,6 +7,33 @@ namespace Valora.Tests;
 public sealed class ArchitectureFoundationTests
 {
     [Fact]
+    public void Application_WhenInspectingProjectReferences_DoesNotDependOnInfrastructureOrDapper()
+    {
+        var project = File.ReadAllText(RepositoryPaths.ApplicationFile("Valora.Application.csproj"));
+        Assert.DoesNotContain("Valora.Infrastructure", project, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Dapper", project, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Domain_WhenInspectingProjectReferences_DoesNotDependOnOuterLayers()
+    {
+        var project = File.ReadAllText(RepositoryPaths.DomainFile("Valora.Domain.csproj"));
+        foreach (var forbidden in new[] { "Valora.Application", "Valora.Infrastructure", "Valora.Api", "Valora.Web", "Dapper" })
+            Assert.DoesNotContain(forbidden, project, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Controllers_WhenInspectingSource_DoNotInstantiateRepositoriesOrDatabaseConnections()
+    {
+        foreach (var file in Directory.EnumerateFiles(RepositoryPaths.ApiFile("Controllers"), "*.cs"))
+        {
+            var source = File.ReadAllText(file);
+            Assert.DoesNotMatch(@"new\s+\w*Repository\s*\(", source);
+            Assert.DoesNotContain("new NpgsqlConnection", source, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void OfficialProjectsTargetNet10()
     {
         foreach (var project in Directory.EnumerateFiles(RepositoryPaths.BackendRoot, "*.csproj", SearchOption.AllDirectories))

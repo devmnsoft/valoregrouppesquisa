@@ -1983,6 +1983,68 @@ ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS business_model
 ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS region varchar(80);
 ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS city varchar(120);
 ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS state varchar(2);
+
+-- Valora Insight™ — template oficial de maturidade estratégica v1.0 (seed não destrutivo).
+ALTER TABLE valorapesquisa.form_templates ADD COLUMN IF NOT EXISTS code varchar(100);
+ALTER TABLE valorapesquisa.form_templates ADD COLUMN IF NOT EXISTS slug varchar(180);
+ALTER TABLE valorapesquisa.form_template_sections ADD COLUMN IF NOT EXISTS code varchar(100);
+ALTER TABLE valorapesquisa.form_template_questions ADD COLUMN IF NOT EXISTS code varchar(100);
+ALTER TABLE valorapesquisa.form_template_questions ADD COLUMN IF NOT EXISTS is_required boolean NOT NULL DEFAULT true;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_form_templates_code ON valorapesquisa.form_templates(code) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_form_templates_slug ON valorapesquisa.form_templates(slug) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_form_template_sections_code ON valorapesquisa.form_template_sections(template_id,code) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_form_template_questions_code ON valorapesquisa.form_template_questions(template_id,code) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.form_template_scale_options (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), template_id uuid NOT NULL REFERENCES valorapesquisa.form_templates(id), value int NOT NULL CHECK(value BETWEEN 1 AND 5), label text NOT NULL,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(template_id,value));
+CREATE TABLE IF NOT EXISTS valorapesquisa.form_template_rules (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), template_id uuid NOT NULL REFERENCES valorapesquisa.form_templates(id), rule_type varchar(40) NOT NULL, code varchar(100) NOT NULL,
+ configuration_json jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(template_id,rule_type,code));
+
+INSERT INTO valorapesquisa.form_templates(code,slug,name,description,objective,recommended_audience,estimated_minutes,concepts_json,indices_json,metrics_json,coverage_score,is_official,version,methodology_version,status,metadata_json)
+VALUES ('VALORA_STRATEGIC_MATURITY_V1','diagnostico-estrategico-maturidade-organizacional-v1','Diagnóstico Estratégico de Maturidade Organizacional',
+'Descubra o que fortalece — e o que limita — o crescimento sustentável da sua organização.','Diagnosticar a maturidade organizacional de forma autoaplicada, gratuita e com resultado instantâneo.',
+'Qualquer empresa, setor e porte',20,'["Cultura Organizacional","Governança Organizacional","Liderança","Pessoas","Resultados Organizacionais","Sustentabilidade Organizacional"]',
+'["maturidade_organizacional"]','["score_principal","media_por_dimensao","score_esg"]',100,true,1,'1.0','published',
+'{"publicName":"Valora Insight™","year":2026,"type":"strategic_maturity_autoapplied","format":"Autoaplicado","cost":"Gratuito","estimatedTime":"15-20 minutos","result":"Instantâneo","allowPublicResult":true,"certificateEnabled":true,"executiveReportEnabled":true,"certification":"Autoaplicado, não certifica formalmente.","methodology":"Diagnóstico de maturidade organizacional alinhado a modelos como EFQM e Kanban Maturity Model.","scope":"Aplicável a qualquer empresa, qualquer setor e qualquer porte.","repeat":"1 vez por ano para monitorar evolução.","brand":{"name":"Valora Group","email":"e-mail@valoragroup.com","website":"www.valoragroup.com","linkedin":"https://linkedin.com/company/america-cultura-empresarial"}}')
+ON CONFLICT (code) WHERE deleted_at IS NULL DO UPDATE SET slug=EXCLUDED.slug,name=EXCLUDED.name,description=EXCLUDED.description,objective=EXCLUDED.objective,recommended_audience=EXCLUDED.recommended_audience,estimated_minutes=EXCLUDED.estimated_minutes,concepts_json=EXCLUDED.concepts_json,indices_json=EXCLUDED.indices_json,metrics_json=EXCLUDED.metrics_json,coverage_score=EXCLUDED.coverage_score,is_official=true,version=1,methodology_version='1.0',status='published',metadata_json=EXCLUDED.metadata_json,updated_at=now();
+
+WITH t AS (SELECT id FROM valorapesquisa.form_templates WHERE code='VALORA_STRATEGIC_MATURITY_V1' AND deleted_at IS NULL), data(code,name,description,display_order) AS (VALUES
+('culture_purpose','Cultura e Propósito','Propósito, valores, alinhamento e cultura.',1),('management_governance','Gestão e Governança','Papéis, decisões, indicadores e estabilidade.',2),
+('leadership','Liderança','Direção, alinhamento, desenvolvimento e confiança.',3),('people_talents','Pessoas e Talentos','Atração, integração, desenvolvimento e retenção.',4),
+('results_growth','Resultados e Crescimento','Resultados, produtividade e crescimento sustentável.',5),('sustainability_esg','Sustentabilidade e ESG','Bloco opcional, calculado separadamente.',6))
+INSERT INTO valorapesquisa.form_template_sections(template_id,code,name,description,display_order,weight,status,version)
+SELECT t.id,d.code,d.name,d.description,d.display_order,1,'active',1 FROM t CROSS JOIN data d
+ON CONFLICT (template_id,code) WHERE deleted_at IS NULL DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,display_order=EXCLUDED.display_order,status='active',updated_at=now();
+
+WITH t AS (SELECT id FROM valorapesquisa.form_templates WHERE code='VALORA_STRATEGIC_MATURITY_V1' AND deleted_at IS NULL), data(n,dimension,text,required) AS (VALUES
+(1,'culture_purpose','As pessoas compreendem claramente o propósito e os valores da empresa.',true),(2,'culture_purpose','Existe alinhamento entre o que a liderança comunica e o que é praticado no dia a dia.',true),(3,'culture_purpose','Os colaboradores entendem como seu trabalho contribui para os resultados do negócio.',true),(4,'culture_purpose','A cultura da empresa favorece colaboração, responsabilidade e comprometimento.',true),(5,'culture_purpose','As decisões da empresa refletem seus valores e direcionamento estratégico.',true),
+(6,'management_governance','Papéis e responsabilidades estão claramente definidos.',true),(7,'management_governance','As decisões importantes seguem critérios e processos bem estabelecidos.',true),(8,'management_governance','A empresa acompanha regularmente indicadores relevantes para o negócio.',true),(9,'management_governance','Os gestores possuem informações confiáveis para tomar decisões.',true),(10,'management_governance','A operação funciona com estabilidade sem depender excessivamente de poucas pessoas.',true),
+(11,'leadership','Os líderes dão direção clara às equipes.',true),(12,'leadership','As lideranças atuam de forma alinhada entre si.',true),(13,'leadership','Os líderes desenvolvem pessoas e fortalecem talentos.',true),(14,'leadership','Os conflitos são tratados de forma construtiva e madura.',true),(15,'leadership','As lideranças inspiram confiança e engajamento.',true),
+(16,'people_talents','A empresa atrai profissionais alinhados à sua cultura e objetivos.',true),(17,'people_talents','Novos colaboradores são integrados de forma estruturada.',true),(18,'people_talents','Existem oportunidades claras de desenvolvimento e crescimento profissional.',true),(19,'people_talents','Os talentos estratégicos tendem a permanecer na organização.',true),(20,'people_talents','O desempenho das pessoas é acompanhado e desenvolvido regularmente.',true),
+(21,'results_growth','A empresa atinge suas metas com consistência.',true),(22,'results_growth','Existe equilíbrio entre crescimento, organização e capacidade de execução.',true),(23,'results_growth','Os processos favorecem produtividade e eficiência.',true),(24,'results_growth','Problemas recorrentes são tratados na causa, e não apenas nos sintomas.',true),(25,'results_growth','A empresa está preparada para sustentar o crescimento nos próximos anos.',true),
+(26,'sustainability_esg','A empresa tem práticas ambientais, como redução de desperdício e energia eficiente.',false),(27,'sustainability_esg','Existe diversidade e inclusão em processos de contratação e desenvolvimento.',false))
+INSERT INTO valorapesquisa.form_template_questions(template_id,section_id,code,text,question_type,scale_min,scale_max,weight,polarity,display_order,is_required,status,version,metadata_json)
+SELECT t.id,s.id,'VALORA_MATURITY_Q'||lpad(d.n::text,2,'0'),d.text,'scale',1,5,1,'positive',d.n,d.required,'active',1,jsonb_build_object('dimensionCode',d.dimension,'maxScore',5,'mainScore',d.n<=25)
+FROM t CROSS JOIN data d JOIN valorapesquisa.form_template_sections s ON s.template_id=t.id AND s.code=d.dimension AND s.deleted_at IS NULL
+ON CONFLICT (template_id,code) WHERE deleted_at IS NULL DO UPDATE SET section_id=EXCLUDED.section_id,text=EXCLUDED.text,question_type='scale',scale_min=1,scale_max=5,weight=1,display_order=EXCLUDED.display_order,is_required=EXCLUDED.is_required,status='active',metadata_json=EXCLUDED.metadata_json,updated_at=now();
+
+WITH t AS (SELECT id FROM valorapesquisa.form_templates WHERE code='VALORA_STRATEGIC_MATURITY_V1' AND deleted_at IS NULL), data(value,label) AS (VALUES (1,'Discordo totalmente'),(2,'Discordo parcialmente'),(3,'Nem concordo nem discordo'),(4,'Concordo parcialmente'),(5,'Concordo totalmente'))
+INSERT INTO valorapesquisa.form_template_scale_options(template_id,value,label) SELECT t.id,d.value,d.label FROM t CROSS JOIN data d
+ON CONFLICT(template_id,value) DO UPDATE SET label=EXCLUDED.label,updated_at=now();
+
+WITH t AS (SELECT id FROM valorapesquisa.form_templates WHERE code='VALORA_STRATEGIC_MATURITY_V1' AND deleted_at IS NULL), data(rule_type,code,configuration_json) AS (VALUES
+('scoring','main','{"questionStart":1,"questionEnd":25,"min":25,"max":125,"esgIncluded":false}'::jsonb),('scoring','esg','{"questions":[26,27],"required":false,"max":10,"separate":true}'::jsonb),
+('level','attention','{"min":25,"max":55,"label":"🔴 Atenção","meaning":"Fragilidades críticas","priority":"Estabilidade operacional + governança básica."}'::jsonb),('level','evolution','{"min":56,"max":85,"label":"🟡 Evolução","meaning":"Fundamentos presentes, oportunidades de fortalecimento","priority":"Consistência procedural + fortalecimento de liderança."}'::jsonb),('level','consistency','{"min":86,"max":110,"label":"🟢 Consistência","meaning":"Sistemas estruturados, operação segura","priority":"Inovação + diferenciação competitiva."}'::jsonb),('level','excellence','{"min":111,"max":125,"label":"🔵 Excelência","meaning":"Maturidade elevada, geração sustentável de valor","priority":"Manutenção + liderança de mercado."}'::jsonb),
+('public_section','benchmark','{"available":false,"message":"Comparativo setorial ainda não informado para este diagnóstico."}'::jsonb),('certificate','preview','{"enabled":true,"formal":false,"pdfMessage":"Geração de PDF ainda não configurada neste ambiente. O preview do certificado está disponível."}'::jsonb),('executive_report','preview','{"enabled":true,"pdfMessage":"Exportação PDF ainda não configurada neste ambiente. O preview executivo está disponível."}'::jsonb))
+INSERT INTO valorapesquisa.form_template_rules(template_id,rule_type,code,configuration_json) SELECT t.id,d.rule_type,d.code,d.configuration_json FROM t CROSS JOIN data d
+ON CONFLICT(template_id,rule_type,code) DO UPDATE SET configuration_json=EXCLUDED.configuration_json,updated_at=now();
+
+WITH t AS (SELECT id FROM valorapesquisa.form_templates WHERE code='VALORA_STRATEGIC_MATURITY_V1' AND deleted_at IS NULL)
+INSERT INTO valorapesquisa.form_template_versions(template_id,version,snapshot_json,methodology_version,status)
+SELECT t.id,1,jsonb_build_object('templateCode','VALORA_STRATEGIC_MATURITY_V1','version','1.0','year',2026,'sections',6,'questions',27,'requiredQuestions',25,'optionalEsgQuestions',2),'1.0','published' FROM t
+ON CONFLICT(template_id,version) DO UPDATE SET snapshot_json=EXCLUDED.snapshot_json,methodology_version='1.0',status='published',updated_at=now();
 ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS primary_contact_name varchar(180);
 ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS minimum_aggregation_size int NOT NULL DEFAULT 5;
 ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS diagnostic_cycle_settings_json jsonb NOT NULL DEFAULT '{}'::jsonb;

@@ -26,6 +26,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<ISensitiveDataSanitizer, SensitiveDataSanitizer>();
         services.AddSingleton<ValoraInsightCalculator>();
         services.AddSingleton<ValoraInsightDevolutivaService>();
+        services.AddSingleton<StrategicMaturityScoringService>();
         services.AddScoped<CertificateService>();
         services.AddScoped<ICertificateService>(sp => sp.GetRequiredService<CertificateService>());
         services.AddSingleton<EmailService>();

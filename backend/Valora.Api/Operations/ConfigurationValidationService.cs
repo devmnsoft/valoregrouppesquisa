@@ -37,7 +37,7 @@ public sealed class ConfigurationValidationService(IConfiguration configuration,
         Require(issues, "JWT_SIGNING_KEY", "authentication", signingKey, true, "Use uma chave aleatória com pelo menos 32 caracteres.");
         if (!string.IsNullOrWhiteSpace(signingKey) && signingKey.Trim().Length < 32)
             Add(issues, "JWT_WEAK_KEY", "authentication", "critical", "A chave JWT não atende ao mínimo de 32 caracteres.", "Configure Jwt__SigningKey com uma chave aleatória de pelo menos 32 caracteres.", true);
-        if (environment.IsProduction() && signingKey?.TrimStart().StartsWith("DEV_ONLY_", StringComparison.OrdinalIgnoreCase) == true)
+        if (environment.IsProduction() && IsKnownPlaceholder(signingKey))
             Add(issues, "JWT_DEMO_KEY_PRODUCTION", "authentication", "critical", "A chave JWT de demonstração não pode ser usada em produção.", "Forneça um segredo exclusivo por Jwt__SigningKey ou secret manager.", true);
 
         Require(issues, "PUBLIC_BASE_URL", "urls", configuration["App:PublicBaseUrl"], true, "Configure App__PublicBaseUrl com HTTPS.");
@@ -60,8 +60,10 @@ public sealed class ConfigurationValidationService(IConfiguration configuration,
             Add(issues, "DETAILED_ERRORS_PRODUCTION", "environment", "critical", "Erros detalhados não podem ser exibidos em produção.", "Defina App__EnableDetailedErrors=false.", true);
         if (environment.IsProduction() && !configuration.GetValue<bool>("Security:RequireHttps", true))
             Add(issues, "HTTPS_DISABLED", "http_security", "critical", "HTTPS é obrigatório em produção.", "Defina Security__RequireHttps=true.", true);
+        if (environment.IsProduction() && configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() is not { Length: > 0 })
+            Add(issues, "CORS_ORIGINS", "http_security", "critical", "As origens CORS permitidas não foram configuradas para produção.", "Configure Cors__AllowedOrigins__0 com a origem HTTPS da aplicação Web.", true);
         if (environment.IsProduction() && string.IsNullOrWhiteSpace(configuration["Backup:LastKnownAt"]))
-            Add(issues, "BACKUP_NOT_RECORDED", "backup", "critical", "Nenhum backup conhecido foi registrado para produção.", "Execute o runbook de backup e registre o evento operacional.", true);
+            Add(issues, "BACKUP_NOT_RECORDED", "backup", "critical", "Nenhum backup conhecido foi registrado para produção.", "Execute o runbook de backup e registre o evento operacional.", false);
 
         var critical = issues.Count(x => x.Severity == "critical");
         var warnings = issues.Count(x => x.Severity == "warning");
@@ -70,6 +72,17 @@ public sealed class ConfigurationValidationService(IConfiguration configuration,
     }
 
     private string? ConnectionString() => configuration.GetConnectionString("Postgres") ?? configuration.GetConnectionString("DefaultConnection");
+    private static bool IsKnownPlaceholder(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+
+        var normalized = value.Trim();
+        return normalized.StartsWith("DEV_ONLY_", StringComparison.OrdinalIgnoreCase)
+            || normalized.Contains("CHANGE_ME", StringComparison.OrdinalIgnoreCase)
+            || normalized.Contains("DEMO", StringComparison.OrdinalIgnoreCase)
+            || normalized.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase);
+    }
+
     private static void Require(List<ConfigurationValidationIssue> issues, string code, string category, string? value, bool blocking, string action)
     {
         if (string.IsNullOrWhiteSpace(value)) Add(issues, code, category, blocking ? "critical" : "warning", RequiredMessage, action, blocking);

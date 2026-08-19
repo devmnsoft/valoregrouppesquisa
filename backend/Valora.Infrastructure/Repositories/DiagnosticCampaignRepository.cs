@@ -28,20 +28,22 @@ public sealed class DiagnosticCampaignRepository(IDbConnectionFactory connection
                 "SELECT id,public_url PublicUrl,status FROM valorapesquisa.surveys WHERE id=@surveyId AND organization_id=@organizationId AND coalesce(is_deleted,false)=false",
                 new { organizationId, surveyId }, unit.Transaction, cancellationToken: ct));
             if (survey is null) return null;
+            if (survey.Status is not ("published" or "active"))
+                throw new InvalidOperationException("A campanha só pode ser criada para um diagnóstico publicado e ainda aberto.");
             var id = Guid.NewGuid();
-            var publicUrl = survey.Status is "published" or "active" ? survey.PublicUrl : null;
+            var publicUrl = survey.PublicUrl;
             await unit.Connection.ExecuteAsync(new CommandDefinition("""
-                INSERT INTO valorapesquisa.diagnostic_campaigns(id,organization_id,survey_id,name,audience_json,public_url,status,correlation_id)
-                VALUES(@id,@organizationId,@surveyId,@name,jsonb_build_object('description',@audience),@publicUrl,@status,@correlationId);
-                INSERT INTO valorapesquisa.diagnostic_campaign_messages(organization_id,campaign_id,channel,body,status,correlation_id)
-                VALUES(@organizationId,@id,'manual',@message,'ready',@correlationId);
-                """, new { id, organizationId, surveyId, name = request.Name.Trim(), audience = request.Audience, publicUrl,
-                    status = publicUrl is null ? "draft" : "ready", message = request.Message.Trim(), correlationId }, unit.Transaction, cancellationToken: ct));
+                INSERT INTO valorapesquisa.diagnostic_campaigns(id,organization_id,survey_id,name,channel,message_subject,message_body,audience_json,public_url,status,created_by,correlation_id)
+                VALUES(@id,@organizationId,@surveyId,@name,@channel,@subject,@message,jsonb_build_object('description',@audience),@publicUrl,@status,@userId,@correlationId);
+                INSERT INTO valorapesquisa.diagnostic_campaign_messages(organization_id,campaign_id,channel,subject,body,status,correlation_id)
+                VALUES(@organizationId,@id,@channel,@subject,@message,'ready',@correlationId);
+                """, new { id, organizationId, surveyId, userId, name = request.Name.Trim(), audience = request.Audience, publicUrl,
+                    status = "ready", channel = request.Channel.Trim().ToLowerInvariant(), subject = request.Subject?.Trim(), message = request.Message.Trim(), correlationId }, unit.Transaction, cancellationToken: ct));
             foreach (var recipient in recipients)
             {
                 await unit.Connection.ExecuteAsync(new CommandDefinition("""
-                    INSERT INTO valorapesquisa.diagnostic_campaign_recipients(organization_id,campaign_id,email_hash,recipient_reference,status,correlation_id)
-                    VALUES(@organizationId,@id,@hash,@masked,'pending',@correlationId)
+                    INSERT INTO valorapesquisa.diagnostic_campaign_recipients(organization_id,campaign_id,email_hash,recipient_reference,recipient_hash,recipient_masked,status,correlation_id)
+                    VALUES(@organizationId,@id,@hash,@masked,@hash,@masked,'pending',@correlationId)
                     """, new { organizationId, id, hash = Hash(recipient.Email), masked = Mask(recipient.Email), correlationId }, unit.Transaction, cancellationToken: ct));
             }
             await RecordAsync(unit, organizationId, surveyId, id, userId, "campaign.created", correlationId, "Campanha criada", ct);

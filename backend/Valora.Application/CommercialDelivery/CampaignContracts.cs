@@ -1,7 +1,8 @@
 namespace Valora.Application.CommercialDelivery;
 
 public sealed record CampaignRecipientRequest(string Email, bool HasConsent = true);
-public sealed record CreateCampaignRequest(string Name, string Message, IReadOnlyList<CampaignRecipientRequest>? Recipients, string? Audience = null);
+public sealed record CreateCampaignRequest(string Name, string Message, IReadOnlyList<CampaignRecipientRequest>? Recipients,
+    string? Audience = null, string Channel = "manual", string? Subject = null);
 public sealed record CampaignRecipientDto(Guid Id, string MaskedRecipient, string Status, string? ErrorCode, DateTime CreatedAt);
 public sealed record DiagnosticCampaignDto(Guid Id, Guid SurveyId, string Name, string Status, string? PublicUrl,
     string Message, int RecipientCount, int SentCount, int FailedCount, DateTime CreatedAt,

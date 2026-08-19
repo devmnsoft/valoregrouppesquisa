@@ -6,7 +6,9 @@ using Valora.Application.Contracts;
 
 namespace Valora.Api.Controllers;
 
-[Authorize, ApiController, Route("api/v1/diagnostics/{id:guid}/campaign")]
+[Authorize, ApiController]
+[Route("api/v1/diagnostics/{id:guid}/campaign")]
+[Route("api/v1/diagnostics/{id:guid}/campaigns")]
 public sealed class DiagnosticCampaignsController(IDiagnosticCampaignService campaigns, IPermissionService permissions) : ControllerBase
 {
     [HttpGet]
@@ -23,8 +25,15 @@ public sealed class DiagnosticCampaignsController(IDiagnosticCampaignService cam
     {
         var access = await AccessAsync("surveys.distribute");
         if (access.Error is not null) return access.Error;
-        var campaign = await campaigns.CreateAsync(access.OrganizationId, id, UserId, request, HttpContext.TraceIdentifier, ct);
-        return campaign is null ? NotFound(Error("DIAGNOSTIC_NOT_FOUND", "Diagnóstico não encontrado.")) : Created($"/api/v1/diagnostics/{id}/campaign", campaign);
+        try
+        {
+            var campaign = await campaigns.CreateAsync(access.OrganizationId, id, UserId, request, HttpContext.TraceIdentifier, ct);
+            return campaign is null ? NotFound(Error("DIAGNOSTIC_NOT_FOUND", "Diagnóstico não encontrado.")) : Created($"/api/v1/diagnostics/{id}/campaign", campaign);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return UnprocessableEntity(Error("CAMPAIGN_NOT_AVAILABLE", exception.Message));
+        }
     }
 
     [HttpPost("send")]

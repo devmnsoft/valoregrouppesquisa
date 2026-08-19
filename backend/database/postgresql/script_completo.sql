@@ -2237,3 +2237,15 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.maintenance_events (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), enabled boolean NOT NULL,
  message text, performed_by uuid REFERENCES valorapesquisa.users(id), performed_at timestamptz NOT NULL DEFAULT now(), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
  correlation_id text, created_at timestamptz NOT NULL DEFAULT now());
+
+-- Entregáveis executivos 2026-08: índices operacionais aditivos para os fluxos
+-- de replanejamento, acompanhamento de atraso e memória longitudinal.
+CREATE INDEX IF NOT EXISTS ix_valora_actions_due_status
+ ON valorapesquisa.valora_actions(organization_id,due_at,status)
+ WHERE deleted_at IS NULL AND due_at IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_journey_events_survey_date
+ ON valorapesquisa.journey_events(organization_id,survey_id,created_at DESC)
+ WHERE deleted_at IS NULL AND survey_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_executive_reports_version
+ ON valorapesquisa.executive_reports(organization_id,survey_id,version,created_at DESC)
+ WHERE deleted_at IS NULL;

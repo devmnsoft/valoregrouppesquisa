@@ -11,6 +11,7 @@ window.IntelligenceApi = {
   ,updateAction: (id, payload) => AjaxClient.patch(`/bff/intelligence/action-plans/${encodeURIComponent(id)}`, payload)
   ,completeAction: (id, learningRecord) => AjaxClient.post(`/bff/intelligence/action-plans/${encodeURIComponent(id)}/complete`, {learningRecord})
   ,cancelAction: (id, justification) => AjaxClient.post(`/bff/intelligence/action-plans/${encodeURIComponent(id)}/cancel`, {justification})
+  ,replanAction: (id, payload) => AjaxClient.post(`/bff/intelligence/action-plans/${encodeURIComponent(id)}/replan`, payload)
   ,actionHistory: id => AjaxClient.get(`/bff/intelligence/action-plans/${encodeURIComponent(id)}/history`)
   ,deleteAction: id => AjaxClient.delete(`/bff/intelligence/action-plans/${encodeURIComponent(id)}`)
   ,generateBenchmark: () => AjaxClient.post('/bff/intelligence/benchmark/generate', {})

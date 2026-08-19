@@ -112,6 +112,9 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     [HttpPost("action-plans/{id:guid}/cancel")]
     public Task<IActionResult> CancelAction(Guid id, [FromBody] CancelValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) =>
         TransitionAction(id, new("cancelled", Notes: request.Justification), organizationId, ct);
+    [HttpPost("action-plans/{id:guid}/replan")]
+    public Task<IActionResult> ReplanAction(Guid id, [FromBody] ReplanValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) =>
+        TransitionAction(id, new("replanned", request.Owner, DueAt: request.DueAt, Priority: request.Priority, Notes: request.Justification), organizationId, ct);
     [HttpDelete("action-plans/{id:guid}")]
     public async Task<IActionResult> DeleteAction(Guid id, [FromQuery] Guid? organizationId, CancellationToken ct)
     {

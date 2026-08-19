@@ -45,6 +45,8 @@ public sealed record UpdateValoraActionRequest(string Status, string? Owner = nu
     DateTime? DueAt = null, string? Priority = null, string? Notes = null);
 public sealed record CompleteValoraActionRequest(string LearningRecord);
 public sealed record CancelValoraActionRequest(string Justification);
+public sealed record ReplanValoraActionRequest(string Justification, string? Owner = null,
+    DateTime? DueAt = null, string? Priority = null);
 public sealed record ValoraActionHistoryDto(Guid Id, Guid ActionId, string Status, string Notes, Guid? ChangedBy, DateTime ChangedAt);
 
 public interface IOrganizationalIntelligenceRepository

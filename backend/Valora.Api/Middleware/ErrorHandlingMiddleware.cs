@@ -95,6 +95,7 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
         ArgumentNullException => (StatusCodes.Status500InternalServerError, "INTERNAL_ERROR", "Erro interno. Tente novamente ou acione o suporte."),
         ArgumentException => (StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Requisição inválida."),
         UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "AUTH_INVALID_CREDENTIALS", "Não foi possível autenticar. Verifique suas credenciais e tente novamente."),
+        InactiveUserException inactive => (StatusCodes.Status403Forbidden, "AUTH_USER_INACTIVE", inactive.Message),
         OrganizationAccessNotConfiguredException access => (StatusCodes.Status403Forbidden, "AUTH_ACCESS_NOT_CONFIGURED", access.Message),
         ApplicationConfigurationException => (StatusCodes.Status500InternalServerError, "APPLICATION_CONFIGURATION_ERROR", "A configuração da aplicação está incompleta."),
         ForbiddenAppException => (StatusCodes.Status403Forbidden, "FORBIDDEN", "Acesso proibido."),

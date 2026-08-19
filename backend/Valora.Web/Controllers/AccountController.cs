@@ -4,6 +4,8 @@ namespace Valora.Web.Controllers;
 
 public sealed class AccountController(ILogger<AccountController> logger) : Controller
 {
+    [HttpGet("/Login")]
+    [HttpGet("/Account/Login")]
     public IActionResult Login()
     {
         try

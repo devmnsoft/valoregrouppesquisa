@@ -69,7 +69,7 @@ public sealed class AuthService(
         if (!string.Equals(user.Status, "active", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogWarning("Login rejected: user inactive. Email={Email} Status={Status}", maskedEmail, user.Status);
-            throw new UnauthorizedAccessException("Credenciais inválidas.");
+            throw new InactiveUserException();
         }
 
         if (string.IsNullOrWhiteSpace(user.PasswordHash) || !IsBcryptHash(user.PasswordHash))

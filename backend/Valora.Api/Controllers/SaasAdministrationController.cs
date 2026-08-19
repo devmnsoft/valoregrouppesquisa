@@ -149,6 +149,9 @@ public sealed class SaasAdministrationController(
         });
     }
 
+    [HttpGet("configuration-validation")]
+    public IActionResult ConfigurationValidation() => Ok(configurationValidation.Validate());
+
     private async Task<PlanDto?> CurrentPlanRecord()
     {
         var id = await plans.GetCurrentPlanIdAsync(OrganizationId) ?? "free";

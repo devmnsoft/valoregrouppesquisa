@@ -11,7 +11,8 @@ public sealed record ConfigurationValidationIssue(
     string Severity,
     string Message,
     string RecommendedAction,
-    bool IsBlocking);
+    bool IsBlocking,
+    string AffectedFeature);
 
 public sealed record ConfigurationValidationResult(
     string OverallStatus,
@@ -20,6 +21,7 @@ public sealed record ConfigurationValidationResult(
     IReadOnlyList<ConfigurationValidationIssue> Issues,
     int Warnings,
     int CriticalErrors,
+    IReadOnlyList<string> Recommendations,
     DateTimeOffset CheckedAt);
 
 public sealed class ConfigurationValidationService(IConfiguration configuration, IWebHostEnvironment environment)
@@ -44,6 +46,7 @@ public sealed class ConfigurationValidationService(IConfiguration configuration,
         Require(issues, "ADMIN_BASE_URL", "urls", configuration["App:AdminBaseUrl"], true, "Configure App__AdminBaseUrl com HTTPS.");
         Require(issues, "STORAGE_PROVIDER", "storage", configuration["Storage:Provider"], false, "Configure Storage__Provider.");
         Require(issues, "STORAGE_BASE_PATH", "storage", configuration["Storage:BasePath"], false, "Configure Storage__BasePath fora da pasta publicada.");
+        Require(issues, "ENVIRONMENT_NAME", "environment", configuration["App:EnvironmentName"], false, "Configure App__EnvironmentName.");
         if (!configuration.GetValue<bool>("Certificates:PdfEnabled") && !configuration.GetValue<bool>("Reports:PdfEnabled"))
             Add(issues, "PDF_NOT_CONFIGURED", "pdf", "warning", "Geração de PDF não configurada.", "Habilite e configure Certificates__PdfEnabled ou Reports__PdfEnabled quando o recurso for utilizado.", false);
 
@@ -68,7 +71,8 @@ public sealed class ConfigurationValidationService(IConfiguration configuration,
         var critical = issues.Count(x => x.Severity == "critical");
         var warnings = issues.Count(x => x.Severity == "warning");
         return new(critical > 0 ? "critical" : warnings > 0 ? "warning" : "healthy", environment.EnvironmentName,
-            environment.IsProduction(), issues, warnings, critical, DateTimeOffset.UtcNow);
+            environment.IsProduction(), issues, warnings, critical,
+            issues.Select(x => x.RecommendedAction).Distinct(StringComparer.Ordinal).ToArray(), DateTimeOffset.UtcNow);
     }
 
     private string? ConnectionString() => configuration.GetConnectionString("Postgres") ?? configuration.GetConnectionString("DefaultConnection");
@@ -88,5 +92,5 @@ public sealed class ConfigurationValidationService(IConfiguration configuration,
         if (string.IsNullOrWhiteSpace(value)) Add(issues, code, category, blocking ? "critical" : "warning", RequiredMessage, action, blocking);
     }
     private static void Add(List<ConfigurationValidationIssue> issues, string code, string category, string severity, string message, string action, bool blocking) =>
-        issues.Add(new(code, category, severity, message, action, blocking));
+        issues.Add(new(code, category, severity, message, action, blocking, category));
 }

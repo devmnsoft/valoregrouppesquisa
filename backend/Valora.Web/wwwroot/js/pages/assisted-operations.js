@@ -12,6 +12,7 @@
     incidents:{endpoint:'incidents',action:'Criar incidente',fields:[['title','Título'],['description','Descrição'],['severity','Severidade']]},
     'release-notes':{endpoint:'release-notes',action:'Criar release note',fields:[['version','Versão'],['title','Título'],['content','Conteúdo'],['type','Tipo'],['visibility','Visibilidade']]},
     'data-quality':{endpoint:'data-quality',action:'Rodar verificação',run:true}
+    ,'product-backlog':{endpoint:'product-backlog',action:'Criar melhoria',fields:[['title','Título'],['description','Descrição'],['sourceType','Origem'],['priority','Prioridade']]}
   }[module];
   const action=root.querySelector('[data-primary-action]'),drawer=root.querySelector('[data-drawer]'),rows=root.querySelector('[data-rows]'),head=root.querySelector('[data-head]'),empty=root.querySelector('[data-empty]'),error=root.querySelector('[data-error]'); let data=[];
   action.textContent=configuration.action||'Atualizar visão'; if(configuration.readonly)action.textContent='Atualizar visão';

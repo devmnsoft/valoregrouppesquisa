@@ -2083,6 +2083,68 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.email_delivery_events (
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
 CREATE INDEX IF NOT EXISTS ix_email_delivery_events_job ON valorapesquisa.email_delivery_events(email_job_id,created_at DESC) WHERE deleted_at IS NULL;
 
+-- Entrega comercial: complementos aditivos e idempotentes. Mantêm as tabelas
+-- canônicas e permitem executar novamente este script sem substituir dados.
+ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS channel varchar(30) NOT NULL DEFAULT 'manual';
+ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS message_subject text;
+ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS message_body text;
+ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS scheduled_at timestamptz;
+ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS sent_at timestamptz;
+ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS cancelled_at timestamptz;
+ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS created_by uuid;
+ALTER TABLE valorapesquisa.diagnostic_campaign_recipients ADD COLUMN IF NOT EXISTS recipient_hash text;
+ALTER TABLE valorapesquisa.diagnostic_campaign_recipients ADD COLUMN IF NOT EXISTS recipient_masked text;
+ALTER TABLE valorapesquisa.diagnostic_campaign_recipients ADD COLUMN IF NOT EXISTS queued_at timestamptz;
+ALTER TABLE valorapesquisa.diagnostic_campaign_recipients ADD COLUMN IF NOT EXISTS responded_at timestamptz;
+ALTER TABLE valorapesquisa.diagnostic_campaign_recipients ADD COLUMN IF NOT EXISTS error_message text;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.communication_templates (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id),
+ code varchar(100) NOT NULL, name varchar(180) NOT NULL, subject text, body_html text, body_text text NOT NULL,
+ variables_json jsonb NOT NULL DEFAULT '[]'::jsonb, is_system boolean NOT NULL DEFAULT false,
+ status varchar(30) NOT NULL DEFAULT 'active', origin_template_id uuid REFERENCES valorapesquisa.communication_templates(id),
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_communication_templates_scope_code ON valorapesquisa.communication_templates(COALESCE(organization_id,'00000000-0000-0000-0000-000000000000'::uuid),code) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.public_result_access_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ result_token_id uuid REFERENCES valorapesquisa.result_access_tokens(id), event_type varchar(40) NOT NULL,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_public_result_access_events_token ON valorapesquisa.public_result_access_events(result_token_id,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.share_links (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ entity_type varchar(50) NOT NULL, entity_id uuid NOT NULL, token_hash text NOT NULL, scope varchar(80) NOT NULL DEFAULT 'read',
+ status varchar(30) NOT NULL DEFAULT 'active', expires_at timestamptz, revoked_at timestamptz, created_by uuid,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_share_links_token_hash ON valorapesquisa.share_links(token_hash) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_share_links_entity ON valorapesquisa.share_links(organization_id,entity_type,entity_id,created_at DESC) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.share_link_access_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ share_link_id uuid NOT NULL REFERENCES valorapesquisa.share_links(id), outcome varchar(30) NOT NULL,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_share_link_access_events_link ON valorapesquisa.share_link_access_events(share_link_id,created_at DESC);
+
+ALTER TABLE valorapesquisa.exports ADD COLUMN IF NOT EXISTS survey_id uuid;
+ALTER TABLE valorapesquisa.exports ADD COLUMN IF NOT EXISTS scope varchar(80);
+ALTER TABLE valorapesquisa.exports ADD COLUMN IF NOT EXISTS requested_by uuid;
+ALTER TABLE valorapesquisa.exports ADD COLUMN IF NOT EXISTS requested_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.exports ADD COLUMN IF NOT EXISTS completed_at timestamptz;
+ALTER TABLE valorapesquisa.exports ADD COLUMN IF NOT EXISTS failed_at timestamptz;
+ALTER TABLE valorapesquisa.exports ADD COLUMN IF NOT EXISTS file_path text;
+ALTER TABLE valorapesquisa.exports ADD COLUMN IF NOT EXISTS file_key text;
+ALTER TABLE valorapesquisa.exports ADD COLUMN IF NOT EXISTS error_message text;
+ALTER TABLE valorapesquisa.exports ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+CREATE INDEX IF NOT EXISTS ix_exports_organization_status ON valorapesquisa.exports(organization_id,status,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.export_files (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ export_id uuid NOT NULL REFERENCES valorapesquisa.exports(id), storage_key text, content_type varchar(100), content_hash text,
+ status varchar(30) NOT NULL DEFAULT 'available', expires_at timestamptz, revoked_at timestamptz,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_export_files_export ON valorapesquisa.export_files(organization_id,export_id,created_at DESC);
+
 -- Administração SaaS: evolução aditiva para notificações, governança e saúde.
 ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS deleted_at timestamptz;

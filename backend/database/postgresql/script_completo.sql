@@ -2332,6 +2332,79 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.import_templates (
  columns_json jsonb NOT NULL, status varchar(30) NOT NULL DEFAULT 'active', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text,
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, UNIQUE(organization_id,import_type,version));
 
+-- Enterprise consolidation: additive compatibility for installations created by earlier releases.
+ALTER TABLE valorapesquisa.integration_connections ADD COLUMN IF NOT EXISTS name varchar(160);
+ALTER TABLE valorapesquisa.integration_connections ADD COLUMN IF NOT EXISTS provider varchar(100);
+ALTER TABLE valorapesquisa.integration_connections ADD COLUMN IF NOT EXISTS configuration_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE valorapesquisa.integration_connections ADD COLUMN IF NOT EXISTS last_checked_at timestamptz;
+ALTER TABLE valorapesquisa.integration_connections ADD COLUMN IF NOT EXISTS last_success_at timestamptz;
+ALTER TABLE valorapesquisa.integration_connections ADD COLUMN IF NOT EXISTS last_failure_at timestamptz;
+ALTER TABLE valorapesquisa.integration_connections ADD COLUMN IF NOT EXISTS error_message text;
+ALTER TABLE valorapesquisa.integration_connections ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES valorapesquisa.users(id);
+ALTER TABLE valorapesquisa.integration_connections ADD COLUMN IF NOT EXISTS disabled_at timestamptz;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.integration_execution_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ connection_id uuid REFERENCES valorapesquisa.integration_connections(id), event_type varchar(80) NOT NULL, status varchar(30) NOT NULL,
+ error_message text, correlation_id text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_integration_execution_events_org ON valorapesquisa.integration_execution_events(organization_id,created_at DESC) WHERE deleted_at IS NULL;
+
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS key_prefix varchar(32);
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS scopes_json jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES valorapesquisa.users(id);
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE valorapesquisa.api_key_usage_events ADD COLUMN IF NOT EXISTS endpoint text;
+ALTER TABLE valorapesquisa.api_key_usage_events ADD COLUMN IF NOT EXISTS method varchar(12);
+ALTER TABLE valorapesquisa.api_key_usage_events ADD COLUMN IF NOT EXISTS scope_used varchar(100);
+
+ALTER TABLE valorapesquisa.webhook_subscriptions ADD COLUMN IF NOT EXISTS url text;
+ALTER TABLE valorapesquisa.webhook_subscriptions ADD COLUMN IF NOT EXISTS events_json jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE valorapesquisa.webhook_subscriptions ADD COLUMN IF NOT EXISTS last_delivery_at timestamptz;
+ALTER TABLE valorapesquisa.webhook_subscriptions ADD COLUMN IF NOT EXISTS last_success_at timestamptz;
+ALTER TABLE valorapesquisa.webhook_subscriptions ADD COLUMN IF NOT EXISTS last_failure_at timestamptz;
+ALTER TABLE valorapesquisa.webhook_subscriptions ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES valorapesquisa.users(id);
+ALTER TABLE valorapesquisa.webhook_subscriptions ADD COLUMN IF NOT EXISTS disabled_at timestamptz;
+ALTER TABLE valorapesquisa.webhook_deliveries ADD COLUMN IF NOT EXISTS webhook_id uuid REFERENCES valorapesquisa.webhook_subscriptions(id);
+ALTER TABLE valorapesquisa.webhook_deliveries ADD COLUMN IF NOT EXISTS entity_type varchar(100);
+ALTER TABLE valorapesquisa.webhook_deliveries ADD COLUMN IF NOT EXISTS entity_id uuid;
+ALTER TABLE valorapesquisa.webhook_deliveries ADD COLUMN IF NOT EXISTS payload_hash text;
+ALTER TABLE valorapesquisa.webhook_deliveries ADD COLUMN IF NOT EXISTS last_status_code int;
+ALTER TABLE valorapesquisa.webhook_deliveries ADD COLUMN IF NOT EXISTS last_error_message text;
+ALTER TABLE valorapesquisa.webhook_deliveries ADD COLUMN IF NOT EXISTS failed_at timestamptz;
+CREATE TABLE IF NOT EXISTS valorapesquisa.webhook_delivery_attempts (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ delivery_id uuid NOT NULL REFERENCES valorapesquisa.webhook_deliveries(id), attempt_number int NOT NULL, status varchar(30) NOT NULL,
+ status_code int, error_message text, response_hash text, correlation_id text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ UNIQUE(delivery_id,attempt_number));
+
+ALTER TABLE valorapesquisa.powerbi_datasets ADD COLUMN IF NOT EXISTS name varchar(160);
+ALTER TABLE valorapesquisa.powerbi_datasets ADD COLUMN IF NOT EXISTS scope varchar(80);
+ALTER TABLE valorapesquisa.powerbi_datasets ADD COLUMN IF NOT EXISTS generated_by uuid REFERENCES valorapesquisa.users(id);
+ALTER TABLE valorapesquisa.powerbi_datasets ADD COLUMN IF NOT EXISTS generated_at timestamptz;
+ALTER TABLE valorapesquisa.powerbi_datasets ADD COLUMN IF NOT EXISTS file_path text;
+ALTER TABLE valorapesquisa.powerbi_datasets ADD COLUMN IF NOT EXISTS file_key text;
+ALTER TABLE valorapesquisa.powerbi_datasets ADD COLUMN IF NOT EXISTS record_count bigint;
+ALTER TABLE valorapesquisa.powerbi_datasets ADD COLUMN IF NOT EXISTS limitation text;
+
+ALTER TABLE valorapesquisa.one_on_one_sessions ADD COLUMN IF NOT EXISTS title varchar(200);
+ALTER TABLE valorapesquisa.one_on_one_sessions ADD COLUMN IF NOT EXISTS participant_name_masked varchar(160);
+ALTER TABLE valorapesquisa.one_on_one_sessions ADD COLUMN IF NOT EXISTS confidentiality_level varchar(30);
+ALTER TABLE valorapesquisa.one_on_one_sessions ADD COLUMN IF NOT EXISTS summary text;
+ALTER TABLE valorapesquisa.one_on_one_sessions ADD COLUMN IF NOT EXISTS agreements_json jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE valorapesquisa.one_on_one_sessions ADD COLUMN IF NOT EXISTS next_steps_json jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE valorapesquisa.one_on_one_sessions ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES valorapesquisa.users(id);
+
+ALTER TABLE valorapesquisa.import_batches ADD COLUMN IF NOT EXISTS file_path text;
+ALTER TABLE valorapesquisa.import_batches ADD COLUMN IF NOT EXISTS total_rows int NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.import_batches ADD COLUMN IF NOT EXISTS dry_run boolean NOT NULL DEFAULT true;
+ALTER TABLE valorapesquisa.import_batches ADD COLUMN IF NOT EXISTS requested_by uuid REFERENCES valorapesquisa.users(id);
+ALTER TABLE valorapesquisa.import_batches ADD COLUMN IF NOT EXISTS validated_at timestamptz;
+ALTER TABLE valorapesquisa.import_batches ADD COLUMN IF NOT EXISTS executed_at timestamptz;
+ALTER TABLE valorapesquisa.import_batches ADD COLUMN IF NOT EXISTS cancelled_at timestamptz;
+ALTER TABLE valorapesquisa.import_batches ADD COLUMN IF NOT EXISTS error_message text;
+
 -- Operational readiness ledger. Dumps and sensitive filesystem paths must never be stored here.
 CREATE TABLE IF NOT EXISTS valorapesquisa.schema_version (
  version varchar(50) PRIMARY KEY, description text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now());

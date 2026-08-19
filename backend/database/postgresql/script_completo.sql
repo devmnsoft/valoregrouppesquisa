@@ -1,3 +1,4 @@
+-- Revisao operacional 2026-08-19: este arquivo permanece a fonte canonica; alteracoes de configuracao desta entrega nao exigem mutacao de esquema.
 -- Valora Insight - bootstrap canonico PostgreSQL
 -- Fonte oficial a partir da Fase 1. Idempotente e nao destrutivo.
 BEGIN;

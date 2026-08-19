@@ -2151,6 +2151,65 @@ ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS deleted_at tim
 ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS severity varchar(30) NOT NULL DEFAULT 'information';
 ALTER TABLE valorapesquisa.platform_governance_events ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
 
+-- Contratos administrativos explícitos. O JSON legado é preservado para
+-- compatibilidade, enquanto novos fluxos passam a ter colunas consultáveis.
+ALTER TABLE valorapesquisa.organization_settings ADD COLUMN IF NOT EXISTS privacy_min_group_size int NOT NULL DEFAULT 5;
+ALTER TABLE valorapesquisa.organization_settings ADD COLUMN IF NOT EXISTS allow_public_results boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.organization_settings ADD COLUMN IF NOT EXISTS allow_certificates boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.organization_settings ADD COLUMN IF NOT EXISTS allow_segmentation boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.organization_settings ADD COLUMN IF NOT EXISTS public_branding_enabled boolean NOT NULL DEFAULT true;
+ALTER TABLE valorapesquisa.organization_settings ADD COLUMN IF NOT EXISTS default_lgpd_term_version varchar(40) NOT NULL DEFAULT '1';
+ALTER TABLE valorapesquisa.organization_settings ADD COLUMN IF NOT EXISTS language varchar(10) NOT NULL DEFAULT 'pt-BR';
+ALTER TABLE valorapesquisa.organization_settings ADD COLUMN IF NOT EXISTS timezone varchar(80) NOT NULL DEFAULT 'America/Sao_Paulo';
+ALTER TABLE valorapesquisa.organization_settings ADD COLUMN IF NOT EXISTS status varchar(30) NOT NULL DEFAULT 'active';
+ALTER TABLE valorapesquisa.organization_settings ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+
+ALTER TABLE valorapesquisa.usage_events ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES valorapesquisa.users(id);
+ALTER TABLE valorapesquisa.usage_events ADD COLUMN IF NOT EXISTS usage_code varchar(100);
+ALTER TABLE valorapesquisa.usage_events ADD COLUMN IF NOT EXISTS amount bigint;
+ALTER TABLE valorapesquisa.usage_events ADD COLUMN IF NOT EXISTS entity_type varchar(80);
+ALTER TABLE valorapesquisa.usage_events ADD COLUMN IF NOT EXISTS entity_id uuid;
+ALTER TABLE valorapesquisa.usage_events ADD COLUMN IF NOT EXISTS period_start timestamptz;
+ALTER TABLE valorapesquisa.usage_events ADD COLUMN IF NOT EXISTS period_end timestamptz;
+UPDATE valorapesquisa.usage_events SET usage_code=feature_key WHERE usage_code IS NULL;
+UPDATE valorapesquisa.usage_events SET amount=quantity WHERE amount IS NULL;
+CREATE INDEX IF NOT EXISTS ix_usage_events_period ON valorapesquisa.usage_events(organization_id,usage_code,period_start,period_end);
+
+ALTER TABLE valorapesquisa.privacy_requests ADD COLUMN IF NOT EXISTS requester_masked text;
+ALTER TABLE valorapesquisa.privacy_requests ADD COLUMN IF NOT EXISTS protocol_code text;
+ALTER TABLE valorapesquisa.privacy_requests ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE valorapesquisa.privacy_requests ADD COLUMN IF NOT EXISTS response_message text;
+ALTER TABLE valorapesquisa.privacy_requests ADD COLUMN IF NOT EXISTS created_by uuid REFERENCES valorapesquisa.users(id);
+ALTER TABLE valorapesquisa.privacy_requests ADD COLUMN IF NOT EXISTS assigned_to uuid REFERENCES valorapesquisa.users(id);
+ALTER TABLE valorapesquisa.privacy_requests ADD COLUMN IF NOT EXISTS completed_at timestamptz;
+ALTER TABLE valorapesquisa.privacy_requests ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+UPDATE valorapesquisa.privacy_requests SET protocol_code=protocol WHERE protocol_code IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_privacy_requests_protocol_code ON valorapesquisa.privacy_requests(protocol_code) WHERE protocol_code IS NOT NULL;
+
+ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS ip_hash text;
+ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS user_agent text;
+ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.configuration_change_history (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), user_id uuid REFERENCES valorapesquisa.users(id),
+ setting_key varchar(100) NOT NULL, before_json jsonb, after_json jsonb, reason text, correlation_id text,
+ created_at timestamptz NOT NULL DEFAULT now(), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb);
+CREATE INDEX IF NOT EXISTS ix_configuration_change_history_org ON valorapesquisa.configuration_change_history(organization_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.permission_change_history (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), user_id uuid REFERENCES valorapesquisa.users(id),
+ role_id uuid REFERENCES valorapesquisa.roles(id), before_json jsonb, after_json jsonb, reason text, correlation_id text,
+ created_at timestamptz NOT NULL DEFAULT now(), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb);
+CREATE INDEX IF NOT EXISTS ix_permission_change_history_org ON valorapesquisa.permission_change_history(organization_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.notification_reads (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), notification_id uuid NOT NULL REFERENCES valorapesquisa.notifications(id),
+ user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), read_at timestamptz NOT NULL DEFAULT now(), created_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE(notification_id,user_id));
+CREATE TABLE IF NOT EXISTS valorapesquisa.support_access_sessions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), support_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
+ reason text NOT NULL, status varchar(30) NOT NULL DEFAULT 'requested', approved_by uuid REFERENCES valorapesquisa.users(id), starts_at timestamptz, expires_at timestamptz,
+ revoked_at timestamptz, correlation_id text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_support_access_sessions_org ON valorapesquisa.support_access_sessions(organization_id,status,created_at DESC);
+
 -- Entregáveis executivos: evolução aditiva do Action canônico, sem criar um
 -- segundo conceito concorrente de plano de evolução.
 ALTER TABLE valorapesquisa.valora_actions ADD COLUMN IF NOT EXISTS insight_id uuid;

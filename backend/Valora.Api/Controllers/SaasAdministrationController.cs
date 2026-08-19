@@ -19,7 +19,8 @@ public sealed class SaasAdministrationController(
     IAuditRepository audit,
     IWebHostEnvironment environment,
     IConfiguration configuration,
-    IConfigurationValidationService configurationValidation) : ControllerBase
+    IConfigurationValidationService configurationValidation,
+    IPrivacyRequestService privacy) : ControllerBase
 {
     [HttpGet("roles")]
     [Authorize(Policy = ValoraPermissions.Roles.Read)]
@@ -60,6 +61,28 @@ public sealed class SaasAdministrationController(
     {
         ct.ThrowIfCancellationRequested();
         return Ok(await audit.ListAdminAsync(OrganizationId));
+    }
+
+    [HttpGet("privacy/requests")]
+    public async Task<IActionResult> PrivacyRequests(CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        return Ok(await privacy.ListAsync(OrganizationId));
+    }
+
+    [HttpPost("privacy/requests")]
+    public async Task<IActionResult> CreatePrivacyRequest(CreatePrivacyRequestRequest request)
+    {
+        var scoped = request with { OrganizationId = OrganizationId };
+        var created = await privacy.CreatePublicAsync(scoped);
+        return Created($"/api/v1/privacy/requests/{created.Id}", created);
+    }
+
+    [HttpPatch("privacy/requests/{id:guid}")]
+    public async Task<IActionResult> UpdatePrivacyRequest(Guid id, UpdatePrivacyRequestStatusRequest request)
+    {
+        await privacy.UpdateStatusAsync(OrganizationId, id, request.Status, UserId);
+        return NoContent();
     }
 
     [HttpGet("platform-governance")]

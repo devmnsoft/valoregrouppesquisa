@@ -94,35 +94,46 @@ public sealed class AuthService(
         if (user.RoleCodes.Count == 0)
         {
             logger.LogWarning("Login rejected: role missing. Email={Email}", maskedEmail);
-            throw new UnauthorizedAccessException("Credenciais inválidas.");
+            throw new OrganizationAccessNotConfiguredException();
         }
 
+        if (user.OrganizationId is null || user.OrganizationId == Guid.Empty)
+        {
+            logger.LogWarning("Login rejected: organization missing. Email={Email}", maskedEmail);
+            throw new OrganizationAccessNotConfiguredException();
+        }
+
+        var organizationId = user.OrganizationId.Value;
+
+        var organization = await organizations.GetAsync(organizationId);
+        if (organization is null)
+        {
+            logger.LogWarning("Login rejected: active organization missing. Email={Email} OrganizationId={OrganizationId}", maskedEmail, organizationId);
+            throw new OrganizationAccessNotConfiguredException();
+        }
+
+        var planId = await plans.GetCurrentPlanIdAsync(organizationId);
+        if (planId is null)
+            logger.LogWarning("Login continuing with safe free fallback: active subscription missing. Email={Email} OrganizationId={OrganizationId}", maskedEmail, organizationId);
+        planId ??= "free";
+        var currentPlan = await plans.GetByIdAsync(planId);
+        if (currentPlan is null)
+        {
+            logger.LogError("Login failed because the configured plan is unavailable. OrganizationId={OrganizationId} PlanCode={PlanCode}", organizationId, planId);
+            throw new ApplicationConfigurationException($"Configured plan '{planId}' was not found or is inactive.");
+        }
+        var role = user.RoleCodes.FirstOrDefault() ?? "empresa_admin";
+
+        var tokens = await authenticationSessions.CreateAsync(user.Id, organizationId, user.Email, role,
+            organization.DefaultLanguageCode);
         await users.TouchLoginAsync(user.Id);
         await audit.LogAsync(new AuditEntry(
-            user.OrganizationId,
+            organizationId,
             user.Id,
             "auth.login",
             "user",
             user.Id.ToString(),
             "Login realizado."));
-
-        var organization = await organizations.GetAsync(user.OrganizationId)
-            ?? throw new InvalidOperationException($"Organização ativa não encontrada para o usuário {user.Id}.");
-
-        var planId = await plans.GetCurrentPlanIdAsync(user.OrganizationId);
-        if (planId is null)
-            logger.LogWarning("Login continuing with safe free fallback: active subscription missing. Email={Email} OrganizationId={OrganizationId}", maskedEmail, user.OrganizationId);
-        planId ??= "free";
-        var currentPlan = await plans.GetByIdAsync(planId);
-        if (currentPlan is null)
-        {
-            logger.LogError("Login failed because the configured plan is unavailable. OrganizationId={OrganizationId} PlanCode={PlanCode}", user.OrganizationId, planId);
-            throw new ApplicationConfigurationException($"Configured plan '{planId}' was not found or is inactive.");
-        }
-        var role = user.RoleCodes.FirstOrDefault() ?? "empresa_admin";
-
-        var tokens = await authenticationSessions.CreateAsync(user.Id, user.OrganizationId, user.Email, role,
-            organization.DefaultLanguageCode);
         logger.LogInformation("Login succeeded. UserId={UserId} Email={Email} Role={Role} Plan={Plan}",
             user.Id, maskedEmail, role, planId);
         return CreateAuthenticationResult(tokens,

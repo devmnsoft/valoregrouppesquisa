@@ -67,6 +67,8 @@ public sealed class NavigationCatalog
             ItemAction("administration.integrations", "Integrações", "Power BI™ e exportações autorizadas", "Intelligence", "Integrations", "layers", "organizational_intelligence", 35, Administrators),
             ItemAction("administration.platform-governance", "Governança da Plataforma", "Rastreabilidade, integridade e controle", "Intelligence", "PlatformGovernance", "activity", "organizational_intelligence", 36, Administrators),
             Item("administration.health", "Saúde do Sistema", "API, banco e configurações operacionais", "EnvironmentStatus", "activity", null, null, "settings", "organization", 38, Administrators),
+            ItemAction("administration.backup", "Backup e Restore", "Status e runbook das operações assistidas", "AssistedOperations", "Backup", "layers", "organization", 39, Administrators),
+            ItemAction("administration.maintenance", "Modo de Manutenção", "Bloqueios e comunicação operacional", "AssistedOperations", "Maintenance", "activity", "organization", 39, Administrators),
             Item("administration.settings", "Configurações", "Preferências da plataforma", "Settings", "settings", null, null, "settings", "organization", 40, Administrators)),
         Section("support", "Suporte", 60,
             ItemAction("support.help", "Ajuda", "Guias rápidos e atendimento", "Experience", "Help", "file-question", "organization", 10, Results))

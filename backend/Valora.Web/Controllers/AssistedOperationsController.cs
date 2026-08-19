@@ -15,5 +15,7 @@ public sealed class AssistedOperationsController : Controller
     [Route("Platform/Incidents"), Route("SystemHealth/Incidents")] public IActionResult Incidents()=>Page("incidents","Incidentes Operacionais","Investigação, mitigação e aprendizado com rastreabilidade.");
     [AllowAnonymous,Route("ReleaseNotes"), Route("Platform/ReleaseNotes")] public IActionResult Releases()=>Page("release-notes","Release Notes","Evolução controlada e transparente do Valora Insight™.");
     [Route("Platform/DataQuality"), Route("SystemHealth/DataQuality")] public IActionResult DataQuality()=>Page("data-quality","Qualidade dos Dados","Verificações não destrutivas e histórico operacional.");
+    [Route("Platform/Backup"), Route("SystemHealth/Backup")] public IActionResult Backup()=>Page("backup-restore","Backup e Restore","Acompanhe a configuração e registre operações manuais conforme o runbook.");
+    [Route("Platform/Maintenance")] public IActionResult Maintenance()=>Page("maintenance","Modo de Manutenção","Consulte o estado configurado e as regras de bloqueio operacional.");
     private IActionResult Page(string module,string title,string subtitle){ViewData["Title"]=title;ViewData["Module"]=module;ViewData["Subtitle"]=subtitle;return View("Index");}
 }

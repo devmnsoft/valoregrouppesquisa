@@ -2408,6 +2408,8 @@ ALTER TABLE valorapesquisa.import_batches ADD COLUMN IF NOT EXISTS error_message
 -- Operational readiness ledger. Dumps and sensitive filesystem paths must never be stored here.
 CREATE TABLE IF NOT EXISTS valorapesquisa.schema_version (
  version varchar(50) PRIMARY KEY, description text NOT NULL, applied_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE valorapesquisa.schema_version ADD COLUMN IF NOT EXISTS checksum text;
+ALTER TABLE valorapesquisa.schema_version ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
 INSERT INTO valorapesquisa.schema_version(version, description) VALUES ('2026.08-go-live', 'Operational readiness baseline') ON CONFLICT (version) DO NOTHING;
 CREATE TABLE IF NOT EXISTS valorapesquisa.operational_events (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), event_type varchar(80) NOT NULL,
@@ -2427,10 +2429,20 @@ CREATE INDEX IF NOT EXISTS ix_restore_events_date ON valorapesquisa.restore_even
 CREATE TABLE IF NOT EXISTS valorapesquisa.configuration_validation_events (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), environment_name varchar(80) NOT NULL, overall_status varchar(30) NOT NULL,
  issues_json jsonb NOT NULL DEFAULT '[]'::jsonb, correlation_id text, checked_at timestamptz NOT NULL DEFAULT now(), created_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE valorapesquisa.configuration_validation_events ADD COLUMN IF NOT EXISTS issues_count integer NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.configuration_validation_events ADD COLUMN IF NOT EXISTS critical_count integer NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.configuration_validation_events ADD COLUMN IF NOT EXISTS warning_count integer NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.configuration_validation_events ADD COLUMN IF NOT EXISTS checked_by uuid REFERENCES valorapesquisa.users(id);
 CREATE TABLE IF NOT EXISTS valorapesquisa.maintenance_events (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), enabled boolean NOT NULL,
  message text, performed_by uuid REFERENCES valorapesquisa.users(id), performed_at timestamptz NOT NULL DEFAULT now(), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
  correlation_id text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.deployment_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), version varchar(80) NOT NULL, environment_name varchar(80) NOT NULL,
+ status varchar(30) NOT NULL, started_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz,
+ performed_by uuid REFERENCES valorapesquisa.users(id), notes text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_deployment_events_environment_date ON valorapesquisa.deployment_events(environment_name, started_at DESC);
 
 -- Entregáveis executivos 2026-08: índices operacionais aditivos para os fluxos
 -- de replanejamento, acompanhamento de atraso e memória longitudinal.

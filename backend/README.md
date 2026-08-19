@@ -52,7 +52,7 @@ No Linux/macOS, use as mesmas variáveis, `./database/postgresql/apply-local.sh`
 
 ## Configuração e produção
 
-Use variáveis de ambiente ou arquivos não versionados. `appsettings.json` não contém conexão operacional e o seed demo fica desligado em todas as configurações versionadas. Em produção são obrigatórios, no mínimo, `ConnectionStrings__DefaultConnection` e um `Jwt__Secret` exclusivo com 32 ou mais caracteres. Nunca reutilize as credenciais de desenvolvimento ou demonstração.
+Use variáveis de ambiente ou arquivos não versionados. `appsettings.json` não contém conexão operacional e o seed demo fica desligado em todas as configurações versionadas. Em produção são obrigatórios, no mínimo, `ConnectionStrings__Postgres`, `Jwt__Issuer`, `Jwt__Audience`, um `Jwt__SigningKey` exclusivo com 32 ou mais caracteres e as URLs/origens HTTPS. Nunca reutilize credenciais de desenvolvimento ou demonstração. A API recusa inicialização em produção quando encontra configuração crítica insegura; consulte `/SystemHealth` e `docs/operacao/VARIAVEIS_AMBIENTE_PRODUCAO.md` para a validação sanitizada e o inventário completo.
 
 ## Build e testes
 

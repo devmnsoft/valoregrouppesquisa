@@ -87,6 +87,13 @@ public static class ValoraPermissions
     public static class Operations { public const string Read="operations.read", Execute="operations.execute"; }
     public static class Settings { public const string Read="settings.read", Update="settings.update"; }
     public static class OrganizationalIntelligence { public const string Read="organizational_intelligence.read", Generate="organizational_intelligence.generate", JourneyCreate="organizational_intelligence.journey.create", ActionCreate="organizational_intelligence.action.create"; }
+    public static class IntelligentDeliverables
+    {
+        public const string DashboardRead="dashboard.read", RadarRead="radar.read", ReportsRead="reports.read",
+            ReportsGenerate="reports.generate", ActionRead="action.read", ActionManage="action.manage",
+            HeatmapRead="heatmap.read", EvolutionRead="evolution.read", JourneyRead="journey.read",
+            BenchmarkRead="benchmark.read", InsightsRead="insights.read";
+    }
 
     public static readonly IReadOnlyList<string> All = typeof(ValoraPermissions).GetNestedTypes()
         .SelectMany(type => type.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
@@ -99,7 +106,8 @@ public static class ValoraPermissions
     {
         "users" or "roles" or "sessions" or "invitations" => ValoraModules.Identity,
         "organization" or "units" or "departments" or "business_groups" or "legal_entities" => ValoraModules.Organization,
-        "organizational_intelligence" => "organizational_intelligence",
+        "organizational_intelligence" or "dashboard" or "radar" or "reports" or "action" or "heatmap" or
+        "evolution" or "journey" or "benchmark" or "insights" => "organizational_intelligence",
         var capability => capability
     };
 }

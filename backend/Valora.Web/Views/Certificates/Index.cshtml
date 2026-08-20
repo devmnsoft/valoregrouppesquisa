@@ -1,0 +1,8 @@
+@{ ViewData["Title"] = "Certificados"; }
+<section class="valora-page" data-certificates-page>
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Certificados", "Emita, consulte e valide certificados vinculados aos diagnósticos concluídos.", "Inteligência Valora", "Certificados", new[] { new PageHeaderAction("Validar certificado", "/Certificates/Validate", Icon: "award") }))" />
+  <div class="valora-card">
+    <div class="valora-empty" data-certificates-list>Carregando certificados disponíveis…</div>
+  </div>
+</section>
+@section Scripts { <script src="/js/pages/certificate-page.js" asp-append-version="true"></script> }

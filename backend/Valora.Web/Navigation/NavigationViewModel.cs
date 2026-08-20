@@ -11,7 +11,8 @@ public sealed record NavigationViewModel(
     string? OrganizationName,
     string? PlanCode,
     bool IsContextAvailable,
-    string CorrelationId);
+    string CorrelationId,
+    bool ShowTechnicalDetails);
 
 public sealed record NavigationGroupsViewModel(
     IReadOnlyList<NavigationSectionViewModel> Sections,

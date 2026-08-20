@@ -1,0 +1,8 @@
+@{ ViewData["Title"] = "Resultados"; }
+<section class="valora-page" data-results-page>
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Resultados", "Consulte devolutivas e análises consolidadas dos diagnósticos autorizados.", "Inteligência Valora", "Resultados", new[] { new PageHeaderAction("Abrir relatórios", "/Reports", Icon: "file-text") }))" />
+  <div class="valora-card">
+    <div class="valora-empty" data-results-list>Carregando resultados disponíveis…</div>
+  </div>
+</section>
+@section Scripts { <script src="/js/pages/result-page.js" asp-append-version="true"></script> }

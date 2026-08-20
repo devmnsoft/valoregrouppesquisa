@@ -18,13 +18,17 @@
     <nav class="sidebar-nav valora-sidebar-nav" aria-label="Navegação principal">
         @if (Model.Sections.Count > 0)
         {
-            <partial name="_NavigationGroups" model="@(new Valora.Web.Navigation.NavigationGroupsViewModel(Model.Sections, "desktop", "desktop-navigation"))" />
+            <partial name="~/Views/Shared/Components/Navigation/_NavigationGroups.cshtml" model="@(new Valora.Web.Navigation.NavigationGroupsViewModel(Model.Sections, "desktop", "desktop-navigation"))" />
         }
         else
         {
             <div class="sidebar-recovery" role="status">
                 <strong>Acessos temporariamente indisponíveis</strong>
-                <span>Referência: @Model.CorrelationId</span>
+                <span>Seu perfil ainda não possui acessos disponíveis.</span>
+                @if (Model.ShowTechnicalDetails)
+                {
+                    <code>NavigationContext vazio · @Model.CorrelationId</code>
+                }
                 <button class="valora-button valora-button--secondary" type="button" data-action="reload-access">Recarregar acessos</button>
             </div>
         }
@@ -55,11 +59,11 @@
     <div class="offcanvas-body valora-sidebar-nav">
         @if (Model.Sections.Count > 0)
         {
-            <partial name="_NavigationGroups" model="@(new Valora.Web.Navigation.NavigationGroupsViewModel(Model.Sections, "mobile", "mobile-navigation"))" />
+            <partial name="~/Views/Shared/Components/Navigation/_NavigationGroups.cshtml" model="@(new Valora.Web.Navigation.NavigationGroupsViewModel(Model.Sections, "mobile", "mobile-navigation"))" />
         }
         else
         {
-            <div class="sidebar-recovery" role="status"><strong>Acessos temporariamente indisponíveis</strong><span>Referência: @Model.CorrelationId</span><button class="valora-button valora-button--secondary" type="button" data-action="reload-access">Recarregar acessos</button></div>
+            <div class="sidebar-recovery" role="status"><strong>Acessos temporariamente indisponíveis</strong><span>Seu perfil ainda não possui acessos disponíveis.</span>@if (Model.ShowTechnicalDetails) { <code>NavigationContext vazio · @Model.CorrelationId</code> }<button class="valora-button valora-button--secondary" type="button" data-action="reload-access">Recarregar acessos</button></div>
             <a class="nav-link" href="/PublicPages/Contact">Ajuda e suporte</a>
             <a class="nav-link" href="/Account/Logout">Sair da conta</a>
         }

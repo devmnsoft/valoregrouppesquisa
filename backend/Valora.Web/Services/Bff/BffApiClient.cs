@@ -85,7 +85,7 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
         {
             Content = request is null ? null : JsonContent.Create(request, options: JsonOptions)
         };
-        message.Headers.Authorization = new("Bearer", bearer);
+        if (!string.IsNullOrWhiteSpace(bearer)) message.Headers.Authorization = new("Bearer", bearer);
         message.Headers.TryAddWithoutValidation("X-Correlation-Id", correlationId);
         return await httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
     }

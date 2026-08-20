@@ -1,0 +1,21 @@
+@{ Layout = "_PublicLayout"; ViewData["Title"] = "Começar diagnóstico gratuito"; }
+<section class="commercial-start" data-commercial-start>
+ <div class="container-public commercial-start__grid">
+  <header><p class="eyebrow">Valora Insight™</p><h1>Comece seu diagnóstico de maturidade organizacional.</h1><p class="lead">Em 15–20 minutos, faça uma leitura autoaplicada das cinco dimensões centrais e, opcionalmente, de Sustentabilidade e ESG.</p><ol class="commercial-steps"><li class="active">Dados e consentimento</li><li>Diagnóstico</li><li>Resultado instantâneo</li></ol></header>
+  <form class="public-card commercial-lead-form" data-lead-form novalidate>
+   <h2>Seus dados para a devolutiva</h2><div class="commercial-fields">
+   <label>Nome completo<input name="name" autocomplete="name" required maxlength="180"></label>
+   <label>E-mail corporativo<input name="email" type="email" autocomplete="email" required maxlength="254"></label>
+   <label>Telefone <small>opcional</small><input name="phone" autocomplete="tel" maxlength="30"></label>
+   <label>Empresa<input name="companyName" autocomplete="organization" required maxlength="220"></label>
+   <label>Segmento<select name="segment" required><option value="">Selecione</option><option>Serviços</option><option>Indústria</option><option>Comércio</option><option>Terceiro setor</option><option>Setor público</option><option>Outro</option></select></label>
+   <label>Porte<select name="companySize" required><option value="">Selecione</option><option>Micro</option><option>Pequena</option><option>Média</option><option>Grande</option></select></label>
+   <label class="wide">Cargo ou função <small>opcional</small><input name="roleTitle" maxlength="120"></label></div>
+   <label class="consent"><input type="checkbox" name="consentAccepted" required><span>Autorizo o tratamento dos dados informados para disponibilização do diagnóstico e do resultado.</span></label>
+   <label class="consent"><input type="checkbox" name="communicationConsent"><span>Autorizo receber contato da Valora Group sobre planos, consultoria e próximos passos.</span></label>
+   <p class="form-feedback" data-feedback role="status" hidden></p>
+   <button class="premium-button primary" type="submit">Iniciar diagnóstico oficial</button><p class="form-note">A autorização comercial é opcional e independente. Seus dados não criam uma organização ou assinatura automaticamente.</p>
+  </form>
+ </div>
+</section>
+@section Scripts { <script src="/js/public/commercial-funnel.js" asp-append-version="true"></script> }

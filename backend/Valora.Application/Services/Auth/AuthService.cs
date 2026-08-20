@@ -52,6 +52,7 @@ public sealed class AuthService(
 
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
         {
+            await RecordRejectedLoginAsync("invalid_request", null, null);
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
@@ -60,24 +61,28 @@ public sealed class AuthService(
         if (user is null)
         {
             logger.LogWarning("Login rejected: user not found. Email={Email}", maskedEmail);
+            await RecordRejectedLoginAsync("invalid_credentials", null, null);
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
         if (user.DeletedAt is not null)
         {
             logger.LogWarning("Login rejected: user deleted. Email={Email}", maskedEmail);
+            await RecordRejectedLoginAsync("invalid_credentials", user.OrganizationId, user.Id);
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
         if (!string.Equals(user.Status, "active", StringComparison.OrdinalIgnoreCase))
         {
             logger.LogWarning("Login rejected: user inactive. Email={Email} Status={Status}", maskedEmail, user.Status);
+            await RecordAuthenticationEventSafelyAsync(user.OrganizationId, user.Id, "auth.login_failed", "inactive_user");
             throw new InactiveUserException();
         }
 
         if (string.IsNullOrWhiteSpace(user.PasswordHash) || !IsBcryptHash(user.PasswordHash))
         {
             logger.LogWarning("Login rejected: password hash empty or incompatible. Email={Email}", maskedEmail);
+            await RecordRejectedLoginAsync("invalid_credentials", user.OrganizationId, user.Id);
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
@@ -85,12 +90,14 @@ public sealed class AuthService(
         if (passwordMatches is null)
         {
             logger.LogWarning("Login rejected: password hash could not be verified. Email={Email}", maskedEmail);
+            await RecordRejectedLoginAsync("invalid_credentials", user.OrganizationId, user.Id);
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
         if (!passwordMatches.Value)
         {
             logger.LogWarning("Login rejected: invalid password. Email={Email}", maskedEmail);
+            await RecordRejectedLoginAsync("invalid_credentials", user.OrganizationId, user.Id);
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
@@ -150,7 +157,15 @@ public sealed class AuthService(
     {
         var tokens = await authenticationSessions.RefreshAsync(request.RefreshToken);
         var user = await users.GetAsync(tokens.UserId) ?? throw new UnauthorizedAccessException("Sessão inválida.");
+        if (user.DeletedAt is not null || !string.Equals(user.Status, "active", StringComparison.OrdinalIgnoreCase)
+            || user.OrganizationId != tokens.OrganizationId)
+        {
+            await authenticationSessions.LogoutAllAsync(tokens.UserId);
+            await RecordAuthenticationEventSafelyAsync(tokens.OrganizationId, tokens.UserId, "auth.session_revoked", "inactive_or_scope_changed");
+            throw new UnauthorizedAccessException("Sessão inválida.");
+        }
         var organization = await organizations.GetAsync(tokens.OrganizationId);
+        if (organization is null) throw new UnauthorizedAccessException("Sessão inválida.");
         var planId = await plans.GetCurrentPlanIdAsync(tokens.OrganizationId) ?? "free";
         var plan = await plans.GetByIdAsync(planId);
         if (plan is null)
@@ -163,8 +178,19 @@ public sealed class AuthService(
             await ResolveAccessContextAsync(tokens.OrganizationId, user.Id, user.RoleCodes, planId));
     }
 
-    public Task LogoutAsync(Guid userId, LogoutRequest request) => authenticationSessions.LogoutAsync(userId, request.RefreshToken);
-    public Task LogoutAllAsync(Guid userId) => authenticationSessions.LogoutAllAsync(userId);
+    public async Task LogoutAsync(Guid userId, LogoutRequest request)
+    {
+        await authenticationSessions.LogoutAsync(userId, request.RefreshToken);
+        var user = await users.GetAsync(userId);
+        await RecordAuthenticationEventSafelyAsync(user?.OrganizationId, userId, "auth.logout", "current_session");
+    }
+
+    public async Task LogoutAllAsync(Guid userId)
+    {
+        await authenticationSessions.LogoutAllAsync(userId);
+        var user = await users.GetAsync(userId);
+        await RecordAuthenticationEventSafelyAsync(user?.OrganizationId, userId, "auth.logout_all", "all_sessions");
+    }
     public Task<IReadOnlyList<SessionDto>> ListSessionsAsync(Guid userId) => authenticationSessions.ListAsync(userId);
     public Task RevokeSessionAsync(Guid userId, Guid sessionId) => authenticationSessions.RevokeAsync(userId, sessionId);
 
@@ -253,6 +279,25 @@ public sealed class AuthService(
         try { return hasher.Verify(password, hash); }
         catch (ArgumentException) { return null; }
         catch (FormatException) { return null; }
+    }
+
+    private Task RecordRejectedLoginAsync(string reason, Guid? organizationId, Guid? userId)
+    {
+        return RecordAuthenticationEventSafelyAsync(organizationId, userId, "auth.login_failed", reason);
+    }
+
+    private async Task RecordAuthenticationEventSafelyAsync(Guid? organizationId, Guid? userId, string action, string reason)
+    {
+        try
+        {
+            await audit.LogAsync(new AuditEntry(organizationId, userId, action, "authentication", userId?.ToString(),
+                "Evento de autenticação.", JsonSerializer.Serialize(new { reason })));
+        }
+        catch (Exception exception)
+        {
+            // Falha de auditoria nunca revela se a conta existe nem converte uma rejeição em erro 500.
+            logger.LogError(exception, "Authentication audit unavailable. Action={Action}", action);
+        }
     }
 
     private static AuthenticationResult CreateAuthenticationResult(

@@ -17,17 +17,17 @@ public sealed class HomeController(ILogger<HomeController> logger) : Controller
             throw;
         }
     }
-    public IActionResult Error()
+    [HttpGet("/error/{statusCode:int}")]
+    public IActionResult Error(int statusCode = 500)
     {
-        try
+        var safeStatus = statusCode is 400 or 401 or 403 or 404 or 500 ? statusCode : 500;
+        if (safeStatus == 500 && HttpContext.Response.StatusCode < 400)
         {
-            ViewData["Title"] = "Error";
-            return View("Index");
+            HttpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
         }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Falha ao renderizar HomeController.Error no Valora.Web.");
-            throw;
-        }
+        ViewData["Title"] = $"Erro {safeStatus}";
+        ViewData["StatusCode"] = safeStatus;
+        ViewData["CorrelationId"] = HttpContext.TraceIdentifier;
+        return View("Error");
     }
 }

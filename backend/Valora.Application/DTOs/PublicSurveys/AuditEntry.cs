@@ -11,7 +11,11 @@ public sealed record AuditEntry
         string? message,
         string? metadataJson = "{}",
         string? correlationId = null,
-        DateTimeOffset? createdAt = null)
+        DateTimeOffset? createdAt = null,
+        string? ipHash = null,
+        string? userAgent = null,
+        string severity = "information",
+        string? module = null)
     {
         OrganizationId = organizationId;
         UserId = userId;
@@ -22,6 +26,10 @@ public sealed record AuditEntry
         MetadataJson = string.IsNullOrWhiteSpace(metadataJson) ? "{}" : metadataJson;
         CorrelationId = correlationId;
         CreatedAt = createdAt;
+        IpHash = ipHash;
+        UserAgent = userAgent is { Length: > 512 } ? userAgent[..512] : userAgent;
+        Severity = severity;
+        Module = module;
     }
 
     public Guid? OrganizationId { get; }
@@ -33,4 +41,8 @@ public sealed record AuditEntry
     public string MetadataJson { get; }
     public string? CorrelationId { get; }
     public DateTimeOffset? CreatedAt { get; }
+    public string? IpHash { get; }
+    public string? UserAgent { get; }
+    public string Severity { get; }
+    public string? Module { get; }
 }

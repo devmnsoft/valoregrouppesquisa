@@ -30,6 +30,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.SecurePolicy = isDevelopment ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.LoginPath = "/Account/Login";
+        options.AccessDeniedPath = "/error/403";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(Math.Clamp(
+            builder.Configuration.GetValue("Authentication:SessionMinutes", 30), 5, 720));
+        options.SlidingExpiration = true;
     });
 builder.Services.AddAuthorization();
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
@@ -56,14 +60,28 @@ var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
+    app.UseExceptionHandler("/error/500");
     app.UseHsts();
 }
+
+app.UseStatusCodePagesWithReExecute("/error/{0}");
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.Use(async (context, next) =>
+{
+    const string header = "X-Correlation-ID";
+    var incoming = context.Request.Headers[header].FirstOrDefault();
+    var correlationId = !string.IsNullOrWhiteSpace(incoming) && incoming.Length <= 128
+        ? incoming
+        : Guid.NewGuid().ToString("N");
+    context.TraceIdentifier = correlationId;
+    context.Response.Headers[header] = correlationId;
+    using (Serilog.Context.LogContext.PushProperty("CorrelationId", correlationId))
+        await next();
+});
 app.UseAuthentication();
 app.UseAuthorization();
 

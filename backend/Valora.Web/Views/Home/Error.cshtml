@@ -1,0 +1,28 @@
+@{
+    Layout = "_PublicLayout";
+    var status = (int)(ViewData["StatusCode"] ?? 500);
+    var correlationId = ViewData["CorrelationId"]?.ToString();
+    var content = status switch
+    {
+        400 => ("Não foi possível processar", "Revise os dados informados e tente novamente."),
+        401 => ("Sua sessão expirou", "Entre novamente para continuar com segurança."),
+        403 => ("Acesso não autorizado", "Seu perfil não possui permissão para acessar este recurso."),
+        404 => ("Página não encontrada", "O endereço pode ter mudado ou o conteúdo não está mais disponível."),
+        _ => ("Não foi possível concluir", "Tivemos uma falha inesperada. Tente novamente em alguns instantes.")
+    };
+}
+<main class="container py-5" aria-labelledby="error-title">
+  <section class="valora-card mx-auto p-4 p-md-5 text-center" style="max-width:760px">
+    <p class="eyebrow">Valora Insight™ · Código @status</p>
+    <h1 id="error-title">@content.Item1</h1>
+    <p class="text-muted mt-3">@content.Item2</p>
+    @if (!string.IsNullOrWhiteSpace(correlationId))
+    {
+      <p class="small text-muted">Referência para suporte: <code>@correlationId</code></p>
+    }
+    <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center mt-4">
+      <button type="button" class="valora-button valora-button--primary" onclick="history.back()">Voltar</button>
+      <a class="valora-button valora-button--ghost" href="/">Ir para o início</a>
+    </div>
+  </section>
+</main>

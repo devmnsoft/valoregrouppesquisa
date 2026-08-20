@@ -283,7 +283,7 @@ public sealed class AuthService(
         {
             var permissions = ValoraPermissions.All;
             return new(roles.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), permissions,
-                ValoraAccessCatalog.PlatformModules, ValoraAccessCatalog.CapabilitiesFor(permissions),
+                ValoraAccessCatalog.PlatformModules, ResolveCapabilitiesSafely(permissions),
                 ["platform", "organization", $"organization:{organizationId}"], "platform", organizationId, planCode);
         }
 
@@ -297,11 +297,15 @@ public sealed class AuthService(
         var scopes = effective.Scopes.SelectMany(scope => new[] { scope.Type, $"{scope.Type}:{scope.Id}" })
             .Append("organization").Append($"organization:{organizationId}")
             .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        var capabilities = ValoraAccessCatalog.CapabilitiesFor(effective.GrantedPermissions);
+        var capabilities = ResolveCapabilitiesSafely(effective.GrantedPermissions);
         return new(roles.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), effective.GrantedPermissions,
             effective.AvailableModules.Select(ValoraAccessCatalog.NormalizeModule).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
             capabilities, scopes, "active", organizationId, planCode);
     }
+
+    private IReadOnlyList<string> ResolveCapabilitiesSafely(IEnumerable<string> permissions) =>
+        ValoraAccessCatalog.CapabilitiesFor(permissions, permission =>
+            logger.LogWarning("Unknown permission ignored while resolving login access. Permission={Permission}", permission));
 
     private static string BuildSlug(string value)
     {

@@ -36,31 +36,45 @@ public static class ValoraAccessCatalog
         return ModuleAliases.TryGetValue(normalized, out var canonical) ? canonical : normalized;
     }
 
-    public static IReadOnlyList<string> CapabilitiesFor(IEnumerable<string> permissions) => permissions
+    private static readonly IReadOnlyDictionary<string, string> PermissionCapabilities =
+        ValoraPermissions.Definitions.ToDictionary(definition => definition.Permission, definition => definition.Capability,
+            StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Runtime-safe resolution. Unknown database values are denied and reported, never inferred.</summary>
+    public static IReadOnlyList<string> CapabilitiesFor(IEnumerable<string> permissions, Action<string>? reportUnknown = null)
+    {
+        var capabilities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var permission in permissions.Where(value => !string.IsNullOrWhiteSpace(value)))
+        {
+            if (PermissionCapabilities.TryGetValue(permission, out var capability)) capabilities.Add(capability);
+            else reportUnknown?.Invoke(permission);
+        }
+        return capabilities.ToArray();
+    }
+
+    /// <summary>Strict resolution for seed/catalog validation and tests.</summary>
+    public static IReadOnlyList<string> CapabilitiesForStrict(IEnumerable<string> permissions) => permissions
         .Select(PermissionCapability).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 
-    public static string PermissionCapability(string permission) => permission switch
-    {
-        var value when value.StartsWith("users.", StringComparison.OrdinalIgnoreCase) || value.StartsWith("roles.", StringComparison.OrdinalIgnoreCase) => "identity",
-        var value when value.StartsWith("results.", StringComparison.OrdinalIgnoreCase) => "results",
-        var value when value.StartsWith("responses.", StringComparison.OrdinalIgnoreCase) => "responses",
-        var value when value.StartsWith("forms.", StringComparison.OrdinalIgnoreCase) => "forms",
-        var value when value.StartsWith("surveys.", StringComparison.OrdinalIgnoreCase) => "surveys",
-        var value when value.StartsWith("organization.", StringComparison.OrdinalIgnoreCase) => "organization",
-        var value when value.StartsWith("communications.", StringComparison.OrdinalIgnoreCase) => "communications",
-        var value when value.StartsWith("audit.", StringComparison.OrdinalIgnoreCase) => "audit",
-        var value when value.StartsWith("operations.", StringComparison.OrdinalIgnoreCase) => "operations",
-        var value when value.StartsWith("settings.", StringComparison.OrdinalIgnoreCase) => "settings",
-        var value when value.StartsWith("certificates.", StringComparison.OrdinalIgnoreCase) => "certificates",
-        _ => throw new InvalidOperationException($"Permissão fora do catálogo canônico: {permission}")
-    };
+    public static string PermissionCapability(string permission) =>
+        PermissionCapabilities.TryGetValue(permission, out var capability)
+            ? capability
+            : throw new InvalidOperationException($"Permissão fora do catálogo canônico: {permission}");
+
+    public static bool IsCanonicalPermission(string permission) => PermissionCapabilities.ContainsKey(permission);
 }
 
 public static class ValoraPermissions
 {
     public static class Organization { public const string Read="organization.read", Update="organization.update", BrandingRead="organization.branding.read", BrandingUpdate="organization.branding.update", SubscriptionRead="organization.subscription.read", UsageRead="organization.usage.read"; }
-    public static class Units { public const string Read="units.read", Create="units.create", Update="units.update", Disable="units.disable"; }
-    public static class Departments { public const string Read="departments.read", Create="departments.create", Update="departments.update", Disable="departments.disable"; }
+    public static class OrganizationCurrent { public const string Read="organization.current.read", Update="organization.current.update"; }
+    public static class OrganizationOnboarding { public const string Read="organization.onboarding.read", Update="organization.onboarding.update"; }
+    public static class Units { public const string Read="units.read", Create="units.create", Update="units.update", Disable="units.disable", Delete="units.delete"; }
+    public static class Departments { public const string Read="departments.read", Create="departments.create", Update="departments.update", Disable="departments.disable", Delete="departments.delete"; }
+    public static class BusinessGroups { public const string Read="business_groups.read", Create="business_groups.create", Update="business_groups.update", Disable="business_groups.disable", Delete="business_groups.delete"; }
+    public static class LegalEntities { public const string Read="legal_entities.read", Create="legal_entities.create", Update="legal_entities.update", Disable="legal_entities.disable", Delete="legal_entities.delete"; }
+    public static class Invitations { public const string Read="invitations.read", Create="invitations.create", Resend="invitations.resend", Cancel="invitations.cancel"; }
+    public static class Sessions { public const string Read="sessions.read", Revoke="sessions.revoke"; }
     public static class Users { public const string Read="users.read", Create="users.create", Update="users.update", Disable="users.disable", AssignRoles="users.assign_roles", AssignScopes="users.assign_scopes"; }
     public static class Roles { public const string Read="roles.read", Create="roles.create", Update="roles.update", Delete="roles.delete", AssignPermissions="roles.assign_permissions"; }
     public static class Forms { public const string Read="forms.read", Create="forms.create", Update="forms.update", Publish="forms.publish", Archive="forms.archive", Restore="forms.restore"; }
@@ -72,8 +86,20 @@ public static class ValoraPermissions
     public static class Audit { public const string Read="audit.read"; }
     public static class Operations { public const string Read="operations.read", Execute="operations.execute"; }
     public static class Settings { public const string Read="settings.read", Update="settings.update"; }
+    public static class OrganizationalIntelligence { public const string Read="organizational_intelligence.read", Generate="organizational_intelligence.generate", JourneyCreate="organizational_intelligence.journey.create", ActionCreate="organizational_intelligence.action.create"; }
 
     public static readonly IReadOnlyList<string> All = typeof(ValoraPermissions).GetNestedTypes()
         .SelectMany(type => type.GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static))
         .Where(field => field.IsLiteral && field.FieldType == typeof(string)).Select(field => (string)field.GetRawConstantValue()!).ToArray();
+
+    internal static readonly IReadOnlyList<(string Permission, string Capability)> Definitions = All
+        .Select(permission => (permission, CapabilityForCanonicalPermission(permission))).ToArray();
+
+    private static string CapabilityForCanonicalPermission(string permission) => permission.Split('.')[0] switch
+    {
+        "users" or "roles" or "sessions" or "invitations" => ValoraModules.Identity,
+        "organization" or "units" or "departments" or "business_groups" or "legal_entities" => ValoraModules.Organization,
+        "organizational_intelligence" => "organizational_intelligence",
+        var capability => capability
+    };
 }

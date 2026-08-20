@@ -34,8 +34,12 @@ public sealed class StrategicMaturityScoringService
         }).ToArray();
 
         var esg = new[] { Code(26), Code(27) }.Where(answers.ContainsKey).Select(code => answers[code].Value).ToArray();
+        decimal? esgAverage = esg.Length == 0
+            ? null
+            : decimal.Round(esg.Sum(static value => (decimal)value) / esg.Length, 1);
+
         return new(mainTotal, 25, 125, decimal.Round(mainTotal / 25m, 1), level.Code, level.Label, level.Meaning, dimensions,
-            esg.Length == 0 ? null : esg.Sum(), 10, esg.Length == 0 ? null : decimal.Round(esg.Average(), 1), Recommendation(level.Code),
+            esg.Length == 0 ? null : esg.Sum(), 10, esgAverage, Recommendation(level.Code),
             "Comparativo setorial ainda não informado para este diagnóstico.");
     }
 

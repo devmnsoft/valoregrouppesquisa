@@ -26,6 +26,18 @@ public sealed class MenuService(IEntitlementService entitlements, IPermissionSer
         if (!organizationId.HasValue || Has("lgpd")) items.Add(new("lgpd", "LGPD", "/Lgpd", "shield", 60, Array.Empty<MenuItemDto>()));
         if (!organizationId.HasValue || Has("convites_email")) items.Add(new("email", "E-mail", "/Email", "mail", 70, Array.Empty<MenuItemDto>()));
         if (await permissions.HasPermissionAsync(userId, "audit.read", organizationId)) items.Add(new("audit", "Auditoria", "/Audit", "activity", 80, Array.Empty<MenuItemDto>()));
+        var platform = new List<MenuItemDto>();
+        if (await permissions.HasPermissionAsync(userId, Valora.Application.Access.ValoraPermissions.Plans.Read, organizationId))
+            platform.Add(new("plans-admin", "Planos", "/Platform/Plans", "layers", 1, Array.Empty<MenuItemDto>()));
+        if (await permissions.HasPermissionAsync(userId, Valora.Application.Access.ValoraPermissions.Subscriptions.Read, organizationId))
+            platform.Add(new("subscriptions-admin", "Assinaturas", "/Platform/Subscriptions", "repeat", 2, Array.Empty<MenuItemDto>()));
+        if (await permissions.HasPermissionAsync(userId, Valora.Application.Access.ValoraPermissions.Billing.Read, organizationId))
+            platform.Add(new("billing-admin", "Faturas", "/Platform/Invoices", "receipt", 3, Array.Empty<MenuItemDto>()));
+        if (await permissions.HasPermissionAsync(userId, Valora.Application.Access.ValoraPermissions.Usage.Read, organizationId))
+            platform.Add(new("usage-admin", "Uso", "/Platform/Usage", "gauge", 4, Array.Empty<MenuItemDto>()));
+        if (platform.Count > 0) items.Add(new("platform", "Plataforma", "#", "building", 90, platform));
+        if (organizationId.HasValue)
+            items.Add(new("my-plan", "Meu Plano", "/Organization/MyPlan", "credit-card", 95, Array.Empty<MenuItemDto>()));
         return items;
     }
 }

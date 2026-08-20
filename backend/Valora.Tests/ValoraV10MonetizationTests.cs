@@ -8,11 +8,11 @@ namespace Valora.Tests;
 public sealed class ValoraV10MonetizationTests
 {
     [Fact]
-    public async Task Delinquent_subscription_is_exposed_as_blocked()
+    public async Task Past_due_subscription_is_exposed_as_blocked()
     {
         var repository = new MemorySubscriptionRepository();
         var service = new SubscriptionService(repository);
-        await service.UpdateAsync(repository.OrganizationId, Request("delinquent"));
+        await service.UpdateAsync(repository.OrganizationId, Request("past_due"));
         var subscription = await service.GetAsync(repository.OrganizationId);
         Assert.True(subscription!.AccessBlocked);
     }
@@ -22,7 +22,7 @@ public sealed class ValoraV10MonetizationTests
     {
         var repository = new MemorySubscriptionRepository();
         var service = new SubscriptionService(repository);
-        await service.UpdateAsync(repository.OrganizationId, Request("awaiting_payment"));
+        await service.UpdateAsync(repository.OrganizationId, Request("active"));
         await Assert.ThrowsAsync<ArgumentException>(() => service.RegisterPaymentAsync(repository.OrganizationId, null, new(0, DateTimeOffset.UtcNow, "pix", null, null)));
         var payment = await service.RegisterPaymentAsync(repository.OrganizationId, null, new(250, DateTimeOffset.UtcNow, "pix", "PIX-1", null));
         Assert.Equal(250, payment.Amount);

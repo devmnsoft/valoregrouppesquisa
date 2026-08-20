@@ -56,6 +56,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IModuleService, ModuleService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         services.AddScoped<IUsageService, UsageService>();
+        services.AddScoped<ISubscriptionUsageService, SubscriptionUsageService>();
         services.AddScoped<IPermissionService, PermissionService>();
         services.AddScoped<IDashboardMetricsService, DashboardMetricsService>();
         services.AddScoped<IMenuService, MenuService>();

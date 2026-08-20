@@ -5,7 +5,7 @@ namespace Valora.Application.Services;
 
 public sealed class SubscriptionService(ISubscriptionRepository repo) : ISubscriptionService
 {
-    private static readonly HashSet<string> Statuses = ["current", "awaiting_payment", "overdue", "delinquent", "suspended", "cancelled", "trial"];
+    private static readonly HashSet<string> Statuses = ["trialing", "active", "past_due", "canceled", "expired", "suspended"];
     private static readonly HashSet<string> Cycles = ["monthly", "annual"];
 
     public Task<SubscriptionDto?> GetAsync(Guid organizationId) => repo.GetByOrganizationAsync(organizationId);

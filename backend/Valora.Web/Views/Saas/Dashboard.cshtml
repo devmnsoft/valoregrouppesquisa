@@ -1,0 +1,43 @@
+@{ ViewData["Title"] ??= "SaaS"; var mode = ViewData["Mode"]?.ToString() ?? "usage"; }
+<main class="saas-console" data-saas-mode="@mode">
+  <header class="saas-hero">
+    <div><span class="saas-eyebrow">Valora Insight™ · SaaS</span><h1>@ViewData["Title"]</h1><p>@ViewData["Subtitle"]</p></div>
+    <a class="saas-upgrade" href="/Organization/Upgrade">Conhecer upgrade</a>
+  </header>
+  <section class="saas-kpis" aria-label="Resumo da assinatura">
+    <article><span>Plano atual</span><strong data-field="plan">Carregando…</strong><small data-field="status">Assinatura</small></article>
+    <article><span>Próxima renovação</span><strong data-field="renewal">—</strong><small>Ciclo contratado</small></article>
+    <article><span>Consumo mensal</span><strong data-field="consumption">—</strong><div class="saas-progress"><i data-field="progress"></i></div></article>
+  </section>
+  <section class="saas-panel"><div><h2>Limites e recursos</h2><p>Acompanhe o que está disponível. Ao atingir um limite, os dados existentes permanecem preservados.</p></div>
+    <div class="saas-table-wrap"><table><thead><tr><th>Recurso</th><th>Uso</th><th>Limite</th><th>Situação</th></tr></thead><tbody data-field="metrics"><tr><td colspan="4">Carregando dados da organização…</td></tr></tbody></table></div>
+  </section>
+</main>
+<style>
+.saas-console{max-width:1240px;margin:auto;padding:clamp(20px,4vw,48px);color:#183c46}.saas-hero{display:flex;justify-content:space-between;gap:24px;align-items:end;padding:32px;border-radius:24px;background:linear-gradient(135deg,#103f4b,#176675);color:white;box-shadow:0 20px 50px #0d3f4a24}.saas-eyebrow{color:#f0c96b;text-transform:uppercase;letter-spacing:.12em;font-size:.75rem}.saas-hero h1{font-size:clamp(2rem,4vw,3.4rem);margin:.35rem 0}.saas-hero p{margin:0;color:#d9eef1}.saas-upgrade{background:#e9bd57;color:#173b45;padding:12px 18px;border-radius:12px;font-weight:700;text-decoration:none;white-space:nowrap}.saas-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:22px 0}.saas-kpis article,.saas-panel{background:#fff;border:1px solid #dce9eb;border-radius:18px;padding:22px;box-shadow:0 10px 30px #123b4510}.saas-kpis span,.saas-kpis small{display:block;color:#66828a}.saas-kpis strong{display:block;font-size:1.45rem;margin:8px 0}.saas-progress{height:8px;background:#e4eef0;border-radius:9px;overflow:hidden}.saas-progress i{display:block;width:0;height:100%;background:#d8a93d}.saas-table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;margin-top:18px}th,td{text-align:left;padding:14px;border-bottom:1px solid #e4edef}th{font-size:.75rem;text-transform:uppercase;color:#678089}@media(max-width:720px){.saas-hero{align-items:start;flex-direction:column}.saas-kpis{grid-template-columns:1fr}.saas-upgrade{width:100%;text-align:center}}
+</style>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const root = document.querySelector('[data-saas-mode]');
+  const field = name => root.querySelector(`[data-field="${name}"]`);
+  try {
+    const [subscriptionResponse, usageResponse] = await Promise.all([
+      fetch('/api/v1/subscription', { credentials: 'same-origin' }),
+      fetch('/api/v1/usage/current', { credentials: 'same-origin' })
+    ]);
+    if (!subscriptionResponse.ok || !usageResponse.ok) throw new Error('unavailable');
+    const subscription = await subscriptionResponse.json();
+    const usage = await usageResponse.json();
+    field('plan').textContent = subscription.planName || subscription.planId || 'Plano atual';
+    field('status').textContent = subscription.status || '—';
+    field('renewal').textContent = subscription.renewalAt ? new Date(subscription.renewalAt).toLocaleDateString('pt-BR') : 'Sem renovação agendada';
+    const metrics = usage.metrics || [];
+    const highest = metrics.reduce((value, metric) => Math.max(value, metric.percentUsed || 0), 0);
+    field('consumption').textContent = `${highest}%`;
+    field('progress').style.width = `${Math.min(100, highest)}%`;
+    field('metrics').innerHTML = metrics.map(metric => `<tr><td>${metric.name}</td><td>${metric.used}</td><td>${metric.unlimited ? 'Ilimitado' : metric.limit}</td><td>${metric.limitReached ? 'Limite atingido' : 'Disponível'}</td></tr>`).join('') || '<tr><td colspan="4">Nenhum consumo registrado neste mês.</td></tr>';
+  } catch {
+    field('metrics').innerHTML = '<tr><td colspan="4">Não foi possível carregar o consumo agora. Tente novamente em instantes.</td></tr>';
+  }
+});
+</script>

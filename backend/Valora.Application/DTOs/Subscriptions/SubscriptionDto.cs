@@ -5,7 +5,7 @@ public sealed class SubscriptionDto
     public Guid Id { get; init; }
     public Guid OrganizationId { get; init; }
     public Guid PlanId { get; init; }
-    public string Status { get; init; } = "awaiting_payment";
+    public string Status { get; init; } = "trialing";
     public string BillingCycle { get; init; } = "monthly";
     public decimal ContractedValue { get; init; }
     public decimal DiscountValue { get; init; }
@@ -13,13 +13,17 @@ public sealed class SubscriptionDto
     public DateTimeOffset? RenewalAt { get; init; }
     public DateTimeOffset? DueAt { get; init; }
     public DateTimeOffset? EndsAt { get; init; }
+    public DateTimeOffset? CanceledAt { get; init; }
+    public DateTimeOffset? TrialEndsAt { get; init; }
     public string? FinancialContact { get; init; }
     public string? FinancialEmail { get; init; }
     public string? FinancialPhone { get; init; }
     public string? PaymentMethod { get; init; }
     public string? Notes { get; init; }
     public int? TrialDaysRemaining { get; init; }
-    public bool AccessBlocked => Status is "delinquent" or "suspended" or "cancelled";
+    public DateTimeOffset CreatedAt { get; init; }
+    public DateTimeOffset UpdatedAt { get; init; }
+    public bool AccessBlocked => Status is "past_due" or "suspended" or "canceled" or "expired";
 }
 
 public sealed record UpdateSubscriptionRequest(Guid PlanId, string Status, string BillingCycle,

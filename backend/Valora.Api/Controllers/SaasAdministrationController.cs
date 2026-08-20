@@ -53,6 +53,7 @@ public sealed class SaasAdministrationController(
     public async Task<IActionResult> PlanLimits() => Ok((await CurrentPlanRecord())?.Limits ?? new Dictionary<string, int>());
 
     [HttpGet("plans/usage")]
+    [Authorize(Policy = ValoraPermissions.Usage.Read)]
     public async Task<IActionResult> PlanUsage() => Ok(await entitlements.GetUsageAsync(OrganizationId));
 
     [HttpGet("audit")]

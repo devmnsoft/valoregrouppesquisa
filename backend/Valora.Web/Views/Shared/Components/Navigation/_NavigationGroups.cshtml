@@ -1,4 +1,5 @@
 @model Valora.Web.Navigation.NavigationGroupsViewModel
+@inject Valora.Web.Ui.ValoraIconRegistry IconRegistry
 
 @foreach (var navigationSection in Model.Sections)
 {
@@ -11,8 +12,9 @@
         <div id="@groupId" class="sidebar-group-items @(navigationSection.IsExpanded ? null : "is-collapsed")">
             @foreach (var navigationItem in navigationSection.Items)
             {
+                var iconName = IconRegistry.GetOrFallback(navigationItem.Icon);
                 <a class="nav-link @(navigationItem.IsActive ? "active" : null)" href="@navigationItem.Url" title="@navigationItem.Description" aria-label="@navigationItem.Label — @navigationItem.Description" aria-current="@(navigationItem.IsActive ? "page" : null)" data-navigation-code="@navigationItem.Code">
-                    <valora-icon name="@navigationItem.Icon" size="19" decorative="true" />
+                    <span class="nav-link-icon" aria-hidden="true"><valora-icon name="@iconName" size="19" decorative="true" /></span>
                     <span>@navigationItem.Label</span>
                     @if (navigationItem.Badge is not null)
                     {

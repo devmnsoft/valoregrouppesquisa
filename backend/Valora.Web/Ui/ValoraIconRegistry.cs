@@ -2,6 +2,8 @@ namespace Valora.Web.Ui;
 
 public sealed class ValoraIconRegistry
 {
+    public const string FallbackIcon = "help-circle";
+
     private static readonly IReadOnlyDictionary<string, string> Icons = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         ["home"] = "<path d=\"m3 11 9-8 9 8\"/><path d=\"M5 10v10h14V10M9 20v-6h6v6\"/>",
@@ -30,10 +32,12 @@ public sealed class ValoraIconRegistry
         ["file-text"] = "<path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z M14 2v6h6M8 13h8M8 17h8M8 9h2\"/>",
         ["chart-radar"] = "<path d=\"m12 2 9 7-3.5 11h-11L3 9l9-7Z M12 2v18M3 9l14.5 11M21 9 6.5 20\"/>",
         ["brain"] = "<path d=\"M9.5 4.5A3 3 0 0 0 4 6v.5A3.5 3.5 0 0 0 3 13a3 3 0 0 0 3 4 3 3 0 0 0 3.5 2.5V4.5Zm5 0A3 3 0 0 1 20 6v.5a3.5 3.5 0 0 1 1 6.5 3 3 0 0 1-3 4 3 3 0 0 1-3.5 2.5V4.5ZM9.5 9H7.75A1.75 1.75 0 0 0 6 10.75M14.5 9h1.75A1.75 1.75 0 0 1 18 10.75M9.5 15H8a2 2 0 0 1-2-2m8.5 2H16a2 2 0 0 0 2-2\"/>",
+        ["sparkles"] = "<path d=\"m12 3-1.2 3.3L7.5 7.5l3.3 1.2L12 12l1.2-3.3 3.3-1.2-3.3-1.2L12 3ZM5 13l-.8 2.2L2 16l2.2.8L5 19l.8-2.2L8 16l-2.2-.8L5 13Zm13-1-1 2.8-2.8 1L17 17l1 2.8 1-2.8 2.8-1-2.8-1L18 12Z\"/>",
         ["chart-line"] = "<path d=\"M3 3v18h18M7 16l4-5 4 3 5-7\"/>",
         ["bar-chart"] = "<path d=\"M3 3v18h18M7 16v-4M12 16V8M17 16V5\"/>",
         ["award"] = "<circle cx=\"12\" cy=\"8\" r=\"6\"/><path d=\"m15.5 13 1.5 9-5-3-5 3 1.5-9\"/>",
         ["certificate"] = "<rect x=\"3\" y=\"3\" width=\"18\" height=\"14\" rx=\"2\"/><path d=\"M8 7h8M8 11h5M9 17v5l3-2 3 2v-5\"/>",
+        ["credit-card"] = "<rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"2\"/><path d=\"M2 10h20M6 15h2\"/>",
         ["mail"] = "<rect x=\"2\" y=\"4\" width=\"20\" height=\"16\" rx=\"2\"/><path d=\"m22 7-10 6L2 7\"/>",
         ["message-circle"] = "<path d=\"M21 11.5a8.4 8.4 0 0 1-9 8.5 9 9 0 0 1-4-.9L3 21l1.9-5A9 9 0 1 1 21 11.5Z\"/>",
         ["bell"] = "<path d=\"M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4\"/>",
@@ -83,7 +87,18 @@ public sealed class ValoraIconRegistry
         ["file-up"] = "<path d=\"M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z M14 2v6h6M12 18v-6M9 15l3-3 3 3\"/>",
     };
 
-    public bool TryGet(string name, out string markup)
+    public IReadOnlyCollection<string> KnownIcons => Icons.Keys;
+
+    public bool Contains(string? name) => !string.IsNullOrWhiteSpace(name) && Icons.ContainsKey(name);
+
+    public string GetOrFallback(string? name) => Contains(name) ? name! : FallbackIcon;
+
+    // Kept for catalog/design-system tests that deliberately require strict validation.
+    public string GetRequired(string name) => Icons.TryGetValue(name, out var markup)
+        ? markup
+        : throw new InvalidOperationException($"Ícone Valora desconhecido: {name}");
+
+    public bool TryGet(string? name, out string markup)
     {
         if (string.IsNullOrWhiteSpace(name))
         {

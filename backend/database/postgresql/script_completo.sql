@@ -2317,11 +2317,28 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.configuration_change_history (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), user_id uuid REFERENCES valorapesquisa.users(id),
  setting_key varchar(100) NOT NULL, before_json jsonb, after_json jsonb, reason text, correlation_id text,
  created_at timestamptz NOT NULL DEFAULT now(), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb);
+-- A tabela pode ter sido criada antes pelo gerador genérico de módulos.
+ALTER TABLE valorapesquisa.configuration_change_history
+ ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES valorapesquisa.users(id),
+ ADD COLUMN IF NOT EXISTS setting_key varchar(100),
+ ADD COLUMN IF NOT EXISTS before_json jsonb,
+ ADD COLUMN IF NOT EXISTS after_json jsonb,
+ ADD COLUMN IF NOT EXISTS reason text,
+ ADD COLUMN IF NOT EXISTS correlation_id text,
+ ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
 CREATE INDEX IF NOT EXISTS ix_configuration_change_history_org ON valorapesquisa.configuration_change_history(organization_id,created_at DESC);
 CREATE TABLE IF NOT EXISTS valorapesquisa.permission_change_history (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), user_id uuid REFERENCES valorapesquisa.users(id),
  role_id uuid REFERENCES valorapesquisa.roles(id), before_json jsonb, after_json jsonb, reason text, correlation_id text,
  created_at timestamptz NOT NULL DEFAULT now(), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb);
+ALTER TABLE valorapesquisa.permission_change_history
+ ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES valorapesquisa.users(id),
+ ADD COLUMN IF NOT EXISTS role_id uuid REFERENCES valorapesquisa.roles(id),
+ ADD COLUMN IF NOT EXISTS before_json jsonb,
+ ADD COLUMN IF NOT EXISTS after_json jsonb,
+ ADD COLUMN IF NOT EXISTS reason text,
+ ADD COLUMN IF NOT EXISTS correlation_id text,
+ ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
 CREATE INDEX IF NOT EXISTS ix_permission_change_history_org ON valorapesquisa.permission_change_history(organization_id,created_at DESC);
 CREATE TABLE IF NOT EXISTS valorapesquisa.notification_reads (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), notification_id uuid NOT NULL REFERENCES valorapesquisa.notifications(id),
@@ -2415,6 +2432,47 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.one_on_one_sessions (
  agreements text, perceived_risks text, next_steps text, confidentiality varchar(30) NOT NULL DEFAULT 'restricted', scheduled_at timestamptz, completed_at timestamptz,
  status varchar(30) NOT NULL DEFAULT 'draft', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text,
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+-- one_on_one_sessions já pode existir com apenas o contrato genérico. Evolua
+-- todas as colunas específicas antes de criar índices ou atender o módulo.
+ALTER TABLE valorapesquisa.one_on_one_sessions
+ ADD COLUMN IF NOT EXISTS diagnostic_id uuid,
+ ADD COLUMN IF NOT EXISTS insight_id uuid,
+ ADD COLUMN IF NOT EXISTS action_id uuid,
+ ADD COLUMN IF NOT EXISTS participant_user_id uuid REFERENCES valorapesquisa.users(id),
+ ADD COLUMN IF NOT EXISTS facilitator_user_id uuid REFERENCES valorapesquisa.users(id),
+ ADD COLUMN IF NOT EXISTS agenda text,
+ ADD COLUMN IF NOT EXISTS objective text,
+ ADD COLUMN IF NOT EXISTS agreements text,
+ ADD COLUMN IF NOT EXISTS perceived_risks text,
+ ADD COLUMN IF NOT EXISTS next_steps text,
+ ADD COLUMN IF NOT EXISTS confidentiality varchar(30),
+ ADD COLUMN IF NOT EXISTS scheduled_at timestamptz,
+ ADD COLUMN IF NOT EXISTS completed_at timestamptz,
+ ADD COLUMN IF NOT EXISTS status varchar(30),
+ ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ ADD COLUMN IF NOT EXISTS correlation_id text,
+ ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+UPDATE valorapesquisa.one_on_one_sessions
+ SET agenda=COALESCE(NULLIF(btrim(agenda),''),'Sessão individual'),
+     objective=COALESCE(NULLIF(btrim(objective),''),'Acompanhamento organizacional'),
+     confidentiality=COALESCE(NULLIF(btrim(confidentiality),''),'restricted'),
+     status=COALESCE(NULLIF(btrim(status),''),'draft'),
+     metadata_json=COALESCE(metadata_json,'{}'::jsonb),
+     updated_at=COALESCE(updated_at,created_at,now())
+ WHERE agenda IS NULL OR btrim(agenda)='' OR objective IS NULL OR btrim(objective)=''
+    OR confidentiality IS NULL OR btrim(confidentiality)='' OR status IS NULL OR btrim(status)=''
+    OR metadata_json IS NULL OR updated_at IS NULL;
+ALTER TABLE valorapesquisa.one_on_one_sessions
+ ALTER COLUMN agenda SET NOT NULL,
+ ALTER COLUMN objective SET NOT NULL,
+ ALTER COLUMN confidentiality SET DEFAULT 'restricted',
+ ALTER COLUMN confidentiality SET NOT NULL,
+ ALTER COLUMN status SET DEFAULT 'draft',
+ ALTER COLUMN status SET NOT NULL,
+ ALTER COLUMN metadata_json SET DEFAULT '{}'::jsonb,
+ ALTER COLUMN metadata_json SET NOT NULL,
+ ALTER COLUMN updated_at SET DEFAULT now(),
+ ALTER COLUMN updated_at SET NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_one_on_one_org ON valorapesquisa.one_on_one_sessions(organization_id,status,scheduled_at) WHERE deleted_at IS NULL;
 CREATE TABLE IF NOT EXISTS valorapesquisa.one_on_one_notes (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), session_id uuid NOT NULL REFERENCES valorapesquisa.one_on_one_sessions(id),
@@ -2429,6 +2487,15 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_runs (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), comparison_type varchar(40) NOT NULL, dimension varchar(100),
  minimum_sample_size int NOT NULL DEFAULT 5, context text NOT NULL, status varchar(30) NOT NULL DEFAULT 'pending', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
  correlation_id text, source_hash text, idempotency_key text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+ALTER TABLE valorapesquisa.benchmark_runs
+ ADD COLUMN IF NOT EXISTS comparison_type varchar(40) NOT NULL DEFAULT 'internal',
+ ADD COLUMN IF NOT EXISTS dimension varchar(100),
+ ADD COLUMN IF NOT EXISTS minimum_sample_size int NOT NULL DEFAULT 5,
+ ADD COLUMN IF NOT EXISTS context text NOT NULL DEFAULT 'Contexto de benchmark não informado.',
+ ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ ADD COLUMN IF NOT EXISTS correlation_id text,
+ ADD COLUMN IF NOT EXISTS source_hash text,
+ ADD COLUMN IF NOT EXISTS idempotency_key text;
 CREATE INDEX IF NOT EXISTS ix_benchmark_runs_org ON valorapesquisa.benchmark_runs(organization_id,created_at DESC) WHERE deleted_at IS NULL;
 CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_comparison_groups (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), run_id uuid NOT NULL REFERENCES valorapesquisa.benchmark_runs(id),
@@ -2438,6 +2505,15 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_results (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), run_id uuid NOT NULL REFERENCES valorapesquisa.benchmark_runs(id),
  metric_code varchar(100) NOT NULL, difference numeric(12,4), interpretation text, internal_practices text, opportunities text, status varchar(30) NOT NULL DEFAULT 'available',
  metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+ALTER TABLE valorapesquisa.benchmark_results
+ ADD COLUMN IF NOT EXISTS run_id uuid REFERENCES valorapesquisa.benchmark_runs(id),
+ ADD COLUMN IF NOT EXISTS metric_code varchar(100),
+ ADD COLUMN IF NOT EXISTS difference numeric(12,4),
+ ADD COLUMN IF NOT EXISTS interpretation text,
+ ADD COLUMN IF NOT EXISTS internal_practices text,
+ ADD COLUMN IF NOT EXISTS opportunities text,
+ ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ ADD COLUMN IF NOT EXISTS correlation_id text;
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.import_batches (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), import_type varchar(60) NOT NULL, file_name text,

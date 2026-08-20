@@ -6,6 +6,9 @@ namespace Valora.Web.Controllers;
 [Authorize]
 public sealed class AdministrationController : Controller
 {
+    [HttpGet("Administration/Modules")]
+    public IActionResult Modules() => Module("Módulos contratados", "Consulte os recursos habilitados e os limites efetivos da organização.", "/bff/administration/modules", "modules");
+
     [HttpGet("Administration/Privacy")]
     [HttpGet("Privacy")]
     public IActionResult Privacy() => Module("LGPD e Privacidade", "Solicitações, protocolos e tratamento administrativo de dados.", "/bff/privacy/requests", "privacy");

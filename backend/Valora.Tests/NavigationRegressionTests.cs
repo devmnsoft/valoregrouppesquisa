@@ -105,6 +105,14 @@ public sealed class NavigationRegressionTests
         Assert.Contains("intelligence.certificates", codes);
         Assert.Contains("administration.access", codes);
         Assert.Contains("administration.settings", codes);
+        Assert.Contains("administration.organizations", codes);
+        Assert.Contains("administration.roles", codes);
+        Assert.Contains("administration.permissions", codes);
+        Assert.Contains("administration.modules", codes);
+
+        var labels = model.Sections.Select(section => section.Label).ToArray();
+        Assert.Contains("Administração", labels);
+        Assert.Contains("Plataforma", labels);
     }
 
     private sealed class TestRoutes : INavigationRouteResolver
@@ -143,6 +151,7 @@ public sealed class NavigationRenderingTests : IClassFixture<WebApplicationFacto
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("data-admin-sidebar", html);
-        Assert.Contains("Acessos temporariamente indisponíveis", html);
+        Assert.Contains("Vamos configurar seu espaço", html);
+        Assert.DoesNotContain("NavigationContext vazio", html);
     }
 }

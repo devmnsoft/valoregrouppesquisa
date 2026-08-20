@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace Valora.Web.Services.Bff;
 
-public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffSessionStore sessions)
+public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffSessionStore sessions, ILogger<BffAuthenticationService> logger)
 {
     public async Task<BffSafeSession> SignInAsync(HttpContext context, string endpoint, object request, CancellationToken cancellationToken)
     {
@@ -38,7 +38,30 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
     public async Task<BffServerSession?> GetAsync(HttpContext context, CancellationToken cancellationToken = default)
     {
         var ticket = context.User.FindFirstValue("bff_ticket");
-        return ticket is null ? null : await sessions.GetAsync(ticket, cancellationToken);
+        if (ticket is null) return null;
+        var session = await sessions.GetAsync(ticket, cancellationToken);
+        if (session is null) return null;
+        if (session.SessionVersion == BffServerSession.CurrentSessionVersion
+            && session.SafeSession.PayloadVersion == BffSafeSession.CurrentPayloadVersion
+            && session.SafeSession.AccessContext.ContextVersion == BffAccessContext.CurrentContextVersion)
+            return session;
+
+        logger.LogInformation("Rehydrating stale BFF access context. UserId={UserId} Role={Role} OrganizationId={OrganizationId} PlanCode={PlanCode} ModuleCount={ModuleCount} PermissionCount={PermissionCount} ContextVersion={ContextVersion} CorrelationId={CorrelationId}",
+            session.SafeSession.User.Id, session.SafeSession.User.Role, session.SafeSession.AccessContext.OrganizationId,
+            session.SafeSession.AccessContext.PlanCode, session.SafeSession.AccessContext.EnabledModules.Count,
+            session.SafeSession.AccessContext.Permissions.Count, session.SafeSession.AccessContext.ContextVersion, CorrelationId(context));
+        try
+        {
+            await RefreshAsync(context, cancellationToken);
+            return await sessions.GetAsync(ticket, cancellationToken);
+        }
+        catch (Exception exception) when (exception is BffApiException or BffApiUnavailableException)
+        {
+            logger.LogWarning(exception, "Unable to rehydrate incompatible BFF session. UserId={UserId} CorrelationId={CorrelationId}", session.SafeSession.User.Id, CorrelationId(context));
+            await sessions.RemoveAsync(ticket, cancellationToken);
+            await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return null;
+        }
     }
 
     public async Task<BffSafeSession?> RefreshAsync(HttpContext context, CancellationToken cancellationToken)

@@ -16,3 +16,9 @@
   --content-max-width: 1440px; --content-gutter: clamp(1rem, 3vw, 2.5rem);
   --control-height: 2.75rem; --sidebar-collapsed-width: 5.25rem;
 }
+
+/* HTML's hidden state is an application invariant. Component display rules must
+   never make dialogs, loading states, badges or mutually-exclusive panels visible. */
+[hidden] {
+  display: none !important;
+}

@@ -8,7 +8,7 @@
   <meta name="csrf-token" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken">
   <title>@ViewData["Title"] - Valora Group</title>
   <meta name="theme-color" content="#0c3448">
-  <link href="/lib/bootstrap/bootstrap.min.css" rel="stylesheet">
+  <link href="/lib/bootstrap/bootstrap.min.css" rel="stylesheet" asp-append-version="true">
   <link rel="stylesheet" href="/css/design-system/tokens.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/design-system/typography.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/design-system/layout.css" asp-append-version="true">
@@ -17,6 +17,9 @@
   <link rel="stylesheet" href="/css/design-system/tables.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/design-system/feedback.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/design-system/dashboard.css" asp-append-version="true">
+  <!-- Administrative page modules extend the canonical components bundle. Keep this
+       after components/pages and before the final responsive overrides. -->
+  <link rel="stylesheet" href="/css/valora-admin.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/design-system/responsive.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/valora-v9.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/print.css" asp-append-version="true">
@@ -39,9 +42,9 @@
     </main>
   </div>
   @await Html.PartialAsync("_ToastContainer")
-    <script src="/lib/bootstrap/bootstrap.bundle.min.js"></script>
-<script src="/web-config.js"></script>
-<script src="/js/config.js"></script>
+    <script src="/lib/bootstrap/bootstrap.bundle.min.js" asp-append-version="true"></script>
+<script src="/web-config.js" asp-append-version="true"></script>
+<script src="/js/config.js" asp-append-version="true"></script>
 <script src="/js/core/logger.js"></script>
 <script src="/js/core/errors.js"></script>
 <script src="/js/core/storage.js"></script>

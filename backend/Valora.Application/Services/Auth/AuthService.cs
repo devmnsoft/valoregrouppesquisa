@@ -277,6 +277,16 @@ public sealed class AuthService(
     private async Task<AuthenticatedAccessContextDto> ResolveAccessContextAsync(Guid organizationId, Guid userId,
         IReadOnlyList<string> roles, string planCode)
     {
+        // Platform administration is an explicit policy, not a general authorization bypass.
+        // Tenant data still carries the selected organization in scopes and is audited normally.
+        if (roles.Contains(ValoraAccessCatalog.PlatformRole, StringComparer.OrdinalIgnoreCase))
+        {
+            var permissions = ValoraPermissions.All;
+            return new(roles.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), permissions,
+                ValoraAccessCatalog.PlatformModules, ValoraAccessCatalog.CapabilitiesFor(permissions),
+                ["platform", "organization", $"organization:{organizationId}"], "platform", organizationId, planCode);
+        }
+
         if (accessAdministration is null)
         {
             logger.LogError("Authoritative access service is unavailable. OrganizationId={OrganizationId} UserId={UserId}", organizationId, userId);
@@ -287,20 +297,11 @@ public sealed class AuthService(
         var scopes = effective.Scopes.SelectMany(scope => new[] { scope.Type, $"{scope.Type}:{scope.Id}" })
             .Append("organization").Append($"organization:{organizationId}")
             .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-        var capabilities = effective.GrantedPermissions
-            .Select(permission => permission.Split('.', 2)[0])
-            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var capabilities = ValoraAccessCatalog.CapabilitiesFor(effective.GrantedPermissions);
         return new(roles.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), effective.GrantedPermissions,
-            effective.AvailableModules.Select(NormalizeModule).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
+            effective.AvailableModules.Select(ValoraAccessCatalog.NormalizeModule).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
             capabilities, scopes, "active", organizationId, planCode);
     }
-
-    private static string NormalizeModule(string module) => module.Trim().ToLowerInvariant() switch
-    {
-        "organizational_intelligence" or "inteligenciaorganizacional" or "intelligence" => "organizational_intelligence",
-        "relatorios" => "reports",
-        _ => module.Trim().ToLowerInvariant().Replace('-', '_')
-    };
 
     private static string BuildSlug(string value)
     {

@@ -247,3 +247,12 @@
 .intelligence-module__evidence-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.75rem;margin:1rem 0}.intelligence-module__evidence-summary article{display:grid;gap:.35rem;padding:1rem}.intelligence-module__evidence-summary small{color:var(--valora-muted);font-weight:700}.intelligence-module__evidence-summary strong{color:var(--valora-primary);font-size:1.65rem}
 .v9-breadcrumb{display:flex;gap:.6rem;align-items:center;margin-bottom:1rem;font-size:.85rem;color:var(--valora-muted)}.v9-breadcrumb a{color:var(--valora-navy)}
 @media(max-width:800px){.intelligence-module__grid,.intelligence-module__records,.intelligence-module__filters,.intelligence-module__evidence-summary{grid-template-columns:1fr}.intelligence-module__hero{align-items:flex-start}.v9-intelligence-nav{overflow-x:auto;flex-wrap:nowrap}}
+
+/* Shell reconciliation: structural ownership stays in design-system/layout.css. */
+.valora-admin-shell{display:grid;grid-template-columns:var(--sidebar-width) minmax(0,1fr)}
+.app-sidebar.valora-sidebar{width:var(--sidebar-width);box-shadow:12px 0 32px rgb(6 44 55 / 10%)}
+.valora-admin-content{max-width:var(--content-max-width);padding:var(--space-8) var(--content-gutter) 4rem}
+.topbar.valora-topbar{min-height:var(--topbar-height);margin:0;border-radius:0;padding:.65rem var(--content-gutter);z-index:var(--z-sticky)}
+.sidebar-recovery{display:grid;gap:.65rem;margin:.5rem;padding:.85rem;border:1px solid rgb(255 255 255 / 18%);border-radius:var(--radius-md);background:rgb(255 255 255 / 7%);font-size:.8rem}
+.sidebar-recovery span{color:var(--valora-100);overflow-wrap:anywhere}.sidebar-recovery .valora-button{justify-content:center;width:100%}
+@media(max-width:991px){.valora-admin-shell{display:block}.topbar.valora-topbar{margin:0;border-radius:0}.valora-admin-content{padding:var(--space-6) var(--content-gutter) 4rem}}

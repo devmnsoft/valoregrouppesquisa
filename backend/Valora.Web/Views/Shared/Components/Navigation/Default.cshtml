@@ -22,7 +22,11 @@
         }
         else
         {
-            <p class="sidebar-empty">Não foi possível carregar os acessos desta organização. Tente novamente ou fale com o suporte.</p>
+            <div class="sidebar-recovery" role="status">
+                <strong>Acessos temporariamente indisponíveis</strong>
+                <span>Referência: @Model.CorrelationId</span>
+                <button class="valora-button valora-button--secondary" type="button" data-action="reload-access">Recarregar acessos</button>
+            </div>
         }
     </nav>
     <footer class="sidebar-footer">
@@ -55,7 +59,7 @@
         }
         else
         {
-            <p class="sidebar-empty">Os acessos não estão disponíveis. O suporte pode ajudar informando a referência @Model.CorrelationId.</p>
+            <div class="sidebar-recovery" role="status"><strong>Acessos temporariamente indisponíveis</strong><span>Referência: @Model.CorrelationId</span><button class="valora-button valora-button--secondary" type="button" data-action="reload-access">Recarregar acessos</button></div>
             <a class="nav-link" href="/PublicPages/Contact">Ajuda e suporte</a>
             <a class="nav-link" href="/Account/Logout">Sair da conta</a>
         }

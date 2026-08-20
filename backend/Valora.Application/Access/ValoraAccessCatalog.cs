@@ -13,6 +13,49 @@ public static class ValoraModules
         Responses, Results, Certificates, Communications, Audit, Settings, Operations];
 }
 
+/// <summary>Canonical access vocabulary shared by authentication and navigation.</summary>
+public static class ValoraAccessCatalog
+{
+    public const string PlatformRole = "admin_valora";
+    public const string ContextVersion = "2";
+
+    private static readonly IReadOnlyDictionary<string, string> ModuleAliases =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["intelligence"] = "organizational_intelligence", ["inteligenciaorganizacional"] = "organizational_intelligence",
+            ["relatorios"] = "reports", ["diagnostics"] = "surveys", ["users"] = "identity", ["plans"] = "organization"
+        };
+
+    public static readonly IReadOnlyList<string> PlatformModules = ValoraModules.All
+        .Concat(["organizational_intelligence", "reports", "dashboard", "enterprise"])
+        .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
+    public static string NormalizeModule(string module)
+    {
+        var normalized = module.Trim().ToLowerInvariant().Replace('-', '_');
+        return ModuleAliases.TryGetValue(normalized, out var canonical) ? canonical : normalized;
+    }
+
+    public static IReadOnlyList<string> CapabilitiesFor(IEnumerable<string> permissions) => permissions
+        .Select(PermissionCapability).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+
+    public static string PermissionCapability(string permission) => permission switch
+    {
+        var value when value.StartsWith("users.", StringComparison.OrdinalIgnoreCase) || value.StartsWith("roles.", StringComparison.OrdinalIgnoreCase) => "identity",
+        var value when value.StartsWith("results.", StringComparison.OrdinalIgnoreCase) => "results",
+        var value when value.StartsWith("responses.", StringComparison.OrdinalIgnoreCase) => "responses",
+        var value when value.StartsWith("forms.", StringComparison.OrdinalIgnoreCase) => "forms",
+        var value when value.StartsWith("surveys.", StringComparison.OrdinalIgnoreCase) => "surveys",
+        var value when value.StartsWith("organization.", StringComparison.OrdinalIgnoreCase) => "organization",
+        var value when value.StartsWith("communications.", StringComparison.OrdinalIgnoreCase) => "communications",
+        var value when value.StartsWith("audit.", StringComparison.OrdinalIgnoreCase) => "audit",
+        var value when value.StartsWith("operations.", StringComparison.OrdinalIgnoreCase) => "operations",
+        var value when value.StartsWith("settings.", StringComparison.OrdinalIgnoreCase) => "settings",
+        var value when value.StartsWith("certificates.", StringComparison.OrdinalIgnoreCase) => "certificates",
+        _ => throw new InvalidOperationException($"Permissão fora do catálogo canônico: {permission}")
+    };
+}
+
 public static class ValoraPermissions
 {
     public static class Organization { public const string Read="organization.read", Update="organization.update", BrandingRead="organization.branding.read", BrandingUpdate="organization.branding.update", SubscriptionRead="organization.subscription.read", UsageRead="organization.usage.read"; }

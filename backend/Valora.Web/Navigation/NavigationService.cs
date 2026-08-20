@@ -79,6 +79,10 @@ public sealed class NavigationService(
     private static bool IsVisible(NavigationItem item, NavigationContext context)
     {
         if (!item.Roles.Overlaps(context.Roles)) return false;
+        // The platform role has an explicit global navigation policy. Organization
+        // destinations still require a selected, audited organization scope.
+        if (context.Roles.Contains("admin_valora"))
+            return item.ScopeRequirement is null || context.Scopes.Contains(item.ScopeRequirement);
         if (context.EnabledModules.Count == 0 || !context.EnabledModules.Contains(item.ModuleCode)) return false;
         if (!context.HasValidSubscription && item.Capability is not null) return false;
         if (item.Permission is not null && !context.Permissions.Contains(item.Permission)) return false;

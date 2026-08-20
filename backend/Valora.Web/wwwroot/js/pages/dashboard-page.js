@@ -34,11 +34,12 @@
   function renderStrategicReading(intelligence, actions) {
     const panel = root.querySelector('[data-strategic-reading]');
     if (!panel) return;
-    panel.hidden = false;
     const run = intelligence.latestRun;
     const enoughEvidence = Boolean(run && !run.warning && Number(run.evidenceCount) >= 3);
+    panel.hidden = !enoughEvidence;
     root.querySelector('[data-score-panel]').hidden = !enoughEvidence;
     root.querySelector('[data-empty-score]').hidden = enoughEvidence;
+    root.querySelector('[data-summary-cards]').hidden = !enoughEvidence;
     if (!enoughEvidence) return;
     const score = Number(run.maturityIndex);
     const level = score >= 85 ? 'Maduro' : score >= 70 ? 'Estruturado' : score >= 55 ? 'Em desenvolvimento' : score >= 35 ? 'Atenção' : 'Crítico';
@@ -68,6 +69,7 @@
       ['Criar plano de ação', false, '/Intelligence#action', 'Transforme evidências em execução.']
     ];
     const progress = Math.round(steps.filter(x => x[1]).length / steps.length * 100);
+    host.hidden = surveys.length === 0;
     root.querySelector('[data-onboarding-progress]').textContent = `${progress}% concluído`; root.querySelector('[data-onboarding-bar]').style.width = `${progress}%`;
     root.querySelector('[data-onboarding-items]').innerHTML = steps.map(step => `<a class="${step[1] ? 'is-complete' : ''}" href="${step[2]}"><span>${step[1] ? '✓' : '○'}</span><div><strong>${step[0]}</strong><small>${step[3]}</small></div></a>`).join('');
   }

@@ -6,6 +6,15 @@
   const collapse = document.querySelector('[data-action="collapse-navigation"]');
   if (!sidebar || !mobile || !toggle) return;
 
+  document.querySelectorAll('[data-action="reload-access"]').forEach(button => button.addEventListener('click', async () => {
+    button.disabled = true;
+    button.textContent = 'Recarregando…';
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.content;
+    const response = await fetch('/bff/auth/refresh', { method: 'POST', credentials: 'same-origin', headers: csrf ? { 'RequestVerificationToken': csrf } : {} });
+    if (response.ok) window.location.reload();
+    else window.location.assign('/Account/Login?reason=session-expired');
+  }));
+
   const links = document.querySelectorAll('.valora-sidebar-nav .nav-link');
   links.forEach((link) => {
     link.addEventListener('click', () => closeMobile());

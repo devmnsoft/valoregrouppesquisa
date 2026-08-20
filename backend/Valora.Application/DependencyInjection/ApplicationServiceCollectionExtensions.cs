@@ -16,6 +16,7 @@ using Valora.Application.ValoraBot;
 using Valora.Application.Methodology;
 using Valora.Application.DiagnosticWorkspace;
 using Valora.Application.CommercialDelivery;
+using Valora.Application.FormalDeliverables;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -125,6 +126,9 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IMigrationReportService, MigrationReportService>();
         services.AddSingleton<IResultTokenService, ResultTokenService>();
         services.AddScoped<PublicCommercialService>();
+        services.AddSingleton<IExecutiveReportExportService, ExecutiveReportExportService>();
+        services.AddScoped<IValoraDocumentService, ValoraDocumentService>();
+        services.AddScoped<ISecureShareLinkService, SecureShareLinkService>();
         return services;
     }
 }

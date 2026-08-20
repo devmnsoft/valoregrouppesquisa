@@ -6,7 +6,16 @@ namespace Valora.Web.Controllers;
 public sealed class PublicPagesController(ILogger<PublicPagesController> logger) : Controller
 {
     [Route("diagnostico-gratuito")]
+    [Route("Diagnostico")]
+    [Route("Diagnostico/Maturidade-Organizacional")]
     public IActionResult FreeDiagnostic() => PublicView("FreeDiagnostic", "Diagnóstico gratuito");
+
+    [Route("Diagnostico/Comecar")]
+    [Route("Public/StartDiagnostic")]
+    public IActionResult StartDiagnostic() => PublicView("StartDiagnostic", "Começar diagnóstico gratuito");
+
+    [Route("ValoraInsight")]
+    public IActionResult ValoraInsight() => RedirectToAction("Index", "Home");
 
     [HttpGet("contato")]
     [HttpGet("PublicPages/Contact")]

@@ -73,6 +73,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IDiagnosticWorkspaceRepository, DiagnosticWorkspaceRepository>();
         services.AddScoped<IDiagnosticCampaignRepository, DiagnosticCampaignRepository>();
         services.AddScoped<IAssistedOperationsRepository, AssistedOperationsRepository>();
+        services.AddScoped<IPublicCommercialRepository, PublicCommercialRepository>();
         return services;
     }
 

@@ -121,6 +121,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ICutoverReadinessService, CutoverReadinessService>();
         services.AddScoped<IMigrationReportService, MigrationReportService>();
         services.AddSingleton<IResultTokenService, ResultTokenService>();
+        services.AddScoped<PublicCommercialService>();
         return services;
     }
 }

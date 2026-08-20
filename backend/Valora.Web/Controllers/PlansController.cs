@@ -6,6 +6,7 @@ public sealed class PlansController(ILogger<PlansController> logger) : Controlle
 {
     [HttpGet("/Plans")]
     [HttpGet("/planos")]
+    [HttpGet("/Pricing")]
     public IActionResult Index()
     {
         try

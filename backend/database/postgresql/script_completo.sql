@@ -2524,3 +2524,60 @@ CREATE INDEX IF NOT EXISTS ix_journey_events_survey_date
 CREATE INDEX IF NOT EXISTS ix_executive_reports_version
  ON valorapesquisa.executive_reports(organization_id,survey_id,version,created_at DESC)
  WHERE deleted_at IS NULL;
+BEGIN;
+-- Funil comercial público Valora Insight™ (idempotente e não destrutivo)
+CREATE TABLE IF NOT EXISTS valorapesquisa.public_leads (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NULL, name varchar(180) NOT NULL,
+ email_hash varchar(64) NOT NULL, email_masked varchar(254) NOT NULL, phone_hash varchar(64), phone_masked varchar(40),
+ company_name varchar(220) NOT NULL, company_document_hash varchar(64), company_document_masked varchar(40),
+ segment varchar(100), company_size varchar(60), role_title varchar(120), source varchar(80) NOT NULL DEFAULT 'public_free_diagnostic',
+ status varchar(40) NOT NULL DEFAULT 'new', consent_version varchar(30) NOT NULL, consent_accepted_at timestamptz NOT NULL,
+ communication_consent boolean NOT NULL DEFAULT false, last_result_level varchar(60), last_result_score numeric(8,2),
+ plan_interest varchar(60), assigned_to uuid, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+ converted_at timestamptz, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_public_leads_email_hash ON valorapesquisa.public_leads(email_hash);
+CREATE INDEX IF NOT EXISTS ix_public_leads_pipeline ON valorapesquisa.public_leads(status,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.public_diagnostic_sessions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), lead_id uuid REFERENCES valorapesquisa.public_leads(id), organization_id uuid,
+ template_code varchar(100) NOT NULL, diagnostic_id uuid, response_id uuid, result_token_hash varchar(64), status varchar(40) NOT NULL DEFAULT 'started',
+ started_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz, abandoned_at timestamptz, ip_hash varchar(64), user_agent_hash varchar(64),
+ source varchar(80) NOT NULL DEFAULT 'public_free_diagnostic', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ix_public_diagnostic_sessions_lead ON valorapesquisa.public_diagnostic_sessions(lead_id,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.public_lead_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), lead_id uuid NOT NULL REFERENCES valorapesquisa.public_leads(id),
+ session_id uuid REFERENCES valorapesquisa.public_diagnostic_sessions(id), event_type varchar(80) NOT NULL,
+ message varchar(500) NOT NULL, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS ix_public_lead_events_lead ON valorapesquisa.public_lead_events(lead_id,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.commercial_contact_requests (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), lead_id uuid NOT NULL REFERENCES valorapesquisa.public_leads(id),
+ session_id uuid REFERENCES valorapesquisa.public_diagnostic_sessions(id), request_type varchar(40) NOT NULL,
+ requested_plan varchar(60), status varchar(40) NOT NULL DEFAULT 'requested', assigned_to uuid, notes text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb
+);
+CREATE INDEX IF NOT EXISTS ix_commercial_contact_requests_queue ON valorapesquisa.commercial_contact_requests(status,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.lead_conversion_requests (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), lead_id uuid NOT NULL REFERENCES valorapesquisa.public_leads(id), organization_id uuid,
+ requested_plan varchar(60), request_type varchar(40) NOT NULL, status varchar(40) NOT NULL DEFAULT 'requested', assigned_to uuid,
+ notes text, converted_organization_id uuid, converted_user_id uuid, created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb
+);
+CREATE INDEX IF NOT EXISTS ix_lead_conversion_requests_lead ON valorapesquisa.lead_conversion_requests(lead_id,status);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.onboarding_commercial_steps (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), lead_id uuid NOT NULL REFERENCES valorapesquisa.public_leads(id), organization_id uuid,
+ step_code varchar(80) NOT NULL, title varchar(180) NOT NULL, status varchar(40) NOT NULL DEFAULT 'not_started',
+ is_automatic boolean NOT NULL DEFAULT false, completed_by uuid, completed_at timestamptz, reason text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb
+);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_onboarding_commercial_step ON valorapesquisa.onboarding_commercial_steps(lead_id,step_code);
+
+COMMIT;

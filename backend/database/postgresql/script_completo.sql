@@ -485,6 +485,48 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.product_improvement_backlog (id uuid P
 ALTER TABLE valorapesquisa.product_improvement_backlog ADD COLUMN IF NOT EXISTS impact text, ADD COLUMN IF NOT EXISTS estimated_effort text, ADD COLUMN IF NOT EXISTS assigned_user_id uuid, ADD COLUMN IF NOT EXISTS release_note_id uuid, ADD COLUMN IF NOT EXISTS decision_reason text;
 CREATE INDEX IF NOT EXISTS ix_product_backlog_org_status ON valorapesquisa.product_improvement_backlog(organization_id,status,created_at DESC);
 CREATE TABLE IF NOT EXISTS valorapesquisa.platform_governance_events (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), user_id uuid, action text NOT NULL, entity_type text NOT NULL, entity_id uuid, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text, created_at timestamptz NOT NULL DEFAULT now());
+-- Contrato canônico e evolução não destrutiva para instalações anteriores.  A
+-- criação com IF NOT EXISTS acima não acrescenta colunas a tabelas legadas.
+ALTER TABLE valorapesquisa.platform_governance_events
+ ADD COLUMN IF NOT EXISTS organization_id uuid,
+ ADD COLUMN IF NOT EXISTS user_id uuid,
+ ADD COLUMN IF NOT EXISTS code varchar(100),
+ ADD COLUMN IF NOT EXISTS status varchar(40) NOT NULL DEFAULT 'recorded',
+ ADD COLUMN IF NOT EXISTS data jsonb NOT NULL DEFAULT '{}'::jsonb,
+ ADD COLUMN IF NOT EXISTS methodology_version integer NOT NULL DEFAULT 1,
+ ADD COLUMN IF NOT EXISTS version integer NOT NULL DEFAULT 1,
+ ADD COLUMN IF NOT EXISTS created_by uuid,
+ ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(),
+ ADD COLUMN IF NOT EXISTS deleted_at timestamptz,
+ ADD COLUMN IF NOT EXISTS module varchar(80),
+ ADD COLUMN IF NOT EXISTS entity_type varchar(80),
+ ADD COLUMN IF NOT EXISTS entity_id uuid,
+ ADD COLUMN IF NOT EXISTS action varchar(100),
+ ADD COLUMN IF NOT EXISTS before_json jsonb,
+ ADD COLUMN IF NOT EXISTS after_json jsonb,
+ ADD COLUMN IF NOT EXISTS reason text,
+ ADD COLUMN IF NOT EXISTS severity varchar(30) NOT NULL DEFAULT 'information',
+ ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ ADD COLUMN IF NOT EXISTS correlation_id text,
+ ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(),
+ ADD COLUMN IF NOT EXISTS survey_id uuid,
+ ADD COLUMN IF NOT EXISTS cycle_id uuid;
+-- Eventos do pipeline usam code/status/data e não possuem necessariamente a
+-- tripla de auditoria action/entity_type/entity_id.
+ALTER TABLE valorapesquisa.platform_governance_events
+ ALTER COLUMN action DROP NOT NULL,
+ ALTER COLUMN entity_type DROP NOT NULL;
+DO $platform_governance_contract$
+BEGIN
+ IF (SELECT data_type FROM information_schema.columns WHERE table_schema='valorapesquisa' AND table_name='platform_governance_events' AND column_name='methodology_version') <> 'integer' THEN
+  ALTER TABLE valorapesquisa.platform_governance_events ALTER COLUMN methodology_version DROP DEFAULT;
+  ALTER TABLE valorapesquisa.platform_governance_events ALTER COLUMN methodology_version TYPE integer
+   USING CASE WHEN trim(methodology_version::text) ~ '^[0-9]+$' THEN methodology_version::text::integer
+              WHEN trim(methodology_version::text) ~ '^[0-9]+([.][0-9]+)?$' THEN methodology_version::text::numeric::integer ELSE 1 END;
+  ALTER TABLE valorapesquisa.platform_governance_events ALTER COLUMN methodology_version SET DEFAULT 1;
+ END IF;
+END $platform_governance_contract$;
+CREATE INDEX IF NOT EXISTS ix_platform_governance_events_organization ON valorapesquisa.platform_governance_events(organization_id,created_at DESC) WHERE deleted_at IS NULL;
 ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'unread', ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, ADD COLUMN IF NOT EXISTS correlation_id text, ADD COLUMN IF NOT EXISTS updated_at timestamptz, ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
 CREATE TABLE IF NOT EXISTS valorapesquisa.integrations (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), provider text NOT NULL, status text NOT NULL DEFAULT 'inactive', config jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.audit_logs (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), user_id uuid, action text NOT NULL, entity_type text, entity_id text, message text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text, created_at timestamptz NOT NULL DEFAULT now());
@@ -1594,10 +1636,13 @@ BEGIN
  'benchmark_runs','benchmark_groups','benchmark_results','benchmark_interpretations','external_benchmark_reference_sets',
  'executive_reports','executive_report_sections','executive_report_exports','executive_report_access_links',
  'one_on_one_sessions','one_on_one_topics','one_on_one_commitments','one_on_one_history','one_on_one_suggestions',
- 'integration_connectors','integration_exports','integration_audit_events','platform_governance_events',
+ 'integration_connectors','integration_exports','integration_audit_events',
  'configuration_change_history','permission_change_history','data_export_history','governance_cycles']
  LOOP
   EXECUTE format('CREATE TABLE IF NOT EXISTS valorapesquisa.%I (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), code varchar(100), status varchar(40) NOT NULL DEFAULT ''draft'', data jsonb NOT NULL DEFAULT ''{}''::jsonb, methodology_version integer NOT NULL DEFAULT 1, version integer NOT NULL DEFAULT 1, created_by uuid REFERENCES valorapesquisa.users(id), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz)',table_name);
+  EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS organization_id uuid',table_name);
+  EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now()',table_name);
+  EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS deleted_at timestamptz',table_name);
   EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON valorapesquisa.%I(organization_id,created_at DESC) WHERE deleted_at IS NULL','ix_'||table_name||'_organization',table_name);
  END LOOP;
 END $modules$;

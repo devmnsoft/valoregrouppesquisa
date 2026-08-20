@@ -2330,7 +2330,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_privacy_requests_protocol_code ON valorapes
 
 ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS ip_hash text;
 ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS user_agent text;
+ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS severity varchar(24) NOT NULL DEFAULT 'information';
+ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS module varchar(80);
 ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+CREATE INDEX IF NOT EXISTS ix_audit_logs_admin_filters ON valorapesquisa.audit_logs(organization_id, module, severity, created_at DESC);
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.configuration_change_history (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), user_id uuid REFERENCES valorapesquisa.users(id),

@@ -32,6 +32,42 @@ public sealed class HealthController(
         }
     }
 
+    [HttpGet("/health/ready")]
+    public async Task<IActionResult> Ready()
+    {
+        try
+        {
+            using var connection = factory.Create();
+            var database = await connection.ExecuteScalarAsync<int>("SELECT 1;") == 1;
+            var outboxBacklog = await SafeCountAsync(connection,
+                "SELECT count(*)::int FROM valorapesquisa.email_jobs WHERE status IN ('pending','processing') AND is_deleted=false;");
+            var failedEmails = await SafeCountAsync(connection,
+                "SELECT count(*)::int FROM valorapesquisa.email_jobs WHERE status='failed' AND is_deleted=false;");
+            var intelligenceBacklog = await SafeCountAsync(connection,
+                "SELECT count(*)::int FROM valorapesquisa.intelligence_processing_jobs WHERE status IN ('pending','processing');");
+            var payload = Base(new
+            {
+                database = database ? "ok" : "fail",
+                api = "ok",
+                web = "external_probe_required",
+                bff = "external_probe_required",
+                workers = configuration.GetValue("Valora:Processing:Enabled", true) ? "enabled" : "disabled",
+                outbox = new { status = outboxBacklog is null ? "not_available" : "ok", backlog = outboxBacklog, failed = failedEmails },
+                storage = Status(configuration["Storage:Provider"]),
+                pdf = configuration.GetValue<bool>("Certificates:PdfEnabled") || configuration.GetValue<bool>("Reports:PdfEnabled") ? "configured" : "not_configured",
+                intelligenceQueue = new { status = intelligenceBacklog is null ? "not_available" : "ok", backlog = intelligenceBacklog },
+                externalServices = configuration.GetSection("ExternalServices").Exists() ? "configured" : "not_configured"
+            });
+            return database ? Ok(payload) : StatusCode(StatusCodes.Status503ServiceUnavailable, payload);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Readiness health failed. CorrelationId={CorrelationId}", CorrelationId());
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                Base(new { ok = false, database = "fail", status = "not_ready" }));
+        }
+    }
+
     [HttpGet("/health/logging")]
     public IActionResult Logging()
     {
@@ -108,4 +144,10 @@ public sealed class HealthController(
     private static string Status(string? value) => string.IsNullOrWhiteSpace(value) ? "missing" : "configured";
     private string VersionValue() => typeof(HealthController).Assembly.GetName().Version?.ToString() ?? "0.0.0";
     private string CorrelationId() => HttpContext.Items.TryGetValue(CorrelationIdMiddleware.ItemName, out var v) ? v?.ToString() ?? string.Empty : string.Empty;
+
+    private static async Task<int?> SafeCountAsync(System.Data.IDbConnection connection, string sql)
+    {
+        try { return await connection.ExecuteScalarAsync<int>(sql); }
+        catch { return null; }
+    }
 }

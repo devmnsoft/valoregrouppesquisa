@@ -14,10 +14,11 @@ public sealed class AuditRepository(
     private const string InsertSql = """
         INSERT INTO valorapesquisa.audit_logs
             (organization_id, user_id, action, entity_type, entity_id, message,
-             metadata_json, correlation_id, created_at)
+             metadata_json, correlation_id, created_at, ip_hash, user_agent, severity, module)
         VALUES
             (@OrganizationId, @UserId, @Action, @EntityType, @EntityId, @Message,
-             CAST(@MetadataJson AS jsonb), @CorrelationId, COALESCE(@CreatedAt, now()))
+             CAST(@MetadataJson AS jsonb), @CorrelationId, COALESCE(@CreatedAt, now()), @IpHash,
+             @UserAgent, @Severity, @Module)
         """;
 
     public Task AddAsync(AuditEntry entry) => LogAsync(entry);
@@ -69,6 +70,10 @@ public sealed class AuditRepository(
                    message,
                    metadata_json::text AS MetadataJson,
                    correlation_id AS CorrelationId,
+                   ip_hash AS IpHash,
+                   user_agent AS UserAgent,
+                   severity,
+                   module,
                    created_at AS CreatedAt
               FROM valorapesquisa.audit_logs
              WHERE organization_id = @OrganizationId

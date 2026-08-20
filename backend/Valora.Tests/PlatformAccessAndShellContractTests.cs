@@ -65,10 +65,29 @@ public sealed class PlatformAccessAndShellContractTests
     {
         var root = FindRepositoryRoot();
         var layout = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/Views/Shared/_AdminLayout.cshtml"));
-        Assert.True(layout.IndexOf("design-system/components.css", StringComparison.Ordinal) < layout.IndexOf("valora-admin.css", StringComparison.Ordinal));
+        Assert.True(layout.IndexOf("design-system/components.css", StringComparison.Ordinal) < layout.IndexOf("valora-v9.css", StringComparison.Ordinal));
+        Assert.True(layout.IndexOf("valora-v9.css", StringComparison.Ordinal) < layout.IndexOf("valora-admin.css", StringComparison.Ordinal));
         Assert.True(layout.IndexOf("valora-admin.css", StringComparison.Ordinal) < layout.IndexOf("design-system/responsive.css", StringComparison.Ordinal));
         Assert.Contains("[hidden]", File.ReadAllText(Path.Combine(root, "backend/Valora.Web/wwwroot/css/design-system/tokens.css")));
         Assert.DoesNotContain("quick-action", File.ReadAllText(Path.Combine(root, "backend/Valora.Web/Views/Shared/_Topbar.cshtml")));
+    }
+
+    [Fact]
+    public void CriticalTypedAndWorkerRepositoriesNeverUseSelectStar()
+    {
+        var root = FindRepositoryRoot();
+        var repositories = new[]
+        {
+            "IntelligenceProcessingJobRepository.cs",
+            "UserRepository.cs",
+            "CommunicationRepository.cs"
+        };
+
+        foreach (var repository in repositories)
+        {
+            var source = File.ReadAllText(Path.Combine(root, "backend/Valora.Infrastructure/Repositories", repository));
+            Assert.DoesNotMatch(@"(?i)SELECT\s+\*", source);
+        }
     }
 
     private static string FindRepositoryRoot()

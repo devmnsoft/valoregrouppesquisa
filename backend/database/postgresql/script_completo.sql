@@ -409,6 +409,24 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.exports (id uuid PRIMARY KEY DEFAULT g
 CREATE TABLE IF NOT EXISTS valorapesquisa.emails (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), recipient_hash text NOT NULL, subject text, status text NOT NULL DEFAULT 'pending', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.whatsapp_messages (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), recipient_hash text NOT NULL, status text NOT NULL DEFAULT 'pending', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.communications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), channel text NOT NULL, recipient_hash text NOT NULL, status text NOT NULL DEFAULT 'pending', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
+-- Keep the communication ledger compatible with both fresh databases and installations
+-- created by older versions of the complete script.  Application writes intentionally
+-- store only a masked recipient; the legacy hash therefore cannot remain mandatory.
+ALTER TABLE valorapesquisa.communications
+  ADD COLUMN IF NOT EXISTS recipient_hash text;
+ALTER TABLE valorapesquisa.communications
+  ALTER COLUMN recipient_hash DROP NOT NULL,
+  ADD COLUMN IF NOT EXISTS survey_id uuid REFERENCES valorapesquisa.surveys(id),
+  ADD COLUMN IF NOT EXISTS response_id uuid REFERENCES valorapesquisa.responses(id),
+  ADD COLUMN IF NOT EXISTS event_type text,
+  ADD COLUMN IF NOT EXISTS recipient_masked text,
+  ADD COLUMN IF NOT EXISTS provider_message_id text,
+  ADD COLUMN IF NOT EXISTS error_code text,
+  ADD COLUMN IF NOT EXISTS error_message text,
+  ADD COLUMN IF NOT EXISTS attempts integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS correlation_id text,
+  ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS sent_at timestamptz;
 CREATE TABLE IF NOT EXISTS valorapesquisa.notifications (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), user_id uuid REFERENCES valorapesquisa.users(id), title text NOT NULL, message text NOT NULL, read_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS valorapesquisa.action_plans (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), result_id uuid REFERENCES valorapesquisa.results(id), title text NOT NULL, status text NOT NULL DEFAULT 'open', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
 ALTER TABLE valorapesquisa.action_plans

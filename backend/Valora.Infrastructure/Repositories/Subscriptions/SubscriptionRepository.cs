@@ -21,11 +21,15 @@ public sealed class SubscriptionRepository(IDbConnectionFactory connections) : I
                 renewal_at AS RenewalAt,
                 due_at AS DueAt,
                 ends_at AS EndsAt,
+                canceled_at AS CanceledAt,
+                trial_ends_at AS TrialEndsAt,
                 financial_contact AS FinancialContact,
                 financial_email AS FinancialEmail,
                 financial_phone AS FinancialPhone,
                 payment_method AS PaymentMethod,
-                notes AS Notes
+                notes AS Notes,
+                created_at AS CreatedAt,
+                updated_at AS UpdatedAt
             FROM valorapesquisa.subscriptions
             WHERE organization_id = @organizationId
               AND deleted_at IS NULL

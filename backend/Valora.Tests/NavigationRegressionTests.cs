@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Razor.TagHelpers;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
 using WebProgram = ValoraWeb::Program;
@@ -15,11 +16,59 @@ using NavigationDestination = ValoraWeb::Valora.Web.Navigation.NavigationDestina
 using NavigationService = ValoraWeb::Valora.Web.Navigation.NavigationService;
 using INavigationRouteResolver = ValoraWeb::Valora.Web.Navigation.INavigationRouteResolver;
 using BffAuthenticationService = ValoraWeb::Valora.Web.Services.Bff.BffAuthenticationService;
+using ValoraIconRegistry = ValoraWeb::Valora.Web.Ui.ValoraIconRegistry;
+using ValoraIconTagHelper = ValoraWeb::Valora.Web.Ui.ValoraIconTagHelper;
 
 namespace Valora.Tests;
 
 public sealed class NavigationRegressionTests
 {
+    [Fact]
+    public void EveryCatalogItemUsesARegisteredIcon()
+    {
+        var registry = new ValoraIconRegistry();
+        var missing = new NavigationCatalog().Sections
+            .SelectMany(section => section.Items)
+            .Where(item => !registry.Contains(item.Icon))
+            .Select(item => $"{item.Code}: {item.Icon}")
+            .ToArray();
+
+        Assert.Empty(missing);
+    }
+
+    [Fact]
+    public void SparklesIsAnOfficialDesignSystemIcon()
+    {
+        var registry = new ValoraIconRegistry();
+
+        Assert.Contains("sparkles", registry.KnownIcons, StringComparer.OrdinalIgnoreCase);
+        Assert.NotEmpty(registry.GetRequired("sparkles"));
+    }
+
+    [Fact]
+    public void UnknownIconRendersSafeFallbackWithoutThrowing()
+    {
+        var helper = new ValoraIconTagHelper(
+            new ValoraIconRegistry(),
+            NullLogger<ValoraIconTagHelper>.Instance,
+            new TestEnvironment())
+        {
+            Name = "not-in-the-catalog",
+            Decorative = true
+        };
+        var context = new TagHelperContext(new TagHelperAttributeList(), new Dictionary<object, object>(), "icon-test");
+        var output = new TagHelperOutput("valora-icon", new TagHelperAttributeList(),
+            (_, _) => Task.FromResult<TagHelperContent>(new DefaultTagHelperContent()));
+
+        var exception = Record.Exception(() => helper.Process(context, output));
+
+        Assert.Null(exception);
+        Assert.Equal("svg", output.TagName);
+        Assert.Equal(ValoraIconRegistry.FallbackIcon, output.Attributes["data-valora-icon"].Value);
+        Assert.Equal("true", output.Attributes["data-icon-fallback"].Value);
+        Assert.NotEmpty(output.Content.GetContent());
+    }
+
     [Fact]
     public void EveryCatalogDestinationHasARealMvcControllerAction()
     {

@@ -27,45 +27,8 @@
     setText('[data-kpi="actions"]', number(actions.filter(item => !['completed', 'cancelled', 'reviewed'].includes(String(item.status).toLowerCase())).length));
     root.querySelector('[data-metric-empty]').hidden = responses.length > 0;
     renderJourney(surveys, responses, usage);
-    renderReadiness(surveys, responses, usage, intelligence, actions);
     renderAttention(surveys, responses, completionRate);
     renderStrategicReading(intelligence, actions);
-  }
-
-  function renderReadiness(surveys, responses, usage, intelligence, actions) {
-    const published = surveys.__available === false ? null : surveys.some(x => ['active', 'published'].includes(String(x.status).toLowerCase()));
-    const evidenceCount = Number(intelligence.evidence?.total || intelligence.latestRun?.evidenceCount || 0);
-    const usageAvailable = usage.__available !== false;
-    const intelligenceAvailable = intelligence.__available !== false;
-    const checks = [
-      ['Organização configurada', usageAvailable ? Boolean(usage.organizationId || usage.organizationName || usage.organization?.name) : null],
-      ['Plano ativo', usageAvailable ? Boolean(usage.plan || usage.planName || usage.limits) : null],
-      ['Diagnóstico publicado', published],
-      ['Link público e respostas', published === null || responses.__available === false ? null : published && responses.length > 0],
-      ['LGPD e participação', responses.__available === false ? null : responses.length > 0],
-      ['Inteligência processada', intelligenceAvailable ? Boolean(intelligence.latestRun) : null],
-      ['Evidências e índices', intelligenceAvailable ? evidenceCount > 0 && Boolean(intelligence.latestRun) : null],
-      ['Insights disponíveis', intelligenceAvailable ? Array.isArray(intelligence.insights) && intelligence.insights.length > 0 : null],
-      ['Action registrado', actions.__available === false ? null : actions.length > 0]
-    ];
-    const completed = checks.filter(([, done]) => done === true).length;
-    const percent = Math.round(completed / checks.length * 100);
-    const critical = checks.filter(([, done]) => done !== true).length;
-    const status = percent === 100 ? 'Pronto' : percent >= 70 ? 'Atenção' : 'Pendente';
-    setText('[data-readiness-percent]', `${percent}%`);
-    setText('[data-readiness-status]', status);
-    root.querySelector('[data-readiness-bar]').style.width = `${percent}%`;
-    root.querySelector('[data-readiness-items]').innerHTML = checks.map(([label, done]) => `<div class="${done === true ? 'is-complete' : ''}"><span>${done === true ? '✓' : done === null ? '—' : '○'}</span><div><strong>${label}</strong><small>${done === true ? 'Confirmado por dados da operação' : done === null ? 'Não configurado ou indisponível neste ambiente' : 'Pendente de evidência real'}</small></div></div>`).join('');
-    const pending = root.querySelector('[data-readiness-pending]');
-    pending.hidden = critical === 0;
-    setText('[data-readiness-pending-count]', `${critical} pendência${critical === 1 ? '' : 's'} crítica${critical === 1 ? '' : 's'}. `);
-    const cta = root.querySelector('[data-readiness-cta]');
-    if (published && !responses.length) { cta.href = '/Responses'; cta.textContent = 'Acompanhar participação'; }
-    else if (responses.length && !intelligence.latestRun) { cta.href = '/Intelligence/Processing'; cta.textContent = 'Processar inteligência'; }
-    else if (intelligence.latestRun) { cta.href = '/Intelligence'; cta.textContent = 'Abrir inteligência'; }
-    setText('[data-readiness-next-action]', `Próxima ação: ${cta.textContent}.`);
-    const organization = String(usage.organizationName || usage.organization?.name || '');
-    root.querySelector('[data-demo-badge]').hidden = !organization.includes('[DEMO]');
   }
 
   function renderStrategicReading(intelligence, actions) {
@@ -135,11 +98,14 @@
     }));
   }
 
+  let activeLoad = null;
   async function load() {
+    if (activeLoad) return activeLoad;
     const error = root.querySelector('[data-error]');
     error.hidden = true;
-    try {
-      window.Loading?.show('Atualizando leitura executiva…');
+    root.classList.add('is-dashboard-loading');
+    setText('[data-last-update]', 'Atualizando leitura…');
+    activeLoad = (async () => { try {
       const [surveysResult, responsesResult, usageResult, intelligenceResult, actionsResult] = await Promise.allSettled([
         SurveysApi.list(), ResponsesApi.list({}), UsageApi.usage(), IntelligenceApi.dashboard(), IntelligenceApi.actions()
       ]);
@@ -153,14 +119,25 @@
       actions.__available = actionsResult.status === 'fulfilled';
       renderKpis({ surveys, responses, usage, intelligence, actions });
       renderActivity([...surveys, ...responses]);
-      setText('[data-last-update]', `Atualizado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`);
+      const results = [surveysResult, responsesResult, usageResult, intelligenceResult, actionsResult];
+      const succeeded = results.filter(item => item.status === 'fulfilled').length;
+      if (!succeeded) throw results.find(item => item.status === 'rejected')?.reason || new Error('Dashboard indisponível');
+      setText('[data-last-update]', succeeded === results.length
+        ? `Atualizado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`
+        : `Atualização parcial · ${succeeded} de ${results.length} fontes disponíveis`);
     } catch (exception) {
       const correlationId = exception?.correlationId || exception?.details?.correlationId;
-      error.textContent = `Não foi possível atualizar a leitura executiva. Tente novamente em instantes.${correlationId ? ` Referência: ${correlationId}` : ''}`;
+      const reference = correlationId || window.AjaxClient?.generateCorrelationId?.() || 'indisponível';
+      error.replaceChildren(document.createTextNode(`Não foi possível atualizar a leitura executiva. Referência: ${reference}. `));
+      const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'valora-button valora-button--secondary'; retry.textContent = 'Tentar novamente';
+      retry.addEventListener('click', load, { once: true }); error.append(retry);
       error.hidden = false;
+      setText('[data-last-update]', 'Atualização indisponível');
     } finally {
-      window.Loading?.hide();
-    }
+      root.classList.remove('is-dashboard-loading');
+      activeLoad = null;
+    } })();
+    return activeLoad;
   }
 
   root.querySelector('[data-hide-onboarding]')?.addEventListener('click', () => { localStorage.setItem('valora.onboarding.hidden','true'); root.querySelector('[data-onboarding]').hidden = true; window.Toast?.success?.('Jornada guiada ocultada.'); });

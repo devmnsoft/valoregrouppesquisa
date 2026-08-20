@@ -1,0 +1,27 @@
+@{
+    ViewData["Title"] = "Metodologia Valora";
+    var area = Context.Request.Path.Value?.Split('/').LastOrDefault() ?? "Overview";
+}
+<section class="methodology-hero">
+  <div><span class="methodology-kicker">VALORA INSIGHT™ · BASE OFICIAL</span><h1>Metodologia Valora</h1>
+    <p>Um núcleo cognitivo único, versionado e auditável para diagnósticos, scores e recomendações sustentadas por evidências.</p></div>
+  <span class="methodology-version">VALORA-2026.1 · Ativa</span>
+</section>
+<section class="methodology-metrics" aria-label="Resumo metodológico">
+  <article><strong>7</strong><span>dimensões oficiais</span></article><article><strong>17</strong><span>conceitos canônicos</span></article>
+  <article><strong>6</strong><span>níveis de maturidade</span></article><article><strong>100%</strong><span>snapshot histórico</span></article>
+</section>
+<section class="methodology-panel">
+ <header><div><span class="methodology-kicker">ADMINISTRAÇÃO METODOLÓGICA</span><h2>@area</h2></div><button type="button">Criar nova versão</button></header>
+ <div class="methodology-grid">
+  <a href="/Methodology/Dimensions"><b>Dimensões</b><span>Eixos, descrições e pesos válidos.</span><em>7 ativas →</em></a>
+  <a href="/Methodology/Dictionary"><b>Dicionário Cognitivo</b><span>Definições, sinais, riscos e oportunidades.</span><em>17 conceitos →</em></a>
+  <a href="/Methodology/CognitiveMap"><b>Mapa Cognitivo</b><span>Causas prováveis, impactos e pré-requisitos.</span><em>Explorar mapa →</em></a>
+  <a href="/Methodology/OfficialQuestions"><b>Perguntas Oficiais</b><span>Escalas, normalização, conceitos e vigência.</span><em>Banco oficial →</em></a>
+  <a href="/Methodology/Templates"><b>Templates</b><span>Público, plano, entregáveis e scoring travados.</span><em>7 publicados →</em></a>
+  <a href="/Methodology/Scoring"><b>Scoring e maturidade</b><span>Cálculo decimal, confiança e evidências.</span><em>Validar regras →</em></a>
+ </div>
+</section>
+<style>
+.methodology-hero{padding:32px;border-radius:24px;background:linear-gradient(125deg,#132b2b,#1c4a43);color:#fff;display:flex;justify-content:space-between;gap:24px;align-items:end}.methodology-hero h1{font-size:36px;margin:8px 0}.methodology-hero p{max-width:720px;color:#d9ebe7;margin:0}.methodology-kicker{font-size:11px;letter-spacing:.14em;font-weight:800;color:#75d2bd}.methodology-version{padding:9px 13px;background:#ffffff18;border:1px solid #ffffff30;border-radius:99px;white-space:nowrap}.methodology-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:18px 0}.methodology-metrics article,.methodology-panel{background:#fff;border:1px solid #e3ebe8;border-radius:18px;box-shadow:0 8px 25px #173d3510}.methodology-metrics article{padding:20px}.methodology-metrics strong{display:block;font-size:25px;color:#173d35}.methodology-metrics span{color:#63736f;font-size:13px}.methodology-panel{padding:26px}.methodology-panel header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.methodology-panel h2{margin:5px 0}.methodology-panel button{border:0;border-radius:10px;background:#b78a43;color:#fff;padding:11px 15px;font-weight:700}.methodology-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.methodology-grid a{border:1px solid #e2e9e7;border-radius:14px;padding:18px;text-decoration:none;color:#243b36;transition:.2s}.methodology-grid a:hover{transform:translateY(-2px);border-color:#6eb5a4}.methodology-grid b,.methodology-grid span,.methodology-grid em{display:block}.methodology-grid span{font-size:13px;color:#697874;margin:8px 0 18px;min-height:38px}.methodology-grid em{font-style:normal;color:#287564;font-weight:700;font-size:13px}@media(max-width:850px){.methodology-hero{align-items:start;flex-direction:column}.methodology-metrics{grid-template-columns:repeat(2,1fr)}.methodology-grid{grid-template-columns:1fr}}
+</style>

@@ -45,7 +45,7 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
     {
         if (string.IsNullOrWhiteSpace(name) || name.Trim().Length is < 2 or > 120) throw new ValidationAppException("Informe um nome entre 2 e 120 caracteres.");
         if (expiresAt is not null && expiresAt <= DateTime.UtcNow) throw new ValidationAppException("A expiração precisa estar no futuro.");
-        var allowed = new HashSet<string>(["diagnostics.read", "diagnostics.write", "responses.read_aggregated", "intelligence.read", "reports.read", "certificates.validate", "exports.create", "webhooks.manage", "powerbi.export"]);
+        var allowed = new HashSet<string>(["organizations.read", "diagnostics.read", "diagnostics.write", "responses.read_aggregated", "intelligence.read", "reports.read", "certificates.validate", "benchmark.read", "evolution.read", "bi.read", "exports.create", "webhooks.manage", "powerbi.export"]);
         if (scopes.Count == 0 || scopes.Any(x => !allowed.Contains(x))) throw new ValidationAppException("Selecione apenas escopos válidos.");
         var secret = "vli_" + Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant();
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(secret))).ToLowerInvariant();

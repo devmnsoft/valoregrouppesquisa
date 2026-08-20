@@ -7,8 +7,24 @@ using Valora.Application.OrganizationalIntelligence;
 namespace Valora.Api.Controllers;
 
 [Authorize, ApiController, Route("api/v1/intelligence")]
-public sealed class OrganizationalIntelligenceController(IOrganizationalIntelligenceService service, IOrganizationalIntelligencePipeline pipeline, IPermissionService permissions, IEntitlementService entitlements) : ControllerBase
+public sealed class OrganizationalIntelligenceController(IOrganizationalIntelligenceService service,
+    IValoraIntelligenceEngine deliverables, IOrganizationalIntelligencePipeline pipeline,
+    IPermissionService permissions, IEntitlementService entitlements) : ControllerBase
 {
+    /// <summary>Canonical evidence-first read model shared by Dashboard, Radar, Report, Action, Heatmap and Insights.</summary>
+    [HttpGet("deliverables")]
+    public async Task<IActionResult> Deliverables([FromQuery] Guid? organizationId, [FromQuery] Guid? surveyId, CancellationToken ct)
+    {
+        var access = await Validate(organizationId, Valora.Application.Access.ValoraPermissions.IntelligentDeliverables.DashboardRead);
+        if (access.Error is not null) return access.Error;
+        var items = await service.EvidenceItemsAsync(access.OrganizationId, ct);
+        var evidence = items.Where(x => !surveyId.HasValue || x.SurveyId == surveyId).Select(x =>
+            new DiagnosisEvidence(x.Id, access.OrganizationId, x.SurveyId,
+                string.IsNullOrWhiteSpace(x.DimensionCode) ? "Dimensão não mapeada" : x.DimensionCode,
+                x.ConceptCode, x.NormalizedValue, x.Weight,
+                x.TextExcerpt ?? x.RawValueMasked ?? "Evidência quantitativa rastreável.", x.CreatedAt));
+        return Ok(deliverables.Analyze(access.OrganizationId, surveyId, evidence));
+    }
     [HttpGet("dashboard")]
     public async Task<IActionResult> Dashboard([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", (id) => service.DashboardAsync(id, ct));
     [HttpGet("runs")]

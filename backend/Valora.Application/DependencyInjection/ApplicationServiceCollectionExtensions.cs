@@ -80,6 +80,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<ComparisonEntitlementPolicy>();
         services.AddScoped<EnterpriseService>();
         services.AddScoped<IOrganizationalIntelligenceService, OrganizationalIntelligenceService>();
+        services.AddSingleton<IValoraIntelligenceEngine, ValoraIntelligenceEngine>();
         services.AddScoped<IEvidenceExtractionService, EvidenceExtractionService>();
         services.AddScoped<IMetricCalculationService, MetricCalculationService>();
         services.AddScoped<IValoraIndexCalculationService, ValoraIndexCalculationService>();

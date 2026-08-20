@@ -6,7 +6,8 @@ namespace Valora.Web.Navigation;
 public sealed class NavigationService(
     NavigationCatalog catalog,
     BffAuthenticationService authentication,
-    INavigationRouteResolver routes)
+    INavigationRouteResolver routes,
+    IWebHostEnvironment environment)
 {
     public async Task<NavigationViewModel> BuildAsync(HttpContext httpContext, CancellationToken cancellationToken = default)
     {
@@ -58,7 +59,7 @@ public sealed class NavigationService(
 
         var correlationId = httpContext.TraceIdentifier;
         return new NavigationViewModel(sections, context.OrganizationName, session?.SafeSession.Plan?.Name,
-            session is not null && context.OrganizationName is not null, correlationId);
+            session is not null && context.OrganizationName is not null, correlationId, environment.IsDevelopment());
     }
 
     public static bool Matches(string? requestPath, string destination)
@@ -79,10 +80,10 @@ public sealed class NavigationService(
     private static bool IsVisible(NavigationItem item, NavigationContext context)
     {
         if (!item.Roles.Overlaps(context.Roles)) return false;
-        // The platform role has an explicit global navigation policy. Organization
-        // destinations still require a selected, audited organization scope.
+        // A platform administrator owns the global catalog. It must remain possible
+        // to enter an organization-scoped area and select its context there.
         if (context.Roles.Contains("admin_valora"))
-            return item.ScopeRequirement is null || context.Scopes.Contains(item.ScopeRequirement);
+            return true;
         if (context.EnabledModules.Count == 0 || !context.EnabledModules.Contains(item.ModuleCode)) return false;
         if (!context.HasValidSubscription && item.Capability is not null) return false;
         if (item.Permission is not null && !context.Permissions.Contains(item.Permission)) return false;

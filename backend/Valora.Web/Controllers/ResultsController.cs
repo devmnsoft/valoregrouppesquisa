@@ -4,6 +4,12 @@ namespace Valora.Web.Controllers;
 
 public sealed class ResultsController(ILogger<ResultsController> logger) : Controller
 {
+    public IActionResult Index()
+    {
+        ViewData["Title"] = "Resultados";
+        return View();
+    }
+
     [Route("r/{responseId}")]
     [Route("public/results/{responseId}")]
     [Route("resultado/{responseId}")]

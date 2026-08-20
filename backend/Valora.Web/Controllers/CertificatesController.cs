@@ -4,6 +4,12 @@ namespace Valora.Web.Controllers;
 
 public sealed class CertificatesController(ILogger<CertificatesController> logger) : Controller
 {
+    public IActionResult Index()
+    {
+        ViewData["Title"] = "Certificados";
+        return View();
+    }
+
     [Route("certificado/{certificateId}")]
     public IActionResult Public(string certificateId)
     {

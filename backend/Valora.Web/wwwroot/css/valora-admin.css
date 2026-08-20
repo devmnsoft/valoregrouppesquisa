@@ -254,5 +254,5 @@
 .valora-admin-content{max-width:var(--content-max-width);padding:var(--space-8) var(--content-gutter) 4rem}
 .topbar.valora-topbar{min-height:var(--topbar-height);margin:0;border-radius:0;padding:.65rem var(--content-gutter);z-index:var(--z-sticky)}
 .sidebar-recovery{display:grid;gap:.65rem;margin:.5rem;padding:.85rem;border:1px solid rgb(255 255 255 / 18%);border-radius:var(--radius-md);background:rgb(255 255 255 / 7%);font-size:.8rem}
-.sidebar-recovery span{color:var(--valora-100);overflow-wrap:anywhere}.sidebar-recovery .valora-button{justify-content:center;width:100%}
+.sidebar-recovery span{color:var(--valora-100);overflow-wrap:anywhere}.sidebar-recovery code{color:#bdebf1;font-size:.7rem;overflow-wrap:anywhere}.sidebar-recovery .valora-button{justify-content:center;width:100%}
 @media(max-width:991px){.valora-admin-shell{display:block}.topbar.valora-topbar{margin:0;border-radius:0}.valora-admin-content{padding:var(--space-6) var(--content-gutter) 4rem}}

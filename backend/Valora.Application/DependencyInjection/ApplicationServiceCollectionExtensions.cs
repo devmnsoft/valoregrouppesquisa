@@ -17,6 +17,7 @@ using Valora.Application.Methodology;
 using Valora.Application.DiagnosticWorkspace;
 using Valora.Application.CommercialDelivery;
 using Valora.Application.FormalDeliverables;
+using Valora.Application.Integrations;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -82,6 +83,10 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<AccountHealthService>();
         services.AddSingleton<ComparisonEntitlementPolicy>();
         services.AddScoped<EnterpriseService>();
+        services.AddScoped<ApiKeyAuthenticator>();
+        services.AddSingleton<ExternalImportValidator>();
+        services.AddSingleton<ICnpjLookupService, DisabledCnpjLookupService>();
+        services.AddSingleton<ICepLookupService, DisabledCepLookupService>();
         services.AddScoped<IOrganizationalIntelligenceService, OrganizationalIntelligenceService>();
         services.AddSingleton<IValoraIntelligenceEngine, ValoraIntelligenceEngine>();
         services.AddScoped<IEvidenceExtractionService, EvidenceExtractionService>();

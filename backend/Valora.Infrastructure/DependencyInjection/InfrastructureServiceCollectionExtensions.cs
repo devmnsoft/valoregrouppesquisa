@@ -13,6 +13,7 @@ using Valora.Application.ValoraBot;
 using Valora.Application.Methodology;
 using Valora.Application.DiagnosticWorkspace;
 using Valora.Application.CommercialDelivery;
+using Valora.Application.Integrations;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -65,6 +66,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IEmailSender, SmtpEmailSender>();
         services.AddScoped<IEnterpriseRepository, EnterpriseRepository>();
+        services.AddScoped<IIntegrationRepository, IntegrationRepository>();
         services.AddScoped<IOrganizationalIntelligenceRepository, OrganizationalIntelligenceRepository>();
         services.AddScoped<IIntelligencePipelineRepository, IntelligencePipelineRepository>();
         services.AddScoped<IIntelligenceProcessingJobRepository, IntelligenceProcessingJobRepository>();

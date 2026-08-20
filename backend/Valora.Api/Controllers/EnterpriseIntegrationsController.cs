@@ -21,7 +21,7 @@ public sealed class EnterpriseIntegrationsController(EnterpriseService service, 
         if (OrganizationId is not Guid organizationId) return Forbid();
         if (!await IsEnterprise(organizationId)) return EnterpriseLocked();
         var saved = await service.ItemsAsync(organizationId, "integration", ct);
-        string[] catalog = ["public-api", "api-keys", "webhooks", "powerbi", "exports", "smtp", "certificates-pdf", "executive-report-pdf", "assisted-import"];
+        string[] catalog = ["public-api", "api-keys", "webhooks", "powerbi", "exports", "cnpj-cep", "smtp", "assisted-import", "integration-logs", "certificates-pdf", "executive-report-pdf"];
         return Ok(catalog.Select(code => saved.FirstOrDefault(x => ConfigCode(x.Configuration) == code) is { } item
             ? new { code, name = item.Name, status = item.Status, configured = item.Status == "configured", lastExecutionAt = (DateTime?)null, requiredPlan = "enterprise" }
             : new { code, name = DisplayName(code), status = "not_configured", configured = false, lastExecutionAt = (DateTime?)null, requiredPlan = "enterprise" }));
@@ -110,9 +110,9 @@ public sealed class EnterpriseIntegrationsController(EnterpriseService service, 
     private ObjectResult EnterpriseLocked() => StatusCode(403, Error("ENTERPRISE_MODULE_REQUIRED", LockedMessage));
     private object Error(string code, string message) => new { code, message, correlationId = HttpContext.TraceIdentifier };
     private static string? ConfigCode(JsonElement value) => value.TryGetProperty("code", out var code) ? code.GetString() : null;
-    private static bool KnownIntegration(string code) => code is "public-api" or "api-keys" or "webhooks" or "powerbi" or "exports" or "smtp" or "certificates-pdf" or "executive-report-pdf" or "assisted-import";
+    private static bool KnownIntegration(string code) => code is "public-api" or "api-keys" or "webhooks" or "powerbi" or "exports" or "cnpj-cep" or "smtp" or "integration-logs" or "certificates-pdf" or "executive-report-pdf" or "assisted-import";
     private static bool ContainsSecret(JsonElement value) => value.EnumerateObject().Any(x => x.Name.Contains("secret", StringComparison.OrdinalIgnoreCase) || x.Name.Contains("token", StringComparison.OrdinalIgnoreCase) || x.Name.Contains("password", StringComparison.OrdinalIgnoreCase) || x.Name.Contains("apiKey", StringComparison.OrdinalIgnoreCase));
-    private static string DisplayName(string code) => code switch { "public-api" => "API Pública", "api-keys" => "API Keys", "webhooks" => "Webhooks", "powerbi" => "Power BI Prepared Dataset", "exports" => "Exportações BI", "smtp" => "E-mail / SMTP", "certificates-pdf" => "Certificados / PDF", "executive-report-pdf" => "Executive Report / PDF", "assisted-import" => "Importação Assistida", _ => code };
+    private static string DisplayName(string code) => code switch { "public-api" => "API Pública", "api-keys" => "API Keys", "webhooks" => "Webhooks", "powerbi" => "Power BI Prepared Dataset", "exports" => "Exportações BI", "cnpj-cep" => "CNPJ / CEP", "smtp" => "E-mail transacional", "integration-logs" => "Logs e auditoria", "certificates-pdf" => "Certificados / PDF", "executive-report-pdf" => "Executive Report / PDF", "assisted-import" => "Importação Assistida", _ => code };
     public sealed record IntegrationRequest(Guid? Id, bool Enabled, JsonElement Configuration);
     public sealed record ApiKeyRequest(string Name, IReadOnlyList<string> Scopes, DateTime? ExpiresAt);
 }

@@ -2986,3 +2986,40 @@ WHERE r.code='admin_valora' AND p.code IN ('methodology.read','methodology.manag
 ON CONFLICT(role_id,permission_id) DO NOTHING;
 
 COMMIT;
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE TABLE IF NOT EXISTS valorapesquisa.api_keys(id uuid PRIMARY KEY DEFAULT gen_random_uuid());
+-- Columns precede every constraint/index/use, including upgrades from legacy tables.
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS key_hash text;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS key_prefix text;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS scopes text[] DEFAULT '{}';
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS expires_at timestamptz;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS last_used_at timestamptz;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS use_count bigint DEFAULT 0;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS created_by uuid;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS revoked_at timestamptz;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_api_keys_hash ON valorapesquisa.api_keys(key_hash) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.api_key_scopes(api_key_id uuid NOT NULL REFERENCES valorapesquisa.api_keys(id) ON DELETE CASCADE,scope text NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(api_key_id,scope));
+CREATE TABLE IF NOT EXISTS valorapesquisa.integration_settings(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),provider text NOT NULL,status text NOT NULL DEFAULT 'disabled',configuration jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),UNIQUE(organization_id,provider));
+CREATE TABLE IF NOT EXISTS valorapesquisa.webhook_subscriptions(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),name text NOT NULL,url text NOT NULL,secret_hash text NOT NULL,events text[] NOT NULL,status text NOT NULL DEFAULT 'active',max_attempts integer NOT NULL DEFAULT 6,last_sent_at timestamptz,last_error text,created_by uuid,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.webhook_events(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),event_type text NOT NULL,aggregate_id uuid,payload jsonb NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.webhook_delivery_attempts(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),webhook_id uuid NOT NULL REFERENCES valorapesquisa.webhook_subscriptions(id),event_id uuid NOT NULL REFERENCES valorapesquisa.webhook_events(id),attempt integer NOT NULL,status text NOT NULL,http_status integer,response_excerpt text,signature_prefix text,error text,next_attempt_at timestamptz,created_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,UNIQUE(webhook_id,event_id,attempt));
+CREATE INDEX IF NOT EXISTS ix_webhook_delivery_retry ON valorapesquisa.webhook_delivery_attempts(status,next_attempt_at);
+CREATE TABLE IF NOT EXISTS valorapesquisa.integration_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid REFERENCES valorapesquisa.organizations(id),api_key_id uuid REFERENCES valorapesquisa.api_keys(id),event_type text NOT NULL,status integer,endpoint text,scope_used text,correlation_id text,metadata jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_integration_logs_tenant_date ON valorapesquisa.integration_logs(organization_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.email_templates(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid REFERENCES valorapesquisa.organizations(id),code text NOT NULL,subject text NOT NULL,body_html text NOT NULL,is_active boolean NOT NULL DEFAULT true,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.email_outbox(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),template_code text NOT NULL,recipient text NOT NULL,payload jsonb NOT NULL DEFAULT '{}',status text NOT NULL DEFAULT 'pending',attempts integer NOT NULL DEFAULT 0,next_attempt_at timestamptz NOT NULL DEFAULT now(),last_error text,created_at timestamptz NOT NULL DEFAULT now(),sent_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_email_outbox_dispatch ON valorapesquisa.email_outbox(status,next_attempt_at);
+CREATE TABLE IF NOT EXISTS valorapesquisa.import_batches(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),type text NOT NULL,format text NOT NULL,checksum text NOT NULL,status text NOT NULL DEFAULT 'pending',total_rows integer NOT NULL DEFAULT 0,valid_rows integer NOT NULL DEFAULT 0,error_rows integer NOT NULL DEFAULT 0,created_by uuid,created_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,rolled_back_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.import_batch_errors(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),batch_id uuid NOT NULL REFERENCES valorapesquisa.import_batches(id) ON DELETE CASCADE,row_number integer NOT NULL,field text,error_code text NOT NULL,message text NOT NULL,raw_data jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.external_data_sources(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),type text NOT NULL,name text NOT NULL,configuration jsonb NOT NULL DEFAULT '{}',status text NOT NULL DEFAULT 'disabled',last_sync_at timestamptz,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+('integrations.read','Consultar integrações','Consultar integrações','enterprise'),('integrations.manage','Gerenciar integrações','Configurar integrações','enterprise'),('api_keys.read','Consultar API Keys','Consultar chaves','enterprise'),('api_keys.manage','Gerenciar API Keys','Gerenciar chaves','enterprise'),('webhooks.read','Consultar webhooks','Consultar webhooks','enterprise'),('webhooks.manage','Gerenciar webhooks','Gerenciar webhooks','enterprise'),('powerbi.read','Consultar BI','Consultar BI','enterprise'),('powerbi.manage','Gerenciar BI','Gerenciar BI','enterprise'),('imports.read','Consultar importações','Consultar lotes','enterprise'),('imports.manage','Gerenciar importações','Gerenciar lotes','enterprise'),('email_templates.manage','Gerenciar templates','Gerenciar templates de e-mail','enterprise'),('integration_logs.read','Consultar logs','Consultar logs de integração','enterprise') ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code,updated_at=now();
+INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_professional_integrations','sha256:professional-integrations-v1') ON CONFLICT(version) DO NOTHING;
+COMMIT;

@@ -11,7 +11,9 @@
     webhooks: 'Eventos assinados, entregas rastreáveis e retentativas sem interromper o fluxo principal.',
     powerbi: 'Dataset preparado e agregado; conexão direta somente quando houver credencial real.',
     exports: 'Arquivos autorizados sem respostas individuais ou grupos abaixo da amostra mínima.',
+    'cnpj-cep': 'Consulta cadastral com provider configurável e fallback seguro para preenchimento manual.',
     smtp: 'Canal transacional configurado pelo ambiente, com falhas operacionais rastreáveis.',
+    'integration-logs': 'Auditoria tenant-safe de autenticação, entregas, consultas, e-mails e importações.',
     'certificates-pdf': 'Geração e validação de certificados e documentos institucionais.',
     'assisted-import': 'Importação CSV com validação, preview e dry-run antes da confirmação.'
   };

@@ -1675,6 +1675,13 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.question_index_mappings(
  is_official boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_question_index_mapping ON valorapesquisa.question_index_mappings(question_id,index_code,coalesce(organization_id,'00000000-0000-0000-0000-000000000000'::uuid)) WHERE deleted_at IS NULL;
 
+-- A pergunta qualitativa oficial possui weight=0 porque não pontua. As tabelas
+-- de mapeamento, porém, exigem peso estritamente positivo. Normalize resíduos
+-- de execuções legadas antes dos seeds, sem alterar o peso da pergunta fonte.
+UPDATE valorapesquisa.question_concept_mappings SET weight=1.00 WHERE weight IS NULL OR weight<=0;
+UPDATE valorapesquisa.question_metric_mappings SET weight=1.00 WHERE weight IS NULL OR weight<=0;
+UPDATE valorapesquisa.question_index_mappings SET weight=1.00 WHERE weight IS NULL OR weight<=0;
+
 CREATE TABLE IF NOT EXISTS valorapesquisa.evidence_items(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), survey_id uuid REFERENCES valorapesquisa.surveys(id),
  response_id uuid REFERENCES valorapesquisa.responses(id), form_id uuid REFERENCES valorapesquisa.forms(id), question_id uuid REFERENCES valorapesquisa.questions(id),
@@ -1777,16 +1784,16 @@ SELECT q.form_id,q.id,
  CASE WHEN lower(d.code) LIKE '%govern%' THEN 'organizational-governance' WHEN lower(d.code) LIKE '%lider%' OR lower(d.code)='leadership' THEN 'leadership'
       WHEN lower(d.code) LIKE '%cultur%' THEN 'organizational-culture' WHEN lower(d.code) LIKE '%people%' OR lower(d.code) LIKE '%pessoa%' THEN 'people'
       ELSE 'organizational-maturity' END,
- d.code,d.code,coalesce(q.weight,1),1,CASE WHEN q.is_qualitative THEN 'qualitative_response' ELSE 'quantitative_response' END,true
+ d.code,d.code,CASE WHEN q.weight IS NULL OR q.weight<=0 THEN 1.00 ELSE q.weight END,1,CASE WHEN q.is_qualitative THEN 'qualitative_response' ELSE 'quantitative_response' END,true
 FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.forms f ON f.id=q.form_id
 WHERE f.code='valora-official' AND q.deleted_at IS NULL
 ON CONFLICT DO NOTHING;
 INSERT INTO valorapesquisa.question_metric_mappings(form_id,question_id,metric_code,weight,is_official)
-SELECT q.form_id,q.id,'metric-'||d.code,coalesce(q.weight,1),true FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.forms f ON f.id=q.form_id
+SELECT q.form_id,q.id,'metric-'||d.code,CASE WHEN q.weight IS NULL OR q.weight<=0 THEN 1.00 ELSE q.weight END,true FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.forms f ON f.id=q.form_id
 WHERE f.code='valora-official' AND q.deleted_at IS NULL ON CONFLICT DO NOTHING;
 INSERT INTO valorapesquisa.question_index_mappings(form_id,question_id,index_code,weight,is_official)
 SELECT q.form_id,q.id,CASE WHEN lower(d.code) LIKE '%govern%' THEN 'IGO' WHEN lower(d.code) LIKE '%lider%' OR lower(d.code)='leadership' THEN 'ILI'
- WHEN lower(d.code) LIKE '%cultur%' THEN 'ICO' WHEN lower(d.code) LIKE '%people%' OR lower(d.code) LIKE '%pessoa%' THEN 'IPO' ELSE 'IMO' END,coalesce(q.weight,1),true
+ WHEN lower(d.code) LIKE '%cultur%' THEN 'ICO' WHEN lower(d.code) LIKE '%people%' OR lower(d.code) LIKE '%pessoa%' THEN 'IPO' ELSE 'IMO' END,CASE WHEN q.weight IS NULL OR q.weight<=0 THEN 1.00 ELSE q.weight END,true
 FROM valorapesquisa.questions q JOIN valorapesquisa.dimensions d ON d.id=q.dimension_id JOIN valorapesquisa.forms f ON f.id=q.form_id
 WHERE f.code='valora-official' AND q.deleted_at IS NULL ON CONFLICT DO NOTHING;
 

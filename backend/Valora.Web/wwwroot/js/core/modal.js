@@ -6,8 +6,10 @@
 
   function close(result) {
     if (!activeDialog) return;
-    const { root, previousFocus, resolve } = activeDialog;
+    const { root, previousFocus, resolve, cleanup } = activeDialog;
     activeDialog = null;
+    cleanup?.();
+    root.hidden = true;
     root.remove();
     document.body.classList.remove('valora-dialog-open');
     previousFocus?.focus?.();
@@ -16,7 +18,9 @@
 
   function open(options) {
     if (activeDialog) close(false);
-    const config = Object.assign({ title: 'Confirmação', description: '', confirmText: 'Continuar', cancelText: 'Cancelar', cancelable: true, tone: 'info' }, options);
+    const config = Object.assign({ title: 'Confirmar ação', description: 'Confirme se deseja continuar com esta operação.', confirmText: 'Continuar', cancelText: 'Cancelar', cancelable: true, tone: 'info' }, options);
+    config.title = String(config.title || '').trim() || 'Confirmar ação';
+    config.description = String(config.description || '').trim() || 'Confirme se deseja continuar com esta operação.';
     const previousFocus = document.activeElement;
     const root = document.createElement('div');
     root.className = 'valora-dialog-layer';
@@ -31,24 +35,29 @@
     root.querySelector('[data-dialog-confirm]').textContent = config.confirmText;
     const cancelButton = root.querySelector('footer [data-dialog-cancel]');
     if (cancelButton) cancelButton.textContent = config.cancelText;
+    root.hidden = false;
     document.body.append(root);
     document.body.classList.add('valora-dialog-open');
 
     return new Promise(resolve => {
-      activeDialog = { root, previousFocus, resolve };
-      root.addEventListener('click', event => {
-        if (event.target.closest('[data-dialog-confirm]')) close(true);
-        else if (config.cancelable && event.target.matches('[data-dialog-cancel]')) close(false);
-      });
-      root.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && config.cancelable) { event.preventDefault(); close(false); }
+      let settled = false;
+      const finish = value => { if (settled) return; settled = true; close(value); };
+      const onClick = event => {
+        if (event.target.closest('[data-dialog-confirm]')) finish(true);
+        else if (config.cancelable && event.target.matches('[data-dialog-cancel]')) finish(false);
+      };
+      const onKeydown = event => {
+        if (event.key === 'Escape' && config.cancelable) { event.preventDefault(); finish(false); }
         if (event.key !== 'Tab') return;
         const items = [...root.querySelectorAll(focusable)];
         if (!items.length) return;
         const first = items[0], last = items[items.length - 1];
         if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
         else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-      });
+      };
+      activeDialog = { root, previousFocus, resolve, cleanup: () => { root.removeEventListener('click', onClick); document.removeEventListener('keydown', onKeydown); } };
+      root.addEventListener('click', onClick);
+      document.addEventListener('keydown', onKeydown);
       root.querySelector('[data-dialog-confirm]').focus();
     });
   }
@@ -63,4 +72,7 @@
     form: options => open(Object.assign({ tone: 'info' }, options))
   });
   window.Modal = window.ValoraDialogs;
+  window.ConfirmModal = Object.freeze({
+    ask: (description, options = {}) => window.ValoraDialogs.confirm({ ...options, description })
+  });
 })();

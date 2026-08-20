@@ -17,7 +17,11 @@ public static class ApiServiceCollectionExtensions
             options.AddPolicy("ValoraWebCors", policy =>
             {
                 var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                    ?? new[] { "http://localhost:5088", "http://127.0.0.1:5088" };
+                    ?? new[]
+                    {
+                        "https://localhost:7088", "http://localhost:5088",
+                        "https://127.0.0.1:7088", "http://127.0.0.1:5088"
+                    };
 
                 policy
                     .WithOrigins(allowedOrigins)

@@ -1,1 +1,1 @@
-window.HealthApi={all:()=>AjaxClient.get('/health'),database:()=>AjaxClient.get('/health/database'),logging:()=>AjaxClient.get('/health/logging'),migration:()=>AjaxClient.get('/health/migration'),version:()=>AjaxClient.get('/health/version')};
+window.HealthApi={all:()=>AjaxClient.get('/bff/health'),database:()=>AjaxClient.get('/bff/health/database'),logging:()=>AjaxClient.get('/bff/health/logging'),migration:()=>AjaxClient.get('/bff/health/migration'),version:()=>AjaxClient.get('/bff/health/version')};

@@ -115,6 +115,32 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
     public Task<IActionResult> Reports(string? resource, CancellationToken cancellationToken) =>
         ForwardAsync($"/reports/{resource}", cancellationToken);
 
+    [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
+    [Route("responses/{**resource}")]
+    public Task<IActionResult> Responses(string? resource, CancellationToken cancellationToken) =>
+        ForwardAsync($"/responses/{resource}", cancellationToken);
+
+    [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
+    [Route("communications/{**resource}")]
+    public Task<IActionResult> Communications(string? resource, CancellationToken cancellationToken) =>
+        ForwardAsync($"/communications/{resource}", cancellationToken);
+
+    [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
+    [Route("admin/{**resource}")]
+    public Task<IActionResult> Admin(string? resource, CancellationToken cancellationToken) =>
+        ForwardAsync($"/admin/{resource}", cancellationToken);
+
+    [AcceptVerbs("GET", "PUT")]
+    [Route("settings")]
+    public Task<IActionResult> Settings(CancellationToken cancellationToken) => ForwardAsync("/settings", cancellationToken);
+
+    [HttpGet("me")]
+    public Task<IActionResult> Me(CancellationToken cancellationToken) => ForwardAsync("/me", cancellationToken);
+
+    [HttpGet("health/{**resource}")]
+    public Task<IActionResult> Health(string? resource, CancellationToken cancellationToken) =>
+        ForwardAsync($"/health/{resource}", cancellationToken);
+
     private async Task<IActionResult> ForwardAsync(string path, CancellationToken cancellationToken)
     {
         var session = await authentication.GetAsync(HttpContext, cancellationToken);

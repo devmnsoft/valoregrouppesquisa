@@ -10,14 +10,12 @@ namespace Valora.Web.Controllers;
 public sealed class WebConfigController : ControllerBase
 {
     private readonly ILogger<WebConfigController> _logger;
-    private readonly ApiOptions _api;
     private readonly WebAppOptions _web;
     private readonly IWebHostEnvironment _environment;
 
-    public WebConfigController(ILogger<WebConfigController> logger, IOptions<ApiOptions> api, IOptions<WebAppOptions> web, IWebHostEnvironment environment)
+    public WebConfigController(ILogger<WebConfigController> logger, IOptions<WebAppOptions> web, IWebHostEnvironment environment)
     {
         _logger = logger;
-        _api = api.Value;
         _web = web.Value;
         _environment = environment;
     }
@@ -38,8 +36,8 @@ public sealed class WebConfigController : ControllerBase
                 APP_NAME = Safe(_web.Name, "Valora Insight™"),
                 APP_VERSION = Safe(_web.Version, "1.0.0-web"),
                 ENVIRONMENT = Safe(_web.Environment, _environment.EnvironmentName),
-                API_BASE_URL = Safe(_api.BaseUrl, "http://localhost:5080"),
-                API_TIMEOUT_MS = _api.TimeoutMs > 0 ? _api.TimeoutMs : 20000,
+                BFF_BASE_URL = string.Empty,
+                API_TIMEOUT_MS = 20000,
                 PUBLIC_URL = Safe(_web.PublicUrl, "http://localhost:5088"),
                 ENABLE_DEBUG_LOGS = _web.EnableDebugLogs && !_environment.IsProduction()
             };
@@ -50,7 +48,7 @@ public sealed class WebConfigController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Falha ao gerar configuração dinâmica do Valora.Web");
-            var fallback = "window.ValoraWebConfig = Object.freeze({APP_NAME:'Valora Insight™',APP_VERSION:'1.0.0-web',ENVIRONMENT:'Unavailable',API_BASE_URL:'',API_TIMEOUT_MS:20000,PUBLIC_URL:'',ENABLE_DEBUG_LOGS:false});";
+            var fallback = "window.ValoraWebConfig = Object.freeze({APP_NAME:'Valora Insight™',APP_VERSION:'1.0.0-web',ENVIRONMENT:'Unavailable',BFF_BASE_URL:'',API_TIMEOUT_MS:20000,PUBLIC_URL:'',ENABLE_DEBUG_LOGS:false});";
             return Content(fallback, "application/javascript; charset=utf-8");
         }
     }

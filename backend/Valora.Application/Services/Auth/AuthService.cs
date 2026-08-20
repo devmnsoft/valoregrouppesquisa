@@ -9,6 +9,7 @@ using Valora.Application.DTOs;
 using Valora.Domain.ValueObjects;
 using Valora.Application.CompanyRegistration;
 using Valora.Application.Exceptions;
+using Valora.Application.Access;
 
 namespace Valora.Application.Services;
 
@@ -23,7 +24,8 @@ public sealed class AuthService(
     AuditService audit,
     IOptions<AuthenticationOptions> authenticationOptions,
     ILogger<AuthService> logger,
-    RegisterCompanyHandler companyRegistration)
+    RegisterCompanyHandler companyRegistration,
+    IAccessAdministrationService? accessAdministration = null)
 {
     public async Task<AuthenticationResult> RegisterCompanyAsync(RegisterCompanyRequest request)
     {
@@ -40,7 +42,8 @@ public sealed class AuthService(
         return CreateAuthenticationResult(tokens,
             new AuthenticatedUserDto(registration.UserId, request.AdministratorName, request.AdministratorEmail, "empresa_admin"),
             new AuthenticatedOrganizationDto(registration.OrganizationId, request.CompanyName, request.TradeName, string.Empty),
-            new AuthenticatedPlanDto("free", freePlan.Name));
+            new AuthenticatedPlanDto("free", freePlan.Name),
+            await ResolveAccessContextAsync(registration.OrganizationId, registration.UserId, ["empresa_admin"], "free"));
     }
 
     public async Task<AuthenticationResult> LoginAsync(LoginRequest request)
@@ -139,7 +142,8 @@ public sealed class AuthService(
         return CreateAuthenticationResult(tokens,
             new AuthenticatedUserDto(user.Id, user.Name, user.Email, role),
             new AuthenticatedOrganizationDto(organization.Id, organization.Name, organization.PublicName, organization.Slug),
-            new AuthenticatedPlanDto(planId, currentPlan.Name));
+            new AuthenticatedPlanDto(planId, currentPlan.Name),
+            await ResolveAccessContextAsync(organizationId, user.Id, user.RoleCodes, planId));
     }
 
     public async Task<AuthenticationResult> RefreshAsync(RefreshRequest request)
@@ -155,7 +159,8 @@ public sealed class AuthService(
         return CreateAuthenticationResult(tokens,
             new AuthenticatedUserDto(user.Id, user.Name, user.Email, role),
             organization is null ? null : new AuthenticatedOrganizationDto(organization.Id, organization.Name, organization.PublicName, organization.Slug),
-            new AuthenticatedPlanDto(planId, plan.Name));
+            new AuthenticatedPlanDto(planId, plan.Name),
+            await ResolveAccessContextAsync(tokens.OrganizationId, user.Id, user.RoleCodes, planId));
     }
 
     public Task LogoutAsync(Guid userId, LogoutRequest request) => authenticationSessions.LogoutAsync(userId, request.RefreshToken);
@@ -254,7 +259,8 @@ public sealed class AuthService(
         TokenPair tokens,
         AuthenticatedUserDto user,
         AuthenticatedOrganizationDto? organization,
-        AuthenticatedPlanDto? plan)
+        AuthenticatedPlanDto? plan,
+        AuthenticatedAccessContextDto accessContext)
     {
         return new AuthenticationResult(
             tokens.AccessToken,
@@ -264,8 +270,37 @@ public sealed class AuthService(
             tokens.SessionId,
             user,
             organization,
-            plan);
+            plan,
+            accessContext);
     }
+
+    private async Task<AuthenticatedAccessContextDto> ResolveAccessContextAsync(Guid organizationId, Guid userId,
+        IReadOnlyList<string> roles, string planCode)
+    {
+        if (accessAdministration is null)
+        {
+            logger.LogError("Authoritative access service is unavailable. OrganizationId={OrganizationId} UserId={UserId}", organizationId, userId);
+            return new(roles, [], [], [], [], "missing", organizationId, planCode);
+        }
+
+        var effective = await accessAdministration.GetEffectiveAccessAsync(organizationId, userId, CancellationToken.None);
+        var scopes = effective.Scopes.SelectMany(scope => new[] { scope.Type, $"{scope.Type}:{scope.Id}" })
+            .Append("organization").Append($"organization:{organizationId}")
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        var capabilities = effective.GrantedPermissions
+            .Select(permission => permission.Split('.', 2)[0])
+            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
+        return new(roles.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), effective.GrantedPermissions,
+            effective.AvailableModules.Select(NormalizeModule).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
+            capabilities, scopes, "active", organizationId, planCode);
+    }
+
+    private static string NormalizeModule(string module) => module.Trim().ToLowerInvariant() switch
+    {
+        "organizational_intelligence" or "inteligenciaorganizacional" or "intelligence" => "organizational_intelligence",
+        "relatorios" => "reports",
+        _ => module.Trim().ToLowerInvariant().Replace('-', '_')
+    };
 
     private static string BuildSlug(string value)
     {

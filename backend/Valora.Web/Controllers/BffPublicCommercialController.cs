@@ -13,6 +13,16 @@ public sealed class BffPublicCommercialController(IBffApiClient api) : Controlle
     public Task Contact(CancellationToken ct)=>Proxy(HttpMethod.Post,"/api/v1/public/contact-requests",ct);
     [HttpPost("plan-interest")]
     public Task Plan(CancellationToken ct)=>Proxy(HttpMethod.Post,"/api/v1/public/plan-interest",ct);
+    [AcceptVerbs("GET", "POST")]
+    [Route("surveys/{**resource}")]
+    public Task Surveys(string? resource,CancellationToken ct)=>Proxy(new HttpMethod(Request.Method),$"/public/surveys/{resource}{Request.QueryString}",ct);
+    [AcceptVerbs("GET", "POST")]
+    [Route("results/{**resource}")]
+    public Task Results(string? resource,CancellationToken ct)=>Proxy(new HttpMethod(Request.Method),$"/public/results/{resource}{Request.QueryString}",ct);
+    [HttpGet("plans")]
+    public Task Plans(CancellationToken ct)=>Proxy(HttpMethod.Get,"/plans/public",ct);
+    [HttpGet("certificates/validate/{code}")]
+    public Task Certificate(string code,CancellationToken ct)=>Proxy(HttpMethod.Get,$"/certificates/validate/{Uri.EscapeDataString(code)}",ct);
     private async Task Proxy(HttpMethod method,string path,CancellationToken ct)
     {
         object? body=null;

@@ -1,1 +1,1 @@
-window.MigrationApi={status:()=>AjaxClient.get('/admin/migration/status')};
+window.MigrationApi={status:()=>AjaxClient.get('/bff/admin/migration/status')};

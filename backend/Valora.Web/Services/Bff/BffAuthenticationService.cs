@@ -11,11 +11,11 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
     {
         var result = await api.PostAuthenticationAsync(endpoint, request, CorrelationId(context), cancellationToken);
         var ticket = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
-        var safe = new BffSafeSession(result.User, result.Organization, result.Plan);
+        var safe = new BffSafeSession(result.User, result.Organization, result.Plan, result.AccessContext);
         await sessions.SetAsync(ticket, new(result.AccessToken, result.AccessTokenExpiresAt, result.RefreshToken,
             result.RefreshTokenExpiresAt, safe), cancellationToken);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, result.User.Id.ToString()),
             new Claim(ClaimTypes.Name, result.User.Name),
@@ -23,6 +23,12 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
             new Claim(ClaimTypes.Role, result.User.Role),
             new Claim("bff_ticket", ticket)
         };
+        claims.AddRange(result.AccessContext.Roles.Select(value => new Claim(ClaimTypes.Role, value)));
+        claims.AddRange(result.AccessContext.Permissions.Select(value => new Claim("permission", value)));
+        claims.AddRange(result.AccessContext.EnabledModules.Select(value => new Claim("module", value)));
+        claims.AddRange(result.AccessContext.Capabilities.Select(value => new Claim("capability", value)));
+        claims.AddRange(result.AccessContext.Scopes.Select(value => new Claim("scope", value)));
+        claims.Add(new Claim("subscription_status", result.AccessContext.SubscriptionStatus));
         await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
             new AuthenticationProperties { IsPersistent = false, ExpiresUtc = result.RefreshTokenExpiresAt });
@@ -43,9 +49,10 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
         if (current is null) return null;
         var result = await api.PostAuthenticationAsync("/api/v1/auth/refresh",
             new { refreshToken = current.RefreshToken }, CorrelationId(context), cancellationToken);
-        var safe = new BffSafeSession(result.User, result.Organization, result.Plan);
+        var safe = new BffSafeSession(result.User, result.Organization, result.Plan, result.AccessContext);
         await sessions.SetAsync(ticket, new(result.AccessToken, result.AccessTokenExpiresAt, result.RefreshToken,
             result.RefreshTokenExpiresAt, safe), cancellationToken);
+        await RenewCookieAsync(context, ticket, result, cancellationToken);
         return safe;
     }
 
@@ -66,4 +73,22 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
         context.Request.Headers.TryGetValue("X-Correlation-Id", out var value) && !string.IsNullOrWhiteSpace(value)
             ? value.ToString()
             : context.TraceIdentifier;
+
+    private static Task RenewCookieAsync(HttpContext context, string ticket, BffAuthenticationResult result, CancellationToken cancellationToken)
+    {
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, result.User.Id.ToString()), new(ClaimTypes.Name, result.User.Name),
+            new(ClaimTypes.Email, result.User.Email), new("bff_ticket", ticket),
+            new("subscription_status", result.AccessContext.SubscriptionStatus)
+        };
+        claims.AddRange(result.AccessContext.Roles.Select(value => new Claim(ClaimTypes.Role, value)));
+        claims.AddRange(result.AccessContext.Permissions.Select(value => new Claim("permission", value)));
+        claims.AddRange(result.AccessContext.EnabledModules.Select(value => new Claim("module", value)));
+        claims.AddRange(result.AccessContext.Capabilities.Select(value => new Claim("capability", value)));
+        claims.AddRange(result.AccessContext.Scopes.Select(value => new Claim("scope", value)));
+        return context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
+            new AuthenticationProperties { IsPersistent = false, ExpiresUtc = result.RefreshTokenExpiresAt });
+    }
 }

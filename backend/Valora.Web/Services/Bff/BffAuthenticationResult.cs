@@ -14,4 +14,5 @@ public sealed record BffAuthenticationResult(
     Guid SessionId,
     BffUser User,
     BffOrganization? Organization,
-    BffPlan? Plan);
+    BffPlan? Plan,
+    BffAccessContext AccessContext);

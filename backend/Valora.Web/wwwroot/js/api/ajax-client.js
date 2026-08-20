@@ -1,8 +1,15 @@
 (function () {
   const defaultTimeout = 20000;
 
-  function apiBaseUrl() {
-    return (window.ValoraWebConfig && window.ValoraWebConfig.API_BASE_URL ? window.ValoraWebConfig.API_BASE_URL : '').replace(/\/$/, '');
+  function bffPath(path) {
+    if (typeof path !== 'string' || !path.startsWith('/bff/') || path.startsWith('//')) {
+      throw new TypeError('AjaxClient aceita somente caminhos same-origin iniciados por /bff/.');
+    }
+    const parsed = new URL(path, window.location.origin);
+    if (parsed.origin !== window.location.origin || !parsed.pathname.startsWith('/bff/')) {
+      throw new TypeError('Uma origem externa não pode ser usada pelo BFF.');
+    }
+    return parsed.pathname + parsed.search + parsed.hash;
   }
 
   function generateCorrelationId() {
@@ -66,7 +73,7 @@
     const timeout = setTimeout(() => controller.abort(), (window.ValoraWebConfig && window.ValoraWebConfig.API_TIMEOUT_MS) || defaultTimeout);
     headers.Accept = 'application/json';
     if (data !== undefined && data !== null) headers['Content-Type'] = 'application/json; charset=utf-8';
-    return fetch(apiBaseUrl() + path, { method, headers, credentials: 'same-origin', signal: controller.signal, body: data === undefined || data === null ? undefined : JSON.stringify(data) })
+    return fetch(bffPath(path), { method, headers, credentials: 'same-origin', signal: controller.signal, body: data === undefined || data === null ? undefined : JSON.stringify(data) })
       .then(async response => {
         const responseText = await response.text();
         let body = null; try { body = responseText ? JSON.parse(responseText) : null; } catch { body = null; }
@@ -81,7 +88,7 @@
     const headers = { 'X-Correlation-Id': correlationId };
 
     if (data) headers['Content-Type'] = 'application/json; charset=utf-8';
-    return fetch(apiBaseUrl() + path, { method, headers, credentials: 'same-origin', body: data ? JSON.stringify(data) : undefined })
+    return fetch(bffPath(path), { method, headers, credentials: 'same-origin', body: data ? JSON.stringify(data) : undefined })
       .then(async response => { if (!response.ok) { const responseText=await response.text(); throw normalizeApiError({status:response.status,responseText,getResponseHeader:name=>response.headers.get(name)},correlationId); } return response.blob(); });
   }
 

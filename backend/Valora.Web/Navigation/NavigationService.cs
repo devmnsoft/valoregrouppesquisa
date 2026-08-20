@@ -11,7 +11,7 @@ public sealed class NavigationService(
     public async Task<NavigationViewModel> BuildAsync(HttpContext httpContext, CancellationToken cancellationToken = default)
     {
         var session = await authentication.GetAsync(httpContext, cancellationToken);
-        var roles = Claims(httpContext, ClaimTypes.Role);
+        var roles = Set(session?.SafeSession.AccessContext.Roles, Claims(httpContext, ClaimTypes.Role));
         if (!string.IsNullOrWhiteSpace(session?.SafeSession.User.Role))
             roles.Add(session.SafeSession.User.Role);
 
@@ -21,10 +21,10 @@ public sealed class NavigationService(
             session?.SafeSession.Plan?.Id,
             httpContext.User.FindFirstValue("subscription_status") ?? (session?.SafeSession.Plan is null ? "missing" : "active"),
             roles,
-            Claims(httpContext, "permission"),
-            Claims(httpContext, "capability"),
-            Claims(httpContext, "scope"),
-            Claims(httpContext, "module"));
+            Set(session?.SafeSession.AccessContext.Permissions, Claims(httpContext, "permission")),
+            Set(session?.SafeSession.AccessContext.Capabilities, Claims(httpContext, "capability")),
+            Set(session?.SafeSession.AccessContext.Scopes, Claims(httpContext, "scope")),
+            Set(session?.SafeSession.AccessContext.EnabledModules, Claims(httpContext, "module")));
 
         var currentPath = NormalizePath(httpContext.Request.Path.Value);
         var visible = catalog.Sections
@@ -91,4 +91,7 @@ public sealed class NavigationService(
         context.User.FindAll(type)
             .SelectMany(claim => claim.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+    private static HashSet<string> Set(IEnumerable<string>? authoritative, HashSet<string> claims) =>
+        authoritative is null ? claims : authoritative.Concat(claims).ToHashSet(StringComparer.OrdinalIgnoreCase);
 }

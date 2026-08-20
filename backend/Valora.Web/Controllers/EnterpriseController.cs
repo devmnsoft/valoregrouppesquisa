@@ -9,4 +9,7 @@ public sealed class EnterpriseController : Controller
     [HttpGet("AdminValora")]
     public IActionResult Index(string? module=null)
     { ViewData["Title"]="Admin Valora"; ViewData["Module"]=module??"overview"; return View(); }
+
+    [HttpGet("AdminValora/Organizations")]
+    public IActionResult Organizations() => Redirect("/AdminValora?module=companies");
 }

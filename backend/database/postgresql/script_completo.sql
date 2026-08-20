@@ -1715,6 +1715,8 @@ CREATE INDEX IF NOT EXISTS ix_evidence_mapping_status ON valorapesquisa.evidence
 
 -- Evolui a tabela histórica de notificações sem destruir mensagens existentes.
 ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS type varchar(60) NOT NULL DEFAULT 'information';
+-- Bancos legados podem possuir notifications sem read_at. Garanta a coluna antes do índice parcial de não lidas.
+ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS read_at timestamptz;
 ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS message text;
 ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS related_module varchar(80);
 ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS related_entity_id uuid;

@@ -21,10 +21,10 @@ public sealed class HomeController(ILogger<HomeController> logger) : Controller
     public IActionResult Error(int statusCode = 500)
     {
         var safeStatus = statusCode is 400 or 401 or 403 or 404 or 500 ? statusCode : 500;
-        if (safeStatus == 500 && HttpContext.Response.StatusCode < 400)
-        {
-            HttpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
-        }
+        // Re-execution preserves the original status, but a direct visit to /error/{code}
+        // would otherwise return 200.  Always keep the HTTP contract aligned with the
+        // friendly page so monitoring, clients and assistive technology see the truth.
+        HttpContext.Response.StatusCode = safeStatus;
         ViewData["Title"] = $"Erro {safeStatus}";
         ViewData["StatusCode"] = safeStatus;
         ViewData["CorrelationId"] = HttpContext.TraceIdentifier;

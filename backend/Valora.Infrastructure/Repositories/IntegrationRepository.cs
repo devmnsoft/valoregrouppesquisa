@@ -22,8 +22,10 @@ public sealed class IntegrationRepository(IDbConnectionFactory connections) : II
 
     public async Task RecordApiUseAsync(AuthenticatedApiKey? key, string prefix, string endpoint, int status, string? scope, string correlationId, CancellationToken ct)
     {
-        const string sql = """INSERT INTO valorapesquisa.integration_logs(organization_id,api_key_id,event_type,status,endpoint,scope_used,correlation_id,metadata)
-            VALUES(@organizationId,@keyId,@eventType,@status,@endpoint,@scope,@correlationId,jsonb_build_object('key_prefix',@prefix))""";
+        const string sql = """
+            INSERT INTO valorapesquisa.integration_logs(organization_id,api_key_id,event_type,status,endpoint,scope_used,correlation_id,metadata)
+            VALUES(@organizationId,@keyId,@eventType,@status,@endpoint,@scope,@correlationId,jsonb_build_object('key_prefix',@prefix))
+            """;
         using var c = connections.Create();
         await c.ExecuteAsync(new CommandDefinition(sql, new { organizationId = key?.OrganizationId, keyId = key?.Id, eventType = key is null ? "api.authentication_failed" : "api.key_used", status, endpoint, scope, correlationId, prefix }, cancellationToken: ct));
     }

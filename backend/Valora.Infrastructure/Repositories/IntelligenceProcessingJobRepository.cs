@@ -34,7 +34,7 @@ public sealed class IntelligenceProcessingJobRepository(IDbConnectionFactory con
         using var db=connections.Create(); return await db.ExecuteScalarAsync<Guid>(new CommandDefinition(sql,new { c.OrganizationId,c.SurveyId,c.ResponseId,c.FormId,c.SourceEntityId,c.Trigger,maxAttempts,correlationId},cancellationToken:ct));
     }
     public async Task<IReadOnlyList<IntelligenceProcessingJob>> GetPendingJobsAsync(int take, CancellationToken ct)
-    { var sql=$"SELECT {JobProjection} FROM valorapesquisa.intelligence_processing_jobs WHERE deleted_at IS NULL AND status IN ('pending','retry_scheduled') AND scheduled_at<=now() AND coalesce(next_attempt_at,now())<=now() AND (locked_at IS NULL OR locked_at<now()-interval '10 minutes') ORDER BY priority,scheduled_at LIMIT @take"; using var db=connections.Create(); var rows=await db.QueryAsync<IntelligenceProcessingJobRow>(new CommandDefinition(sql,new{take},cancellationToken:ct)); return rows.Select(ToContract).ToList(); }
+    { var sql=$"SELECT {JobProjection} FROM valorapesquisa.intelligence_processing_jobs WHERE deleted_at IS NULL AND status IN ('pending','retry_scheduled') AND coalesce(scheduled_at,created_at)<=now() AND coalesce(next_attempt_at,now())<=now() AND (locked_at IS NULL OR locked_at<now()-interval '10 minutes') ORDER BY priority,coalesce(scheduled_at,created_at) LIMIT @take"; using var db=connections.Create(); var rows=await db.QueryAsync<IntelligenceProcessingJobRow>(new CommandDefinition(sql,new{take},cancellationToken:ct)); return rows.Select(ToContract).ToList(); }
     public async Task<bool> LockJobAsync(Guid id,string worker,CancellationToken ct)
     { const string sql="""UPDATE valorapesquisa.intelligence_processing_jobs SET locked_at=now(),locked_by=@worker,updated_at=now() WHERE id=@id AND status IN ('pending','retry_scheduled') AND (locked_at IS NULL OR locked_at<now()-interval '10 minutes')"""; using var db=connections.Create(); return await db.ExecuteAsync(new CommandDefinition(sql,new{id,worker},cancellationToken:ct))==1; }
     public Task MarkRunningAsync(Guid id,Guid runId,CancellationToken ct)=>Execute("UPDATE valorapesquisa.intelligence_processing_jobs SET status='running',started_at=coalesce(started_at,now()),attempts=attempts+1,run_id=@runId,updated_at=now() WHERE id=@id",new{id,runId},ct);
@@ -61,7 +61,7 @@ public sealed class IntelligenceProcessingJobRepository(IDbConnectionFactory con
         public Guid? ResponseId { get; set; } public Guid? FormId { get; set; } public Guid? SourceEntityId { get; set; }
         public string Trigger { get; set; } = string.Empty; public string Status { get; set; } = string.Empty;
         public int Priority { get; set; } public int Attempts { get; set; } public int MaxAttempts { get; set; }
-        public DateTime ScheduledAt { get; set; } public DateTime? StartedAt { get; set; } public DateTime? CompletedAt { get; set; }
+        public DateTime? ScheduledAt { get; set; } public DateTime? StartedAt { get; set; } public DateTime? CompletedAt { get; set; }
         public DateTime? FailedAt { get; set; } public DateTime? NextAttemptAt { get; set; } public DateTime? LockedAt { get; set; }
         public string? LockedBy { get; set; } public Guid? RunId { get; set; } public string? ErrorCode { get; set; }
         public string? ErrorMessage { get; set; } public string? CorrelationId { get; set; } public string? IdempotencyKey { get; set; }

@@ -3173,3 +3173,32 @@ SELECT r.id,p.id,now() FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.per
 WHERE r.code='admin_valora' AND r.deleted_at IS NULL AND p.code IN
 ('one_on_one.read','one_on_one.manage','one_on_one.schedule','one_on_one.notes.manage','one_on_one.feedback.manage','leadership_development.read','leadership_development.manage','evolution.read','evolution.manage','action.read','action.manage')
 ON CONFLICT(role_id,permission_id) DO NOTHING;
+-- Canonical permissions for the complete organizational-diagnostic workflow.
+-- Kept as a final, idempotent migration so installations upgraded from any prior
+-- script revision receive the same authorization vocabulary as the application.
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code)
+VALUES
+ ('diagnostics.read','Consultar diagnósticos','Consulta diagnósticos organizacionais e seus ciclos.','surveys'),
+ ('diagnostics.manage','Gerenciar diagnósticos','Cria, publica, encerra e reprocessa diagnósticos.','surveys'),
+ ('forms.manage','Gerenciar formulários','Gerencia formulários e perguntas do diagnóstico.','forms'),
+ ('responses.submit','Enviar respostas','Registra respostas por um link público autorizado.','responses'),
+ ('results.manage','Gerenciar resultados','Calcula e administra snapshots históricos de resultados.','results'),
+ ('intelligence.process','Processar inteligência','Agenda e reprocessa a inteligência baseada em evidências.','organizational_intelligence'),
+ ('certificates.validate','Validar certificados','Valida publicamente a autenticidade de certificados.','certificates'),
+ ('administration.read','Consultar administração','Consulta a operação auditável da plataforma.','operations'),
+ ('administration.manage','Gerenciar administração','Administra a operação e trata falhas do fluxo.','operations')
+ON CONFLICT(code) DO UPDATE SET
+ name=EXCLUDED.name,
+ description=EXCLUDED.description,
+ module_code=EXCLUDED.module_code,
+ updated_at=now();
+INSERT INTO valorapesquisa.role_permissions(role_id,permission_id,created_at)
+SELECT role.id,permission.id,now()
+FROM valorapesquisa.roles role
+CROSS JOIN valorapesquisa.permissions permission
+WHERE role.code='admin_valora'
+  AND role.deleted_at IS NULL
+  AND permission.code IN (
+    'diagnostics.read','diagnostics.manage','forms.manage','responses.submit','results.manage',
+    'intelligence.process','certificates.validate','administration.read','administration.manage')
+ON CONFLICT(role_id,permission_id) DO NOTHING;

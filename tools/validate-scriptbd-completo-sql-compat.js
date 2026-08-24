@@ -22,7 +22,9 @@ if (!before(/ALTER TABLE valorapesquisa\.api_keys ADD COLUMN IF NOT EXISTS key_h
 if (!/FOREACH legacy_column IN ARRAY ARRAY\['secret_hash','hash','api_key_hash'\]/.test(sql)) fail('migração segura dos hashes legados ausente.'); else ok('hashes legados são migrados dinamicamente.');
 if (!/row_number\(\) OVER \(PARTITION BY key_hash/i.test(sql)) fail('deduplicação canônica de key_hash ausente.'); else ok('key_hash é deduplicada antes do índice.');
 if (!/compatible_scale_question_type\(\)/.test(sql) || !/likert_1_5/.test(sql)) fail('tipo compatível de pergunta não é resolvido pelo CHECK.'); else ok('tipo de pergunta respeita CHECK legado.');
-if (!/superadmin@valoragroup\.local/.test(sql) || !/admin_valora/.test(sql) || !/\$2[aby]\$\d\d\$/.test(sql)) fail('super administrador BCrypt/role ausente.'); else ok('super administrador usa hash BCrypt e role global.');
+if (!/admin_valora/.test(sql)) fail('papel global admin_valora ausente.');
+else if (/superadmin@valoragroup\.local/.test(sql) || /\$2[aby]\$\d\d\$/.test(sql)) fail('credencial administrativa estática não pode ser seedada no schema canônico.');
+else ok('papel admin_valora existe sem credencial administrativa estática.');
 if (/Valora Grup(?!o)/.test(sql)) fail('marca incorreta encontrada.'); else ok('marca Valora Group consistente.');
 if (!failed) ok(`Validador do SQL canônico concluiu sem erros: ${canonical}`);
 process.exit(failed ? 1 : 0);

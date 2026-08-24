@@ -829,6 +829,26 @@ INSERT INTO valorapesquisa.permissions(code,name,description,module_code,functio
 ('audit.read','Visualizar auditoria','Consulta trilha de auditoria.','audit','governance','high',800),('operations.read','Visualizar operações','Consulta operações.','operations','operations','high',900),('operations.execute','Executar operações','Executa operação administrativa.','operations','operations','critical',910),('settings.read','Visualizar configurações','Consulta configurações.','settings','settings','low',1000),('settings.update','Editar configurações','Edita configurações.','settings','settings','high',1010)
 ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code,functional_group=EXCLUDED.functional_group,risk_level=EXCLUDED.risk_level,display_order=EXCLUDED.display_order,updated_at=now();
 
+-- Vocabulário canônico da Administração Master. O módulo físico permanece restrito
+-- ao catálogo de módulos já existente e a autorização detalhada usa o código.
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code,functional_group,risk_level,display_order) VALUES
+('organizations.read','Visualizar organizações','Consulta organizações com isolamento por tenant.','organization','organizations','high',1100),
+('organizations.manage','Gerenciar organizações','Cria, altera e ativa organizações.','organization','organizations','critical',1110),
+('questions.read','Visualizar perguntas','Consulta questionários e perguntas oficiais.','forms','questions','low',1120),
+('questions.manage','Gerenciar perguntas','Mantém perguntas e versões oficiais.','forms','questions','high',1130),
+('intelligence.read','Visualizar IA','Consulta execuções, evidências e insights.','operations','intelligence','high',1140),
+('intelligence.manage','Gerenciar IA','Reprocessa e revisa execuções de IA.','operations','intelligence','critical',1150),
+('integrations.read','Visualizar integrações','Consulta conexões, webhooks e API keys sem expor segredos.','operations','integrations','high',1160),
+('integrations.manage','Gerenciar integrações','Mantém conexões e credenciais protegidas.','operations','integrations','critical',1170),
+('notifications.read','Visualizar notificações','Consulta entregas e erros de notificação.','communications','notifications','high',1180),
+('notifications.manage','Gerenciar notificações','Reenvia e mantém templates de notificação.','communications','notifications','high',1190),
+('jobs.read','Visualizar jobs','Consulta filas, tentativas e correlações.','operations','jobs','high',1200),
+('jobs.manage','Gerenciar jobs','Reprocessa ou cancela jobs.','operations','jobs','critical',1210),
+('logs.read','Visualizar logs','Consulta eventos operacionais sanitizados.','operations','logs','high',1220),
+('support.read','Visualizar suporte','Consulta tickets e referências de erro.','operations','support','medium',1230),
+('support.manage','Gerenciar suporte','Prioriza, atribui e resolve tickets.','operations','support','high',1240)
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code,functional_group=EXCLUDED.functional_group,risk_level=EXCLUDED.risk_level,display_order=EXCLUDED.display_order,updated_at=now();
+
 -- Known legacy aliases are converged to the single canonical code; unknown codes remain nullable and visible for review.
 UPDATE valorapesquisa.permissions SET code='responses.read',module_code='responses',updated_at=now() WHERE code='canViewResponses' AND NOT EXISTS(SELECT 1 FROM valorapesquisa.permissions WHERE code='responses.read');
 UPDATE valorapesquisa.permissions SET module_code=split_part(code,'.',1),updated_at=now() WHERE module_code IS NULL AND split_part(code,'.',1)=ANY(ARRAY['identity','organization','forms','surveys','distribution','responses','results','certificates','communications','audit','settings','operations']);

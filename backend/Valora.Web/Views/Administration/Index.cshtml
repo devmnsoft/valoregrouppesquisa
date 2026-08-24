@@ -1,0 +1,19 @@
+@{
+  ViewData["Title"] = "Administração Master";
+  var modules = (IReadOnlyDictionary<string, (string Title, string Subtitle, string Endpoint, string Permission)>)ViewData["Modules"]!;
+}
+<section class="valora-page admin-master" data-page="administration-master" data-endpoint="/bff/admin/dashboard">
+  <partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Administração Master", "Controle executivo de toda a plataforma Valora Insight™.", "Administração", Actions: new[] { new Valora.Web.Models.PageHeaderAction("Atualizar indicadores", DataAction: "refresh", Style: "primary", Icon: "refresh") }))" />
+  <div class="admin-health" role="status"><span class="admin-health-dot"></span><div><strong>Central operacional ativa</strong><small>Indicadores consolidados e módulos críticos em um único lugar.</small></div><span data-updated>Atualizando…</span></div>
+  <div class="admin-metrics" data-summary>
+    @foreach (var metric in new[] { ("Organizações", "organizations"), ("Organizações ativas", "activeOrganizations"), ("Usuários ativos", "activeUsers"), ("Diagnósticos", "diagnostics"), ("Respostas", "responses"), ("Relatórios", "reports"), ("Certificados", "certificates"), ("Execuções de IA", "aiRuns"), ("Jobs pendentes", "pendingJobs"), ("Jobs falhos", "failedJobs") })
+    { <article class="admin-metric"><span>@metric.Item1</span><strong data-metric="@metric.Item2">0</strong><small>Visão da plataforma</small></article> }
+  </div>
+  <div class="row g-3 mt-1">
+    <div class="col-xl-7"><article class="admin-panel"><header><div><span class="eyebrow">OPERAÇÃO</span><h2>Status dos módulos</h2></div><span class="badge text-bg-success">Monitorado</span></header><div class="admin-module-grid">
+      @foreach (var entry in modules) { <a asp-controller="Administration" asp-action="Module" asp-route-module="@entry.Key"><span class="admin-module-icon" aria-hidden="true">•</span><span><strong>@entry.Value.Title</strong><small>@entry.Value.Permission</small></span><span aria-hidden="true">→</span></a> }
+    </div></article></div>
+    <div class="col-xl-5"><article class="admin-panel"><header><div><span class="eyebrow">ATENÇÃO</span><h2>Alertas do sistema</h2></div></header><div data-alerts class="admin-empty"><strong>Nenhum alerta crítico.</strong><p>Falhas, limites e indisponibilidades serão priorizados aqui.</p><a asp-action="Module" asp-route-module="jobs" class="btn btn-outline-primary btn-sm">Ver processamentos</a></div></article><article class="admin-panel mt-3"><header><div><span class="eyebrow">RASTREABILIDADE</span><h2>Últimas atividades</h2></div></header><div data-activities class="admin-empty"><strong>Aguardando atividades.</strong><p>As ações administrativas auditadas aparecerão nesta linha do tempo.</p><a asp-action="Module" asp-route-module="audit" class="btn btn-outline-primary btn-sm">Abrir auditoria</a></div></article></div>
+  </div>
+</section>
+@section Scripts { <script src="/js/pages/administration-master.js" asp-append-version="true"></script> }

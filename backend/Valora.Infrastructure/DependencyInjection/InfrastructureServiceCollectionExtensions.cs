@@ -14,6 +14,7 @@ using Valora.Application.Methodology;
 using Valora.Application.DiagnosticWorkspace;
 using Valora.Application.CommercialDelivery;
 using Valora.Application.Integrations;
+using Valora.Application.DecisionCenter;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -68,6 +69,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IEnterpriseRepository, EnterpriseRepository>();
         services.AddScoped<IIntegrationRepository, IntegrationRepository>();
         services.AddScoped<IOrganizationalIntelligenceRepository, OrganizationalIntelligenceRepository>();
+        services.AddScoped<IDecisionCenterRepository, DecisionCenterRepository>();
         services.AddScoped<IIntelligencePipelineRepository, IntelligencePipelineRepository>();
         services.AddScoped<IBenchmarkRepository, BenchmarkRepository>();
         services.AddScoped<IIntelligenceProcessingJobRepository, IntelligenceProcessingJobRepository>();

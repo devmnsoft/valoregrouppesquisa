@@ -19,6 +19,7 @@ using Valora.Application.CommercialDelivery;
 using Valora.Application.FormalDeliverables;
 using Valora.Application.Integrations;
 using Valora.Application.ValoraAi;
+using Valora.Application.DecisionCenter;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -27,6 +28,7 @@ public static class ApplicationServiceCollectionExtensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddScoped<IBenchmarkManagementService, BenchmarkManagementService>();
+        services.AddScoped<DecisionCenterService>();
         services.AddSingleton<ISensitiveDataSanitizer, SensitiveDataSanitizer>();
         services.AddSingleton<ValoraInsightCalculator>();
         services.AddSingleton<ValoraInsightDevolutivaService>();

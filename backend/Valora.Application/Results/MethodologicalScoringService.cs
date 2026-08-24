@@ -63,7 +63,9 @@ public sealed class MethodologicalScoringService
         var concepts = Group(valid, x => x.Answer.ConceptCode);
         var dimensions = Group(valid, x => x.Answer.DimensionCode);
         var weight = valid.Sum(x => x.Answer.Weight);
-        var overall = weight == 0m ? null : decimal.Round(valid.Sum(x => x.Score * x.Answer.Weight) / weight, 2);
+        decimal? overall = weight == 0m
+            ? (decimal?)null
+            : decimal.Round(valid.Sum(x => x.Score * x.Answer.Weight) / weight, 2);
         var confidence = input.Any() ? decimal.Round(valid.Count / (decimal)input.Count() * 100m, 2) : 0m;
 
         return new(overall, ResolveLevel(overall), confidence, concepts, dimensions, evidence, ignored);
@@ -71,7 +73,7 @@ public sealed class MethodologicalScoringService
 
     private static decimal? Normalize(decimal? value, decimal minimum, decimal maximum)
         => value is null || maximum <= minimum || value < minimum || value > maximum
-            ? null
+            ? (decimal?)null
             : (value.Value - minimum) / (maximum - minimum) * 100m;
 
     private static MethodologicalScoreGroup[] Group(

@@ -26,6 +26,7 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<IBenchmarkManagementService, BenchmarkManagementService>();
         services.AddSingleton<ISensitiveDataSanitizer, SensitiveDataSanitizer>();
         services.AddSingleton<ValoraInsightCalculator>();
         services.AddSingleton<ValoraInsightDevolutivaService>();

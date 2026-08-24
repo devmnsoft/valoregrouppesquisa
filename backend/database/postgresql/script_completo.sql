@@ -2519,6 +2519,63 @@ ALTER TABLE valorapesquisa.benchmark_runs
  ADD COLUMN IF NOT EXISTS source_hash text,
  ADD COLUMN IF NOT EXISTS idempotency_key text;
 CREATE INDEX IF NOT EXISTS ix_benchmark_runs_org ON valorapesquisa.benchmark_runs(organization_id,created_at DESC) WHERE deleted_at IS NULL;
+
+-- Valora Benchmark™: snapshots imutáveis, comparações tenant-safe e referências anonimizadas.
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+ ('benchmark.read','Visualizar Benchmark','Consulta snapshots e comparações agregadas.','organizational_intelligence'),
+ ('benchmark.generate','Gerar Benchmark','Gera snapshot a partir de resultado real.','organizational_intelligence'),
+ ('benchmark.compare','Comparar Benchmark','Compara ciclos e recortes autorizados.','organizational_intelligence'),
+ ('benchmark.export','Exportar Benchmark','Exporta comparativos autorizados.','organizational_intelligence'),
+ ('benchmark.admin','Administrar Benchmark','Configura amostra, anonimização e referências.','organizational_intelligence')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code,updated_at=now();
+CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_settings (
+ organization_id uuid PRIMARY KEY REFERENCES valorapesquisa.organizations(id), minimum_organizations int NOT NULL DEFAULT 5,
+ minimum_responses int NOT NULL DEFAULT 50, external_enabled boolean NOT NULL DEFAULT false,
+ require_anonymization boolean NOT NULL DEFAULT true, settings_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_snapshots (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ survey_id uuid REFERENCES valorapesquisa.surveys(id), response_batch_id uuid, result_id uuid REFERENCES valorapesquisa.result_scores(id),
+ snapshot_type varchar(24) NOT NULL DEFAULT 'internal', maturity_score numeric(12,4) NOT NULL DEFAULT 0,
+ maturity_level varchar(80) NOT NULL DEFAULT 'Não classificado', total_responses int NOT NULL DEFAULT 0,
+ dimensions_json jsonb NOT NULL DEFAULT '[]'::jsonb, evidence_summary text NOT NULL DEFAULT 'Sem evidências agregadas.',
+ generated_at timestamptz NOT NULL DEFAULT now(), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+ALTER TABLE valorapesquisa.benchmark_snapshots
+ ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES valorapesquisa.organizations(id), ADD COLUMN IF NOT EXISTS survey_id uuid REFERENCES valorapesquisa.surveys(id),
+ ADD COLUMN IF NOT EXISTS response_batch_id uuid, ADD COLUMN IF NOT EXISTS result_id uuid REFERENCES valorapesquisa.result_scores(id),
+ ADD COLUMN IF NOT EXISTS snapshot_type varchar(24) NOT NULL DEFAULT 'internal', ADD COLUMN IF NOT EXISTS maturity_score numeric(12,4) NOT NULL DEFAULT 0,
+ ADD COLUMN IF NOT EXISTS maturity_level varchar(80) NOT NULL DEFAULT 'Não classificado', ADD COLUMN IF NOT EXISTS total_responses int NOT NULL DEFAULT 0,
+ ADD COLUMN IF NOT EXISTS dimensions_json jsonb NOT NULL DEFAULT '[]'::jsonb, ADD COLUMN IF NOT EXISTS evidence_summary text NOT NULL DEFAULT 'Sem evidências agregadas.',
+ ADD COLUMN IF NOT EXISTS generated_at timestamptz NOT NULL DEFAULT now(), ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(), ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(), ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+CREATE INDEX IF NOT EXISTS ix_benchmark_snapshots_org_generated ON valorapesquisa.benchmark_snapshots(organization_id,generated_at DESC) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_snapshot_dimensions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), snapshot_id uuid NOT NULL REFERENCES valorapesquisa.benchmark_snapshots(id),
+ dimension_code varchar(100) NOT NULL, score numeric(12,4), reference_score numeric(12,4), evidence_count int NOT NULL DEFAULT 0,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_comparisons (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), base_snapshot_id uuid NOT NULL REFERENCES valorapesquisa.benchmark_snapshots(id),
+ compared_snapshot_id uuid REFERENCES valorapesquisa.benchmark_snapshots(id), comparison_type varchar(40) NOT NULL, score_delta numeric(12,4), maturity_delta text NOT NULL DEFAULT 'Sem referência',
+ strengths_json jsonb NOT NULL DEFAULT '[]'::jsonb, risks_json jsonb NOT NULL DEFAULT '[]'::jsonb, opportunities_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+ recommendations_json jsonb NOT NULL DEFAULT '[]'::jsonb, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_benchmark_comparisons_org ON valorapesquisa.benchmark_comparisons(organization_id,created_at DESC) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_reference_groups (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), name text NOT NULL, reference_type varchar(24) NOT NULL,
+ minimum_organizations int NOT NULL DEFAULT 5, minimum_responses int NOT NULL DEFAULT 50, organization_count int NOT NULL DEFAULT 0, response_count int NOT NULL DEFAULT 0,
+ aggregates_json jsonb NOT NULL DEFAULT '{}'::jsonb, status varchar(30) NOT NULL DEFAULT 'inactive', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_reference_group_members (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), reference_group_id uuid NOT NULL REFERENCES valorapesquisa.benchmark_reference_groups(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ consented_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, UNIQUE(reference_group_id,organization_id));
+CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_insights (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), comparison_id uuid REFERENCES valorapesquisa.benchmark_comparisons(id),
+ evidence_pack_json jsonb NOT NULL DEFAULT '{}'::jsonb, insight_json jsonb NOT NULL DEFAULT '{}'::jsonb, limitations_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_exports (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), snapshot_id uuid NOT NULL REFERENCES valorapesquisa.benchmark_snapshots(id),
+ format varchar(12) NOT NULL, status varchar(30) NOT NULL DEFAULT 'pending', storage_reference text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_comparison_groups (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), run_id uuid NOT NULL REFERENCES valorapesquisa.benchmark_runs(id),
  group_reference text NOT NULL, sample_size int NOT NULL, comparable boolean NOT NULL DEFAULT false, status varchar(30) NOT NULL DEFAULT 'evaluated', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,

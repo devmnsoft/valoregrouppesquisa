@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Valora.Web.Controllers;
 
+[AllowAnonymous]
 public sealed class PlansController(ILogger<PlansController> logger) : Controller
 {
     [HttpGet("/Plans")]

@@ -12,4 +12,6 @@ public sealed record RegisterCompanyRequest(
     string TimeZone,
     bool AcceptedTerms,
     bool AcceptedPrivacyPolicy,
-    string IdempotencyKey);
+    string IdempotencyKey,
+    string PlanCode = "start",
+    string? RoleTitle = null);

@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Valora.Web.Controllers;
 
+[AllowAnonymous]
 public sealed class AccountController(ILogger<AccountController> logger) : Controller
 {
     [HttpGet("/Login")]
@@ -19,11 +21,14 @@ public sealed class AccountController(ILogger<AccountController> logger) : Contr
             throw;
         }
     }
-    public IActionResult Register()
+    [HttpGet("/cadastro")]
+    [HttpGet("/comecar-teste-gratis")]
+    public IActionResult Register([FromQuery] string? plan = null)
     {
         try
         {
-            ViewData["Title"] = "Register";
+            ViewData["Title"] = "Criar conta";
+            ViewData["SelectedPlan"] = plan;
             return View();
         }
         catch (Exception ex)

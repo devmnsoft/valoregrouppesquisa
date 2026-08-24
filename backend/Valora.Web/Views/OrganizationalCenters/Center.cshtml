@@ -1,0 +1,8 @@
+@model Valora.Web.Controllers.OrganizationalCenterViewModel
+<div class="journey-page">
+  <header class="journey-hero"><span class="journey-kicker">@Model.Eyebrow</span><h1>@Model.Title</h1><p>@Model.Description</p></header>
+  <section class="journey-panel journey-empty" aria-live="polite">
+    <div class="journey-empty-mark" aria-hidden="true">V</div><div><span class="journey-label">Próximo passo</span><h2>@Model.EmptyMessage</h2><p>O Valora apresenta somente leituras sustentadas por dados autorizados, preservando contexto, privacidade e rastreabilidade.</p></div>
+    <a class="btn btn-primary" href="@Model.CtaUrl">Ir para diagnósticos</a>
+  </section>
+</div>

@@ -40,6 +40,14 @@ public sealed class IntelligenceController : Controller
     public IActionResult Heatmap() => Workspace("heatmap");
     public IActionResult Radar() => Workspace("radar");
     public IActionResult Benchmark() => Workspace("benchmark");
+    [HttpGet("Benchmark")]
+    public IActionResult BenchmarkCanonical() => Workspace("benchmark");
+    [HttpGet("Benchmark/Details/{id:guid}")]
+    public IActionResult BenchmarkDetails(Guid id) { ViewData["BenchmarkId"] = id; return View("Benchmark", Workspaces["benchmark"]); }
+    [HttpGet("Benchmark/Compare")]
+    public IActionResult BenchmarkCompare() { ViewData["CompareMode"] = true; return View("Benchmark", Workspaces["benchmark"]); }
+    [HttpGet("Administration/Benchmark")]
+    public IActionResult BenchmarkAdministration() { ViewData["AdminMode"] = true; return View("Benchmark", Workspaces["benchmark"]); }
     public IActionResult ExecutiveReport() => Workspace("executive-report");
     public IActionResult OneOnOne() => Workspace("one-on-one");
     public IActionResult PlatformGovernance() => Workspace("platform-governance");

@@ -9,7 +9,7 @@ namespace Valora.Api.Controllers;
 [Authorize, ApiController, Route("api/v1/intelligence")]
 public sealed class OrganizationalIntelligenceController(IOrganizationalIntelligenceService service,
     IValoraIntelligenceEngine deliverables, IOrganizationalIntelligencePipeline pipeline,
-    IPermissionService permissions, IEntitlementService entitlements) : ControllerBase
+    IPermissionService permissions, IEntitlementService entitlements, IBenchmarkManagementService benchmarks) : ControllerBase
 {
     /// <summary>Canonical evidence-first read model shared by Dashboard, Radar, Report, Action, Heatmap and Insights.</summary>
     [HttpGet("deliverables")]
@@ -89,9 +89,16 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     [HttpGet("radar")]
     public async Task<IActionResult> Radar([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("radar", organizationId, ct);
     [HttpGet("benchmark")]
-    public async Task<IActionResult> Benchmark([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("benchmark", organizationId, ct);
+    public async Task<IActionResult> Benchmark([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, Valora.Application.Access.ValoraPermissions.IntelligentDeliverables.BenchmarkRead, id => benchmarks.DashboardAsync(id, ct));
+    [HttpGet("benchmark/{id:guid}")]
+    public async Task<IActionResult> BenchmarkDetail(Guid id, [FromQuery] Guid? organizationId, CancellationToken ct)
+    { var access=await Validate(organizationId,Valora.Application.Access.ValoraPermissions.IntelligentDeliverables.BenchmarkRead); if(access.Error is not null)return access.Error; var item=await benchmarks.GetAsync(access.OrganizationId,id,ct); return item is null?NotFound():Ok(item); }
     [HttpPost("benchmark/generate")]
-    public async Task<IActionResult> GenerateBenchmark([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.generate", id => pipeline.ProcessResponseAsync(new(id, UserId: UserId, Trigger: "benchmark_generated"), ct));
+    public async Task<IActionResult> GenerateBenchmark([FromBody] GenerateBenchmarkRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, Valora.Application.Access.ValoraPermissions.Benchmark.Generate, id => benchmarks.GenerateAsync(id,request,ct));
+    [HttpPost("benchmark/compare")]
+    public async Task<IActionResult> CompareBenchmark([FromBody] CompareBenchmarkRequest request,[FromQuery] Guid? organizationId,CancellationToken ct)=>await Read(organizationId,Valora.Application.Access.ValoraPermissions.Benchmark.Compare,id=>benchmarks.CompareAsync(id,request,ct));
+    [HttpPut("benchmark/settings")]
+    public async Task<IActionResult> BenchmarkSettings([FromBody] BenchmarkSettings request,[FromQuery] Guid? organizationId,CancellationToken ct)=>await Read(organizationId,Valora.Application.Access.ValoraPermissions.Benchmark.Admin,id=>benchmarks.UpdateSettingsAsync(id,request,ct));
     [HttpGet("executive-report")]
     public async Task<IActionResult> ExecutiveReport([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("executive-reports", organizationId, ct);
     [HttpPost("executive-report/preview")]

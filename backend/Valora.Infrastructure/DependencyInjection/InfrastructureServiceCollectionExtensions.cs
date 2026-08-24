@@ -69,6 +69,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IIntegrationRepository, IntegrationRepository>();
         services.AddScoped<IOrganizationalIntelligenceRepository, OrganizationalIntelligenceRepository>();
         services.AddScoped<IIntelligencePipelineRepository, IntelligencePipelineRepository>();
+        services.AddScoped<IBenchmarkRepository, BenchmarkRepository>();
         services.AddScoped<IIntelligenceProcessingJobRepository, IntelligenceProcessingJobRepository>();
         services.AddScoped<IValoraBotRepository, ValoraBotRepository>();
         services.AddScoped<IMethodologyRepository, MethodologyRepository>();

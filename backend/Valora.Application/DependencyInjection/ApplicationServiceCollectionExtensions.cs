@@ -18,6 +18,7 @@ using Valora.Application.DiagnosticWorkspace;
 using Valora.Application.CommercialDelivery;
 using Valora.Application.FormalDeliverables;
 using Valora.Application.Integrations;
+using Valora.Application.ValoraAi;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -113,6 +114,12 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IDiagnosticWorkspaceService, DiagnosticWorkspaceService>();
         services.AddScoped<IDiagnosticCampaignService, DiagnosticCampaignService>();
         services.AddSingleton<ValoraInferenceEngine>();
+        services.AddSingleton<IValoraEvidencePackBuilder, ValoraEvidencePackBuilder>();
+        services.AddSingleton<IValoraPromptRenderer, ValoraPromptRenderer>();
+        services.AddSingleton<IValoraAiGuardrailService, ValoraAiGuardrailService>();
+        services.AddSingleton<IValoraAiProvider, DisabledValoraAiProvider>();
+        services.AddScoped<IValoraAiOrchestrator, ValoraAiOrchestrator>();
+        services.AddScoped<IValoraAiReviewService, ValoraAiReviewService>();
 
         services.AddScoped<Valora.Application.Contracts.ILegacyDataNormalizer, LegacyDataNormalizer>();
         services.AddScoped<Valora.Application.Contracts.ILegacyMappingService, LegacyMappingService>();

@@ -54,7 +54,46 @@ END $migration$;
 ALTER TABLE valorapesquisa.audit_logs
     ADD COLUMN IF NOT EXISTS message text,
     ADD COLUMN IF NOT EXISTS correlation_id text,
-    ADD COLUMN IF NOT EXISTS created_at timestamptz;
+    ADD COLUMN IF NOT EXISTS created_at timestamptz,
+    ADD COLUMN IF NOT EXISTS ip_hash text,
+    ADD COLUMN IF NOT EXISTS user_agent text,
+    ADD COLUMN IF NOT EXISTS severity varchar(32) NOT NULL DEFAULT 'info',
+    ADD COLUMN IF NOT EXISTS module varchar(80);
+
+ALTER TABLE valorapesquisa.audit_logs
+    ALTER COLUMN severity TYPE varchar(32),
+    ALTER COLUMN severity SET DEFAULT 'info';
+
+UPDATE valorapesquisa.audit_logs
+SET severity = CASE lower(severity)
+    WHEN 'debug' THEN 'debug'
+    WHEN 'warning' THEN 'warning'
+    WHEN 'error' THEN 'error'
+    WHEN 'critical' THEN 'critical'
+    ELSE 'info'
+END
+WHERE severity IS NULL
+   OR severity NOT IN ('debug', 'info', 'warning', 'error', 'critical');
+
+ALTER TABLE valorapesquisa.audit_logs
+    ALTER COLUMN severity SET NOT NULL;
+
+DO $severity_constraint$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'ck_audit_logs_severity'
+          AND conrelid = 'valorapesquisa.audit_logs'::regclass
+    ) THEN
+        ALTER TABLE valorapesquisa.audit_logs
+        ADD CONSTRAINT ck_audit_logs_severity
+        CHECK (severity IN ('debug', 'info', 'warning', 'error', 'critical'));
+    END IF;
+END $severity_constraint$;
+
+CREATE INDEX IF NOT EXISTS ix_audit_logs_severity
+    ON valorapesquisa.audit_logs (severity);
 
 ALTER TABLE valorapesquisa.audit_logs
     ALTER COLUMN entity_id TYPE text USING entity_id::text,

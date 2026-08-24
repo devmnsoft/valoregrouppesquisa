@@ -2409,7 +2409,19 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_privacy_requests_protocol_code ON valorapes
 
 ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS ip_hash text;
 ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS user_agent text;
-ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS severity varchar(24) NOT NULL DEFAULT 'information';
+ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS severity varchar(32) NOT NULL DEFAULT 'info';
+ALTER TABLE valorapesquisa.audit_logs ALTER COLUMN severity TYPE varchar(32);
+ALTER TABLE valorapesquisa.audit_logs ALTER COLUMN severity SET DEFAULT 'info';
+UPDATE valorapesquisa.audit_logs
+SET severity=CASE lower(severity) WHEN 'debug' THEN 'debug' WHEN 'warning' THEN 'warning' WHEN 'error' THEN 'error' WHEN 'critical' THEN 'critical' ELSE 'info' END
+WHERE severity IS NULL OR severity NOT IN ('debug','info','warning','error','critical');
+ALTER TABLE valorapesquisa.audit_logs ALTER COLUMN severity SET NOT NULL;
+DO $audit_severity_constraint$ BEGIN
+ IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='ck_audit_logs_severity' AND conrelid='valorapesquisa.audit_logs'::regclass) THEN
+  ALTER TABLE valorapesquisa.audit_logs ADD CONSTRAINT ck_audit_logs_severity CHECK (severity IN ('debug','info','warning','error','critical'));
+ END IF;
+END $audit_severity_constraint$;
+CREATE INDEX IF NOT EXISTS ix_audit_logs_severity ON valorapesquisa.audit_logs(severity);
 ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS module varchar(80);
 ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
 CREATE INDEX IF NOT EXISTS ix_audit_logs_admin_filters ON valorapesquisa.audit_logs(organization_id, module, severity, created_at DESC);

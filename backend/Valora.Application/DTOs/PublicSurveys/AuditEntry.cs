@@ -14,7 +14,7 @@ public sealed record AuditEntry
         DateTimeOffset? createdAt = null,
         string? ipHash = null,
         string? userAgent = null,
-        string severity = "information",
+        string severity = "info",
         string? module = null)
     {
         OrganizationId = organizationId;

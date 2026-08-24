@@ -1,0 +1,17 @@
+@{ ViewData["Title"] = ViewData["StudioTitle"]; }
+<section class="studio-hero">
+ <div><span>VALORA METHODOLOGY STUDIO™</span><h1>@ViewData["StudioTitle"]</h1><p>@ViewData["StudioDescription"]</p></div>
+ <a href="/Methodology/Validation">Verificar consistência</a>
+</section>
+<nav class="studio-tabs" aria-label="Áreas metodológicas">
+ <a href="/Methodology">Visão Geral</a><a href="/Methodology/Versions">Versões</a><a href="/Methodology/Dictionary">Dicionário</a>
+ <a href="/Methodology/Map">Mapa Cognitivo</a><a href="/Methodology/Indexes">Índices</a><a href="/Methodology/Questions">Perguntas</a>
+ <a href="/Methodology/Prompts">Prompts IA</a><a href="/Methodology/Guardrails">Guardrails</a>
+</nav>
+<section class="studio-content">
+ <header><div><small>VERSÃO DE TRABALHO</small><h2>Governança oficial e rastreável</h2></div><span class="draft">DRAFT</span></header>
+ <div class="studio-empty"><div>◆</div><h3>Conteúdo governado pela versão metodológica</h3><p>Selecione ou clone uma versão para administrar este catálogo. Versões publicadas permanecem imutáveis.</p><button type="button">Selecionar versão</button></div>
+</section>
+<style>
+.studio-hero{background:radial-gradient(circle at 85% 10%,#386c62,#102c2a 60%);border-radius:24px;padding:34px;color:white;display:flex;justify-content:space-between;align-items:end;box-shadow:0 18px 45px #173d3520}.studio-hero span,.studio-content small{font-size:11px;letter-spacing:.16em;color:#83d4c1;font-weight:800}.studio-hero h1{font-size:34px;margin:8px 0}.studio-hero p{margin:0;color:#d6e8e3}.studio-hero a,.studio-empty button{background:#c49952;color:white;text-decoration:none;border:0;border-radius:10px;padding:12px 16px;font-weight:750}.studio-tabs{display:flex;gap:6px;overflow:auto;margin:18px 0;padding:7px;background:#fff;border:1px solid #e2eae7;border-radius:14px}.studio-tabs a{white-space:nowrap;padding:9px 12px;border-radius:8px;color:#53635f;text-decoration:none;font-size:13px}.studio-tabs a:hover{background:#edf6f3;color:#176452}.studio-content{background:#fff;border:1px solid #e2eae7;border-radius:20px;padding:26px;min-height:390px}.studio-content header{display:flex;justify-content:space-between}.studio-content h2{margin:6px 0}.draft{height:min-content;background:#fff3d8;color:#855f1f;border-radius:99px;padding:7px 11px;font-size:11px;font-weight:800}.studio-empty{text-align:center;margin:55px auto;max-width:520px;color:#687773}.studio-empty div{font-size:30px;color:#3b8978}.studio-empty h3{color:#263c37}.studio-empty button{margin-top:10px}@media(max-width:760px){.studio-hero{align-items:start;flex-direction:column;gap:22px}}
+</style>

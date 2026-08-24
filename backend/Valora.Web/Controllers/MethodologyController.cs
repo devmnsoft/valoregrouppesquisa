@@ -7,6 +7,7 @@ namespace Valora.Web.Controllers;
 public sealed class MethodologyController : Controller
 {
     [HttpGet("Methodology/Overview")]
+    [HttpGet("Methodology")]
     public IActionResult Overview() => View();
 
     [HttpGet("Methodology/Dimensions")]
@@ -24,7 +25,6 @@ public sealed class MethodologyController : Controller
     [HttpGet("Methodology/Versions")]
     public IActionResult Versions() => View(nameof(Overview));
 
-    [HttpGet("Methodology")]
     [HttpGet("Methodology/Dictionary")]
     [HttpGet("Intelligence/Dictionary")]
     public IActionResult Dictionary() => View();
@@ -35,4 +35,20 @@ public sealed class MethodologyController : Controller
 
     [HttpGet("Methodology/Mappings")]
     public IActionResult Mappings() => View();
+
+    [HttpGet("Methodology/Map")]
+    public IActionResult Map() => View(nameof(CognitiveMap));
+    [HttpGet("Methodology/Indexes")]
+    public IActionResult Indexes() => Studio("Índices Valora", "Escalas, faixas e estratégias oficiais de cálculo.");
+    [HttpGet("Methodology/Questions")]
+    public IActionResult Questions() => Studio("Perguntas Oficiais", "Banco versionado, pesos e vínculos cognitivos.");
+    [HttpGet("Methodology/Prompts")]
+    public IActionResult Prompts() => Studio("Prompts IA", "Templates oficiais, schemas de saída e versões.");
+    [HttpGet("Methodology/Guardrails")]
+    public IActionResult Guardrails() => Studio("Guardrails", "Princípios inegociáveis e proteção metodológica.");
+    [HttpGet("Methodology/Validation")]
+    public IActionResult Validation() => Studio("Validação", "Bloqueios, alertas e recomendações antes da publicação.");
+
+    private IActionResult Studio(string title, string description)
+    { ViewData["StudioTitle"] = title; ViewData["StudioDescription"] = description; return View("Studio"); }
 }

@@ -15,6 +15,9 @@ using Valora.Application.DiagnosticWorkspace;
 using Valora.Application.CommercialDelivery;
 using Valora.Application.Integrations;
 using Valora.Application.DecisionCenter;
+using Valora.Application.FormalDeliverables;
+using Valora.Application.ValoraAi;
+using Valora.Infrastructure.FormalDeliverables;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -80,6 +83,12 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IDiagnosticCampaignRepository, DiagnosticCampaignRepository>();
         services.AddScoped<IAssistedOperationsRepository, AssistedOperationsRepository>();
         services.AddScoped<IPublicCommercialRepository, PublicCommercialRepository>();
+        services.AddScoped<IValoraAiRunRepository, ValoraAiRunRepository>();
+        services.AddScoped<IDiagnosisDocumentSnapshotProvider, DiagnosisDocumentSnapshotProvider>();
+        services.AddScoped<IShareLinkRepository, ShareLinkRepository>();
+        services.AddScoped<IDocumentAccessPolicy, DocumentAccessPolicy>();
+        services.AddScoped<IDocumentStore, DocumentStore>();
+        services.AddScoped<IExportAuditService, ExportAuditService>();
         return services;
     }
 

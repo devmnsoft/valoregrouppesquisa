@@ -114,6 +114,18 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IIntelligenceProcessingOrchestrator, IntelligenceProcessingOrchestrator>();
         services.AddScoped<IValoraBotService, ValoraBotService>();
         services.AddScoped<IMethodologyService, MethodologyService>();
+        services.AddScoped<MethodologyVersionService>();
+        services.AddScoped<MethodologyValidationService>();
+        services.AddScoped<MethodologyPublicationService>();
+        services.AddScoped<MethodologyConceptService>();
+        services.AddScoped<MethodologyIndexService>();
+        services.AddScoped<MethodologyQuestionBankService>();
+        services.AddScoped<MethodologyPromptTemplateService>();
+        services.AddScoped<MethodologyGuardrailService>();
+        services.AddScoped<CreateMethodologyVersionUseCase>();
+        services.AddScoped<CloneMethodologyVersionUseCase>();
+        services.AddScoped<PublishMethodologyVersionUseCase>();
+        services.AddScoped<ValidateMethodologyConsistencyUseCase>();
         services.AddScoped<IDiagnosticWorkspaceService, DiagnosticWorkspaceService>();
         services.AddScoped<IDiagnosticCampaignService, DiagnosticCampaignService>();
         services.AddSingleton<ValoraInferenceEngine>();

@@ -8,7 +8,7 @@ public static class IntelligenceProcessingStatus
 
 public sealed record IntelligenceProcessingJob(Guid Id, Guid OrganizationId, Guid? SurveyId, Guid? ResponseId,
     Guid? FormId, Guid? SourceEntityId, string Trigger, string Status, int Priority, int Attempts, int MaxAttempts,
-    DateTime ScheduledAt, DateTime? StartedAt, DateTime? CompletedAt, DateTime? FailedAt, DateTime? NextAttemptAt,
+    DateTime? ScheduledAt, DateTime? StartedAt, DateTime? CompletedAt, DateTime? FailedAt, DateTime? NextAttemptAt,
     string? LockedBy, string? ErrorCode, string? ErrorMessage, string? CorrelationId, DateTime CreatedAt);
 public sealed record IntelligenceStageRun(Guid Id, Guid JobId, Guid RunId, string Stage, string Status, int Records,
     bool SufficientEvidence, string Message, DateTime StartedAt, DateTime? CompletedAt, long? DurationMs,

@@ -71,6 +71,10 @@ public static class ValoraPermissions
     public static class Billing { public const string Read="billing.read", Manage="billing.manage"; }
     public static class Usage { public const string Read="usage.read", Manage="usage.manage"; }
     public static class Upgrades { public const string Manage="upgrades.manage"; }
+    public static class Leads { public const string Read="leads.read", Manage="leads.manage"; }
+    public static class Trials { public const string Read="trials.read", Manage="trials.manage"; }
+    public static class Commercial { public const string Read="commercial.read", Manage="commercial.manage"; }
+    public static class Onboarding { public const string Read="onboarding.read", Manage="onboarding.manage"; }
     public static class Organization { public const string Read="organization.read", Update="organization.update", BrandingRead="organization.branding.read", BrandingUpdate="organization.branding.update", SubscriptionRead="organization.subscription.read", UsageRead="organization.usage.read"; }
     public static class OrganizationCurrent { public const string Read="organization.current.read", Update="organization.current.update"; }
     public static class OrganizationOnboarding { public const string Read="organization.onboarding.read", Update="organization.onboarding.update"; }
@@ -111,7 +115,7 @@ public static class ValoraPermissions
     {
         "users" or "roles" or "sessions" or "invitations" => ValoraModules.Identity,
         "organization" or "units" or "departments" or "business_groups" or "legal_entities" or "plans" or
-        "subscriptions" or "billing" or "usage" or "upgrades" => ValoraModules.Organization,
+        "subscriptions" or "billing" or "usage" or "upgrades" or "leads" or "trials" or "commercial" or "onboarding" => ValoraModules.Organization,
         "organizational_intelligence" or "dashboard" or "radar" or "reports" or "action" or "heatmap" or
         "evolution" or "journey" or "benchmark" or "insights" => "organizational_intelligence",
         var capability => capability

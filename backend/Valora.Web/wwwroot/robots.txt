@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /bff/
+Disallow: /AdminValora/
+Sitemap: /sitemap.xml

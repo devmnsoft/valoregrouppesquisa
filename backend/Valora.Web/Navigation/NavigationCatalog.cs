@@ -10,6 +10,12 @@ public sealed class NavigationCatalog
     [
         Section("valora", "Admin Valora", 5,
             Item("valora.overview", "Visão Geral Valora", "Carteira, CRM e operação SaaS", "Enterprise", "sparkles", null, null, "enterprise", null, 10, Roles("admin_valora"))),
+        Section("commercial", "Comercial", 7,
+            ItemAction("commercial.leads", "Leads", "Pipeline de oportunidades do portal", "Enterprise", "Index", "users", "organization", 1, Roles("admin_valora")),
+            ItemAction("commercial.trials", "Trials", "Testes ativos e próximos do vencimento", "Enterprise", "Index", "activity", "organization", 2, Roles("admin_valora")),
+            ItemAction("commercial.signups", "Cadastros", "Organizações criadas pelo self-service", "Enterprise", "Organizations", "building", "organization", 3, Roles("admin_valora")),
+            ItemAction("commercial.demos", "Demonstrações", "Solicitações recebidas pelo portal", "Enterprise", "Index", "message-circle", "organization", 4, Roles("admin_valora")),
+            ItemAction("commercial.events", "Eventos comerciais", "Rastreabilidade do funil comercial", "Audit", "Index", "activity", "audit", 5, Roles("admin_valora"))),
         Section("executive", "Visão Geral", 10,
             Item("executive.overview", "Visão Geral", "Indicadores e prioridades da organização", "Dashboard", "layout-dashboard", null, null, "dashboard", null, 10, Results),
             ItemAction("executive.cockpit", "Cockpit Executivo", "Riscos, tendências e prioridades da alta gestão", "Experience", "Cockpit", "chart-radar", "results", 15, Results),

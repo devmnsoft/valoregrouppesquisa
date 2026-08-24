@@ -36,14 +36,15 @@ public sealed class AuthService(
         var registration = await companyRegistration.HandleAsync(request);
         var tokens = await authenticationSessions.CreateAsync(registration.UserId, registration.OrganizationId,
             request.AdministratorEmail, "empresa_admin", request.Language);
-        var freePlan = await plans.GetByIdAsync("free");
-        if (freePlan is null)
-            throw new ApplicationConfigurationException("Required system plan 'free' was not found.");
+        var selectedPlanCode = request.PlanCode is "start" ? "start" : "growth";
+        var selectedPlan = await plans.GetByIdAsync(selectedPlanCode);
+        if (selectedPlan is null)
+            throw new ApplicationConfigurationException($"Required trial plan '{selectedPlanCode}' was not found.");
         return CreateAuthenticationResult(tokens,
             new AuthenticatedUserDto(registration.UserId, request.AdministratorName, request.AdministratorEmail, "empresa_admin"),
             new AuthenticatedOrganizationDto(registration.OrganizationId, request.CompanyName, request.TradeName, string.Empty),
-            new AuthenticatedPlanDto("free", freePlan.Name),
-            await ResolveAccessContextAsync(registration.OrganizationId, registration.UserId, ["empresa_admin"], "free"));
+            new AuthenticatedPlanDto(selectedPlanCode, selectedPlan.Name),
+            await ResolveAccessContextAsync(registration.OrganizationId, registration.UserId, ["empresa_admin"], selectedPlanCode));
     }
 
     public async Task<AuthenticationResult> LoginAsync(LoginRequest request)

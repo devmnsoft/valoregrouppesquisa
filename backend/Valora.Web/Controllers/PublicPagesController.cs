@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Web.Models;
 
 namespace Valora.Web.Controllers;
 
+[AllowAnonymous]
 public sealed class PublicPagesController(ILogger<PublicPagesController> logger) : Controller
 {
     [Route("diagnostico-gratuito")]
@@ -42,6 +44,18 @@ public sealed class PublicPagesController(ILogger<PublicPagesController> logger)
     [HttpGet("lgpd")]
     [HttpGet("PublicPages/Privacy")]
     public IActionResult Privacy() => PublicView("Privacy", "Política de Privacidade");
+
+    [HttpGet("sobre")]
+    public IActionResult About() => PublicView("About", "Sobre o Valora Insight™");
+
+    [HttpGet("metodologia")]
+    public IActionResult Methodology() => PublicView("Methodology", "Metodologia Valora™");
+
+    [HttpGet("termos-de-uso")]
+    public IActionResult Terms() => PublicView("Terms", "Termos de uso");
+
+    [HttpGet("solicitar-demonstracao")]
+    public IActionResult Demo() => PublicView("Demo", "Solicitar demonstração");
 
     [Route("whatsapp")]
     public IActionResult WhatsApp() => Redirect("https://wa.me/5591992545353?text=Ol%C3%A1%2C%20quero%20falar%20com%20a%20Valora%20Group%20sobre%20o%20Diagn%C3%B3stico%20Valora%20Insight%E2%84%A2.");

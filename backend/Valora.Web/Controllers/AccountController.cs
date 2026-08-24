@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Valora.Web.Controllers;
 
+[AllowAnonymous]
 public sealed class AccountController(ILogger<AccountController> logger) : Controller
 {
     [HttpGet("/Login")]
@@ -19,11 +21,15 @@ public sealed class AccountController(ILogger<AccountController> logger) : Contr
             throw;
         }
     }
-    public IActionResult Register()
+    [HttpGet("/cadastro")]
+    [HttpGet("/teste-gratis")]
+    [HttpGet("/Account/Register")]
+    public IActionResult Register([FromQuery] string? plan = null)
     {
         try
         {
-            ViewData["Title"] = "Register";
+            ViewData["Title"] = "Começar teste grátis";
+            ViewData["SelectedPlan"] = plan;
             return View();
         }
         catch (Exception ex)
@@ -32,6 +38,8 @@ public sealed class AccountController(ILogger<AccountController> logger) : Contr
             throw;
         }
     }
+    [HttpGet("/recuperar-senha")]
+    [HttpGet("/Account/ForgotPassword")]
     public IActionResult ForgotPassword()
     {
         try
@@ -45,6 +53,8 @@ public sealed class AccountController(ILogger<AccountController> logger) : Contr
             throw;
         }
     }
+    [HttpGet("/redefinir-senha")]
+    [HttpGet("/Account/ResetPassword")]
     public IActionResult ResetPassword()
     {
         try

@@ -1,6 +1,8 @@
 -- Valora Insight(TM) commercial SaaS layer. Safe for clean and previously provisioned databases.
 CREATE SCHEMA IF NOT EXISTS valorapesquisa;
 
+ALTER TABLE valorapesquisa.users ADD COLUMN IF NOT EXISTS job_title text;
+
 ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS description text;
 ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS monthly_price numeric(14,2) NOT NULL DEFAULT 0;
 ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS annual_price numeric(14,2);
@@ -57,6 +59,30 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.billing_ledger (
  description text NOT NULL, occurred_at timestamptz NOT NULL DEFAULT now(), reference text, created_at timestamptz NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS ix_billing_ledger_organization ON valorapesquisa.billing_ledger(organization_id,occurred_at DESC);
 
+CREATE TABLE IF NOT EXISTS valorapesquisa.leads (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), name text NOT NULL, company_name text NOT NULL, email text NOT NULL,
+ phone text, role_title text, company_size text, message text, primary_interest text, source text NOT NULL DEFAULT 'demo_request',
+ status text NOT NULL DEFAULT 'new' CHECK(status IN ('new','contacted','converted','lost')), organization_id uuid REFERENCES valorapesquisa.organizations(id),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_leads_status_created ON valorapesquisa.leads(status,created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.lead_notes (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), lead_id uuid NOT NULL REFERENCES valorapesquisa.leads(id) ON DELETE CASCADE,
+ author_user_id uuid REFERENCES valorapesquisa.users(id), note text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.public_signup_attempts (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email_hash text NOT NULL, ip_hash text, status text NOT NULL,
+ failure_code text, organization_id uuid REFERENCES valorapesquisa.organizations(id), created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_signup_attempts_rate ON valorapesquisa.public_signup_attempts(ip_hash,created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.email_confirmations (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES valorapesquisa.users(id) ON DELETE CASCADE,
+ token_hash text NOT NULL UNIQUE, expires_at timestamptz NOT NULL, confirmed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.onboarding_states (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL UNIQUE REFERENCES valorapesquisa.organizations(id) ON DELETE CASCADE,
+ status text NOT NULL DEFAULT 'pending', current_step text NOT NULL DEFAULT 'company_profile', completed_at timestamptz, updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.commercial_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), lead_id uuid,
+ event_type text NOT NULL, source text NOT NULL DEFAULT 'public_portal', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_commercial_events_created ON valorapesquisa.commercial_events(created_at DESC,event_type);
+
 INSERT INTO valorapesquisa.plans(code,name,description,monthly_price,annual_price,is_public,is_active,is_legacy,display_order)
 VALUES ('free','Grátis','Para conhecer o Valora Insight™.',0,0,true,true,false,10),
  ('start','Start','Para iniciar a gestão de diagnósticos.',149,1490,true,true,false,20),
@@ -91,11 +117,14 @@ INSERT INTO valorapesquisa.permissions(code,name,module_code,status)
 SELECT code,name,'organization','active' FROM (VALUES
  ('plans.read','Consultar planos'),('plans.manage','Gerenciar planos'),('subscriptions.read','Consultar assinaturas'),
  ('subscriptions.manage','Gerenciar assinaturas'),('billing.read','Consultar cobrança'),('billing.manage','Gerenciar cobrança'),
- ('usage.read','Consultar consumo'),('usage.manage','Gerenciar consumo'),('upgrades.manage','Gerenciar upgrades')) p(code,name)
+ ('usage.read','Consultar consumo'),('usage.manage','Gerenciar consumo'),('upgrades.manage','Gerenciar upgrades'),
+ ('leads.read','Consultar leads'),('leads.manage','Gerenciar leads'),('trials.read','Consultar trials'),('trials.manage','Gerenciar trials'),
+ ('commercial.read','Consultar operação comercial'),('commercial.manage','Gerenciar operação comercial'),
+ ('onboarding.read','Consultar onboarding'),('onboarding.manage','Gerenciar onboarding')) p(code,name)
 ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,module_code=EXCLUDED.module_code,status='active';
 
 INSERT INTO valorapesquisa.role_permissions(role_id,permission_id)
 SELECT r.id,p.id FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p
 WHERE lower(r.code)='admin_valora' AND r.organization_id IS NULL
-  AND p.code IN ('plans.read','plans.manage','subscriptions.read','subscriptions.manage','billing.read','billing.manage','usage.read','usage.manage','upgrades.manage')
+  AND p.code IN ('plans.read','plans.manage','subscriptions.read','subscriptions.manage','billing.read','billing.manage','usage.read','usage.manage','upgrades.manage','leads.read','leads.manage','trials.read','trials.manage','commercial.read','commercial.manage','onboarding.read','onboarding.manage')
 ON CONFLICT DO NOTHING;

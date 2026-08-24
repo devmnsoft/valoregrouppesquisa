@@ -1,10 +1,10 @@
 @{ ViewData["Title"] = "Criar conta"; Layout = "_AuthLayout"; }
 <section class="page-card auth-card" data-page="register-company-page">
-  <p class="eyebrow">Onboarding empresarial</p><h2>Criar conta da empresa</h2>
-  <p class="text-muted">Conclua as três etapas para iniciar sua jornada no Valora Insight™.</p>
+  <p class="eyebrow">Teste profissional por 14 dias</p><h2>Criar conta da empresa</h2>
+  <p class="text-muted">A organização, o administrador e o trial são criados juntos. Nenhum pagamento é solicitado nesta etapa.</p>
   <form class="needs-validation valora-form" novalidate>
     <fieldset><legend>1. Empresa</legend><div class="row g-3">
-      <div class="col-md-6"><label class="form-label" for="cnpj">CNPJ</label><input id="cnpj" class="form-control" name="cnpj" inputmode="numeric" required></div>
+      <div class="col-md-6"><label class="form-label" for="cnpj">CNPJ</label><input id="cnpj" class="form-control" name="cnpj" inputmode="numeric" required><small>Necessário para criar a entidade jurídica no ambiente profissional.</small></div>
       <div class="col-md-6"><label class="form-label" for="phone">Telefone</label><input id="phone" class="form-control" name="phone" autocomplete="tel" required></div>
       <div class="col-12"><label class="form-label" for="companyName">Razão social</label><input id="companyName" class="form-control" name="companyName" required></div>
       <div class="col-12"><label class="form-label" for="tradeName">Nome fantasia</label><input id="tradeName" class="form-control" name="tradeName"></div>
@@ -12,11 +12,14 @@
     <fieldset class="mt-4"><legend>2. Administrador</legend><div class="row g-3">
       <div class="col-12"><label class="form-label" for="administratorName">Nome</label><input id="administratorName" class="form-control" name="administratorName" autocomplete="name" required></div>
       <div class="col-12"><label class="form-label" for="administratorEmail">E-mail corporativo</label><input id="administratorEmail" class="form-control" type="email" name="administratorEmail" autocomplete="email" required></div>
+      <div class="col-12"><label class="form-label" for="roleTitle">Cargo</label><input id="roleTitle" class="form-control" name="roleTitle" autocomplete="organization-title"></div>
       <div class="col-md-6"><label class="form-label" for="password">Senha</label><input id="password" class="form-control" type="password" name="password" autocomplete="new-password" minlength="12" required></div>
       <div class="col-md-6"><label class="form-label" for="confirmPassword">Confirmar senha</label><input id="confirmPassword" class="form-control" type="password" name="confirmPassword" autocomplete="new-password" minlength="12" required></div>
     </div></fieldset>
-    <fieldset class="mt-4"><legend>3. Configuração e consentimentos</legend><input type="hidden" name="language" value="pt-BR"><input type="hidden" name="timeZone" value="America/Belem">
-      <div class="form-check"><input class="form-check-input" type="checkbox" name="terms" id="terms" required><label class="form-check-label" for="terms">Li e aceito os termos de uso.</label></div>
+    <fieldset class="mt-4"><legend>3. Plano e consentimentos</legend><input type="hidden" name="language" value="pt-BR"><input type="hidden" name="timeZone" value="America/Belem">
+      <label class="form-label" for="planCode">Plano do trial</label><select id="planCode" name="planCode" class="form-select" data-selected-plan="@ViewData["SelectedPlan"]"><option value="growth">Growth — recomendado para avaliar inteligência e benchmark</option><option value="start">Start — operação essencial</option></select>
+      <p class="text-muted mt-2">Trial de 14 dias. Ao expirar, o acesso fica limitado e você poderá escolher como continuar.</p>
+      <div class="form-check"><input class="form-check-input" type="checkbox" name="terms" id="terms" required><label class="form-check-label" for="terms">Li e aceito os <a href="/termos-de-uso" target="_blank">termos de uso</a>.</label></div>
       <div class="form-check mt-2"><input class="form-check-input" type="checkbox" name="privacy" id="privacy" required><label class="form-check-label" for="privacy">Li e aceito a política de privacidade.</label></div>
     </fieldset>
     <button class="btn btn-primary btn-lg w-100 mt-4" type="submit">Criar conta segura</button>

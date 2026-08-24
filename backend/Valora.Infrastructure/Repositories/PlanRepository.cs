@@ -137,7 +137,8 @@ public sealed class PlanRepository(IDbConnectionFactory connections, ILogger<Pla
             FROM valorapesquisa.subscriptions AS s
             INNER JOIN valorapesquisa.plans AS p ON p.id = s.plan_id
             WHERE s.organization_id = @OrganizationId
-              AND s.status = 'active'
+              AND s.status IN ('active', 'trialing')
+              AND (s.status <> 'trialing' OR COALESCE(s.trial_ends_at, s.ends_at) > now())
               AND s.deleted_at IS NULL
               AND p.is_active = true
             ORDER BY s.created_at DESC

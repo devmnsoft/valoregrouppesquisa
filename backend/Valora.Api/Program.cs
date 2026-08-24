@@ -5,6 +5,7 @@ using Valora.Api.Middleware;
 using Valora.Application.DependencyInjection;
 using Valora.Infrastructure.DependencyInjection;
 using Valora.Infrastructure.Database;
+using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,6 +15,13 @@ builder.Host.UseSerilog((context, logger) => logger
     .WriteTo.Console());
 
 builder.Services.AddMemoryCache();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("public-write", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
+});
 builder.Services.Configure<Valora.Api.Configuration.FreeSurveySecurityOptions>(builder.Configuration.GetSection("FreeSurveySecurity"));
 builder.Services.AddApiServices(builder.Configuration);
 builder.Services.AddApplicationServices();
@@ -62,6 +70,7 @@ if (app.Environment.IsDevelopment())
 }
 app.UseSerilogRequestLogging();
 app.UseCors("ValoraWebCors");
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<MaintenanceModeMiddleware>();

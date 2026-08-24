@@ -14,7 +14,7 @@ public sealed class OrganizationBrandingRepository(IDbConnectionFactory factory,
     }
     public async Task<bool> HasCapabilityAsync(Guid organizationId,string capability,CancellationToken cancellationToken=default)
     {
-        using var c=factory.Create(); const string sql="""SELECT COALESCE(bool_or(pc.enabled),false) FROM valorapesquisa.subscriptions s JOIN valorapesquisa.plan_capabilities pc ON pc.plan_id=s.plan_id WHERE s.organization_id=@organizationId AND s.status='active' AND s.deleted_at IS NULL AND lower(pc.capability_key)=lower(@capability)""";
+        using var c=factory.Create(); const string sql="""SELECT COALESCE(bool_or(pc.enabled),false) FROM valorapesquisa.subscriptions s JOIN valorapesquisa.plan_capabilities pc ON pc.plan_id=s.plan_id WHERE s.organization_id=@organizationId AND s.status IN ('active','trialing') AND (s.status<>'trialing' OR COALESCE(s.trial_ends_at,s.ends_at)>now()) AND s.deleted_at IS NULL AND lower(pc.capability_key)=lower(@capability)""";
         return await c.ExecuteScalarAsync<bool>(new CommandDefinition(sql,new{organizationId,capability},cancellationToken:cancellationToken));
     }
     public async Task<OrganizationBrandingResponse?> UpdateAsync(Guid organizationId,UpdateOrganizationBrandingRequest request,CancellationToken cancellationToken=default)

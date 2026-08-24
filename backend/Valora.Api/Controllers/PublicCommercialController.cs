@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.CommercialDelivery;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Valora.Api.Controllers;
 
@@ -16,6 +17,7 @@ public sealed class PublicCommercialController(PublicCommercialService service) 
     public IActionResult Plans() => Ok(new { priceMessage="Planos comerciais sob consulta, conforme escopo e porte da organização.", items=new[]{new{code="free",name="Gratuito"},new{code="professional",name="Profissional"},new{code="enterprise",name="Enterprise"}} });
 
     [AllowAnonymous]
+    [EnableRateLimiting("public-write")]
     [HttpPost("/api/v1/public/leads")]
     [HttpPost("/api/v1/public/diagnostic/start")]
     public async Task<IActionResult> Start([FromBody] PublicLeadRequest request, CancellationToken ct)
@@ -25,6 +27,7 @@ public sealed class PublicCommercialController(PublicCommercialService service) 
     }
 
     [AllowAnonymous]
+    [EnableRateLimiting("public-write")]
     [HttpPost("/api/v1/public/contact-requests")]
     [HttpPost("/api/v1/public/plan-interest")]
     public async Task<IActionResult> Contact([FromBody] CommercialRequestInput request,CancellationToken ct)

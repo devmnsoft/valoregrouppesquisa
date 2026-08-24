@@ -1405,6 +1405,39 @@ WHERE r.deleted_at IS NULL AND r.code IN('admin_valora','consultor_valora','empr
   AND p.code IN('organizational_intelligence.read','organizational_intelligence.generate','organizational_intelligence.journey.create')
 ON CONFLICT(role_id,permission_id) DO NOTHING;
 
+-- Premium organizational journeys. Columns precede indexes so clean and
+-- partially provisioned installations converge safely.
+CREATE TABLE IF NOT EXISTS valorapesquisa.survey_campaigns (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), survey_id uuid,
+ name varchar(180) NOT NULL, audience_description text, starts_at timestamptz, ends_at timestamptz, status varchar(30) NOT NULL DEFAULT 'draft',
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_survey_campaigns_org_status ON valorapesquisa.survey_campaigns(organization_id,status,ends_at) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.organizational_priorities (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), diagnostic_id uuid,
+ origin varchar(80) NOT NULL, evidence_reference text NOT NULL, title varchar(200) NOT NULL, impact varchar(30) NOT NULL,
+ urgency varchar(30) NOT NULL, owner_user_id uuid REFERENCES valorapesquisa.users(id), recommended_action text NOT NULL,
+ status varchar(30) NOT NULL DEFAULT 'open', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_priorities_org_status ON valorapesquisa.organizational_priorities(organization_id,status,urgency) WHERE deleted_at IS NULL;
+
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+ ('onboarding.read','Visualizar onboarding','Consulta o progresso da configuração organizacional.','organization'),
+ ('onboarding.manage','Gerenciar onboarding','Mantém a configuração guiada da organização.','organization'),
+ ('campaigns.read','Visualizar campanhas','Consulta campanhas e adesão da coleta.','surveys'),
+ ('campaigns.manage','Gerenciar campanhas','Publica campanhas, convites e lembretes.','surveys'),
+ ('respondents.read','Visualizar respondentes','Consulta participação conforme regras de privacidade.','organization'),
+ ('respondents.manage','Gerenciar respondentes','Mantém públicos e convites autorizados.','organization'),
+ ('evidence.read','Visualizar evidências','Consulta evidências e sua rastreabilidade.','organizational_intelligence'),
+ ('evidence.manage','Gerenciar evidências','Classifica e vincula evidências autorizadas.','organizational_intelligence'),
+ ('indexes.read','Visualizar índices','Consulta índices oficiais e sua composição.','organizational_intelligence'),
+ ('priorities.read','Visualizar prioridades','Consulta riscos e oportunidades priorizados.','organizational_intelligence'),
+ ('priorities.manage','Gerenciar prioridades','Atribui responsáveis e atualiza decisões prioritárias.','organizational_intelligence'),
+ ('leadership.read','Visualizar lideranças','Consulta a jornada autorizada de lideranças.','organizational_intelligence'),
+ ('leadership.manage','Gerenciar lideranças','Mantém acompanhamento e desenvolvimento de lideranças.','organizational_intelligence'),
+ ('settings.manage','Gerenciar configurações','Mantém configurações permitidas da organização.','settings'),
+ ('branding.manage','Gerenciar marca','Mantém identidade visual autorizada da organização.','organization')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code,updated_at=now();
+
 CREATE TABLE IF NOT EXISTS valorapesquisa.organizational_intelligence_runs(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
  maturity_index numeric(6,2) NOT NULL CHECK(maturity_index BETWEEN 0 AND 100), culture_trust_index numeric(6,2) NOT NULL CHECK(culture_trust_index BETWEEN 0 AND 100),

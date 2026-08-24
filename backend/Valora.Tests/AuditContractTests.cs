@@ -14,5 +14,6 @@ public sealed class AuditContractTests
         Assert.Equal("{}", entry.MetadataJson);
         Assert.Equal("VALORA-2026-A", entry.EntityId);
         Assert.Equal("corr-1", entry.CorrelationId);
+        Assert.Equal("info", entry.Severity);
     }
 }

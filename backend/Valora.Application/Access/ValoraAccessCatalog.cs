@@ -106,6 +106,11 @@ public static class ValoraPermissions
     public static class Settings { public const string Read="settings.read", Update="settings.update"; }
     public static class SettingsManagement { public const string Manage="settings.manage"; }
     public static class OrganizationalIntelligence { public const string Read="organizational_intelligence.read", Generate="organizational_intelligence.generate", JourneyCreate="organizational_intelligence.journey.create", ActionCreate="organizational_intelligence.action.create"; }
+    public static class DecisionCenter { public const string Read="decision_center.read"; }
+    public static class Decisions { public const string Read="decisions.read", Manage="decisions.manage", Approve="decisions.approve"; }
+    public static class Alerts { public const string Read="alerts.read", Manage="alerts.manage", Resolve="alerts.resolve"; }
+    public static class Indicators { public const string Read="indicators.read", Manage="indicators.manage"; }
+    public static class Governance { public const string Read="governance.read", Manage="governance.manage", MeetingsRead="governance.meetings.read", MeetingsManage="governance.meetings.manage"; }
     public static class IntelligentDeliverables
     {
         public const string DashboardRead="dashboard.read", RadarRead="radar.read", ReportsRead="reports.read",
@@ -156,7 +161,7 @@ public static class ValoraPermissions
         "users" or "roles" or "sessions" or "invitations" => ValoraModules.Identity,
         "organization" or "units" or "departments" or "business_groups" or "legal_entities" or "plans" or
         "subscriptions" or "billing" or "usage" or "upgrades" => ValoraModules.Organization,
-        "organizational_intelligence" or "diagnostics" or "dashboard" or "radar" or "reports" or "action" or "heatmap" or
+        "organizational_intelligence" or "decision_center" or "decisions" or "alerts" or "indicators" or "governance" or "diagnostics" or "dashboard" or "radar" or "reports" or "action" or "heatmap" or
         "evolution" or "journey" or "benchmark" or "insights" or "ai" or "one_on_one" or
         "evidence" or "indexes" or "priorities" or "leadership" or "leadership_development" or "intelligence" or "questions" => "organizational_intelligence",
         "onboarding" or "branding" => ValoraModules.Organization,

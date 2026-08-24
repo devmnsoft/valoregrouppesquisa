@@ -73,8 +73,16 @@ public sealed class BenchmarkRepository(IDbConnectionFactory connections) : IBen
     }
     public async Task SaveSettingsAsync(Guid organizationId, BenchmarkSettings s, CancellationToken ct)
     {
-        const string sql="""INSERT INTO valorapesquisa.benchmark_settings(organization_id,minimum_organizations,minimum_responses,external_enabled,require_anonymization) VALUES(@organizationId,@MinimumOrganizations,@MinimumResponses,@ExternalEnabled,@RequireAnonymization)
-        ON CONFLICT(organization_id) DO UPDATE SET minimum_organizations=excluded.minimum_organizations,minimum_responses=excluded.minimum_responses,external_enabled=excluded.external_enabled,require_anonymization=excluded.require_anonymization,updated_at=now()""";
+        const string sql = """
+            INSERT INTO valorapesquisa.benchmark_settings(organization_id,minimum_organizations,minimum_responses,external_enabled,require_anonymization)
+            VALUES(@organizationId,@MinimumOrganizations,@MinimumResponses,@ExternalEnabled,@RequireAnonymization)
+            ON CONFLICT(organization_id) DO UPDATE SET
+              minimum_organizations=excluded.minimum_organizations,
+              minimum_responses=excluded.minimum_responses,
+              external_enabled=excluded.external_enabled,
+              require_anonymization=excluded.require_anonymization,
+              updated_at=now()
+            """;
         using var c=connections.Create(); await c.ExecuteAsync(new CommandDefinition(sql,new {organizationId,s.MinimumOrganizations,s.MinimumResponses,s.ExternalEnabled,s.RequireAnonymization},cancellationToken:ct));
     }
     private static BenchmarkSnapshotDto? Map(Row? r) => r is null ? null : new(r.Id,r.OrganizationId,r.SurveyId,r.ResultId,r.SnapshotType,r.MaturityScore,r.MaturityLevel,r.TotalResponses,JsonSerializer.Deserialize<List<BenchmarkDimension>>(r.DimensionsJson,new JsonSerializerOptions{PropertyNameCaseInsensitive=true}) ?? [],r.EvidenceSummary,r.GeneratedAt,JsonSerializer.Deserialize<JsonElement>(r.MetadataJson));

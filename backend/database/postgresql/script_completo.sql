@@ -2321,6 +2321,32 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.share_link_access_events (
  metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text, created_at timestamptz NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS ix_share_link_access_events_link ON valorapesquisa.share_link_access_events(share_link_id,created_at DESC);
 
+-- Execuções de IA: entrada minimizada, saída, consumo e revisão humana permanecem
+-- rastreáveis e sempre isolados pela organização da execução.
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_ai_runs (
+ id uuid PRIMARY KEY, organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ diagnosis_id uuid NOT NULL, prompt_code varchar(100) NOT NULL, prompt_version int NOT NULL,
+ provider varchar(100) NOT NULL, model varchar(100) NOT NULL, status varchar(40) NOT NULL,
+ correlation_id text NOT NULL, input_json jsonb NOT NULL, output_json jsonb, validation_json jsonb,
+ input_tokens int, output_tokens int, estimated_cost numeric(14,6), error text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_valora_ai_runs_org_created ON valorapesquisa.valora_ai_runs(organization_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_valora_ai_runs_diagnosis ON valorapesquisa.valora_ai_runs(organization_id,diagnosis_id,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_ai_reviews (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), run_id uuid NOT NULL REFERENCES valorapesquisa.valora_ai_runs(id),
+ reviewer_id uuid NOT NULL, status varchar(40) NOT NULL, note text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_valora_ai_reviews_run ON valorapesquisa.valora_ai_reviews(run_id,created_at DESC);
+
+-- Arquivo formal imutável. O conteúdo persistido permite download posterior sem
+-- depender de filesystem local ou regeneração com dados potencialmente alterados.
+CREATE TABLE IF NOT EXISTS valorapesquisa.formal_documents (
+ id uuid PRIMARY KEY, organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), diagnosis_id uuid NOT NULL,
+ format varchar(30) NOT NULL, file_name varchar(240) NOT NULL, content_type varchar(160) NOT NULL,
+ content bytea NOT NULL, trace_code varchar(64) NOT NULL UNIQUE, generated_by uuid,
+ generated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_formal_documents_org_diagnosis ON valorapesquisa.formal_documents(organization_id,diagnosis_id,generated_at DESC);
+
 ALTER TABLE valorapesquisa.exports ADD COLUMN IF NOT EXISTS survey_id uuid;
 ALTER TABLE valorapesquisa.exports ADD COLUMN IF NOT EXISTS scope varchar(80);
 ALTER TABLE valorapesquisa.exports ADD COLUMN IF NOT EXISTS requested_by uuid;

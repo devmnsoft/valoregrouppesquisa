@@ -11,4 +11,6 @@ public sealed record UserRecord(
     DateTimeOffset? LastLoginAt,
     DateTimeOffset CreatedAt,
     DateTimeOffset? UpdatedAt,
-    string[] RoleCodes);
+    string[] RoleCodes) {
+    public object DeletedAt { get; internal set; }
+}

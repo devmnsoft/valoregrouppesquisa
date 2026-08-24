@@ -8,4 +8,8 @@
   <ItemGroup>
     <PackageReference Include="Serilog.AspNetCore" />
   </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Valora.Application\Valora.Application.csproj" />
+  </ItemGroup>
 </Project>

@@ -96,8 +96,17 @@ public static class ValoraPermissions
     {
         public const string DashboardRead="dashboard.read", RadarRead="radar.read", ReportsRead="reports.read",
             ReportsGenerate="reports.generate", ActionRead="action.read", ActionManage="action.manage",
-            HeatmapRead="heatmap.read", EvolutionRead="evolution.read", JourneyRead="journey.read",
+            HeatmapRead="heatmap.read", EvolutionRead="evolution.read", EvolutionManage="evolution.manage", JourneyRead="journey.read",
             BenchmarkRead="benchmark.read", InsightsRead="insights.read";
+    }
+    public static class OneOnOne
+    {
+        public const string Read="one_on_one.read", Manage="one_on_one.manage", Schedule="one_on_one.schedule",
+            NotesManage="one_on_one.notes.manage", FeedbackManage="one_on_one.feedback.manage";
+    }
+    public static class LeadershipDevelopment
+    {
+        public const string Read="leadership_development.read", Manage="leadership_development.manage";
     }
     public static class Ai
     {
@@ -120,7 +129,8 @@ public static class ValoraPermissions
         "organization" or "units" or "departments" or "business_groups" or "legal_entities" or "plans" or
         "subscriptions" or "billing" or "usage" or "upgrades" => ValoraModules.Organization,
         "organizational_intelligence" or "dashboard" or "radar" or "reports" or "action" or "heatmap" or
-        "evolution" or "journey" or "benchmark" or "insights" or "ai" => "organizational_intelligence",
+        "evolution" or "journey" or "benchmark" or "insights" or "ai" or "one_on_one" or
+        "leadership_development" or "action" => "organizational_intelligence",
         var capability => capability
     };
 }

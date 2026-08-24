@@ -15,7 +15,7 @@ public sealed class MethodologicalScoringServiceTests
 
         Assert.Equal(62.50m, result.OverallScore);
         Assert.Equal(66.67m, result.Dimensions.Single(x => x.Code == "governance").Score);
-        Assert.Equal("developing", result.MaturityLevel);
+        Assert.Equal("integrated", result.MaturityLevel);
         Assert.Equal(3, result.Evidence.Count);
     }
 

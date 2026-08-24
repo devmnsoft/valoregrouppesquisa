@@ -1,3 +1,5 @@
+using Valora.Domain.Methodology;
+
 namespace Valora.Application.OrganizationalIntelligence;
 
 /// <summary>Deterministic, evidence-first read engine. It never completes absent dimensions with synthetic values.</summary>
@@ -105,7 +107,7 @@ public sealed class ValoraIntelligenceEngine : IValoraIntelligenceEngine
     }
 
     private static string Confidence(int count) => count > 6 ? "high" : count >= 4 ? "medium" : "low";
-    private static string Level(decimal? score) => score switch { null => "não avaliado", < 35 => "inicial", < 50 => "em estruturação", < 75 => "consistente", _ => "sustentado" };
+    private static string Level(decimal? score) => score is null ? "Não avaliado" : OrganizationalMaturity.Label(score.Value);
     private static int OfficialOrder(string name) { var i = ValoraOfficialDimensions.All.ToList().FindIndex(x => Equivalent(x, name)); return i < 0 ? int.MaxValue : i; }
     private static bool Equivalent(string left, string right) => Normalize(left) == Normalize(right);
     private static string Normalize(string value) => new(value.Normalize(System.Text.NormalizationForm.FormD).Where(c => System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) != System.Globalization.UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(c)).Select(char.ToLowerInvariant).ToArray());

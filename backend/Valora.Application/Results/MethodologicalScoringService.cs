@@ -1,3 +1,5 @@
+using Valora.Domain.Methodology;
+
 namespace Valora.Application.Results;
 
 public sealed record MethodologicalAnswer(
@@ -82,14 +84,7 @@ public sealed class MethodologicalScoringService
                 decimal.Round(group.Sum(x => x.Score * x.Answer.Weight) / weight, 2), weight, group.Count());
         }).OrderBy(x => x.Code, StringComparer.OrdinalIgnoreCase).ToArray();
 
-    private static string ResolveLevel(decimal? score) => score switch
-    {
-        null => "insufficient_evidence",
-        < 20m => "initial",
-        < 40m => "structuring",
-        < 60m => "developing",
-        < 75m => "consistent",
-        < 90m => "mature",
-        _ => "intelligent"
-    };
+    private static string ResolveLevel(decimal? score) => score is null
+        ? "insufficient_evidence"
+        : OrganizationalMaturity.Code(score.Value);
 }

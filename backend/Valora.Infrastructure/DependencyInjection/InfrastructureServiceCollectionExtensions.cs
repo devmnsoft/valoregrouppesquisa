@@ -83,12 +83,18 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IDiagnosticCampaignRepository, DiagnosticCampaignRepository>();
         services.AddScoped<IAssistedOperationsRepository, AssistedOperationsRepository>();
         services.AddScoped<IPublicCommercialRepository, PublicCommercialRepository>();
-        services.AddScoped<IValoraAiRunRepository, ValoraAiRunRepository>();
-        services.AddScoped<IDiagnosisDocumentSnapshotProvider, DiagnosisDocumentSnapshotProvider>();
-        services.AddScoped<IShareLinkRepository, ShareLinkRepository>();
+        services.AddAiAndFormalDeliverablePersistence();
         services.AddScoped<IDocumentAccessPolicy, DocumentAccessPolicy>();
         services.AddScoped<IDocumentStore, DocumentStore>();
         services.AddScoped<IExportAuditService, ExportAuditService>();
+        return services;
+    }
+
+    private static IServiceCollection AddAiAndFormalDeliverablePersistence(this IServiceCollection services)
+    {
+        services.AddScoped<IValoraAiRunRepository, ValoraAiRunRepository>();
+        services.AddScoped<IDiagnosisDocumentSnapshotProvider, DiagnosisDocumentSnapshotProvider>();
+        services.AddScoped<IShareLinkRepository, ShareLinkRepository>();
         return services;
     }
 

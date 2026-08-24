@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Valora.Web.Controllers;
 
+[AllowAnonymous]
 public sealed class HomeController(ILogger<HomeController> logger) : Controller
 {
     public IActionResult Index()

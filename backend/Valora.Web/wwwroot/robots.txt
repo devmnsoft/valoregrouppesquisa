@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /Administration/
+Disallow: /Dashboard/
+Sitemap: /sitemap.xml

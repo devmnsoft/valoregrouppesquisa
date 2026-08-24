@@ -5,25 +5,26 @@ using Valora.Application.Contracts;
 using Valora.Application.Security;
 using Valora.Application.DTOs;
 using Valora.Application.Services;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace Valora.Api.Controllers;
 
 [ApiController]
 public sealed class AuthController(AuthService auth, IUserRepository users, ILogger<AuthController> logger) : ControllerBase
 {
-    [HttpPost("/api/v1/auth/register-company")]
+    [AllowAnonymous, EnableRateLimiting("public-write"), HttpPost("/api/v1/auth/register-company")]
     public async Task<IActionResult> Register(RegisterCompanyRequest request)
     {
         return Ok(await auth.RegisterCompanyAsync(request));
     }
 
-    [HttpPost("/api/v1/auth/login")]
+    [AllowAnonymous, EnableRateLimiting("public-write"), HttpPost("/api/v1/auth/login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
         return Ok(await auth.LoginAsync(request));
     }
 
-    [HttpPost("/api/v1/auth/refresh")]
+    [AllowAnonymous, HttpPost("/api/v1/auth/refresh")]
     public async Task<ActionResult<AuthenticationResult>> Refresh(RefreshRequest request) => Ok(await auth.RefreshAsync(request));
 
     [Authorize, HttpPost("/api/v1/auth/logout")]
@@ -50,7 +51,7 @@ public sealed class AuthController(AuthService auth, IUserRepository users, ILog
         return NoContent();
     }
 
-    [HttpPost("/api/v1/auth/forgot-password")]
+    [AllowAnonymous, EnableRateLimiting("public-write"), HttpPost("/api/v1/auth/forgot-password")]
     public async Task<IActionResult> Forgot(ForgotPasswordRequest request)
     {
         try
@@ -65,7 +66,7 @@ public sealed class AuthController(AuthService auth, IUserRepository users, ILog
         }
     }
 
-    [HttpPost("/api/v1/auth/reset-password")]
+    [AllowAnonymous, EnableRateLimiting("public-write"), HttpPost("/api/v1/auth/reset-password")]
     public async Task<IActionResult> Reset(ResetPasswordRequest request)
     {
         await auth.ResetPasswordAsync(request);

@@ -1,10 +1,36 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Valora.Web.Models;
 
 namespace Valora.Web.Controllers;
 
+[AllowAnonymous]
 public sealed class PublicPagesController(ILogger<PublicPagesController> logger) : Controller
 {
+    [HttpGet("sitemap.xml")]
+    [Produces("application/xml")]
+    public ContentResult Sitemap()
+    {
+        var origin = $"{Request.Scheme}://{Request.Host}";
+        var paths = new[] { "", "sobre", "metodologia", "planos", "demonstracao", "cadastro", "entrar", "privacy", "termos", "certificados/validar" };
+        var urls = string.Concat(paths.Select(path => $"<url><loc>{System.Security.SecurityElement.Escape($"{origin}/{path}")}</loc></url>"));
+        return Content($"<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">{urls}</urlset>", "application/xml");
+    }
+
+    [HttpGet("sobre")]
+    public IActionResult About() => PublicView("About", "Sobre o Valora Insight™");
+
+    [HttpGet("metodologia")]
+    public IActionResult Methodology() => PublicView("Methodology", "Metodologia Valora™");
+
+    [HttpGet("termos")]
+    [HttpGet("termos-de-uso")]
+    public IActionResult Terms() => PublicView("Terms", "Termos de Uso");
+
+    [HttpGet("demonstracao")]
+    [HttpGet("solicitar-demonstracao")]
+    public IActionResult Demo() => PublicView("Demo", "Solicitar demonstração");
+
     [Route("diagnostico-gratuito")]
     [Route("Diagnostico")]
     [Route("Diagnostico/Maturidade-Organizacional")]

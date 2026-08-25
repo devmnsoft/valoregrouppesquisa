@@ -92,15 +92,16 @@ public static class ValoraPermissions
     public static class Departments { public const string Read="departments.read", Create="departments.create", Update="departments.update", Disable="departments.disable", Delete="departments.delete"; }
     public static class BusinessGroups { public const string Read="business_groups.read", Create="business_groups.create", Update="business_groups.update", Disable="business_groups.disable", Delete="business_groups.delete"; }
     public static class LegalEntities { public const string Read="legal_entities.read", Create="legal_entities.create", Update="legal_entities.update", Disable="legal_entities.disable", Delete="legal_entities.delete"; }
-    public static class Invitations { public const string Read="invitations.read", Create="invitations.create", Resend="invitations.resend", Cancel="invitations.cancel"; }
+    public static class Invitations { public const string Read="invitations.read", Manage="invitations.manage", Create="invitations.create", Resend="invitations.resend", Cancel="invitations.cancel"; }
     public static class Sessions { public const string Read="sessions.read", Revoke="sessions.revoke"; }
     public static class Users { public const string Read="users.read", Create="users.create", Update="users.update", Disable="users.disable", AssignRoles="users.assign_roles", AssignScopes="users.assign_scopes"; }
     public static class Roles { public const string Read="roles.read", Create="roles.create", Update="roles.update", Delete="roles.delete", AssignPermissions="roles.assign_permissions"; }
-    public static class Forms { public const string Read="forms.read", Create="forms.create", Update="forms.update", Publish="forms.publish", Archive="forms.archive", Restore="forms.restore"; }
+    public static class Forms { public const string Read="forms.read", Manage="forms.manage", Create="forms.create", Update="forms.update", Publish="forms.publish", Archive="forms.archive", Restore="forms.restore"; }
     public static class Surveys { public const string Read="surveys.read", Create="surveys.create", Update="surveys.update", Publish="surveys.publish", Distribute="surveys.distribute", Close="surveys.close"; }
-    public static class Responses { public const string Read="responses.read", Export="responses.export", Anonymize="responses.anonymize"; }
+    public static class Responses { public const string Read="responses.read", Manage="responses.manage", Export="responses.export", Anonymize="responses.anonymize"; }
     public static class Results { public const string Read="results.read", Export="results.export", Compare="results.compare"; }
-    public static class Diagnostics { public const string Read="diagnostics.read", Manage="diagnostics.manage"; }
+    public static class Diagnostics { public const string Read="diagnostics.read", Manage="diagnostics.manage", Close="diagnostics.close", Calculate="diagnostics.calculate"; }
+    public static class Questions { public const string Read="questions.read", Manage="questions.manage"; }
     public static class Onboarding { public const string Read="onboarding.read", Manage="onboarding.manage"; }
     public static class Campaigns { public const string Read="campaigns.read", Manage="campaigns.manage"; }
     public static class Respondents { public const string Read="respondents.read", Manage="respondents.manage"; }
@@ -110,7 +111,7 @@ public static class ValoraPermissions
     public static class Leadership { public const string Read="leadership.read", Manage="leadership.manage"; }
     public static class LeadershipDevelopmentAccess { public const string Read="leadership.development.read", Manage="leadership.development.manage"; }
     public static class Branding { public const string Manage="branding.manage"; }
-    public static class WorkflowForms { public const string Manage="forms.manage"; }
+    public static class WorkflowForms { public static readonly string Manage=Forms.Manage; }
     public static class WorkflowResponses { public const string Submit="responses.submit"; }
     public static class WorkflowResults { public const string Manage="results.manage"; }
     public static class Intelligence { public const string Read="intelligence.read", Process="intelligence.process"; }
@@ -173,7 +174,7 @@ public static class ValoraPermissions
     {
         public const string Read="administration.read", Manage="administration.manage";
         public const string OrganizationsRead="organizations.read", OrganizationsManage="organizations.manage",
-            QuestionsRead="questions.read", QuestionsManage="questions.manage", IntelligenceManage="intelligence.manage",
+            IntelligenceManage="intelligence.manage",
             IntegrationsRead="integrations.read", IntegrationsManage="integrations.manage",
             NotificationsRead="notifications.read", NotificationsManage="notifications.manage", JobsRead="jobs.read",
             JobsManage="jobs.manage", LogsRead="logs.read", SupportRead="support.read", SupportManage="support.manage";

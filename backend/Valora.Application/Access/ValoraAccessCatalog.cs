@@ -108,6 +108,7 @@ public static class ValoraPermissions
     public static class Indexes { public const string Read="indexes.read"; }
     public static class Priorities { public const string Read="priorities.read", Manage="priorities.manage"; }
     public static class Leadership { public const string Read="leadership.read", Manage="leadership.manage"; }
+    public static class LeadershipDevelopmentAccess { public const string Read="leadership.development.read", Manage="leadership.development.manage"; }
     public static class Branding { public const string Manage="branding.manage"; }
     public static class WorkflowForms { public const string Manage="forms.manage"; }
     public static class WorkflowResponses { public const string Submit="responses.submit"; }
@@ -153,8 +154,9 @@ public static class ValoraPermissions
     }
     public static class OneOnOne
     {
-        public const string Read="one_on_one.read", Manage="one_on_one.manage", Schedule="one_on_one.schedule",
-            NotesManage="one_on_one.notes.manage", FeedbackManage="one_on_one.feedback.manage";
+        public const string Read="one_on_one.read", Manage="one_on_one.manage", SessionsRead="one_on_one.sessions.read",
+            SessionsManage="one_on_one.sessions.manage", PrivateNotesRead="one_on_one.private_notes.read", PrivateNotesManage="one_on_one.private_notes.manage",
+            Schedule="one_on_one.schedule", NotesManage="one_on_one.notes.manage", FeedbackManage="one_on_one.feedback.manage";
     }
     public static class LeadershipDevelopment
     {

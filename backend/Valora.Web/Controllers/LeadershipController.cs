@@ -1,12 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
+using Microsoft.AspNetCore.Authorization;using Microsoft.AspNetCore.Mvc;using Valora.Application.OneOnOne;
 namespace Valora.Web.Controllers;
-
-[Authorize]
-[Route("Leadership")]
-public sealed class LeadershipController : Controller
-{
-    [HttpGet("")] public IActionResult Index() => View();
-    [HttpGet("Details/{id:guid}")] public IActionResult Details(Guid id) { ViewData["LeaderId"] = id; return View(); }
-}
+[Authorize,Route("Leadership")]public sealed class LeadershipController(LeadershipProfileService service):Controller{Guid O=>Guid.TryParse(User.FindFirst("organization_id")?.Value??User.FindFirst("organizationId")?.Value,out var x)?x:Guid.Empty;[HttpGet("")]public async Task<IActionResult>Index(CancellationToken c)=>View(await service.List(O,c));[HttpGet("Details/{id:guid}")]public async Task<IActionResult>Details(Guid id,CancellationToken c){var x=await service.Get(O,id,c);return x is null?NotFound():View(x);}}

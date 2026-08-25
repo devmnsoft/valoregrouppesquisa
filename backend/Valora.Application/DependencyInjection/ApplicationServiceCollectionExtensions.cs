@@ -20,6 +20,9 @@ using Valora.Application.FormalDeliverables;
 using Valora.Application.Integrations;
 using Valora.Application.ValoraAi;
 using Valora.Application.DecisionCenter;
+using Valora.Application.ActionCenter;
+using Valora.Application.Evolution;
+using Valora.Application.Journey;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -29,6 +32,10 @@ public static class ApplicationServiceCollectionExtensions
     {
         services.AddScoped<IBenchmarkManagementService, BenchmarkManagementService>();
         services.AddScoped<DecisionCenterService>();
+        services.AddScoped<ActionPlanService>(); services.AddScoped<ActionItemService>(); services.AddScoped<ActionProgressService>(); services.AddScoped<Valora.Application.ActionCenter.ActionRecommendationService>();
+        services.AddScoped<GenerateActionPlanFromDiagnosticUseCase>(); services.AddScoped<CreateActionFromInsightUseCase>(); services.AddScoped<CreateActionFromAlertUseCase>(); services.AddScoped<CreateActionFromDecisionUseCase>(); services.AddScoped<UpdateActionProgressUseCase>(); services.AddScoped<CompleteActionUseCase>(); services.AddScoped<BlockActionUseCase>();
+        services.AddScoped<Valora.Application.Evolution.EvolutionCycleService>(); services.AddScoped<EvolutionSnapshotService>(); services.AddScoped<EvolutionMeasurementService>(); services.AddScoped<OpenEvolutionCycleUseCase>(); services.AddScoped<CloseEvolutionCycleUseCase>(); services.AddScoped<GenerateEvolutionSnapshotUseCase>();
+        services.AddScoped<Valora.Application.Journey.JourneyService>(); services.AddScoped<JourneyTimelineService>(); services.AddScoped<JourneyEventService>(); services.AddScoped<RegisterJourneyEventUseCase>(); services.AddScoped<GenerateJourneyTimelineUseCase>();
         services.AddSingleton<ISensitiveDataSanitizer, SensitiveDataSanitizer>();
         services.AddSingleton<ValoraInsightCalculator>();
         services.AddSingleton<ValoraInsightDevolutivaService>();
@@ -98,9 +105,9 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IValoraIndexCalculationService, ValoraIndexCalculationService>();
         services.AddScoped<IInferenceEngine, EvidenceInferenceEngine>();
         services.AddScoped<IInsightGenerationService, InsightGenerationService>();
-        services.AddScoped<IActionRecommendationService, ActionRecommendationService>();
-        services.AddScoped<IEvolutionService, EvolutionService>();
-        services.AddScoped<IJourneyService, JourneyService>();
+        services.AddScoped<IActionRecommendationService, Valora.Application.OrganizationalIntelligence.ActionRecommendationService>();
+        services.AddScoped<IEvolutionService, Valora.Application.OrganizationalIntelligence.EvolutionService>();
+        services.AddScoped<IJourneyService, Valora.Application.OrganizationalIntelligence.JourneyService>();
         services.AddScoped<IHeatmapService, HeatmapService>();
         services.AddScoped<IRadarService, RadarService>();
         services.AddScoped<IBenchmarkService, BenchmarkService>();

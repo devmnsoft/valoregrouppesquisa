@@ -1,11 +1,3 @@
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-
-namespace Valora.Web.Controllers;
-
-[Authorize]
-[Route("Evolution")]
-public sealed class EvolutionController : Controller
-{
-    [HttpGet("")] public IActionResult Index() => View();
-}
+using System.Security.Claims;using Microsoft.AspNetCore.Authorization;using Microsoft.AspNetCore.Mvc;using Valora.Application.Evolution;
+namespace Valora.Web.Controllers;[Authorize][Route("Evolution")]public sealed class EvolutionController(EvolutionCycleService cycles,EvolutionSnapshotService snapshots):Controller{Guid O=>Guid.TryParse(User.FindFirstValue("organization_id")??User.FindFirstValue("organizationId"),out var x)?x:Guid.Empty;Guid U=>Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier)??User.FindFirstValue("sub"),out var x)?x:Guid.Empty;[HttpGet("")]public async Task<IActionResult>Index(CancellationToken c)=>View(await cycles.List(O,c));[HttpGet("Cycles")]public async Task<IActionResult>Cycles(CancellationToken c)=>View(await cycles.List(O,c));[ValidateAntiForgeryToken,HttpPost("Cycles/Open")]public async Task<IActionResult>Open(OpenEvolutionCycleRequest r,CancellationToken c){var id=await cycles.Open(O,U,r,c);return RedirectToAction(nameof(Details),new{id});}[HttpGet("Cycles/Details/{id:guid}")]public async Task<IActionResult>Details(Guid id,CancellationToken c){var x=await cycles.Get(O,id,c);return x is null?NotFound():View(new EvolutionDetailsViewModel(x,await snapshots.List(O,id,c)));}[ValidateAntiForgeryToken,HttpPost("Cycles/{id:guid}/Snapshot")]public async Task<IActionResult>Snapshot(Guid id,string evidence,string interpretation,string recommendation,CancellationToken c){await snapshots.Generate(O,U,id,evidence,interpretation,recommendation,c);return RedirectToAction(nameof(Details),new{id});}}
+public sealed record EvolutionDetailsViewModel(EvolutionCycleDto Cycle,IReadOnlyList<EvolutionSnapshotDto> Snapshots);

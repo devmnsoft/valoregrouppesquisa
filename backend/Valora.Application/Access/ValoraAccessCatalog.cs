@@ -132,6 +132,7 @@ public static class ValoraPermissions
     public static class Action { public const string Read="action.read", Manage="action.manage", Approve="action.approve", Complete="action.complete", CommentsManage="action.comments.manage"; }
     public static class Evolution { public const string Read="evolution.read", Manage="evolution.manage", SnapshotsGenerate="evolution.snapshots.generate"; }
     public static class Journey { public const string Read="journey.read", Manage="journey.manage", EventsCreate="journey.events.create", EventsManage="journey.events.manage"; }
+    public static class Heatmap { public const string Generate="heatmap.generate", Manage="heatmap.manage"; }
     public static class IntelligentDeliverables
     {
         public const string DashboardRead="dashboard.read", RadarRead="radar.read", HeatmapRead="heatmap.read",
@@ -148,7 +149,7 @@ public static class ValoraPermissions
     public static class Benchmark
     {
         public const string Generate="benchmark.generate", Compare="benchmark.compare",
-            Export="benchmark.export", Admin="benchmark.admin";
+            Export="benchmark.export", Admin="benchmark.admin", Manage="benchmark.manage";
     }
     public static class OneOnOne
     {

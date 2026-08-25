@@ -3,13 +3,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Contracts;
 using Valora.Application.OrganizationalIntelligence;
+using Valora.Application.Heatmap;
 
 namespace Valora.Api.Controllers;
 
 [Authorize, ApiController, Route("api/v1/intelligence")]
 public sealed class OrganizationalIntelligenceController(IOrganizationalIntelligenceService service,
     IValoraIntelligenceEngine deliverables, IOrganizationalIntelligencePipeline pipeline,
-    IPermissionService permissions, IEntitlementService entitlements, IBenchmarkManagementService benchmarks) : ControllerBase
+    IPermissionService permissions, IEntitlementService entitlements, IBenchmarkManagementService benchmarks,
+    Valora.Application.Heatmap.IHeatmapService heatmaps) : ControllerBase
 {
     /// <summary>Canonical evidence-first read model shared by Dashboard, Radar, Report, Action, Heatmap and Insights.</summary>
     [HttpGet("deliverables")]
@@ -56,7 +58,13 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     [HttpGet("evolution")]
     public async Task<IActionResult> Evolution([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.EvolutionAsync(id, ct));
     [HttpGet("heatmap")]
-    public async Task<IActionResult> Heatmap([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", async id => (await service.DashboardAsync(id, ct)).Evidence.Dimensions);
+    public async Task<IActionResult> Heatmap([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, Valora.Application.Access.ValoraPermissions.IntelligentDeliverables.HeatmapRead, id => heatmaps.OverviewAsync(id,ct));
+    [HttpGet("heatmap/{id:guid}")]
+    public async Task<IActionResult> HeatmapDetail(Guid id,[FromQuery] Guid? organizationId,CancellationToken ct)
+    { var access=await Validate(organizationId,Valora.Application.Access.ValoraPermissions.IntelligentDeliverables.HeatmapRead);if(access.Error is not null)return access.Error;var item=await heatmaps.GetAsync(access.OrganizationId,id,ct);return item is null?NotFound():Ok(item); }
+    [HttpPost("heatmap/generate")]
+    public async Task<IActionResult> GenerateHeatmap([FromBody] GenerateHeatmapRequest request,[FromQuery] Guid? organizationId,CancellationToken ct)
+    { var access=await Validate(organizationId,Valora.Application.Access.ValoraPermissions.Heatmap.Generate);if(access.Error is not null)return access.Error;return StatusCode(201,await heatmaps.GenerateAsync(access.OrganizationId,UserId,request,ct)); }
     [HttpGet("evidence")]
     public async Task<IActionResult> Evidence([FromQuery] Guid? organizationId, [FromQuery] Guid? surveyId,
         [FromQuery] Guid? responseId, [FromQuery] Guid? questionId, [FromQuery] string? concept,

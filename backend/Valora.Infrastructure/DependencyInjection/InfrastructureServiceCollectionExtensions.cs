@@ -79,6 +79,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IActionPlanRepository, ActionPlanRepository>(); services.AddScoped<IActionItemRepository, ActionItemRepository>(); services.AddScoped<IRecommendationRepository, RecommendationRepository>(); services.AddScoped<IEvolutionRepository, EvolutionRepository>(); services.AddScoped<IJourneyRepository, JourneyRepository>();
         services.AddScoped<IIntelligencePipelineRepository, IntelligencePipelineRepository>();
         services.AddScoped<IBenchmarkRepository, BenchmarkRepository>();
+        services.AddScoped<Valora.Application.Heatmap.IHeatmapRepository, HeatmapRepository>();
         services.AddScoped<IIntelligenceProcessingJobRepository, IntelligenceProcessingJobRepository>();
         services.AddScoped<IValoraBotRepository, ValoraBotRepository>();
         services.AddScoped<IMethodologyRepository, MethodologyRepository>();

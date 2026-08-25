@@ -2791,6 +2791,72 @@ ALTER TABLE valorapesquisa.benchmark_results
  ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
  ADD COLUMN IF NOT EXISTS correlation_id text;
 
+-- Valora Heatmap™ e Benchmark™ profissional. Migração aditiva para instalações
+-- limpas ou parcialmente provisionadas; nenhuma leitura cria causas ou pessoas.
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+ ('heatmap.read','Visualizar Heatmap','Consulta mapas organizacionais agregados.','organizational_intelligence'),
+ ('heatmap.generate','Gerar Heatmap','Gera mapa somente a partir de resultados reais.','organizational_intelligence'),
+ ('heatmap.manage','Gerenciar Heatmap','Administra snapshots, filtros e interpretações.','organizational_intelligence'),
+ ('benchmark.manage','Gerenciar Benchmark','Administra comparações organizacionais não punitivas.','organizational_intelligence')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code,updated_at=now();
+
+ALTER TABLE valorapesquisa.heatmap_snapshots
+ ADD COLUMN IF NOT EXISTS diagnostic_id uuid REFERENCES valorapesquisa.surveys(id),
+ ADD COLUMN IF NOT EXISTS result_id uuid REFERENCES valorapesquisa.result_scores(id),
+ ADD COLUMN IF NOT EXISTS title text NOT NULL DEFAULT 'Heatmap organizacional',
+ ADD COLUMN IF NOT EXISTS snapshot_type varchar(40) NOT NULL DEFAULT 'dimension',
+ ADD COLUMN IF NOT EXISTS generated_by_user_id uuid REFERENCES valorapesquisa.users(id),
+ ADD COLUMN IF NOT EXISTS generated_at timestamptz NOT NULL DEFAULT now(),
+ ADD COLUMN IF NOT EXISTS filters_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ ADD COLUMN IF NOT EXISTS evidence_summary text NOT NULL DEFAULT 'Sem evidências agregadas.',
+ ADD COLUMN IF NOT EXISTS ai_summary text,
+ ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE valorapesquisa.heatmap_cells
+ ADD COLUMN IF NOT EXISTS heatmap_snapshot_id uuid REFERENCES valorapesquisa.heatmap_snapshots(id),
+ ADD COLUMN IF NOT EXISTS dimension text,
+ ADD COLUMN IF NOT EXISTS index_code varchar(40),
+ ADD COLUMN IF NOT EXISTS area_name text,
+ ADD COLUMN IF NOT EXISTS unit_name text,
+ ADD COLUMN IF NOT EXISTS leadership_name text,
+ ADD COLUMN IF NOT EXISTS score numeric(12,4),
+ ADD COLUMN IF NOT EXISTS level varchar(40) NOT NULL DEFAULT 'amostra insuficiente',
+ ADD COLUMN IF NOT EXISTS risk_level varchar(40) NOT NULL DEFAULT 'indeterminado',
+ ADD COLUMN IF NOT EXISTS trend varchar(40) NOT NULL DEFAULT 'sem série comparável',
+ ADD COLUMN IF NOT EXISTS response_count int NOT NULL DEFAULT 0,
+ ADD COLUMN IF NOT EXISTS evidence_summary text NOT NULL DEFAULT 'Sem evidências agregadas.',
+ ADD COLUMN IF NOT EXISTS recommendation text NOT NULL DEFAULT 'Ampliar a amostra antes de interpretar.',
+ ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+CREATE INDEX IF NOT EXISTS ix_heatmap_snapshots_org_generated ON valorapesquisa.heatmap_snapshots(organization_id,generated_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_heatmap_cells_snapshot ON valorapesquisa.heatmap_cells(heatmap_snapshot_id,score) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.heatmap_filters(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),heatmap_snapshot_id uuid REFERENCES valorapesquisa.heatmap_snapshots(id),
+ filter_type varchar(40) NOT NULL,filter_value text,metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.heatmap_ai_interpretations(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),heatmap_snapshot_id uuid NOT NULL REFERENCES valorapesquisa.heatmap_snapshots(id),
+ evidence_summary text NOT NULL,interpretation text NOT NULL,limitations text NOT NULL,metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz);
+
+ALTER TABLE valorapesquisa.benchmark_comparisons
+ ADD COLUMN IF NOT EXISTS diagnostic_id uuid REFERENCES valorapesquisa.surveys(id),
+ ADD COLUMN IF NOT EXISTS result_id uuid REFERENCES valorapesquisa.result_scores(id),
+ ADD COLUMN IF NOT EXISTS title text NOT NULL DEFAULT 'Comparação organizacional',
+ ADD COLUMN IF NOT EXISTS status varchar(30) NOT NULL DEFAULT 'generated',
+ ADD COLUMN IF NOT EXISTS baseline_label text NOT NULL DEFAULT 'Base',
+ ADD COLUMN IF NOT EXISTS target_label text NOT NULL DEFAULT 'Referência',
+ ADD COLUMN IF NOT EXISTS generated_by_user_id uuid REFERENCES valorapesquisa.users(id),
+ ADD COLUMN IF NOT EXISTS generated_at timestamptz NOT NULL DEFAULT now(),
+ ADD COLUMN IF NOT EXISTS filters_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ ADD COLUMN IF NOT EXISTS evidence_summary text NOT NULL DEFAULT 'Comparação agregada.',
+ ADD COLUMN IF NOT EXISTS ai_summary text;
+CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_comparison_items(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),benchmark_comparison_id uuid NOT NULL REFERENCES valorapesquisa.benchmark_comparisons(id),
+ dimension text,index_code varchar(40),baseline_score numeric(12,4),target_score numeric(12,4),difference numeric(12,4),sample_size int NOT NULL DEFAULT 0,
+ evidence_summary text NOT NULL DEFAULT 'Sem evidências agregadas.',metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.benchmark_ai_insights(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),benchmark_comparison_id uuid NOT NULL REFERENCES valorapesquisa.benchmark_comparisons(id),
+ evidence_summary text NOT NULL,insight text NOT NULL,limitations text NOT NULL,metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_benchmark_comparison_items_comparison ON valorapesquisa.benchmark_comparison_items(benchmark_comparison_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_benchmark_ai_insights_comparison ON valorapesquisa.benchmark_ai_insights(benchmark_comparison_id) WHERE deleted_at IS NULL;
+
 CREATE TABLE IF NOT EXISTS valorapesquisa.import_batches (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), import_type varchar(60) NOT NULL, file_name text,
  source_hash text NOT NULL, status varchar(30) NOT NULL DEFAULT 'uploaded', valid_rows int NOT NULL DEFAULT 0, invalid_rows int NOT NULL DEFAULT 0,

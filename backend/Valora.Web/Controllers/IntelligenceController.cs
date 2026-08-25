@@ -38,6 +38,10 @@ public sealed class IntelligenceController : Controller
     public IActionResult Evolution() => Workspace("evolution");
     public IActionResult Journey() => Workspace("journey");
     public IActionResult Heatmap() => Workspace("heatmap");
+    [HttpGet("Heatmap")]
+    public IActionResult HeatmapCanonical() => Workspace("heatmap");
+    [HttpGet("Heatmap/Details/{id:guid}")]
+    public IActionResult HeatmapDetails(Guid id) { ViewData["HeatmapId"] = id; return View("Heatmap", Workspaces["heatmap"]); }
     public IActionResult Radar() => Workspace("radar");
     public IActionResult Benchmark() => Workspace("benchmark");
     [HttpGet("Benchmark")]

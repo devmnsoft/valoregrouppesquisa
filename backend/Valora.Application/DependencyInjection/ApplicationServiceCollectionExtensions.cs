@@ -31,6 +31,19 @@ public static class ApplicationServiceCollectionExtensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddScoped<IBenchmarkManagementService, BenchmarkManagementService>();
+        services.AddScoped<Valora.Application.Heatmap.IHeatmapService, Valora.Application.Heatmap.HeatmapService>();
+        services.AddScoped<Valora.Application.Heatmap.HeatmapCalculationService>();
+        services.AddScoped<Valora.Application.Heatmap.HeatmapAiInterpretationService>();
+        services.AddScoped<Valora.Application.Heatmap.HeatmapQueryService>();
+        services.AddScoped<Valora.Application.Heatmap.GenerateHeatmapSnapshotUseCase>();
+        services.AddScoped<Valora.Application.Heatmap.GetHeatmapOverviewUseCase>();
+        services.AddScoped<Valora.Application.Benchmark.BenchmarkService>();
+        services.AddScoped<Valora.Application.Benchmark.BenchmarkCalculationService>();
+        services.AddScoped<Valora.Application.Benchmark.BenchmarkAiInsightService>();
+        services.AddScoped<Valora.Application.Benchmark.BenchmarkQueryService>();
+        services.AddScoped<Valora.Application.Benchmark.GenerateBenchmarkComparisonUseCase>();
+        services.AddScoped<Valora.Application.Benchmark.GetBenchmarkDetailsUseCase>();
+        services.AddScoped<Valora.Application.Benchmark.GenerateBenchmarkAiInsightUseCase>();
         services.AddScoped<DecisionCenterService>();
         services.AddScoped<ActionPlanService>(); services.AddScoped<ActionItemService>(); services.AddScoped<ActionProgressService>(); services.AddScoped<Valora.Application.ActionCenter.ActionRecommendationService>();
         services.AddScoped<GenerateActionPlanFromDiagnosticUseCase>(); services.AddScoped<CreateActionFromInsightUseCase>(); services.AddScoped<CreateActionFromAlertUseCase>(); services.AddScoped<CreateActionFromDecisionUseCase>(); services.AddScoped<UpdateActionProgressUseCase>(); services.AddScoped<CompleteActionUseCase>(); services.AddScoped<BlockActionUseCase>();

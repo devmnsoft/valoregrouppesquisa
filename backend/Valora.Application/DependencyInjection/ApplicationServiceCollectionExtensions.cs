@@ -23,6 +23,7 @@ using Valora.Application.DecisionCenter;
 using Valora.Application.ActionCenter;
 using Valora.Application.Evolution;
 using Valora.Application.Journey;
+using Valora.Application.OneOnOne;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -30,6 +31,8 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<OneOnOneSessionService>(); services.AddScoped<OneOnOneAgendaService>(); services.AddScoped<OneOnOneCommitmentService>(); services.AddScoped<OneOnOneAiSuggestionService>(); services.AddScoped<LeadershipProfileService>(); services.AddScoped<LeadershipDevelopmentService>();
+        services.AddScoped<CreateOneOnOneSessionUseCase>(); services.AddScoped<ScheduleOneOnOneSessionUseCase>(); services.AddScoped<CompleteOneOnOneSessionUseCase>(); services.AddScoped<GenerateOneOnOneAgendaUseCase>(); services.AddScoped<RegisterOneOnOneCommitmentUseCase>(); services.AddScoped<RegisterLeadershipFeedbackUseCase>(); services.AddScoped<GenerateLeadershipDevelopmentSnapshotUseCase>();
         services.AddScoped<IBenchmarkManagementService, BenchmarkManagementService>();
         services.AddScoped<Valora.Application.Heatmap.IHeatmapService, Valora.Application.Heatmap.HeatmapService>();
         services.AddScoped<Valora.Application.Heatmap.HeatmapCalculationService>();

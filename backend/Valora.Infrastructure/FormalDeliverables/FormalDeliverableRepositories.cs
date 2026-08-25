@@ -11,12 +11,10 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
     {
         using var connection = connections.Create();
         await connection.ExecuteAsync(new CommandDefinition("""
-            INSERT INTO valorapesquisa.share_links
-              (id,organization_id,entity_type,entity_id,token_hash,scope,status,expires_at,created_by,metadata_json)
-            VALUES (@Id,@OrganizationId,'diagnosis',@DiagnosisId,@TokenHash,
-                    CASE WHEN @AllowDownload THEN 'read download' ELSE 'read' END,'active',@ExpiresAt,@CreatedBy,
-                    jsonb_build_object('allow_download',@AllowDownload))
-            """, new { link.Id, link.OrganizationId, link.DiagnosisId, link.TokenHash, link.ExpiresAt,
+            INSERT INTO valorapesquisa.secure_share_links
+              (id,organization_id,diagnostic_id,token_hash,public_slug,title,status,expires_at,allow_download,created_by_user_id)
+            VALUES (@Id,@OrganizationId,@DiagnosisId,@TokenHash,@DatabaseSlug,'Resultado Valora Insight','active',@ExpiresAt,@AllowDownload,@CreatedBy)
+            """, new { link.Id, link.OrganizationId, link.DiagnosisId, link.TokenHash, DatabaseSlug = link.Id.ToString("N"), link.ExpiresAt,
                 link.AllowDownload, CreatedBy = createdBy }, cancellationToken: cancellationToken));
     }
 
@@ -24,11 +22,11 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
     {
         using var connection = connections.Create();
         return await connection.QuerySingleOrDefaultAsync<ShareLink>(new CommandDefinition("""
-            SELECT id, organization_id AS OrganizationId, entity_id AS DiagnosisId, token_hash AS TokenHash,
-                   expires_at AS ExpiresAt, COALESCE((metadata_json->>'allow_download')::boolean,false) AS AllowDownload,
-                   revoked_at AS RevokedAt
-            FROM valorapesquisa.share_links
-            WHERE token_hash=@TokenHash AND entity_type='diagnosis' AND deleted_at IS NULL
+            SELECT id, organization_id AS OrganizationId, diagnostic_id AS DiagnosisId, token_hash AS TokenHash,
+                   public_slug AS PublicSlug, expires_at AS ExpiresAt, allow_download AS AllowDownload,
+                   max_access_count AS MaxAccessCount, access_count AS AccessCount, revoked_at AS RevokedAt
+            FROM valorapesquisa.secure_share_links
+            WHERE token_hash=@TokenHash AND status='active' AND deleted_at IS NULL
             """, new { TokenHash = tokenHash }, cancellationToken: cancellationToken));
     }
 
@@ -36,9 +34,23 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
     {
         using var connection = connections.Create();
         return await connection.ExecuteAsync(new CommandDefinition("""
-            UPDATE valorapesquisa.share_links SET status='revoked',revoked_at=now(),updated_at=now()
+            UPDATE valorapesquisa.secure_share_links SET status='revoked',revoked_at=now(),updated_at=now()
             WHERE id=@LinkId AND organization_id=@OrganizationId AND revoked_at IS NULL AND deleted_at IS NULL
             """, new { LinkId = linkId, OrganizationId = organizationId }, cancellationToken: cancellationToken)) == 1;
+    }
+
+    public async Task RegisterAccessAsync(Guid linkId, bool downloadRequested, CancellationToken cancellationToken = default)
+    {
+        using var connection = connections.Create();
+        connection.Open();
+        using var transaction = connection.BeginTransaction();
+        await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE valorapesquisa.secure_share_links SET access_count=access_count+1,updated_at=now()
+            WHERE id=@LinkId AND status='active' AND deleted_at IS NULL;
+            INSERT INTO valorapesquisa.secure_share_link_access_logs(share_link_id,access_type,was_allowed)
+            VALUES (@LinkId,CASE WHEN @DownloadRequested THEN 'download' ELSE 'view' END,true)
+            """, new { LinkId=linkId, DownloadRequested=downloadRequested }, transaction, cancellationToken: cancellationToken));
+        transaction.Commit();
     }
 }
 

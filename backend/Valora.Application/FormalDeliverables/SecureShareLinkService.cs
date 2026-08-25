@@ -10,18 +10,21 @@ public sealed class SecureShareLinkService(IShareLinkRepository repository, IExp
         if (lifetime <= TimeSpan.Zero || lifetime > TimeSpan.FromDays(90))
             throw new ArgumentOutOfRangeException(nameof(lifetime), "A validade deve estar entre um instante e 90 dias.");
         var token = Base64Url(RandomNumberGenerator.GetBytes(32));
-        var link = new ShareLink(Guid.NewGuid(), organizationId, diagnosisId, Hash(token), DateTimeOffset.UtcNow.Add(lifetime), allowDownload);
+        // The opaque route segment is the token itself. Only its SHA-256 digest is persisted.
+        var link = new ShareLink(Guid.NewGuid(), organizationId, diagnosisId, Hash(token), token, DateTimeOffset.UtcNow.Add(lifetime), allowDownload);
         await repository.SaveAsync(link, userId, cancellationToken);
         await audit.RecordAsync(organizationId, userId, "share_link.created", "diagnosis", diagnosisId.ToString(), true, null, cancellationToken);
-        return new CreatedShareLink(link.Id, token, link.ExpiresAt, link.AllowDownload);
+        return new CreatedShareLink(link.Id, token, token, link.ExpiresAt, link.AllowDownload);
     }
 
     public async Task<ShareLink?> ResolveAsync(string token, bool downloadRequested, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(token) || token.Length < 40) return null;
         var link = await repository.FindByHashAsync(Hash(token), cancellationToken);
-        if (link is null || link.RevokedAt.HasValue || link.ExpiresAt <= DateTimeOffset.UtcNow) return null;
+        if (link is null || link.RevokedAt.HasValue || link.ExpiresAt <= DateTimeOffset.UtcNow ||
+            (link.MaxAccessCount.HasValue && link.AccessCount >= link.MaxAccessCount.Value)) return null;
         if (downloadRequested && !link.AllowDownload) return null;
+        await repository.RegisterAccessAsync(link.Id, downloadRequested, cancellationToken);
         await audit.RecordAsync(link.OrganizationId, null, "share_link.accessed", "diagnosis", link.DiagnosisId.ToString(), true, null, cancellationToken);
         return link;
     }

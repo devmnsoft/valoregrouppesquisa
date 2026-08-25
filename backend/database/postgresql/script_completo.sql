@@ -1360,6 +1360,104 @@ INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_e
 -- 36. COMMIT
 COMMIT;
 
+-- Valora Executive Deliverables (idempotent consolidation, 2026-08).
+BEGIN;
+CREATE TABLE IF NOT EXISTS valorapesquisa.formal_deliverables (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, diagnostic_id uuid,
+ result_id uuid, deliverable_type varchar(40) NOT NULL, title varchar(200) NOT NULL,
+ description text, status varchar(30) NOT NULL DEFAULT 'pending', generated_by_user_id uuid,
+ file_id uuid, share_link_id uuid, metadata_json jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.formal_deliverable_files (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, deliverable_id uuid NOT NULL,
+ file_name varchar(255) NOT NULL, content_type varchar(160) NOT NULL, file_extension varchar(16) NOT NULL,
+ file_path text NOT NULL, file_size_bytes bigint NOT NULL CHECK(file_size_bytes > 0), checksum char(64) NOT NULL,
+ storage_provider varchar(40) NOT NULL DEFAULT 'database', created_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.formal_deliverable_templates (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid, deliverable_type varchar(40) NOT NULL,
+ name varchar(160) NOT NULL, version integer NOT NULL DEFAULT 1, template_json jsonb NOT NULL DEFAULT '{}',
+ is_active boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.formal_deliverable_generation_jobs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, deliverable_id uuid,
+ status varchar(30) NOT NULL DEFAULT 'queued', requested_by_user_id uuid, error_message text,
+ requested_at timestamptz NOT NULL DEFAULT now(), started_at timestamptz, completed_at timestamptz
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.secure_share_links (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, deliverable_id uuid,
+ diagnostic_id uuid, result_id uuid, token_hash char(64) NOT NULL UNIQUE, public_slug varchar(80) NOT NULL UNIQUE,
+ title varchar(200) NOT NULL, status varchar(20) NOT NULL DEFAULT 'active', expires_at timestamptz NOT NULL,
+ max_access_count integer, access_count integer NOT NULL DEFAULT 0, allow_download boolean NOT NULL DEFAULT false,
+ requires_pin boolean NOT NULL DEFAULT false, pin_hash char(64), created_by_user_id uuid, revoked_at timestamptz,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ CHECK (max_access_count IS NULL OR max_access_count > 0), CHECK (NOT requires_pin OR pin_hash IS NOT NULL)
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.secure_share_link_access_logs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), share_link_id uuid NOT NULL, access_type varchar(20) NOT NULL,
+ was_allowed boolean NOT NULL, denial_reason varchar(80), ip_hash char(64), user_agent_hash char(64), accessed_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.certificate_issuances (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, deliverable_id uuid,
+ diagnostic_id uuid, result_id uuid, public_code varchar(80) NOT NULL UNIQUE, score numeric(10,2), maturity_level varchar(100),
+ issued_by_user_id uuid, issued_at timestamptz NOT NULL DEFAULT now(), status varchar(20) NOT NULL DEFAULT 'valid', revoked_at timestamptz
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.certificate_download_logs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), certificate_issuance_id uuid NOT NULL, organization_id uuid NOT NULL,
+ actor_user_id uuid, share_link_id uuid, was_allowed boolean NOT NULL, downloaded_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.report_generation_logs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, deliverable_id uuid, diagnostic_id uuid,
+ result_id uuid, format varchar(16) NOT NULL, status varchar(30) NOT NULL, generated_by_user_id uuid,
+ detail text, created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.public_result_sessions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, share_link_id uuid NOT NULL,
+ session_hash char(64) NOT NULL UNIQUE, expires_at timestamptz NOT NULL, last_access_at timestamptz NOT NULL DEFAULT now(),
+ created_at timestamptz NOT NULL DEFAULT now(), revoked_at timestamptz
+);
+-- Repair partially provisioned installations before indexes or repositories use these columns.
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS diagnostic_id uuid;
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS result_id uuid;
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS file_id uuid;
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS share_link_id uuid;
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}';
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS diagnostic_id uuid;
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS result_id uuid;
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS deliverable_id uuid;
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS public_slug varchar(80);
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS status varchar(20) NOT NULL DEFAULT 'active';
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS max_access_count integer;
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS access_count integer NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS allow_download boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS requires_pin boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS pin_hash char(64);
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS revoked_at timestamptz;
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+CREATE INDEX IF NOT EXISTS ix_formal_deliverables_org_result ON valorapesquisa.formal_deliverables(organization_id,result_id,created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_formal_deliverable_files_deliverable ON valorapesquisa.formal_deliverable_files(deliverable_id,created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_secure_share_links_lookup ON valorapesquisa.secure_share_links(token_hash,status,expires_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_share_access_link ON valorapesquisa.secure_share_link_access_logs(share_link_id,accessed_at DESC);
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+ ('deliverables.read','Consultar entregáveis','Consulta entregas formais da organização.','organizational_intelligence'),
+ ('deliverables.manage','Gerenciar entregáveis','Gerencia entregas formais da organização.','organizational_intelligence'),
+ ('reports.download','Baixar relatórios','Baixa relatórios executivos autorizados.','organizational_intelligence'),
+ ('certificates.download','Baixar certificados','Baixa certificados autorizados.','certificates'),
+ ('share_links.read','Consultar links seguros','Consulta compartilhamentos seguros.','organizational_intelligence'),
+ ('share_links.manage','Gerenciar links seguros','Cria e revoga compartilhamentos seguros.','organizational_intelligence'),
+ ('public_results.manage','Gerenciar resultados públicos','Gerencia a publicação de resultados.','organizational_intelligence')
+ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,module_code=excluded.module_code;
+INSERT INTO valorapesquisa.role_permissions(role_id,permission_id,created_at)
+SELECT r.id,p.id,now() FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p
+WHERE r.code='admin_valora' AND r.deleted_at IS NULL AND p.code IN
+('deliverables.read','deliverables.manage','reports.read','reports.generate','reports.download','certificates.read','certificates.generate','certificates.download','share_links.read','share_links.manage','public_results.manage')
+ON CONFLICT(role_id,permission_id) DO NOTHING;
+COMMIT;
+
 
 
 

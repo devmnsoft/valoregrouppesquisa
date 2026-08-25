@@ -70,13 +70,15 @@ public interface IValoraDocumentService
 }
 
 public sealed record ShareLink(Guid Id, Guid OrganizationId, Guid DiagnosisId, string TokenHash,
-    DateTimeOffset ExpiresAt, bool AllowDownload, DateTimeOffset? RevokedAt = null);
-public sealed record CreatedShareLink(Guid Id, string Token, DateTimeOffset ExpiresAt, bool AllowDownload);
+    string PublicSlug, DateTimeOffset ExpiresAt, bool AllowDownload, int? MaxAccessCount = null,
+    int AccessCount = 0, DateTimeOffset? RevokedAt = null);
+public sealed record CreatedShareLink(Guid Id, string Token, string PublicSlug, DateTimeOffset ExpiresAt, bool AllowDownload);
 
 public interface IShareLinkRepository
 {
     Task SaveAsync(ShareLink link, Guid? createdBy, CancellationToken cancellationToken = default);
     Task<ShareLink?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default);
+    Task RegisterAccessAsync(Guid linkId, bool downloadRequested, CancellationToken cancellationToken = default);
     Task<bool> RevokeAsync(Guid organizationId, Guid linkId, CancellationToken cancellationToken = default);
 }
 

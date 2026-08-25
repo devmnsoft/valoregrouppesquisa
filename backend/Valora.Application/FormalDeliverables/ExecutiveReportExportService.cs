@@ -16,7 +16,7 @@ public sealed class ExecutiveReportExportService : IExecutiveReportExportService
         var slug = Slug(snapshot.OrganizationName);
         var (extension, mime, bytes) = format switch
         {
-            DeliverableFormat.Pdf or DeliverableFormat.CertificatePdf => ("pdf", "application/pdf", RenderPdf(snapshot, trace, format == DeliverableFormat.CertificatePdf)),
+            DeliverableFormat.Pdf or DeliverableFormat.CertificatePdf => ("pdf", "application/pdf", RenderPdf(snapshot, trace, generatedAt, format == DeliverableFormat.CertificatePdf)),
             DeliverableFormat.Xlsx => ("xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", RenderXlsx(snapshot, trace, generatedAt)),
             DeliverableFormat.Json => ("json", "application/json", RenderJson(snapshot, trace, generatedAt)),
             DeliverableFormat.Docx => throw new NotSupportedException("A exportação DOCX ainda não está habilitada neste ambiente. Use PDF ou XLSX."),
@@ -37,20 +37,24 @@ public sealed class ExecutiveReportExportService : IExecutiveReportExportService
         actionPlan = s.ActionPlan, generatedAt = at, traceCode = trace
     }, new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
-    private static byte[] RenderPdf(DiagnosisDocumentSnapshot s, string trace, bool certificate)
+    private static byte[] RenderPdf(DiagnosisDocumentSnapshot s, string trace, DateTimeOffset generatedAt, bool certificate)
     {
         var lines = new List<string>();
         if (certificate)
         {
-            lines.AddRange(["VALORA INSIGHT - CERTIFICADO", s.OrganizationName, s.DiagnosisName, $"Score geral: {s.OverallScore:0.0}", $"Maturidade: {s.MaturityLevel}", $"Metodologia: {s.MethodologyName} {s.MethodologyVersion}", $"Emitido em: {DateTimeOffset.UtcNow:dd/MM/yyyy}", $"Validacao: {trace}"]);
+            lines.AddRange(["VALORA INSIGHT - CERTIFICADO", s.OrganizationName, s.DiagnosisName, $"Score geral: {s.OverallScore:0.0}", $"Maturidade: {s.MaturityLevel}", $"Metodologia: {s.MethodologyName} {s.MethodologyVersion}", $"Emitido em: {generatedAt:dd/MM/yyyy}", $"Validacao publica: /p/certificates/{trace}"]);
         }
         else
         {
             lines.AddRange(["VALORA EXECUTIVE REPORT", s.OrganizationName, s.DiagnosisName, $"Score geral: {s.OverallScore:0.0} | {s.MaturityLevel}", "RESUMO EXECUTIVO", s.ExecutiveSummary, "LEITURA ESTRATEGICA", s.StrategicReading, "DIMENSOES"]);
             lines.AddRange(s.Dimensions.Select(x => $"{x.Name}: {x.Score:0.0} - {x.Interpretation}"));
+            lines.Add("EVIDENCIAS"); lines.AddRange(s.EvidenceItems.Count > 0 ? s.EvidenceItems.Select(x => $"{x.Dimension}: {x.Description} ({x.Source})") : ["Nenhuma evidencia consolidada foi disponibilizada para esta emissao."]);
             lines.Add("RISCOS"); lines.AddRange(s.Risks); lines.Add("OPORTUNIDADES"); lines.AddRange(s.Opportunities);
             lines.Add("PONTOS FORTES"); lines.AddRange(s.Strengths); lines.Add("FRAGILIDADES"); lines.AddRange(s.Weaknesses);
             lines.Add("PRIORIDADES E PLANO RECOMENDADO"); lines.AddRange(s.ActionPlan.Select(x => $"{x.Priority}: {x.Action} ({x.Owner})"));
+            lines.Add("DECISOES E EVOLUCAO"); lines.Add("Nao ha historico formal suficiente para apresentar decisoes ou evolucao nesta emissao.");
+            lines.Add("LIMITACOES DA ANALISE"); lines.Add("A leitura reflete somente respostas, scores e evidencias consolidadas disponiveis na data de emissao; dados ausentes nao foram inferidos.");
+            lines.Add($"Data de emissao: {generatedAt:dd/MM/yyyy HH:mm} UTC");
             lines.Add($"Metodologia: {s.MethodologyName} | versao {s.MethodologyVersion}"); lines.Add($"Rastreabilidade: {trace}");
         }
         var content = new StringBuilder("BT /F1 11 Tf 54 780 Td 0 -18 Td ");

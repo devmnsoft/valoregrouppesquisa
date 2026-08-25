@@ -99,7 +99,11 @@ public static class ValoraPermissions
     public static class WorkflowResponses { public const string Submit="responses.submit"; }
     public static class WorkflowResults { public const string Manage="results.manage"; }
     public static class Intelligence { public const string Read="intelligence.read", Process="intelligence.process"; }
-    public static class Certificates { public const string Read="certificates.read", Generate="certificates.generate", Revoke="certificates.revoke", Validate="certificates.validate"; }
+    public static class Deliverables { public const string Read="deliverables.read", Manage="deliverables.manage"; }
+    public static class Reports { public const string Read="reports.read", Generate="reports.generate", Download="reports.download"; }
+    public static class Certificates { public const string Read="certificates.read", Generate="certificates.generate", Download="certificates.download", Revoke="certificates.revoke", Validate="certificates.validate"; }
+    public static class ShareLinks { public const string Read="share_links.read", Manage="share_links.manage"; }
+    public static class PublicResults { public const string Manage="public_results.manage"; }
     public static class Communications { public const string Read="communications.read", Send="communications.send", Retry="communications.retry", Cancel="communications.cancel"; }
     public static class Audit { public const string Read="audit.read"; }
     public static class Operations { public const string Read="operations.read", Execute="operations.execute"; }
@@ -116,8 +120,7 @@ public static class ValoraPermissions
     public static class Journey { public const string Read="journey.read", Manage="journey.manage", EventsCreate="journey.events.create", EventsManage="journey.events.manage"; }
     public static class IntelligentDeliverables
     {
-        public const string DashboardRead="dashboard.read", RadarRead="radar.read", ReportsRead="reports.read",
-            ReportsGenerate="reports.generate", ActionRead="action.read", ActionManage="action.manage",
+        public const string DashboardRead="dashboard.read", RadarRead="radar.read", ActionRead="action.read", ActionManage="action.manage",
             HeatmapRead="heatmap.read", EvolutionRead="evolution.read", EvolutionManage="evolution.manage", JourneyRead="journey.read",
             BenchmarkRead="benchmark.read", InsightsRead="insights.read";
     }
@@ -173,7 +176,7 @@ public static class ValoraPermissions
         "users" or "roles" or "sessions" or "invitations" => ValoraModules.Identity,
         "organization" or "units" or "departments" or "business_groups" or "legal_entities" or "plans" or
         "subscriptions" or "billing" or "usage" or "upgrades" => ValoraModules.Organization,
-        "organizational_intelligence" or "methodology" or "decision_center" or "decisions" or "alerts" or "indicators" or "governance" or "diagnostics" or "dashboard" or "radar" or "reports" or "action" or "heatmap" or
+        "organizational_intelligence" or "methodology" or "decision_center" or "decisions" or "alerts" or "indicators" or "governance" or "diagnostics" or "dashboard" or "radar" or "reports" or "deliverables" or "share_links" or "public_results" or "action" or "heatmap" or
         "evolution" or "journey" or "benchmark" or "insights" or "ai" or "one_on_one" or
         "evidence" or "indexes" or "priorities" or "leadership" or "leadership_development" or "intelligence" or "questions" => "organizational_intelligence",
         "onboarding" or "branding" => ValoraModules.Organization,

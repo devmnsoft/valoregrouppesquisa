@@ -163,6 +163,18 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<IExecutiveReportExportService, ExecutiveReportExportService>();
         services.AddScoped<IValoraDocumentService, ValoraDocumentService>();
         services.AddScoped<ISecureShareLinkService, SecureShareLinkService>();
+        services.AddScoped<ExecutiveReportGenerationService>();
+        services.AddScoped<CertificateGenerationService>();
+        services.AddScoped<PublicResultPortalService>();
+        services.AddScoped<DeliverableAuditService>();
+        services.AddScoped<GenerateExecutiveReportUseCase>();
+        services.AddScoped<GenerateCertificateUseCase>();
+        services.AddScoped<CreateSecureShareLinkUseCase>();
+        services.AddScoped<ValidateSecureShareLinkUseCase>();
+        services.AddScoped<DownloadCertificateUseCase>();
+        services.AddScoped<DownloadReportUseCase>();
+        services.AddScoped<RevokeShareLinkUseCase>();
+        services.AddScoped<RegisterPublicResultAccessUseCase>();
         return services;
     }
 }

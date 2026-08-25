@@ -1,1 +1,7 @@
-@model IReadOnlyList<Valora.Application.Evolution.EvolutionCycleDto>@{ViewData["Title"]="Ciclos de Evolução";}<main class="valora-page"><header class="leadership-hero"><div><p class="eyebrow">Valora Evolution™</p><h1>Ciclos de evolução</h1></div></header><section class="valora-card"><table class="table"><thead><tr><th>Ciclo</th><th>Período</th><th>Status</th><th>Baseline</th><th>Atual</th><th>Tendência</th></tr></thead><tbody>@foreach(var c in Model){<tr><td><a href="/Evolution/Cycles/Details/@c.Id">@c.Title</a></td><td>@c.PeriodStart.ToString("dd/MM/yyyy")</td><td>@c.Status</td><td>@c.BaselineScore</td><td>@c.CurrentScore</td><td>@c.Trend</td></tr>}</tbody></table></section></main>
+@model IReadOnlyList<Valora.Application.Evolution.EvolutionCycleDto>
+
+@{
+    ViewData["Title"]="Ciclos de Evolução";
+}
+
+<main class="valora-page"><header class="leadership-hero"><div><p class="eyebrow">Valora Evolution™</p><h1>Ciclos de evolução</h1></div></header><section class="valora-card"><table class="table"><thead><tr><th>Ciclo</th><th>Período</th><th>Status</th><th>Baseline</th><th>Atual</th><th>Tendência</th></tr></thead><tbody>@foreach(var c in Model){<tr><td><a href="/Evolution/Cycles/Details/@c.Id">@c.Title</a></td><td>@c.PeriodStart.ToString("dd/MM/yyyy")</td><td>@c.Status</td><td>@c.BaselineScore</td><td>@c.CurrentScore</td><td>@c.Trend</td></tr>}</tbody></table></section></main>

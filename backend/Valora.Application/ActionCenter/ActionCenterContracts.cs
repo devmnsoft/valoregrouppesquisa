@@ -1,0 +1,17 @@
+namespace Valora.Application.ActionCenter;
+
+public static class ActionStatuses
+{
+    public static readonly IReadOnlySet<string> Plan = new HashSet<string>(["draft","proposed","approved","in_execution","completed","canceled"]);
+    public static readonly IReadOnlySet<string> Item = new HashSet<string>(["pending","in_progress","blocked","completed","canceled","overdue"]);
+    public static readonly IReadOnlySet<string> Priorities = new HashSet<string>(["critical","high","medium","low"]);
+}
+public sealed record ActionPlanDto(Guid Id,string Title,string Summary,string OriginType,string Status,string Priority,Guid? OwnerUserId,DateTime? DueAt,string EvidenceSummary,string ExpectedOutcome,int ProgressPercent,DateTime CreatedAt);
+public sealed record ActionItemDto(Guid Id,Guid ActionPlanId,string Title,string Description,string OriginType,Guid? OriginId,string? RelatedDimension,string? RelatedIndexCode,string Priority,string Status,Guid? ResponsibleUserId,DateTime? DueAt,DateTime? CompletedAt,int ProgressPercent,string EvidenceSummary,string ExpectedOutcome,string? CompletionEvidence,string? AiRecommendationSummary,DateTime CreatedAt);
+public sealed record ActionDashboardDto(int Critical,int Overdue,int Unassigned,int ActivePlans,IReadOnlyList<ActionItemDto> Upcoming,IReadOnlyList<ActionPlanDto> Plans);
+public sealed record CreateActionPlanRequest(string Title,string Summary,string OriginType,Guid? OriginId,Guid? DiagnosticId,Guid? ResultId,Guid? GovernanceCycleId,string Priority,Guid? OwnerUserId,DateTime? StartsAt,DateTime? DueAt,string EvidenceSummary,string ExpectedOutcome);
+public sealed record CreateActionItemRequest(Guid ActionPlanId,string Title,string Description,string OriginType,Guid? OriginId,Guid? DiagnosticId,Guid? ResultId,string? RelatedDimension,string? RelatedIndexCode,string Priority,Guid? ResponsibleUserId,DateTime? DueAt,string EvidenceSummary,string ExpectedOutcome,string? AiRecommendationSummary);
+public interface IActionPlanRepository { Task<ActionDashboardDto> Dashboard(Guid organizationId,CancellationToken ct); Task<IReadOnlyList<ActionPlanDto>> List(Guid organizationId,CancellationToken ct); Task<ActionPlanDto?> Get(Guid organizationId,Guid id,CancellationToken ct); Task<Guid> Create(Guid organizationId,Guid userId,CreateActionPlanRequest request,CancellationToken ct); }
+public interface IActionItemRepository { Task<IReadOnlyList<ActionItemDto>> List(Guid organizationId,Guid? planId,CancellationToken ct); Task<ActionItemDto?> Get(Guid organizationId,Guid id,CancellationToken ct); Task<Guid> Create(Guid organizationId,Guid userId,CreateActionItemRequest request,CancellationToken ct); Task UpdateProgress(Guid organizationId,Guid userId,Guid id,int progress,string? note,CancellationToken ct); Task Block(Guid organizationId,Guid userId,Guid id,string reason,CancellationToken ct); Task Complete(Guid organizationId,Guid userId,Guid id,string result,string evidence,CancellationToken ct); }
+public interface IRecommendationRepository { Task<IReadOnlyList<ActionRecommendationDto>> List(Guid organizationId,CancellationToken ct); Task<Guid> Enqueue(Guid organizationId,Guid userId,ActionRecommendationDto recommendation,CancellationToken ct); }
+public sealed record ActionRecommendationDto(Guid Id,string SourceType,Guid? SourceId,string Observation,string Evidence,string Correlation,string Impact,string Priority,string Recommendation,string Limitation,string Status);

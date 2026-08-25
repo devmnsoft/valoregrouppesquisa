@@ -17,6 +17,9 @@ using Valora.Application.Integrations;
 using Valora.Application.DecisionCenter;
 using Valora.Application.FormalDeliverables;
 using Valora.Application.ValoraAi;
+using Valora.Application.ActionCenter;
+using Valora.Application.Evolution;
+using Valora.Application.Journey;
 using Valora.Infrastructure.FormalDeliverables;
 
 namespace Valora.Infrastructure.DependencyInjection;
@@ -73,6 +76,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IIntegrationRepository, IntegrationRepository>();
         services.AddScoped<IOrganizationalIntelligenceRepository, OrganizationalIntelligenceRepository>();
         services.AddScoped<IDecisionCenterRepository, DecisionCenterRepository>();
+        services.AddScoped<IActionPlanRepository, ActionPlanRepository>(); services.AddScoped<IActionItemRepository, ActionItemRepository>(); services.AddScoped<IRecommendationRepository, RecommendationRepository>(); services.AddScoped<IEvolutionRepository, EvolutionRepository>(); services.AddScoped<IJourneyRepository, JourneyRepository>();
         services.AddScoped<IIntelligencePipelineRepository, IntelligencePipelineRepository>();
         services.AddScoped<IBenchmarkRepository, BenchmarkRepository>();
         services.AddScoped<IIntelligenceProcessingJobRepository, IntelligenceProcessingJobRepository>();

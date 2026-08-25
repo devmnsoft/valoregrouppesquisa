@@ -37,8 +37,22 @@ public static class ValoraAccessCatalog
     }
 
     private static readonly IReadOnlyDictionary<string, string> PermissionCapabilities =
-        ValoraPermissions.Definitions.ToDictionary(definition => definition.Permission, definition => definition.Capability,
+        BuildPermissionCapabilities();
+
+    private static IReadOnlyDictionary<string, string> BuildPermissionCapabilities()
+    {
+        var duplicate = ValoraPermissions.Definitions
+            .GroupBy(definition => definition.Permission, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault(group => group.Count() > 1);
+
+        if (duplicate is not null)
+            throw new InvalidOperationException($"Duplicate permission code found: {duplicate.Key}");
+
+        return ValoraPermissions.Definitions.ToDictionary(
+            definition => definition.Permission,
+            definition => definition.Capability,
             StringComparer.OrdinalIgnoreCase);
+    }
 
     /// <summary>Runtime-safe resolution. Unknown database values are denied and reported, never inferred.</summary>
     public static IReadOnlyList<string> CapabilitiesFor(IEnumerable<string> permissions, Action<string>? reportUnknown = null)
@@ -120,9 +134,16 @@ public static class ValoraPermissions
     public static class Journey { public const string Read="journey.read", Manage="journey.manage", EventsCreate="journey.events.create", EventsManage="journey.events.manage"; }
     public static class IntelligentDeliverables
     {
-        public const string DashboardRead="dashboard.read", RadarRead="radar.read", ActionRead="action.read", ActionManage="action.manage",
-            HeatmapRead="heatmap.read", EvolutionRead="evolution.read", EvolutionManage="evolution.manage", JourneyRead="journey.read",
+        public const string DashboardRead="dashboard.read", RadarRead="radar.read", HeatmapRead="heatmap.read",
             BenchmarkRead="benchmark.read", InsightsRead="insights.read";
+
+        // Compatibility aliases point to the single canonical definitions above. Properties are
+        // deliberately not reflected into All, so each permission code is registered only once.
+        public static string ActionRead => Action.Read;
+        public static string ActionManage => Action.Manage;
+        public static string EvolutionRead => Evolution.Read;
+        public static string EvolutionManage => Evolution.Manage;
+        public static string JourneyRead => Journey.Read;
     }
     public static class Benchmark
     {

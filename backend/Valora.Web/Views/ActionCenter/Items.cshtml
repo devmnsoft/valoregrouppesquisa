@@ -1,1 +1,7 @@
-@model IReadOnlyList<Valora.Application.ActionCenter.ActionItemDto>@{ViewData["Title"]="Ações";}<main class="valora-page"><header class="leadership-hero"><div><p class="eyebrow">Valora Action™</p><h1>Ações acompanháveis</h1></div></header><section class="valora-card"><div class="table-responsive"><table class="table"><thead><tr><th>Ação</th><th>Status</th><th>Prioridade</th><th>Progresso</th><th>Responsável</th></tr></thead><tbody>@foreach(var i in Model){<tr><td><a href="/ActionCenter/Items/Details/@i.Id">@i.Title</a></td><td>@i.Status</td><td>@i.Priority</td><td>@i.ProgressPercent%</td><td>@(i.ResponsibleUserId?.ToString()??"Não definido — risco")</td></tr>}</tbody></table></div></section></main>
+@model IReadOnlyList<Valora.Application.ActionCenter.ActionItemDto>
+
+@{
+    ViewData["Title"]="Ações";
+}
+
+<main class="valora-page"><header class="leadership-hero"><div><p class="eyebrow">Valora Action™</p><h1>Ações acompanháveis</h1></div></header><section class="valora-card"><div class="table-responsive"><table class="table"><thead><tr><th>Ação</th><th>Status</th><th>Prioridade</th><th>Progresso</th><th>Responsável</th></tr></thead><tbody>@foreach(var i in Model){<tr><td><a href="/ActionCenter/Items/Details/@i.Id">@i.Title</a></td><td>@i.Status</td><td>@i.Priority</td><td>@i.ProgressPercent%</td><td>@(i.ResponsibleUserId?.ToString()??"Não definido — risco")</td></tr>}</tbody></table></div></section></main>

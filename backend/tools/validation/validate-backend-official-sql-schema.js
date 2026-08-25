@@ -1,16 +1,18 @@
 const fs = require('fs');
 const path = require('path');
 
-const root = path.resolve(__dirname, '..');
+// This validator lives under backend/tools/validation. Resolve from its own
+// location so it behaves the same regardless of the caller's working directory.
+const root = path.resolve(__dirname, '../../..');
 
 const canonical = path.join(root, 'backend/database/postgresql/script_completo.sql');
 if (fs.existsSync(canonical)) {
   const canonicalSql = fs.readFileSync(canonical, 'utf8');
   const checks = [
     ['schema valorapesquisa', /CREATE SCHEMA IF NOT EXISTS valorapesquisa/i],
-    ['plans canonicos', /CREATE TABLE IF NOT EXISTS plans[\s\S]*code text NOT NULL UNIQUE[\s\S]*is_public boolean[\s\S]*is_active boolean[\s\S]*is_legacy boolean/i],
-    ['plan_limits canonico', /CREATE TABLE IF NOT EXISTS plan_limits[\s\S]*limit_key[\s\S]*limit_value/i],
-    ['plan_capabilities canonico', /CREATE TABLE IF NOT EXISTS plan_capabilities[\s\S]*capability_key[\s\S]*enabled/i],
+    ['plans canonicos', /CREATE TABLE IF NOT EXISTS (?:valorapesquisa\.)?plans[\s\S]*?code text NOT NULL UNIQUE[\s\S]*?is_public boolean[\s\S]*?is_active boolean[\s\S]*?is_legacy boolean/i],
+    ['plan_limits canonico', /CREATE TABLE IF NOT EXISTS (?:valorapesquisa\.)?plan_limits[\s\S]*?limit_key[\s\S]*?limit_value/i],
+    ['plan_capabilities canonico', /CREATE TABLE IF NOT EXISTS (?:valorapesquisa\.)?plan_capabilities[\s\S]*?capability_key[\s\S]*?enabled/i],
     ['seeds oficiais', /'free'[\s\S]*'professional'[\s\S]*'corporate'[\s\S]*'enterprise'/i],
     ['idempotencia', /ON CONFLICT/i],
   ];

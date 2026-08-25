@@ -2,6 +2,9 @@ namespace Valora.Application.DTOs;
 
 public sealed record AuditEntry
 {
+    private static readonly IReadOnlySet<string> CanonicalSeverities =
+        new HashSet<string>(["debug", "info", "warning", "error", "critical"], StringComparer.Ordinal);
+
     public AuditEntry(
         Guid? organizationId,
         Guid? userId,
@@ -14,7 +17,7 @@ public sealed record AuditEntry
         DateTimeOffset? createdAt = null,
         string? ipHash = null,
         string? userAgent = null,
-        string severity = "info",
+        string? severity = "info",
         string? module = null)
     {
         OrganizationId = organizationId;
@@ -28,7 +31,8 @@ public sealed record AuditEntry
         CreatedAt = createdAt;
         IpHash = ipHash;
         UserAgent = userAgent is { Length: > 512 } ? userAgent[..512] : userAgent;
-        Severity = severity;
+        var normalizedSeverity = severity?.Trim().ToLowerInvariant() ?? "info";
+        Severity = CanonicalSeverities.Contains(normalizedSeverity) ? normalizedSeverity : "info";
         Module = module;
     }
 

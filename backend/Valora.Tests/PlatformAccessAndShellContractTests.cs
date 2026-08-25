@@ -6,6 +6,31 @@ namespace Valora.Tests;
 public sealed class PlatformAccessAndShellContractTests
 {
     [Fact]
+    public void Canonical_permission_codes_are_unique()
+    {
+        var duplicates = ValoraPermissions.All
+            .GroupBy(permission => permission, StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToArray();
+
+        Assert.Empty(duplicates);
+    }
+
+    [Fact]
+    public void Action_evolution_and_journey_permissions_remain_canonical()
+    {
+        string[] expected =
+        [
+            "action.read", "action.manage", "action.approve", "action.complete", "action.comments.manage",
+            "evolution.read", "evolution.manage", "evolution.snapshots.generate",
+            "journey.read", "journey.manage", "journey.events.create", "journey.events.manage"
+        ];
+
+        Assert.All(expected, permission => Assert.True(ValoraAccessCatalog.IsCanonicalPermission(permission), permission));
+    }
+
+    [Fact]
     public void PlatformCatalogMapsEveryPermissionWithoutPrefixGuessing()
     {
         var capabilities = ValoraAccessCatalog.CapabilitiesForStrict(ValoraPermissions.All);

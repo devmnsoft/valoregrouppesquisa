@@ -29,6 +29,21 @@ public sealed class IntelligenceController : Controller
     [HttpGet("InteligenciaOrganizacional")]
     public IActionResult Index() => View();
 
+    [HttpGet("Intelligence/Generate")]
+    public IActionResult Generate() => View(new GenerateIntelligenceViewModel());
+
+    [HttpPost("Intelligence/Generate")]
+    [ValidateAntiForgeryToken]
+    public IActionResult Generate(GenerateIntelligenceViewModel model)
+    {
+        if (!ModelState.IsValid) return View(model);
+        TempData["IntelligenceMessage"] = "Solicitação validada e encaminhada para montagem do pacote de evidências.";
+        return RedirectToAction(nameof(Review));
+    }
+
+    [HttpGet("Intelligence/Review")]
+    public IActionResult Review() => View();
+
     public IActionResult Evidence() => Workspace("evidence");
     public IActionResult Metrics() => Workspace("metrics");
     public IActionResult Indices() => Workspace("indices");

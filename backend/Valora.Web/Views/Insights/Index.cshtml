@@ -1,0 +1,7 @@
+@model IReadOnlyList<Valora.Application.ValoraAi.AiInsight>
+@{ ViewData["Title"] = "Insights"; }
+<main class="valora-page v9-page">
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Insights Valora IA™", "Interpretações rastreáveis, sustentadas por evidências e submetidas à revisão humana.", "Intelligence Hub", $"{Model.Count} registros", new[] { new PageHeaderAction("Gerar análise", "/Intelligence/Generate", Style: "primary", Icon: "sparkles") }))" />
+  @if (Model.Count == 0) { <section class="valora-card empty-state"><h2>Nenhum insight disponível</h2><p>Gere uma análise a partir de um resultado consolidado. Nada será aprovado automaticamente.</p><a class="valora-button valora-button--primary" href="/Intelligence/Generate">Gerar primeira análise</a></section> }
+  else { <section class="valora-card table-responsive"><table class="table"><thead><tr><th>Título</th><th>Tipo</th><th>Severidade</th><th>Prioridade</th><th>Status</th><th>Dimensão / índice</th><th>Confiança</th><th>Data</th></tr></thead><tbody>@foreach(var item in Model){<tr><td><a asp-action="Details" asp-route-id="@item.Id">@item.Title</a></td><td>@item.InsightType</td><td><span class="badge">@item.Severity</span></td><td>@item.Priority</td><td><span class="badge">@item.Status</span></td><td>@item.RelatedDimension <small>@item.RelatedIndexCode</small></td><td><span class="badge">@item.ConfidenceLevel</span></td><td>@item.CreatedAt.ToString("dd/MM/yyyy")</td></tr>}</tbody></table></section> }
+</main>

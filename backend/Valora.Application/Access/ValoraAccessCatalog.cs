@@ -115,7 +115,9 @@ public static class ValoraPermissions
     public static class WorkflowForms { public static readonly string Manage=Forms.Manage; }
     public static class WorkflowResponses { public const string Submit="responses.submit"; }
     public static class WorkflowResults { public const string Manage="results.manage"; }
-    public static class Intelligence { public const string Read="intelligence.read", Process="intelligence.process"; }
+    public static class Intelligence { public const string Read="intelligence.read", Generate="intelligence.generate", Review="intelligence.review", Manage="intelligence.manage", Process="intelligence.process"; }
+    public static class Insights { public const string Read="insights.read", Manage="insights.manage", Approve="insights.approve", Reject="insights.reject", ConvertToAction="insights.convert_to_action", ConvertToDecision="insights.convert_to_decision"; }
+    public static class AiRuns { public const string Read="ai_runs.read", Manage="ai_runs.manage"; }
     public static class Deliverables { public const string Read="deliverables.read", Manage="deliverables.manage"; }
     public static class Reports { public const string Read="reports.read", Generate="reports.generate", Download="reports.download"; }
     public static class Certificates { public const string Read="certificates.read", Generate="certificates.generate", Download="certificates.download", Revoke="certificates.revoke", Validate="certificates.validate"; }
@@ -139,7 +141,7 @@ public static class ValoraPermissions
     public static class IntelligentDeliverables
     {
         public const string DashboardRead="dashboard.read", RadarRead="radar.read", HeatmapRead="heatmap.read",
-            BenchmarkRead="benchmark.read", InsightsRead="insights.read";
+            BenchmarkRead="benchmark.read";
 
         // Compatibility aliases point to the single canonical definitions above. Properties are
         // deliberately not reflected into All, so each permission code is registered only once.
@@ -148,6 +150,7 @@ public static class ValoraPermissions
         public static string EvolutionRead => Evolution.Read;
         public static string EvolutionManage => Evolution.Manage;
         public static string JourneyRead => Journey.Read;
+        public static string InsightsRead => Insights.Read;
     }
     public static class Benchmark
     {
@@ -175,10 +178,10 @@ public static class ValoraPermissions
     {
         public const string Read="administration.read", Manage="administration.manage";
         public const string OrganizationsRead="organizations.read", OrganizationsManage="organizations.manage",
-            IntelligenceManage="intelligence.manage",
             IntegrationsRead="integrations.read", IntegrationsManage="integrations.manage",
             NotificationsRead="notifications.read", NotificationsManage="notifications.manage", JobsRead="jobs.read",
             JobsManage="jobs.manage", LogsRead="logs.read", SupportRead="support.read", SupportManage="support.manage";
+        public static string IntelligenceManage => Intelligence.Manage;
     }
     public static class Methodology
     {
@@ -203,7 +206,7 @@ public static class ValoraPermissions
         "organization" or "units" or "departments" or "business_groups" or "legal_entities" or "plans" or
         "subscriptions" or "billing" or "usage" or "upgrades" or "feature_access" => ValoraModules.Organization,
         "organizational_intelligence" or "methodology" or "decision_center" or "decisions" or "alerts" or "indicators" or "governance" or "diagnostics" or "dashboard" or "radar" or "reports" or "deliverables" or "share_links" or "public_results" or "action" or "heatmap" or
-        "evolution" or "journey" or "benchmark" or "insights" or "ai" or "one_on_one" or
+        "evolution" or "journey" or "benchmark" or "insights" or "ai" or "ai_runs" or "one_on_one" or
         "evidence" or "indexes" or "priorities" or "leadership" or "leadership_development" or "intelligence" or "questions" => "organizational_intelligence",
         "onboarding" or "branding" => ValoraModules.Organization,
         "campaigns" => ValoraModules.Surveys,

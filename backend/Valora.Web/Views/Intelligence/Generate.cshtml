@@ -1,0 +1,15 @@
+@model Valora.Web.Models.ViewModels.GenerateIntelligenceViewModel
+@{ ViewData["Title"] = "Gerar análise"; }
+<main class="valora-page v9-page">
+ <partial name="_PageHeader" model="@(new PageHeaderViewModel("Gerar análise", "Selecione o contexto consolidado; o Hub montará um pacote de evidências isolado por organização.", "Intelligence Hub", "Revisão humana obrigatória", new[] { new PageHeaderAction("Voltar", "/Intelligence") }))" />
+ <form asp-action="Generate" method="post" class="valora-card" novalidate>
+  <div asp-validation-summary="ModelOnly" class="valora-alert valora-alert--danger"></div>
+  <div class="v9-form-grid"><label asp-for="OrganizationId"></label><select asp-for="OrganizationId" asp-items="Model.Organizations" class="form-select"><option value="">Selecione a organização</option></select><span asp-validation-for="OrganizationId"></span>
+  <label asp-for="DiagnosticId"></label><select asp-for="DiagnosticId" asp-items="Model.Diagnostics" class="form-select"><option value="">Selecione o diagnóstico</option></select><span asp-validation-for="DiagnosticId"></span>
+  <label asp-for="ResultId"></label><select asp-for="ResultId" asp-items="Model.Results" class="form-select"><option value="">Selecione o resultado consolidado</option></select><span asp-validation-for="ResultId"></span></div>
+  <fieldset><legend>Tipo de análise</legend>@foreach(var type in Model.AnalysisTypes){<label class="form-check"><input asp-for="AnalysisType" type="radio" value="@type.Value" class="form-check-input"><span>@type.Text</span></label>}<span asp-validation-for="AnalysisType"></span></fieldset>
+  <aside class="valora-alert"><strong>Governança ativa:</strong> a saída deverá citar evidências, confiança, limitações e recomendação. Nenhuma ação ou decisão será aprovada automaticamente.</aside>
+  <button class="valora-button valora-button--primary" type="submit">Montar evidências e gerar</button>
+ </form>
+</main>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

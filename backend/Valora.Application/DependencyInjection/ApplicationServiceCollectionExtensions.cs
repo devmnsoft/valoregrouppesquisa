@@ -172,6 +172,21 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<IValoraAiProvider, DisabledValoraAiProvider>();
         services.AddScoped<IValoraAiOrchestrator, ValoraAiOrchestrator>();
         services.AddScoped<IValoraAiReviewService, ValoraAiReviewService>();
+        services.AddScoped<IEvidencePackBuilderService, EvidencePackBuilderService>();
+        services.AddScoped<IAiGuardrailValidationService, AiGuardrailValidationService>();
+        services.AddScoped<IInsightGenerationService, InsightGenerationService>();
+        services.AddScoped<IAiFeedbackService, AiFeedbackService>();
+        services.AddScoped<ValoraAiRunService>();
+        services.AddScoped<AiReviewService>();
+        services.AddScoped<ValoraAiOrchestratorService>();
+        services.AddScoped<GenerateInsightsFromResultUseCase>();
+        services.AddScoped<BuildEvidencePackUseCase>();
+        services.AddScoped<ReviewAiInsightUseCase>();
+        services.AddScoped<ApproveAiInsightUseCase>();
+        services.AddScoped<RejectAiInsightUseCase>();
+        services.AddScoped<ConvertInsightToActionUseCase>();
+        services.AddScoped<ConvertInsightToDecisionUseCase>();
+        services.AddScoped<GenerateAiExecutiveSummaryUseCase>();
 
         services.AddScoped<Valora.Application.Contracts.ILegacyDataNormalizer, LegacyDataNormalizer>();
         services.AddScoped<Valora.Application.Contracts.ILegacyMappingService, LegacyMappingService>();

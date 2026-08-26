@@ -41,6 +41,8 @@ public sealed class NavigationCatalog
         Section("intelligence", "Desenvolvimento Organizacional", 30,
             Item("intelligence.results", "Resultados", "Devolutivas e análises executivas", "Results", "chart-radar", null, "results", "results", "organization", 10, Results),
             Item("intelligence.organizational", "Inteligência Organizacional", "Dashboard, Heatmap, Evolution, Journey e Action Valora™", "Intelligence", "brain", "organizational_intelligence.read", "organizational_intelligence", "organizational_intelligence", "organization", 15, Results),
+            ItemAction("intelligence.hub-generate", "Gerar análise IA", "Evidence pack e interpretação revisável", "Intelligence", "Generate", "sparkles", "intelligence", 15, Results),
+            ItemAction("intelligence.hub-review", "Revisão de IA", "Fila de validação humana e guardrails", "Intelligence", "Review", "shield", "intelligence", 15, Results),
             ItemAction("intelligence.dictionary", "Dicionário Cognitivo", "Conceitos oficiais da Metodologia Valora™", "Methodology", "Dictionary", "file-text", "organizational_intelligence", 14, Results),
             ItemAction("intelligence.cognitive-map", "Mapa Cognitivo", "Relações e influências sistêmicas", "Methodology", "CognitiveMap", "brain", "organizational_intelligence", 14, Results),
             ItemAction("intelligence.methodology-mappings", "Mapeamento Metodológico", "Cobertura de perguntas, Metrics e Índices", "Methodology", "Mappings", "layers", "organizational_intelligence", 14, Diagnostics),

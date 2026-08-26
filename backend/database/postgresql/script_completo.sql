@@ -846,6 +846,16 @@ INSERT INTO valorapesquisa.permissions(code,name,description,module_code,functio
 ('questions.manage','Gerenciar perguntas','Mantém perguntas e versões oficiais.','forms','questions','high',1130),
 ('intelligence.read','Visualizar IA','Consulta execuções, evidências e insights.','operations','intelligence','high',1140),
 ('intelligence.manage','Gerenciar IA','Reprocessa e revisa execuções de IA.','operations','intelligence','critical',1150),
+('intelligence.generate','Gerar análise de IA','Inicia análise a partir de diagnóstico e resultado selecionados.','operations','intelligence','high',1151),
+('intelligence.review','Revisar análise de IA','Acessa a fila de revisão humana.','operations','intelligence','high',1152),
+('insights.read','Visualizar insights','Consulta interpretações e suas evidências.','operations','insights','high',1153),
+('insights.manage','Gerenciar insights','Gerencia o ciclo de vida de interpretações.','operations','insights','high',1154),
+('insights.approve','Aprovar insights','Aprova uma interpretação após revisão humana.','operations','insights','critical',1155),
+('insights.reject','Rejeitar insights','Rejeita uma interpretação com motivo obrigatório.','operations','insights','high',1156),
+('insights.convert_to_action','Converter insight em ação','Cria ação vinculada à evidência.','operations','insights','critical',1157),
+('insights.convert_to_decision','Converter insight em decisão','Cria decisão vinculada à evidência.','operations','insights','critical',1158),
+('ai_runs.read','Visualizar execuções de IA','Consulta execução, eventos e consumo.','operations','ai_runs','high',1159),
+('ai_runs.manage','Gerenciar execuções de IA','Gerencia reprocessamento e arquivamento.','operations','ai_runs','critical',1160),
 ('integrations.read','Visualizar integrações','Consulta conexões, webhooks e API keys sem expor segredos.','operations','integrations','high',1160),
 ('integrations.manage','Gerenciar integrações','Mantém conexões e credenciais protegidas.','operations','integrations','critical',1170),
 ('notifications.read','Visualizar notificações','Consulta entregas e erros de notificação.','communications','notifications','high',1180),
@@ -2443,6 +2453,87 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.valora_ai_reviews (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), run_id uuid NOT NULL REFERENCES valorapesquisa.valora_ai_runs(id),
  reviewer_id uuid NOT NULL, status varchar(40) NOT NULL, note text, created_at timestamptz NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS ix_valora_ai_reviews_run ON valorapesquisa.valora_ai_reviews(run_id,created_at DESC);
+
+-- Intelligence Hub: trilha completa da evidência até a revisão humana. As FKs de
+-- diagnóstico/resultado/metodologia permanecem lógicas para suportar upgrades de
+-- bancos parciais sem impedir a instalação; o isolamento é sempre organization_id.
+ALTER TABLE valorapesquisa.valora_ai_runs ADD COLUMN IF NOT EXISTS result_id uuid;
+ALTER TABLE valorapesquisa.valora_ai_runs ADD COLUMN IF NOT EXISTS methodology_version_id uuid;
+ALTER TABLE valorapesquisa.valora_ai_runs ADD COLUMN IF NOT EXISTS run_type varchar(60) NOT NULL DEFAULT 'insight_generation';
+ALTER TABLE valorapesquisa.valora_ai_runs ADD COLUMN IF NOT EXISTS requested_by_user_id uuid;
+ALTER TABLE valorapesquisa.valora_ai_runs ADD COLUMN IF NOT EXISTS started_at timestamptz;
+ALTER TABLE valorapesquisa.valora_ai_runs ADD COLUMN IF NOT EXISTS error_message text;
+ALTER TABLE valorapesquisa.valora_ai_runs ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE valorapesquisa.valora_ai_runs ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_ai_run_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ ai_run_id uuid NOT NULL REFERENCES valorapesquisa.valora_ai_runs(id), event_type varchar(60) NOT NULL,
+ status varchar(40), message text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_valora_ai_run_events_run ON valorapesquisa.valora_ai_run_events(ai_run_id,created_at);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_ai_evidence_packs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ diagnostic_id uuid NOT NULL, result_id uuid, methodology_version_id uuid, ai_run_id uuid REFERENCES valorapesquisa.valora_ai_runs(id),
+ status varchar(40) NOT NULL DEFAULT 'built', evidence_count int NOT NULL DEFAULT 0, limitation text,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_valora_ai_evidence_packs_context ON valorapesquisa.valora_ai_evidence_packs(organization_id,diagnostic_id,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_ai_evidence_items (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ evidence_pack_id uuid NOT NULL REFERENCES valorapesquisa.valora_ai_evidence_packs(id), evidence_type varchar(60) NOT NULL,
+ source_type varchar(80) NOT NULL, source_id uuid, summary text NOT NULL, related_dimension varchar(160),
+ related_index_code varchar(100), is_aggregate boolean NOT NULL DEFAULT true, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_valora_ai_evidence_items_pack ON valorapesquisa.valora_ai_evidence_items(evidence_pack_id,created_at);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_ai_insights (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ diagnostic_id uuid NOT NULL, result_id uuid, ai_run_id uuid NOT NULL REFERENCES valorapesquisa.valora_ai_runs(id),
+ insight_type varchar(60) NOT NULL, title varchar(240) NOT NULL, summary text NOT NULL, evidence_summary text NOT NULL,
+ related_dimension varchar(160), related_index_code varchar(100), severity varchar(30) NOT NULL DEFAULT 'medium',
+ priority varchar(30) NOT NULL DEFAULT 'medium', confidence_level varchar(30) NOT NULL, limitation text,
+ recommendation text NOT NULL, status varchar(40) NOT NULL DEFAULT 'draft', reviewed_by_user_id uuid, reviewed_at timestamptz,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ CONSTRAINT ck_valora_ai_insights_status CHECK (status IN ('draft','generated','pending_review','approved','rejected','converted_to_action','converted_to_decision','archived')));
+CREATE INDEX IF NOT EXISTS ix_valora_ai_insights_queue ON valorapesquisa.valora_ai_insights(organization_id,status,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_valora_ai_insights_context ON valorapesquisa.valora_ai_insights(organization_id,diagnostic_id,result_id);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_ai_insight_evidence_links (
+ insight_id uuid NOT NULL REFERENCES valorapesquisa.valora_ai_insights(id), evidence_item_id uuid NOT NULL REFERENCES valorapesquisa.valora_ai_evidence_items(id),
+ created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(insight_id,evidence_item_id));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_ai_review_queue (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ insight_id uuid NOT NULL REFERENCES valorapesquisa.valora_ai_insights(id), risk_flags jsonb NOT NULL DEFAULT '[]'::jsonb,
+ status varchar(40) NOT NULL DEFAULT 'pending', assigned_to_user_id uuid, reviewed_at timestamptz,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_valora_ai_review_queue_pending ON valorapesquisa.valora_ai_review_queue(organization_id,status,created_at) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_ai_feedbacks (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ insight_id uuid REFERENCES valorapesquisa.valora_ai_insights(id), ai_run_id uuid REFERENCES valorapesquisa.valora_ai_runs(id),
+ feedback_type varchar(40) NOT NULL, reason text NOT NULL, created_by_user_id uuid NOT NULL,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_valora_ai_feedbacks_insight ON valorapesquisa.valora_ai_feedbacks(insight_id,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_ai_guardrail_violations (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ ai_run_id uuid NOT NULL REFERENCES valorapesquisa.valora_ai_runs(id), insight_id uuid REFERENCES valorapesquisa.valora_ai_insights(id),
+ violation_code varchar(100) NOT NULL, description text NOT NULL, blocked boolean NOT NULL DEFAULT true,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_valora_ai_guardrail_violations_run ON valorapesquisa.valora_ai_guardrail_violations(ai_run_id,created_at);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_ai_prompt_execution_logs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ ai_run_id uuid NOT NULL REFERENCES valorapesquisa.valora_ai_runs(id), prompt_code varchar(100) NOT NULL,
+ prompt_version int NOT NULL, provider varchar(100), model varchar(100), input_hash varchar(128) NOT NULL,
+ output_hash varchar(128), input_tokens int, output_tokens int, duration_ms bigint, correlation_id text,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_valora_ai_prompt_logs_run ON valorapesquisa.valora_ai_prompt_execution_logs(ai_run_id,created_at);
 
 -- Arquivo formal imutável. O conteúdo persistido permite download posterior sem
 -- depender de filesystem local ou regeneração com dados potencialmente alterados.

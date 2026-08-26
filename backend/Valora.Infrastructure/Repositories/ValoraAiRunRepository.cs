@@ -15,9 +15,9 @@ public sealed class ValoraAiRunRepository(IDbConnectionFactory connections) : IV
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO valorapesquisa.valora_ai_runs
               (id, organization_id, diagnosis_id, prompt_code, prompt_version, provider, model, status,
-               correlation_id, input_json, created_at)
+               correlation_id, input_json, run_type, started_at, created_at)
             VALUES (@Id, @OrganizationId, @DiagnosisId, @PromptCode, @PromptVersion, @Provider, @Model, @Status,
-                    @CorrelationId, CAST(@InputJson AS jsonb), @CreatedAt)
+                    @CorrelationId, CAST(@InputJson AS jsonb), @PromptCode, @CreatedAt, @CreatedAt)
             """, new { run.Id, run.OrganizationId, run.DiagnosisId, run.PromptCode, run.PromptVersion,
                 run.Provider, run.Model, Status = run.Status.ToString(), run.CorrelationId,
                 InputJson = JsonSerializer.Serialize(input, JsonOptions), run.CreatedAt }, cancellationToken: ct));
@@ -31,7 +31,7 @@ public sealed class ValoraAiRunRepository(IDbConnectionFactory connections) : IV
             UPDATE valorapesquisa.valora_ai_runs SET status=@Status, output_json=CAST(@Output AS jsonb),
               validation_json=CAST(@Validation AS jsonb), provider=COALESCE(@Provider,provider),
               model=COALESCE(@Model,model), input_tokens=@InputTokens, output_tokens=@OutputTokens,
-              estimated_cost=@EstimatedCost, error=@Error, completed_at=now()
+              estimated_cost=@EstimatedCost, error=@Error, error_message=@Error, completed_at=now(), updated_at=now()
             WHERE id=@RunId
             """, new { RunId = runId, Status = status.ToString(), Output = output,
                 Validation = validation is null ? null : JsonSerializer.Serialize(validation, JsonOptions),

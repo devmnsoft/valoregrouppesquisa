@@ -4156,3 +4156,71 @@ SELECT c.id,v.slug,v.title,v.summary,v.content,'public','published',v.ord FROM v
 INSERT INTO valorapesquisa.success_playbooks(code,name,description,expected_result) VALUES('initial','Implantação inicial','Ativação governada da organização.','Primeiro ciclo configurado com responsáveis e evidências.'),('pilot','Diagnóstico piloto','Validação controlada da metodologia.','Piloto revisado antes da expansão.'),('multi_unit','Implantação em múltiplas unidades','Expansão com comparabilidade.','Unidades ativadas com critérios equivalentes.'),('executive_presentation','Primeira apresentação executiva','Preparação da decisão executiva.','Evidências, limites e decisões registrados.'),('risk_recovery','Recuperação de conta em risco','Tratamento de riscos comprovados.','Plano humano acordado e acompanhado.'),('growth_activation','Ativação de plano Growth','Adoção dos recursos Growth.','Capacidades contratadas ativadas.'),('enterprise_activation','Ativação de plano Enterprise','Governança da implantação Enterprise.','Escala, segurança e integrações validadas.') ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,expected_result=EXCLUDED.expected_result,updated_at=now();
 INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
 ('success_center.read','Visualizar Success Center','Consulta a jornada de sucesso da organização.','organization'),('success_center.manage','Gerenciar Success Center','Mantém a jornada de sucesso.','organization'),('organization_health.read','Visualizar saúde da conta','Consulta score e evidências.','organization'),('organization_health.manage','Gerenciar saúde da conta','Calcula e acompanha saúde.','organization'),('support_tickets.read','Visualizar chamados','Consulta chamados da organização.','organization'),('support_tickets.manage','Gerenciar chamados','Mantém atendimento rastreável.','organization'),('knowledge_base.read','Visualizar base de conhecimento','Consulta artigos autorizados.','organization'),('knowledge_base.manage','Gerenciar base de conhecimento','Mantém artigos e categorias.','organization'),('success_playbooks.read','Visualizar playbooks','Consulta playbooks de sucesso.','organization'),('success_playbooks.manage','Gerenciar playbooks','Mantém e atribui playbooks.','organization'),('product_usage.read','Visualizar uso do produto','Consulta adoção agregada.','organization') ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code,updated_at=now();
+
+-- 2026-08-26 · Valora Experience Layer™
+-- Public tokens are persisted exclusively as SHA-256 hashes. Every public access remains tenant-scoped.
+BEGIN;
+CREATE TABLE IF NOT EXISTS valorapesquisa.respondent_access_tokens (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ diagnostic_id uuid NOT NULL REFERENCES valorapesquisa.diagnostics(id), respondent_id uuid NOT NULL REFERENCES valorapesquisa.diagnostic_participants(id),
+ token_hash text NOT NULL UNIQUE, status varchar(24) NOT NULL DEFAULT 'pending', expires_at timestamptz NOT NULL,
+ first_access_at timestamptz, last_access_at timestamptz, completed_at timestamptz, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.respondent_sessions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), diagnostic_id uuid NOT NULL REFERENCES valorapesquisa.diagnostics(id),
+ respondent_id uuid NOT NULL REFERENCES valorapesquisa.diagnostic_participants(id), access_token_id uuid NOT NULL REFERENCES valorapesquisa.respondent_access_tokens(id),
+ status varchar(24) NOT NULL DEFAULT 'in_progress', current_section_id uuid REFERENCES valorapesquisa.form_sections(id), progress_percent numeric(5,2) NOT NULL DEFAULT 0,
+ started_at timestamptz NOT NULL DEFAULT now(), last_access_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz, ip_address inet, user_agent text,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ CHECK(progress_percent BETWEEN 0 AND 100));
+CREATE UNIQUE INDEX IF NOT EXISTS ux_respondent_session_access_token ON valorapesquisa.respondent_sessions(access_token_id) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.respondent_session_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), session_id uuid NOT NULL REFERENCES valorapesquisa.respondent_sessions(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ event_type varchar(60) NOT NULL, correlation_id text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.respondent_progress (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), session_id uuid NOT NULL REFERENCES valorapesquisa.respondent_sessions(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ section_id uuid REFERENCES valorapesquisa.form_sections(id), progress_percent numeric(5,2) NOT NULL DEFAULT 0, answers_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(session_id,section_id), CHECK(progress_percent BETWEEN 0 AND 100));
+CREATE TABLE IF NOT EXISTS valorapesquisa.public_result_views (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), diagnostic_id uuid NOT NULL REFERENCES valorapesquisa.diagnostics(id),
+ result_id uuid NOT NULL REFERENCES valorapesquisa.results(id), share_token_hash text NOT NULL UNIQUE, title text NOT NULL, status varchar(24) NOT NULL DEFAULT 'active',
+ expires_at timestamptz NOT NULL, first_access_at timestamptz, last_access_at timestamptz, access_count integer NOT NULL DEFAULT 0,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.public_result_view_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), public_result_view_id uuid NOT NULL REFERENCES valorapesquisa.public_result_views(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ event_type varchar(60) NOT NULL, ip_address inet, user_agent text, correlation_id text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.public_certificate_downloads (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), public_result_view_id uuid NOT NULL REFERENCES valorapesquisa.public_result_views(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ result_id uuid NOT NULL REFERENCES valorapesquisa.results(id), correlation_id text, downloaded_at timestamptz NOT NULL DEFAULT now(), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb);
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnostic_invitation_batches (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), diagnostic_id uuid NOT NULL REFERENCES valorapesquisa.diagnostics(id),
+ name text NOT NULL, status varchar(24) NOT NULL DEFAULT 'pending', expires_at timestamptz, created_by_user_id uuid REFERENCES valorapesquisa.users(id), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnostic_invitation_recipients (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), batch_id uuid NOT NULL REFERENCES valorapesquisa.diagnostic_invitation_batches(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ respondent_id uuid NOT NULL REFERENCES valorapesquisa.diagnostic_participants(id), access_token_id uuid REFERENCES valorapesquisa.respondent_access_tokens(id), email text NOT NULL,
+ display_name text, status varchar(24) NOT NULL DEFAULT 'pending', sent_at timestamptz, opened_at timestamptz, started_at timestamptz, completed_at timestamptz,
+ expires_at timestamptz, bounce_reason text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ UNIQUE(batch_id,email), CHECK(status IN ('pending','sent','opened','started','completed','expired','bounced','canceled')));
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnostic_public_pages (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), diagnostic_id uuid NOT NULL REFERENCES valorapesquisa.diagnostics(id),
+ title text NOT NULL, introduction text NOT NULL, consent_text text, require_consent boolean NOT NULL DEFAULT true, completion_message text NOT NULL DEFAULT 'Obrigado por participar.',
+ status varchar(24) NOT NULL DEFAULT 'active', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ UNIQUE(diagnostic_id));
+CREATE TABLE IF NOT EXISTS valorapesquisa.executive_result_portals (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), diagnostic_id uuid NOT NULL REFERENCES valorapesquisa.diagnostics(id),
+ result_id uuid NOT NULL REFERENCES valorapesquisa.results(id), public_result_view_id uuid REFERENCES valorapesquisa.public_result_views(id), title text NOT NULL, status varchar(24) NOT NULL DEFAULT 'draft',
+ published_at timestamptz, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.executive_result_portal_sections (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), portal_id uuid NOT NULL REFERENCES valorapesquisa.executive_result_portals(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ section_type varchar(50) NOT NULL, title text NOT NULL, content_json jsonb NOT NULL DEFAULT '{}'::jsonb, evidence_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+ limitations text, display_order integer NOT NULL DEFAULT 0, status varchar(24) NOT NULL DEFAULT 'visible', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ UNIQUE(portal_id,section_type));
+CREATE INDEX IF NOT EXISTS ix_respondent_tokens_org_diagnostic ON valorapesquisa.respondent_access_tokens(organization_id,diagnostic_id,status) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_respondent_sessions_org_diagnostic ON valorapesquisa.respondent_sessions(organization_id,diagnostic_id,status) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_respondent_events_session_created ON valorapesquisa.respondent_session_events(session_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_public_result_views_org_result ON valorapesquisa.public_result_views(organization_id,result_id,status) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_public_result_events_view_created ON valorapesquisa.public_result_view_events(public_result_view_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_invitation_recipients_batch_status ON valorapesquisa.diagnostic_invitation_recipients(batch_id,status) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_executive_portals_org_result ON valorapesquisa.executive_result_portals(organization_id,result_id,status) WHERE deleted_at IS NULL;
+COMMIT;

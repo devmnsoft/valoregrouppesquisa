@@ -24,6 +24,7 @@ using Valora.Application.OneOnOne;
 using Valora.Infrastructure.FormalDeliverables;
 using Valora.Application.Communication;
 using Valora.Application.SecurityCompliance;
+using Valora.Application.SuccessCenter;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -96,6 +97,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IDiagnosticWorkspaceRepository, DiagnosticWorkspaceRepository>();
         services.AddScoped<IDiagnosticCampaignRepository, DiagnosticCampaignRepository>();
         services.AddScoped<IAssistedOperationsRepository, AssistedOperationsRepository>();
+        services.AddScoped<ISuccessCenterRepository, SuccessCenterRepository>();
         services.AddScoped<IPublicCommercialRepository, PublicCommercialRepository>();
         services.AddAiAndFormalDeliverablePersistence();
         services.AddScoped<IDocumentAccessPolicy, DocumentAccessPolicy>();

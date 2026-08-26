@@ -146,6 +146,14 @@ public sealed class NavigationCatalog
             ItemAction("administration.backup", "Backup e Restore", "Status e runbook das operações assistidas", "AssistedOperations", "Backup", "layers", "organization", 39, Administrators),
             ItemAction("administration.maintenance", "Modo de Manutenção", "Bloqueios e comunicação operacional", "AssistedOperations", "Maintenance", "activity", "organization", 39, Administrators),
             Item("administration.settings", "Configurações", "Preferências da plataforma", "Settings", "settings", null, null, "settings", "organization", 40, Administrators)),
+        Section("customer-success", "Sucesso do Cliente", 55,
+            ItemAction("success.overview", "Visão Geral", "Ativação, saúde e próximos passos", "SuccessCenter", "Index", "layout-dashboard", "organization", 1, Administrators),
+            ItemAction("success.onboarding", "Onboarding", "Checklist de implantação baseado em evidências", "SuccessCenter", "Onboarding", "file-text", "organization", 2, Administrators),
+            ItemAction("success.health", "Saúde da Conta", "Score explicável e riscos comprovados", "SuccessCenter", "Health", "activity", "organization", 3, Administrators),
+            ItemAction("success.support", "Chamados", "Atendimento com histórico completo", "SuccessCenter", "Support", "message-circle", "organization", 4, Administrators),
+            ItemAction("success.knowledge", "Base de Conhecimento", "Orientações para operar com autonomia", "SuccessCenter", "KnowledgeBase", "file-question", "organization", 5, Administrators),
+            ItemAction("success.playbooks", "Playbooks", "Jornadas de implantação e recuperação", "SuccessCenter", "Playbooks", "layers", "organization", 6, Administrators),
+            ItemAction("success.usage", "Uso do Produto", "Adoção real por funcionalidade", "SuccessCenter", "Usage", "chart-radar", "organization", 7, Administrators)),
         Section("support", "Suporte", 60,
             ItemAction("support.help", "Ajuda", "Guias rápidos e atendimento", "Experience", "Help", "file-question", "organization", 10, Results))
     ];

@@ -25,6 +25,8 @@ using Valora.Infrastructure.FormalDeliverables;
 using Valora.Application.Communication;
 using Valora.Application.SecurityCompliance;
 using Valora.Application.SuccessCenter;
+using Valora.Application.Subscriptions;
+using Valora.Infrastructure.Subscriptions;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -33,6 +35,10 @@ public static class InfrastructureServiceCollectionExtensions
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IDbConnectionFactory, PostgresConnectionFactory>();
+        services.AddScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>();
+        services.AddScoped<IOrganizationSubscriptionRepository, OrganizationSubscriptionRepository>();
+        services.AddScoped<IUsageCounterRepository, UsageCounterRepository>();
+        services.AddScoped<IUpgradeRequestRepository, UpgradeRequestRepository>();
         services.AddScoped<IDbTransactionFactory, DbTransactionFactory>();
         services.AddScoped<MigrationRunner>();
         services.AddScoped<SchemaContractValidator>();

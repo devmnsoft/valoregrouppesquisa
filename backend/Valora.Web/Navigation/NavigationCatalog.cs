@@ -130,7 +130,7 @@ public sealed class NavigationCatalog
             ItemAction("operation.data-quality", "Qualidade dos Dados", "Verificações seguras e não destrutivas", "AssistedOperations", "DataQuality", "layout-dashboard", "organization", 9, Administrators),
             Item("administration.plans", "Planos e Uso", "Recursos, limites e consumo atual", "Plans", "credit-card", null, null, "plans", "organization", 5, Administrators),
             Item("administration.access", "Central de Acessos", "Usuários, papéis e escopos", "Users", "shield", null, null, "users", "organization", 10, Administrators),
-            Item("administration.communications", "Comunicações", "Templates e entregas", "Communications", "message-circle", null, null, "communications", "organization", 20, Administrators),
+            Item("administration.communications", "Communication Center", "Notificações, templates, outbox, entregas e lembretes", "Communications", "message-circle", "communication.read", "operations", "communications", "organization", 20, Administrators),
             Item("administration.audit", "Auditoria", "Histórico de atividades", "Audit", "activity", null, null, "audit", "organization", 30, Roles("admin_valora", "consultor_valora")),
             ItemAction("administration.integrations", "Integrações", "Power BI™ e exportações autorizadas", "Intelligence", "Integrations", "layers", "organizational_intelligence", 35, Administrators),
             ItemAction("administration.platform-governance", "Governança da Plataforma", "Rastreabilidade, integridade e controle", "Intelligence", "PlatformGovernance", "activity", "organizational_intelligence", 36, Administrators),

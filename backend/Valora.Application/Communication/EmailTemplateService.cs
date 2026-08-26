@@ -1,7 +1,7 @@
 using Valora.Application.Security;
 using Microsoft.Extensions.Logging;
 namespace Valora.Application.Communication;
-public sealed class EmailTemplateService(ILogger<EmailTemplateService>? logger = null)
+public sealed partial class EmailTemplateService(ILogger<EmailTemplateService>? logger = null)
 {
     public const string ResultSubject = "Seu diagnóstico gratuito Valora Insight™ está pronto";
     public string BuildPasswordResetTemplate(string maskedEmail, string resetUrl){ logger?.LogInformation("Password reset template generated. Email={Email}", LogSanitizer.MaskEmail(maskedEmail)); return $"Solicitação de recuperação para {maskedEmail}. Acesse: {resetUrl}"; }

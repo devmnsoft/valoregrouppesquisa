@@ -22,6 +22,7 @@ using Valora.Application.Evolution;
 using Valora.Application.Journey;
 using Valora.Application.OneOnOne;
 using Valora.Infrastructure.FormalDeliverables;
+using Valora.Application.Communication;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -52,6 +53,11 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IResultRepository, ResultRepository>();
         services.AddScoped<ICertificateRepository, CertificateRepository>();
         services.AddScoped<ICommunicationRepository, CommunicationRepository>();
+        services.AddScoped<INotificationRepository, NotificationRepository>();
+        services.AddScoped<INotificationTemplateRepository, NotificationTemplateRepository>();
+        services.AddScoped<ICommunicationOutboxRepository, CommunicationOutboxRepository>();
+        services.AddScoped<IReminderRepository, ReminderRepository>();
+        services.AddScoped<ICommunicationAuditRepository, CommunicationAuditRepository>();
         services.AddScoped<IMigrationRepository, MigrationRepository>();
         services.AddScoped<IAuditRepository, AuditRepository>();
         services.AddScoped<IFreeDiagnosticsRepository, FreeDiagnosticsRepository>();

@@ -100,6 +100,10 @@ public static class InfrastructureServiceCollectionExtensions
     private static IServiceCollection AddAiAndFormalDeliverablePersistence(this IServiceCollection services)
     {
         services.AddScoped<IValoraAiRunRepository, ValoraAiRunRepository>();
+        services.AddScoped<IValoraAiEvidenceRepository, ValoraAiEvidenceRepository>();
+        services.AddScoped<IValoraAiInsightRepository, ValoraAiInsightRepository>();
+        services.AddScoped<IValoraAiReviewRepository, ValoraAiReviewRepository>();
+        services.AddScoped<IValoraAiFeedbackRepository, ValoraAiFeedbackRepository>();
         services.AddScoped<IDiagnosisDocumentSnapshotProvider, DiagnosisDocumentSnapshotProvider>();
         services.AddScoped<IShareLinkRepository, ShareLinkRepository>();
         return services;

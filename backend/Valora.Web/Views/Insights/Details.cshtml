@@ -1,0 +1,7 @@
+@model Valora.Application.ValoraAi.AiInsight
+@{ ViewData["Title"] = Model.Title; }
+<main class="valora-page v9-page">
+ <partial name="_PageHeader" model="@(new PageHeaderViewModel(Model.Title, Model.Summary, "Insight baseado em evidências", Model.Status, new[] { new PageHeaderAction("Voltar aos insights", "/Insights") }))" />
+ <div class="v9-executive-grid"><section class="valora-card"><p class="eyebrow">Contexto</p><h2>Interpretação</h2><p>@Model.Summary</p><dl><dt>Dimensão</dt><dd>@(Model.RelatedDimension ?? "Não vinculada")</dd><dt>Índice</dt><dd>@(Model.RelatedIndexCode ?? "Não vinculado")</dd><dt>Confiança</dt><dd><span class="badge">@Model.ConfidenceLevel</span></dd></dl></section><section class="valora-card"><p class="eyebrow">Rastreabilidade</p><h2>Evidências utilizadas</h2><p>@Model.EvidenceSummary</p><p><strong>Limitação:</strong> @(Model.Limitation ?? "Nenhuma limitação adicional registrada.")</p></section></div>
+ <section class="valora-card"><p class="eyebrow">Plano de evolução</p><h2>Recomendação prática</h2><p>@Model.Recommendation</p><div class="d-flex flex-wrap gap-2"><button class="valora-button valora-button--primary" type="button">Aprovar</button><button class="valora-button" type="button">Rejeitar</button><button class="valora-button" type="button">Criar ação</button><button class="valora-button" type="button">Criar decisão</button><button class="valora-button" type="button">Enviar para relatório</button></div><small>A decisão final permanece sempre sob responsabilidade humana.</small></section>
+</main>

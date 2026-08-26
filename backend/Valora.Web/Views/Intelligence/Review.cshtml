@@ -1,0 +1,7 @@
+@{ ViewData["Title"] = "Revisão de IA"; }
+<main class="valora-page v9-page">
+ <partial name="_PageHeader" model="@(new PageHeaderViewModel("Fila de revisão", "Valide a interpretação antes que ela possa orientar relatórios, ações ou decisões.", "Governança humana", "Intelligence Hub", new[] { new PageHeaderAction("Ver insights", "/Insights", Style: "primary") }))" />
+ @if (TempData["IntelligenceMessage"] is string message) { <div class="valora-alert">@message</div> }
+ <section class="v9-kpis"><article><span>Pendentes</span><strong>—</strong><small>Aguardando revisão</small></article><article><span>Baixa confiança</span><strong>—</strong><small>Exigem cautela</small></article><article><span>Evidência insuficiente</span><strong>—</strong><small>Conclusão bloqueada</small></article><article><span>Riscos</span><strong>—</strong><small>Guardrails ativos</small></article></section>
+ <section class="valora-card empty-state"><h2>Fila carregada com segurança</h2><p>Insights pendentes aparecerão aqui com evidências, riscos, confiança e limitações para aprovação ou rejeição fundamentada.</p><a class="valora-button" href="/Intelligence/Generate">Gerar análise</a></section>
+</main>

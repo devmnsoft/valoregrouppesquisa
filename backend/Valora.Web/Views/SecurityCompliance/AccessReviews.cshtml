@@ -1,0 +1,6 @@
+@model Valora.Web.Models.ViewModels.SecurityCompliancePageViewModel
+@{ ViewData["Title"] = Model.Title; }
+<section class="valora-page"><partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel(Model.Title, Model.Description, "Administração"))" />
+<div class="admin-metrics">@foreach(var metric in Model.Metrics){<article class="admin-metric"><span>@metric.Label</span><strong>@metric.Value</strong><small>Somente evidências da organização atual</small></article>}</div>
+<nav class="admin-module-grid mt-4" aria-label="Segurança e Compliance"><a asp-action="Privacy"><strong>Privacidade e LGPD</strong><small>Consentimentos</small></a><a asp-action="DataRequests"><strong>Solicitações de Titulares</strong><small>Direitos LGPD</small></a><a asp-action="Retention"><strong>Retenção</strong><small>Políticas e execuções</small></a><a asp-action="Audit"><strong>Auditoria</strong><small>Eventos avançados</small></a><a asp-action="Incidents"><strong>Incidentes</strong><small>Resposta e evidência</small></a><a asp-action="AccessReviews"><strong>Revisão de Acessos</strong><small>Governança periódica</small></a><a asp-action="SensitiveAccess"><strong>Acessos Sensíveis</strong><small>Finalidade e decisão</small></a></nav>
+<ul class="mt-4">@foreach(var item in Model.Guidance){<li>@item</li>}</ul></section>

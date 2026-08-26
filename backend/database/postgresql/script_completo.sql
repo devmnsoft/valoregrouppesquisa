@@ -4014,3 +4014,97 @@ ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.descript
  status=excluded.status,updated_at=now();
 
 COMMIT;
+
+-- Valora Security & Compliance Center (tenant-isolated, append-only evidence where applicable)
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_privacy_settings (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), privacy_contact_email text,
+ default_request_due_days integer NOT NULL DEFAULT 15 CHECK(default_request_due_days BETWEEN 1 AND 30), anonymization_enabled boolean NOT NULL DEFAULT true,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ CONSTRAINT uq_organization_privacy_settings_org UNIQUE(organization_id));
+CREATE TABLE IF NOT EXISTS valorapesquisa.privacy_consents (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), user_id uuid, respondent_id uuid,
+ consent_type varchar(80) NOT NULL, consent_version varchar(40) NOT NULL, status varchar(20) NOT NULL CHECK(status IN ('granted','revoked','expired')),
+ granted_at timestamptz, revoked_at timestamptz, source varchar(80) NOT NULL, ip_address inet, user_agent text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.privacy_consent_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), consent_id uuid NOT NULL REFERENCES valorapesquisa.privacy_consents(id),
+ event_type varchar(40) NOT NULL, actor_user_id uuid, evidence_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.data_subject_requests (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), requester_user_id uuid, requester_email text NOT NULL,
+ request_type varchar(32) NOT NULL CHECK(request_type IN ('access','correction','erasure','anonymization','portability')),
+ status varchar(24) NOT NULL DEFAULT 'open' CHECK(status IN ('open','in_progress','completed','rejected','cancelled')), description text NOT NULL,
+ response_summary text, completed_at timestamptz, due_at timestamptz NOT NULL, handled_by_user_id uuid, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.data_retention_policies (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), data_category varchar(80) NOT NULL,
+ retention_days integer NOT NULL CHECK(retention_days > 0), expiration_action varchar(24) NOT NULL CHECK(expiration_action IN ('anonymize','archive','soft_delete')),
+ responsible_user_id uuid, last_run_at timestamptz, is_active boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ CONSTRAINT uq_retention_policy_org_category UNIQUE(organization_id,data_category));
+CREATE TABLE IF NOT EXISTS valorapesquisa.data_retention_jobs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), policy_id uuid NOT NULL REFERENCES valorapesquisa.data_retention_policies(id),
+ status varchar(24) NOT NULL, affected_records integer NOT NULL DEFAULT 0, evidence_json jsonb NOT NULL DEFAULT '{}'::jsonb, started_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.security_incidents (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), severity varchar(16) NOT NULL CHECK(severity IN ('critical','high','medium','low','info')),
+ status varchar(20) NOT NULL CHECK(status IN ('open','investigating','mitigated','resolved','dismissed')), incident_type varchar(80) NOT NULL, title text NOT NULL, description text NOT NULL,
+ evidence_summary text NOT NULL, impact text, response_plan text, resolution text, detected_at timestamptz NOT NULL, resolved_at timestamptz, assigned_to_user_id uuid,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.security_incident_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), incident_id uuid NOT NULL REFERENCES valorapesquisa.security_incidents(id),
+ event_type varchar(40) NOT NULL, actor_user_id uuid, description text NOT NULL, evidence_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.access_review_cycles (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), title text NOT NULL, status varchar(20) NOT NULL DEFAULT 'open',
+ started_by_user_id uuid, due_at timestamptz NOT NULL, completed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.access_review_items (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), cycle_id uuid NOT NULL REFERENCES valorapesquisa.access_review_cycles(id),
+ subject_type varchar(40) NOT NULL, subject_id text NOT NULL, access_summary text NOT NULL, decision varchar(24) CHECK(decision IN ('keep','remove','review_later','risk_identified')),
+ reviewed_by_user_id uuid, reviewed_at timestamptz, evidence_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.sensitive_data_access_logs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), actor_user_id uuid, data_category varchar(80) NOT NULL,
+ resource_type varchar(80) NOT NULL, resource_id text NOT NULL, purpose text NOT NULL, decision varchar(16) NOT NULL CHECK(decision IN ('allowed','denied')),
+ ip_hash text, user_agent text, correlation_id text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.compliance_audit_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), actor_user_id uuid, event_type varchar(100) NOT NULL,
+ resource_type varchar(80), resource_id text, outcome varchar(20) NOT NULL, evidence_json jsonb NOT NULL DEFAULT '{}'::jsonb, correlation_id text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.compliance_exports (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), requested_by_user_id uuid, export_type varchar(80) NOT NULL,
+ status varchar(24) NOT NULL, storage_reference text, expires_at timestamptz, evidence_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz, deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.public_share_access_logs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), share_link_id uuid NOT NULL, outcome varchar(20) NOT NULL,
+ ip_hash text, user_agent text, correlation_id text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.user_session_logs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), user_id uuid, event_type varchar(32) NOT NULL,
+ outcome varchar(20) NOT NULL, ip_hash text, user_agent text, correlation_id text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+
+CREATE INDEX IF NOT EXISTS ix_privacy_consents_org_created ON valorapesquisa.privacy_consents(organization_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_consent_events_org_consent ON valorapesquisa.privacy_consent_events(organization_id,consent_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_data_subject_requests_org_status_due ON valorapesquisa.data_subject_requests(organization_id,status,due_at);
+CREATE INDEX IF NOT EXISTS ix_retention_jobs_org_started ON valorapesquisa.data_retention_jobs(organization_id,started_at DESC);
+CREATE INDEX IF NOT EXISTS ix_security_incidents_org_status ON valorapesquisa.security_incidents(organization_id,status,severity);
+CREATE INDEX IF NOT EXISTS ix_incident_events_org_incident ON valorapesquisa.security_incident_events(organization_id,incident_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_access_reviews_org_status ON valorapesquisa.access_review_cycles(organization_id,status,due_at);
+CREATE INDEX IF NOT EXISTS ix_access_review_items_org_cycle ON valorapesquisa.access_review_items(organization_id,cycle_id);
+CREATE INDEX IF NOT EXISTS ix_sensitive_access_org_created ON valorapesquisa.sensitive_data_access_logs(organization_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_compliance_audit_org_created ON valorapesquisa.compliance_audit_events(organization_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_public_share_access_org_created ON valorapesquisa.public_share_access_logs(organization_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_user_session_logs_org_created ON valorapesquisa.user_session_logs(organization_id,created_at DESC);
+
+INSERT INTO valorapesquisa.permissions(code,name,module_code,status)
+SELECT p.code,p.name,'identity','active' FROM (VALUES
+ ('security_compliance.read','Consultar Segurança e Compliance'),('security_compliance.manage','Gerenciar Segurança e Compliance'),
+ ('privacy.read','Consultar Privacidade'),('privacy.manage','Gerenciar Privacidade'),
+ ('data_subject_requests.read','Consultar Solicitações LGPD'),('data_subject_requests.manage','Gerenciar Solicitações LGPD'),
+ ('retention.read','Consultar Retenção'),('retention.manage','Gerenciar Retenção'),('compliance_audit.read','Consultar Auditoria de Compliance'),
+ ('security_incidents.read','Consultar Incidentes'),('security_incidents.manage','Gerenciar Incidentes'),
+ ('access_reviews.read','Consultar Revisões de Acesso'),('access_reviews.manage','Gerenciar Revisões de Acesso'),
+ ('sensitive_access_logs.read','Consultar Acessos Sensíveis')) AS p(code,name)
+WHERE NOT EXISTS (SELECT 1 FROM valorapesquisa.permissions existing WHERE existing.code=p.code);
+
+-- The platform administrator receives the canonical compliance bundle; tenant roles remain explicitly delegated.
+INSERT INTO valorapesquisa.role_permissions(role_id,permission_id)
+SELECT r.id,p.id FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p
+WHERE lower(r.code)='admin_valora' AND p.code IN (
+ 'security_compliance.read','security_compliance.manage','privacy.read','privacy.manage',
+ 'data_subject_requests.read','data_subject_requests.manage','retention.read','retention.manage',
+ 'compliance_audit.read','security_incidents.read','security_incidents.manage',
+ 'access_reviews.read','access_reviews.manage','sensitive_access_logs.read')
+ON CONFLICT(role_id,permission_id) DO NOTHING;

@@ -23,6 +23,7 @@ using Valora.Application.Journey;
 using Valora.Application.OneOnOne;
 using Valora.Infrastructure.FormalDeliverables;
 using Valora.Application.Communication;
+using Valora.Application.SecurityCompliance;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -99,6 +100,20 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddAiAndFormalDeliverablePersistence();
         services.AddScoped<IDocumentAccessPolicy, DocumentAccessPolicy>();
         services.AddScoped<IDocumentStore, DocumentStore>();
+        services.AddScoped<IPrivacyConsentRepository, PrivacyConsentRepository>();
+        services.AddScoped<IDataSubjectRequestRepository, DataSubjectRequestRepository>();
+        services.AddScoped<IDataRetentionRepository, DataRetentionRepository>();
+        services.AddScoped<ISecurityIncidentRepository, SecurityIncidentRepository>();
+        services.AddScoped<IAccessReviewRepository, AccessReviewRepository>();
+        services.AddScoped<IComplianceAuditRepository, ComplianceAuditRepository>();
+        services.AddScoped<PrivacyConsentService>(); services.AddScoped<DataSubjectRequestService>();
+        services.AddScoped<DataRetentionService>(); services.AddScoped<SecurityIncidentService>();
+        services.AddScoped<AccessReviewService>(); services.AddScoped<ComplianceAuditService>(); services.AddScoped<SensitiveAccessLogService>();
+        services.AddScoped<RegisterPrivacyConsentUseCase>(); services.AddScoped<RevokePrivacyConsentUseCase>();
+        services.AddScoped<CreateDataSubjectRequestUseCase>(); services.AddScoped<CompleteDataSubjectRequestUseCase>();
+        services.AddScoped<ConfigureRetentionPolicyUseCase>(); services.AddScoped<RunRetentionJobUseCase>();
+        services.AddScoped<RegisterSecurityIncidentUseCase>(); services.AddScoped<ResolveSecurityIncidentUseCase>();
+        services.AddScoped<StartAccessReviewCycleUseCase>(); services.AddScoped<CompleteAccessReviewCycleUseCase>(); services.AddScoped<LogSensitiveDataAccessUseCase>();
         services.AddScoped<IExportAuditService, ExportAuditService>();
         return services;
     }

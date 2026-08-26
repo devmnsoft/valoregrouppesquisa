@@ -25,6 +25,7 @@ using Valora.Application.Evolution;
 using Valora.Application.Journey;
 using Valora.Application.OneOnOne;
 using Valora.Application.Subscriptions;
+using Valora.Application.SuccessCenter;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -32,6 +33,11 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<OnboardingService>(); services.AddScoped<OrganizationHealthService>(); services.AddScoped<SuccessPlaybookService>();
+        services.AddScoped<SupportTicketService>(); services.AddScoped<KnowledgeBaseService>(); services.AddScoped<ProductUsageService>(); services.AddScoped<FeatureAdoptionService>();
+        services.AddScoped<GenerateOrganizationOnboardingUseCase>(); services.AddScoped<CompleteOnboardingStepUseCase>(); services.AddScoped<ReopenOnboardingStepUseCase>();
+        services.AddScoped<CalculateOrganizationHealthScoreUseCase>(); services.AddScoped<CreateSupportTicketUseCase>(); services.AddScoped<ReplySupportTicketUseCase>(); services.AddScoped<ResolveSupportTicketUseCase>();
+        services.AddScoped<CreateSuccessPlaybookUseCase>(); services.AddScoped<AssignPlaybookToOrganizationUseCase>(); services.AddScoped<RegisterProductUsageEventUseCase>(); services.AddScoped<GenerateFeatureAdoptionOverviewUseCase>();
         services.AddScoped<SubscriptionPlanService>();
         services.AddScoped<OrganizationSubscriptionService>();
         services.AddScoped<FeatureAccessService>();

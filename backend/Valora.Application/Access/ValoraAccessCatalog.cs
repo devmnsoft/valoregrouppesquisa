@@ -124,6 +124,12 @@ public static class ValoraPermissions
     public static class Diagnostics { public const string Read="diagnostics.read", Manage="diagnostics.manage", Close="diagnostics.close", Calculate="diagnostics.calculate"; }
     public static class Questions { public const string Read="questions.read", Manage="questions.manage"; }
     public static class Onboarding { public const string Read="onboarding.read", Manage="onboarding.manage"; }
+    public static class SuccessCenter { public const string Read="success_center.read", Manage="success_center.manage"; }
+    public static class OrganizationHealth { public const string Read="organization_health.read", Manage="organization_health.manage"; }
+    public static class SupportTickets { public const string Read="support_tickets.read", Manage="support_tickets.manage"; }
+    public static class KnowledgeBase { public const string Read="knowledge_base.read", Manage="knowledge_base.manage"; }
+    public static class SuccessPlaybooks { public const string Read="success_playbooks.read", Manage="success_playbooks.manage"; }
+    public static class ProductUsage { public const string Read="product_usage.read"; }
     public static class Campaigns { public const string Read="campaigns.read", Manage="campaigns.manage"; }
     public static class Respondents { public const string Read="respondents.read", Manage="respondents.manage"; }
     public static class Evidence { public const string Read="evidence.read", Manage="evidence.manage"; }
@@ -247,7 +253,8 @@ public static class ValoraPermissions
         "organizational_intelligence" or "methodology" or "decision_center" or "decisions" or "alerts" or "indicators" or "governance" or "diagnostics" or "dashboard" or "radar" or "reports" or "deliverables" or "share_links" or "public_results" or "action" or "heatmap" or
         "evolution" or "journey" or "benchmark" or "insights" or "ai" or "ai_runs" or "one_on_one" or
         "evidence" or "indexes" or "priorities" or "leadership" or "leadership_development" or "intelligence" or "questions" => "organizational_intelligence",
-        "onboarding" or "branding" => ValoraModules.Organization,
+        "onboarding" or "branding" or "success_center" or "organization_health" or "support_tickets" or
+        "knowledge_base" or "success_playbooks" or "product_usage" => ValoraModules.Organization,
         "campaigns" => ValoraModules.Surveys,
         "respondents" => ValoraModules.Responses,
         "organizations" => ValoraModules.Organization,

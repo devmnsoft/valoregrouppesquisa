@@ -1,0 +1,9 @@
+@model Valora.Web.Models.ViewModels.SuccessCenter.SuccessCenterPageViewModel
+@{ViewData["Title"]=Model.Title;Layout="_AdminLayout";}
+<div class="page-container success-center" data-success-section="@Model.Section">
+<nav class="breadcrumb" aria-label="Navegação"><a href="/Dashboard">Visão Geral</a><span>/</span><strong>Sucesso do Cliente</strong><span>/</span><span>@Model.Title</span></nav>
+<header class="page-header success-hero"><div><span class="eyebrow">@Model.Eyebrow</span><h1>@Model.Title</h1><p>@Model.Description</p></div>@if(Model.Section=="support"){<a class="btn btn-primary" href="/SuccessCenter/Support/Create">Abrir chamado</a>}</header>
+@if(TempData["Success"] is string success){<div class="alert alert-success" role="status">@success</div>}
+<section class="metric-grid" aria-label="Resumo">@foreach(var metric in Model.Metrics){<article class="metric-card"><span>@metric.Label</span><strong>@metric.Value</strong><small>@metric.Detail</small></article>}</section>
+<section class="surface-card success-workspace"><header><div><h2>Próximos passos</h2><p>Os dados são carregados no escopo da organização autenticada.</p></div><span class="badge bg-light text-dark">evidência obrigatória</span></header><div class="empty-state"><div class="empty-icon" aria-hidden="true">✓</div><h3>Nenhum dado confirmado para exibir</h3><p>Não criamos números demonstrativos. Assim que houver atividade real, este painel apresentará responsáveis, prazos e evidências.</p>@if(Model.Section=="onboarding"){<a class="btn btn-outline-primary" href="/Organization">Completar dados da organização</a>}else if(Model.Section=="knowledge"){<form method="get" class="search-field"><label for="q">Buscar orientação</label><input id="q" name="q" class="form-control" placeholder="Ex.: primeiro diagnóstico"><button class="btn btn-primary">Buscar</button></form>}</div></section>
+</div>

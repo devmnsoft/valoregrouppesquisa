@@ -22,10 +22,13 @@
   <link rel="stylesheet" href="/css/valora-v9.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/valora-admin.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/valora.modules.css" asp-append-version="true">
+  <link rel="stylesheet" href="/css/valora-components.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/design-system/responsive.css" asp-append-version="true">
+  <link rel="stylesheet" href="/css/valora-responsive.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/print.css" asp-append-version="true">
 </head>
 <body class="valora-shell admin-body">
+  <a class="valora-skip-link" href="#main-content">Ir para o conteúdo principal</a>
   @if (Configuration.GetValue<bool>("App:MaintenanceModeEnabled"))
   {
     <div class="alert alert-warning rounded-0 mb-0 text-center" role="status"><strong>Manutenção programada:</strong> @(Configuration["App:MaintenanceMessage"] ?? "O sistema está em manutenção programada. Tente novamente mais tarde.")</div>
@@ -36,8 +39,9 @@
   </div>
   <div class="app-shell valora-admin-shell">
     @await Component.InvokeAsync("Navigation")
-    <main class="app-main">
+    <main class="app-main" id="main-content" tabindex="-1">
       @await Html.PartialAsync("_Topbar")
+      @await Html.PartialAsync("_OrganizationContextBanner")
       <section class="content-wrapper valora-admin-content">@RenderBody()</section>
       @await Html.PartialAsync("_Footer")
     </main>
@@ -86,6 +90,7 @@
 <script src="/js/app.js"></script>
 <script src="/js/shell/navigation-shell.js" asp-append-version="true" defer></script>
 <script src="/js/shell/topbar-shell.js" asp-append-version="true" defer></script>
+<script src="/js/components/valora-experience.js" asp-append-version="true" defer></script>
 <script src="/js/components/footer.js"></script>
 <script src="/js/components/status-badge.js"></script>
 <script src="/js/components/copy-link-button.js"></script>

@@ -81,8 +81,12 @@
       setText('[data-user-email]', account.userEmail); setText('[data-user-initials]', account.userInitials);
       setText('[data-current-organization]', account.organizationName || 'Organização não vinculada');
       setText('[data-current-plan]', account.planName || 'Plano não informado');
+      const organizationBanner = document.querySelector('[data-organization-context]');
+      if (organizationBanner) organizationBanner.hidden = Boolean(account.organizationName);
+      document.dispatchEvent(new CustomEvent('valora:account-context', { detail: { organizationName: account.organizationName || null } }));
     } catch (error) {
       document.querySelector('[data-admin-topbar]')?.setAttribute('data-account-context', 'unavailable');
+      document.dispatchEvent(new CustomEvent('valora:account-context', { detail: { unavailable: true } }));
     }
   }
   function loadNotifications() {

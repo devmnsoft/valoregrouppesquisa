@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Valora.Web.Models;
 
 namespace Valora.Web.Controllers;
 
@@ -10,16 +11,18 @@ public sealed class ResultsController(ILogger<ResultsController> logger) : Contr
         return View();
     }
 
-    [Route("r/{responseId}")]
-    [Route("public/results/{responseId}")]
-    [Route("resultado/{responseId}")]
-    public IActionResult Public(string responseId)
+    [Route("public/results/{token}")]
+    [Route("public/results/{token}/executive")]
+    [Route("public/results/{token}/report")]
+    [Route("resultado/{token}")]
+    public IActionResult Public(string token)
     {
         try
         {
             ViewData["Title"] = "Public";
-            ViewData["ResponseId"] = responseId;
-            return View();
+            var model = new PublicResultExperienceViewModel { Token = token };
+            if (!TryValidateModel(model)) return NotFound();
+            return View(model);
         }
         catch (Exception ex)
         {
@@ -34,8 +37,7 @@ public sealed class ResultsController(ILogger<ResultsController> logger) : Contr
         try
         {
             ViewData["Title"] = "Enviar resultado por e-mail";
-            ViewData["ResponseId"] = responseId;
-            return View("Public");
+            return View("Public", new PublicResultExperienceViewModel { Token = responseId });
         }
         catch (Exception ex)
         {

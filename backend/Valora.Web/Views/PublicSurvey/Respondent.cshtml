@@ -1,0 +1,26 @@
+@model Valora.Web.Models.RespondentExperienceViewModel
+@{ Layout = "_PublicLayout"; ViewData["Title"] = Model.Step == "completed" ? "Participação concluída" : "Diagnóstico Valora"; }
+<section class="respondent-shell" data-respondent-portal data-token="@Model.Token" data-step="@Model.Step">
+  <div class="respondent-frame">
+    <header class="respondent-header">
+      <p class="eyebrow">Valora Insight™ · jornada segura</p>
+      <div class="respondent-progress" role="progressbar" aria-label="Progresso do diagnóstico" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@Model.ProgressPercent">
+        <div class="respondent-progress__meta"><strong>Seu progresso</strong><span>@Model.ProgressPercent%</span></div>
+        <div class="respondent-progress__track"><span style="width:@Model.ProgressPercent%"></span></div>
+      </div>
+    </header>
+    <main class="respondent-card">
+      @if (Model.Step == "completed") {
+        <div class="completion-state"><span class="completion-state__mark" aria-hidden="true">✓</span><p class="eyebrow">Contribuição registrada</p><h1>Obrigado por compartilhar sua perspectiva.</h1><p>Suas respostas serão analisadas de forma consolidada. A interpretação final considera as evidências disponíveis e preserva a decisão humana.</p></div>
+      } else if (Model.Step == "review") {
+        <p class="eyebrow">Revisão final</p><h1>Revise antes de concluir</h1><p class="lead">Confirme se suas respostas representam sua percepção atual. Você ainda pode voltar e ajustar.</p><div class="answer-summary" data-answer-summary><p>Nenhuma resposta foi alterada nesta etapa.</p></div><div class="respondent-actions"><a class="btn-public secondary" href="/r/@Model.Token/questions">Voltar às perguntas</a><button class="btn-public primary" type="button" data-complete>Concluir participação</button></div>
+      } else if (Model.Step == "questions") {
+        <p class="eyebrow">Seção 1 · contexto organizacional</p><h1>Como você percebe a realidade atual?</h1><p class="respondent-privacy">Não há resposta certa. Selecione a alternativa mais aderente às evidências que você conhece.</p><form class="question-stack" data-question-form><fieldset class="question-card"><legend>As prioridades estratégicas são compreendidas pelas equipes?</legend><div class="likert-scale">@foreach (var option in new[] { ("1", "Discordo totalmente"), ("2", "Discordo"), ("3", "Neutro"), ("4", "Concordo"), ("5", "Concordo totalmente") }) { <label><input type="radio" name="q-strategy" value="@option.Item1" required><span><strong>@option.Item1</strong><small>@option.Item2</small></span></label> }</div></fieldset><div class="respondent-actions"><button class="btn-public secondary" type="button" data-save>Salvar e continuar depois</button><button class="btn-public primary" type="submit">Revisar respostas</button></div><p class="save-message" role="status" data-save-message></p></form>
+      } else {
+        <p class="eyebrow">Diagnóstico organizacional</p><h1>Sua perspectiva ajuda a construir decisões melhores.</h1><p class="lead">Uma jornada objetiva, confidencial e baseada em evidências. Você poderá salvar e continuar de onde parou.</p><div class="respondent-trust"><div><strong>Privacidade</strong><span>Tratamento responsável conforme a LGPD.</span></div><div><strong>Consolidação</strong><span>As respostas serão analisadas de forma consolidada.</span></div><div><strong>Tempo</strong><span>Reserve alguns minutos sem interrupções.</span></div></div><label class="consent-card"><input type="checkbox" data-consent><span><strong>Li e concordo em participar</strong><small>Autorizo o tratamento das respostas para a finalidade informada, conforme o aviso de privacidade.</small></span></label><div class="respondent-actions"><button class="btn-public primary" type="button" data-start disabled>Começar diagnóstico</button></div>
+      }
+    </main>
+    <footer class="respondent-footnote"><span>Ambiente protegido</span><span>Seus dados não são exibidos publicamente</span></footer>
+  </div>
+</section>
+@section Scripts { <script src="/js/public/respondent-experience.js" asp-append-version="true"></script> }

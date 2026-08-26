@@ -11,6 +11,7 @@ public sealed class CertificatesController(ILogger<CertificatesController> logge
     }
 
     [Route("certificado/{certificateId}")]
+    [Route("public/results/{certificateId}/certificate")]
     public IActionResult Public(string certificateId)
     {
         try

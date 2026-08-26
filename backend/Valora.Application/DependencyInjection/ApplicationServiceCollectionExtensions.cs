@@ -26,6 +26,7 @@ using Valora.Application.Journey;
 using Valora.Application.OneOnOne;
 using Valora.Application.Subscriptions;
 using Valora.Application.SuccessCenter;
+using Valora.Application.Experience;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -33,6 +34,21 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<RespondentPortalService>();
+        services.AddScoped<RespondentSessionService>();
+        services.AddScoped<Valora.Application.Experience.PublicResultPortalService>();
+        services.AddScoped<PublicCertificateService>();
+        services.AddScoped<DiagnosticInvitationExperienceService>();
+        services.AddScoped<ExecutiveResultExperienceService>();
+        services.AddScoped<CreateRespondentAccessTokenUseCase>();
+        services.AddScoped<StartRespondentSessionUseCase>();
+        services.AddScoped<SaveRespondentProgressUseCase>();
+        services.AddScoped<CompleteRespondentSessionUseCase>();
+        services.AddScoped<GeneratePublicResultViewUseCase>();
+        services.AddScoped<Valora.Application.Experience.RegisterPublicResultAccessUseCase>();
+        services.AddScoped<DownloadPublicCertificateUseCase>();
+        services.AddScoped<CreateInvitationBatchUseCase>();
+        services.AddScoped<GenerateExecutiveResultPortalUseCase>();
         services.AddScoped<OnboardingService>(); services.AddScoped<OrganizationHealthService>(); services.AddScoped<SuccessPlaybookService>();
         services.AddScoped<SupportTicketService>(); services.AddScoped<KnowledgeBaseService>(); services.AddScoped<ProductUsageService>(); services.AddScoped<FeatureAdoptionService>();
         services.AddScoped<GenerateOrganizationOnboardingUseCase>(); services.AddScoped<CompleteOnboardingStepUseCase>(); services.AddScoped<ReopenOnboardingStepUseCase>();
@@ -220,7 +236,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ISecureShareLinkService, SecureShareLinkService>();
         services.AddScoped<ExecutiveReportGenerationService>();
         services.AddScoped<CertificateGenerationService>();
-        services.AddScoped<PublicResultPortalService>();
+        services.AddScoped<Valora.Application.FormalDeliverables.PublicResultPortalService>();
         services.AddScoped<DeliverableAuditService>();
         services.AddScoped<GenerateExecutiveReportUseCase>();
         services.AddScoped<GenerateCertificateUseCase>();
@@ -229,7 +245,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<DownloadCertificateUseCase>();
         services.AddScoped<DownloadReportUseCase>();
         services.AddScoped<RevokeShareLinkUseCase>();
-        services.AddScoped<RegisterPublicResultAccessUseCase>();
+        services.AddScoped<Valora.Application.FormalDeliverables.RegisterPublicResultAccessUseCase>();
         services.AddScoped<Valora.Application.Communication.NotificationService>();
         services.AddScoped<NotificationTemplateService>();
         services.AddScoped<CommunicationOutboxService>();

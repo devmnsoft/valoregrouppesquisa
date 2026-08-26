@@ -1,3 +1,4 @@
+@model Valora.Web.Models.PublicResultExperienceViewModel
 @{
     Layout = "_PublicLayout";
     ViewData["Title"] = "Resultado Valora Insight™";
@@ -14,7 +15,7 @@
         <p class="lead">Data do diagnóstico: <strong data-result-date>Data não informada</strong></p>
       </div>
     </div>
-    <input type="hidden" name="responseId" value="@ViewData["ResponseId"]">
+    <input type="hidden" name="responseId" value="@Model.Token">
 
     <div class="result-card result-hero" data-result-card>
       <div class="score-hero">
@@ -28,8 +29,8 @@
       <article class="insight-section-card"><h2>Diagnóstico por dimensão</h2><p data-dimensions-text>Cultura e Propósito, Gestão e Governança, Liderança, Pessoas e Talentos, Resultados e Crescimento.</p></article>
       <article class="insight-section-card"><h2>Comparando com seu Setor</h2><p>Comparativo setorial ainda não informado para este diagnóstico.</p></article>
       <article class="insight-section-card"><h2>Verdade estratégica</h2><p>A verdade estratégica central evidencia o gargalo que limita o próximo nível.</p></article>
-      <article class="insight-section-card"><h2>Risco se nada mudar</h2><p>Risco em 6 a 18 meses: dependência de pessoas-chave, retrabalho e perda de previsibilidade.</p></article>
-      <article class="insight-section-card"><h2>Próximo nível</h2><p>Próximos passos objetivos para evoluir a maturidade da organização.</p></article>
+      <article class="insight-section-card"><h2>Risco se nada mudar</h2><p>Ainda não há evidências suficientes para exibir esta seção.</p></article>
+      <article class="insight-section-card"><h2>Próximo nível</h2><p>Recomendações serão exibidas após a validação humana das evidências disponíveis.</p></article>
     </div>
 
     <section class="result-method" aria-labelledby="result-method-title">
@@ -50,7 +51,7 @@
 
     <div class="cta-row result-cta-row">
       <a class="btn-public primary" href="@WhatsAppUrl" target="_blank" rel="noopener noreferrer">Fale com a Valora Group</a>
-      <a class="btn-public secondary" href="/certificado/@ViewData["ResponseId"]">Abrir certificado</a>
+      <a class="btn-public secondary" href="/public/results/@Model.Token/certificate">Abrir certificado</a>
       <button class="btn-public ghost" type="button" data-send-result-email>Enviar por e-mail</button>
     </div>
   </div>

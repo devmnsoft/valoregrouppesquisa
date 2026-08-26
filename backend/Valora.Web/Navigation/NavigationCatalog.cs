@@ -83,6 +83,7 @@ public sealed class NavigationCatalog
             ItemAction("decision.cycles", "Ciclos de Governança", "Do diagnóstico à aprendizagem", "Governance", "Cycles", "layers", "organizational_intelligence", 5, Results),
             ItemAction("decision.meetings", "Reuniões de Governança", "Pautas, decisões e próximos passos", "Governance", "Meetings", "users", "organizational_intelligence", 6, Results)),
         Section("administration", "Administração", 40,
+            ItemAction("admin.hub", "Admin Hub", "Organizações, unidades, usuários, acessos e governança", "AdminHub", "Index", "shield", "operations", 0, Administrators),
             ItemAction("master.overview", "Visão Geral", "Central administrativa master", "Administration", "Index", "layout-dashboard", "dashboard", 1, Roles("admin_valora")),
             ItemAction("master.organizations", "Organizações", "Central administrativa master", "Administration", "Organizations", "building", "organization", 2, Roles("admin_valora")),
             ItemAction("master.users", "Usuários", "Central administrativa master", "Administration", "Users", "users", "identity", 3, Roles("admin_valora")),

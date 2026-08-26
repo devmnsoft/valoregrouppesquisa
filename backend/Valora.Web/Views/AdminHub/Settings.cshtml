@@ -1,0 +1,3 @@
+@model Valora.Web.Models.ViewModels.AdminSettingsViewModel
+@{ ViewData["Title"]="Configurações"; }
+<section class="valora-page"><partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Configurações da organização", "Identidade, diagnósticos, relatórios, privacidade e notificações.", "Admin Hub"))" /><article class="admin-panel"><h2>@Model.OrganizationName</h2><p>Preferências são aplicadas somente à organização autenticada.</p><span class="badge text-bg-success">Privacidade ativa</span></article></section>

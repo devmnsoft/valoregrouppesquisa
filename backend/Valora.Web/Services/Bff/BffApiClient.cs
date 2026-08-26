@@ -3,10 +3,11 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
 using Valora.Web.Models;
+using Valora.Application.Common;
 
 namespace Valora.Web.Services.Bff;
 
-public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> options) : IBffApiClient
+public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> options, ICurrentOrganizationProvider organizationProvider) : IBffApiClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -87,6 +88,9 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
         };
         if (!string.IsNullOrWhiteSpace(bearer)) message.Headers.Authorization = new("Bearer", bearer);
         message.Headers.TryAddWithoutValidation("X-Correlation-Id", correlationId);
+        var organization = organizationProvider.GetCurrent();
+        if (organization.IsResolved)
+            message.Headers.TryAddWithoutValidation("X-Organization-Id", organization.OrganizationId.ToString());
         return await httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
     }
 

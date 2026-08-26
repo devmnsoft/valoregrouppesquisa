@@ -4,6 +4,8 @@ using Valora.Application.Access;
 using Valora.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Valora.Api.Operations;
+using Valora.Api.Services;
+using Valora.Application.Common;
 
 namespace Valora.Api.Configuration;
 
@@ -12,6 +14,8 @@ public static class ApiServiceCollectionExtensions
     public static IServiceCollection AddApiServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddControllers();
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentOrganizationProvider, CurrentOrganizationProvider>();
         services.AddCors(options =>
         {
             options.AddPolicy("ValoraWebCors", policy =>

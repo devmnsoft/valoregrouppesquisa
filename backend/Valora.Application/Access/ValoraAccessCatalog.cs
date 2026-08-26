@@ -81,9 +81,10 @@ public static class ValoraAccessCatalog
 public static class ValoraPermissions
 {
     public static class Plans { public const string Read="plans.read", Manage="plans.manage"; }
-    public static class Subscriptions { public const string Read="subscriptions.read", Manage="subscriptions.manage"; }
+    public static class Subscriptions { public const string Read="subscriptions.read", Manage="subscriptions.manage", UpgradeRequest="subscriptions.upgrade_request"; }
     public static class Billing { public const string Read="billing.read", Manage="billing.manage"; }
     public static class Usage { public const string Read="usage.read", Manage="usage.manage"; }
+    public static class FeatureAccess { public const string Read="feature_access.read", Manage="feature_access.manage"; }
     public static class Upgrades { public const string Manage="upgrades.manage"; }
     public static class Organization { public const string Read="organization.read", Update="organization.update", BrandingRead="organization.branding.read", BrandingUpdate="organization.branding.update", SubscriptionRead="organization.subscription.read", UsageRead="organization.usage.read"; }
     public static class OrganizationCurrent { public const string Read="organization.current.read", Update="organization.current.update"; }
@@ -200,7 +201,7 @@ public static class ValoraPermissions
     {
         "users" or "roles" or "sessions" or "invitations" => ValoraModules.Identity,
         "organization" or "units" or "departments" or "business_groups" or "legal_entities" or "plans" or
-        "subscriptions" or "billing" or "usage" or "upgrades" => ValoraModules.Organization,
+        "subscriptions" or "billing" or "usage" or "upgrades" or "feature_access" => ValoraModules.Organization,
         "organizational_intelligence" or "methodology" or "decision_center" or "decisions" or "alerts" or "indicators" or "governance" or "diagnostics" or "dashboard" or "radar" or "reports" or "deliverables" or "share_links" or "public_results" or "action" or "heatmap" or
         "evolution" or "journey" or "benchmark" or "insights" or "ai" or "one_on_one" or
         "evidence" or "indexes" or "priorities" or "leadership" or "leadership_development" or "intelligence" or "questions" => "organizational_intelligence",

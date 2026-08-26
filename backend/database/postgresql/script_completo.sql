@@ -3640,4 +3640,99 @@ CREATE INDEX IF NOT EXISTS ix_diagnostic_invitations_diagnostic ON valorapesquis
 CREATE INDEX IF NOT EXISTS ix_response_sessions_diagnostic ON valorapesquisa.response_sessions(diagnostic_id,status) WHERE deleted_at IS NULL;
 INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES ('diagnostics.read','Consultar diagnósticos','Consultar ciclos diagnósticos.','surveys'),('diagnostics.manage','Gerenciar diagnósticos','Criar e administrar ciclos diagnósticos.','surveys'),('diagnostics.close','Fechar diagnósticos','Encerrar ciclos com rastreabilidade.','surveys'),('diagnostics.calculate','Calcular diagnósticos','Calcular resultados e indicadores.','results'),('forms.manage','Gerenciar formulários','Construir e versionar formulários.','forms'),('questions.read','Consultar perguntas','Consultar perguntas do formulário.','forms'),('questions.manage','Gerenciar perguntas','Gerenciar perguntas em rascunhos.','forms'),('responses.manage','Gerenciar respostas','Revisar e administrar respostas.','responses'),('invitations.manage','Gerenciar convites','Enviar e reenviar convites.','distribution') ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,module_code=excluded.module_code,updated_at=now();
 INSERT INTO valorapesquisa.role_permissions(role_id,permission_id,created_at) SELECT r.id,p.id,now() FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p WHERE r.code='admin_valora' AND r.deleted_at IS NULL AND p.code IN('diagnostics.read','diagnostics.manage','diagnostics.close','diagnostics.calculate','forms.read','forms.manage','forms.publish','questions.read','questions.manage','responses.read','responses.manage','invitations.read','invitations.manage') ON CONFLICT(role_id,permission_id) DO NOTHING;
+
+
+-- SaaS Plans & Subscription Control (contrato comercial canônico)
+CREATE TABLE IF NOT EXISTS valorapesquisa.subscription_plans (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code varchar(40) NOT NULL UNIQUE, name varchar(100) NOT NULL,
+ description text NOT NULL DEFAULT '', status varchar(20) NOT NULL DEFAULT 'active', monthly_price numeric(12,2) NOT NULL DEFAULT 0,
+ annual_price numeric(12,2) NOT NULL DEFAULT 0, max_diagnostics integer NOT NULL DEFAULT 0, max_respondents integer NOT NULL DEFAULT 0,
+ max_users integer NOT NULL DEFAULT 0, max_storage_mb integer NOT NULL DEFAULT 0, has_reports boolean NOT NULL DEFAULT false,
+ has_certificates boolean NOT NULL DEFAULT false, has_heatmap boolean NOT NULL DEFAULT false, has_benchmark boolean NOT NULL DEFAULT false,
+ has_action_center boolean NOT NULL DEFAULT false, has_evolution boolean NOT NULL DEFAULT false, has_journey boolean NOT NULL DEFAULT false,
+ has_one_on_one boolean NOT NULL DEFAULT false, has_datahub boolean NOT NULL DEFAULT false, has_powerbi boolean NOT NULL DEFAULT false,
+ has_api_access boolean NOT NULL DEFAULT false, has_webhooks boolean NOT NULL DEFAULT false, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ CHECK (monthly_price >= 0 AND annual_price >= 0));
+CREATE TABLE IF NOT EXISTS valorapesquisa.subscription_plan_features (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), plan_id uuid NOT NULL REFERENCES valorapesquisa.subscription_plans(id),
+ feature_code varchar(60) NOT NULL, enabled boolean NOT NULL DEFAULT true, configuration_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(plan_id,feature_code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_subscriptions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ plan_id uuid NOT NULL REFERENCES valorapesquisa.subscription_plans(id), status varchar(20) NOT NULL DEFAULT 'active', started_at timestamptz NOT NULL DEFAULT now(),
+ expires_at timestamptz, trial_ends_at timestamptz, canceled_at timestamptz, billing_email varchar(320),
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_organization_subscriptions_active ON valorapesquisa.organization_subscriptions(organization_id) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.subscription_usage_counters (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ subscription_id uuid NOT NULL REFERENCES valorapesquisa.organization_subscriptions(id), period_start date NOT NULL, period_end date NOT NULL,
+ diagnostics_used integer NOT NULL DEFAULT 0, respondents_used integer NOT NULL DEFAULT 0, users_used integer NOT NULL DEFAULT 0,
+ storage_mb_used integer NOT NULL DEFAULT 0, reports_generated integer NOT NULL DEFAULT 0, certificates_generated integer NOT NULL DEFAULT 0,
+ api_calls_used integer NOT NULL DEFAULT 0, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(subscription_id,period_start), CHECK(period_end >= period_start));
+CREATE TABLE IF NOT EXISTS valorapesquisa.subscription_usage_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ subscription_id uuid NOT NULL REFERENCES valorapesquisa.organization_subscriptions(id), metric varchar(60) NOT NULL, amount integer NOT NULL,
+ blocked boolean NOT NULL DEFAULT false, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.subscription_upgrade_requests (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ current_plan_id uuid NOT NULL REFERENCES valorapesquisa.subscription_plans(id), requested_plan_id uuid NOT NULL REFERENCES valorapesquisa.subscription_plans(id),
+ requested_by uuid NOT NULL REFERENCES valorapesquisa.users(id), reason varchar(1000) NOT NULL, billing_email varchar(320) NOT NULL,
+ status varchar(20) NOT NULL DEFAULT 'pending', reviewed_by uuid REFERENCES valorapesquisa.users(id), reviewed_at timestamptz,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.billing_contacts (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), name varchar(150) NOT NULL,
+ email varchar(320) NOT NULL, phone varchar(40), primary_contact boolean NOT NULL DEFAULT false, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.billing_invoices (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ subscription_id uuid NOT NULL REFERENCES valorapesquisa.organization_subscriptions(id), number varchar(80) NOT NULL UNIQUE,
+ status varchar(20) NOT NULL DEFAULT 'pending', amount numeric(12,2) NOT NULL, due_at timestamptz NOT NULL, paid_at timestamptz,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+ deleted_at timestamptz, CHECK(amount >= 0));
+CREATE TABLE IF NOT EXISTS valorapesquisa.plan_limit_overrides (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), subscription_id uuid NOT NULL REFERENCES valorapesquisa.organization_subscriptions(id),
+ metric varchar(60) NOT NULL, limit_value integer NOT NULL, applied_by uuid NOT NULL REFERENCES valorapesquisa.users(id), reason text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_limit_overrides_active ON valorapesquisa.plan_limit_overrides(subscription_id,metric) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_subscription_usage_events_org_occurred ON valorapesquisa.subscription_usage_events(organization_id,occurred_at DESC);
+CREATE INDEX IF NOT EXISTS ix_upgrade_requests_org_status ON valorapesquisa.subscription_upgrade_requests(organization_id,status);
+
+INSERT INTO valorapesquisa.subscription_plans
+(code,name,description,status,monthly_price,annual_price,max_diagnostics,max_respondents,max_users,max_storage_mb,has_reports,has_certificates,has_heatmap,has_benchmark,has_action_center,has_evolution,has_journey,has_one_on_one,has_datahub,has_powerbi,has_api_access,has_webhooks)
+VALUES
+('free','Free','Primeiro diagnóstico e relatório essencial.','active',0,0,1,50,2,100,true,false,false,false,false,false,false,false,false,false,false,false),
+('start','Start','Operação inicial com relatórios e certificados básicos.','active',149,1490,5,500,5,1024,true,true,false,false,false,false,false,false,false,false,false,false),
+('growth','Growth','Inteligência contínua e recursos avançados.','active',399,3990,25,5000,25,10240,true,true,true,true,true,true,true,false,false,false,false,false),
+('enterprise','Enterprise','Governança, integrações e limites contratáveis.','active',0,0,250,100000,500,102400,true,true,true,true,true,true,true,true,true,true,true,true)
+ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,status=excluded.status,monthly_price=excluded.monthly_price,
+ annual_price=excluded.annual_price,max_diagnostics=excluded.max_diagnostics,max_respondents=excluded.max_respondents,max_users=excluded.max_users,
+ max_storage_mb=excluded.max_storage_mb,has_reports=excluded.has_reports,has_certificates=excluded.has_certificates,has_heatmap=excluded.has_heatmap,
+ has_benchmark=excluded.has_benchmark,has_action_center=excluded.has_action_center,has_evolution=excluded.has_evolution,has_journey=excluded.has_journey,
+ has_one_on_one=excluded.has_one_on_one,has_datahub=excluded.has_datahub,has_powerbi=excluded.has_powerbi,has_api_access=excluded.has_api_access,
+ has_webhooks=excluded.has_webhooks,updated_at=now();
+INSERT INTO valorapesquisa.subscription_plan_features(plan_id,feature_code)
+SELECT p.id,f.code FROM valorapesquisa.subscription_plans p CROSS JOIN LATERAL (VALUES
+ ('diagnostics'),('reports'),('certificates'),('heatmap'),('benchmark'),('action_center'),('evolution'),('journey'),('one_on_one'),('datahub'),('powerbi'),('analytics_api'),('webhooks')) f(code)
+WHERE (f.code='diagnostics') OR (f.code='reports' AND p.has_reports) OR (f.code='certificates' AND p.has_certificates)
+ OR (f.code='heatmap' AND p.has_heatmap) OR (f.code='benchmark' AND p.has_benchmark) OR (f.code='action_center' AND p.has_action_center)
+ OR (f.code='evolution' AND p.has_evolution) OR (f.code='journey' AND p.has_journey) OR (f.code='one_on_one' AND p.has_one_on_one)
+ OR (f.code='datahub' AND p.has_datahub) OR (f.code='powerbi' AND p.has_powerbi) OR (f.code='analytics_api' AND p.has_api_access)
+ OR (f.code='webhooks' AND p.has_webhooks) ON CONFLICT(plan_id,feature_code) DO UPDATE SET enabled=true,updated_at=now();
+INSERT INTO valorapesquisa.organization_subscriptions(organization_id,plan_id,status,metadata_json)
+SELECT o.id,p.id,'active','{"automatic":"free_default"}'::jsonb FROM valorapesquisa.organizations o
+JOIN valorapesquisa.subscription_plans p ON p.code='free' WHERE o.deleted_at IS NULL
+AND NOT EXISTS(SELECT 1 FROM valorapesquisa.organization_subscriptions s WHERE s.organization_id=o.id AND s.deleted_at IS NULL)
+ON CONFLICT DO NOTHING;
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+('plans.read','Consultar planos','Consultar catálogo comercial.','organization'),
+('subscriptions.read','Consultar assinatura','Consultar assinatura da organização.','organization'),
+('subscriptions.manage','Gerenciar assinaturas','Alterar assinaturas como Super Admin.','organization'),
+('subscriptions.upgrade_request','Solicitar upgrade','Solicitar upgrade comercial.','organization'),
+('billing.read','Consultar cobrança','Consultar contatos e faturas.','organization'),('billing.manage','Gerenciar cobrança','Gerenciar contatos e faturas.','organization'),
+('usage.read','Consultar consumo','Consultar consumo da assinatura.','organization'),('usage.manage','Gerenciar consumo','Gerenciar contadores de consumo.','organization'),
+('feature_access.read','Consultar acesso','Consultar recursos liberados pelo plano.','organization'),('feature_access.manage','Gerenciar acesso','Gerenciar exceções de acesso.','organization')
+ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,module_code=excluded.module_code,updated_at=now();
+
 COMMIT;

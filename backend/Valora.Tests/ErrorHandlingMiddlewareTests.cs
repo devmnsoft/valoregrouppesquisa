@@ -25,7 +25,7 @@ public sealed class ErrorHandlingMiddlewareTests
 
     [Theory]
     [InlineData(typeof(ValidationAppException), 400)]
-    [InlineData(typeof(UnauthorizedAccessException), 401)]
+    [InlineData(typeof(UnauthorizedAccessException), 403)]
     [InlineData(typeof(NotFoundAppException), 404)]
     [InlineData(typeof(BusinessRuleAppException), 422)]
     public async Task Maps_app_exceptions(Type type, int expected)
@@ -48,6 +48,17 @@ public sealed class ErrorHandlingMiddlewareTests
         Assert.Contains("DATABASE_SCHEMA_MISMATCH", body);
         Assert.DoesNotContain("Banco de dados indisponível", body);
         Assert.DoesNotContain("column missing", body);
+    }
+
+    [Fact]
+    public async Task Unexpected_invalid_operation_is_an_internal_materialization_error()
+    {
+        var context = await Invoke(new InvalidOperationException("Dapper constructor details"));
+        var body = await ReadBody(context);
+        Assert.Equal(500, context.Response.StatusCode);
+        Assert.Contains("DATA_MATERIALIZATION_ERROR", body);
+        Assert.DoesNotContain("Dapper constructor details", body);
+        Assert.DoesNotContain("BUSINESS_RULE_ERROR", body);
     }
 
     [Fact]

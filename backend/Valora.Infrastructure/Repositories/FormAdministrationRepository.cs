@@ -9,12 +9,18 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
     public async Task<IReadOnlyList<FormListItemResponse>> ListAsync(Guid organizationId, FormListQuery query, CancellationToken cancellationToken)
     {
         const string sql = """
-            SELECT f.id, f.name, f.description, f.category, f.estimated_minutes,
-                   f.status, COALESCE(fv.version_number, 0) AS VersionNumber,
-                   COALESCE(stats.sections, 0) AS Sections,
-                   COALESCE(stats.questions, 0) AS Questions,
-                   COALESCE(stats.dimensions, 0) AS Dimensions,
-                   COALESCE(f.updated_at, f.created_at) AS UpdatedAt, f.version
+            SELECT f.id AS "Id",
+                   f.name AS "Name",
+                   f.description AS "Description",
+                   f.category AS "Category",
+                   COALESCE(f.estimated_minutes, 0)::int AS "EstimatedMinutes",
+                   f.status AS "Status",
+                   COALESCE(fv.version_number, 0)::int AS "VersionNumber",
+                   COALESCE(stats.sections, 0)::int AS "Sections",
+                   COALESCE(stats.questions, 0)::int AS "Questions",
+                   COALESCE(stats.dimensions, 0)::int AS "Dimensions",
+                   COALESCE(f.updated_at, f.created_at, now()) AS "UpdatedAt",
+                   COALESCE(f.version, 0)::bigint AS "Version"
               FROM valorapesquisa.forms f
               LEFT JOIN valorapesquisa.form_versions fv ON fv.id = COALESCE(f.current_draft_version_id, f.latest_published_version_id)
               LEFT JOIN LATERAL (
@@ -28,11 +34,12 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
              WHERE f.organization_id = @organizationId AND f.deleted_at IS NULL
                AND (@search IS NULL OR f.name ILIKE '%' || @search || '%')
                AND (@status IS NULL OR f.status = @status)
+               AND (@category IS NULL OR f.category = @category)
              ORDER BY COALESCE(f.updated_at, f.created_at) DESC
              OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;
             """;
         using var connection = connections.Create();
-        var command = new CommandDefinition(sql, new { organizationId, search = NullIfEmpty(query.Search), status = NullIfEmpty(query.Status), offset = (query.Page - 1) * query.PageSize, query.PageSize }, cancellationToken: cancellationToken);
+        var command = new CommandDefinition(sql, new { organizationId, search = NullIfEmpty(query.Search), status = NullIfEmpty(query.Status), category = NullIfEmpty(query.Category), offset = (query.Page - 1) * query.PageSize, query.PageSize }, cancellationToken: cancellationToken);
         return (await connection.QueryAsync<FormListItemResponse>(command)).AsList();
     }
 

@@ -9,7 +9,7 @@ namespace Valora.Web.Controllers;
 [AutoValidateAntiforgeryToken]
 [ApiController]
 [Route("bff")]
-public sealed class BffAdministrationController(IBffApiClient api, BffAuthenticationService authentication) : ControllerBase
+public sealed class BffAdministrationController(IBffApiClient api, BffAuthenticationService authentication, ILogger<BffAdministrationController> logger) : ControllerBase
 {
     [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
     [Route("organization/{**resource}")]
@@ -150,9 +150,23 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
             body = await JsonSerializer.DeserializeAsync<JsonElement>(Request.Body, cancellationToken: cancellationToken);
         var query = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
         var correlationId = Request.Headers["X-Correlation-Id"].FirstOrDefault() ?? HttpContext.TraceIdentifier;
-        using var response = await api.SendAsync(new HttpMethod(Request.Method), path + query, body, session.AccessToken, correlationId, cancellationToken);
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
-        Response.Headers["X-Correlation-Id"] = response.Headers.TryGetValues("X-Correlation-Id", out var values) ? values.First() : correlationId;
-        return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/json", Content = payload };
+        try
+        {
+            using var response = await api.SendAsync(new HttpMethod(Request.Method), path + query, body, session.AccessToken, correlationId, cancellationToken);
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            Response.Headers["X-Correlation-Id"] = response.Headers.TryGetValues("X-Correlation-Id", out var values) ? values.First() : correlationId;
+            return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/json", Content = payload };
+        }
+        catch (BffApiUnavailableException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            logger.LogWarning(exception, "Falha de conectividade ao encaminhar requisição. Path={Path} CorrelationId={CorrelationId}", path, correlationId);
+            Response.Headers["X-Correlation-Id"] = correlationId;
+            return StatusCode(StatusCodes.Status504GatewayTimeout, new
+            {
+                code = "API_UNAVAILABLE",
+                message = "Não foi possível carregar os formulários agora. Tente novamente ou verifique se a API está ativa.",
+                correlationId
+            });
+        }
     }
 }

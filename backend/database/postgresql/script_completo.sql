@@ -860,6 +860,15 @@ INSERT INTO valorapesquisa.permissions(code,name,description,module_code,functio
 ('integrations.manage','Gerenciar integrações','Mantém conexões e credenciais protegidas.','operations','integrations','critical',1170),
 ('notifications.read','Visualizar notificações','Consulta entregas e erros de notificação.','communications','notifications','high',1180),
 ('notifications.manage','Gerenciar notificações','Reenvia e mantém templates de notificação.','communications','notifications','high',1190),
+('notifications.mark_read','Marcar notificação como lida','Registra leitura somente para o destinatário autenticado.','communications','notifications','low',1191),
+('communication.read','Visualizar central de comunicação','Consulta o painel de comunicação da organização.','communications','communication','high',1192),
+('communication.manage','Gerenciar central de comunicação','Gerencia mensagens e operações da central.','communications','communication','high',1193),
+('communication.templates.read','Visualizar templates de comunicação','Consulta templates e versões.','communications','communication_templates','medium',1194),
+('communication.templates.manage','Gerenciar templates de comunicação','Cria e versiona templates validados.','communications','communication_templates','high',1195),
+('communication.outbox.read','Visualizar outbox','Consulta fila, entregas e falhas da organização.','communications','communication_outbox','high',1196),
+('communication.outbox.manage','Gerenciar outbox','Reprocessa mensagens com trilha de auditoria.','communications','communication_outbox','critical',1197),
+('communication.reminders.read','Visualizar lembretes','Consulta regras e execuções de lembrete.','communications','communication_reminders','medium',1198),
+('communication.reminders.manage','Gerenciar lembretes','Cria e altera regras de lembrete.','communications','communication_reminders','high',1199),
 ('jobs.read','Visualizar jobs','Consulta filas, tentativas e correlações.','operations','jobs','high',1200),
 ('jobs.manage','Gerenciar jobs','Reprocessa ou cancela jobs.','operations','jobs','critical',1210),
 ('logs.read','Visualizar logs','Consulta eventos operacionais sanitizados.','operations','logs','high',1220),
@@ -1956,6 +1965,123 @@ END
 $notification_message_migration$;
 ALTER TABLE valorapesquisa.notifications ALTER COLUMN message SET NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_notifications_user_unread ON valorapesquisa.notifications(organization_id,user_id,created_at DESC) WHERE read_at IS NULL;
+
+-- Valora Communication Center(TM). Every table below is deliberately evolved in
+-- two phases (CREATE + ADD COLUMN) so this block is safe for both clean and
+-- partially migrated installations.
+ALTER TABLE valorapesquisa.notifications
+  ADD COLUMN IF NOT EXISTS notification_type varchar(60) NOT NULL DEFAULT 'internal',
+  ADD COLUMN IF NOT EXISTS severity varchar(20) NOT NULL DEFAULT 'information',
+  ADD COLUMN IF NOT EXISTS status varchar(30) NOT NULL DEFAULT 'active',
+  ADD COLUMN IF NOT EXISTS source_type varchar(80),
+  ADD COLUMN IF NOT EXISTS source_id uuid,
+  ADD COLUMN IF NOT EXISTS created_by_user_id uuid REFERENCES valorapesquisa.users(id),
+  ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.notification_recipients(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), notification_id uuid NOT NULL REFERENCES valorapesquisa.notifications(id),
+ organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), user_id uuid REFERENCES valorapesquisa.users(id), email text,
+ status varchar(30) NOT NULL DEFAULT 'pending', read_at timestamptz, delivered_at timestamptz,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.notification_templates(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), template_key varchar(120) NOT NULL,
+ name text NOT NULL, title_template text NOT NULL, message_template text NOT NULL, allowed_variables jsonb NOT NULL DEFAULT '[]'::jsonb,
+ status varchar(30) NOT NULL DEFAULT 'active', version integer NOT NULL DEFAULT 1, created_by_user_id uuid REFERENCES valorapesquisa.users(id),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.notification_events(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), notification_id uuid NOT NULL REFERENCES valorapesquisa.notifications(id),
+ recipient_id uuid REFERENCES valorapesquisa.notification_recipients(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ event_type varchar(40) NOT NULL, actor_user_id uuid REFERENCES valorapesquisa.users(id), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.communication_outbox(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ recipient_user_id uuid REFERENCES valorapesquisa.users(id), recipient_email text, subject text NOT NULL, body_html text, body_text text,
+ message_type varchar(60) NOT NULL, status varchar(30) NOT NULL DEFAULT 'pending', provider varchar(60), scheduled_at timestamptz NOT NULL DEFAULT now(),
+ sent_at timestamptz, failed_at timestamptz, error_message text, retry_count integer NOT NULL DEFAULT 0,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.communication_delivery_attempts(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), outbox_id uuid NOT NULL REFERENCES valorapesquisa.communication_outbox(id),
+ organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), attempt_number integer NOT NULL, provider varchar(60), status varchar(30) NOT NULL,
+ provider_message_id text, error_code varchar(100), error_message text, started_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(outbox_id,attempt_number));
+CREATE TABLE IF NOT EXISTS valorapesquisa.email_templates(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), template_key varchar(120) NOT NULL,
+ name text NOT NULL, subject_template text NOT NULL, body_html_template text, body_text_template text,
+ allowed_variables jsonb NOT NULL DEFAULT '[]'::jsonb, current_version integer NOT NULL DEFAULT 1, status varchar(30) NOT NULL DEFAULT 'active',
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+ALTER TABLE valorapesquisa.email_templates
+  ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES valorapesquisa.organizations(id),
+  ADD COLUMN IF NOT EXISTS template_key varchar(120),
+  ADD COLUMN IF NOT EXISTS name text NOT NULL DEFAULT 'Template de e-mail',
+  ADD COLUMN IF NOT EXISTS subject_template text,
+  ADD COLUMN IF NOT EXISTS body_html_template text,
+  ADD COLUMN IF NOT EXISTS body_text_template text,
+  ADD COLUMN IF NOT EXISTS allowed_variables jsonb NOT NULL DEFAULT '[]'::jsonb,
+  ADD COLUMN IF NOT EXISTS current_version integer NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS status varchar(30) NOT NULL DEFAULT 'active',
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+CREATE TABLE IF NOT EXISTS valorapesquisa.email_template_versions(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email_template_id uuid NOT NULL REFERENCES valorapesquisa.email_templates(id), organization_id uuid REFERENCES valorapesquisa.organizations(id),
+ version integer NOT NULL, subject_template text NOT NULL, body_html_template text, body_text_template text, allowed_variables jsonb NOT NULL DEFAULT '[]'::jsonb,
+ created_by_user_id uuid REFERENCES valorapesquisa.users(id), created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(email_template_id,version));
+CREATE TABLE IF NOT EXISTS valorapesquisa.reminder_rules(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), name text NOT NULL,
+ reminder_type varchar(60) NOT NULL, delay_minutes integer NOT NULL CHECK(delay_minutes >= 0), template_key varchar(120), is_active boolean NOT NULL DEFAULT true,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_by_user_id uuid REFERENCES valorapesquisa.users(id),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.reminder_jobs(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), reminder_rule_id uuid NOT NULL REFERENCES valorapesquisa.reminder_rules(id),
+ organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), source_type varchar(80) NOT NULL, source_id uuid,
+ recipient_user_id uuid REFERENCES valorapesquisa.users(id), recipient_email text, status varchar(30) NOT NULL DEFAULT 'scheduled', scheduled_at timestamptz NOT NULL,
+ processed_at timestamptz, outbox_id uuid REFERENCES valorapesquisa.communication_outbox(id), error_message text,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.message_audit_logs(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ message_type varchar(60) NOT NULL, message_id uuid, action varchar(60) NOT NULL, actor_user_id uuid REFERENCES valorapesquisa.users(id),
+ recipient_hash text, correlation_id varchar(120), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+
+-- Repair the two operational tables most commonly found incomplete in legacy
+-- databases before creating any indexes or issuing runtime queries against them.
+ALTER TABLE valorapesquisa.notification_recipients
+  ADD COLUMN IF NOT EXISTS notification_id uuid REFERENCES valorapesquisa.notifications(id),
+  ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES valorapesquisa.organizations(id),
+  ADD COLUMN IF NOT EXISTS user_id uuid REFERENCES valorapesquisa.users(id),
+  ADD COLUMN IF NOT EXISTS email text,
+  ADD COLUMN IF NOT EXISTS status varchar(30) NOT NULL DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS read_at timestamptz,
+  ADD COLUMN IF NOT EXISTS delivered_at timestamptz,
+  ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.communication_outbox
+  ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES valorapesquisa.organizations(id),
+  ADD COLUMN IF NOT EXISTS recipient_user_id uuid REFERENCES valorapesquisa.users(id),
+  ADD COLUMN IF NOT EXISTS recipient_email text,
+  ADD COLUMN IF NOT EXISTS subject text,
+  ADD COLUMN IF NOT EXISTS body_html text,
+  ADD COLUMN IF NOT EXISTS body_text text,
+  ADD COLUMN IF NOT EXISTS message_type varchar(60) NOT NULL DEFAULT 'email',
+  ADD COLUMN IF NOT EXISTS status varchar(30) NOT NULL DEFAULT 'pending',
+  ADD COLUMN IF NOT EXISTS provider varchar(60),
+  ADD COLUMN IF NOT EXISTS scheduled_at timestamptz NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS sent_at timestamptz,
+  ADD COLUMN IF NOT EXISTS failed_at timestamptz,
+  ADD COLUMN IF NOT EXISTS error_message text,
+  ADD COLUMN IF NOT EXISTS retry_count integer NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+  ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(),
+  ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+
+CREATE INDEX IF NOT EXISTS ix_notification_recipients_user ON valorapesquisa.notification_recipients(organization_id,user_id,status,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_notification_events_notification ON valorapesquisa.notification_events(notification_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_communication_outbox_due ON valorapesquisa.communication_outbox(status,scheduled_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_delivery_attempts_outbox ON valorapesquisa.communication_delivery_attempts(outbox_id,attempt_number DESC);
+CREATE INDEX IF NOT EXISTS ix_reminder_jobs_due ON valorapesquisa.reminder_jobs(status,scheduled_at);
+CREATE INDEX IF NOT EXISTS ix_message_audit_org ON valorapesquisa.message_audit_logs(organization_id,created_at DESC);
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.intelligent_alerts(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), evidence_id uuid NOT NULL REFERENCES valorapesquisa.evidence_items(id),

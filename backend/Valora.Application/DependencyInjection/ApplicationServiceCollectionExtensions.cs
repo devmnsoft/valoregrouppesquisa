@@ -142,7 +142,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IRadarService, RadarService>();
         services.AddScoped<IBenchmarkService, BenchmarkService>();
         services.AddScoped<IExecutiveReportService, ExecutiveReportService>();
-        services.AddScoped<INotificationService, NotificationService>();
+        services.AddScoped<INotificationService, Valora.Application.OrganizationalIntelligence.NotificationService>();
         services.AddScoped<IPlatformGovernanceService, PlatformGovernanceService>();
         services.AddScoped<IOrganizationalIntelligencePipeline, OrganizationalIntelligencePipeline>();
         services.AddScoped<IIntelligenceProcessingJobService, IntelligenceProcessingJobService>();
@@ -220,6 +220,19 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<DownloadReportUseCase>();
         services.AddScoped<RevokeShareLinkUseCase>();
         services.AddScoped<RegisterPublicResultAccessUseCase>();
+        services.AddScoped<Valora.Application.Communication.NotificationService>();
+        services.AddScoped<NotificationTemplateService>();
+        services.AddScoped<CommunicationOutboxService>();
+        services.AddScoped<ReminderService>();
+        services.AddScoped<CommunicationAuditService>();
+        services.AddScoped<CreateNotificationUseCase>();
+        services.AddScoped<MarkNotificationAsReadUseCase>();
+        services.AddScoped<QueueEmailMessageUseCase>();
+        services.AddScoped<ProcessCommunicationOutboxUseCase>();
+        services.AddScoped<CreateReminderRuleUseCase>();
+        services.AddScoped<SendDiagnosticInvitationUseCase>();
+        services.AddScoped<SendReportLinkUseCase>();
+        services.AddScoped<SendCertificateLinkUseCase>();
         return services;
     }
 }

@@ -144,6 +144,14 @@ public static class ValoraPermissions
     public static class ShareLinks { public const string Read="share_links.read", Manage="share_links.manage"; }
     public static class PublicResults { public const string Manage="public_results.manage"; }
     public static class Communications { public const string Read="communications.read", Send="communications.send", Retry="communications.retry", Cancel="communications.cancel"; }
+    public static class NotificationCenter { public const string MarkRead="notifications.mark_read"; }
+    public static class CommunicationCenter
+    {
+        public const string Read="communication.read", Manage="communication.manage",
+            TemplatesRead="communication.templates.read", TemplatesManage="communication.templates.manage",
+            OutboxRead="communication.outbox.read", OutboxManage="communication.outbox.manage",
+            RemindersRead="communication.reminders.read", RemindersManage="communication.reminders.manage";
+    }
     public static class Audit { public const string Read="audit.read"; }
     public static class Operations { public const string Read="operations.read", Execute="operations.execute"; }
     public static class Settings { public const string Read="settings.read", Update="settings.update"; }
@@ -197,8 +205,9 @@ public static class ValoraPermissions
     public static class Administration
     {
         public const string Read="administration.read", Manage="administration.manage";
-        public const string OrganizationsRead="organizations.read", OrganizationsManage="organizations.manage",
-            IntegrationsRead="integrations.read", IntegrationsManage="integrations.manage",
+        public static string OrganizationsRead => Organizations.Read;
+        public static string OrganizationsManage => Organizations.Manage;
+        public const string IntegrationsRead="integrations.read", IntegrationsManage="integrations.manage",
             NotificationsRead="notifications.read", NotificationsManage="notifications.manage", JobsRead="jobs.read",
             JobsManage="jobs.manage", LogsRead="logs.read", SupportRead="support.read", SupportManage="support.manage";
         public static string IntelligenceManage => Intelligence.Manage;
@@ -232,7 +241,7 @@ public static class ValoraPermissions
         "campaigns" => ValoraModules.Surveys,
         "respondents" => ValoraModules.Responses,
         "organizations" => ValoraModules.Organization,
-        "admin" or "administration" or "integrations" or "notifications" or "jobs" or "logs" or "support" => ValoraModules.Operations,
+        "admin" or "administration" or "integrations" or "notifications" or "communication" or "jobs" or "logs" or "support" => ValoraModules.Operations,
         "permissions" => ValoraModules.Identity,
         "api_keys" or "webhooks" or "powerbi" or "integration_logs" or "imports" or "email_templates" => ValoraModules.Operations,
         "concepts" or "cognitive_map" or "dimensions" or "diagnosis_templates" or "maturity_levels" or

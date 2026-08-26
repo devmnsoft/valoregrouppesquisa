@@ -140,7 +140,9 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IMetricCalculationService, MetricCalculationService>();
         services.AddScoped<IValoraIndexCalculationService, ValoraIndexCalculationService>();
         services.AddScoped<IInferenceEngine, EvidenceInferenceEngine>();
-        services.AddScoped<IInsightGenerationService, InsightGenerationService>();
+        services.AddScoped<
+            Valora.Application.OrganizationalIntelligence.IInsightGenerationService,
+            Valora.Application.OrganizationalIntelligence.InsightGenerationService>();
         services.AddScoped<IActionRecommendationService, Valora.Application.OrganizationalIntelligence.ActionRecommendationService>();
         services.AddScoped<IEvolutionService, Valora.Application.OrganizationalIntelligence.EvolutionService>();
         services.AddScoped<IJourneyService, Valora.Application.OrganizationalIntelligence.JourneyService>();
@@ -180,7 +182,9 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<IValoraAiReviewService, ValoraAiReviewService>();
         services.AddScoped<IEvidencePackBuilderService, EvidencePackBuilderService>();
         services.AddScoped<IAiGuardrailValidationService, AiGuardrailValidationService>();
-        services.AddScoped<IInsightGenerationService, InsightGenerationService>();
+        services.AddScoped<
+            Valora.Application.ValoraAi.IInsightGenerationService,
+            Valora.Application.ValoraAi.InsightGenerationService>();
         services.AddScoped<IAiFeedbackService, AiFeedbackService>();
         services.AddScoped<ValoraAiRunService>();
         services.AddScoped<AiReviewService>();

@@ -3826,4 +3826,65 @@ INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
 ('feature_access.read','Consultar acesso','Consultar recursos liberados pelo plano.','organization'),('feature_access.manage','Gerenciar acesso','Gerenciar exceções de acesso.','organization')
 ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,module_code=excluded.module_code,updated_at=now();
 
+
+-- Valora Admin Hub: additive, tenant-owned governance contracts. This section is
+-- deliberately idempotent so it can converge both clean and partially migrated databases.
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_units (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ parent_unit_id uuid REFERENCES valorapesquisa.organization_units(id), name varchar(160) NOT NULL, code varchar(80),
+ status varchar(20) NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz,
+ deleted_at timestamptz, CHECK (status IN ('active','inactive')));
+CREATE UNIQUE INDEX IF NOT EXISTS ux_organization_units_org_code_active
+ ON valorapesquisa.organization_units(organization_id,code) WHERE deleted_at IS NULL AND code IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_organization_units_org_parent
+ ON valorapesquisa.organization_units(organization_id,parent_unit_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.user_profiles (
+ user_id uuid PRIMARY KEY REFERENCES valorapesquisa.users(id) ON DELETE CASCADE, organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ job_title varchar(160), phone varchar(40), locale varchar(12) NOT NULL DEFAULT 'pt-BR', timezone varchar(80) NOT NULL DEFAULT 'America/Sao_Paulo',
+ avatar_url text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_user_profiles_org ON valorapesquisa.user_profiles(organization_id,user_id);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.user_unit_assignments (
+ organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
+ unit_id uuid NOT NULL REFERENCES valorapesquisa.organization_units(id), is_primary boolean NOT NULL DEFAULT false,
+ created_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, PRIMARY KEY(user_id,unit_id));
+CREATE INDEX IF NOT EXISTS ix_user_unit_assignments_org_unit
+ ON valorapesquisa.user_unit_assignments(organization_id,unit_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.platform_audit_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), actor_user_id uuid REFERENCES valorapesquisa.users(id), event_type varchar(120) NOT NULL,
+ entity_type varchar(80), entity_id text, correlation_id text, ip_address inet, before_json jsonb, after_json jsonb,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_platform_audit_events_occurred ON valorapesquisa.platform_audit_events(occurred_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_audit_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ actor_user_id uuid REFERENCES valorapesquisa.users(id), event_type varchar(120) NOT NULL, entity_type varchar(80), entity_id text,
+ correlation_id text, ip_address inet, before_json jsonb, after_json jsonb, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_organization_audit_events_org_occurred
+ ON valorapesquisa.organization_audit_events(organization_id,occurred_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.notification_preferences (
+ organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
+ channel varchar(20) NOT NULL, notification_type varchar(80) NOT NULL, enabled boolean NOT NULL DEFAULT true,
+ digest_frequency varchar(20) NOT NULL DEFAULT 'immediate', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz,
+ PRIMARY KEY(user_id,channel,notification_type));
+CREATE INDEX IF NOT EXISTS ix_notification_preferences_org_user ON valorapesquisa.notification_preferences(organization_id,user_id);
+
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code,functional_group,risk_level,assignable_to_custom_roles,status)
+VALUES
+ ('admin.read','Consultar Admin Hub','Acessar o painel administrativo.','operations','administration','low',true,'active'),
+ ('admin.manage','Gerenciar Admin Hub','Executar operações administrativas.','operations','administration','high',true,'active'),
+ ('organizations.read','Consultar organizações','Consultar organizações autorizadas.','organization','administration','low',true,'active'),
+ ('organizations.manage','Gerenciar organizações','Criar e alterar organizações.','organization','administration','high',true,'active'),
+ ('units.manage','Gerenciar unidades','Criar, alterar e inativar unidades.','organization','administration','medium',true,'active'),
+ ('users.manage','Gerenciar usuários','Criar, alterar e remover acessos.','identity','administration','high',true,'active'),
+ ('roles.manage','Gerenciar papéis','Criar e alterar papéis customizados.','identity','administration','high',true,'active'),
+ ('permissions.read','Consultar permissões','Consultar o catálogo canônico de permissões.','identity','administration','low',true,'active')
+ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,module_code=excluded.module_code,
+ functional_group=excluded.functional_group,risk_level=excluded.risk_level,assignable_to_custom_roles=excluded.assignable_to_custom_roles,
+ status=excluded.status,updated_at=now();
+
 COMMIT;

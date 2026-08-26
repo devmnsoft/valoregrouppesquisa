@@ -1,0 +1,3 @@
+@model Valora.Web.Models.ViewModels.AdminUsersViewModel
+@{ ViewData["Title"]="Usuários"; }
+<section class="valora-page"><partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Usuários", "Perfis, unidades, papéis e situação de acesso.", "Admin Hub"))" /><form method="get" class="admin-panel"><label for="search">Nome ou e-mail</label><input id="search" name="search" value="@Model.Search" class="form-control"/><button class="btn btn-outline-primary mt-2">Filtrar</button> <a asp-action="CreateUser" class="btn btn-primary mt-2">Novo usuário</a></form><div class="admin-empty mt-3"><strong>Nenhum usuário encontrado.</strong><p>A lista respeita o contexto da organização autenticada.</p></div></section>

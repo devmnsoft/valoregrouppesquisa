@@ -97,6 +97,26 @@ public static class ValoraPermissions
     public static class Sessions { public const string Read="sessions.read", Revoke="sessions.revoke"; }
     public static class Users { public const string Read="users.read", Create="users.create", Update="users.update", Disable="users.disable", AssignRoles="users.assign_roles", AssignScopes="users.assign_scopes"; }
     public static class Roles { public const string Read="roles.read", Create="roles.create", Update="roles.update", Delete="roles.delete", AssignPermissions="roles.assign_permissions"; }
+    // Coarse-grained administration policies are intentionally explicit. They are
+    // useful at MVC boundaries while the fine-grained permissions above continue
+    // to protect individual commands.
+    public static class Admin { public const string Read="admin.read", Manage="admin.manage"; }
+    public static class Organizations { public const string Read="organizations.read", Manage="organizations.manage"; }
+    public static class UnitManagement { public const string Manage="units.manage"; }
+    public static class UserManagement { public const string Manage="users.manage"; }
+    public static class RoleManagement { public const string Manage="roles.manage"; }
+    public static class Permissions { public const string Read="permissions.read"; }
+    // Existing production seeds use these integration and methodology permissions.
+    // Keeping them here makes the catalog—not the database—the single source of truth.
+    public static class GovernedLegacyFeatures
+    {
+        public const string ApiKeysRead="api_keys.read", ApiKeysManage="api_keys.manage", WebhooksRead="webhooks.read", WebhooksManage="webhooks.manage",
+            PowerBiRead="powerbi.read", PowerBiManage="powerbi.manage", IntegrationLogsRead="integration_logs.read",
+            ImportsRead="imports.read", ImportsManage="imports.manage", EmailTemplatesManage="email_templates.manage",
+            ConceptsManage="concepts.manage", CognitiveMapManage="cognitive_map.manage", DimensionsManage="dimensions.manage",
+            DiagnosisTemplatesManage="diagnosis_templates.manage", MaturityLevelsManage="maturity_levels.manage",
+            OfficialQuestionsManage="official_questions.manage", RecommendationsManage="recommendations.manage", ScoringRulesManage="scoring_rules.manage";
+    }
     public static class Forms { public const string Read="forms.read", Manage="forms.manage", Create="forms.create", Update="forms.update", Publish="forms.publish", Archive="forms.archive", Restore="forms.restore"; }
     public static class Surveys { public const string Read="surveys.read", Create="surveys.create", Update="surveys.update", Publish="surveys.publish", Distribute="surveys.distribute", Close="surveys.close"; }
     public static class Responses { public const string Read="responses.read", Manage="responses.manage", Export="responses.export", Anonymize="responses.anonymize"; }
@@ -212,7 +232,11 @@ public static class ValoraPermissions
         "campaigns" => ValoraModules.Surveys,
         "respondents" => ValoraModules.Responses,
         "organizations" => ValoraModules.Organization,
-        "administration" or "integrations" or "notifications" or "jobs" or "logs" or "support" => ValoraModules.Operations,
+        "admin" or "administration" or "integrations" or "notifications" or "jobs" or "logs" or "support" => ValoraModules.Operations,
+        "permissions" => ValoraModules.Identity,
+        "api_keys" or "webhooks" or "powerbi" or "integration_logs" or "imports" or "email_templates" => ValoraModules.Operations,
+        "concepts" or "cognitive_map" or "dimensions" or "diagnosis_templates" or "maturity_levels" or
+        "official_questions" or "recommendations" or "scoring_rules" => "organizational_intelligence",
         var capability => capability
     };
 }

@@ -1,0 +1,5 @@
+@model Valora.Web.Models.ViewModels.AdminHubIndexViewModel
+@{ ViewData["Title"] = "Valora Admin Hub™"; }
+<section class="valora-page"><partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Valora Admin Hub™", "Governança SaaS segura para organizações, pessoas e acessos.", "Administração"))" />
+<div class="admin-metrics">@foreach(var card in Model.Cards){<article class="admin-metric"><span>@card.Label</span><strong>@card.Value</strong><small>Atualizado em tempo real</small></article>}</div>
+<div class="admin-module-grid mt-4"><a asp-action="Organizations"><strong>Organizações</strong><small>Planos, limites e uso</small></a><a asp-action="Users"><strong>Usuários e unidades</strong><small>Vínculos sem IDs manuais</small></a><a asp-action="Roles"><strong>Papéis e permissões</strong><small>Catálogo canônico</small></a><a asp-action="Settings"><strong>Configurações</strong><small>Identidade e privacidade</small></a><a asp-action="Audit"><strong>Auditoria</strong><small>Histórico pesquisável</small></a></div></section>

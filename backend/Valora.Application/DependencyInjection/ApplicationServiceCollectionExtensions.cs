@@ -24,6 +24,7 @@ using Valora.Application.ActionCenter;
 using Valora.Application.Evolution;
 using Valora.Application.Journey;
 using Valora.Application.OneOnOne;
+using Valora.Application.Subscriptions;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -31,6 +32,19 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<SubscriptionPlanService>();
+        services.AddScoped<OrganizationSubscriptionService>();
+        services.AddScoped<FeatureAccessService>();
+        services.AddScoped<UsageLimitService>();
+        services.AddScoped<UpgradeRequestService>();
+        services.AddScoped<BillingContactService>();
+        services.AddScoped<GetCurrentSubscriptionUseCase>();
+        services.AddScoped<CheckFeatureAccessUseCase>();
+        services.AddScoped<ValidateUsageLimitUseCase>();
+        services.AddScoped<RegisterUsageEventUseCase>();
+        services.AddScoped<RequestPlanUpgradeUseCase>();
+        services.AddScoped<ChangeOrganizationPlanUseCase>();
+        services.AddScoped<ApplyPlanLimitOverrideUseCase>();
         services.AddScoped<OneOnOneSessionService>(); services.AddScoped<OneOnOneAgendaService>(); services.AddScoped<OneOnOneCommitmentService>(); services.AddScoped<OneOnOneAiSuggestionService>(); services.AddScoped<LeadershipProfileService>(); services.AddScoped<LeadershipDevelopmentService>();
         services.AddScoped<CreateOneOnOneSessionUseCase>(); services.AddScoped<ScheduleOneOnOneSessionUseCase>(); services.AddScoped<CompleteOneOnOneSessionUseCase>(); services.AddScoped<GenerateOneOnOneAgendaUseCase>(); services.AddScoped<RegisterOneOnOneCommitmentUseCase>(); services.AddScoped<RegisterLeadershipFeedbackUseCase>(); services.AddScoped<GenerateLeadershipDevelopmentSnapshotUseCase>();
         services.AddScoped<IBenchmarkManagementService, BenchmarkManagementService>();

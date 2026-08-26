@@ -3875,6 +3875,10 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.subscription_plan_features (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), plan_id uuid NOT NULL REFERENCES valorapesquisa.subscription_plans(id),
  feature_code varchar(60) NOT NULL, enabled boolean NOT NULL DEFAULT true, configuration_json jsonb NOT NULL DEFAULT '{}'::jsonb,
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(plan_id,feature_code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.subscription_plan_limits (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), plan_id uuid NOT NULL REFERENCES valorapesquisa.subscription_plans(id),
+ metric varchar(60) NOT NULL, limit_value integer, created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(plan_id,metric));
 CREATE TABLE IF NOT EXISTS valorapesquisa.organization_subscriptions (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
  plan_id uuid NOT NULL REFERENCES valorapesquisa.subscription_plans(id), status varchar(20) NOT NULL DEFAULT 'active', started_at timestamptz NOT NULL DEFAULT now(),
@@ -3929,6 +3933,12 @@ ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.descript
  has_benchmark=excluded.has_benchmark,has_action_center=excluded.has_action_center,has_evolution=excluded.has_evolution,has_journey=excluded.has_journey,
  has_one_on_one=excluded.has_one_on_one,has_datahub=excluded.has_datahub,has_powerbi=excluded.has_powerbi,has_api_access=excluded.has_api_access,
  has_webhooks=excluded.has_webhooks,updated_at=now();
+INSERT INTO valorapesquisa.subscription_plan_limits(plan_id,metric,limit_value)
+SELECT p.id,l.metric,l.limit_value FROM valorapesquisa.subscription_plans p CROSS JOIN LATERAL (VALUES
+ ('diagnostics',p.max_diagnostics),('respondents',p.max_respondents),('users',p.max_users),('storage_mb',p.max_storage_mb),
+ ('reports',CASE WHEN p.has_reports THEN -1 ELSE 0 END),('certificates',CASE WHEN p.has_certificates THEN -1 ELSE 0 END),
+ ('api_calls',CASE WHEN p.has_api_access THEN -1 ELSE 0 END)) l(metric,limit_value)
+ON CONFLICT(plan_id,metric) DO UPDATE SET limit_value=excluded.limit_value,updated_at=now();
 INSERT INTO valorapesquisa.subscription_plan_features(plan_id,feature_code)
 SELECT p.id,f.code FROM valorapesquisa.subscription_plans p CROSS JOIN LATERAL (VALUES
  ('diagnostics'),('reports'),('certificates'),('heatmap'),('benchmark'),('action_center'),('evolution'),('journey'),('one_on_one'),('datahub'),('powerbi'),('analytics_api'),('webhooks')) f(code)

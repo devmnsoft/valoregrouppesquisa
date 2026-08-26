@@ -5,6 +5,8 @@ using Valora.Application.ValoraAi;
 using Valora.Infrastructure.DependencyInjection;
 using Valora.Infrastructure.FormalDeliverables;
 using Valora.Infrastructure.Repositories;
+using Valora.Application.Subscriptions;
+using Valora.Infrastructure.Subscriptions;
 
 namespace Valora.Tests;
 
@@ -21,6 +23,10 @@ public sealed class InfrastructureDependencyInjectionTests
         AssertScoped<IValoraAiRunRepository, ValoraAiRunRepository>(services);
         AssertScoped<IDiagnosisDocumentSnapshotProvider, DiagnosisDocumentSnapshotProvider>(services);
         AssertScoped<IShareLinkRepository, ShareLinkRepository>(services);
+        AssertScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>(services);
+        AssertScoped<IOrganizationSubscriptionRepository, OrganizationSubscriptionRepository>(services);
+        AssertScoped<IUsageCounterRepository, UsageCounterRepository>(services);
+        AssertScoped<IUpgradeRequestRepository, UpgradeRequestRepository>(services);
     }
 
     private static void AssertScoped<TService, TImplementation>(IServiceCollection services)

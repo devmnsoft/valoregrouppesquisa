@@ -7,6 +7,9 @@ using Valora.Infrastructure.DependencyInjection;
 using Valora.Infrastructure.Database;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Dapper;
+
+DefaultTypeMap.MatchNamesWithUnderscores = true;
 
 var builder = WebApplication.CreateBuilder(args);
 

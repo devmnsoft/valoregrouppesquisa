@@ -94,7 +94,7 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
         ValidationAppException => (StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Requisição inválida."),
         ArgumentNullException => (StatusCodes.Status500InternalServerError, "INTERNAL_ERROR", "Erro interno. Tente novamente ou acione o suporte."),
         ArgumentException => (StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Requisição inválida."),
-        UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "AUTH_INVALID_CREDENTIALS", "Não foi possível autenticar. Verifique suas credenciais e tente novamente."),
+        UnauthorizedAccessException => (StatusCodes.Status403Forbidden, "FORBIDDEN", "Você não possui acesso a esta ação."),
         InactiveUserException inactive => (StatusCodes.Status403Forbidden, "AUTH_USER_INACTIVE", inactive.Message),
         OrganizationAccessNotConfiguredException access => (StatusCodes.Status403Forbidden, "AUTH_ACCESS_NOT_CONFIGURED", access.Message),
         ApplicationConfigurationException => (StatusCodes.Status500InternalServerError, "APPLICATION_CONFIGURATION_ERROR", "A configuração da aplicação está incompleta."),
@@ -104,7 +104,8 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
         BusinessRuleAppException business when business.Message.StartsWith("CAPABILITY_NOT_AVAILABLE:", StringComparison.Ordinal) => (StatusCodes.Status422UnprocessableEntity, "CAPABILITY_NOT_AVAILABLE", "O plano contratado não disponibiliza este recurso."),
         BusinessRuleAppException business when business.Message.StartsWith("LAST_ADMINISTRATOR:", StringComparison.Ordinal) => (StatusCodes.Status422UnprocessableEntity, "LAST_ADMINISTRATOR", "O último administrador não pode ser desativado."),
         BusinessRuleAppException business when business.Message.StartsWith("LAST_ADMIN_ROLE:", StringComparison.Ordinal) => (StatusCodes.Status422UnprocessableEntity, "LAST_ADMIN_ROLE", "A última role administrativa não pode ser removida."),
-        BusinessRuleAppException or InvalidOperationException => (StatusCodes.Status422UnprocessableEntity, "BUSINESS_RULE_ERROR", "Não foi possível concluir a operação."),
+        BusinessRuleAppException => (StatusCodes.Status422UnprocessableEntity, "BUSINESS_RULE_ERROR", "Não foi possível concluir a operação."),
+        InvalidOperationException => (StatusCodes.Status500InternalServerError, "DATA_MATERIALIZATION_ERROR", "Não foi possível carregar os dados solicitados."),
         PostgresException postgres when postgres.SqlState is "42703" or "42P01" or "42883" =>
             (StatusCodes.Status500InternalServerError, "DATABASE_SCHEMA_MISMATCH", "A estrutura de dados da aplicação precisa ser atualizada."),
         PostgresException postgres when postgres.SqlState.StartsWith("08", StringComparison.Ordinal) =>

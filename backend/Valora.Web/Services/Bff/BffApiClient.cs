@@ -7,7 +7,7 @@ using Valora.Application.Common;
 
 namespace Valora.Web.Services.Bff;
 
-public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> options, ICurrentOrganizationProvider organizationProvider) : IBffApiClient
+public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> options, ICurrentOrganizationProvider organizationProvider, ILogger<BffApiClient> logger) : IBffApiClient
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -91,7 +91,22 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
         var organization = organizationProvider.GetCurrent();
         if (organization.IsResolved)
             message.Headers.TryAddWithoutValidation("X-Organization-Id", organization.OrganizationId.ToString());
-        return await httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        try
+        {
+            return await httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        }
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
+        {
+            message.Dispose();
+            logger.LogWarning(exception, "Timeout ao acessar a API pelo BFF. Method={Method} Path={Path} CorrelationId={CorrelationId}", method, path, correlationId);
+            throw new BffApiUnavailableException(options.Value.BaseUrl, exception);
+        }
+        catch (HttpRequestException exception) when (exception.StatusCode is null)
+        {
+            message.Dispose();
+            logger.LogWarning(exception, "API indisponível para o BFF. Method={Method} Path={Path} CorrelationId={CorrelationId}", method, path, correlationId);
+            throw new BffApiUnavailableException(options.Value.BaseUrl, exception);
+        }
     }
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)

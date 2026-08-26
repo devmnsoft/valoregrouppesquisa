@@ -5,6 +5,10 @@ using Microsoft.AspNetCore.DataProtection;
 using Valora.Web.Services.Bff;
 using Valora.Web.Ui;
 using Valora.Web.Navigation;
+using Valora.Web.Services;
+using Valora.Application.Common;
+using Valora.Application.DependencyInjection;
+using Valora.Infrastructure.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +24,9 @@ builder.Services.AddSingleton<ValoraIconRegistry>();
 builder.Services.AddSingleton<NavigationCatalog>();
 builder.Services.AddScoped<NavigationService>();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentOrganizationProvider, CurrentOrganizationProvider>();
+builder.Services.AddApplicationServices();
+builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddScoped<INavigationRouteResolver, EndpointNavigationRouteResolver>();
 var isDevelopment = builder.Environment.IsDevelopment();
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

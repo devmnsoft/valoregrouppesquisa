@@ -153,6 +153,14 @@ public static class ValoraPermissions
             RemindersRead="communication.reminders.read", RemindersManage="communication.reminders.manage";
     }
     public static class Audit { public const string Read="audit.read"; }
+    public static class SecurityCompliance { public const string Read="security_compliance.read", Manage="security_compliance.manage"; }
+    public static class Privacy { public const string Read="privacy.read", Manage="privacy.manage"; }
+    public static class DataSubjectRequests { public const string Read="data_subject_requests.read", Manage="data_subject_requests.manage"; }
+    public static class Retention { public const string Read="retention.read", Manage="retention.manage"; }
+    public static class ComplianceAudit { public const string Read="compliance_audit.read"; }
+    public static class SecurityIncidents { public const string Read="security_incidents.read", Manage="security_incidents.manage"; }
+    public static class AccessReviews { public const string Read="access_reviews.read", Manage="access_reviews.manage"; }
+    public static class SensitiveAccessLogs { public const string Read="sensitive_access_logs.read"; }
     public static class Operations { public const string Read="operations.read", Execute="operations.execute"; }
     public static class Settings { public const string Read="settings.read", Update="settings.update"; }
     public static class SettingsManagement { public const string Manage="settings.manage"; }
@@ -231,7 +239,9 @@ public static class ValoraPermissions
 
     private static string CapabilityForCanonicalPermission(string permission) => permission.Split('.')[0] switch
     {
-        "users" or "roles" or "sessions" or "invitations" => ValoraModules.Identity,
+        "users" or "roles" or "sessions" or "invitations" or "security_compliance" or "privacy" or
+        "data_subject_requests" or "retention" or "compliance_audit" or "security_incidents" or
+        "access_reviews" or "sensitive_access_logs" => ValoraModules.Identity,
         "organization" or "units" or "departments" or "business_groups" or "legal_entities" or "plans" or
         "subscriptions" or "billing" or "usage" or "upgrades" or "feature_access" => ValoraModules.Organization,
         "organizational_intelligence" or "methodology" or "decision_center" or "decisions" or "alerts" or "indicators" or "governance" or "diagnostics" or "dashboard" or "radar" or "reports" or "deliverables" or "share_links" or "public_results" or "action" or "heatmap" or

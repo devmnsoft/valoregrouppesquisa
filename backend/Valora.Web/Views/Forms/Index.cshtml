@@ -8,17 +8,25 @@
     <article class="metric-card"><span>Em uso</span><strong data-metric="inUse">0</strong></article>
   </section>
   <section class="workspace-section" aria-labelledby="forms-list-title">
-    <div class="workspace-toolbar"><div><h2 id="forms-list-title">Biblioteca</h2><p>Versões publicadas permanecem imutáveis para preservar os resultados históricos.</p></div><button class="btn btn-outline-secondary" type="button" data-refresh>Atualizar</button></div>
-    <div class="alert alert-danger d-none" role="alert" data-error></div>
-    <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Nome</th><th>Categoria</th><th>Versão</th><th>Estrutura</th><th>Tempo</th><th>Status</th><th>Atualização</th><th><span class="visually-hidden">Ações</span></th></tr></thead><tbody data-items></tbody></table></div>
-    <div class="empty-state d-none" data-empty><h3>Comece pelo primeiro diagnóstico</h3><p>Crie um formulário e organize suas dimensões e perguntas no estúdio.</p><button class="btn btn-primary" type="button" data-new-form>Novo formulário</button></div>
+    <div class="workspace-toolbar"><div><p class="eyebrow">Biblioteca metodológica</p><h2 id="forms-list-title">Formulários e versões</h2><p>Versões publicadas permanecem imutáveis para preservar os resultados históricos.</p></div><button class="btn btn-outline-secondary" type="button" data-refresh aria-label="Atualizar biblioteca">Atualizar</button></div>
+    <form class="valora-filter-bar" data-filters role="search">
+      <div class="valora-field"><label for="forms-search">Buscar na biblioteca</label><input class="form-control" id="forms-search" type="search" placeholder="Nome, descrição ou categoria" autocomplete="off" data-filter-search></div>
+      <div class="valora-field"><label for="forms-status">Status</label><select class="form-select" id="forms-status" data-filter-status><option value="">Todos os status</option><option value="draft">Rascunhos</option><option value="published">Publicados</option><option value="archived">Arquivados</option></select></div>
+      <div class="valora-field"><label for="forms-category">Categoria</label><select class="form-select" id="forms-category" data-filter-category><option value="">Todas as categorias</option></select></div>
+      <button class="btn btn-outline-secondary" type="button" data-clear-filters>Limpar filtros</button>
+    </form>
+    <div class="valora-alert valora-alert--danger d-none mt-3" role="alert" data-error><strong>Não foi possível carregar a biblioteca.</strong><span data-error-message></span><button class="btn btn-sm btn-outline-danger" type="button" data-retry>Tentar novamente</button></div>
+    <p class="table-caption" aria-live="polite" data-count>Preparando biblioteca…</p>
+    <div class="table-responsive"><table class="table align-middle valora-table"><thead><tr><th scope="col">Formulário</th><th scope="col">Categoria</th><th scope="col">Versão</th><th scope="col">Estrutura</th><th scope="col">Tempo</th><th scope="col">Status</th><th scope="col">Atualização</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody data-items></tbody></table></div>
+    <div class="empty-state empty-state--executive d-none" data-empty><div class="empty-state__icon" aria-hidden="true">&#9671;</div><h3 data-empty-title>Comece pelo primeiro formulário</h3><p data-empty-description>Estruture dimensões e perguntas para iniciar uma leitura organizacional baseada em evidências.</p><button class="valora-button valora-button--primary" type="button" data-new-form>Novo formulário</button></div>
   </section>
 </main>
 <dialog class="valora-dialog" data-form-dialog aria-labelledby="new-form-title">
   <form method="dialog" data-form-create><header><h2 id="new-form-title">Novo formulário</h2><button type="button" class="btn-close" data-dialog-close aria-label="Fechar"></button></header>
-    <label class="form-label" for="form-name">Nome</label><input class="form-control" id="form-name" name="name" required maxlength="160" autofocus>
+    <p class="text-muted">Defina a identidade da estrutura. Dimensões e perguntas serão organizadas na próxima etapa.</p>
+    <label class="form-label" for="form-name">Nome <span aria-hidden="true">*</span></label><input class="form-control" id="form-name" name="name" required minlength="3" maxlength="160" aria-describedby="form-name-help" autofocus><small id="form-name-help" class="form-text">Use um nome executivo e reconhecível para a equipe.</small>
     <label class="form-label mt-3" for="form-description">Descrição</label><textarea class="form-control" id="form-description" name="description" rows="3" maxlength="1000"></textarea>
-    <div class="row mt-3"><div class="col"><label class="form-label" for="form-category">Categoria</label><input class="form-control" id="form-category" name="category" maxlength="80"></div><div class="col"><label class="form-label" for="form-minutes">Tempo estimado</label><input class="form-control" id="form-minutes" name="estimatedMinutes" type="number" min="1" max="480" value="15" required></div></div>
+    <div class="row mt-3"><div class="col"><label class="form-label" for="new-form-category">Categoria</label><select class="form-select" id="new-form-category" name="category"><option value="Diagnóstico">Diagnóstico organizacional</option><option value="Cultura">Cultura</option><option value="Governança">Governança</option><option value="Liderança">Liderança</option><option value="Pessoas">Pessoas</option><option value="Resultados">Resultados</option></select></div><div class="col"><label class="form-label" for="form-minutes">Tempo estimado <span aria-hidden="true">*</span></label><select class="form-select" id="form-minutes" name="estimatedMinutes" required><option value="5">5 minutos</option><option value="10">10 minutos</option><option value="15" selected>15 minutos</option><option value="20">20 minutos</option><option value="30">30 minutos</option><option value="45">45 minutos</option><option value="60">60 minutos</option></select></div></div>
     <footer><button type="button" class="btn btn-outline-secondary" data-dialog-close>Cancelar</button><button type="submit" class="btn btn-primary">Criar formulário</button></footer>
   </form>
 </dialog>

@@ -27,6 +27,7 @@ public sealed record DiagnosisDocumentSnapshot(
     IReadOnlyList<string> Weaknesses,
     IReadOnlyList<string> Recommendations,
     IReadOnlyList<ActionItem> ActionPlan,
+    IReadOnlyList<string> Limitations,
     bool IsAnonymous = false);
 
 public sealed record GeneratedDocument(

@@ -5,6 +5,8 @@ public static class SubscriptionFeatures
     public const string Diagnostics = "diagnostics";
     public const string Reports = "reports";
     public const string Certificates = "certificates";
+    public const string ExecutiveReports = "executive_reports";
+    public const string OrganizationalIntelligence = "organizational_intelligence";
     public const string Heatmap = "heatmap";
     public const string Benchmark = "benchmark";
     public const string ActionCenter = "action_center";
@@ -15,10 +17,16 @@ public static class SubscriptionFeatures
     public const string PowerBi = "powerbi";
     public const string AnalyticsApi = "analytics_api";
     public const string Webhooks = "webhooks";
+    public const string Governance = "governance";
+    public const string AdvancedAudit = "advanced_audit";
+    public const string MultiUnit = "multi_unit";
+    public const string PublicLinks = "public_links";
+    public const string Exports = "exports";
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(
-        [Diagnostics, Reports, Certificates, Heatmap, Benchmark, ActionCenter, Evolution, Journey,
-            OneOnOne, DataHub, PowerBi, AnalyticsApi, Webhooks], StringComparer.OrdinalIgnoreCase);
+        [Diagnostics, Reports, Certificates, ExecutiveReports, OrganizationalIntelligence, Heatmap, Benchmark,
+            ActionCenter, Evolution, Journey, OneOnOne, DataHub, PowerBi, AnalyticsApi, Webhooks,
+            Governance, AdvancedAudit, MultiUnit, PublicLinks, Exports], StringComparer.OrdinalIgnoreCase);
 }
 
 public static class SubscriptionMetrics
@@ -27,6 +35,7 @@ public static class SubscriptionMetrics
     public const string Users = "users"; public const string StorageMb = "storage_mb";
     public const string Reports = "reports"; public const string Certificates = "certificates";
     public const string ApiCalls = "api_calls";
+    public const string PublicLinks = "public_links"; public const string Exports = "exports";
 }
 
 public sealed record SubscriptionPlan(Guid Id, string Code, string Name, string Status,

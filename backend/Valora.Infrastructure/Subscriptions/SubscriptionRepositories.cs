@@ -125,7 +125,7 @@ public sealed class UsageCounterRepository(IDbConnectionFactory connections) : I
             SELECT subscription_id AS SubscriptionId, period_start AS PeriodStart, period_end AS PeriodEnd,
                    diagnostics_used AS Diagnostics, respondents_used AS Respondents, users_used AS Users,
                    storage_mb_used AS StorageMb, reports_generated AS Reports, certificates_generated AS Certificates,
-                   api_calls_used AS ApiCalls
+                   api_calls_used AS ApiCalls, public_links_created AS PublicLinks, exports_generated AS Exports
             FROM valorapesquisa.subscription_usage_counters
             WHERE organization_id = @OrganizationId AND subscription_id = @SubscriptionId
               AND CURRENT_DATE BETWEEN period_start AND period_end
@@ -142,7 +142,8 @@ public sealed class UsageCounterRepository(IDbConnectionFactory connections) : I
                 [SubscriptionMetrics.Diagnostics] = row.Diagnostics, [SubscriptionMetrics.Respondents] = row.Respondents,
                 [SubscriptionMetrics.Users] = row.Users, [SubscriptionMetrics.StorageMb] = row.StorageMb,
                 [SubscriptionMetrics.Reports] = row.Reports, [SubscriptionMetrics.Certificates] = row.Certificates,
-                [SubscriptionMetrics.ApiCalls] = row.ApiCalls
+                [SubscriptionMetrics.ApiCalls] = row.ApiCalls, [SubscriptionMetrics.PublicLinks] = row.PublicLinks,
+                [SubscriptionMetrics.Exports] = row.Exports
             });
     }
 
@@ -154,7 +155,8 @@ public sealed class UsageCounterRepository(IDbConnectionFactory connections) : I
             SubscriptionMetrics.Diagnostics => "diagnostics_used", SubscriptionMetrics.Respondents => "respondents_used",
             SubscriptionMetrics.Users => "users_used", SubscriptionMetrics.StorageMb => "storage_mb_used",
             SubscriptionMetrics.Reports => "reports_generated", SubscriptionMetrics.Certificates => "certificates_generated",
-            SubscriptionMetrics.ApiCalls => "api_calls_used", _ => null
+            SubscriptionMetrics.ApiCalls => "api_calls_used", SubscriptionMetrics.PublicLinks => "public_links_created",
+            SubscriptionMetrics.Exports => "exports_generated", _ => null
         };
         using var connection = connections.Create();
         connection.Open();
@@ -185,7 +187,7 @@ public sealed class UsageCounterRepository(IDbConnectionFactory connections) : I
     private static IReadOnlyDictionary<string, int> EmptyCounters() =>
         new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
     private sealed record UsageRow(Guid SubscriptionId, DateOnly PeriodStart, DateOnly PeriodEnd, int Diagnostics,
-        int Respondents, int Users, int StorageMb, int Reports, int Certificates, int ApiCalls);
+        int Respondents, int Users, int StorageMb, int Reports, int Certificates, int ApiCalls, int PublicLinks, int Exports);
 }
 
 public sealed class UpgradeRequestRepository(IDbConnectionFactory connections) : IUpgradeRequestRepository

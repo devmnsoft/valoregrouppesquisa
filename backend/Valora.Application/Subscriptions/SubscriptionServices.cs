@@ -39,7 +39,9 @@ public sealed class FeatureAccessService(OrganizationSubscriptionService subscri
         active = active && (current.Subscription.Status != "trialing" || current.Subscription.TrialEndsAt is { } trial && trial > now);
         if (active && current.Plan.Features.Contains(featureCode)) return FeatureAccessDecision.Granted(featureCode);
         var message = !active ? "Sua assinatura não está ativa. Escolha um plano para continuar."
-            : $"O recurso {featureCode} não está incluído no plano {current.Plan.Name}. Faça upgrade para liberar.";
+            : featureCode == SubscriptionFeatures.ExecutiveReports
+                ? "Para liberar relatórios executivos, atualize o plano da organização."
+                : $"Este recurso não está incluído no plano {current.Plan.Name}. Consulte os planos Growth e Enterprise.";
         await usage.RegisterAsync(organizationId, current.Subscription.Id, $"blocked:{featureCode}", 1, true, null, ct);
         return FeatureAccessDecision.Denied(featureCode, message);
     }
@@ -55,8 +57,11 @@ public sealed class UsageLimitService(OrganizationSubscriptionService subscripti
         var limit = current.EffectiveLimits.GetValueOrDefault(metric, 0);
         var allowed = limit < 0 || used + amount <= limit;
         if (!allowed) await usage.RegisterAsync(organizationId, current.Subscription.Id, $"limit:{metric}", amount, true, null, ct);
+        var deniedMessage = metric == SubscriptionMetrics.Diagnostics
+            ? "Seu plano atual atingiu o limite de pesquisas."
+            : "O limite do seu plano foi atingido. Solicite um upgrade para continuar.";
         return new(allowed, metric, used, limit, allowed ? "Limite disponível."
-            : "O limite do seu plano foi atingido. Solicite um upgrade para continuar.", allowed ? null : "/Subscription/Upgrade");
+            : deniedMessage, allowed ? null : "/Subscription/Upgrade");
     }
 }
 

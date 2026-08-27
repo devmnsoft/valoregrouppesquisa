@@ -39,4 +39,23 @@ public sealed class CommunicationCenterContractTests
         Assert.Contains("ADD COLUMN IF NOT EXISTS scheduled_at", sql);
         Assert.Contains("ADD COLUMN IF NOT EXISTS deleted_at", sql);
     }
+
+    [Fact]
+    public void Collaboration_center_migration_is_organization_scoped_and_complete()
+    {
+        var sql = File.ReadAllText("../../../database/postgresql/migrations/2026_08_communication_collaboration_center.sql");
+        var tables = new[]
+        {
+            "communication_channels", "communication_batches", "communication_recipients", "communication_events",
+            "notification_center_items", "collaboration_threads", "collaboration_comments", "collaboration_mentions",
+            "approval_flows", "approval_flow_steps", "approval_requests", "approval_decisions", "reminder_events",
+            "organization_announcements"
+        };
+
+        Assert.All(tables, table => Assert.Contains($"CREATE TABLE IF NOT EXISTS valorapesquisa.{table}", sql));
+        Assert.Equal(tables.Length, sql.Split("organization_id uuid NOT NULL", StringSplitOptions.None).Length - 1);
+        Assert.Contains("ck_approval_rejection_reason", sql);
+        Assert.Contains("destination_hash", sql);
+        Assert.Contains("invitation_token_hash", sql);
+    }
 }

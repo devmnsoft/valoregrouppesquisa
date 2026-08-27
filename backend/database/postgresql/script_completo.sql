@@ -4387,3 +4387,4 @@ ON CONFLICT(plan_id,metric) DO UPDATE SET limit_value=EXCLUDED.limit_value,updat
 
 \i migrations/2026_08_methodology_operational_catalog.sql
 \i migrations/2026_08_deliverables_factory.sql
+\i migrations/2026_08_communication_collaboration_center.sql

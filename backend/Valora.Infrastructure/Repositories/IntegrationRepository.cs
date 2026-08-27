@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Dapper;
+using Valora.Application.Contracts;
 using Valora.Application.Integrations;
 using Valora.Infrastructure.Database;
 

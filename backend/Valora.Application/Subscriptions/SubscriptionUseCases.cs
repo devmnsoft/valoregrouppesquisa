@@ -7,7 +7,7 @@ public sealed class CheckFeatureAccessUseCase(FeatureAccessService service)
 public sealed class ValidateUsageLimitUseCase(UsageLimitService service)
 { public Task<UsageLimitDecision> ExecuteAsync(Guid organizationId, string metric, int amount = 1, CancellationToken ct = default) => service.ValidateAsync(organizationId, metric, amount, ct); }
 public sealed class RegisterUsageEventUseCase(IUsageCounterRepository usage, OrganizationSubscriptionService subscriptions)
-{ public async Task ExecuteAsync(Guid organizationId, string metric, int amount = 1, string? metadataJson = null, CancellationToken ct = default) { var current = await subscriptions.GetCurrentAsync(organizationId, ct); await usage.RegisterAsync(organizationId, current.Subscription.Id, metric, amount, false, metadataJson, ct); } }
+{ public async Task ExecuteAsync(Guid organizationId, string metric, int amount = 1, string? metadataJson = null, CancellationToken ct = default, CancellationToken cancellationToken = default) { var current = await subscriptions.GetCurrentAsync(organizationId, ct); await usage.RegisterAsync(organizationId, current.Subscription.Id, metric, amount, false, metadataJson, ct); } }
 public sealed class RequestPlanUpgradeUseCase(UpgradeRequestService service)
 { public Task<UpgradeRequest> ExecuteAsync(Guid organizationId, Guid planId, Guid userId, string reason, string email, CancellationToken ct = default) => service.RequestAsync(organizationId, planId, userId, reason, email, ct); }
 public sealed class ChangeOrganizationPlanUseCase(IOrganizationSubscriptionRepository subscriptions)

@@ -9,11 +9,11 @@ public sealed class MethodologyStudioRepository(IDbConnectionFactory connections
     public async Task<IReadOnlyList<MethodologyVersionSummary>> ListVersionsAsync(CancellationToken ct)
     {
         const string sql = """
-            SELECT v.id,v.code,v.name,v.status,v.version_number VersionNumber,v.is_official IsOfficial,v.published_at PublishedAt,
-              (SELECT count(*) FROM valorapesquisa.methodology_concepts c WHERE c.methodology_version_id=v.id AND c.deleted_at IS NULL) Concepts,
-              (SELECT count(*) FROM valorapesquisa.methodology_indices i WHERE i.methodology_version_id=v.id AND i.deleted_at IS NULL) Indexes,
-              (SELECT count(*) FROM valorapesquisa.methodology_question_bank q WHERE q.methodology_version_id=v.id AND q.deleted_at IS NULL) Questions,
-              (SELECT count(*) FROM valorapesquisa.methodology_prompt_templates p WHERE p.methodology_version_id=v.id AND p.deleted_at IS NULL) Prompts
+            SELECT v.id AS "Id",v.code AS "Code",v.name AS "Name",v.status AS "Status",v.version_number AS "VersionNumber",v.is_official AS "IsOfficial",v.published_at AS "PublishedAt",
+              (SELECT count(*)::integer FROM valorapesquisa.methodology_concepts c WHERE c.methodology_version_id=v.id AND c.deleted_at IS NULL) AS "Concepts",
+              (SELECT count(*)::integer FROM valorapesquisa.methodology_indices i WHERE i.methodology_version_id=v.id AND i.deleted_at IS NULL) AS "Indexes",
+              (SELECT count(*)::integer FROM valorapesquisa.methodology_question_bank q WHERE q.methodology_version_id=v.id AND q.deleted_at IS NULL) AS "Questions",
+              (SELECT count(*)::integer FROM valorapesquisa.methodology_prompt_templates p WHERE p.methodology_version_id=v.id AND p.deleted_at IS NULL) AS "Prompts"
             FROM valorapesquisa.methodology_versions v WHERE v.deleted_at IS NULL ORDER BY v.is_official DESC,v.version_number DESC
             """;
         using var connection = connections.Create();

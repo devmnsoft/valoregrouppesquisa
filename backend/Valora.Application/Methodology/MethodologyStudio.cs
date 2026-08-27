@@ -1,4 +1,39 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Valora.Application.Methodology;
+
+public sealed record CreateMethodologyVersionRequest(
+    [property: Required, StringLength(80)] string Code,
+    [property: Required, StringLength(160)] string Name,
+    [property: StringLength(2000)] string? Description);
+
+public sealed record UpdateMethodologyDimensionRequest(
+    [property: Required, StringLength(80)] string Code,
+    [property: Required, StringLength(160)] string Name,
+    [property: Required, StringLength(2000)] string Description,
+    [property: Range(typeof(decimal), "0.0001", "100")] decimal Weight);
+
+public sealed record CreateConceptRequest(
+    [property: Required, StringLength(80)] string Code,
+    [property: Required, StringLength(160)] string Name,
+    [property: Required] IReadOnlyCollection<Guid> DimensionIds,
+    [property: Required] string EvidenceCriteria);
+
+public sealed record CreateMaturityLevelRequest(
+    [property: Required] string Name, int MaturityLevel, decimal ScoreMin, decimal ScoreMax,
+    [property: Required] string VerifiableCriteria);
+public sealed record CreateEvidenceCriteriaRequest(
+    [property: Required] Guid ConceptId, [property: Required] string Name,
+    [property: Required] string ExpectedSource, [property: Range(1, 5)] int EvidenceStrength);
+public sealed record CreateQuestionBankItemRequest(
+    [property: Required] string Code, [property: Required] string QuestionText,
+    [property: Required] string ResponseType, decimal Weight,
+    IReadOnlyCollection<Guid> DimensionIds, IReadOnlyCollection<Guid> ConceptIds, bool IsEvaluative = true);
+public sealed record CreateDiagnosticTemplateRequest(
+    [property: Required] string Code, [property: Required] string Name,
+    [property: Required] IReadOnlyCollection<Guid> SectionIds, Guid? ScoringRuleId);
+public sealed record PublishDiagnosticTemplateRequest(
+    [property: Required] Guid TemplateId, [property: Required, StringLength(1000)] string Justification);
 
 public sealed record MethodologyVersionSummary(Guid Id, string Code, string Name, string Status, int VersionNumber,
     bool IsOfficial, DateTimeOffset? PublishedAt, int Concepts, int Indexes, int Questions, int Prompts);
@@ -17,6 +52,47 @@ public interface IMethodologyStudioRepository
 public sealed class MethodologyValidationService(IMethodologyStudioRepository repository)
 {
     public Task<IReadOnlyList<MethodologyValidationIssue>> ValidateAsync(Guid versionId, CancellationToken ct) => repository.ValidateAsync(versionId, ct);
+
+    public static void EnsureDimension(UpdateMethodologyDimensionRequest request)
+    {
+        EnsureAnnotations(request);
+        if (request.Weight <= 0) throw new ValidationException("O peso da dimensão deve ser maior que zero.");
+    }
+
+    public static void EnsureConcept(CreateConceptRequest request)
+    {
+        EnsureAnnotations(request);
+        if (request.DimensionIds.Count == 0 || request.DimensionIds.Any(x => x == Guid.Empty))
+            throw new ValidationException("O conceito deve estar vinculado a pelo menos uma dimensão válida.");
+        if (string.IsNullOrWhiteSpace(request.EvidenceCriteria))
+            throw new ValidationException("O conceito deve possuir critérios de evidência verificáveis.");
+    }
+
+    public static void EnsureQuestion(CreateQuestionBankItemRequest request)
+    {
+        EnsureAnnotations(request);
+        var validTypes = new[] { "scale", "scale_1_5", "single_choice", "multiple_choice", "boolean", "text", "number" };
+        if (!validTypes.Contains(request.ResponseType, StringComparer.OrdinalIgnoreCase))
+            throw new ValidationException("Selecione um tipo de resposta válido.");
+        if (request.DimensionIds.Count == 0 && request.ConceptIds.Count == 0)
+            throw new ValidationException("A pergunta deve estar vinculada a uma dimensão ou conceito.");
+        if (request.DimensionIds.Concat(request.ConceptIds).Any(x => x == Guid.Empty))
+            throw new ValidationException("A pergunta possui um vínculo inválido.");
+        if (request.IsEvaluative && request.Weight <= 0)
+            throw new ValidationException("Perguntas avaliativas devem possuir peso maior que zero.");
+    }
+
+    public static void EnsureTemplate(CreateDiagnosticTemplateRequest request)
+    {
+        EnsureAnnotations(request);
+        if (request.SectionIds.Count == 0 || request.SectionIds.Any(x => x == Guid.Empty))
+            throw new ValidationException("O template deve possuir ao menos uma seção válida.");
+        if (!request.ScoringRuleId.HasValue || request.ScoringRuleId.Value == Guid.Empty)
+            throw new ValidationException("O template precisa de uma regra de cálculo versionada.");
+    }
+
+    private static void EnsureAnnotations(object request) =>
+        Validator.ValidateObject(request, new ValidationContext(request), validateAllProperties: true);
 }
 public sealed class MethodologyVersionService(IMethodologyStudioRepository repository)
 {
@@ -31,7 +107,14 @@ public sealed class MethodologyPublicationService(IMethodologyStudioRepository r
         await repository.PublishAsync(id, actor, justification, ct);
     }
 }
-public sealed class MethodologyConceptService { }
+public sealed class MethodologyDimensionService { public void Validate(UpdateMethodologyDimensionRequest request) => MethodologyValidationService.EnsureDimension(request); }
+public sealed class MethodologyConceptService { public void Validate(CreateConceptRequest request) => MethodologyValidationService.EnsureConcept(request); }
+public sealed class MaturityLevelService { }
+public sealed class EvidenceCriteriaService { }
+public sealed class ScoringRuleService { }
+public sealed class IndicatorRuleService { }
+public sealed class QuestionBankService { public void Validate(CreateQuestionBankItemRequest request) => MethodologyValidationService.EnsureQuestion(request); }
+public sealed class DiagnosticTemplateService { public void Validate(CreateDiagnosticTemplateRequest request) => MethodologyValidationService.EnsureTemplate(request); }
 public sealed class MethodologyIndexService { }
 public sealed class MethodologyQuestionBankService { }
 public sealed class MethodologyPromptTemplateService { }

@@ -4384,3 +4384,5 @@ SELECT p.id,v.metric,v.limit_value FROM valorapesquisa.subscription_plans p CROS
  ('public_links',CASE p.code WHEN 'free' THEN 1 WHEN 'start' THEN 5 WHEN 'growth' THEN 50 ELSE -1 END),
  ('exports',CASE WHEN p.code IN ('growth','enterprise') THEN -1 ELSE 0 END)) v(metric,limit_value)
 ON CONFLICT(plan_id,metric) DO UPDATE SET limit_value=EXCLUDED.limit_value,updated_at=now();
+
+\i migrations/2026_08_methodology_operational_catalog.sql

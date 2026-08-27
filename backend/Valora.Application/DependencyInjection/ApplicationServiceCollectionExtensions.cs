@@ -28,6 +28,7 @@ using Valora.Application.Subscriptions;
 using Valora.Application.SuccessCenter;
 using Valora.Application.Experience;
 using Valora.Application.Intelligence;
+using Valora.Application.GovernanceExecution;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -36,6 +37,21 @@ public static class ApplicationServiceCollectionExtensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddScoped<IIntelligenceAnalysisService, IntelligenceAnalysisService>();
+        services.AddScoped<IGovernanceCycleService, GovernanceCycleService>();
+        services.AddScoped<IGovernanceMeetingService, GovernanceMeetingService>();
+        services.AddScoped<IGovernanceDecisionService, GovernanceDecisionService>();
+        services.AddScoped<IDecisionEvidenceService, DecisionEvidenceService>();
+        services.AddScoped<IActionPriorityService, ActionPriorityService>();
+        services.AddScoped<IEvolutionMilestoneService, EvolutionMilestoneService>();
+        services.AddScoped<IEvolutionMetricSnapshotService, EvolutionMetricSnapshotService>();
+        services.AddScoped<IOrganizationalLearningService, OrganizationalLearningService>();
+        services.AddScoped<IOneOnOneActionLinkService, OneOnOneActionLinkService>();
+        services.AddScoped<IIndicatorTargetService, IndicatorTargetService>();
+        services.AddScoped<IIndicatorMeasurementService, IndicatorMeasurementService>();
+        services.AddScoped<IIndicatorTrendService, IndicatorTrendService>();
+        services.AddScoped<IExecutiveReportComposerService, ExecutiveReportComposerService>();
+        services.AddScoped<IExecutiveReportTemplateService, ExecutiveReportTemplateService>();
+        services.AddScoped<IGovernanceReportService, GovernanceReportService>();
         services.AddScoped<EvidenceMatrixService>();
         services.AddScoped<InferenceEngineService>();
         services.AddScoped<CausalMapService>();

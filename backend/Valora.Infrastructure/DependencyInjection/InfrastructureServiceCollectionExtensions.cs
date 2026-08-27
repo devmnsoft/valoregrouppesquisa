@@ -28,6 +28,7 @@ using Valora.Application.SuccessCenter;
 using Valora.Application.Subscriptions;
 using Valora.Infrastructure.Subscriptions;
 using Valora.Application.Experience;
+using Valora.Application.GovernanceExecution;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -36,6 +37,7 @@ public static class InfrastructureServiceCollectionExtensions
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IDbConnectionFactory, PostgresConnectionFactory>();
+        services.AddScoped<IGovernanceExecutionStore, GovernanceExecutionStore>();
         services.AddScoped<IRespondentAccessTokenRepository, RespondentAccessTokenRepository>();
         services.AddScoped<IRespondentSessionRepository, RespondentSessionRepository>();
         services.AddScoped<IPublicResultViewRepository, PublicResultViewRepository>();

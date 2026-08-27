@@ -4224,3 +4224,43 @@ CREATE INDEX IF NOT EXISTS ix_public_result_events_view_created ON valorapesquis
 CREATE INDEX IF NOT EXISTS ix_invitation_recipients_batch_status ON valorapesquisa.diagnostic_invitation_recipients(batch_id,status) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS ix_executive_portals_org_result ON valorapesquisa.executive_result_portals(organization_id,result_id,status) WHERE deleted_at IS NULL;
 COMMIT;
+
+-- 2026-08-26 · Valora Intelligence Core™ (evidence-first and tenant-scoped)
+BEGIN;
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligence_analyses (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligence_evidence_items (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligence_inferences (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligence_causal_links (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligence_recommendations (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligence_risk_signals (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligence_decision_suggestions (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligence_executive_narratives (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
+CREATE TABLE IF NOT EXISTS valorapesquisa.intelligence_analysis_events (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
+DO $intelligence_schema$
+DECLARE table_name text;
+BEGIN
+  FOREACH table_name IN ARRAY ARRAY['intelligence_analyses','intelligence_evidence_items','intelligence_inferences','intelligence_causal_links','intelligence_recommendations','intelligence_risk_signals','intelligence_decision_suggestions','intelligence_executive_narratives','intelligence_analysis_events'] LOOP
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS organization_id uuid', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS diagnostic_id uuid', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS result_id uuid', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS analysis_id uuid', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS source_type varchar(80)', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS source_id uuid', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS title text', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS description text', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS evidence_level varchar(24)', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS confidence_level varchar(24) NOT NULL DEFAULT ''insufficient''', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS severity varchar(24)', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS impact_area varchar(120)', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS status varchar(24) NOT NULL DEFAULT ''draft''', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT ''{}''::jsonb', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now()', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now()', table_name);
+    EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS deleted_at timestamptz', table_name);
+    EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON valorapesquisa.%I (organization_id, status, created_at DESC) WHERE deleted_at IS NULL', 'ix_' || table_name || '_org_status', table_name);
+  END LOOP;
+END $intelligence_schema$;
+CREATE INDEX IF NOT EXISTS ix_intelligence_evidence_source ON valorapesquisa.intelligence_evidence_items(organization_id,source_type,source_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_intelligence_inference_analysis ON valorapesquisa.intelligence_inferences(organization_id,analysis_id,confidence_level) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_intelligence_events_analysis ON valorapesquisa.intelligence_analysis_events(organization_id,analysis_id,created_at DESC);
+COMMIT;

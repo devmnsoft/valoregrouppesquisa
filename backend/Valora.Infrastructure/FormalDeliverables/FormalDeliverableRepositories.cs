@@ -63,32 +63,44 @@ public sealed class DiagnosisDocumentSnapshotProvider(IDbConnectionFactory conne
     {
         using var connection = connections.Create();
         var header = await connection.QuerySingleOrDefaultAsync<Header>(new CommandDefinition("""
-            SELECT o.id OrganizationId,o.name OrganizationName,r.id DiagnosisId,s.name DiagnosisName,
-              rsp.submitted_at CompletedAt,
-              CASE WHEN rs.max_score=0 THEN 0 ELSE (rs.total_score::numeric/rs.max_score)*100 END OverallScore,
+            SELECT o.id AS "OrganizationId",o.name AS "OrganizationName",r.id AS "DiagnosisId",s.name AS "DiagnosisName",
+              rsp.submitted_at AS "CompletedAt",
+              CASE WHEN rs.max_score=0 THEN 0 ELSE (rs.total_score::numeric/rs.max_score)*100 END AS "OverallScore",
               CASE WHEN rs.max_score=0 THEN 'Não calculado' WHEN rs.total_score::numeric/rs.max_score >= .8 THEN 'Avançado'
-                   WHEN rs.total_score::numeric/rs.max_score >= .6 THEN 'Estruturado' ELSE 'Em desenvolvimento' END MaturityLevel,
-              f.name MethodologyName,fv.version::text MethodologyVersion
+                   WHEN rs.total_score::numeric/rs.max_score >= .6 THEN 'Estruturado' ELSE 'Em desenvolvimento' END AS "MaturityLevel",
+              f.name AS "MethodologyName",fv.version::text AS "MethodologyVersion"
             FROM valorapesquisa.results r JOIN valorapesquisa.organizations o ON o.id=r.organization_id
             JOIN valorapesquisa.responses rsp ON rsp.id=r.response_id JOIN valorapesquisa.surveys s ON s.id=rsp.survey_id
             JOIN valorapesquisa.form_versions fv ON fv.id=s.form_version_id JOIN valorapesquisa.forms f ON f.id=fv.form_id
             LEFT JOIN valorapesquisa.result_scores rs ON rs.id=r.result_score_id
             WHERE r.id=@DiagnosisId AND r.organization_id=@OrganizationId
+              AND rsp.submitted_at IS NOT NULL AND r.result_score_id IS NOT NULL
             """, new { DiagnosisId = diagnosisId, OrganizationId = organizationId }, cancellationToken: cancellationToken));
         if (header is null) return null;
         var dimensions = (await connection.QueryAsync<DimensionResult>(new CommandDefinition("""
-            SELECT d.name Name,CASE WHEN ds.max_score=0 THEN 0 ELSE (ds.score::numeric/ds.max_score)*100 END Score,
-              'Resultado consolidado da dimensão' Interpretation
+            SELECT d.name AS "Name",CASE WHEN ds.max_score=0 THEN 0 ELSE (ds.score::numeric/ds.max_score)*100 END AS "Score",
+              'Score consolidado a partir das respostas válidas' AS "Interpretation"
             FROM valorapesquisa.results r JOIN valorapesquisa.dimension_scores ds ON ds.result_score_id=r.result_score_id
-            JOIN valorapesquisa.dimensions d ON d.id=ds.dimension_id WHERE r.id=@DiagnosisId ORDER BY d.name
-            """, new { DiagnosisId = diagnosisId }, cancellationToken: cancellationToken))).ToArray();
+            JOIN valorapesquisa.dimensions d ON d.id=ds.dimension_id
+            WHERE r.id=@DiagnosisId AND r.organization_id=@OrganizationId ORDER BY d.name
+            """, new { DiagnosisId = diagnosisId, OrganizationId = organizationId }, cancellationToken: cancellationToken))).ToArray();
         var recommendations = (await connection.QueryAsync<string>(new CommandDefinition(
-            "SELECT text FROM valorapesquisa.result_recommendations WHERE result_id=@DiagnosisId ORDER BY created_at",
-            new { DiagnosisId = diagnosisId }, cancellationToken: cancellationToken))).ToArray();
+            """SELECT rr.text FROM valorapesquisa.result_recommendations rr
+                JOIN valorapesquisa.results r ON r.id=rr.result_id
+                WHERE rr.result_id=@DiagnosisId AND r.organization_id=@OrganizationId ORDER BY rr.created_at""",
+            new { DiagnosisId = diagnosisId, OrganizationId = organizationId }, cancellationToken: cancellationToken))).ToArray();
+        var evidence = dimensions.Select(d => new EvidenceItem(d.Name,
+            $"Score consolidado de {d.Score:0.0} pontos.", "Respostas válidas do diagnóstico")).ToArray();
+        var limitations = new List<string>
+        {
+            "A leitura usa apenas respostas, scores e evidências consolidadas disponíveis na data de emissão; dados ausentes não foram inferidos."
+        };
+        if (dimensions.Length == 0) limitations.Add("Não há scores dimensionais suficientes para conclusões por dimensão.");
+        if (recommendations.Length == 0) limitations.Add("Não há recomendações metodológicas aprovadas associadas ao resultado.");
         return new(header.OrganizationId, header.OrganizationName, header.DiagnosisId, header.DiagnosisName,
             header.CompletedAt, header.OverallScore, header.MaturityLevel, header.MethodologyName, header.MethodologyVersion,
             "Resultado consolidado do diagnóstico.", "Leitura baseada nas respostas e scores consolidados.", dimensions,
-            [], [], [], [], [], recommendations, [], true);
+            evidence, [], [], [], [], recommendations, [], limitations, true);
     }
 }
 

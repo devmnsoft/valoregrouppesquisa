@@ -9,6 +9,8 @@ public sealed class ValoraDocumentService(
 {
     public async Task<GeneratedDocument> GenerateAsync(DocumentRequest request, CancellationToken cancellationToken = default)
     {
+        if (request.OrganizationId == Guid.Empty) throw new ArgumentException("Contexto de organização ausente.", nameof(request));
+        if (request.DiagnosisId == Guid.Empty) throw new ArgumentException("Selecione um diagnóstico válido.", nameof(request));
         try
         {
             await access.EnsureCanGenerateAsync(request.OrganizationId, request.UserId, request.Format, cancellationToken);

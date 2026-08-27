@@ -4386,3 +4386,4 @@ SELECT p.id,v.metric,v.limit_value FROM valorapesquisa.subscription_plans p CROS
 ON CONFLICT(plan_id,metric) DO UPDATE SET limit_value=EXCLUDED.limit_value,updated_at=now();
 
 \i migrations/2026_08_methodology_operational_catalog.sql
+\i migrations/2026_08_deliverables_factory.sql

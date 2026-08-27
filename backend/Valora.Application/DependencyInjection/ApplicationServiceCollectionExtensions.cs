@@ -202,6 +202,13 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<MethodologyValidationService>();
         services.AddScoped<MethodologyPublicationService>();
         services.AddScoped<MethodologyConceptService>();
+        services.AddScoped<MethodologyDimensionService>();
+        services.AddScoped<MaturityLevelService>();
+        services.AddScoped<EvidenceCriteriaService>();
+        services.AddScoped<ScoringRuleService>();
+        services.AddScoped<IndicatorRuleService>();
+        services.AddScoped<QuestionBankService>();
+        services.AddScoped<DiagnosticTemplateService>();
         services.AddScoped<MethodologyIndexService>();
         services.AddScoped<MethodologyQuestionBankService>();
         services.AddScoped<MethodologyPromptTemplateService>();

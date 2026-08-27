@@ -77,18 +77,31 @@ public sealed class DiagnosisDocumentSnapshotProvider(IDbConnectionFactory conne
               AND rsp.submitted_at IS NOT NULL AND r.result_score_id IS NOT NULL
             """, new { DiagnosisId = diagnosisId, OrganizationId = organizationId }, cancellationToken: cancellationToken));
         if (header is null) return null;
-        var dimensions = (await connection.QueryAsync<DimensionResult>(new CommandDefinition("""
+        const string dimensionsSql = """
             SELECT d.name AS "Name",CASE WHEN ds.max_score=0 THEN 0 ELSE (ds.score::numeric/ds.max_score)*100 END AS "Score",
               'Score consolidado a partir das respostas válidas' AS "Interpretation"
             FROM valorapesquisa.results r JOIN valorapesquisa.dimension_scores ds ON ds.result_score_id=r.result_score_id
             JOIN valorapesquisa.dimensions d ON d.id=ds.dimension_id
             WHERE r.id=@DiagnosisId AND r.organization_id=@OrganizationId ORDER BY d.name
-            """, new { DiagnosisId = diagnosisId, OrganizationId = organizationId }, cancellationToken: cancellationToken))).ToArray();
-        var recommendations = (await connection.QueryAsync<string>(new CommandDefinition(
-            """SELECT rr.text FROM valorapesquisa.result_recommendations rr
-                JOIN valorapesquisa.results r ON r.id=rr.result_id
-                WHERE rr.result_id=@DiagnosisId AND r.organization_id=@OrganizationId ORDER BY rr.created_at""",
-            new { DiagnosisId = diagnosisId, OrganizationId = organizationId }, cancellationToken: cancellationToken))).ToArray();
+            """;
+        var dimensionsCommand = new CommandDefinition(
+            dimensionsSql,
+            new { DiagnosisId = diagnosisId, OrganizationId = organizationId },
+            cancellationToken: cancellationToken);
+        var dimensions = (await connection.QueryAsync<DimensionResult>(dimensionsCommand)).ToArray();
+
+        const string recommendationsSql = """
+            SELECT rr.text
+            FROM valorapesquisa.result_recommendations rr
+            JOIN valorapesquisa.results r ON r.id=rr.result_id
+            WHERE rr.result_id=@DiagnosisId AND r.organization_id=@OrganizationId
+            ORDER BY rr.created_at
+            """;
+        var recommendationsCommand = new CommandDefinition(
+            recommendationsSql,
+            new { DiagnosisId = diagnosisId, OrganizationId = organizationId },
+            cancellationToken: cancellationToken);
+        var recommendations = (await connection.QueryAsync<string>(recommendationsCommand)).ToArray();
         var evidence = dimensions.Select(d => new EvidenceItem(d.Name,
             $"Score consolidado de {d.Score:0.0} pontos.", "Respostas válidas do diagnóstico")).ToArray();
         var limitations = new List<string>

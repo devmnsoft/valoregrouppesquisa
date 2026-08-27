@@ -34,6 +34,7 @@ public sealed class ExecutiveReportExportService : IExecutiveReportExportService
         scores = new { overall = s.OverallScore, maturityLevel = s.MaturityLevel },
         dimensions = s.Dimensions, concepts = Array.Empty<object>(), evidenceItems = s.EvidenceItems,
         risks = s.Risks, opportunities = s.Opportunities, recommendations = s.Recommendations,
+        limitations = s.Limitations,
         actionPlan = s.ActionPlan, generatedAt = at, traceCode = trace
     }, new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
@@ -53,7 +54,7 @@ public sealed class ExecutiveReportExportService : IExecutiveReportExportService
             lines.Add("PONTOS FORTES"); lines.AddRange(s.Strengths); lines.Add("FRAGILIDADES"); lines.AddRange(s.Weaknesses);
             lines.Add("PRIORIDADES E PLANO RECOMENDADO"); lines.AddRange(s.ActionPlan.Select(x => $"{x.Priority}: {x.Action} ({x.Owner})"));
             lines.Add("DECISOES E EVOLUCAO"); lines.Add("Nao ha historico formal suficiente para apresentar decisoes ou evolucao nesta emissao.");
-            lines.Add("LIMITACOES DA ANALISE"); lines.Add("A leitura reflete somente respostas, scores e evidencias consolidadas disponiveis na data de emissao; dados ausentes nao foram inferidos.");
+            lines.Add("LIMITACOES DA ANALISE"); lines.AddRange(s.Limitations);
             lines.Add($"Data de emissao: {generatedAt:dd/MM/yyyy HH:mm} UTC");
             lines.Add($"Metodologia: {s.MethodologyName} | versao {s.MethodologyVersion}"); lines.Add($"Rastreabilidade: {trace}");
         }
@@ -80,6 +81,7 @@ public sealed class ExecutiveReportExportService : IExecutiveReportExportService
             ["Evidências"] = new[] { new[] { "Dimensão", "Evidência", "Fonte" } }.Concat(s.EvidenceItems.Select(x => new[] { x.Dimension, x.Description, x.Source })),
             ["Respostas"] = Rows(new[] { "Privacidade", s.IsAnonymous ? "Diagnóstico anônimo: dados pessoais omitidos" : "Dados consolidados; respostas individuais não incluídas" }),
             ["Recomendações"] = new[] { new[] { "Recomendação" } }.Concat(s.Recommendations.Select(x => new[] { x })),
+            ["Limitações"] = new[] { new[] { "Limitação metodológica" } }.Concat(s.Limitations.Select(x => new[] { x })),
             ["Plano de ação"] = new[] { new[] { "Prioridade", "Ação", "Responsável", "Prazo" } }.Concat(s.ActionPlan.Select(x => new[] { x.Priority, x.Action, x.Owner, x.DueDate?.ToString("yyyy-MM-dd") ?? "" })),
             ["Auditoria"] = Rows(new[] { "Gerado em", "Rastreabilidade" }, new[] { at.ToString("O"), trace })
         };

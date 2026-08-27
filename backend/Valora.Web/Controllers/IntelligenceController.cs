@@ -10,6 +10,9 @@ public sealed class IntelligenceController : Controller
     private static readonly Dictionary<string, IntelligenceWorkspaceViewModel> Workspaces = new(StringComparer.OrdinalIgnoreCase)
     {
         ["evidence"] = W("evidence", "Evidências Organizacionais", "Rastreabilidade", "Consulte a origem verificável de cada leitura.", "evidence", "evidência", ["evidenceType", "mappingStatus", "conceptCode", "metricCode", "indexCode"], ["surveyId", "responseId", "questionId", "normalizedValue", "rawValueMasked", "weight", "polarity", "confidenceWeight", "mappingStatus", "metadataJson"], "Respostas qualitativas são preservadas sem interpretação automática."),
+        ["causal-map"] = W("causal-map", "Mapa Causal", "Causas, não sintomas", "Explore relações sustentadas por convergência de evidências.", "inferences", "relação causal", ["confidenceLevel"], ["description", "probableCause", "impact", "evidenceIds", "confidenceLevel"], "Sem três evidências convergentes, causas e impactos permanecem inconclusivos."),
+        ["recommendations"] = W("recommendations", "Recomendações Executivas", "Evidência em evolução", "Priorize ações vinculadas a hipóteses rastreáveis.", "insights", "recomendação", ["priority", "confidence"], ["evidenceSummary", "impact", "recommendation", "evidenceIds", "limitation"], "Nenhuma recomendação é apresentada sem evidências rastreáveis."),
+        ["decisions"] = W("decisions", "Centro de Decisão", "Escolhas responsáveis", "Avalie evidências, riscos e impacto antes de assumir compromissos.", "insights", "decisão sugerida", ["priority", "status"], ["evidenceSummary", "impact", "recommendation", "status", "limitation"], "A decisão permanece humana e deve registrar responsável, prazo e critério de sucesso."),
         ["metrics"] = W("metrics", "Valora Metrics™", "Indicadores em contexto", "Avalie métricas junto da fórmula, evidências, tendência e limitações.", "metrics", "métrica", ["status", "conceptCode", "indexCode"], ["value", "formula", "evidenceCount", "trend", "limitation"], "Uma métrica isolada não constitui conclusão."),
         ["indices"] = W("indices", "Índices Valora™", "Maturidade em contexto", "Explore os doze índices oficiais e sua composição metodológica.", "indices", "índice", ["status", "level"], ["score", "level", "confidence", "evidenceCount", "components", "limitation"], "Sem composição e evidência suficientes, o índice permanece inconclusivo."),
         ["inference"] = W("inference", "Motor de Inferência Valora™", "Hipóteses rastreáveis", "Acompanhe o caminho entre evidência, regra aplicada e causa provável.", "inference", "inferência", ["trigger", "status", "confidence"], ["runId", "rule", "evidenceCount", "probableCause", "systems", "cascadeEffect", "limitation"], "Causa provável é hipótese; nunca certeza."),
@@ -45,6 +48,9 @@ public sealed class IntelligenceController : Controller
     public IActionResult Review() => View();
 
     public IActionResult Evidence() => Workspace("evidence");
+    public IActionResult CausalMap() => Workspace("causal-map");
+    public IActionResult Recommendations() => Workspace("recommendations");
+    public IActionResult Decisions() => Workspace("decisions");
     public IActionResult Metrics() => Workspace("metrics");
     public IActionResult Indices() => Workspace("indices");
     public IActionResult Inference() => Workspace("inference");

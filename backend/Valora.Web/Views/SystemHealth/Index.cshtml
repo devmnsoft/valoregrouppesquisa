@@ -1,0 +1,18 @@
+@model Valora.Web.Models.ViewModels.SecurityCompliancePageViewModel
+@{ ViewData["Title"] = Model.Title; }
+<section class="valora-page reliability-center">
+    <partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel(Model.Title, Model.Description, "Administração"))" />
+    <div class="admin-metrics" aria-label="Indicadores de confiabilidade">
+        @foreach (var metric in Model.Metrics)
+        {
+            <article class="admin-metric"><span>@metric.Label</span><strong>@metric.Value</strong><small>Última evidência persistida</small></article>
+        }
+    </div>
+    <nav class="admin-module-grid mt-4" aria-label="Saúde do sistema">
+        <a asp-action="Index"><strong>Visão operacional</strong><small>API, banco, BFF e workers</small></a>
+        <a asp-action="Errors"><strong>Erros recentes</strong><small>Mensagem segura e correlation ID</small></a>
+        <a asp-action="Jobs"><strong>Jobs</strong><small>Execuções, falhas e duração</small></a>
+    </nav>
+    <div class="mt-4" role="status"><strong>Nenhum incidente presumido.</strong><p>Os indicadores permanecem zerados até haver evidência técnica.</p></div>
+    <ul>@foreach (var guidance in Model.Guidance) { <li>@guidance</li> }</ul>
+</section>

@@ -4417,3 +4417,84 @@ INSERT INTO valorapesquisa.quick_actions(code,label,description,route,icon,sort_
  ('diagnostic.create','Criar diagnóstico','Inicie uma nova escuta organizacional.','/Surveys/Create','activity',10),('action.create','Criar ação','Transforme evidência em compromisso.','/ActionCenter/Items/Create','check-circle',20),('decision.create','Criar decisão','Registre uma decisão humana rastreável.','/Decisions/Create','shield',30),('report.generate','Gerar relatório','Consolide evidências para leitura executiva.','/Reports','file-text',40),('datahub.open','Abrir DataHub','Explore fontes e qualidade dos dados.','/DataHub','database',50),('intelligence.open','Abrir Intelligence','Analise sinais sustentados por evidências.','/Intelligence','brain',60),('notifications.open','Abrir notificações','Revise os sinais que pedem atenção.','/Notifications','bell',70),('approvals.open','Abrir aprovações','Preserve a decisão humana.','/DecisionCenter','check-square',80)
 ON CONFLICT(code) DO UPDATE SET label=EXCLUDED.label,description=EXCLUDED.description,route=EXCLUDED.route,icon=EXCLUDED.icon,sort_order=EXCLUDED.sort_order;
 INSERT INTO valorapesquisa.command_palette_actions(code,label,keywords,route,sort_order) SELECT code,label,description,route,sort_order FROM valorapesquisa.quick_actions ON CONFLICT(code) DO UPDATE SET label=EXCLUDED.label,keywords=EXCLUDED.keywords,route=EXCLUDED.route,sort_order=EXCLUDED.sort_order;
+BEGIN;
+-- Security, Compliance & Reliability Center (idempotent convergence layer).
+-- Tables are intentionally created with their indexed columns in the same statement so this
+-- block remains safe for databases that were only partially provisioned.
+CREATE TABLE IF NOT EXISTS valorapesquisa.security_audit_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid, actor_user_id uuid,
+ event_type text NOT NULL, entity_type text, entity_id text, action text NOT NULL,
+ outcome text NOT NULL DEFAULT 'success', correlation_id text NOT NULL,
+ metadata jsonb NOT NULL DEFAULT '{}', occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_security_audit_org_time ON valorapesquisa.security_audit_events(organization_id, occurred_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.access_denial_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid, user_id uuid,
+ permission_code text NOT NULL, resource text, reason text NOT NULL, ip_address inet,
+ correlation_id text NOT NULL, occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_access_denial_org_time ON valorapesquisa.access_denial_events(organization_id, occurred_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.authentication_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid, user_id uuid,
+ event_type text NOT NULL, outcome text NOT NULL, ip_address inet, user_agent text,
+ correlation_id text NOT NULL, occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.user_session_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid, user_id uuid,
+ session_id uuid, event_type text NOT NULL, correlation_id text NOT NULL,
+ occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_context_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL,
+ previous_organization_id uuid, organization_id uuid, event_type text NOT NULL,
+ correlation_id text NOT NULL, occurred_at timestamptz NOT NULL DEFAULT now());
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.consent_records (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, user_id uuid,
+ subject_reference text, consent_type text NOT NULL, consent_version text NOT NULL,
+ status text NOT NULL DEFAULT 'granted', legal_basis text, evidence jsonb NOT NULL DEFAULT '{}',
+ granted_at timestamptz NOT NULL DEFAULT now(), revoked_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_consent_records_org ON valorapesquisa.consent_records(organization_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.data_privacy_requests (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, requester_user_id uuid,
+ requester_email text NOT NULL, request_type text NOT NULL, status text NOT NULL DEFAULT 'open',
+ justification text, assigned_to_user_id uuid, due_at timestamptz NOT NULL,
+ completed_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_data_privacy_requests_org ON valorapesquisa.data_privacy_requests(organization_id, status, due_at);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.api_key_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, api_key_id uuid NOT NULL,
+ actor_user_id uuid, event_type text NOT NULL, correlation_id text NOT NULL,
+ metadata jsonb NOT NULL DEFAULT '{}', occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_api_key_events_key_time ON valorapesquisa.api_key_events(api_key_id, occurred_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.system_health_checks (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), component text NOT NULL, status text NOT NULL,
+ response_time_ms bigint, friendly_message text, correlation_id text NOT NULL,
+ checked_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.system_health_snapshots (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), overall_status text NOT NULL,
+ checks jsonb NOT NULL DEFAULT '[]', average_response_time_ms bigint,
+ critical_error_count integer NOT NULL DEFAULT 0, captured_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.application_error_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid, user_id uuid,
+ source text NOT NULL, severity text NOT NULL, friendly_message text NOT NULL,
+ technical_detail text, correlation_id text NOT NULL, occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_application_errors_time ON valorapesquisa.application_error_events(severity, occurred_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.background_job_runs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid, job_name text NOT NULL,
+ status text NOT NULL, correlation_id text NOT NULL, started_at timestamptz NOT NULL DEFAULT now(),
+ completed_at timestamptz, duration_ms bigint, retry_of_id uuid);
+CREATE TABLE IF NOT EXISTS valorapesquisa.background_job_errors (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), job_run_id uuid NOT NULL,
+ friendly_message text NOT NULL, technical_detail text, correlation_id text NOT NULL,
+ occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_background_job_runs_time ON valorapesquisa.background_job_runs(job_name, started_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.integration_security_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid, integration_name text NOT NULL,
+ event_type text NOT NULL, severity text NOT NULL, correlation_id text NOT NULL,
+ metadata jsonb NOT NULL DEFAULT '{}', occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.security_review_findings (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid, title text NOT NULL,
+ severity text NOT NULL, status text NOT NULL DEFAULT 'open', description text NOT NULL,
+ responsible_user_id uuid, due_at timestamptz, resolved_at timestamptz,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+COMMIT;

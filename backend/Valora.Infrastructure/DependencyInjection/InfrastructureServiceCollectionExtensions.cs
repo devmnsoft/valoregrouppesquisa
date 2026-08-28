@@ -12,6 +12,7 @@ using Valora.Application.OrganizationalIntelligence;
 using Valora.Application.ValoraBot;
 using Valora.Application.Methodology;
 using Valora.Application.DiagnosticWorkspace;
+using Valora.Application.Workspace;
 using Valora.Application.CommercialDelivery;
 using Valora.Application.Integrations;
 using Valora.Application.DecisionCenter;
@@ -109,6 +110,10 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IMethodologyRepository, MethodologyRepository>();
         services.AddScoped<IMethodologyStudioRepository, MethodologyStudioRepository>();
         services.AddScoped<IDiagnosticWorkspaceRepository, DiagnosticWorkspaceRepository>();
+        services.AddScoped<IWorkspaceRepository, WorkspaceRepository>();
+        services.AddScoped<IGlobalSearchRepository, GlobalSearchRepository>();
+        services.AddScoped<IQuickActionRepository, QuickActionRepository>();
+        services.AddScoped<IExecutivePriorityRepository, ExecutivePriorityRepository>();
         services.AddScoped<IDiagnosticCampaignRepository, DiagnosticCampaignRepository>();
         services.AddScoped<IAssistedOperationsRepository, AssistedOperationsRepository>();
         services.AddScoped<ISuccessCenterRepository, SuccessCenterRepository>();

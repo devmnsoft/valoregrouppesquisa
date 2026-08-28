@@ -1,0 +1,12 @@
+@model Valora.Web.Models.ViewModels.ExecutiveWorkspaceViewModel
+@{ ViewData["Title"] = Model.Title; }
+<link rel="stylesheet" href="~/css/executive-workspace.css" asp-append-version="true" />
+<main class="executive-workspace" data-mode="@Model.Mode">
+ <header class="workspace-hero"><div><span class="workspace-eyebrow">Valora Executive Workspace™</span><h1>@Model.Title</h1><p>@Model.Subtitle</p></div><a class="workspace-search-link" href="/Search">⌕ <span>Buscar em todo o Valora</span><kbd>Ctrl K</kbd></a></header>
+ <div class="workspace-tabs"><a href="/Workspace">Visão geral</a><a href="/Workspace/MyDay">Meu Dia</a><a href="/Workspace/Priorities">Prioridades</a><a href="/Search">Busca Global</a></div>
+ <section id="workspace-loading" class="workspace-grid" aria-label="Carregando"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></section>
+ <section id="workspace-content" class="workspace-grid" hidden></section>
+ <section id="workspace-empty" class="workspace-empty" hidden><span>✦</span><h2>Seu foco está em dia</h2><p>Quando uma evidência ou decisão pedir atenção, ela aparecerá aqui com contexto e próximo passo.</p></section>
+</main>
+<script nonce="@Context.Items["CspNonce"]">window.valoraWorkspaceMode='@Model.Mode';</script>
+<script src="~/js/executive-workspace.js" asp-append-version="true"></script>

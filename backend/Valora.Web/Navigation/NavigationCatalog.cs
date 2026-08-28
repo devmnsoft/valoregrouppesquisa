@@ -10,6 +10,11 @@ public sealed class NavigationCatalog
     [
         Section("valora", "Admin Valora", 5,
             Item("valora.overview", "Visão Geral Valora", "Carteira, CRM e operação SaaS", "Enterprise", "sparkles", null, null, "enterprise", null, 10, Roles("admin_valora"))),
+        Section("workspace", "Workspace", 8,
+            ItemAction("workspace.overview", "Workspace", "Seu centro de comando executivo diário", "Workspace", "Index", "layout-dashboard", "dashboard", 1, Results),
+            ItemAction("workspace.my-day", "Meu Dia", "Prazos, aprovações e sinais que pedem atenção", "Workspace", "MyDay", "check-circle", "dashboard", 2, Results),
+            ItemAction("workspace.search", "Busca Global", "Encontre evidências e entregáveis no contexto autorizado", "Search", "Index", "search", "dashboard", 3, Results),
+            ItemAction("workspace.priorities", "Prioridades", "Responsáveis, prazos e progresso executivo", "Workspace", "Priorities", "activity", "dashboard", 4, Results)),
         Section("executive", "Visão Geral", 10,
             Item("executive.overview", "Visão Geral", "Indicadores e prioridades da organização", "Dashboard", "layout-dashboard", null, null, "dashboard", null, 10, Results),
             ItemAction("executive.priorities", "Prioridades", "Riscos, decisões e oportunidades sustentados por evidências", "OrganizationalCenters", "Priorities", "activity", "organizational_intelligence", 12, Results),

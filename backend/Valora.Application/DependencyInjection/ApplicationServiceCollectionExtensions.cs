@@ -29,6 +29,7 @@ using Valora.Application.SuccessCenter;
 using Valora.Application.Experience;
 using Valora.Application.Intelligence;
 using Valora.Application.GovernanceExecution;
+using Valora.Application.Workspace;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -36,6 +37,15 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<IExecutiveWorkspaceService, ExecutiveWorkspaceService>();
+        services.AddScoped<IMyDayService, MyDayService>();
+        services.AddScoped<IWorkspaceItemService, WorkspaceItemService>();
+        services.AddScoped<IGlobalSearchService, GlobalSearchService>();
+        services.AddScoped<IQuickActionService, QuickActionService>();
+        services.AddScoped<IRecentItemsService, RecentItemsService>();
+        services.AddScoped<IPinnedItemsService, PinnedItemsService>();
+        services.AddScoped<IExecutivePriorityService, ExecutivePriorityService>();
+        services.AddScoped<ICommandPaletteService, CommandPaletteService>();
         services.AddScoped<IIntelligenceAnalysisService, IntelligenceAnalysisService>();
         services.AddScoped<IGovernanceCycleService, GovernanceCycleService>();
         services.AddScoped<IGovernanceMeetingService, GovernanceMeetingService>();

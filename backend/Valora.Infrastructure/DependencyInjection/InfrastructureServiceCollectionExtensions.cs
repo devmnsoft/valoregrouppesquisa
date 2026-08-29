@@ -34,6 +34,8 @@ using Valora.Application.GovernanceExecution;
 using Valora.Application.OrganizationalArchitecture;
 using Valora.Application.Indicators;
 using Valora.Application.Advisor;
+using Valora.Application.Processes;
+using Valora.Infrastructure.Processes;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -41,6 +43,15 @@ public static class InfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddScoped<ProcessRepository>();
+        services.AddScoped<IProcessDefinitionRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessStepRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessInstanceRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessApprovalRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessSlaRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessAutomationRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessInsightRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessTemplateRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
         services.AddScoped<AdvisorRepository>();
         services.AddScoped<IAdvisorConversationRepository>(sp => sp.GetRequiredService<AdvisorRepository>());
         services.AddScoped<IAdvisorMessageRepository>(sp => sp.GetRequiredService<AdvisorRepository>());

@@ -1,0 +1,12 @@
+@model Valora.Web.Models.ViewModels.ProcessListViewModel
+@{ViewData["Title"]=Model.Title;}
+<link rel="stylesheet" href="~/css/processes.css" asp-append-version="true" />
+<section class="process-page-head"><a asp-action="Index">← Studio</a><span>PROCESS INTELLIGENCE</span><h1>@Model.Title</h1><p>@Model.Description</p></section>
+<section class="process-panel list-page">
+@if(!Model.Definitions.Any()&&!Model.Instances.Any()&&!Model.Sla.Any()&&!Model.Insights.Any()&&!Model.Templates.Any()){<div class="process-empty"><strong>Nenhuma evidência disponível</strong><p>Esta visão será preenchida a partir de execuções reais da organização.</p></div>}
+@foreach(var item in Model.Definitions){<article class="catalog-row"><div><strong>@item.Name</strong><span>@item.Category · versão @item.VersionNumber · @item.StepCount etapas</span></div><em class="status">@item.Status</em></article>}
+@foreach(var item in Model.Instances){<article class="catalog-row"><div><strong>@item.Title</strong><span>@item.ProcessName · @item.CurrentStepName · @item.SourceType</span></div><em class="status">@item.Status</em></article>}
+@foreach(var item in Model.Sla){<article class="catalog-row"><div><strong>@item.InstanceTitle</strong><span>@item.ProcessName · @item.StepName · @item.ResponsibleName</span></div><em class="status @item.Risk">@item.DueAt.ToString("dd/MM HH:mm")</em></article>}
+@foreach(var item in Model.Insights){<article class="catalog-row"><div><strong>@item.ProcessName · @item.StepName</strong><span>@item.EvidenceSummary</span></div><em class="status">@item.OccurrenceCount ocorrências</em></article>}
+@foreach(var item in Model.Templates){<article class="catalog-row"><div><strong>@item.Name</strong><span>@item.Category · @item.Description</span></div><em class="status">@item.Status</em></article>}
+</section>

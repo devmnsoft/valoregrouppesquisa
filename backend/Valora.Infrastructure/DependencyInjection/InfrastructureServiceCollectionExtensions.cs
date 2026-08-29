@@ -33,6 +33,7 @@ using Valora.Application.Experience;
 using Valora.Application.GovernanceExecution;
 using Valora.Application.OrganizationalArchitecture;
 using Valora.Application.Indicators;
+using Valora.Application.Advisor;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -40,6 +41,14 @@ public static class InfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddScoped<AdvisorRepository>();
+        services.AddScoped<IAdvisorConversationRepository>(sp => sp.GetRequiredService<AdvisorRepository>());
+        services.AddScoped<IAdvisorMessageRepository>(sp => sp.GetRequiredService<AdvisorRepository>());
+        services.AddScoped<IAdvisorContextBundleRepository>(sp => sp.GetRequiredService<AdvisorRepository>());
+        services.AddScoped<IAdvisorPromptTemplateRepository>(sp => sp.GetRequiredService<AdvisorRepository>());
+        services.AddScoped<IAdvisorGuardrailRepository>(sp => sp.GetRequiredService<AdvisorRepository>());
+        services.AddScoped<IAdvisorFeedbackRepository>(sp => sp.GetRequiredService<AdvisorRepository>());
+        services.AddScoped<IAdvisorUsageRepository>(sp => sp.GetRequiredService<AdvisorRepository>());
         services.AddScoped<IDbConnectionFactory, PostgresConnectionFactory>();
         services.AddScoped<IIndicatorRepository, IndicatorRepository>();
         services.AddScoped<IKnowledgeRepository, KnowledgeRepository>();

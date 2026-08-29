@@ -4623,4 +4623,87 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.indicator_trend_events (id uuid PRIMAR
 CREATE TABLE IF NOT EXISTS valorapesquisa.indicator_events (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL,event_type text NOT NULL,entity_id uuid NOT NULL,actor_user_id uuid,metadata jsonb NOT NULL DEFAULT '{}',occurred_at timestamptz NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS ix_indicator_events_org_time ON valorapesquisa.indicator_events(organization_id,occurred_at DESC);
 
+
+-- Valora Advisor™: organizational intelligence with tenant isolation and traceable evidence.
+CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_conversations (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), objective varchar(300) NOT NULL,
+ status varchar(24) NOT NULL DEFAULT 'active' CHECK(status IN('active','completed','archived')),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE valorapesquisa.advisor_conversations ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.advisor_conversations ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE valorapesquisa.advisor_conversations ADD COLUMN IF NOT EXISTS objective varchar(300);
+ALTER TABLE valorapesquisa.advisor_conversations ADD COLUMN IF NOT EXISTS status varchar(24) DEFAULT 'active';
+ALTER TABLE valorapesquisa.advisor_conversations ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+CREATE INDEX IF NOT EXISTS ix_advisor_conversations_scope ON valorapesquisa.advisor_conversations(organization_id,user_id,updated_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_messages (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ conversation_id uuid NOT NULL REFERENCES valorapesquisa.advisor_conversations(id), user_id uuid REFERENCES valorapesquisa.users(id),
+ role varchar(20) NOT NULL CHECK(role IN('user','advisor','system')), content text NOT NULL,
+ confidence varchar(24) NOT NULL DEFAULT 'low', limitations text[] NOT NULL DEFAULT ARRAY[]::text[],
+ created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_advisor_messages_timeline ON valorapesquisa.advisor_messages(organization_id,conversation_id,created_at);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_context_bundles (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ conversation_id uuid NOT NULL REFERENCES valorapesquisa.advisor_conversations(id),message_id uuid REFERENCES valorapesquisa.advisor_messages(id),
+ purpose text NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_context_sources (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ bundle_id uuid NOT NULL REFERENCES valorapesquisa.advisor_context_bundles(id),source_type varchar(40) NOT NULL,source_id uuid NOT NULL,
+ title text NOT NULL,snapshot jsonb NOT NULL DEFAULT '{}',collected_at timestamptz NOT NULL DEFAULT now(),UNIQUE(bundle_id,source_type,source_id));
+CREATE INDEX IF NOT EXISTS ix_advisor_context_sources_scope ON valorapesquisa.advisor_context_sources(organization_id,source_type,source_id);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_evidence_citations (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ message_id uuid NOT NULL REFERENCES valorapesquisa.advisor_messages(id),source_type varchar(40) NOT NULL,source_id uuid NOT NULL,
+ title text NOT NULL,excerpt text NOT NULL,strength varchar(24) NOT NULL DEFAULT 'contextual',created_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE(message_id,source_type,source_id));
+CREATE INDEX IF NOT EXISTS ix_advisor_citations_message ON valorapesquisa.advisor_evidence_citations(organization_id,message_id);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_prompt_templates (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid REFERENCES valorapesquisa.organizations(id),code varchar(80) NOT NULL,
+ name varchar(160) NOT NULL,area varchar(80) NOT NULL,status varchar(24) NOT NULL DEFAULT 'draft' CHECK(status IN('draft','review','published','archived')),
+ created_by_user_id uuid REFERENCES valorapesquisa.users(id),created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+CREATE UNIQUE INDEX IF NOT EXISTS ux_advisor_prompt_template_scope ON valorapesquisa.advisor_prompt_templates(COALESCE(organization_id,'00000000-0000-0000-0000-000000000000'::uuid),code);
+CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_prompt_template_versions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid REFERENCES valorapesquisa.organizations(id),template_id uuid NOT NULL REFERENCES valorapesquisa.advisor_prompt_templates(id),
+ version integer NOT NULL CHECK(version>0),content text NOT NULL,human_reviewed boolean NOT NULL DEFAULT false,reviewed_by_user_id uuid REFERENCES valorapesquisa.users(id),
+ reviewed_at timestamptz,created_by_user_id uuid REFERENCES valorapesquisa.users(id),created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(template_id,version));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_guardrail_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
+ conversation_id uuid REFERENCES valorapesquisa.advisor_conversations(id),rule_code varchar(80) NOT NULL,reason text NOT NULL,context jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_advisor_guardrails_scope ON valorapesquisa.advisor_guardrail_events(organization_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_feedback (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
+ message_id uuid NOT NULL REFERENCES valorapesquisa.advisor_messages(id),useful boolean NOT NULL,reason varchar(500),improvement varchar(1000),
+ created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),UNIQUE(organization_id,user_id,message_id));
+CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_recommendation_links (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),message_id uuid NOT NULL REFERENCES valorapesquisa.advisor_messages(id),
+ recommendation_type varchar(40) NOT NULL,target_type varchar(40),target_id uuid,evidence_note text NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_action_suggestions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),conversation_id uuid NOT NULL REFERENCES valorapesquisa.advisor_conversations(id),
+ message_id uuid NOT NULL REFERENCES valorapesquisa.advisor_messages(id),suggestion_type varchar(24) NOT NULL CHECK(suggestion_type IN('action','decision','report')),
+ title text NOT NULL,description text NOT NULL,status varchar(24) NOT NULL DEFAULT 'pending',requires_confirmation boolean NOT NULL DEFAULT true,
+ converted_target_id uuid,confirmed_by_user_id uuid REFERENCES valorapesquisa.users(id),created_at timestamptz NOT NULL DEFAULT now(),converted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_advisor_suggestions_pending ON valorapesquisa.advisor_action_suggestions(organization_id,status,created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_usage_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
+ event_name varchar(100) NOT NULL,entity_id uuid,metadata jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_advisor_usage_scope ON valorapesquisa.advisor_usage_events(organization_id,event_name,created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_model_configurations (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid REFERENCES valorapesquisa.organizations(id),provider varchar(80) NOT NULL,model_name varchar(120) NOT NULL,
+ endpoint text,credential_environment_key varchar(160),enabled boolean NOT NULL DEFAULT false,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),
+ CHECK(credential_environment_key IS NULL OR credential_environment_key NOT LIKE '%=%'));
+
+INSERT INTO valorapesquisa.advisor_prompt_templates(id,organization_id,code,name,area,status)
+SELECT gen_random_uuid(),NULL,'organizational-reading','Leitura organizacional rastreável','Intelligence','published'
+WHERE NOT EXISTS(SELECT 1 FROM valorapesquisa.advisor_prompt_templates WHERE organization_id IS NULL AND code='organizational-reading');
+INSERT INTO valorapesquisa.advisor_prompt_template_versions(id,organization_id,template_id,version,content,human_reviewed)
+SELECT gen_random_uuid(),NULL,t.id,1,'Use exclusivamente evidências fornecidas. Diferencie fato, inferência e hipótese. Não invente estatísticas ou benchmarks. Cite fontes, explicite limitações e não substitua a decisão humana.',true
+FROM valorapesquisa.advisor_prompt_templates t WHERE t.organization_id IS NULL AND t.code='organizational-reading'
+AND NOT EXISTS(SELECT 1 FROM valorapesquisa.advisor_prompt_template_versions v WHERE v.template_id=t.id AND v.version=1);
+
 COMMIT;

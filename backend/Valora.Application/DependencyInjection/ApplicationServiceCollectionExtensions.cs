@@ -32,6 +32,7 @@ using Valora.Application.GovernanceExecution;
 using Valora.Application.Workspace;
 using Valora.Application.OrganizationalArchitecture;
 using Valora.Application.Knowledge;
+using Valora.Application.Advisor;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -39,6 +40,12 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<AdvisorConversationService>(); services.AddScoped<AdvisorMessageService>();
+        services.AddScoped<AdvisorContextBuilderService>(); services.AddScoped<AdvisorEvidenceCitationService>();
+        services.AddScoped<AdvisorPromptTemplateService>(); services.AddScoped<AdvisorGuardrailService>();
+        services.AddScoped<AdvisorResponseComposerService>(); services.AddScoped<AdvisorRecommendationService>();
+        services.AddScoped<AdvisorActionSuggestionService>(); services.AddScoped<AdvisorFeedbackService>();
+        services.AddScoped<AdvisorUsageService>(); services.AddScoped<IAdvisorModelProvider, DisabledAdvisorModelProvider>();
         services.AddScoped<Valora.Application.Indicators.IndicatorService>(); services.AddScoped<Valora.Application.Indicators.IndicatorCategoryService>(); services.AddScoped<Valora.Application.Indicators.IndicatorSourceService>();
         services.AddScoped<Valora.Application.Indicators.IndicatorTargetService>(); services.AddScoped<Valora.Application.Indicators.IndicatorMeasurementService>(); services.AddScoped<Valora.Application.Indicators.IndicatorFormulaService>();
         services.AddScoped<Valora.Application.Indicators.IndicatorTrendService>(); services.AddScoped<Valora.Application.Indicators.IndicatorAlertRuleService>(); services.AddScoped<Valora.Application.Indicators.IndicatorAlertService>();

@@ -30,6 +30,7 @@ using Valora.Application.Experience;
 using Valora.Application.Intelligence;
 using Valora.Application.GovernanceExecution;
 using Valora.Application.Workspace;
+using Valora.Application.OrganizationalArchitecture;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -37,6 +38,12 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<ArchitectureOverviewService>();
+        services.AddScoped<OrganizationUnitService>(); services.AddScoped<OrganizationPositionService>();
+        services.AddScoped<PeopleProfileService>(); services.AddScoped<RoleAssignmentService>();
+        services.AddScoped<ResponsibilityMatrixService>(); services.AddScoped<BusinessProcessService>(); services.AddScoped<ProcessStepService>();
+        services.AddScoped<DecisionRightService>(); services.AddScoped<OrganizationalDependencyService>();
+        services.AddScoped<ArchitectureSnapshotService>(); services.AddScoped<ArchitectureRiskService>();
         services.AddScoped<IExecutiveWorkspaceService, ExecutiveWorkspaceService>();
         services.AddScoped<IMyDayService, MyDayService>();
         services.AddScoped<IWorkspaceItemService, WorkspaceItemService>();

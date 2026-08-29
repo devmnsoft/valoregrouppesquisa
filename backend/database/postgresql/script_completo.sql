@@ -1377,6 +1377,70 @@ CREATE INDEX IF NOT EXISTS ix_api_keys_tenant_active ON valorapesquisa.api_keys(
 INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_enterprise_v6','sha256:enterprise-v6-portfolio-crm-automation-api-v1') ON CONFLICT(version) DO NOTHING;
 
 -- 36. COMMIT
+-- Organizational Architecture Studio: tenant-safe, non-destructive convergence.
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_units (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, parent_unit_id uuid,
+ name text NOT NULL, unit_type text NOT NULL, status text NOT NULL DEFAULT 'active', owner_user_id uuid,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), archived_at timestamptz,
+ CONSTRAINT fk_arch_unit_parent FOREIGN KEY(parent_unit_id) REFERENCES valorapesquisa.organization_units(id),
+ CONSTRAINT ck_arch_unit_status CHECK(status IN ('active','inactive','archived')));
+ALTER TABLE valorapesquisa.organization_units ADD COLUMN IF NOT EXISTS unit_type text NOT NULL DEFAULT 'department';
+ALTER TABLE valorapesquisa.organization_units ADD COLUMN IF NOT EXISTS owner_user_id uuid;
+ALTER TABLE valorapesquisa.organization_units ADD COLUMN IF NOT EXISTS archived_at timestamptz;
+CREATE INDEX IF NOT EXISTS ix_arch_units_org_parent ON valorapesquisa.organization_units(organization_id,parent_unit_id);
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_positions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, unit_id uuid NOT NULL REFERENCES valorapesquisa.organization_units(id),
+ title text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), archived_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_arch_positions_org_unit ON valorapesquisa.organization_positions(organization_id,unit_id);
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_people_profiles (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, user_id uuid, display_name text NOT NULL,
+ email text, status text NOT NULL DEFAULT 'active', knowledge_risk_level text NOT NULL DEFAULT 'low', created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_arch_people_org ON valorapesquisa.organization_people_profiles(organization_id,status);
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_role_assignments (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, person_profile_id uuid NOT NULL REFERENCES valorapesquisa.organization_people_profiles(id),
+ position_id uuid NOT NULL REFERENCES valorapesquisa.organization_positions(id), role_name text NOT NULL, status text NOT NULL DEFAULT 'active', starts_at date NOT NULL, ends_at date, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_arch_roles_org_person ON valorapesquisa.organization_role_assignments(organization_id,person_profile_id,status);
+CREATE TABLE IF NOT EXISTS valorapesquisa.responsibility_matrices (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, name text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.business_processes (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, unit_id uuid NOT NULL REFERENCES valorapesquisa.organization_units(id),
+ name text NOT NULL, description text, owner_person_id uuid REFERENCES valorapesquisa.organization_people_profiles(id), status text NOT NULL DEFAULT 'active',
+ criticality text NOT NULL DEFAULT 'medium', indicator_reference text, completeness_status text NOT NULL DEFAULT 'incomplete', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_arch_process_org_unit ON valorapesquisa.business_processes(organization_id,unit_id,status);
+CREATE TABLE IF NOT EXISTS valorapesquisa.responsibility_matrix_items (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, matrix_id uuid NOT NULL REFERENCES valorapesquisa.responsibility_matrices(id),
+ process_id uuid NOT NULL REFERENCES valorapesquisa.business_processes(id), person_profile_id uuid NOT NULL REFERENCES valorapesquisa.organization_people_profiles(id),
+ unit_id uuid NOT NULL REFERENCES valorapesquisa.organization_units(id), responsibility_type text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(),
+ CONSTRAINT ck_raci_type CHECK(responsibility_type IN ('Responsible','Accountable','Consulted','Informed')));
+CREATE UNIQUE INDEX IF NOT EXISTS ux_raci_one_accountable ON valorapesquisa.responsibility_matrix_items(organization_id,process_id) WHERE responsibility_type='Accountable' AND status='active';
+CREATE TABLE IF NOT EXISTS valorapesquisa.business_process_steps (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, process_id uuid NOT NULL REFERENCES valorapesquisa.business_processes(id),
+ sequence_number integer NOT NULL, name text NOT NULL, responsible_person_id uuid REFERENCES valorapesquisa.organization_people_profiles(id), status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE(organization_id,process_id,sequence_number));
+CREATE TABLE IF NOT EXISTS valorapesquisa.process_owners (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, process_id uuid NOT NULL REFERENCES valorapesquisa.business_processes(id),
+ person_profile_id uuid NOT NULL REFERENCES valorapesquisa.organization_people_profiles(id), starts_at date NOT NULL, ends_at date, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.decision_rights (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, scope text NOT NULL, decision_type text NOT NULL DEFAULT 'operational',
+ responsible_person_id uuid REFERENCES valorapesquisa.organization_people_profiles(id), approver_person_id uuid REFERENCES valorapesquisa.organization_people_profiles(id),
+ decision_limit text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_arch_decisions_org_owner ON valorapesquisa.decision_rights(organization_id,responsible_person_id,status);
+CREATE TABLE IF NOT EXISTS valorapesquisa.organizational_dependencies (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, source_unit_id uuid REFERENCES valorapesquisa.organization_units(id), target_unit_id uuid REFERENCES valorapesquisa.organization_units(id),
+ source_process_id uuid REFERENCES valorapesquisa.business_processes(id), target_process_id uuid REFERENCES valorapesquisa.business_processes(id), dependency_type text NOT NULL,
+ impact text NOT NULL, criticality text NOT NULL DEFAULT 'medium', mitigation_plan text, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_arch_dependencies_org_criticality ON valorapesquisa.organizational_dependencies(organization_id,criticality,status);
+CREATE TABLE IF NOT EXISTS valorapesquisa.organizational_architecture_snapshots (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, maturity_score numeric(5,2) NOT NULL, payload jsonb NOT NULL,
+ created_by_user_id uuid, correlation_id text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.architecture_risk_findings (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, risk_type text NOT NULL, title text NOT NULL, probable_cause text NOT NULL,
+ impact text NOT NULL, evidence text NOT NULL, recommended_action text NOT NULL, severity text NOT NULL, status text NOT NULL DEFAULT 'open', detected_at timestamptz NOT NULL DEFAULT now(), resolved_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_arch_risks_org_status ON valorapesquisa.architecture_risk_findings(organization_id,status,severity);
+CREATE TABLE IF NOT EXISTS valorapesquisa.architecture_change_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, event_type text NOT NULL, entity_type text NOT NULL, entity_id uuid NOT NULL,
+ actor_user_id uuid, correlation_id text NOT NULL, payload jsonb NOT NULL DEFAULT '{}', occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_arch_events_org_time ON valorapesquisa.architecture_change_events(organization_id,occurred_at DESC);
 COMMIT;
 
 -- Valora Executive Deliverables (idempotent consolidation, 2026-08).

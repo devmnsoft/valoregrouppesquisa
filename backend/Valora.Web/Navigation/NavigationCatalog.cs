@@ -44,6 +44,7 @@ public sealed class NavigationCatalog
             ItemAction("methodology.scoring", "Scoring", "Pesos, normalização e maturidade", "Methodology", "Scoring", "chart-radar", "results", 7, Roles("admin_valora")),
             ItemAction("methodology.recommendations", "Recomendações", "Catálogo orientado por evidências", "Methodology", "Recommendations", "activity", "results", 12, Roles("admin_valora"))),
         Section("intelligence", "Desenvolvimento Organizacional", 30,
+            ItemAction("intelligence.architecture", "Architecture Studio", "Áreas, processos, decisões e dependências como sistema vivo", "Architecture", "Index", "layers", "organizational_intelligence", 1, Results),
             Item("intelligence.results", "Resultados", "Devolutivas e análises executivas", "Results", "chart-radar", null, "results", "results", "organization", 10, Results),
             Item("intelligence.organizational", "Inteligência Organizacional", "Dashboard, Heatmap, Evolution, Journey e Action Valora™", "Intelligence", "brain", "organizational_intelligence.read", "organizational_intelligence", "organizational_intelligence", "organization", 15, Results),
             ItemAction("intelligence.hub-generate", "Gerar análise IA", "Evidence pack e interpretação revisável", "Intelligence", "Generate", "sparkles", "intelligence", 15, Results),

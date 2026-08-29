@@ -176,6 +176,7 @@ public static class ValoraPermissions
     public static class Decisions { public const string Read="decisions.read", Manage="decisions.manage", Approve="decisions.approve"; }
     public static class Alerts { public const string Read="alerts.read", Manage="alerts.manage", Resolve="alerts.resolve"; }
     public static class Indicators { public const string Read="indicators.read", Manage="indicators.manage"; }
+    public static class Advisor { public const string Read="advisor.read", Use="advisor.use", Manage="advisor.manage"; }
     public static class Governance { public const string Read="governance.read", Manage="governance.manage", MeetingsRead="governance.meetings.read", MeetingsManage="governance.meetings.manage"; }
     public static class Action { public const string Read="action.read", Manage="action.manage", Approve="action.approve", Complete="action.complete", CommentsManage="action.comments.manage"; }
     public static class Evolution { public const string Read="evolution.read", Manage="evolution.manage", SnapshotsGenerate="evolution.snapshots.generate"; }

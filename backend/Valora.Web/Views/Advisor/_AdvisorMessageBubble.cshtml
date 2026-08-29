@@ -1,0 +1,4 @@
+@model Valora.Application.Advisor.AdvisorMessageDto
+<article class="message @Model.Role"><div class="message-meta"><strong>@(Model.Role=="advisor"?"Valora Advisor™":"Você")</strong>@if(Model.Role=="advisor"){<span class="confidence @Model.Confidence">Confiança @Model.Confidence</span>}</div><p>@Model.Content</p>
+@if(Model.Evidence.Count>0){<details open><summary>Evidências usadas (@Model.Evidence.Count)</summary>@foreach(var evidence in Model.Evidence){<div class="evidence"><strong>@evidence.Title</strong><span>@evidence.SourceType · @evidence.Strength</span><p>@evidence.Excerpt</p></div>}</details>}
+@if(Model.Limitations.Length>0){<div class="message-limit"><strong>Limitações</strong><ul>@foreach(var limitation in Model.Limitations){<li>@limitation</li>}</ul></div>}</article>

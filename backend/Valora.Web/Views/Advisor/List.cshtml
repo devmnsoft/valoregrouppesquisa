@@ -1,0 +1,10 @@
+@model Valora.Web.Models.ViewModels.AdvisorListPageViewModel
+@{ViewData["Title"]=Model.Title;}
+<link rel="stylesheet" href="~/css/advisor.css" asp-append-version="true" />
+<section class="advisor-hero"><div><span class="advisor-kicker">VALORA ADVISOR™</span><h1>@Model.Title</h1><p>@Model.Description</p></div><a class="new-reading" asp-action="Index">Abrir Advisor</a></section>
+<nav class="advisor-tabs"><a asp-action="Conversations">Conversas</a><a asp-action="Templates">Templates</a><a asp-action="Guardrails">Guardrails</a><a asp-action="Feedback">Feedback</a></nav>
+<section class="advisor-table-card">
+@if(Model.Title=="Templates"&&Model.Templates.Count>0){<table><thead><tr><th>Template</th><th>Área</th><th>Versão</th><th>Revisão</th><th>Status</th></tr></thead><tbody>@foreach(var item in Model.Templates){<tr><td><strong>@item.Name</strong><small>@item.Code</small></td><td>@item.Area</td><td>v@item.Version</td><td>@(item.HumanReviewed?"Humana concluída":"Pendente")</td><td><span class="confidence moderate">@item.Status</span></td></tr>}</tbody></table>}
+else if(Model.Conversations.Count>0){<table><thead><tr><th>Objetivo</th><th>Status</th><th>Atualização</th><th></th></tr></thead><tbody>@foreach(var item in Model.Conversations){<tr><td><strong>@item.Objective</strong></td><td>@item.Status</td><td>@item.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td><td><a asp-action="Index" asp-route-id="@item.Id">Retomar →</a></td></tr>}</tbody></table>}
+else{<div class="advisor-empty"><span>◇</span><h2>Nenhum registro neste recorte</h2><p>Quando houver atividade rastreável, ela aparecerá aqui com organização, usuário e data.</p></div>}
+</section>

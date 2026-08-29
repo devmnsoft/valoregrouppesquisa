@@ -32,6 +32,7 @@ using Valora.Infrastructure.Subscriptions;
 using Valora.Application.Experience;
 using Valora.Application.GovernanceExecution;
 using Valora.Application.OrganizationalArchitecture;
+using Valora.Application.Indicators;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -40,6 +41,7 @@ public static class InfrastructureServiceCollectionExtensions
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IDbConnectionFactory, PostgresConnectionFactory>();
+        services.AddScoped<IIndicatorRepository, IndicatorRepository>();
         services.AddScoped<IKnowledgeRepository, KnowledgeRepository>();
         services.AddScoped<IOrganizationalArchitectureRepository, OrganizationalArchitectureRepository>();
         services.AddScoped<IGovernanceExecutionStore, GovernanceExecutionStore>();

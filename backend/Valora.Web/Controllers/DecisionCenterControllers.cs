@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.DecisionCenter;
+using Valora.Application.Indicators;
 
 namespace Valora.Web.Controllers;
 
@@ -29,8 +30,31 @@ public sealed class DecisionsController(DecisionCenterService service) : Decisio
     [ValidateAntiForgeryToken,HttpPost("Create")] public async Task<IActionResult> Create(CreateDecisionRequest request,CancellationToken ct){if(string.IsNullOrWhiteSpace(request.EvidenceSummary)){ModelState.AddModelError(nameof(request.EvidenceSummary),"Uma decisão precisa estar vinculada a evidências verificáveis.");return View("Index",await Service.Decisions(OrganizationId,ct));}var id=await Service.CreateDecision(OrganizationId,UserId,request,ct);return RedirectToAction(nameof(Details),new{id});}
 }
 [Route("Indicators")]
-public sealed class IndicatorsController(DecisionCenterService service) : DecisionCenterControllerBase(service)
-{ [HttpGet("")] public async Task<IActionResult> Index(CancellationToken ct)=>View(await Service.Metrics(OrganizationId,ct)); }
+public sealed class IndicatorsController(DecisionCenterService service, IndicatorService indicators,
+    IndicatorTargetService targets, IndicatorMeasurementService measurements, IndicatorAlertService alerts,
+    ExecutiveScorecardService scorecards, AnalyticsSnapshotService snapshots) : DecisionCenterControllerBase(service)
+{
+    private IActionResult MissingOrganization()=>View("~/Views/Indicators/MissingOrganization.cshtml");
+    private async Task<IndicatorDashboardDto> Dashboard(CancellationToken ct)
+    {
+        var list=await indicators.List(OrganizationId,ct); var trendMap=new Dictionary<Guid,TrendResult>();
+        foreach(var item in list) trendMap[item.Id]=await measurements.Trend(OrganizationId,item.Id,ct);
+        return new(list,await targets.List(OrganizationId,null,ct),await alerts.List(OrganizationId,ct),trendMap);
+    }
+    [HttpGet("")] public async Task<IActionResult> Index(CancellationToken ct)=>OrganizationId==Guid.Empty?MissingOrganization():View(await Dashboard(ct));
+    [HttpGet("Catalog")] public async Task<IActionResult> Catalog(CancellationToken ct)=>OrganizationId==Guid.Empty?MissingOrganization():View(await Dashboard(ct));
+    [HttpGet("Targets")] public async Task<IActionResult> Targets(CancellationToken ct)=>OrganizationId==Guid.Empty?MissingOrganization():View(await Dashboard(ct));
+    [HttpGet("Measurements")] public async Task<IActionResult> Measurements(Guid? indicatorId,CancellationToken ct){ViewData["IndicatorId"]=indicatorId;return OrganizationId==Guid.Empty?MissingOrganization():View(await Dashboard(ct));}
+    [HttpGet("Analytics")] public async Task<IActionResult> Analytics(CancellationToken ct)=>OrganizationId==Guid.Empty?MissingOrganization():View(await Dashboard(ct));
+    [HttpGet("Scorecards")] public async Task<IActionResult> Scorecards(CancellationToken ct){ViewData["Scorecards"]=OrganizationId==Guid.Empty?Array.Empty<ExecutiveScorecardDto>():await scorecards.List(OrganizationId,ct);return OrganizationId==Guid.Empty?MissingOrganization():View(await Dashboard(ct));}
+    [HttpGet("Alerts")] public async Task<IActionResult> Alerts(CancellationToken ct)=>OrganizationId==Guid.Empty?MissingOrganization():View(await Dashboard(ct));
+    [ValidateAntiForgeryToken,HttpPost("Create")] public async Task<IActionResult> Create(CreateIndicatorRequest request,CancellationToken ct){request.ResponsibleUserId=UserId;if(!ModelState.IsValid)return View("Catalog",await Dashboard(ct));try{await indicators.Create(OrganizationId,request,ct);TempData["Success"]="Indicador criado com fonte e rastreabilidade.";}catch(ArgumentException e){ModelState.AddModelError("",e.Message);return View("Catalog",await Dashboard(ct));}return RedirectToAction(nameof(Catalog));}
+    [ValidateAntiForgeryToken,HttpPost("{id:guid}/Archive")] public async Task<IActionResult> Archive(Guid id,CancellationToken ct){await indicators.Archive(OrganizationId,id,ct);return RedirectToAction(nameof(Catalog));}
+    [ValidateAntiForgeryToken,HttpPost("{id:guid}/Targets")] public async Task<IActionResult> CreateTarget(Guid id,CreateTargetRequest request,CancellationToken ct){request.ResponsibleUserId=UserId;if(!ModelState.IsValid)return View("Targets",await Dashboard(ct));try{await targets.Create(OrganizationId,id,request,ct);}catch(Exception e) when(e is ArgumentException or InvalidOperationException){ModelState.AddModelError("",e.Message);return View("Targets",await Dashboard(ct));}return RedirectToAction(nameof(Targets));}
+    [ValidateAntiForgeryToken,HttpPost("{id:guid}/Measurements")] public async Task<IActionResult> CreateMeasurement(Guid id,CreateMeasurementRequest request,CancellationToken ct){request.ResponsibleUserId=UserId;if(!ModelState.IsValid)return View("Measurements",await Dashboard(ct));try{await measurements.Create(OrganizationId,id,request,ct);}catch(InvalidOperationException e){ModelState.AddModelError("",e.Message);return View("Measurements",await Dashboard(ct));}return RedirectToAction(nameof(Measurements),new{indicatorId=id});}
+    [ValidateAntiForgeryToken,HttpPost("Alerts/{id:guid}/Resolve")] public async Task<IActionResult> ResolveAlert(Guid id,CancellationToken ct){await alerts.Resolve(OrganizationId,id,UserId,ct);return RedirectToAction(nameof(Alerts));}
+    [ValidateAntiForgeryToken,HttpPost("Snapshots/Create")] public async Task<IActionResult> CreateSnapshot(string name,CancellationToken ct){if(string.IsNullOrWhiteSpace(name)){ModelState.AddModelError("name","Informe um nome.");return View("Analytics",await Dashboard(ct));}await snapshots.Create(OrganizationId,UserId,name,ct);return RedirectToAction(nameof(Analytics));}
+}
 [Route("Governance")]
 public sealed class GovernanceController(DecisionCenterService service) : DecisionCenterControllerBase(service)
 {

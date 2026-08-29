@@ -39,6 +39,10 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<Valora.Application.Indicators.IndicatorService>(); services.AddScoped<Valora.Application.Indicators.IndicatorCategoryService>(); services.AddScoped<Valora.Application.Indicators.IndicatorSourceService>();
+        services.AddScoped<Valora.Application.Indicators.IndicatorTargetService>(); services.AddScoped<Valora.Application.Indicators.IndicatorMeasurementService>(); services.AddScoped<Valora.Application.Indicators.IndicatorFormulaService>();
+        services.AddScoped<Valora.Application.Indicators.IndicatorTrendService>(); services.AddScoped<Valora.Application.Indicators.IndicatorAlertRuleService>(); services.AddScoped<Valora.Application.Indicators.IndicatorAlertService>();
+        services.AddScoped<Valora.Application.Indicators.ExecutiveScorecardService>(); services.AddScoped<Valora.Application.Indicators.AnalyticsSnapshotService>();
         services.AddScoped<KnowledgeOverviewService>(); services.AddScoped<KnowledgeCategoryService>(); services.AddScoped<KnowledgeArticleService>();
         services.AddScoped<KnowledgeArticleVersionService>(); services.AddScoped<KnowledgeReviewService>(); services.AddScoped<OrganizationalLessonService>();
         services.AddScoped<PlaybookService>(); services.AddScoped<PlaybookStepService>(); services.AddScoped<LearningPathService>();

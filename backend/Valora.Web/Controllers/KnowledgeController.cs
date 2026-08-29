@@ -1,0 +1,27 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Valora.Application.Common;
+using Valora.Application.Knowledge;
+using Valora.Web.Models.ViewModels;
+namespace Valora.Web.Controllers;
+[Authorize]
+public sealed class KnowledgeController(ICurrentOrganizationProvider current,KnowledgeOverviewService overview,KnowledgeCategoryService categories,KnowledgeArticleService articles,PlaybookService playbooks,OrganizationalLessonService lessons,LearningPathService paths,CognitiveDictionaryService dictionary):Controller
+{
+ [HttpGet]public Task<IActionResult>Index(string? query,CancellationToken ct)=>Page("Overview",query,null,null,ct);
+ [HttpGet]public Task<IActionResult>Articles(string? query,string? status,Guid? categoryId,CancellationToken ct)=>Page("Articles",query,status,categoryId,ct);
+ [HttpGet]public Task<IActionResult>Playbooks(CancellationToken ct)=>Page("Playbooks",null,null,null,ct);
+ [HttpGet]public Task<IActionResult>Lessons(CancellationToken ct)=>Page("Lessons",null,null,null,ct);
+ [HttpGet]public Task<IActionResult>LearningPaths(CancellationToken ct)=>Page("LearningPaths",null,null,null,ct);
+ [HttpGet]public Task<IActionResult>Dictionary(CancellationToken ct)=>Page("Dictionary",null,null,null,ct);
+ [HttpPost,ValidateAntiForgeryToken]public async Task<IActionResult>CreateArticle(KnowledgeArticleFormViewModel form,CancellationToken ct){if(!ModelState.IsValid)return await Invalid("Articles",ct);try{await articles.CreateAsync(Organization(),new(){Title=form.Title,CategoryId=form.CategoryId,Content=form.Content,ResponsibleUserId=UserId(),AiAssisted=form.AiAssisted},UserId(),Trace(),ct);TempData["KnowledgeMessage"]="Artigo salvo como rascunho e registrado na memória organizacional.";}catch(Exception e)when(e is ArgumentException or InvalidOperationException){TempData["KnowledgeError"]=e.Message;}return RedirectToAction(nameof(Articles));}
+ [HttpPost,ValidateAntiForgeryToken]public async Task<IActionResult>SubmitReview(Guid id,CancellationToken ct)=>await Transition(()=>articles.SubmitReviewAsync(Organization(),id,UserId(),Trace(),ct));
+ [HttpPost,ValidateAntiForgeryToken,Authorize(Roles="admin,admin_valora,super_admin")]public async Task<IActionResult>Publish(Guid id,CancellationToken ct)=>await Transition(()=>articles.PublishAsync(Organization(),id,UserId(),Trace(),ct));
+ [HttpPost,ValidateAntiForgeryToken,Authorize(Roles="admin,admin_valora,super_admin")]public async Task<IActionResult>Archive(Guid id,CancellationToken ct)=>await Transition(()=>articles.ArchiveAsync(Organization(),id,UserId(),Trace(),ct));
+ [HttpPost,ValidateAntiForgeryToken]public async Task<IActionResult>CreateLesson(KnowledgeLessonFormViewModel f,CancellationToken ct){if(!ModelState.IsValid)return await Invalid("Lessons",ct);try{await lessons.CreateAsync(Organization(),new(){Title=f.Title,Learning=f.Learning,OriginType=f.OriginType,OriginReference=f.OriginReference,Impact=f.Impact,Evidence=f.Evidence,Critical=f.Critical},UserId(),Trace(),ct);TempData["KnowledgeMessage"]="Lição registrada com sua origem e evidência.";}catch(ArgumentException e){TempData["KnowledgeError"]=e.Message;}return RedirectToAction(nameof(Lessons));}
+ [HttpPost,ValidateAntiForgeryToken,Authorize(Roles="admin,admin_valora,super_admin")]public async Task<IActionResult>CreateTerm(CognitiveTermFormViewModel f,CancellationToken ct){if(!ModelState.IsValid)return await Invalid("Dictionary",ct);try{await dictionary.CreateAsync(Organization(),new(){Code=f.Code,Name=f.Name,Definition=f.Definition,Category=f.Category,MethodologicalUse=f.MethodologicalUse},UserId(),Trace(),ct);TempData["KnowledgeMessage"]="Conceito criado como rascunho rastreável.";}catch(ArgumentException e){TempData["KnowledgeError"]=e.Message;}return RedirectToAction(nameof(Dictionary));}
+ private async Task<IActionResult>Transition(Func<Task<KnowledgeArticle>> action){try{await action();TempData["KnowledgeMessage"]="Fluxo do artigo atualizado com rastreabilidade.";}catch(Exception e)when(e is ArgumentException or InvalidOperationException or KeyNotFoundException){TempData["KnowledgeError"]=e.Message;}return RedirectToAction(nameof(Articles));}
+ private async Task<IActionResult>Invalid(string section,CancellationToken ct){TempData["KnowledgeError"]="Revise os campos destacados. Nenhuma informação foi perdida.";return await Page(section,null,null,null,ct);}
+ private async Task<IActionResult>Page(string section,string? query,string? status,Guid? categoryId,CancellationToken ct){var x=current.GetCurrent();if(!x.IsResolved)return View("MissingOrganization");var o=x.OrganizationId;var model=new KnowledgeCenterViewModel(section,await overview.GetAsync(o,ct),await categories.ListAsync(o,ct),await articles.ListAsync(o,query,status,categoryId,ct),await playbooks.ListAsync(o,ct),await lessons.ListAsync(o,ct),await paths.ListAsync(o,ct),await dictionary.ListAsync(o,ct),query,status,categoryId,TempData["KnowledgeMessage"]?.ToString(),TempData["KnowledgeError"]?.ToString());return View("Center",model);}
+ private Guid Organization(){var x=current.GetCurrent();return x.IsResolved?x.OrganizationId:throw new UnauthorizedAccessException("Selecione uma organização para continuar.");}private Guid UserId()=>Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier),out var id)?id:throw new UnauthorizedAccessException("Sua sessão precisa ser renovada.");private string Trace()=>HttpContext.TraceIdentifier;
+}

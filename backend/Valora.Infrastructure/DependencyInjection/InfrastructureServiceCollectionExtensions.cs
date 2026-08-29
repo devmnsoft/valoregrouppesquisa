@@ -7,6 +7,7 @@ using Valora.Infrastructure.Email;
 using Valora.Infrastructure.Repositories;
 using Valora.Infrastructure.Security;
 using Valora.Application.Access;
+using Valora.Application.Knowledge;
 using Valora.Application.Enterprise;
 using Valora.Application.OrganizationalIntelligence;
 using Valora.Application.ValoraBot;
@@ -39,6 +40,7 @@ public static class InfrastructureServiceCollectionExtensions
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IDbConnectionFactory, PostgresConnectionFactory>();
+        services.AddScoped<IKnowledgeRepository, KnowledgeRepository>();
         services.AddScoped<IOrganizationalArchitectureRepository, OrganizationalArchitectureRepository>();
         services.AddScoped<IGovernanceExecutionStore, GovernanceExecutionStore>();
         services.AddScoped<IRespondentAccessTokenRepository, RespondentAccessTokenRepository>();

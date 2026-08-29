@@ -171,6 +171,7 @@ public static class ValoraPermissions
     public static class Settings { public const string Read="settings.read", Update="settings.update"; }
     public static class SettingsManagement { public const string Manage="settings.manage"; }
     public static class OrganizationalIntelligence { public const string Read="organizational_intelligence.read", Generate="organizational_intelligence.generate", JourneyCreate="organizational_intelligence.journey.create", ActionCreate="organizational_intelligence.action.create"; }
+    public static class Knowledge { public const string Read="knowledge.read", Create="knowledge.create", Review="knowledge.review", Publish="knowledge.publish", Manage="knowledge.manage"; }
     public static class DecisionCenter { public const string Read="decision_center.read"; }
     public static class Decisions { public const string Read="decisions.read", Manage="decisions.manage", Approve="decisions.approve"; }
     public static class Alerts { public const string Read="alerts.read", Manage="alerts.manage", Resolve="alerts.resolve"; }
@@ -252,7 +253,7 @@ public static class ValoraPermissions
         "subscriptions" or "billing" or "usage" or "upgrades" or "feature_access" => ValoraModules.Organization,
         "organizational_intelligence" or "methodology" or "decision_center" or "decisions" or "alerts" or "indicators" or "governance" or "diagnostics" or "dashboard" or "radar" or "reports" or "deliverables" or "share_links" or "public_results" or "action" or "heatmap" or
         "evolution" or "journey" or "benchmark" or "insights" or "ai" or "ai_runs" or "one_on_one" or
-        "evidence" or "indexes" or "priorities" or "leadership" or "leadership_development" or "intelligence" or "questions" => "organizational_intelligence",
+        "knowledge" or "evidence" or "indexes" or "priorities" or "leadership" or "leadership_development" or "intelligence" or "questions" => "organizational_intelligence",
         "onboarding" or "branding" or "success_center" or "organization_health" or "support_tickets" or
         "knowledge_base" or "success_playbooks" or "product_usage" => ValoraModules.Organization,
         "campaigns" => ValoraModules.Surveys,

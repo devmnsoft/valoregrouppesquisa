@@ -31,6 +31,7 @@ using Valora.Application.Intelligence;
 using Valora.Application.GovernanceExecution;
 using Valora.Application.Workspace;
 using Valora.Application.OrganizationalArchitecture;
+using Valora.Application.Knowledge;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -38,6 +39,10 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<KnowledgeOverviewService>(); services.AddScoped<KnowledgeCategoryService>(); services.AddScoped<KnowledgeArticleService>();
+        services.AddScoped<KnowledgeArticleVersionService>(); services.AddScoped<KnowledgeReviewService>(); services.AddScoped<OrganizationalLessonService>();
+        services.AddScoped<PlaybookService>(); services.AddScoped<PlaybookStepService>(); services.AddScoped<LearningPathService>();
+        services.AddScoped<LearningProgressService>(); services.AddScoped<CognitiveDictionaryService>(); services.AddScoped<KnowledgeSearchService>();
         services.AddScoped<ArchitectureOverviewService>();
         services.AddScoped<OrganizationUnitService>(); services.AddScoped<OrganizationPositionService>();
         services.AddScoped<PeopleProfileService>(); services.AddScoped<RoleAssignmentService>();

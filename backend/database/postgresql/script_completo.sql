@@ -4643,16 +4643,36 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_messages (
  role varchar(20) NOT NULL CHECK(role IN('user','advisor','system')), content text NOT NULL,
  confidence varchar(24) NOT NULL DEFAULT 'low', limitations text[] NOT NULL DEFAULT ARRAY[]::text[],
  created_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE valorapesquisa.advisor_messages ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.advisor_messages ADD COLUMN IF NOT EXISTS conversation_id uuid;
+ALTER TABLE valorapesquisa.advisor_messages ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE valorapesquisa.advisor_messages ADD COLUMN IF NOT EXISTS role varchar(20);
+ALTER TABLE valorapesquisa.advisor_messages ADD COLUMN IF NOT EXISTS content text;
+ALTER TABLE valorapesquisa.advisor_messages ADD COLUMN IF NOT EXISTS confidence varchar(24) DEFAULT 'low';
+ALTER TABLE valorapesquisa.advisor_messages ADD COLUMN IF NOT EXISTS limitations text[] DEFAULT ARRAY[]::text[];
+ALTER TABLE valorapesquisa.advisor_messages ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
 CREATE INDEX IF NOT EXISTS ix_advisor_messages_timeline ON valorapesquisa.advisor_messages(organization_id,conversation_id,created_at);
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_context_bundles (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
  conversation_id uuid NOT NULL REFERENCES valorapesquisa.advisor_conversations(id),message_id uuid REFERENCES valorapesquisa.advisor_messages(id),
  purpose text NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE valorapesquisa.advisor_context_bundles ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.advisor_context_bundles ADD COLUMN IF NOT EXISTS conversation_id uuid;
+ALTER TABLE valorapesquisa.advisor_context_bundles ADD COLUMN IF NOT EXISTS message_id uuid;
+ALTER TABLE valorapesquisa.advisor_context_bundles ADD COLUMN IF NOT EXISTS purpose text;
+ALTER TABLE valorapesquisa.advisor_context_bundles ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
 CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_context_sources (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
  bundle_id uuid NOT NULL REFERENCES valorapesquisa.advisor_context_bundles(id),source_type varchar(40) NOT NULL,source_id uuid NOT NULL,
  title text NOT NULL,snapshot jsonb NOT NULL DEFAULT '{}',collected_at timestamptz NOT NULL DEFAULT now(),UNIQUE(bundle_id,source_type,source_id));
+ALTER TABLE valorapesquisa.advisor_context_sources ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.advisor_context_sources ADD COLUMN IF NOT EXISTS bundle_id uuid;
+ALTER TABLE valorapesquisa.advisor_context_sources ADD COLUMN IF NOT EXISTS source_type varchar(40);
+ALTER TABLE valorapesquisa.advisor_context_sources ADD COLUMN IF NOT EXISTS source_id uuid;
+ALTER TABLE valorapesquisa.advisor_context_sources ADD COLUMN IF NOT EXISTS title text;
+ALTER TABLE valorapesquisa.advisor_context_sources ADD COLUMN IF NOT EXISTS snapshot jsonb DEFAULT '{}';
+ALTER TABLE valorapesquisa.advisor_context_sources ADD COLUMN IF NOT EXISTS collected_at timestamptz DEFAULT now();
 CREATE INDEX IF NOT EXISTS ix_advisor_context_sources_scope ON valorapesquisa.advisor_context_sources(organization_id,source_type,source_id);
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_evidence_citations (
@@ -4660,12 +4680,28 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_evidence_citations (
  message_id uuid NOT NULL REFERENCES valorapesquisa.advisor_messages(id),source_type varchar(40) NOT NULL,source_id uuid NOT NULL,
  title text NOT NULL,excerpt text NOT NULL,strength varchar(24) NOT NULL DEFAULT 'contextual',created_at timestamptz NOT NULL DEFAULT now(),
  UNIQUE(message_id,source_type,source_id));
+ALTER TABLE valorapesquisa.advisor_evidence_citations ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.advisor_evidence_citations ADD COLUMN IF NOT EXISTS message_id uuid;
+ALTER TABLE valorapesquisa.advisor_evidence_citations ADD COLUMN IF NOT EXISTS source_type varchar(40);
+ALTER TABLE valorapesquisa.advisor_evidence_citations ADD COLUMN IF NOT EXISTS source_id uuid;
+ALTER TABLE valorapesquisa.advisor_evidence_citations ADD COLUMN IF NOT EXISTS title text;
+ALTER TABLE valorapesquisa.advisor_evidence_citations ADD COLUMN IF NOT EXISTS excerpt text;
+ALTER TABLE valorapesquisa.advisor_evidence_citations ADD COLUMN IF NOT EXISTS strength varchar(24) DEFAULT 'contextual';
+ALTER TABLE valorapesquisa.advisor_evidence_citations ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
 CREATE INDEX IF NOT EXISTS ix_advisor_citations_message ON valorapesquisa.advisor_evidence_citations(organization_id,message_id);
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_prompt_templates (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid REFERENCES valorapesquisa.organizations(id),code varchar(80) NOT NULL,
  name varchar(160) NOT NULL,area varchar(80) NOT NULL,status varchar(24) NOT NULL DEFAULT 'draft' CHECK(status IN('draft','review','published','archived')),
  created_by_user_id uuid REFERENCES valorapesquisa.users(id),created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE valorapesquisa.advisor_prompt_templates ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.advisor_prompt_templates ADD COLUMN IF NOT EXISTS code varchar(80);
+ALTER TABLE valorapesquisa.advisor_prompt_templates ADD COLUMN IF NOT EXISTS name varchar(160);
+ALTER TABLE valorapesquisa.advisor_prompt_templates ADD COLUMN IF NOT EXISTS area varchar(80);
+ALTER TABLE valorapesquisa.advisor_prompt_templates ADD COLUMN IF NOT EXISTS status varchar(24) DEFAULT 'draft';
+ALTER TABLE valorapesquisa.advisor_prompt_templates ADD COLUMN IF NOT EXISTS created_by_user_id uuid;
+ALTER TABLE valorapesquisa.advisor_prompt_templates ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.advisor_prompt_templates ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 CREATE UNIQUE INDEX IF NOT EXISTS ux_advisor_prompt_template_scope ON valorapesquisa.advisor_prompt_templates(COALESCE(organization_id,'00000000-0000-0000-0000-000000000000'::uuid),code);
 CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_prompt_template_versions (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid REFERENCES valorapesquisa.organizations(id),template_id uuid NOT NULL REFERENCES valorapesquisa.advisor_prompt_templates(id),
@@ -4675,6 +4711,13 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_prompt_template_versions (
 CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_guardrail_events (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
  conversation_id uuid REFERENCES valorapesquisa.advisor_conversations(id),rule_code varchar(80) NOT NULL,reason text NOT NULL,context jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE valorapesquisa.advisor_guardrail_events ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.advisor_guardrail_events ADD COLUMN IF NOT EXISTS user_id uuid;
+ALTER TABLE valorapesquisa.advisor_guardrail_events ADD COLUMN IF NOT EXISTS conversation_id uuid;
+ALTER TABLE valorapesquisa.advisor_guardrail_events ADD COLUMN IF NOT EXISTS rule_code varchar(80);
+ALTER TABLE valorapesquisa.advisor_guardrail_events ADD COLUMN IF NOT EXISTS reason text;
+ALTER TABLE valorapesquisa.advisor_guardrail_events ADD COLUMN IF NOT EXISTS context jsonb DEFAULT '{}';
+ALTER TABLE valorapesquisa.advisor_guardrail_events ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
 CREATE INDEX IF NOT EXISTS ix_advisor_guardrails_scope ON valorapesquisa.advisor_guardrail_events(organization_id,created_at DESC);
 CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_feedback (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
@@ -4688,10 +4731,16 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_action_suggestions (
  message_id uuid NOT NULL REFERENCES valorapesquisa.advisor_messages(id),suggestion_type varchar(24) NOT NULL CHECK(suggestion_type IN('action','decision','report')),
  title text NOT NULL,description text NOT NULL,status varchar(24) NOT NULL DEFAULT 'pending',requires_confirmation boolean NOT NULL DEFAULT true,
  converted_target_id uuid,confirmed_by_user_id uuid REFERENCES valorapesquisa.users(id),created_at timestamptz NOT NULL DEFAULT now(),converted_at timestamptz);
+ALTER TABLE valorapesquisa.advisor_action_suggestions ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.advisor_action_suggestions ADD COLUMN IF NOT EXISTS status varchar(24) DEFAULT 'pending';
+ALTER TABLE valorapesquisa.advisor_action_suggestions ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
 CREATE INDEX IF NOT EXISTS ix_advisor_suggestions_pending ON valorapesquisa.advisor_action_suggestions(organization_id,status,created_at DESC);
 CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_usage_events (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
  event_name varchar(100) NOT NULL,entity_id uuid,metadata jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE valorapesquisa.advisor_usage_events ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.advisor_usage_events ADD COLUMN IF NOT EXISTS event_name varchar(100);
+ALTER TABLE valorapesquisa.advisor_usage_events ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
 CREATE INDEX IF NOT EXISTS ix_advisor_usage_scope ON valorapesquisa.advisor_usage_events(organization_id,event_name,created_at DESC);
 CREATE TABLE IF NOT EXISTS valorapesquisa.advisor_model_configurations (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid REFERENCES valorapesquisa.organizations(id),provider varchar(80) NOT NULL,model_name varchar(120) NOT NULL,

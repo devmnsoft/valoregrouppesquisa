@@ -46,7 +46,7 @@ public interface IAdvisorConversationRepository
 public interface IAdvisorMessageRepository
 {
     Task<Guid> AddUserMessage(Guid organizationId, Guid userId, Guid conversationId, string content, CancellationToken ct);
-    Task<Guid> AddResponse(Guid organizationId, Guid conversationId, string content, string confidence, string[] limitations, IReadOnlyList<AdvisorContextOptionDto> evidence, CancellationToken ct);
+    Task<Guid> AddResponse(Guid organizationId, Guid userId, Guid conversationId, string content, string confidence, string[] limitations, IReadOnlyList<AdvisorContextOptionDto> evidence, CancellationToken ct);
 }
 public interface IAdvisorContextBundleRepository { Task<IReadOnlyList<AdvisorContextOptionDto>> Options(Guid organizationId, CancellationToken ct); Task<IReadOnlyList<AdvisorContextOptionDto>> Resolve(Guid organizationId, IReadOnlyList<AdvisorContextSelection> selections, CancellationToken ct); }
 public interface IAdvisorPromptTemplateRepository { Task<IReadOnlyList<AdvisorTemplateDto>> List(Guid organizationId, CancellationToken ct); Task<Guid> Create(Guid organizationId, Guid userId, CreateAdvisorTemplateRequest request, CancellationToken ct); }

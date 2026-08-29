@@ -27,8 +27,24 @@ public sealed class AdvisorRepository(IDbConnectionFactory db) : IAdvisorConvers
     public async Task<Guid> AddUserMessage(Guid organizationId,Guid userId,Guid conversationId,string content,CancellationToken ct)
     { using var c=db.Create();var id=Guid.NewGuid();const string q="""INSERT INTO valorapesquisa.advisor_messages(id,organization_id,conversation_id,user_id,role,content,confidence,limitations) SELECT @id,@organizationId,@conversationId,@userId,'user',@content,'not_applicable',ARRAY[]::text[] WHERE EXISTS(SELECT 1 FROM valorapesquisa.advisor_conversations WHERE id=@conversationId AND organization_id=@organizationId AND user_id=@userId AND status='active'); UPDATE valorapesquisa.advisor_conversations SET updated_at=now() WHERE id=@conversationId AND organization_id=@organizationId AND user_id=@userId;""";var rows=await c.ExecuteAsync(new CommandDefinition(q,new{id,organizationId,userId,conversationId,content},cancellationToken:ct));if(rows==0)throw new KeyNotFoundException("Conversa não encontrada nesta organização.");return id; }
 
-    public async Task<Guid> AddResponse(Guid organizationId,Guid conversationId,string content,string confidence,string[] limitations,IReadOnlyList<AdvisorContextOptionDto> evidence,CancellationToken ct)
-    { using var c=db.Create();var id=Guid.NewGuid();const string q="""INSERT INTO valorapesquisa.advisor_messages(id,organization_id,conversation_id,role,content,confidence,limitations) SELECT @id,@organizationId,@conversationId,'advisor',@content,@confidence,@limitations WHERE EXISTS(SELECT 1 FROM valorapesquisa.advisor_conversations WHERE id=@conversationId AND organization_id=@organizationId); INSERT INTO valorapesquisa.advisor_evidence_citations(id,organization_id,message_id,source_type,source_id,title,excerpt,strength) SELECT gen_random_uuid(),@organizationId,@id,x.source_type,x.source_id,x.title,x.summary,'contextual' FROM unnest(@types::text[],@ids::uuid[],@titles::text[],@summaries::text[]) x(source_type,source_id,title,summary) WHERE EXISTS(SELECT 1 FROM valorapesquisa.advisor_messages WHERE id=@id AND organization_id=@organizationId);""";await c.ExecuteAsync(new CommandDefinition(q,new{id,organizationId,conversationId,content,confidence,limitations,types=evidence.Select(x=>x.SourceType).ToArray(),ids=evidence.Select(x=>x.SourceId).ToArray(),titles=evidence.Select(x=>x.Title).ToArray(),summaries=evidence.Select(x=>x.Summary).ToArray()},cancellationToken:ct));return id; }
+    public async Task<Guid> AddResponse(Guid organizationId,Guid userId,Guid conversationId,string content,string confidence,string[] limitations,IReadOnlyList<AdvisorContextOptionDto> evidence,CancellationToken ct)
+    {
+        using var c=db.Create();c.Open();using var transaction=c.BeginTransaction();var id=Guid.NewGuid();var bundleId=Guid.NewGuid();
+        const string responseSql="""INSERT INTO valorapesquisa.advisor_messages(id,organization_id,conversation_id,role,content,confidence,limitations) SELECT @id,@organizationId,@conversationId,'advisor',@content,@confidence,@limitations WHERE EXISTS(SELECT 1 FROM valorapesquisa.advisor_conversations WHERE id=@conversationId AND organization_id=@organizationId AND user_id=@userId AND status='active')""";
+        var inserted=await c.ExecuteAsync(new CommandDefinition(responseSql,new{id,organizationId,userId,conversationId,content,confidence,limitations},transaction,cancellationToken:ct));
+        if(inserted!=1)throw new KeyNotFoundException("Conversa ativa não encontrada para este usuário e organização.");
+        const string contextSql="""
+        INSERT INTO valorapesquisa.advisor_context_bundles(id,organization_id,conversation_id,message_id,purpose) VALUES(@bundleId,@organizationId,@conversationId,@id,'advisor_response');
+        INSERT INTO valorapesquisa.advisor_context_sources(id,organization_id,bundle_id,source_type,source_id,title,snapshot)
+        SELECT gen_random_uuid(),@organizationId,@bundleId,x.source_type,x.source_id,x.title,jsonb_build_object('summary',x.summary)
+        FROM unnest(@types::text[],@ids::uuid[],@titles::text[],@summaries::text[]) x(source_type,source_id,title,summary);
+        INSERT INTO valorapesquisa.advisor_evidence_citations(id,organization_id,message_id,source_type,source_id,title,excerpt,strength)
+        SELECT gen_random_uuid(),@organizationId,@id,x.source_type,x.source_id,x.title,x.summary,'contextual'
+        FROM unnest(@types::text[],@ids::uuid[],@titles::text[],@summaries::text[]) x(source_type,source_id,title,summary);
+        """;
+        await c.ExecuteAsync(new CommandDefinition(contextSql,new{bundleId,id,organizationId,conversationId,types=evidence.Select(x=>x.SourceType).ToArray(),ids=evidence.Select(x=>x.SourceId).ToArray(),titles=evidence.Select(x=>x.Title).ToArray(),summaries=evidence.Select(x=>x.Summary).ToArray()},transaction,cancellationToken:ct));
+        transaction.Commit();return id;
+    }
 
     private const string ContextSql="""
         SELECT 'indicator' source_type,id source_id,name title,concat('Indicador ',name,'; unidade ',unit,'; status ',status) summary FROM valorapesquisa.indicators WHERE organization_id=@organizationId AND status='active'

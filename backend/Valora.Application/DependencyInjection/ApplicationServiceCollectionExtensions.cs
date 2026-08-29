@@ -33,6 +33,7 @@ using Valora.Application.Workspace;
 using Valora.Application.OrganizationalArchitecture;
 using Valora.Application.Knowledge;
 using Valora.Application.Advisor;
+using Valora.Application.Processes;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -40,6 +41,11 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<ProcessDefinitionService>();
+        services.AddScoped<Valora.Application.Processes.ProcessStepService>();
+        services.AddScoped<ProcessInstanceService>(); services.AddScoped<ProcessApprovalService>();
+        services.AddScoped<ProcessSlaService>(); services.AddScoped<ProcessAutomationService>();
+        services.AddScoped<ProcessBottleneckInsightService>(); services.AddScoped<ProcessTemplateService>();
         services.AddScoped<AdvisorConversationService>(); services.AddScoped<AdvisorMessageService>();
         services.AddScoped<AdvisorContextBuilderService>(); services.AddScoped<AdvisorEvidenceCitationService>();
         services.AddScoped<AdvisorPromptTemplateService>(); services.AddScoped<AdvisorGuardrailService>();
@@ -57,7 +63,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ArchitectureOverviewService>();
         services.AddScoped<OrganizationUnitService>(); services.AddScoped<OrganizationPositionService>();
         services.AddScoped<PeopleProfileService>(); services.AddScoped<RoleAssignmentService>();
-        services.AddScoped<ResponsibilityMatrixService>(); services.AddScoped<BusinessProcessService>(); services.AddScoped<ProcessStepService>();
+        services.AddScoped<ResponsibilityMatrixService>(); services.AddScoped<BusinessProcessService>(); services.AddScoped<Valora.Application.OrganizationalArchitecture.ProcessStepService>();
         services.AddScoped<DecisionRightService>(); services.AddScoped<OrganizationalDependencyService>();
         services.AddScoped<ArchitectureSnapshotService>(); services.AddScoped<ArchitectureRiskService>();
         services.AddScoped<IExecutiveWorkspaceService, ExecutiveWorkspaceService>();

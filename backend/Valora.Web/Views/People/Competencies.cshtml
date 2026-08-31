@@ -1,0 +1,2 @@
+@model Valora.Web.Models.ViewModels.PeopleViewModel
+@{Layout="_Layout";}<partial name="_PeopleShell" model="Model"/><div class="people-grid">@foreach(var x in Model.Dashboard.Competencies){<article class="people-card"><h2>@x.Competency</h2><p>Esperado @x.ExpectedLevel · observado @x.ObservedLevel</p><p><b>Evidência:</b> @x.EvidenceSummary</p><p>Revisão humana: @(x.HumanReviewed?"confirmada":"pendente")</p></article>}</div>

@@ -1,0 +1,2 @@
+@model Valora.Web.Models.ViewModels.PeopleViewModel
+@{Layout="_Layout";}<partial name="_PeopleShell" model="Model"/><div class="people-grid">@foreach(var x in Model.Dashboard.DevelopmentPlans){<article class="people-card"><h2>@x.SubjectName</h2><p>@x.Objective</p><p>Responsável @x.ResponsibleName · prazo @x.DueDate.ToString("dd/MM/yyyy")</p><p>@x.OpenItems ações abertas · @x.Status</p></article>}</div>

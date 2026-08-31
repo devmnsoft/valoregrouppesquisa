@@ -226,6 +226,13 @@ public static class ValoraPermissions
     {
         public const string Read="leadership_development.read", Manage="leadership_development.manage";
     }
+    public static class People
+    {
+        public const string View="people.view", Manage="people.manage", TeamsManage="people.teams.manage",
+            CultureView="people.culture.view", CultureManage="people.culture.manage", EngagementView="people.engagement.view",
+            CompetenciesManage="people.competencies.manage", DevelopmentPlansManage="people.development_plans.manage",
+            RisksView="people.risks.view", RisksReview="people.risks.review";
+    }
     public static class Ai
     {
         public const string Read="ai.read", Manage="ai.manage", RunsRead="ai.runs.read", RunsManage="ai.runs.manage",
@@ -269,7 +276,7 @@ public static class ValoraPermissions
         "subscriptions" or "billing" or "usage" or "upgrades" or "feature_access" => ValoraModules.Organization,
         "organizational_intelligence" or "methodology" or "decision_center" or "decisions" or "alerts" or "indicators" or "governance" or "diagnostics" or "dashboard" or "radar" or "reports" or "deliverables" or "share_links" or "public_results" or "action" or "processes" or "heatmap" or
         "evolution" or "journey" or "benchmark" or "benchmarks" or "insights" or "ai" or "ai_runs" or "one_on_one" or
-        "knowledge" or "evidence" or "indexes" or "priorities" or "leadership" or "leadership_development" or "intelligence" or "questions" => "organizational_intelligence",
+        "knowledge" or "evidence" or "indexes" or "priorities" or "leadership" or "leadership_development" or "people" or "intelligence" or "questions" => "organizational_intelligence",
         "onboarding" or "branding" or "success_center" or "organization_health" or "support_tickets" or
         "knowledge_base" or "success_playbooks" or "product_usage" => ValoraModules.Organization,
         "campaigns" => ValoraModules.Surveys,

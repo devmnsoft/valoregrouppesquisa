@@ -1,0 +1,2 @@
+@model Valora.Web.Models.ViewModels.PeopleViewModel
+@{Layout="_Layout";}<partial name="_PeopleShell" model="Model"/><div class="people-grid">@foreach(var x in Model.Dashboard.Culture){<article class="people-card"><h2>@x.Dimension</h2><p>@x.Score.ToString("N1") · confiança @x.Confidence · amostra @x.SampleSize</p><p><b>Fonte:</b> @x.Source</p><p><b>Evidência:</b> @x.EvidenceSummary</p><p><b>Limitações:</b> @x.Limitations</p></article>}@if(Model.Dashboard.Culture.Count==0){<p>Nenhuma leitura agregada com amostra mínima disponível.</p>}</div>

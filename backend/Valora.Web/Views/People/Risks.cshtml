@@ -1,0 +1,2 @@
+@model Valora.Web.Models.ViewModels.PeopleViewModel
+@{Layout="_Layout";}<partial name="_PeopleShell" model="Model"/><p class="people-note">Riscos são sinais preventivos, nunca sentenças. Qualquer decisão sensível exige revisão e confirmação humana.</p><div class="people-grid">@foreach(var x in Model.Dashboard.Risks){<article class="people-card"><h2>@x.SignalType</h2><p>Confiança @x.Confidence · @x.Status</p><p><b>Evidência:</b> @x.EvidenceSummary</p><p><b>Limitações:</b> @x.Limitations</p><p>Revisão humana: @(x.HumanReviewed?"realizada":"obrigatória")</p></article>}</div>

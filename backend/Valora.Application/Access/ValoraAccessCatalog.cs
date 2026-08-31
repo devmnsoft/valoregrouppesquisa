@@ -101,6 +101,14 @@ public static class ValoraPermissions
     // useful at MVC boundaries while the fine-grained permissions above continue
     // to protect individual commands.
     public static class Admin { public const string Read="admin.read", Manage="admin.manage"; }
+    public static class SaasAdmin { public const string View="saas_admin.view", Manage="saas_admin.manage"; }
+    public static class SaasCustomers { public const string View="saas_customers.view", Manage="saas_customers.manage", Block="saas_customers.block"; }
+    public static class SaasUsers { public const string Manage="saas_users.manage", Block="saas_users.block"; }
+    public static class SaasModules { public const string Manage="saas_modules.manage"; }
+    public static class SaasBilling { public const string View="saas_billing.view", Manage="saas_billing.manage"; }
+    public static class SaasImpersonation { public const string Use="saas_impersonation.use"; }
+    public static class OrganizationUsers { public const string Manage="organization_users.manage"; }
+    public static class OrganizationProfiles { public const string Manage="organization_profiles.manage"; }
     public static class Organizations { public const string Read="organizations.read", Manage="organizations.manage"; }
     public static class UnitManagement { public const string Manage="units.manage"; }
     public static class UserManagement { public const string Manage="users.manage"; }
@@ -282,7 +290,9 @@ public static class ValoraPermissions
         "campaigns" => ValoraModules.Surveys,
         "respondents" => ValoraModules.Responses,
         "organizations" => ValoraModules.Organization,
-        "admin" or "administration" or "integrations" or "notifications" or "communication" or "jobs" or "logs" or "support" => ValoraModules.Operations,
+        "admin" or "administration" or "saas_admin" or "saas_customers" or "saas_users" or "saas_modules" or
+        "saas_billing" or "saas_impersonation" or "integrations" or "notifications" or "communication" or "jobs" or "logs" or "support" => ValoraModules.Operations,
+        "organization_users" or "organization_profiles" => ValoraModules.Identity,
         "permissions" => ValoraModules.Identity,
         "api_keys" or "webhooks" or "powerbi" or "integration_logs" or "imports" or "email_templates" => ValoraModules.Operations,
         "concepts" or "cognitive_map" or "dimensions" or "diagnosis_templates" or "maturity_levels" or

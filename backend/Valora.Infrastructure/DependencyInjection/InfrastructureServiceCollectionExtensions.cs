@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Valora.Application.Contracts;
+using Valora.Application.SaasAdministration;
+using Valora.Infrastructure.SaasAdministration;
 using Valora.Application.Forms;
 using Valora.Infrastructure.Database;
 using Valora.Infrastructure.Email;
@@ -99,6 +101,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<SchemaContractValidator>();
         services.AddScoped<IOrganizationRepository, OrganizationRepository>();
         services.AddScoped<ISaasAdministrationRepository, SaasAdministrationRepository>();
+        services.AddScoped<ISaasCustomerRepository, SaasCustomerRepository>();
         services.AddScoped<IOrganizationStructureRepository, OrganizationStructureRepository>();
         services.AddScoped<IOrganizationBrandingRepository, OrganizationBrandingRepository>();
         services.AddScoped<IUserAdministrationRepository, UserAdministrationRepository>();

@@ -36,6 +36,8 @@ using Valora.Application.Indicators;
 using Valora.Application.Advisor;
 using Valora.Application.Processes;
 using Valora.Infrastructure.Processes;
+using Valora.Application.Benchmarks;
+using Valora.Infrastructure.Benchmarks;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -43,6 +45,14 @@ public static class InfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddScoped<BenchmarkRepository>();
+        services.AddScoped<IBenchmarkCohortRepository>(sp=>sp.GetRequiredService<BenchmarkRepository>());
+        services.AddScoped<IBenchmarkSnapshotRepository>(sp=>sp.GetRequiredService<BenchmarkRepository>());
+        services.AddScoped<IBenchmarkMetricRepository>(sp=>sp.GetRequiredService<BenchmarkRepository>());
+        services.AddScoped<IBenchmarkComparisonRepository>(sp=>sp.GetRequiredService<BenchmarkRepository>());
+        services.AddScoped<IBenchmarkInsightRepository>(sp=>sp.GetRequiredService<BenchmarkRepository>());
+        services.AddScoped<IBenchmarkPrivacyRepository>(sp=>sp.GetRequiredService<BenchmarkRepository>());
+        services.AddScoped<IBenchmarkExportRepository>(sp=>sp.GetRequiredService<BenchmarkRepository>());
         services.AddScoped<ProcessRepository>();
         services.AddScoped<IProcessDefinitionRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
         services.AddScoped<IProcessStepRepository>(sp=>sp.GetRequiredService<ProcessRepository>());

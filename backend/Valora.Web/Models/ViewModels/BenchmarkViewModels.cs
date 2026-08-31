@@ -1,0 +1,6 @@
+using System.ComponentModel.DataAnnotations;
+using Valora.Application.Benchmarks;
+namespace Valora.Web.Models.ViewModels;
+public sealed record BenchmarksViewModel(BenchmarkSnapshotDto? Current,IReadOnlyList<BenchmarkSnapshotDto> History,IReadOnlyList<BenchmarkCohortDto> Cohorts,IReadOnlyList<BenchmarkInsightDto> Insights,BenchmarkPrivacyRuleDto Privacy,string Section);
+public sealed class BenchmarkCompareForm { [Required] public string ComparisonType {get;set;}="history"; public Guid? CohortId {get;set;} [Required,StringLength(100)] public string Segment {get;set;}="Geral"; [Required] public string Criterion {get;set;}="maturity"; [Required] public DateOnly PeriodStart {get;set;}=DateOnly.FromDateTime(DateTime.UtcNow.AddYears(-1)); [Required] public DateOnly PeriodEnd {get;set;}=DateOnly.FromDateTime(DateTime.UtcNow); public string? Dimension {get;set;} public string? Indicator {get;set;} }
+public sealed class BenchmarkCohortForm { [Required,StringLength(160)] public string Name {get;set;}=""; [StringLength(1000)] public string Description {get;set;}=""; [Required] public string Segment {get;set;}=""; [Required] public string Industry {get;set;}=""; [Required] public string CompanySizeRange {get;set;}=""; [Required] public string Region {get;set;}=""; [Range(5,10000)] public int MinimumSampleSize {get;set;}=5; }

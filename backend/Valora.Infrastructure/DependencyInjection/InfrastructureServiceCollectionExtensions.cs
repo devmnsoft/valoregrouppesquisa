@@ -38,6 +38,8 @@ using Valora.Application.Processes;
 using Valora.Infrastructure.Processes;
 using Valora.Application.Benchmarks;
 using Valora.Infrastructure.Benchmarks;
+using Valora.Application.People;
+using Valora.Infrastructure.People;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -45,6 +47,14 @@ public static class InfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddScoped<PeopleRepository>();
+        services.AddScoped<IPeopleProfileRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
+        services.AddScoped<IPeopleTeamRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
+        services.AddScoped<ICultureAssessmentRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
+        services.AddScoped<IEngagementSignalRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
+        services.AddScoped<ICompetencyRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
+        services.AddScoped<IDevelopmentPlanRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
+        services.AddScoped<IPeopleRiskSignalRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
         services.AddScoped<BenchmarkRepository>();
         services.AddScoped<IBenchmarkCohortRepository>(sp=>sp.GetRequiredService<BenchmarkRepository>());
         services.AddScoped<IBenchmarkSnapshotRepository>(sp=>sp.GetRequiredService<BenchmarkRepository>());

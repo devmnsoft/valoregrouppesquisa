@@ -42,6 +42,15 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<Valora.Application.People.PeopleProfileService>();
+        services.AddScoped<Valora.Application.People.PeopleTeamService>();
+        services.AddScoped<Valora.Application.People.CultureAssessmentService>();
+        services.AddScoped<Valora.Application.People.EngagementSignalService>();
+        services.AddScoped<Valora.Application.People.CompetencyFrameworkService>();
+        services.AddScoped<Valora.Application.People.CompetencyAssessmentService>();
+        services.AddScoped<Valora.Application.People.DevelopmentPlanService>();
+        services.AddScoped<Valora.Application.People.PeopleRiskSignalService>();
+        services.AddScoped<Valora.Application.People.PeopleInsightService>();
         services.AddScoped<BenchmarkCohortService>(); services.AddScoped<BenchmarkSnapshotService>();
         services.AddScoped<BenchmarkPrivacyService>(); services.AddScoped<BenchmarkComparisonService>();
         services.AddScoped<BenchmarkInsightService>(); services.AddScoped<BenchmarkExportService>();

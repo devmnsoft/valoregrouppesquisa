@@ -1,0 +1,2 @@
+@model Valora.Web.Models.ViewModels.PeopleViewModel
+@{Layout="_Layout";}<partial name="_PeopleShell" model="Model"/><div class="people-grid">@foreach(var x in Model.Dashboard.Engagement){<article class="people-card"><h2>Sinal · @x.Source</h2><p>Confiança @x.Confidence</p><p>@x.EvidenceSummary</p><p><b>Limitação:</b> @x.Limitations</p></article>}@if(Model.Dashboard.Engagement.Count<2){<p class="people-note">Histórico insuficiente para exibir tendência. Um sinal isolado não permite conclusão.</p>}</div>

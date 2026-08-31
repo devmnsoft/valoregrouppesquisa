@@ -210,6 +210,12 @@ public static class ValoraPermissions
         public const string Generate="benchmark.generate", Compare="benchmark.compare",
             Export="benchmark.export", Admin="benchmark.admin", Manage="benchmark.manage";
     }
+    public static class Benchmarks
+    {
+        public const string View="benchmarks.view", Manage="benchmarks.manage", CohortsManage="benchmarks.cohorts.manage",
+            Compare="benchmarks.compare", InsightsView="benchmarks.insights.view",
+            ExportsCreate="benchmarks.exports.create", PrivacyManage="benchmarks.privacy.manage";
+    }
     public static class OneOnOne
     {
         public const string Read="one_on_one.read", Manage="one_on_one.manage", SessionsRead="one_on_one.sessions.read",
@@ -262,7 +268,7 @@ public static class ValoraPermissions
         "organization" or "units" or "departments" or "business_groups" or "legal_entities" or "plans" or
         "subscriptions" or "billing" or "usage" or "upgrades" or "feature_access" => ValoraModules.Organization,
         "organizational_intelligence" or "methodology" or "decision_center" or "decisions" or "alerts" or "indicators" or "governance" or "diagnostics" or "dashboard" or "radar" or "reports" or "deliverables" or "share_links" or "public_results" or "action" or "processes" or "heatmap" or
-        "evolution" or "journey" or "benchmark" or "insights" or "ai" or "ai_runs" or "one_on_one" or
+        "evolution" or "journey" or "benchmark" or "benchmarks" or "insights" or "ai" or "ai_runs" or "one_on_one" or
         "knowledge" or "evidence" or "indexes" or "priorities" or "leadership" or "leadership_development" or "intelligence" or "questions" => "organizational_intelligence",
         "onboarding" or "branding" or "success_center" or "organization_health" or "support_tickets" or
         "knowledge_base" or "success_playbooks" or "product_usage" => ValoraModules.Organization,

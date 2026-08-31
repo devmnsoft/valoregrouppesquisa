@@ -34,6 +34,7 @@ using Valora.Application.OrganizationalArchitecture;
 using Valora.Application.Knowledge;
 using Valora.Application.Advisor;
 using Valora.Application.Processes;
+using Valora.Application.Benchmarks;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -41,6 +42,9 @@ public static class ApplicationServiceCollectionExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
+        services.AddScoped<BenchmarkCohortService>(); services.AddScoped<BenchmarkSnapshotService>();
+        services.AddScoped<BenchmarkPrivacyService>(); services.AddScoped<BenchmarkComparisonService>();
+        services.AddScoped<BenchmarkInsightService>(); services.AddScoped<BenchmarkExportService>();
         services.AddScoped<ProcessDefinitionService>();
         services.AddScoped<Valora.Application.Processes.ProcessStepService>();
         services.AddScoped<ProcessInstanceService>(); services.AddScoped<ProcessApprovalService>();

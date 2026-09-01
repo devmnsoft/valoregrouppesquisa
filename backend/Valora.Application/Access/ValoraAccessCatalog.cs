@@ -132,7 +132,9 @@ public static class ValoraPermissions
     public static class Results { public const string Read="results.read", Export="results.export", Compare="results.compare"; }
     public static class Diagnostics { public const string Read="diagnostics.read", Manage="diagnostics.manage", Close="diagnostics.close", Calculate="diagnostics.calculate"; }
     public static class Questions { public const string Read="questions.read", Manage="questions.manage"; }
-    public static class Onboarding { public const string Read="onboarding.read", Manage="onboarding.manage"; }
+    public static class Onboarding { public const string Read="onboarding.read", View="onboarding.view", Manage="onboarding.manage", Complete="onboarding.steps.complete"; }
+    public static class CustomerSuccess { public const string View="customer_success.view", Manage="customer_success.manage", Notes="customer_success.notes.manage", Tasks="customer_success.tasks.manage"; }
+    public static class CustomerHealthScore { public const string View="customer_health_score.view"; }
     public static class SuccessCenter { public const string Read="success_center.read", Manage="success_center.manage"; }
     public static class OrganizationHealth { public const string Read="organization_health.read", Manage="organization_health.manage"; }
     public static class SupportTickets { public const string Read="support_tickets.read", Manage="support_tickets.manage"; }

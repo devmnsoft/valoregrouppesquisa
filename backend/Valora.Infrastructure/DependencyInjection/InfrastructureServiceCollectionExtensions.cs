@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Valora.Application.Contracts;
+using Valora.Application.Onboarding;
+using Valora.Infrastructure.Onboarding;
 using Valora.Application.SaasAdministration;
 using Valora.Infrastructure.SaasAdministration;
 using Valora.Infrastructure.SolutionPacks;
@@ -184,6 +186,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IPrivacyConsentRepository, PrivacyConsentRepository>();
         services.AddScoped<IDataSubjectRequestRepository, DataSubjectRequestRepository>();
         services.AddScoped<IDataRetentionRepository, DataRetentionRepository>();
+        services.AddScoped<IOnboardingRepository, OnboardingRepository>();
         services.AddScoped<ISecurityIncidentRepository, SecurityIncidentRepository>();
         services.AddScoped<IAccessReviewRepository, AccessReviewRepository>();
         services.AddScoped<IComplianceAuditRepository, ComplianceAuditRepository>();

@@ -26,6 +26,7 @@ using Valora.Application.Journey;
 using Valora.Application.OneOnOne;
 using Valora.Application.Subscriptions;
 using Valora.Application.SuccessCenter;
+using Valora.Application.Onboarding;
 using Valora.Application.Experience;
 using Valora.Application.Intelligence;
 using Valora.Application.GovernanceExecution;
@@ -131,6 +132,8 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<CreateInvitationBatchUseCase>();
         services.AddScoped<GenerateExecutiveResultPortalUseCase>();
         services.AddScoped<OnboardingService>(); services.AddScoped<OrganizationHealthService>(); services.AddScoped<SuccessPlaybookService>();
+        services.AddScoped<OnboardingFlowService>(); services.AddScoped<OnboardingProgressService>(); services.AddScoped<OnboardingChecklistService>();
+        services.AddScoped<CustomerAdoptionService>(); services.AddScoped<CustomerHealthScoreService>(); services.AddScoped<CustomerSuccessService>();
         services.AddScoped<SupportTicketService>(); services.AddScoped<KnowledgeBaseService>(); services.AddScoped<ProductUsageService>(); services.AddScoped<FeatureAdoptionService>();
         services.AddScoped<GenerateOrganizationOnboardingUseCase>(); services.AddScoped<CompleteOnboardingStepUseCase>(); services.AddScoped<ReopenOnboardingStepUseCase>();
         services.AddScoped<CalculateOrganizationHealthScoreUseCase>(); services.AddScoped<CreateSupportTicketUseCase>(); services.AddScoped<ReplySupportTicketUseCase>(); services.AddScoped<ResolveSupportTicketUseCase>();

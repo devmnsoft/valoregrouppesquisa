@@ -4955,3 +4955,51 @@ INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
  ('organization_users.manage','Gerenciar usuários da organização','Gerenciar usuários apenas da própria organização.','identity'),
  ('organization_profiles.manage','Gerenciar perfis da organização','Gerenciar perfis apenas da própria organização.','identity')
 ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,module_code=excluded.module_code,updated_at=now();
+
+-- Valora Solution Packs & Marketplace Center (idempotent)
+CREATE TABLE IF NOT EXISTS valorapesquisa.solution_pack_categories (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), code text NOT NULL, name text NOT NULL, description text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ UNIQUE NULLS NOT DISTINCT (organization_id, code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.solution_packs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id), name text NOT NULL, description text NOT NULL,
+ category text NOT NULL, segment text NOT NULL, status text NOT NULL DEFAULT 'draft' CHECK(status IN('draft','review','published','deprecated','archived')),
+ is_official boolean NOT NULL DEFAULT false, evidence text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_by uuid REFERENCES valorapesquisa.users(id),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.solution_pack_versions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), solution_pack_id uuid NOT NULL REFERENCES valorapesquisa.solution_packs(id), version_number text NOT NULL,
+ status text NOT NULL DEFAULT 'draft' CHECK(status IN('draft','published','deprecated')), release_notes text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ published_at timestamptz, created_by uuid REFERENCES valorapesquisa.users(id), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(solution_pack_id,version_number));
+CREATE TABLE IF NOT EXISTS valorapesquisa.solution_pack_items (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), solution_pack_version_id uuid NOT NULL REFERENCES valorapesquisa.solution_pack_versions(id), item_type text NOT NULL,
+ name text NOT NULL, source_module text NOT NULL, source_template_id uuid, target_entity_id uuid, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.solution_pack_dependencies (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), solution_pack_id uuid NOT NULL REFERENCES valorapesquisa.solution_packs(id), dependency_type text NOT NULL,
+ required_module text, required_permission text, minimum_version text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.solution_pack_installations (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), solution_pack_id uuid NOT NULL REFERENCES valorapesquisa.solution_packs(id),
+ solution_pack_version_id uuid NOT NULL REFERENCES valorapesquisa.solution_pack_versions(id), status text NOT NULL DEFAULT 'installing' CHECK(status IN('installing','installed','failed','rolled_back')),
+ installed_by uuid NOT NULL REFERENCES valorapesquisa.users(id), installed_at timestamptz NOT NULL DEFAULT now(), rolled_back_at timestamptz, can_rollback boolean NOT NULL DEFAULT false,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.solution_pack_installation_items (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), installation_id uuid NOT NULL REFERENCES valorapesquisa.solution_pack_installations(id), solution_pack_item_id uuid NOT NULL REFERENCES valorapesquisa.solution_pack_items(id),
+ target_entity_id uuid, status text NOT NULL, previous_value_json jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.solution_pack_updates (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),installation_id uuid NOT NULL REFERENCES valorapesquisa.solution_pack_installations(id),from_version_id uuid REFERENCES valorapesquisa.solution_pack_versions(id),to_version_id uuid NOT NULL REFERENCES valorapesquisa.solution_pack_versions(id),status text NOT NULL DEFAULT 'available',created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.solution_pack_rollbacks (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),installation_id uuid NOT NULL REFERENCES valorapesquisa.solution_pack_installations(id),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),requested_by uuid NOT NULL REFERENCES valorapesquisa.users(id),status text NOT NULL,completed_at timestamptz,metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.solution_pack_pricing_rules (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),solution_pack_id uuid NOT NULL REFERENCES valorapesquisa.solution_packs(id),plan_code text,price numeric(14,2),currency char(3) NOT NULL DEFAULT 'BRL',metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.solution_pack_feature_gates (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),solution_pack_id uuid NOT NULL REFERENCES valorapesquisa.solution_packs(id),module_code text,permission_code text,plan_code text,created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.solution_pack_audit_events (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),actor_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),event_type text NOT NULL,target_id uuid NOT NULL,metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_solution_packs_catalog ON valorapesquisa.solution_packs(segment,category,status) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_solution_pack_versions_pack ON valorapesquisa.solution_pack_versions(solution_pack_id,published_at DESC);
+CREATE INDEX IF NOT EXISTS ix_solution_pack_installations_org ON valorapesquisa.solution_pack_installations(organization_id,installed_at DESC);
+CREATE INDEX IF NOT EXISTS ix_solution_pack_audit_org ON valorapesquisa.solution_pack_audit_events(organization_id,created_at DESC);
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+ ('solution_packs.view','Visualizar Solution Packs','Consultar catálogo e versões','organizational_intelligence'),
+ ('solution_packs.manage','Gerenciar Solution Packs','Criar e versionar pacotes','organizational_intelligence'),
+ ('solution_packs.publish','Publicar Solution Packs','Publicar versão revisada','organizational_intelligence'),
+ ('solution_packs.install','Instalar Solution Packs','Instalar após preview e validação','organizational_intelligence'),
+ ('solution_packs.rollback','Reverter Solution Packs','Executar rollback auditado','organizational_intelligence'),
+ ('solution_packs.private.manage','Gerenciar pacotes privados','Administrar pacotes isolados da organização','organizational_intelligence'),
+ ('solution_packs.marketplace.manage','Gerenciar Marketplace','Administrar catálogo oficial','operations')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code;

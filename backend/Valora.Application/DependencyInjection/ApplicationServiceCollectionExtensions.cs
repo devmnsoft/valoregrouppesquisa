@@ -36,6 +36,7 @@ using Valora.Application.Advisor;
 using Valora.Application.Processes;
 using Valora.Application.Benchmarks;
 using Valora.Application.SaasAdministration;
+using Valora.Application.SolutionPacks;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -44,6 +45,9 @@ public static class ApplicationServiceCollectionExtensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddScoped<SaasCustomerService>();
+        services.AddScoped<SolutionPackService>(); services.AddScoped<SolutionPackVersionService>();
+        services.AddScoped<SolutionPackInstallationService>(); services.AddScoped<SolutionPackDependencyService>();
+        services.AddScoped<SolutionPackRollbackService>(); services.AddScoped<SolutionPackCatalogService>();
         services.AddScoped<Valora.Application.People.PeopleProfileService>();
         services.AddScoped<Valora.Application.People.PeopleTeamService>();
         services.AddScoped<Valora.Application.People.CultureAssessmentService>();

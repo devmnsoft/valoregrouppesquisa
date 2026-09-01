@@ -7,7 +7,7 @@ namespace Valora.Web.Controllers;
 [Route("Onboarding")]
 public sealed class OnboardingController : Controller
 {
-    private static readonly string[] Allowed = ["Organization", "Structure", "Users", "FirstDiagnostic", "Review"];
+    private static readonly string[] Allowed = ["Organization", "Structure", "Users", "Methodology", "FirstDiagnostic", "Review"];
 
     [HttpGet("")]
     public IActionResult Index() => View("Step", Step("Organization"));
@@ -26,7 +26,8 @@ public sealed class OnboardingController : Controller
         {
             "Organization" => ("Identidade da organização", "Confirme os dados que contextualizam todas as leituras de maturidade.", "Estrutura"),
             "Structure" => ("Estrutura e lideranças", "Organize unidades, áreas e equipes para produzir análises responsáveis por contexto.", "Usuários"),
-            "Users" => ("Pessoas e acessos", "Defina responsáveis e conceda somente os acessos necessários para cada jornada.", "Primeiro diagnóstico"),
+            "Users" => ("Pessoas e acessos", "Defina responsáveis e conceda somente os acessos necessários para cada jornada.", "Pacote inicial"),
+            "Methodology" => ("Pacote e metodologia inicial", "Escolha um Solution Pack compatível com o objetivo; a instalação mantém formulários, indicadores e recomendações rastreáveis.", "Primeiro diagnóstico"),
             "FirstDiagnostic" => ("Primeiro diagnóstico", "Escolha o template, a privacidade e o público da primeira coleta.", "Revisão"),
             _ => ("Revisão para ativação", "Revise a configuração e inicie a evolução com governança e rastreabilidade.", "Concluir onboarding")
         };

@@ -42,7 +42,7 @@
     <main class="app-main" id="main-content" tabindex="-1">
       @await Html.PartialAsync("_Topbar")
       @await Html.PartialAsync("_OrganizationContextBanner")
-      <section class="content-wrapper valora-admin-content">@RenderBody()</section>
+      <section class="content-wrapper valora-admin-content">@await Component.InvokeAsync("PageExperience")@RenderBody()</section>
       @await Html.PartialAsync("_Footer")
     </main>
   </div>

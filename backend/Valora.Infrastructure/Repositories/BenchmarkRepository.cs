@@ -55,8 +55,15 @@ public sealed class BenchmarkRepository(IDbConnectionFactory connections) : IBen
     public async Task<BenchmarkComparisonDto> CompareAsync(Guid organizationId, CompareBenchmarkRequest request, CancellationToken ct)
     {
         const string sql = """
-        WITH base AS (SELECT * FROM valorapesquisa.benchmark_snapshots WHERE id=@baseId AND organization_id=@organizationId AND deleted_at IS NULL),
-        previous AS (SELECT * FROM valorapesquisa.benchmark_snapshots WHERE organization_id=@organizationId AND deleted_at IS NULL AND
+        WITH base AS (
+          SELECT id,maturity_score
+          FROM valorapesquisa.benchmark_snapshots
+          WHERE id=@baseId AND organization_id=@organizationId AND deleted_at IS NULL
+        ),
+        previous AS (
+          SELECT id,maturity_score
+          FROM valorapesquisa.benchmark_snapshots
+          WHERE organization_id=@organizationId AND deleted_at IS NULL AND
           id=coalesce(@comparedId,(SELECT id FROM valorapesquisa.benchmark_snapshots WHERE organization_id=@organizationId AND id<>@baseId AND deleted_at IS NULL ORDER BY generated_at DESC LIMIT 1))),
         inserted AS (INSERT INTO valorapesquisa.benchmark_comparisons(organization_id,base_snapshot_id,compared_snapshot_id,comparison_type,score_delta,maturity_delta,strengths_json,risks_json,opportunities_json,recommendations_json,metadata_json)
           SELECT @organizationId,b.id,p.id,@comparisonType,CASE WHEN p.id IS NULL THEN NULL ELSE b.maturity_score-p.maturity_score END,

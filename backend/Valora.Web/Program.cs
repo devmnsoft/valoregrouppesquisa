@@ -21,6 +21,7 @@ builder.Host.UseSerilog((context, logger) =>
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddSingleton<ValoraIconRegistry>();
+builder.Services.AddSingleton<PageExperienceCatalog>();
 builder.Services.AddSingleton<NavigationCatalog>();
 builder.Services.AddScoped<NavigationService>();
 builder.Services.AddHttpContextAccessor();

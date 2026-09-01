@@ -1,1 +1,8 @@
-<div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer"></div><div class="modal fade" id="appModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">Valora Insight™</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"></div></div></div></div>
+<div class="toast-container position-fixed top-0 end-0 p-3" id="toastContainer" aria-live="polite"></div>
+<div class="modal fade" id="appModal" tabindex="-1" aria-labelledby="appModalTitle" aria-describedby="appModalDescription">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><h2 class="modal-title fs-5" id="appModalTitle">Esta ação exige confirmação.</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cancelar"></button></div>
+    <div class="modal-body"><p id="appModalDescription">Revise os dados antes de continuar.</p><p class="small text-muted mb-0">Esta operação poderá ser registrada para auditoria.</p></div>
+    <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Voltar e revisar</button><button type="button" class="btn btn-danger" data-confirm-proceed>Confirmar ação</button></div>
+  </div></div>
+</div>

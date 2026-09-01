@@ -1,5 +1,5 @@
 function safe(v,f){return v===undefined||v===null||Number.isNaN(v)?(f||'—'):String(v)}
-function err(e){const m=formatFriendlyError(e); $('.error-state').removeClass('d-none').text(m); Toast.error(m)}
+function err(e){const m=formatFriendlyError(e); $('[data-page="result-page"] .valora-error-state').removeClass('d-none').text(m); Toast.error(m)}
 function downloadBlob(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
 function whatsappUrl(data){const msg='Olá, quero falar com a Valora Group sobre o Diagnóstico Valora Insight™.'; return `https://wa.me/5591992545353?text=${encodeURIComponent(msg)}`;}
 $(async function(){

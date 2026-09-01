@@ -1,0 +1,16 @@
+/* Valora forms — shared, accessible controls for MVC and JavaScript workspaces. */
+.valora-field { display: grid; gap: .45rem; min-width: 0; }
+.valora-field label, .stacked-form label { color: var(--valora-ink, #15363d); font-size: .84rem; font-weight: 750; }
+.valora-field small { color: var(--valora-muted, #60767b); line-height: 1.45; }
+.stacked-form { display: grid; gap: 1.15rem; }
+.compact-filter { align-items: end; display: grid; gap: .85rem; grid-template-columns: minmax(14rem, 1fr) auto; }
+.form-actions { align-items: center; display: flex; flex-wrap: wrap; gap: .65rem; padding-top: .25rem; }
+.valora-field :is(input, select, textarea):focus-visible { border-color: #168a84; box-shadow: 0 0 0 .22rem rgb(22 138 132 / 15%); outline: 0; }
+.valora-field :is(input, select, textarea):user-invalid { border-color: #b5414b; }
+.valora-field :is(input, select, textarea):disabled { background: #f1f5f4; color: #697b7e; cursor: not-allowed; }
+.valora-button[aria-busy="true"], button[data-loading="true"] { cursor: wait; opacity: .72; pointer-events: none; }
+
+@media (max-width: 640px) {
+  .compact-filter { grid-template-columns: 1fr; }
+  .form-actions > * { justify-content: center; width: 100%; }
+}

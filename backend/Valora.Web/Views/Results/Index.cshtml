@@ -1,8 +1,20 @@
 @{ ViewData["Title"] = "Resultados"; }
-<section class="valora-page" data-results-page>
-  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Resultados", "Consulte devolutivas e análises consolidadas dos diagnósticos autorizados.", "Inteligência Valora", "Resultados", new[] { new PageHeaderAction("Abrir relatórios", "/Reports", Icon: "file-text") }))" />
-  <div class="valora-card">
-    <div class="valora-empty" data-results-list>Carregando resultados disponíveis…</div>
+<section class="valora-page operational-page" data-results-index>
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Resultados", "Consulte devolutivas e análises consolidadas dos diagnósticos autorizados.", "Inteligência Valora", "Resultados", new[] { new PageHeaderAction("Abrir diagnósticos", "/Surveys", Style: "primary", Icon: "search"), new PageHeaderAction("Gerar relatório", "/Reports", Icon: "file-text") }))" />
+  <section class="metric-grid" aria-label="Fluxo dos resultados">
+    <article class="metric-card"><span>1. Coleta</span><strong>Diagnóstico</strong><small>Confirme prazo, público e participação.</small></article>
+    <article class="metric-card"><span>2. Leitura</span><strong>Evidências</strong><small>Valide suficiência, limitações e contexto.</small></article>
+    <article class="metric-card"><span>3. Decisão</span><strong>Próxima ação</strong><small>Gere relatório ou plano somente após revisão.</small></article>
+  </section>
+  <div class="operational-grid">
+    <section class="valora-card operational-panel" aria-labelledby="find-result-title">
+      <div><p class="eyebrow">Consulta segura</p><h2 id="find-result-title">Localize a coleta de origem</h2><p>Os resultados disponíveis ficam vinculados às respostas do diagnóstico e respeitam o escopo da organização selecionada.</p></div>
+      <form method="get" action="/Responses" class="valora-filter-bar compact-filter" role="search">
+        <div class="valora-field"><label for="result-search">Buscar participante ou diagnóstico</label><input class="form-control" id="result-search" name="search" type="search" maxlength="160" placeholder="Digite nome, e-mail ou diagnóstico"></div>
+        <button class="valora-button valora-button--primary" type="submit">Consultar respostas</button>
+      </form>
+      <div class="valora-alert valora-alert--info" role="status"><strong>Leitura responsável.</strong><span>Sem respostas suficientes, o sistema não apresenta conclusão e orienta uma nova coleta.</span></div>
+    </section>
+    <aside class="valora-card operational-panel"><p class="eyebrow">Próximos passos</p><h2>Transforme evidência em decisão</h2><div class="action-link-list"><a href="/Reports"><strong>Gerar relatório executivo</strong><span>Escolha um diagnóstico e o formato de saída.</span></a><a href="/ActionCenter"><strong>Criar plano de ação</strong><span>Defina responsáveis, prioridade e prazo.</span></a><a href="/Intelligence/Evidence"><strong>Revisar evidências</strong><span>Confira fonte, limitações e confiança.</span></a></div></aside>
   </div>
 </section>
-@section Scripts { <script src="/js/pages/result-page.js" asp-append-version="true"></script> }

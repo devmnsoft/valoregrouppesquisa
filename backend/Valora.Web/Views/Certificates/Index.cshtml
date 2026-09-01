@@ -1,8 +1,14 @@
 @{ ViewData["Title"] = "Certificados"; }
-<section class="valora-page" data-certificates-page>
-  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Certificados", "Emita, consulte e valide certificados vinculados aos diagnósticos concluídos.", "Inteligência Valora", "Certificados", new[] { new PageHeaderAction("Validar certificado", "/Certificates/Validate", Icon: "award") }))" />
-  <div class="valora-card">
-    <div class="valora-empty" data-certificates-list>Carregando certificados disponíveis…</div>
+<section class="valora-page operational-page" data-certificates-index>
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Certificados", "Emita, consulte e valide certificados vinculados aos diagnósticos concluídos.", "Inteligência Valora", "Certificados", new[] { new PageHeaderAction("Consultar resultados", "/Results", Icon: "search") }))" />
+  <div class="operational-grid">
+    <section class="valora-card operational-panel" aria-labelledby="certificate-validation-title">
+      <div><p class="eyebrow">Validação pública</p><h2 id="certificate-validation-title">Validar autenticidade</h2><p>Informe o código exibido no documento. A consulta confirma apenas certificados emitidos e preserva os dados protegidos.</p></div>
+      <form method="get" action="/Certificates/Validate" class="stacked-form">
+        <div class="valora-field"><label for="certificate-code">Código do certificado</label><input class="form-control" id="certificate-code" name="certificateCode" required minlength="6" maxlength="120" autocomplete="off" spellcheck="false" placeholder="Ex.: VALORA-2026-XXXXXXXX" aria-describedby="certificate-code-help"><small id="certificate-code-help">Copie o código exatamente como aparece no certificado.</small></div>
+        <div class="form-actions"><button class="valora-button valora-button--primary" type="submit">Validar certificado</button><a class="valora-button valora-button--ghost" href="/Results">Voltar aos resultados</a></div>
+      </form>
+    </section>
+    <aside class="valora-card operational-panel"><p class="eyebrow">Regras de emissão</p><h2>Documento rastreável</h2><ul class="status-checklist"><li><strong>Diagnóstico concluído</strong><span>A emissão depende de uma coleta finalizada e válida.</span></li><li><strong>Status gerado</strong><span>Downloads só ficam disponíveis depois do processamento.</span></li><li><strong>Registro auditável</strong><span>Emissão e downloads preservam data e contexto.</span></li></ul><div class="valora-alert valora-alert--warning" role="status"><strong>Atenção.</strong><span>Um código não confirmado pode estar incorreto, revogado ou ainda em processamento.</span></div></aside>
   </div>
 </section>
-@section Scripts { <script src="/js/pages/certificate-page.js" asp-append-version="true"></script> }

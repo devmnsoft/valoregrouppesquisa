@@ -14,10 +14,10 @@ public sealed class ProcessesController(ProcessDefinitionService definitions,Pro
     private Guid OrganizationId=>Guid.TryParse(User.FindFirstValue("organization_id"),out var claim)&&claim!=Guid.Empty?claim:
         Guid.TryParse(Request.Headers["X-Organization-Id"].FirstOrDefault(),out var header)?header:Guid.Empty;
     [HttpGet] public async Task<ActionResult> List(CancellationToken ct)=>Ok(await definitions.List(OrganizationId,ct));
-    [HttpPost] public async Task<ActionResult> Create(CreateProcessRequest request,CancellationToken ct){var id=await definitions.Create(OrganizationId,UserId,request,ct);return CreatedAtAction(nameof(Get),new{id},new{id,eventName="process.created"});}
+    [HttpPost] public async Task<ActionResult> Create(CreateProcessRequest request,CancellationToken ct){var id=await definitions.Create(OrganizationId,UserId,request,ct);return CreatedAtAction(nameof(Get),new{id},new{id,eventName="process.created",message="Processo salvo com sucesso."});}
     [HttpGet("{id:guid}")] public async Task<ActionResult> Get(Guid id,CancellationToken ct){var item=await definitions.Get(OrganizationId,id,ct);return item is null?NotFound():Ok(item);}
     [HttpPut("{id:guid}")] public ActionResult Update(Guid id)=>Conflict(new{message="Crie uma nova versão para alterar um processo publicado.",id});
-    [HttpPost("{id:guid}/publish")] public async Task<ActionResult> Publish(Guid id,CancellationToken ct){await definitions.Publish(OrganizationId,id,UserId,ct);return Ok(new{id,eventName="process.published"});}
+    [HttpPost("{id:guid}/publish")] public async Task<ActionResult> Publish(Guid id,CancellationToken ct){await definitions.Publish(OrganizationId,id,UserId,ct);return Ok(new{id,eventName="process.published",message="Processo publicado. Alterações estruturais exigem nova versão."});}
     [HttpPost("{id:guid}/new-version")] public async Task<ActionResult> NewVersion(Guid id,CancellationToken ct)=>Ok(new{id=await definitions.NewVersion(OrganizationId,id,UserId,ct),eventName="process.version.created"});
     [HttpGet("{id:guid}/steps")] public async Task<ActionResult> Steps(Guid id,CancellationToken ct)=>Ok(await steps.List(OrganizationId,id,ct));
     [HttpPost("{id:guid}/steps")] public async Task<ActionResult> AddStep(Guid id,CreateProcessStepRequest request,CancellationToken ct)=>Ok(new{id=await steps.Create(OrganizationId,id,request,ct)});

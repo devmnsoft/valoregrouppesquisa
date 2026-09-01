@@ -44,6 +44,8 @@ using Valora.Application.Benchmarks;
 using Valora.Infrastructure.Benchmarks;
 using Valora.Application.People;
 using Valora.Infrastructure.People;
+using Valora.Application.RiskCompliance;
+using Valora.Infrastructure.RiskCompliance;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -51,6 +53,12 @@ public static class InfrastructureServiceCollectionExtensions
 {
     public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
     {
+        services.AddScoped<IRiskComplianceRepository,RiskComplianceRepository>();
+        services.AddScoped<RiskRegisterService>(); services.AddScoped<RiskAssessmentService>();
+        services.AddScoped<RiskControlService>(); services.AddScoped<ComplianceFrameworkService>();
+        services.AddScoped<ComplianceAssessmentService>(); services.AddScoped<NonConformityService>();
+        services.AddScoped<MitigationPlanService>(); services.AddScoped<AuditReviewService>();
+        services.AddScoped<RiskHeatmapService>();
         services.AddScoped<PeopleRepository>();
         services.AddScoped<IPeopleProfileRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
         services.AddScoped<IPeopleTeamRepository>(sp=>sp.GetRequiredService<PeopleRepository>());

@@ -242,6 +242,12 @@ public static class ValoraPermissions
             CompetenciesManage="people.competencies.manage", DevelopmentPlansManage="people.development_plans.manage",
             RisksView="people.risks.view", RisksReview="people.risks.review";
     }
+    public static class RiskCompliance
+    {
+        public const string View="risk_compliance.view", Manage="risk_compliance.manage", RisksManage="risks.manage",
+            ControlsManage="controls.manage", ComplianceManage="compliance.manage", NonConformitiesManage="non_conformities.manage",
+            MitigationPlansManage="mitigation_plans.manage", AuditsManage="audits.manage", HeatmapView="risk_heatmap.view";
+    }
     public static class Ai
     {
         public const string Read="ai.read", Manage="ai.manage", RunsRead="ai.runs.read", RunsManage="ai.runs.manage",
@@ -284,7 +290,7 @@ public static class ValoraPermissions
         "organization" or "units" or "departments" or "business_groups" or "legal_entities" or "plans" or
         "subscriptions" or "billing" or "usage" or "upgrades" or "feature_access" => ValoraModules.Organization,
         "organizational_intelligence" or "methodology" or "decision_center" or "decisions" or "alerts" or "indicators" or "governance" or "diagnostics" or "dashboard" or "radar" or "reports" or "deliverables" or "share_links" or "public_results" or "action" or "processes" or "heatmap" or
-        "evolution" or "journey" or "benchmark" or "benchmarks" or "insights" or "ai" or "ai_runs" or "one_on_one" or
+        "evolution" or "journey" or "benchmark" or "benchmarks" or "insights" or "ai" or "ai_runs" or "one_on_one" or "risk_compliance" or "risks" or "controls" or "compliance" or "non_conformities" or "mitigation_plans" or "audits" or "risk_heatmap" or
         "solution_packs" or "knowledge" or "evidence" or "indexes" or "priorities" or "leadership" or "leadership_development" or "people" or "intelligence" or "questions" => "organizational_intelligence",
         "onboarding" or "branding" or "success_center" or "organization_health" or "support_tickets" or
         "knowledge_base" or "success_playbooks" or "product_usage" => ValoraModules.Organization,

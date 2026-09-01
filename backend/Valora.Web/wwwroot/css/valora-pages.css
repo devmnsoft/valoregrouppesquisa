@@ -1,0 +1,18 @@
+/* Page composition: keeps operational screens useful without module-specific one-off CSS. */
+.operational-page { display: grid; gap: 1.25rem; }
+.operational-grid { display: grid; gap: 1rem; grid-template-columns: minmax(0, 1.45fr) minmax(18rem, .75fr); }
+.operational-panel { align-content: start; display: grid; gap: 1.25rem; padding: clamp(1.1rem, 2vw, 1.65rem); }
+.operational-panel h2 { color: var(--valora-ink, #15363d); font-size: clamp(1.15rem, 2vw, 1.45rem); margin: 0 0 .4rem; }
+.operational-panel p { margin-bottom: 0; }
+.action-link-list { display: grid; gap: .65rem; }
+.action-link-list a { background: #f7faf9; border: 1px solid #dce8e6; border-radius: .85rem; color: #15363d; display: grid; gap: .2rem; padding: .85rem 1rem; text-decoration: none; transition: border-color .15s ease, transform .15s ease; }
+.action-link-list a:hover { border-color: #58a9a2; transform: translateY(-1px); }
+.action-link-list span { color: #60767b; font-size: .85rem; }
+.status-checklist { display: grid; gap: .9rem; list-style: none; margin: 0; padding: 0; }
+.status-checklist li { display: grid; gap: .15rem; padding-left: 1.7rem; position: relative; }
+.status-checklist li::before { align-items: center; background: #dff3ef; border-radius: 50%; color: #08746d; content: "✓"; display: flex; font-size: .72rem; font-weight: 900; height: 1.2rem; justify-content: center; left: 0; position: absolute; top: .1rem; width: 1.2rem; }
+.status-checklist span { color: #60767b; font-size: .88rem; }
+
+@media (max-width: 900px) {
+  .operational-grid { grid-template-columns: 1fr; }
+}

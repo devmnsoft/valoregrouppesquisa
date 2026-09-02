@@ -1,0 +1,191 @@
+view,classificação,formulário,ação visível,mensagem/empty state,CSS responsivo centralizado
+Account/ForgotPassword.cshtml,precisa refinamento,sim,sim,sim,sim
+Account/Login.cshtml,bagunçada,sim,sim,sim,sim
+Account/Register.cshtml,bagunçada,sim,sim,sim,sim
+Account/ResetPassword.cshtml,precisa refinamento,sim,sim,sim,sim
+ActionCenter/CreatePlan.cshtml,precisa refinamento,sim,sim,sim,sim
+ActionCenter/Index.cshtml,boa,não,sim,sim,sim
+ActionCenter/ItemDetails.cshtml,precisa refinamento,sim,sim,não,sim
+ActionCenter/Items.cshtml,precisa refinamento,não,sim,não,sim
+ActionCenter/PlanDetails.cshtml,precisa refinamento,não,sim,não,sim
+ActionCenter/Plans.cshtml,precisa refinamento,não,sim,sim,sim
+ActionPlans/Index.cshtml,precisa refinamento,sim,sim,sim,sim
+AdminHub/Audit.cshtml,precisa refinamento,sim,sim,sim,sim
+AdminHub/CreateOrganization.cshtml,precisa refinamento,sim,sim,sim,sim
+AdminHub/CreateUser.cshtml,precisa refinamento,sim,sim,sim,sim
+AdminHub/Index.cshtml,precisa refinamento,não,sim,não,sim
+AdminHub/OrganizationDetails.cshtml,bagunçada,não,não,sim,sim
+AdminHub/Organizations.cshtml,precisa refinamento,sim,sim,sim,sim
+AdminHub/Roles.cshtml,bagunçada,não,não,não,sim
+AdminHub/Settings.cshtml,bagunçada,não,não,não,sim
+AdminHub/Users.cshtml,precisa refinamento,sim,sim,sim,sim
+Administration/Index.cshtml,boa,não,sim,sim,sim
+Administration/Module.cshtml,precisa refinamento,não,sim,sim,sim
+Advisor/Index.cshtml,precisa refinamento,sim,sim,sim,sim
+Advisor/List.cshtml,precisa refinamento,não,sim,sim,sim
+Architecture/MissingOrganization.cshtml,precisa refinamento,não,sim,não,sim
+Architecture/Studio.cshtml,precisa refinamento,sim,sim,sim,sim
+AssistedOperations/Index.cshtml,precisa refinamento,sim,sim,sim,sim
+Audit/Index.cshtml,bagunçada,não,não,sim,sim
+Benchmarks/Cohorts.cshtml,bagunçada,sim,sim,não,sim
+Benchmarks/Compare.cshtml,bagunçada,sim,sim,não,sim
+Benchmarks/Index.cshtml,bagunçada,não,não,não,sim
+Benchmarks/Insights.cshtml,bagunçada,não,não,não,sim
+Benchmarks/NoOrganization.cshtml,bagunçada,não,não,sim,sim
+Benchmarks/Privacy.cshtml,bagunçada,não,não,não,sim
+Certificates/Details.cshtml,precisa refinamento,não,sim,não,sim
+Certificates/Index.cshtml,boa,sim,sim,sim,sim
+Certificates/Validate.cshtml,precisa refinamento,sim,sim,sim,sim
+Communications/Index.cshtml,precisa refinamento,não,sim,sim,sim
+Dashboard/Index.cshtml,boa,não,sim,sim,sim
+DecisionCenter/Alerts.cshtml,precisa refinamento,sim,sim,sim,sim
+DecisionCenter/Index.cshtml,precisa refinamento,não,sim,sim,sim
+Decisions/Details.cshtml,precisa refinamento,não,sim,não,sim
+Decisions/Index.cshtml,precisa refinamento,não,sim,sim,sim
+Diagnostics/Workspace.cshtml,precisa refinamento,não,sim,sim,sim
+Email/Jobs.cshtml,precisa refinamento,não,sim,sim,sim
+Email/Status.cshtml,precisa refinamento,não,sim,sim,sim
+Email/Templates.cshtml,precisa refinamento,não,sim,sim,sim
+Enterprise/Index.cshtml,precisa refinamento,não,sim,sim,sim
+EnvironmentStatus/Index.cshtml,precisa refinamento,não,sim,sim,sim
+Evolution/Cycles.cshtml,boa,sim,sim,sim,sim
+Evolution/Details.cshtml,precisa refinamento,sim,sim,não,sim
+Evolution/Index.cshtml,boa,não,sim,sim,sim
+Experience/Campaigns.cshtml,precisa refinamento,sim,sim,sim,sim
+Experience/Cockpit.cshtml,precisa refinamento,não,sim,sim,sim
+Experience/Help.cshtml,precisa refinamento,não,sim,não,sim
+Experience/Templates.cshtml,precisa refinamento,não,sim,sim,sim
+Exports/Index.cshtml,precisa refinamento,não,sim,sim,sim
+Forms/Builder.cshtml,precisa refinamento,sim,sim,sim,sim
+Forms/Index.cshtml,boa,sim,sim,sim,sim
+FreeDiagnostics/Index.cshtml,precisa refinamento,sim,sim,sim,sim
+Governance/CreateMeeting.cshtml,precisa refinamento,sim,sim,não,sim
+Governance/CycleDetails.cshtml,bagunçada,não,não,não,sim
+Governance/Cycles.cshtml,precisa refinamento,não,sim,sim,sim
+Governance/Index.cshtml,precisa refinamento,não,sim,sim,sim
+Governance/MeetingDetails.cshtml,bagunçada,não,não,não,sim
+Governance/Meetings.cshtml,precisa refinamento,não,sim,sim,sim
+Home/Error.cshtml,precisa refinamento,não,sim,não,sim
+Home/Index.cshtml,precisa refinamento,não,sim,não,sim
+Indicators/Alerts.cshtml,bagunçada,não,não,sim,sim
+Indicators/Analytics.cshtml,bagunçada,não,não,não,sim
+Indicators/Catalog.cshtml,bagunçada,não,não,não,sim
+Indicators/Index.cshtml,bagunçada,não,não,não,sim
+Indicators/Measurements.cshtml,bagunçada,não,não,não,sim
+Indicators/MissingOrganization.cshtml,precisa refinamento,não,sim,não,sim
+Indicators/Scorecards.cshtml,bagunçada,não,não,não,sim
+Indicators/Targets.cshtml,bagunçada,não,não,não,sim
+Insights/Details.cshtml,precisa refinamento,não,sim,não,sim
+Insights/Index.cshtml,precisa refinamento,não,sim,sim,sim
+Integrations/Index.cshtml,precisa refinamento,não,sim,sim,sim
+Intelligence/Action.cshtml,bagunçada,não,não,não,sim
+Intelligence/Benchmark.cshtml,precisa refinamento,sim,sim,sim,sim
+Intelligence/CausalMap.cshtml,bagunçada,não,não,não,sim
+Intelligence/Decisions.cshtml,bagunçada,não,não,não,sim
+Intelligence/Evidence.cshtml,bagunçada,não,não,não,sim
+Intelligence/Evolution.cshtml,bagunçada,não,não,não,sim
+Intelligence/ExecutiveReport.cshtml,bagunçada,não,não,não,sim
+Intelligence/Generate.cshtml,precisa refinamento,sim,sim,sim,sim
+Intelligence/Heatmap.cshtml,precisa refinamento,sim,sim,sim,sim
+Intelligence/Index.cshtml,precisa refinamento,sim,sim,sim,sim
+Intelligence/Indices.cshtml,bagunçada,não,não,não,sim
+Intelligence/Inference.cshtml,bagunçada,não,não,não,sim
+Intelligence/Insights.cshtml,bagunçada,não,não,não,sim
+Intelligence/Integrations.cshtml,bagunçada,não,não,não,sim
+Intelligence/Journey.cshtml,bagunçada,não,não,não,sim
+Intelligence/Metrics.cshtml,bagunçada,não,não,não,sim
+Intelligence/Module.cshtml,precisa refinamento,não,sim,sim,sim
+Intelligence/OneOnOne.cshtml,bagunçada,não,não,não,sim
+Intelligence/PlatformGovernance.cshtml,bagunçada,não,não,não,sim
+Intelligence/Processing.cshtml,precisa refinamento,sim,sim,sim,sim
+Intelligence/Radar.cshtml,bagunçada,não,não,não,sim
+Intelligence/Recommendations.cshtml,bagunçada,não,não,não,sim
+Intelligence/Review.cshtml,precisa refinamento,não,sim,sim,sim
+Journey/Details.cshtml,bagunçada,não,não,não,sim
+Journey/Index.cshtml,precisa refinamento,sim,sim,sim,sim
+Knowledge/Center.cshtml,precisa refinamento,sim,sim,sim,sim
+Knowledge/MissingOrganization.cshtml,precisa refinamento,não,sim,sim,sim
+Leadership/Details.cshtml,precisa refinamento,não,sim,sim,sim
+Leadership/Index.cshtml,precisa refinamento,não,sim,sim,sim
+Lgpd/Index.cshtml,precisa refinamento,não,sim,não,sim
+Lgpd/Requests.cshtml,precisa refinamento,sim,sim,sim,sim
+Methodology/CognitiveMap.cshtml,precisa refinamento,não,sim,sim,sim
+Methodology/Dictionary.cshtml,precisa refinamento,não,sim,sim,sim
+Methodology/Mappings.cshtml,precisa refinamento,não,sim,sim,sim
+Methodology/Overview.cshtml,precisa refinamento,não,sim,não,sim
+Methodology/Studio.cshtml,precisa refinamento,não,sim,sim,sim
+Migration/Batch.cshtml,precisa refinamento,não,sim,sim,sim
+Migration/Batches.cshtml,precisa refinamento,não,sim,sim,sim
+Migration/Conflicts.cshtml,precisa refinamento,não,sim,sim,sim
+Migration/CutoverReadiness.cshtml,precisa refinamento,não,sim,sim,sim
+Migration/DryRun.cshtml,precisa refinamento,não,sim,sim,sim
+Migration/Index.cshtml,precisa refinamento,não,sim,sim,sim
+Migration/Reconciliation.cshtml,precisa refinamento,não,sim,sim,sim
+Migration/Rollback.cshtml,precisa refinamento,não,sim,sim,sim
+Migration/Upload.cshtml,precisa refinamento,não,sim,sim,sim
+Onboarding/Step.cshtml,precisa refinamento,não,sim,não,sim
+OneOnOne/Create.cshtml,precisa refinamento,sim,sim,sim,sim
+OneOnOne/Details.cshtml,precisa refinamento,sim,sim,sim,sim
+OneOnOne/Index.cshtml,precisa refinamento,não,sim,sim,sim
+OneOnOne/Sessions.cshtml,precisa refinamento,não,sim,sim,sim
+OperationalIntelligence/Comparisons.cshtml,precisa refinamento,sim,sim,não,sim
+OperationalIntelligence/Recommendations.cshtml,precisa refinamento,não,sim,não,sim
+Operations/Index.cshtml,precisa refinamento,não,sim,sim,sim
+Organization/Index.cshtml,precisa refinamento,sim,sim,sim,sim
+OrganizationalCenters/Center.cshtml,precisa refinamento,não,sim,sim,sim
+People/Competencies.cshtml,bagunçada,não,não,não,sim
+People/Culture.cshtml,bagunçada,não,não,não,sim
+People/DevelopmentPlans.cshtml,bagunçada,não,não,não,sim
+People/Engagement.cshtml,bagunçada,não,não,não,sim
+People/Index.cshtml,bagunçada,sim,sim,não,sim
+People/NoOrganization.cshtml,bagunçada,não,não,não,sim
+People/Risks.cshtml,bagunçada,não,não,não,sim
+People/Teams.cshtml,bagunçada,sim,sim,não,sim
+Plans/Index.cshtml,precisa refinamento,não,sim,não,sim
+Processes/Index.cshtml,precisa refinamento,não,sim,sim,sim
+Processes/List.cshtml,precisa refinamento,não,sim,sim,sim
+Processes/NoOrganization.cshtml,bagunçada,não,sim,sim,sim
+PublicPages/About.cshtml,bagunçada,não,não,não,sim
+PublicPages/Contact.cshtml,precisa refinamento,sim,sim,sim,sim
+PublicPages/Demo.cshtml,precisa refinamento,sim,sim,sim,sim
+PublicPages/FreeDiagnostic.cshtml,precisa refinamento,não,sim,sim,sim
+PublicPages/Methodology.cshtml,precisa refinamento,não,sim,não,sim
+PublicPages/Privacy.cshtml,precisa refinamento,não,sim,não,sim
+PublicPages/StartDiagnostic.cshtml,precisa refinamento,sim,sim,não,sim
+PublicPages/Terms.cshtml,precisa refinamento,não,sim,não,sim
+PublicPages/WhatsApp.cshtml,precisa refinamento,não,sim,não,sim
+PublicSurvey/Respondent.cshtml,precisa refinamento,sim,sim,sim,sim
+PublicSurvey/RespondentUnavailable.cshtml,precisa refinamento,não,sim,não,sim
+PublicSurvey/Take.cshtml,precisa refinamento,sim,sim,sim,sim
+Reports/Index.cshtml,boa,sim,sim,sim,sim
+Responses/Index.cshtml,precisa refinamento,não,sim,sim,sim
+Results/Details.cshtml,bagunçada,não,não,sim,sim
+Results/Index.cshtml,boa,sim,sim,sim,sim
+Results/Public.cshtml,precisa refinamento,não,sim,não,sim
+RiskCompliance/Index.cshtml,precisa refinamento,não,sim,sim,sim
+RiskCompliance/NoOrganization.cshtml,precisa refinamento,não,sim,sim,sim
+RiskCompliance/Section.cshtml,precisa refinamento,não,sim,sim,sim
+Saas/Dashboard.cshtml,precisa refinamento,não,sim,não,sim
+SecurityCompliance/AccessReviews.cshtml,precisa refinamento,não,sim,não,sim
+SecurityCompliance/Audit.cshtml,precisa refinamento,não,sim,não,sim
+SecurityCompliance/DataRequests.cshtml,precisa refinamento,não,sim,não,sim
+SecurityCompliance/Incidents.cshtml,precisa refinamento,não,sim,não,sim
+SecurityCompliance/Index.cshtml,precisa refinamento,não,sim,não,sim
+SecurityCompliance/Privacy.cshtml,precisa refinamento,não,sim,não,sim
+SecurityCompliance/Retention.cshtml,precisa refinamento,não,sim,não,sim
+SecurityCompliance/SensitiveAccess.cshtml,precisa refinamento,não,sim,não,sim
+Settings/Index.cshtml,bagunçada,não,não,sim,sim
+SolutionPacks/Builder.cshtml,precisa refinamento,sim,sim,sim,sim
+SolutionPacks/Details.cshtml,precisa refinamento,não,sim,não,sim
+SolutionPacks/Index.cshtml,precisa refinamento,sim,sim,não,sim
+SolutionPacks/Installations.cshtml,bagunçada,não,não,sim,sim
+SolutionPacks/NoOrganization.cshtml,bagunçada,não,sim,sim,sim
+SuccessCenter/Article.cshtml,precisa refinamento,não,sim,sim,sim
+SuccessCenter/CreateSupport.cshtml,precisa refinamento,sim,sim,sim,sim
+SuccessCenter/Index.cshtml,precisa refinamento,sim,sim,sim,sim
+SuccessCenter/SupportDetails.cshtml,precisa refinamento,não,sim,sim,sim
+Surveys/Index.cshtml,boa,sim,sim,sim,sim
+Surveys/PublicLinks.cshtml,precisa refinamento,não,sim,sim,sim
+SystemHealth/Index.cshtml,precisa refinamento,não,sim,sim,sim
+Users/Index.cshtml,precisa refinamento,sim,sim,sim,sim
+Workspace/Index.cshtml,precisa refinamento,não,sim,sim,sim

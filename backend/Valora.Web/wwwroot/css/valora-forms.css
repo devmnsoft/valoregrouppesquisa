@@ -10,7 +10,27 @@
 .valora-field :is(input, select, textarea):disabled { background: #f1f5f4; color: #697b7e; cursor: not-allowed; }
 .valora-button[aria-busy="true"], button[data-loading="true"] { cursor: wait; opacity: .72; pointer-events: none; }
 
+/* Premium form composition: usable by strongly typed Razor forms and JS workspaces. */
+.form-shell { background: #fff; border: 1px solid var(--valora-line, #dce7e6); border-radius: 22px; box-shadow: 0 16px 42px rgb(7 47 55 / 8%); overflow: clip; }
+.form-shell__header, .form-shell__body { padding: clamp(1rem, 2.5vw, 1.75rem); }
+.form-shell__header { background: linear-gradient(135deg, #f7fbfa, #eef7f6); border-bottom: 1px solid var(--valora-line, #dce7e6); }
+.form-shell__header :is(h1, h2), .form-section h2 { margin: 0; color: var(--valora-navy, #102f43); }
+.form-shell__header p, .form-section p { color: var(--valora-muted, #60767b); margin: .35rem 0 0; max-width: 72ch; }
+.form-grid { display: grid; gap: 1rem; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+.form-grid > * { grid-column: span 6; min-width: 0; }
+.form-grid > .form-field--full, .form-grid > fieldset, .form-grid > .validation-summary-errors { grid-column: 1 / -1; }
+.form-section { border-bottom: 1px solid var(--valora-line, #dce7e6); margin: 0 0 1.15rem; padding: 0 0 1rem; }
+.field-hint, .form-text { color: var(--valora-muted, #60767b); display: block; font-size: .78rem; line-height: 1.45; margin-top: .35rem; }
+.form-control, .form-select { border-radius: 12px; min-height: 44px; }
+textarea.form-control { min-height: 7rem; resize: vertical; }
+.form-control.input-validation-error, .form-select.input-validation-error, :is(.form-control, .form-select)[aria-invalid="true"] { background-color: #fffafa; border-color: var(--valora-danger, #b5262b); }
+.validation-summary-valid, .field-validation-valid { display: none; }
+.form-actions { background: #f8fbfa; border-top: 1px solid var(--valora-line, #dce7e6); justify-content: flex-end; margin: 1.5rem calc(clamp(1rem, 2.5vw, 1.75rem) * -1) calc(clamp(1rem, 2.5vw, 1.75rem) * -1); padding: 1rem clamp(1rem, 2.5vw, 1.75rem); position: sticky; bottom: 0; z-index: 3; }
+form[data-submitting] { cursor: wait; }
+button[aria-busy="true"] .button-spinner { display: inline-block; }
+
 @media (max-width: 640px) {
   .compact-filter { grid-template-columns: 1fr; }
+  .form-grid > * { grid-column: 1 / -1; }
   .form-actions > * { justify-content: center; width: 100%; }
 }

@@ -1,5 +1,5 @@
 @model Valora.Web.Models.ViewModels.PeopleViewModel
-<style>.people-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}.people-card{background:var(--surface,#fff);border:1px solid #dfe7e3;border-radius:14px;padding:18px}.people-note{background:#f1f7f4;border-left:4px solid #24745a;padding:14px;border-radius:8px}.people-card label{display:block;margin-top:9px}.people-card input,.people-card select{width:100%;padding:9px;margin-top:4px}</style>
+
 <header><p>People, Culture &amp; Leadership Intelligence Center™</p><h1>@Model.Section</h1><p class="people-note">@Model.Dashboard.ResponsibleUseNotice Evidências, fontes, confiança e limitações devem acompanhar toda leitura. Dados pessoais seguem acesso autorizado e LGPD.</p></header>
 @if(TempData["PeopleMessage"] is string ok){<div class="alert alert-success">@ok</div>}@if(TempData["PeopleError"] is string error){<div class="alert alert-danger">@error</div>}
 <nav aria-label="People"><a asp-action="Index">People</a> · <a asp-action="Teams">Teams</a> · <a asp-action="Culture">Culture</a> · <a asp-action="Engagement">Engagement</a> · <a asp-action="Competencies">Competencies</a> · <a asp-action="DevelopmentPlans">Development Plans</a> · <a asp-action="Risks">Risks</a></nav>

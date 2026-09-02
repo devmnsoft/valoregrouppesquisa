@@ -2,6 +2,7 @@
 @if (Model.SuccessMessage is not null) { <div class="valora-alert valora-alert--success" role="status"><strong>Concluído.</strong><span>@Model.SuccessMessage</span><button type="button" aria-label="Fechar mensagem" data-dismiss-alert>×</button></div> }
 @if (Model.ErrorMessage is not null) { <div class="valora-alert valora-alert--error" role="alert"><strong>Não foi possível concluir.</strong><span>@Model.ErrorMessage</span><button type="button" aria-label="Fechar mensagem" data-dismiss-alert>×</button></div> }
 @if (Model.WarningMessage is not null) { <div class="valora-alert valora-alert--warning" role="status"><strong>Atenção.</strong><span>@Model.WarningMessage</span><button type="button" aria-label="Fechar mensagem" data-dismiss-alert>×</button></div> }
+@if (Model.InformationMessage is not null) { <div class="valora-alert valora-alert--info" role="status"><strong>Informação.</strong><span>@Model.InformationMessage</span><button type="button" aria-label="Fechar mensagem" data-dismiss-alert>×</button></div> }
 <details class="page-help-card">
   <summary><span aria-hidden="true">?</span><strong>Orientações desta página</strong><small>Objetivo, próximo passo e cuidados</small></summary>
   <div class="page-help-card__content"><p>@Model.Purpose</p><ul><li>@Model.WhenToUse</li><li>@Model.NextStep</li><li>@Model.Care</li><li>@Model.PermissionNote</li></ul></div>

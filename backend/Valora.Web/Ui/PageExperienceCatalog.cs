@@ -34,7 +34,8 @@ public sealed class PageExperienceCatalog
         return new($"Use esta página para {copy[0]}.", $"Quando usar: {copy[1]}.",
             $"Próximo passo recomendado: {copy[2]}.", $"Cuidado: {copy[3]}.",
             "Algumas ações podem ficar indisponíveis conforme seu perfil, plano ou organização selecionada.",
-            Read(tempData, "Success", "SuccessMessage"), Read(tempData, "Error", "ErrorMessage"), Read(tempData, "Warning", "WarningMessage"));
+            Read(tempData, "Success", "SuccessMessage"), Read(tempData, "Error", "ErrorMessage"), Read(tempData, "Warning", "WarningMessage"),
+            Read(tempData, "Info", "Information", "InformationMessage"));
     }
 
     private static string? Read(ITempDataDictionary data, params string[] keys)

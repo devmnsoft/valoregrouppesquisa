@@ -10,11 +10,11 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
     {
         const string sql = """
             SELECT f.id AS "Id",
-                   f.name AS "Name",
-                   f.description AS "Description",
-                   f.category AS "Category",
+                   COALESCE(f.name, '') AS "Name",
+                   COALESCE(f.description, '') AS "Description",
+                   COALESCE(f.category, '') AS "Category",
                    COALESCE(f.estimated_minutes, 0)::int AS "EstimatedMinutes",
-                   f.status AS "Status",
+                   COALESCE(f.status, 'draft') AS "Status",
                    COALESCE(fv.version_number, 0)::int AS "VersionNumber",
                    COALESCE(stats.sections, 0)::int AS "Sections",
                    COALESCE(stats.questions, 0)::int AS "Questions",

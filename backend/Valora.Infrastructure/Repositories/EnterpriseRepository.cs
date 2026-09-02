@@ -24,8 +24,13 @@ public sealed class EnterpriseRepository(IDbConnectionFactory connections) : IEn
 
     public async Task<EnterprisePage<PortfolioCompany>> CompaniesAsync(EnterpriseListQuery q, CancellationToken ct)
     {
-        const string where = """ WHERE o.deleted_at IS NULL AND (@Search IS NULL OR o.name ILIKE '%'||@Search||'%' OR COALESCE(o.cnpj,'') ILIKE '%'||@Search||'%' OR COALESCE(o.email,'') ILIKE '%'||@Search||'%') AND (@Status IS NULL OR o.account_status=@Status) AND (@Plan IS NULL OR p.name=@Plan) AND (@Health IS NULL OR o.account_health=@Health) AND (@From IS NULL OR o.created_at>=@From) AND (@To IS NULL OR o.created_at<@To::date+1) """;
-        var args = new { q.Search, q.Status, q.Plan, q.Health, q.From, q.To, Offset=(q.Page-1)*q.PageSize, q.PageSize };
+        const string where = """ WHERE o.deleted_at IS NULL AND (@Search IS NULL OR o.name ILIKE '%'||@Search||'%' OR COALESCE(o.cnpj,'') ILIKE '%'||@Search||'%' OR COALESCE(o.email,'') ILIKE '%'||@Search||'%') AND (@Status IS NULL OR o.account_status=@Status) AND (@Plan IS NULL OR p.name=@Plan) AND (@Health IS NULL OR o.account_health=@Health) AND (@From IS NULL OR o.created_at>=@From) AND (@ToExclusive IS NULL OR o.created_at<@ToExclusive) """;
+        // Dapper does not support DateOnly as a parameter without a provider-specific handler.
+        // Keep the public date-only contract, but send timestamp boundaries that also preserve
+        // the index-friendly half-open interval used by PostgreSQL.
+        var from = q.From?.ToDateTime(TimeOnly.MinValue);
+        var toExclusive = q.To?.AddDays(1).ToDateTime(TimeOnly.MinValue);
+        var args = new { q.Search, q.Status, q.Plan, q.Health, From = from, ToExclusive = toExclusive, Offset=(q.Page-1)*q.PageSize, q.PageSize };
         const string select = """SELECT o.id Id,o.name Name,o.cnpj Cnpj,o.email Email,o.account_status Status,o.account_health Health,p.name Plan,o.created_at CreatedAt,o.last_activity_at LastActivityAt,COALESCE(o.usage_percent,0) UsagePercent FROM valorapesquisa.organizations o LEFT JOIN valorapesquisa.subscriptions s ON s.organization_id=o.id AND s.deleted_at IS NULL LEFT JOIN valorapesquisa.plans p ON p.id=s.plan_id""";
         using var connection = connections.Create();
         var items = (await connection.QueryAsync<PortfolioCompany>(new CommandDefinition(select+where+" ORDER BY o.created_at DESC OFFSET @Offset LIMIT @PageSize", args, cancellationToken:ct))).ToList();

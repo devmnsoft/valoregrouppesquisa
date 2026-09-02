@@ -9,6 +9,8 @@
   let selection = { type: 'form', item: null };
   let saveTimer;
 
+  const isReadOnly = () => form?.status === 'published' || form?.status === 'archived' || !form?.currentDraftVersionId;
+
   const escapeHtml = (value) => { const node = document.createElement('span'); node.textContent = value == null ? '' : String(value); return node.innerHTML; };
   const field = (label, name, value = '', type = 'text', attributes = '') => `<label class="form-label" for="property-${name}">${label}</label><input class="form-control" id="property-${name}" name="${name}" type="${type}" value="${escapeHtml(value)}" ${attributes}>`;
   const fail = (problem) => { errorBox.textContent = problem.message || 'Não foi possível concluir a operação. Tente novamente.'; errorBox.classList.remove('d-none'); };
@@ -26,9 +28,15 @@
     host.querySelector('[data-builder-content]').classList.remove('d-none');
     host.querySelector('[data-form-name]').textContent = form.name;
     host.querySelector('[data-form-status]').textContent = form.status;
+    host.querySelector('[data-readonly-notice]').classList.toggle('d-none', !isReadOnly());
+    host.querySelector('[data-publish]').classList.toggle('d-none', isReadOnly());
     host.querySelector('[data-section-nav]').innerHTML = form.sections.map(item => `<li><button type="button" data-select="section" data-id="${item.id}">${escapeHtml(item.title)} <small>${(item.questions || []).length}</small></button></li>`).join('');
     host.querySelector('[data-canvas]').innerHTML = form.sections.length ? form.sections.map((item, index) => `<section class="builder-section${selected('section', item.id)}" data-select="section" data-id="${item.id}" tabindex="0"><header><span>Seção ${index + 1}</span><h2>${escapeHtml(item.title)}</h2><p>${escapeHtml(item.description)}</p><div class="builder-inline-actions"><button type="button" data-add-question="${item.id}">Adicionar pergunta</button><button type="button" data-move="section" data-id="${item.id}" data-direction="up" ${index === 0 ? 'disabled' : ''}>Subir</button><button type="button" data-move="section" data-id="${item.id}" data-direction="down" ${index === form.sections.length - 1 ? 'disabled' : ''}>Descer</button><button type="button" data-delete="section" data-id="${item.id}">Excluir</button></div></header>${(item.questions || []).map(questionMarkup).join('') || '<p class="empty-state">Nenhuma pergunta. Use “Adicionar pergunta” para começar.</p>'}</section>`).join('') : '<div class="empty-state"><h2>Comece seu diagnóstico</h2><p>Organize o conteúdo em seções e adicione perguntas.</p><button class="btn btn-primary" type="button" data-add-section>Adicionar seção</button></div>';
     renderProperties();
+    host.querySelectorAll('[data-add-section],[data-add-question],[data-add-option],[data-delete],[data-move]').forEach(control => {
+      control.disabled = isReadOnly();
+      if (isReadOnly()) control.setAttribute('aria-disabled', 'true');
+    });
   }
 
   function renderProperties() {
@@ -43,11 +51,13 @@
     } else {
       title.textContent = 'Propriedades da opção'; properties.innerHTML = field('Label', 'label', selection.item.label, 'text', 'required') + field('Valor', 'value', selection.item.value, 'text', 'required') + field('Score', 'score', selection.item.score, 'number', 'step="0.1"');
     }
-    properties.insertAdjacentHTML('beforeend', '<button class="btn btn-primary mt-3" type="submit">Salvar alterações</button>');
+    properties.querySelectorAll('input,textarea,select').forEach(control => control.disabled = isReadOnly());
+    if (!isReadOnly()) properties.insertAdjacentHTML('beforeend', '<button class="btn btn-primary mt-3" type="submit">Salvar alterações</button>');
   }
 
   async function load() { try { form = FormsApi.normalize(await FormsApi.get(formId)); render(); } catch (problem) { host.querySelector('[data-loading]').classList.add('d-none'); fail(problem); } }
   async function saveProperties() {
+    if (isReadOnly()) return;
     clearError(); const values = new FormData(properties); host.querySelector('[data-save-state]').textContent = 'Salvando…';
     let request;
     if (selection.type === 'form') request = FormsApi.update(formId, { name: values.get('name'), description: values.get('description'), category: values.get('category'), estimatedMinutes: Number(values.get('estimatedMinutes')), expectedVersion: form.version });
@@ -61,6 +71,8 @@
   properties.addEventListener('input', () => { clearTimeout(saveTimer); host.querySelector('[data-save-state]').textContent = 'Alterações pendentes'; saveTimer = setTimeout(saveProperties, 800); });
   host.addEventListener('click', async event => {
     const trigger = event.target.closest('[data-select],button'); if (!trigger) return;
+    const mutation = trigger.matches('[data-add-section],[data-add-question],[data-add-option],[data-delete],[data-move]');
+    if (mutation && isReadOnly()) { window.ValoraToast?.warning?.('Versões publicadas ou arquivadas não podem ser alteradas.'); return; }
     if (trigger.matches('[data-add-section]')) { await FormsApi.createSection(formId, { title: 'Nova seção', description: '', position: form.sections.length, expectedVersion: form.draftVersion }); selection = { type: 'form', item: null }; await load(); return; }
     if (trigger.dataset.select) { const item = form.sections.flatMap(section => [section, ...(section.questions || []), ...(section.questions || []).flatMap(question => question.options || [])]).find(candidate => candidate.id === trigger.dataset.id); selection = { type: trigger.dataset.select, item }; render(); return; }
     if (trigger.dataset.addQuestion) { const section = form.sections.find(item => item.id === trigger.dataset.addQuestion); await FormsApi.createQuestion(formId, { sectionId: section.id, code: `Q${Date.now().toString().slice(-6)}`, type: 'likert_1_5', title: 'Nova pergunta', required: false, weight: 1, position: section.questions.length, expectedVersion: form.draftVersion }); await load(); return; }
@@ -81,6 +93,6 @@
   host.querySelector('[data-preview]').addEventListener('click', () => { host.querySelector('[data-preview-content]').innerHTML = `<h1>${escapeHtml(form.name)}</h1><p>${escapeHtml(form.description)}</p>${form.sections.map(section => `<section><h2>${escapeHtml(section.title)}</h2>${section.questions.map(questionMarkup).join('')}</section>`).join('')}`; host.querySelector('[data-preview-dialog]').showModal(); });
   host.querySelector('[data-close-preview]').addEventListener('click', () => host.querySelector('[data-preview-dialog]').close());
   host.querySelectorAll('[data-preview-size]').forEach(button => button.addEventListener('click', () => host.querySelector('[data-preview-content]').classList.toggle('is-mobile', button.dataset.previewSize === 'mobile')));
-  host.querySelector('[data-publish]').addEventListener('click', async event => { if (!form.currentDraftVersionId || !confirm('Publicar esta versão? Ela se tornará imutável.')) return; event.currentTarget.disabled = true; try { await FormsApi.publish(formId, { expectedVersion: form.draftVersion }); await load(); } catch (problem) { fail(problem); } finally { event.currentTarget.disabled = false; } });
+  host.querySelector('[data-publish]').addEventListener('click', async event => { if (!form.currentDraftVersionId || isReadOnly() || !confirm('Publicar esta versão? Ela se tornará imutável.')) return; event.currentTarget.disabled = true; try { await FormsApi.publish(formId, { expectedVersion: form.draftVersion }); window.ValoraToast?.success?.('Formulário publicado. A versão foi protegida para preservar o histórico.'); await load(); } catch (problem) { fail(problem); } finally { event.currentTarget.disabled = false; } });
   load();
 })();

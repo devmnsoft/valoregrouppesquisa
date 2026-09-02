@@ -144,7 +144,12 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
     private async Task<IActionResult> ForwardAsync(string path, CancellationToken cancellationToken)
     {
         var session = await authentication.GetAsync(HttpContext, cancellationToken);
-        if (session is null) return Unauthorized(new { message = "Sessão expirada." });
+        if (session is null) return Unauthorized(new
+        {
+            code = "SESSION_EXPIRED",
+            message = "Sua sessão expirou. Entre novamente para continuar.",
+            correlationId = HttpContext.TraceIdentifier
+        });
         object? body = null;
         if (Request.ContentLength > 0)
             body = await JsonSerializer.DeserializeAsync<JsonElement>(Request.Body, cancellationToken: cancellationToken);
@@ -164,7 +169,7 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
             return StatusCode(StatusCodes.Status504GatewayTimeout, new
             {
                 code = "API_UNAVAILABLE",
-                message = "Não foi possível carregar os formulários agora. Tente novamente ou verifique se a API está ativa.",
+                message = "Não foi possível carregar os dados agora.",
                 correlationId
             });
         }

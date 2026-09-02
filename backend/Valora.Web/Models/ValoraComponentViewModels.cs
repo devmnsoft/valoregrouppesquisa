@@ -13,6 +13,17 @@ public sealed record SearchBoxViewModel(string Name = "search", string Label = "
 public sealed record FilterOptionViewModel(string Value, string Label);
 public sealed record FilterBarViewModel(SearchBoxViewModel Search, string StatusLabel = "Status", IReadOnlyList<FilterOptionViewModel>? Statuses = null);
 public sealed record DataTableViewModel(IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<string>> Rows, string EmptyMessage = "Nenhum registro encontrado para os filtros aplicados.");
+public sealed record ActionCardViewModel(string Title, string Description, string ActionLabel, string ActionHref, string? Eyebrow = null, string? Icon = null);
+public sealed record InsightCardViewModel(string Title, string Description, string? Evidence = null, string Tone = "info");
+public sealed record EvidenceCardViewModel(string Title, string Description, string? Source = null, string? Confidence = null);
+public sealed record AlertBannerViewModel(string Title, string Message, string Tone = "info", bool Dismissible = false);
+public sealed record FormShellViewModel(string Title, string? Description = null, string? Id = null);
+public sealed record FieldHintViewModel(string Id, string Text);
+public sealed record ValidationSummaryViewModel(string Message = "Revise os campos destacados antes de continuar.");
+public sealed record ResponsiveTabViewModel(string Label, string Href, bool Active = false, string? Count = null);
+public sealed record ResponsiveTabsViewModel(string Label, IReadOnlyList<ResponsiveTabViewModel> Items);
+public sealed record PageToolbarAction(string Label, string? Href = null, string Style = "ghost", string? DataAction = null);
+public sealed record PageToolbarViewModel(string? Label = null, IReadOnlyList<PageToolbarAction>? Actions = null);
 
 public sealed class ResultDetailsViewModel
 {

@@ -31,7 +31,9 @@ public sealed partial class OrganizationBrandingService(IOrganizationBrandingRep
         if (!ManualSteps.Contains(stepCode) || !await repository.CompleteStepAsync(RequireTenant(organizationId), stepCode, cancellationToken)) throw new ValidationAppException("Passo de onboarding inválido ou automático.");
     }
     private static readonly HashSet<string> ManualSteps = ["company_profile", "branding"];
-    private static Guid RequireTenant(Guid id) => id == Guid.Empty ? throw new ForbiddenAppException("Tenant obrigatório.") : id;
+    private static Guid RequireTenant(Guid id) => id == Guid.Empty
+        ? throw new ForbiddenAppException("Selecione uma organização para continuar.")
+        : id;
     private static bool IsSafeLogo(string? value) => string.IsNullOrWhiteSpace(value) || value.StartsWith("/", StringComparison.Ordinal) || Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
     private static decimal Contrast(string a, string b) { static decimal L(string c) { var r=Convert.ToInt32(c[1..3],16)/255m;var g=Convert.ToInt32(c[3..5],16)/255m;var b=Convert.ToInt32(c[5..7],16)/255m;return .2126m*r+.7152m*g+.0722m*b;} var x=L(a);var y=L(b);return (Math.Max(x,y)+.05m)/(Math.Min(x,y)+.05m); }
     [GeneratedRegex("^#[0-9a-fA-F]{6}$")] private static partial Regex HexRegex();

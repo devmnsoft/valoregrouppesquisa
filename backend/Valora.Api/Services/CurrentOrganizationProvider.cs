@@ -21,9 +21,11 @@ public sealed class CurrentOrganizationProvider(
         if (TryResolve(context.Request.Query["organizationId"].FirstOrDefault(), "query:organizationId", out var query)) return query;
         if (TryResolve(context.Request.RouteValues["organizationId"]?.ToString(), "route:organizationId", out var route)) return route;
 
-        logger.LogWarning("Contexto de organização ausente. UserId={UserId} Path={Path}",
+        var correlationId = context.Items.TryGetValue("CorrelationId", out var value)
+            ? value?.ToString() : context.TraceIdentifier;
+        logger.LogWarning("Contexto de organização ausente. UserId={UserId} Path={Path} CorrelationId={CorrelationId}",
             context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? context.User.FindFirstValue("sub"),
-            context.Request.Path.Value);
+            context.Request.Path.Value, correlationId);
         return CurrentOrganizationContext.Unresolved();
     }
 

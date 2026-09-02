@@ -10,3 +10,14 @@
 .confirmation-modal{width:min(480px,calc(100% - 2rem));padding:0;border:0;border-radius:22px;box-shadow:var(--valora-shadow)}.confirmation-modal::backdrop{background:rgba(4,25,35,.65);backdrop-filter:blur(3px)}.confirmation-modal form{padding:1.4rem}.confirmation-modal header{display:flex;gap:1rem;align-items:center}.confirmation-modal__icon{display:grid;place-items:center;width:2.5rem;height:2.5rem;border-radius:50%;background:#fff0dd;color:#945400;font-weight:900}.confirmation-modal footer{display:flex;justify-content:flex-end;gap:.7rem;margin-top:1.2rem}.valora-button--danger{background:#a9252a;color:#fff}
 @media(max-width:900px){.v9-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.page-help__content{display:block}.page-help__content ol{margin-top:.7rem}}
 @media(max-width:600px){.content-wrapper{padding:.75rem}.leadership-hero{align-items:stretch;flex-direction:column}.leadership-hero .valora-button,.leadership-hero .btn{width:100%}.v9-kpis{grid-template-columns:1fr 1fr;gap:.65rem}.page-help__content{padding-left:1rem}.page-help__toggle{display:none}.section-heading{align-items:stretch;flex-direction:column}.confirmation-modal footer{flex-direction:column-reverse}}
+/* Tenant switcher: a stable shell control that remains usable before branding loads. */
+.organization-switcher { position: relative; }
+.organization-switcher > summary { align-items: center; background: #fff; border: 1px solid var(--valora-border, #dce5e7); border-radius: 14px; cursor: pointer; display: flex; gap: .65rem; list-style: none; min-width: 220px; padding: .55rem .75rem; }
+.organization-switcher > summary::-webkit-details-marker { display: none; }
+.organization-switcher summary span { display: grid; line-height: 1.15; min-width: 0; }
+.organization-switcher summary small { color: #64777b; font-size: .68rem; letter-spacing: .04em; text-transform: uppercase; }
+.organization-switcher summary strong { max-width: 170px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.organization-switcher__menu { background: #fff; border: 1px solid var(--valora-border, #dce5e7); border-radius: 16px; box-shadow: 0 18px 48px rgb(9 47 55 / 16%); display: grid; gap: .75rem; padding: 1rem; position: absolute; right: 0; top: calc(100% + .5rem); width: min(360px, calc(100vw - 2rem)); z-index: 50; }
+.organization-switcher__menu p { color: #52696e; font-size: .875rem; margin: 0; }
+.organization-switcher__menu form, .organization-switcher__menu .valora-button { width: 100%; }
+@media (max-width: 760px) { .organization-switcher > summary { min-width: 0; } .organization-switcher summary span { display: none; } }

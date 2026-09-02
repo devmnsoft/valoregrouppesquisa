@@ -82,5 +82,7 @@ public sealed class AuthController(AuthService auth, IUserRepository users, ILog
         return Ok(await users.GetAsync(id));
     }
 
-    private Guid CurrentUserId() => Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+    private Guid CurrentUserId() => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) && id != Guid.Empty
+        ? id
+        : throw new UnauthorizedAccessException("Sua sessão precisa ser renovada.");
 }

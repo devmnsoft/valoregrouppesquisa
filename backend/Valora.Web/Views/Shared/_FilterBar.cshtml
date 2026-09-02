@@ -1,0 +1,2 @@
+@model FilterBarViewModel
+<form class="valora-filter-bar" method="get" role="search"><partial name="_SearchBox" model="Model.Search" />@if (Model.Statuses?.Count > 0) { <div class="valora-field"><label for="filter-status">@Model.StatusLabel</label><select class="form-select" id="filter-status" name="status"><option value="">Todos</option>@foreach (var option in Model.Statuses) { <option value="@option.Value">@option.Label</option> }</select></div> }<button class="valora-button valora-button--secondary" type="submit">Aplicar filtros</button></form>

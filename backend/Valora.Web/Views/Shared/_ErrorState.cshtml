@@ -1,0 +1,2 @@
+@model StateViewModel
+<div class="valora-state valora-state--error" role="alert"><span aria-hidden="true">!</span><div><strong>@Model.Title</strong><p>@Model.Description</p>@if (!string.IsNullOrWhiteSpace(Model.RetryLabel)) { <button class="valora-button valora-button--ghost" type="button" data-retry>@Model.RetryLabel</button> }</div></div>

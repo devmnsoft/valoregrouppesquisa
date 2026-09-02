@@ -4,6 +4,7 @@
 }
 <section class="valora-page admin-master" data-page="administration-master" data-endpoint="/bff/admin/dashboard">
   <partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Administração Master", "Controle executivo de toda a plataforma Valora Insight™.", "Administração", Actions: new[] { new Valora.Web.Models.PageHeaderAction("Atualizar indicadores", DataAction: "refresh", Style: "primary", Icon: "refresh") }))" />
+  <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como administrar a plataforma", "Monitore organizações, usuários, permissões, limites e auditoria. Acesse cada módulo para aplicar alterações rastreáveis."))" />
   <div class="admin-health" role="status"><span class="admin-health-dot"></span><div><strong>Central operacional ativa</strong><small>Indicadores consolidados e módulos críticos em um único lugar.</small></div><span data-updated>Atualizando…</span></div>
   <div class="admin-metrics" data-summary>
     @foreach (var metric in new[] { ("Organizações", "organizations"), ("Organizações ativas", "activeOrganizations"), ("Usuários ativos", "activeUsers"), ("Diagnósticos", "diagnostics"), ("Respostas", "responses"), ("Relatórios", "reports"), ("Certificados", "certificates"), ("Execuções de IA", "aiRuns"), ("Jobs pendentes", "pendingJobs"), ("Jobs falhos", "failedJobs") })

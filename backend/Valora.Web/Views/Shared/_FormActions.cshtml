@@ -1,0 +1,2 @@
+@model FormActionsViewModel
+<footer class="form-actions">@if (!string.IsNullOrWhiteSpace(Model.CancelHref)) { <a class="valora-button valora-button--ghost" href="@Model.CancelHref">@Model.CancelLabel</a> } else { <button class="valora-button valora-button--ghost" type="button" data-form-cancel>@Model.CancelLabel</button> }<button class="valora-button @(Model.Critical ? "valora-button--danger" : "valora-button--primary")" type="submit" data-submit><span>@Model.SubmitLabel</span><span class="button-spinner" aria-hidden="true"></span></button></footer>

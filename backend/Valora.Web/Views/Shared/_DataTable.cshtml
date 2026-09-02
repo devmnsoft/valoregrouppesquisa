@@ -1,0 +1,2 @@
+@model DataTableViewModel
+<div class="data-table-shell"><div class="table-responsive"><table class="valora-table"><thead><tr>@foreach (var header in Model.Headers) { <th scope="col">@header</th> }</tr></thead><tbody>@if (Model.Rows.Count == 0) { <tr><td colspan="@Model.Headers.Count">@Model.EmptyMessage</td></tr> } else { @foreach (var row in Model.Rows) { <tr>@foreach (var cell in row) { <td>@cell</td> }</tr> } }</tbody></table></div></div>

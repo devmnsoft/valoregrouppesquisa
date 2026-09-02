@@ -21,7 +21,7 @@ public sealed class FormsController(
     {
         var organization = ResolveOrganization();
         return organization.IsResolved
-            ? Ok(await forms.ListAsync(organization.OrganizationId, query, cancellationToken))
+            ? Ok(await forms.ListAsync(organization.RequireOrganizationId(), query, cancellationToken))
             : OrganizationRequired();
     }
 
@@ -30,7 +30,7 @@ public sealed class FormsController(
     {
         var organization = ResolveOrganization();
         if (!organization.IsResolved) return OrganizationRequired();
-        var form = await forms.GetAsync(organization.OrganizationId, formId, cancellationToken);
+        var form = await forms.GetAsync(organization.RequireOrganizationId(), formId, cancellationToken);
         return form is null ? NotFound() : Ok(form);
     }
 
@@ -39,7 +39,7 @@ public sealed class FormsController(
     {
         var organization = ResolveOrganization();
         if (!organization.IsResolved) return OrganizationRequired();
-        var form = await forms.CreateAsync(organization.OrganizationId, UserId, request, cancellationToken);
+        var form = await forms.CreateAsync(organization.RequireOrganizationId(), UserId, request, cancellationToken);
         return CreatedAtAction(nameof(Get), new { formId = form.Id }, form);
     }
 
@@ -48,7 +48,7 @@ public sealed class FormsController(
     {
         var organization = ResolveOrganization();
         if (!organization.IsResolved) return OrganizationRequired();
-        var form = await forms.UpdateAsync(organization.OrganizationId, formId, request, cancellationToken);
+        var form = await forms.UpdateAsync(organization.RequireOrganizationId(), formId, request, cancellationToken);
         return form is null ? Conflict(ConflictDetails()) : Ok(form);
     }
 
@@ -57,7 +57,7 @@ public sealed class FormsController(
     {
         var organization = ResolveOrganization();
         if (!organization.IsResolved) return OrganizationRequired();
-        var version = await forms.PublishAsync(organization.OrganizationId, formId, UserId, request, cancellationToken);
+        var version = await forms.PublishAsync(organization.RequireOrganizationId(), formId, UserId, request, cancellationToken);
         return version is null ? UnprocessableEntity(new ProblemDetails { Title = "O formulário ainda não pode ser publicado", Detail = "Revise seções, perguntas e a versão antes de tentar novamente.", Status = 422 }) : Ok(version);
     }
 
@@ -66,7 +66,7 @@ public sealed class FormsController(
     {
         var organization = ResolveOrganization();
         if (!organization.IsResolved) return OrganizationRequired();
-        var result = await forms.ReorderAsync(organization.OrganizationId, formId, request, cancellationToken);
+        var result = await forms.ReorderAsync(organization.RequireOrganizationId(), formId, request, cancellationToken);
         return result is null ? Conflict(ConflictDetails()) : Ok(result);
     }
 
@@ -75,14 +75,14 @@ public sealed class FormsController(
     {
         var organization = ResolveOrganization();
         if (!organization.IsResolved) return OrganizationRequired();
-        return await forms.ArchiveAsync(organization.OrganizationId, formId, request, cancellationToken) ? NoContent() : Conflict(ConflictDetails());
+        return await forms.ArchiveAsync(organization.RequireOrganizationId(), formId, request, cancellationToken) ? NoContent() : Conflict(ConflictDetails());
     }
 
     private CurrentOrganizationContext ResolveOrganization()
     {
         var organization = organizationProvider.GetCurrent();
         if (organization.IsResolved && User.IsInRole("SuperAdmin"))
-            logger.LogInformation("Super Admin acessando formulários com organização selecionada. OrganizationId={OrganizationId} Source={Source}", organization.OrganizationId, organization.Source);
+            logger.LogInformation("Super Admin acessando formulários com organização selecionada. OrganizationId={OrganizationId} Source={Source}", organization.RequireOrganizationId(), organization.Source);
         return organization;
     }
 

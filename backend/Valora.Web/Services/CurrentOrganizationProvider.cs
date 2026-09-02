@@ -22,9 +22,9 @@ public sealed class CurrentOrganizationProvider(
         if (TryResolve(context.Request.RouteValues["organizationId"]?.ToString(), "route:organizationId", out var route)) return route;
         if (TryResolve(context.Request.Cookies["Valora.OrganizationId"], "cookie:Valora.OrganizationId", out var cookie)) return cookie;
 
-        logger.LogWarning("Contexto de organização ausente no Web. UserId={UserId} Path={Path}",
+        logger.LogWarning("Contexto de organização ausente no Web. UserId={UserId} Path={Path} CorrelationId={CorrelationId}",
             context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? context.User.FindFirstValue("sub"),
-            context.Request.Path.Value);
+            context.Request.Path.Value, context.TraceIdentifier);
         return CurrentOrganizationContext.Unresolved();
     }
 

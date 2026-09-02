@@ -21,7 +21,7 @@ public sealed class EvolutionController(
     {
         var organization = organizationProvider.GetCurrent();
         return organization.IsResolved
-            ? View(await cycles.List(organization.OrganizationId, cancellationToken))
+            ? View(await cycles.List(organization.RequireOrganizationId(), cancellationToken))
             : OrganizationRequired();
     }
 
@@ -30,7 +30,7 @@ public sealed class EvolutionController(
     {
         var organization = organizationProvider.GetCurrent();
         return organization.IsResolved
-            ? View(await cycles.List(organization.OrganizationId, cancellationToken))
+            ? View(await cycles.List(organization.RequireOrganizationId(), cancellationToken))
             : OrganizationRequired();
     }
 
@@ -44,11 +44,11 @@ public sealed class EvolutionController(
         if (!ModelState.IsValid)
         {
             TempData["EvolutionError"] = "Revise os campos destacados antes de continuar.";
-            return View("Cycles", await cycles.List(organization.OrganizationId, cancellationToken));
+            return View("Cycles", await cycles.List(organization.RequireOrganizationId(), cancellationToken));
         }
         var request = new OpenEvolutionCycleRequest(null, null, null, model.Title, model.Summary,
             model.BaselineScore, model.TargetScore, null, model.PeriodStart, model.PeriodEnd, model.EvidenceSummary);
-        var id = await cycles.Open(organization.OrganizationId, UserId, request, cancellationToken);
+        var id = await cycles.Open(organization.RequireOrganizationId(), UserId, request, cancellationToken);
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -57,10 +57,10 @@ public sealed class EvolutionController(
     {
         var organization = organizationProvider.GetCurrent();
         if (!organization.IsResolved) return OrganizationRequired();
-        var cycle = await cycles.Get(organization.OrganizationId, id, cancellationToken);
+        var cycle = await cycles.Get(organization.RequireOrganizationId(), id, cancellationToken);
         return cycle is null
             ? NotFound()
-            : View(new EvolutionDetailsViewModel(cycle, await snapshots.List(organization.OrganizationId, id, cancellationToken)));
+            : View(new EvolutionDetailsViewModel(cycle, await snapshots.List(organization.RequireOrganizationId(), id, cancellationToken)));
     }
 
     [ValidateAntiForgeryToken, HttpPost("Cycles/{id:guid}/Snapshot")]
@@ -68,7 +68,7 @@ public sealed class EvolutionController(
     {
         var organization = organizationProvider.GetCurrent();
         if (!organization.IsResolved) return OrganizationRequired();
-        await snapshots.Generate(organization.OrganizationId, UserId, id, evidence, interpretation, recommendation, cancellationToken);
+        await snapshots.Generate(organization.RequireOrganizationId(), UserId, id, evidence, interpretation, recommendation, cancellationToken);
         return RedirectToAction(nameof(Details), new { id });
     }
 

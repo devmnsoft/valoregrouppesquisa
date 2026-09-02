@@ -8,6 +8,23 @@
     <strong data-page-title>@(ViewData["Title"] ?? "Painel Valora")</strong>
   </div>
   <div class="topbar-actions">
+    <details class="organization-switcher" data-organization-switcher>
+      <summary aria-label="Selecionar organização">
+        <valora-icon name="building" size="18" decorative="true" />
+        <span><small>Organização</small><strong data-current-organization>Nenhuma organização selecionada</strong></span>
+        <valora-icon name="chevron-down" size="16" decorative="true" />
+      </summary>
+      <div class="organization-switcher__menu">
+        <strong>Contexto de trabalho</strong>
+        <p>Escolha uma organização para carregar identidade visual, dados e recursos do plano.</p>
+        <a class="valora-button valora-button--primary" href="/Organization">Buscar organizações</a>
+        <form method="post" action="/Organization/Select">
+          @Html.AntiForgeryToken()
+          <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString" />
+          <button class="valora-button valora-button--ghost" type="submit">Limpar seleção</button>
+        </form>
+      </div>
+    </details>
     <button class="search-trigger" type="button" data-action="open-command-palette" aria-haspopup="dialog">
       <valora-icon name="search" size="20" decorative="true" /><span>Buscar</span><kbd>Ctrl K</kbd>
     </button>

@@ -90,7 +90,7 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
         message.Headers.TryAddWithoutValidation("X-Correlation-Id", correlationId);
         var organization = organizationProvider.GetCurrent();
         if (organization.IsResolved)
-            message.Headers.TryAddWithoutValidation("X-Organization-Id", organization.OrganizationId.ToString());
+            message.Headers.TryAddWithoutValidation("X-Organization-Id", organization.RequireOrganizationId().ToString());
         try
         {
             return await httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);

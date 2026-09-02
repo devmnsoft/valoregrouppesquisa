@@ -51,7 +51,6 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
             ["message"] = message,
             ["traceId"] = traceId
         };
-        if (environment.IsDevelopment()) payload["exceptionType"] = ex.GetType().Name;
         await context.Response.WriteAsync(JsonSerializer.Serialize(payload, new JsonSerializerOptions(JsonSerializerDefaults.Web)));
     }
 

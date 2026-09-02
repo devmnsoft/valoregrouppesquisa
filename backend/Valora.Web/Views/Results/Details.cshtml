@@ -1,3 +1,13 @@
+@model ResultDetailsViewModel
 @{ ViewData["Title"] = "Detalhes do resultado"; }
-<section class="valora-page" data-page="result-page"><input type="hidden" name="responseId" value="@ViewBag.ResponseId"><partial name="_PageHeader" model="@(new PageHeaderViewModel("Detalhes do resultado", "Revise score, dimensões, evidências e ações de comunicação.", "Resultados", "Leitura protegida", new[] { new PageHeaderAction("Voltar aos resultados", "/Responses", Icon: "chevron-left") }))" /><div class="valora-card"><div class="valora-error-state d-none" role="alert" aria-live="polite"></div><div class="valora-empty-state" aria-live="polite">Carregando leitura segura…</div><div class="row g-3" data-results></div></div></section>
+<section class="valora-page" data-page="result-page">
+  <input asp-for="ResponseId" type="hidden">
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Detalhes do resultado", "Revise score, dimensões, evidências e ações de comunicação.", "Resultados", "Leitura protegida", new[] { new PageHeaderAction("Voltar aos resultados", "/Responses", Icon: "chevron-left") }))" />
+  <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar esta leitura", "Informe o código de acesso quando solicitado. Revise as evidências e limitações antes de compartilhar ou gerar um certificado."))" />
+  <div class="valora-card">
+    <div class="valora-error-state d-none" role="alert" aria-live="assertive"></div>
+    <div class="valora-empty-state" aria-live="polite">Carregando leitura segura…</div>
+    <div class="row g-3" data-results></div>
+  </div>
+</section>
 @section Scripts { <script src="/js/pages/result-page.js"></script> }

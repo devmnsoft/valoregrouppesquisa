@@ -48,16 +48,10 @@ public sealed class ResultsController(ILogger<ResultsController> logger) : Contr
 
     public IActionResult Details(string id)
     {
-        try
-        {
-            ViewData["Title"] = "Details";
-            ViewData["ResponseId"] = id;
-            return View();
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Falha ao renderizar ResultsController.Details no Valora.Web.");
-            throw;
-        }
+        var model = new ResultDetailsViewModel { ResponseId = id };
+        if (!TryValidateModel(model)) return NotFound();
+
+        ViewData["Title"] = "Detalhes do resultado";
+        return View(model);
     }
 }

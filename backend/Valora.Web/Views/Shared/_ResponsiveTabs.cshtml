@@ -1,0 +1,2 @@
+@model ResponsiveTabsViewModel
+<nav class="responsive-tabs" aria-label="@Model.Label">@foreach (var item in Model.Items) { <a href="@item.Href" class="@(item.Active ? "is-active" : null)" aria-current="@(item.Active ? "page" : null)">@item.Label@if (!string.IsNullOrWhiteSpace(item.Count)) { <span>@item.Count</span> }</a> }</nav>

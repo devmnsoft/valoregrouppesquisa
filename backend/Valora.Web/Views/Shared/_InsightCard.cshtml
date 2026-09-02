@@ -1,0 +1,2 @@
+@model InsightCardViewModel
+<article class="insight-card insight-card--@Model.Tone"><p class="eyebrow">Insight</p><h3>@Model.Title</h3><p>@Model.Description</p>@if (!string.IsNullOrWhiteSpace(Model.Evidence)) { <small><strong>Evidência:</strong> @Model.Evidence</small> }</article>

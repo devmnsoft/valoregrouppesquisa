@@ -1,0 +1,2 @@
+@model FormShellViewModel
+<header class="form-shell__header" id="@Model.Id"><p class="eyebrow">Formulário</p><h2>@Model.Title</h2>@if (!string.IsNullOrWhiteSpace(Model.Description)) { <p>@Model.Description</p> }</header>

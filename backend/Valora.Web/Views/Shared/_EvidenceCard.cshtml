@@ -1,0 +1,2 @@
+@model EvidenceCardViewModel
+<article class="evidence-card"><p class="eyebrow">Evidência</p><h3>@Model.Title</h3><p>@Model.Description</p><footer>@if (!string.IsNullOrWhiteSpace(Model.Source)) { <span>Fonte: @Model.Source</span> }@if (!string.IsNullOrWhiteSpace(Model.Confidence)) { <span>Confiança: @Model.Confidence</span> }</footer></article>

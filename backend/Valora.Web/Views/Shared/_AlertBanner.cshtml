@@ -1,0 +1,2 @@
+@model AlertBannerViewModel
+<aside class="valora-alert valora-alert--@Model.Tone" role="@(Model.Tone == "danger" || Model.Tone == "error" ? "alert" : "status")"><div><strong>@Model.Title</strong><span>@Model.Message</span></div>@if (Model.Dismissible) { <button type="button" aria-label="Fechar mensagem" data-alert-dismiss>&times;</button> }</aside>

@@ -1,0 +1,2 @@
+@model PageToolbarViewModel
+<div class="page-toolbar" role="toolbar" aria-label="@(Model.Label ?? "Ações da página")">@foreach (var action in Model.Actions ?? Array.Empty<PageToolbarAction>()) { if (!string.IsNullOrWhiteSpace(action.Href)) { <a class="valora-button valora-button--@action.Style" href="@action.Href">@action.Label</a> } else { <button class="valora-button valora-button--@action.Style" type="button" data-action="@action.DataAction">@action.Label</button> } }</div>

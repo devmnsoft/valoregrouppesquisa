@@ -1,0 +1,6 @@
+@model ActionCardViewModel
+<article class="action-card">
+  @if (!string.IsNullOrWhiteSpace(Model.Icon)) { <span class="action-card__icon" aria-hidden="true"><valora-icon name="@Model.Icon" size="22" decorative="true" /></span> }
+  <div>@if (!string.IsNullOrWhiteSpace(Model.Eyebrow)) { <p class="eyebrow">@Model.Eyebrow</p> }<h3>@Model.Title</h3><p>@Model.Description</p></div>
+  <a class="valora-button valora-button--primary" href="@Model.ActionHref">@Model.ActionLabel</a>
+</article>

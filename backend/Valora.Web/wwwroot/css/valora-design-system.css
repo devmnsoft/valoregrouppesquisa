@@ -9,16 +9,26 @@
   --valora-gold-soft:#f3e8ce;
   --valora-bg:#f5f4ef;
   --valora-surface:#fff;
+  --valora-surface-muted:#f0f5f4;
+  --valora-border:#d6d9d7;
   --valora-text:#082a37;
+  --valora-text-muted:#526470;
   --valora-muted:#526470;
   --valora-line:#d6d9d7;
   --valora-success:#08764e;
   --valora-warning:#945400;
   --valora-danger:#b5262b;
+  --valora-info:#17677c;
+  --valora-primary:#167e84;
+  --valora-primary-hover:#0f676d;
   --valora-radius:22px;
   --valora-shadow:0 24px 70px rgba(5,52,68,.14);
   --valora-shadow-soft:0 14px 38px rgba(5,52,68,.1);
   --valora-space:clamp(1rem,2vw,1.5rem);
+  --valora-input-height:44px;
+  --valora-button-height:44px;
+  --valora-sidebar-width:280px;
+  --valora-content-max:1440px;
   --valora-font:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Arial,sans-serif
 }
 html {

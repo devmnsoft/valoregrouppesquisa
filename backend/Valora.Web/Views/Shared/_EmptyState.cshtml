@@ -1,0 +1,2 @@
+@model EmptyStateViewModel
+<div class="empty-state empty-state--executive"><span class="empty-state__icon" aria-hidden="true">◇</span><h3>@Model.Title</h3><p>@Model.Description</p>@if (!string.IsNullOrWhiteSpace(Model.ActionLabel) && !string.IsNullOrWhiteSpace(Model.ActionHref)) { <a class="valora-button valora-button--primary" href="@Model.ActionHref">@Model.ActionLabel</a> }</div>

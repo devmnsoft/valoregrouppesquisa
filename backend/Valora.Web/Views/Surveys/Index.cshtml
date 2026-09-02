@@ -1,6 +1,7 @@
 @{ ViewData["Title"] = "Diagnósticos"; }
 <main class="valora-page surveys-studio" data-page="surveys-page">
   <partial name="_PageHeader" model="@(new PageHeaderViewModel("Diagnósticos", "Crie, publique e acompanhe ciclos de escuta com rastreabilidade.", "Estúdio de Diagnósticos", Actions: new[] { new PageHeaderAction("Novo diagnóstico", DataAction: "new-survey", Style: "primary", Icon: "plus") }))" />
+  <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como conduzir diagnósticos", "Selecione um formulário publicado, defina o público e acompanhe o ciclo. Encerre a coleta antes de consolidar resultados."))" />
 
   <section class="metric-grid" aria-label="Resumo dos diagnósticos" data-summary-cards>
     <article class="metric-card"><span>Total</span><strong data-metric="total">—</strong><small>diagnósticos cadastrados</small></article>

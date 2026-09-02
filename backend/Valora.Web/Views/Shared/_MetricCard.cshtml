@@ -1,0 +1,2 @@
+@model MetricCardViewModel
+<article class="metric-card" data-tone="@(Model.Tone ?? "neutral")"><span>@Model.Label</span><strong>@Model.Value</strong>@if (!string.IsNullOrWhiteSpace(Model.Hint)) { <small>@Model.Hint</small> }</article>

@@ -1,0 +1,5 @@
+@model PageHelpPanelViewModel
+<details class="page-help" @(Model.Collapsed ? null : "open")>
+  <summary><span aria-hidden="true">?</span><span><strong>@Model.Title</strong><small>Orientação rápida</small></span><span class="page-help__toggle" aria-hidden="true">Recolher</span></summary>
+  <div class="page-help__content"><p>@Model.Description</p>@if (Model.Steps?.Count > 0) { <ol>@foreach (var step in Model.Steps) { <li>@step</li> }</ol> }</div>
+</details>

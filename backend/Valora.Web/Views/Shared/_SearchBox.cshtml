@@ -1,0 +1,2 @@
+@model SearchBoxViewModel
+<div class="search-box"><label for="search-@Model.Name">@Model.Label</label><div><span aria-hidden="true">⌕</span><input class="form-control" id="search-@Model.Name" name="@Model.Name" type="search" value="@Model.Value" placeholder="@Model.Placeholder" autocomplete="off"></div></div>

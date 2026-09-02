@@ -1,6 +1,7 @@
 @{ ViewData["Title"] = "Resultados"; }
 <section class="valora-page operational-page" data-results-index>
   <partial name="_PageHeader" model="@(new PageHeaderViewModel("Resultados", "Consulte devolutivas e análises consolidadas dos diagnósticos autorizados.", "Inteligência Valora", "Resultados", new[] { new PageHeaderAction("Abrir diagnósticos", "/Surveys", Style: "primary", Icon: "search"), new PageHeaderAction("Gerar relatório", "/Reports", Icon: "file-text") }))" />
+  <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar os resultados", "Localize uma coleta válida, revise evidências e limitações e só então gere o relatório executivo ou o plano de ação."))" />
   <section class="metric-grid" aria-label="Fluxo dos resultados">
     <article class="metric-card"><span>1. Coleta</span><strong>Diagnóstico</strong><small>Confirme prazo, público e participação.</small></article>
     <article class="metric-card"><span>2. Leitura</span><strong>Evidências</strong><small>Valide suficiência, limitações e contexto.</small></article>

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Common;
 using Valora.Application.Evolution;
+using Valora.Web.Models.ViewModels;
 
 namespace Valora.Web.Controllers;
 
@@ -34,10 +35,19 @@ public sealed class EvolutionController(
     }
 
     [ValidateAntiForgeryToken, HttpPost("Cycles/Open")]
-    public async Task<IActionResult> Open(OpenEvolutionCycleRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Open(EvolutionCycleViewModel model, CancellationToken cancellationToken)
     {
         var organization = organizationProvider.GetCurrent();
         if (!organization.IsResolved) return OrganizationRequired();
+        if (model.PeriodEnd.HasValue && model.PeriodEnd.Value < model.PeriodStart)
+            ModelState.AddModelError(nameof(model.PeriodEnd), "A data final deve ser posterior à data inicial.");
+        if (!ModelState.IsValid)
+        {
+            TempData["EvolutionError"] = "Revise os campos destacados antes de continuar.";
+            return View("Cycles", await cycles.List(organization.OrganizationId, cancellationToken));
+        }
+        var request = new OpenEvolutionCycleRequest(null, null, null, model.Title, model.Summary,
+            model.BaselineScore, model.TargetScore, null, model.PeriodStart, model.PeriodEnd, model.EvidenceSummary);
         var id = await cycles.Open(organization.OrganizationId, UserId, request, cancellationToken);
         return RedirectToAction(nameof(Details), new { id });
     }

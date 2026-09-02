@@ -1,6 +1,7 @@
 @{ ViewData["Title"] = "Formulários de diagnóstico"; }
 <main class="valora-page forms-workspace" data-page="forms-page">
   <partial name="_PageHeader" model="@(new PageHeaderViewModel("Formulários de diagnóstico", "Crie, organize, publique e reutilize estruturas de avaliação preservando o histórico.", "Estúdio de Diagnósticos", Actions: new[] { new PageHeaderAction("Novo formulário", DataAction: "new-form", Style: "primary", Icon: "plus") }))" />
+  <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar a biblioteca", "Crie, edite, publique e versione formulários. Depois da publicação, alterações estruturais devem ser feitas em uma nova versão."))" />
   <section class="metric-grid" aria-label="Resumo dos formulários">
     <article class="metric-card"><span>Rascunhos</span><strong data-metric="draft">0</strong></article>
     <article class="metric-card"><span>Publicados</span><strong data-metric="published">0</strong></article>

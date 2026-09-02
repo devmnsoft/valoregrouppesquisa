@@ -5,7 +5,15 @@
   <div class="valora-alert valora-alert--danger" data-error role="alert" aria-live="assertive" hidden></div>
   <section class="report-toolbar valora-card" aria-label="Gerar relatório">
     <div><p class="eyebrow">Nova análise</p><h2>Relatório por diagnóstico</h2><p>Selecione um diagnóstico. A plataforma declara explicitamente quando a amostra não sustenta uma conclusão.</p></div>
-    <form data-generate-form><label for="reportSurvey">Diagnóstico</label><select id="reportSurvey" name="surveyId" class="form-select" required><option value="">Carregando diagnósticos…</option></select><label for="reportFormat">Formato</label><select id="reportFormat" name="format" class="form-select"><option value="html">Preview executivo</option><option value="csv">CSV tabular</option></select><button class="valora-button valora-button--primary" type="submit">Gerar relatório</button></form>
+    <form data-generate-form novalidate>
+      @Html.AntiForgeryToken()
+      <label for="reportSurvey">Diagnóstico</label>
+      <select id="reportSurvey" name="surveyId" class="form-select" required aria-describedby="reportSurveyValidation"><option value="">Carregando diagnósticos…</option></select>
+      <span id="reportSurveyValidation" class="field-validation-error" data-survey-validation role="alert" hidden>Selecione um diagnóstico para continuar.</span>
+      <label for="reportFormat">Formato</label>
+      <select id="reportFormat" name="format" class="form-select" required><option value="html">Preview executivo</option><option value="csv">CSV tabular</option></select>
+      <button class="valora-button valora-button--primary" type="submit" data-submit><span data-submit-label>Gerar relatório</span><span data-submit-progress hidden>Gerando…</span></button>
+    </form>
   </section>
   <section aria-labelledby="availableReports"><div class="reports-heading"><div><p class="eyebrow">Biblioteca segura</p><h2 id="availableReports">Relatórios disponíveis</h2></div><button class="valora-button" type="button" data-refresh>Atualizar</button></div><div class="report-list" data-report-list aria-live="polite"><div class="report-skeleton">Carregando relatórios…</div></div></section>
   <dialog class="report-preview" data-preview-dialog aria-labelledby="reportPreviewTitle"><div class="report-preview__frame"><header><div><p class="eyebrow">Preview antes do download</p><h2 id="reportPreviewTitle" data-preview-title>Relatório executivo</h2></div><button class="icon-button" type="button" data-close-preview aria-label="Fechar preview">×</button></header><div data-preview-body></div><footer><button class="valora-button" type="button" data-close-preview>Voltar</button><button class="valora-button valora-button--primary" type="button" data-download>Baixar arquivo</button></footer></div></dialog>

@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Valora.Web.Models;
 
 public sealed record PageHelpPanelViewModel(string Title, string Description, IReadOnlyList<string>? Steps = null, bool Collapsed = false);
@@ -11,3 +13,11 @@ public sealed record SearchBoxViewModel(string Name = "search", string Label = "
 public sealed record FilterOptionViewModel(string Value, string Label);
 public sealed record FilterBarViewModel(SearchBoxViewModel Search, string StatusLabel = "Status", IReadOnlyList<FilterOptionViewModel>? Statuses = null);
 public sealed record DataTableViewModel(IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<string>> Rows, string EmptyMessage = "Nenhum registro encontrado para os filtros aplicados.");
+
+public sealed class ResultDetailsViewModel
+{
+    [Required]
+    [StringLength(128, MinimumLength = 1)]
+    [RegularExpression("^[A-Za-z0-9_-]+$")]
+    public required string ResponseId { get; init; }
+}

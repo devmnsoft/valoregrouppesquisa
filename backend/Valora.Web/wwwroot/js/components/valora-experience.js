@@ -14,10 +14,11 @@
     if (!destructive || destructive.dataset.confirmed === 'true') return;
     event.preventDefault();
     pendingConfirmation = destructive;
-    const modalElement = document.getElementById('appModal');
-    if (!modalElement || !window.bootstrap?.Modal) return;
-    modalElement.querySelector('#appModalDescription').textContent = destructive.dataset.confirm || 'Confirme se deseja continuar com esta ação.';
-    window.bootstrap.Modal.getOrCreateInstance(modalElement).show();
+    const modalElement = document.querySelector('[data-confirmation-modal]');
+    if (!(modalElement instanceof HTMLDialogElement)) return;
+    const message = modalElement.querySelector('[data-confirmation-message]');
+    if (message) message.textContent = destructive.dataset.confirm || 'Confirme se deseja continuar com esta ação.';
+    modalElement.showModal();
   });
 
   document.querySelector('[data-confirm-proceed]')?.addEventListener('click', () => {
@@ -25,8 +26,12 @@
     const target = pendingConfirmation;
     pendingConfirmation = null;
     target.dataset.confirmed = 'true';
-    window.bootstrap.Modal.getInstance(document.getElementById('appModal'))?.hide();
+    document.querySelector('[data-confirmation-modal]')?.close();
     if (target.form) target.form.requestSubmit(target); else target.click();
+  });
+
+  document.querySelector('[data-confirmation-modal]')?.addEventListener('close', event => {
+    if (event.target.returnValue !== 'confirm') pendingConfirmation = null;
   });
 
   document.addEventListener('submit', event => {

@@ -1,6 +1,6 @@
 @{ ViewData["Title"] = "Visão Executiva"; }
 <section class="valora-page" data-page="dashboard-page">
-  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Visão Executiva", "Evidências, riscos e próximas decisões da sua organização em uma leitura segura.", "Cockpit Valora Insight™", "Atualização contínua", new[] { new PageHeaderAction("Novo diagnóstico", "/Surveys", Style: "primary", Icon: "plus"), new PageHeaderAction("Abrir inteligência", "/Intelligence", Icon: "brain") }))" />
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Visão Executiva", "Evidências, riscos e próximas decisões da sua organização em uma leitura segura.", "Cockpit Valora Insight™", "Atualização contínua", new[] { new PageHeaderAction("Novo diagnóstico", "/Diagnostics/New", Style: "primary", Icon: "plus"), new PageHeaderAction("Criar formulário", "/Forms/Create", Icon: "file-text"), new PageHeaderAction("Gerar relatório", "/Reports", Icon: "chart-radar") }))" />
   <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar esta visão", "Comece pelas prioridades e alertas, acompanhe diagnósticos recentes e use os atalhos para avançar nas decisões pendentes."))" />
   <header class="executive-hero valora-card">
     <div>

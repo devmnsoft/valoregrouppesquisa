@@ -1,0 +1,9 @@
+@model FeatureCardViewModel
+<article class="feature-card">
+  @if (Model.Icon is not null) { <span class="feature-card__icon" aria-hidden="true"><valora-icon name="@Model.Icon" size="22" decorative="true" /></span> }
+  <div class="feature-card__copy">
+    @if (Model.Status is not null) { <span class="valora-status valora-status--info">@Model.Status</span> }
+    <h3>@Model.Title</h3><p>@Model.Description</p>
+  </div>
+  @if (Model.Href is not null && Model.ActionLabel is not null) { <a class="valora-button valora-button--ghost" href="@Model.Href">@Model.ActionLabel<span aria-hidden="true"> →</span></a> }
+</article>

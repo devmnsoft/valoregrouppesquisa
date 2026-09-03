@@ -14,6 +14,8 @@ public sealed record FilterOptionViewModel(string Value, string Label);
 public sealed record FilterBarViewModel(SearchBoxViewModel Search, string StatusLabel = "Status", IReadOnlyList<FilterOptionViewModel>? Statuses = null);
 public sealed record DataTableViewModel(IReadOnlyList<string> Headers, IReadOnlyList<IReadOnlyList<string>> Rows, string EmptyMessage = "Nenhum registro encontrado para os filtros aplicados.");
 public sealed record ActionCardViewModel(string Title, string Description, string ActionLabel, string ActionHref, string? Eyebrow = null, string? Icon = null);
+public sealed record FeatureCardViewModel(string Title, string Description, string? Href = null, string? ActionLabel = null, string? Icon = null, string? Status = null);
+public sealed record LoadingButtonViewModel(string Label, string LoadingLabel = "Processando…", string Style = "primary", string Type = "submit", string? DataAction = null, bool Disabled = false);
 public sealed record InsightCardViewModel(string Title, string Description, string? Evidence = null, string Tone = "info");
 public sealed record EvidenceCardViewModel(string Title, string Description, string? Source = null, string? Confidence = null);
 public sealed record AlertBannerViewModel(string Title, string Message, string Tone = "info", bool Dismissible = false);

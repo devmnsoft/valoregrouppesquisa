@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Web.Services.Bff;
+using System.Text.Json;
 
 namespace Valora.Web.Controllers;
 
@@ -15,7 +16,10 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
     {
         try
         {
-            return Ok(await authentication.SignInAsync(HttpContext, "/api/v1/auth/login", request, cancellationToken));
+            var rememberMe = request is JsonElement json
+                && json.TryGetProperty("rememberMe", out var remember)
+                && remember.ValueKind is JsonValueKind.True;
+            return Ok(await authentication.SignInAsync(HttpContext, "/api/v1/auth/login", request, cancellationToken, rememberMe));
         }
         catch (BffApiUnavailableException exception)
         {

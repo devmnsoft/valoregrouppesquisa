@@ -30,12 +30,27 @@ public sealed class OrganizationBrandingRepository(IDbConnectionFactory factory,
     }
     public async Task<OrganizationSubscriptionResponse?> GetSubscriptionAsync(Guid organizationId,CancellationToken cancellationToken=default)
     {
-        using var c=factory.Create(); const string head="""SELECT s.id SubscriptionId,p.code PlanCode,p.name PlanName,s.status Status,s.starts_at StartsAt,s.ends_at EndsAt FROM valorapesquisa.subscriptions s JOIN valorapesquisa.plans p ON p.id=s.plan_id WHERE s.organization_id=@organizationId AND s.deleted_at IS NULL ORDER BY (s.status='active') DESC,s.starts_at DESC LIMIT 1""";
+        using var c=factory.Create();
+        const string head="""
+        SELECT
+            s.id AS "SubscriptionId",
+            COALESCE(p.code, 'free') AS "PlanCode",
+            COALESCE(p.name, 'Grátis') AS "PlanName",
+            COALESCE(s.status, 'inactive') AS "Status",
+            COALESCE(s.starts_at, s.created_at, now()) AS "StartsAt",
+            s.ends_at AS "EndsAt"
+        FROM valorapesquisa.subscriptions s
+        INNER JOIN valorapesquisa.plans p ON p.id = s.plan_id
+        WHERE s.organization_id = @organizationId
+          AND s.deleted_at IS NULL
+        ORDER BY (s.status = 'active') DESC, s.created_at DESC
+        LIMIT 1;
+        """;
         var subscription=await c.QuerySingleOrDefaultAsync<SubscriptionRow>(new CommandDefinition(head,new{organizationId},cancellationToken:cancellationToken)); if(subscription is null)return null;
         var capabilities=(await c.QueryAsync<string>(new CommandDefinition("SELECT pc.capability_key FROM valorapesquisa.plan_capabilities pc JOIN valorapesquisa.subscriptions s ON s.plan_id=pc.plan_id WHERE s.id=@id AND pc.enabled ORDER BY pc.capability_key",new{id=subscription.SubscriptionId},cancellationToken:cancellationToken))).AsList();
         var limits=(await c.QueryAsync<LimitRow>(new CommandDefinition("SELECT pl.limit_key Key,pl.limit_value Value FROM valorapesquisa.plan_limits pl JOIN valorapesquisa.subscriptions s ON s.plan_id=pl.plan_id WHERE s.id=@id",new{id=subscription.SubscriptionId},cancellationToken:cancellationToken))).ToDictionary(x=>x.Key,x=>(long?)x.Value);
         var usage=await organizations.GetUsageAsync(organizationId); var metrics=usage.Select(x=>new OrganizationMetricResponse(x.Key,Label(x.Key),x.Period,x.Consumed,x.Reserved,x.Limit,x.Available,x.Percentage,x.Unlimited)).ToList();
-        return new(subscription.SubscriptionId,subscription.PlanCode,subscription.PlanName,subscription.Status,subscription.StartsAt,subscription.EndsAt,capabilities,limits,metrics);
+        return new(subscription.SubscriptionId,subscription.PlanCode,subscription.PlanName,subscription.Status,AsUtcOffset(subscription.StartsAt),subscription.EndsAt is { } end ? AsUtcOffset(end) : null,capabilities,limits,metrics);
     }
     public async Task<IReadOnlyList<OnboardingStepResponse>> GetOnboardingAsync(Guid organizationId,CancellationToken cancellationToken=default)
     {
@@ -55,6 +70,18 @@ public sealed class OrganizationBrandingRepository(IDbConnectionFactory factory,
     }
     public async Task<bool> CompleteStepAsync(Guid organizationId,string stepCode,CancellationToken cancellationToken=default){using var c=factory.Create();return await c.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.onboarding_steps(organization_id,step_code,status,completed_at) VALUES(@organizationId,@stepCode,'completed',now()) ON CONFLICT(organization_id,step_code) DO UPDATE SET status='completed',completed_at=now(),updated_at=now()",new{organizationId,stepCode},cancellationToken:cancellationToken))>0;}
     private static string Label(string key)=>string.Join(' ',key.Split('_','-').Select(x=>char.ToUpperInvariant(x[0])+x[1..]));
-    private sealed record SubscriptionRow(Guid SubscriptionId,string PlanCode,string PlanName,string Status,DateTimeOffset StartsAt,DateTimeOffset? EndsAt);
+    private static DateTimeOffset AsUtcOffset(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
+
+    // A property-based row avoids Dapper constructor binding. PostgreSQL folds unquoted
+    // aliases to lower case, therefore the query also quotes every PascalCase alias.
+    private sealed class SubscriptionRow
+    {
+        public Guid SubscriptionId { get; init; }
+        public string PlanCode { get; init; } = string.Empty;
+        public string PlanName { get; init; } = string.Empty;
+        public string Status { get; init; } = string.Empty;
+        public DateTime StartsAt { get; init; }
+        public DateTime? EndsAt { get; init; }
+    }
     private sealed record LimitRow(string Key,int? Value);
 }

@@ -41,7 +41,18 @@ public sealed class OrganizationBrandingController(
     public async Task<IActionResult> Subscription(CancellationToken ct)
     {
         if (!TryOrganization(out var id, out var error)) return error!;
-        return Ok(await service.GetSubscriptionAsync(id, ct));
+        var subscription = await service.GetSubscriptionAsync(id, ct);
+        return subscription is not null
+            ? Ok(subscription)
+            : Ok(new
+            {
+                hasSubscription = false,
+                status = "not_configured",
+                capabilities = Array.Empty<string>(),
+                limits = new Dictionary<string, long?>(),
+                metrics = Array.Empty<OrganizationMetricResponse>(),
+                message = "Esta organização ainda não possui assinatura ativa. Selecione ou configure um plano para continuar."
+            });
     }
 
     [HttpGet("/api/v1/organization/current/onboarding")]

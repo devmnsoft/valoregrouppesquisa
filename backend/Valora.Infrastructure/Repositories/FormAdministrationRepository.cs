@@ -46,14 +46,23 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
     public async Task<FormDetailResponse?> GetAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken)
     {
         const string formSql = """
-            SELECT f.id, f.organization_id AS OrganizationId, f.name, f.description, f.category,
-                   f.estimated_minutes AS EstimatedMinutes, f.status,
-                   f.current_draft_version_id AS CurrentDraftVersionId,
-                   f.latest_published_version_id AS LatestPublishedVersionId, f.version,
-                   fv.version AS DraftVersion
+            SELECT f.id AS "Id",
+                   f.organization_id AS "OrganizationId",
+                   f.name AS "Name",
+                   f.description AS "Description",
+                   f.category AS "Category",
+                   COALESCE(f.estimated_minutes, 0)::int AS "EstimatedMinutes",
+                   f.status AS "Status",
+                   f.current_draft_version_id AS "CurrentDraftVersionId",
+                   f.latest_published_version_id AS "LatestPublishedVersionId",
+                   COALESCE(f.version, 0)::bigint AS "Version",
+                   fv.version::int AS "DraftVersion"
               FROM valorapesquisa.forms f
-              LEFT JOIN valorapesquisa.form_versions fv ON fv.id=f.current_draft_version_id
-             WHERE f.id = @formId AND f.organization_id = @organizationId AND f.deleted_at IS NULL;
+              LEFT JOIN valorapesquisa.form_versions fv ON fv.id = f.current_draft_version_id
+             WHERE f.id = @formId
+               AND f.organization_id = @organizationId
+               AND f.deleted_at IS NULL
+             LIMIT 1;
             """;
         using var connection = connections.Create();
         var row = await connection.QuerySingleOrDefaultAsync<FormRow>(new CommandDefinition(formSql, new { organizationId, formId }, cancellationToken: cancellationToken));
@@ -111,8 +120,9 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
     {
         await using var unit = await transactions.BeginAsync(cancellationToken);
         const string validationSql = """
-            SELECT fv.id, fv.form_id AS FormId, fv.version_number AS VersionNumber, fv.status,
-                   fv.maximum_score AS MaximumScore, fv.published_at AS PublishedAt, fv.version
+            SELECT fv.id AS "Id", fv.form_id AS "FormId", fv.version_number::int AS "VersionNumber",
+                   fv.status AS "Status", fv.maximum_score::int AS "MaximumScore",
+                   fv.published_at AS "PublishedAt", fv.version::bigint AS "Version"
               FROM valorapesquisa.form_versions fv
               JOIN valorapesquisa.forms f ON f.id=fv.form_id AND f.current_draft_version_id=fv.id
              WHERE f.id=@formId AND f.organization_id=@organizationId AND f.deleted_at IS NULL
@@ -154,18 +164,21 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
     private static async Task<IReadOnlyList<FormSectionResponse>> LoadSectionsAsync(System.Data.IDbConnection connection, Guid versionId, CancellationToken cancellationToken)
     {
         const string sql = """
-            SELECT id, form_version_id AS FormVersionId, title, description, position, version
+            SELECT id AS "Id", form_version_id AS "FormVersionId", title AS "Title",
+                   description AS "Description", position::int AS "Position", version::bigint AS "Version"
               FROM valorapesquisa.form_section_versions
              WHERE form_version_id=@versionId AND deleted_at IS NULL
              ORDER BY position,id;
-            SELECT q.id, q.section_id AS SectionId, q.code, q.type, q.title, q.description,
-                   q.required, q.dimension_code AS DimensionCode, q.weight, q.position,
-                   q.settings::text AS Settings, q.version
+            SELECT q.id AS "Id", q.section_id AS "SectionId", q.code AS "Code", q.type AS "Type",
+                   q.title AS "Title", q.description AS "Description", q.required AS "Required",
+                   q.dimension_code AS "DimensionCode", q.weight AS "Weight", q.position::int AS "Position",
+                   q.settings::text AS "Settings", q.version::bigint AS "Version"
               FROM valorapesquisa.question_versions q
               JOIN valorapesquisa.form_section_versions s ON s.id=q.section_id
              WHERE s.form_version_id=@versionId AND s.deleted_at IS NULL AND q.deleted_at IS NULL
              ORDER BY q.section_id,q.position,q.id;
-            SELECT o.id, o.question_id AS QuestionId, o.label, o.value, o.score, o.position, o.version
+            SELECT o.id AS "Id", o.question_id AS "QuestionId", o.label AS "Label", o.value AS "Value",
+                   o.score AS "Score", o.position::int AS "Position", o.version::bigint AS "Version"
               FROM valorapesquisa.question_option_versions o
               JOIN valorapesquisa.question_versions q ON q.id=o.question_id
               JOIN valorapesquisa.form_section_versions s ON s.id=q.section_id
@@ -190,8 +203,55 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
     }
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    private sealed record FormRow(Guid Id, Guid OrganizationId, string Name, string? Description, string? Category, int EstimatedMinutes, string Status, Guid? CurrentDraftVersionId, Guid? LatestPublishedVersionId, long Version, long? DraftVersion);
-    private sealed record SectionRow(Guid Id, Guid FormVersionId, string Title, string? Description, int Position, long Version);
-    private sealed record QuestionRow(Guid Id, Guid SectionId, string Code, string Type, string Title, string? Description, bool Required, string? DimensionCode, decimal Weight, int Position, string Settings, long Version);
-    private sealed record OptionRow(Guid Id, Guid QuestionId, string Label, string Value, decimal? Score, int Position, long Version);
+    private sealed class FormRow
+    {
+        public Guid Id { get; init; }
+        public Guid OrganizationId { get; init; }
+        public string Name { get; init; } = string.Empty;
+        public string? Description { get; init; }
+        public string? Category { get; init; }
+        public int EstimatedMinutes { get; init; }
+        public string Status { get; init; } = string.Empty;
+        public Guid? CurrentDraftVersionId { get; init; }
+        public Guid? LatestPublishedVersionId { get; init; }
+        public long Version { get; init; }
+        public int? DraftVersion { get; init; }
+    }
+
+    private sealed class SectionRow
+    {
+        public Guid Id { get; init; }
+        public Guid FormVersionId { get; init; }
+        public string Title { get; init; } = string.Empty;
+        public string? Description { get; init; }
+        public int Position { get; init; }
+        public long Version { get; init; }
+    }
+
+    private sealed class QuestionRow
+    {
+        public Guid Id { get; init; }
+        public Guid SectionId { get; init; }
+        public string Code { get; init; } = string.Empty;
+        public string Type { get; init; } = string.Empty;
+        public string Title { get; init; } = string.Empty;
+        public string? Description { get; init; }
+        public bool Required { get; init; }
+        public string? DimensionCode { get; init; }
+        public decimal Weight { get; init; }
+        public int Position { get; init; }
+        public string Settings { get; init; } = "{}";
+        public long Version { get; init; }
+    }
+
+    private sealed class OptionRow
+    {
+        public Guid Id { get; init; }
+        public Guid QuestionId { get; init; }
+        public string Label { get; init; } = string.Empty;
+        public string Value { get; init; } = string.Empty;
+        public decimal? Score { get; init; }
+        public int Position { get; init; }
+        public long Version { get; init; }
+    }
 }

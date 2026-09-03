@@ -4,7 +4,7 @@ namespace Valora.Application.Enterprise;
 
 public sealed record EnterpriseListQuery(string? Search, string? Status, string? Plan, string? Health, DateOnly? From, DateOnly? To, int Page = 1, int PageSize = 25);
 public sealed record EnterprisePage<T>(IReadOnlyList<T> Items, int Total, int Page, int PageSize);
-public sealed record PortfolioCompany(Guid Id, string Name, string? Cnpj, string? Email, string Status, string Health, string? Plan, DateTime CreatedAt, DateTime? LastActivityAt, int UsagePercent);
+public sealed record PortfolioCompany(Guid Id, string Name, string? Cnpj, string? Email, string Status, string Health, string? PlanCode, string? PlanName, DateTime CreatedAt, DateTime? LastActivityAt, int UsagePercent);
 public sealed record PortfolioSummary(int Companies, int AtRisk, int TrialsEnding, int NearLimit, int ActiveLeads, decimal MonthlyRecurringRevenue);
 public sealed record CrmLead(Guid Id, string Name, string? CompanyName, string? Email, string? Phone, string Status, string? IntendedPlan, string? Owner, DateTime? NextActionAt, string? Notes, DateTime CreatedAt);
 public sealed record EnterpriseItem(Guid Id, Guid? OrganizationId, string Kind, string Name, string Status, JsonElement Configuration, DateTime CreatedAt, DateTime UpdatedAt);

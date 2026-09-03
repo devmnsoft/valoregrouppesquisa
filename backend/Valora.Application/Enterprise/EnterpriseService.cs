@@ -84,7 +84,17 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
         return new(type, rows, rows.Count(x => x.Errors.Count == 0), rows.Count(x => x.Errors.Count > 0), token);
     }
 
-    private static EnterpriseListQuery Normalize(EnterpriseListQuery q) => q with { Page = Math.Max(1, q.Page), PageSize = Math.Clamp(q.PageSize, 10, 100) };
+    private static EnterpriseListQuery Normalize(EnterpriseListQuery q) => q with
+    {
+        Search = Clean(q.Search),
+        Status = Clean(q.Status)?.ToLowerInvariant(),
+        Plan = Clean(q.Plan)?.ToLowerInvariant(),
+        Health = Clean(q.Health)?.ToLowerInvariant(),
+        Page = Math.Max(1, q.Page),
+        PageSize = Math.Clamp(q.PageSize, 10, 100)
+    };
+
+    private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     private static void ValidateOperationalItem(UpsertEnterpriseItemRequest item)
     {
         var statuses = item.Kind switch

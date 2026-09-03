@@ -10,7 +10,7 @@ namespace Valora.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/v1/enterprise")]
-public sealed class EnterpriseController(EnterpriseService service, IConfiguration configuration, IHostEnvironment hostEnvironment) : ControllerBase
+public sealed class EnterpriseController(EnterpriseService service, IConfiguration configuration, IHostEnvironment hostEnvironment, ILogger<EnterpriseController> logger) : ControllerBase
 {
     private Guid UserId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty;
     private Guid? OrganizationId => Guid.TryParse(User.FindFirstValue("organization_id"), out var id) ? id : null;
@@ -42,7 +42,33 @@ public sealed class EnterpriseController(EnterpriseService service, IConfigurati
     }
 
     [HttpGet("companies")]
-    public async Task<IActionResult> Companies([FromQuery] EnterpriseListQuery query, CancellationToken ct) => IsValoraAdmin ? Ok(await service.CompaniesAsync(query,ct)) : PermissionDenied();
+    public async Task<IActionResult> Companies([FromQuery] EnterpriseListQuery query, CancellationToken ct)
+    {
+        if (!IsValoraAdmin) return PermissionDenied();
+        if (query.From is not null && query.To is not null && query.To < query.From)
+            return BadRequest(new { code = "INVALID_PERIOD", message = "A data final deve ser igual ou posterior à data inicial.", correlationId = HttpContext.TraceIdentifier });
+        if (query.Page < 1 || query.PageSize is < 1 or > 100)
+            return BadRequest(new { code = "INVALID_PAGINATION", message = "Informe uma página válida e até 100 empresas por página.", correlationId = HttpContext.TraceIdentifier });
+
+        try
+        {
+            return Ok(await service.CompaniesAsync(query, ct));
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Falha ao listar empresas. CorrelationId={CorrelationId}", HttpContext.TraceIdentifier);
+            return StatusCode(StatusCodes.Status500InternalServerError, new
+            {
+                code = "ENTERPRISE_COMPANIES_UNAVAILABLE",
+                message = "Não foi possível carregar as empresas agora. Revise os filtros e tente novamente.",
+                correlationId = HttpContext.TraceIdentifier
+            });
+        }
+    }
 
     [HttpPatch("companies/{id:guid}/status")]
     public async Task<IActionResult> CompanyStatus(Guid id,[FromBody] ChangeStatusRequest request,CancellationToken ct)

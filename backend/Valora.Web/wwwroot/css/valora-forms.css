@@ -34,3 +34,18 @@ button[aria-busy="true"] .button-spinner { display: inline-block; }
   .form-grid > * { grid-column: 1 / -1; }
   .form-actions > * { justify-content: center; width: 100%; }
 }
+/* Validation feedback shared by server-rendered and progressively enhanced forms. */
+:where(.form-control, .form-select, .valora-input)[aria-invalid="true"] {
+  border-color: var(--valora-danger, #b42318);
+  box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--valora-danger, #b42318) 16%, transparent);
+}
+
+:where(.form-control, .form-select, .valora-input):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--valora-primary, #0b6973) 24%, transparent);
+  outline-offset: 1px;
+}
+
+form :where(button, input, select, textarea):disabled {
+  cursor: not-allowed;
+  opacity: .68;
+}

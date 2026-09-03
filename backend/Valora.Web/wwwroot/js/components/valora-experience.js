@@ -47,4 +47,22 @@
       button.removeAttribute('aria-busy');
     }, 12000);
   });
+
+  document.addEventListener('invalid', event => {
+    const field = event.target;
+    if (!(field instanceof HTMLElement)) return;
+    field.setAttribute('aria-invalid', 'true');
+    const form = field.closest('form');
+    if (!form || form.dataset.validationAnnounced === 'true') return;
+    form.dataset.validationAnnounced = 'true';
+    window.ValoraToast?.warning?.('Revise os campos destacados antes de continuar.');
+    window.setTimeout(() => { delete form.dataset.validationAnnounced; }, 800);
+  }, true);
+
+  document.addEventListener('input', event => {
+    const field = event.target;
+    if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement) {
+      if (field.checkValidity()) field.removeAttribute('aria-invalid');
+    }
+  });
 }());

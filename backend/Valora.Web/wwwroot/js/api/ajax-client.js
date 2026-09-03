@@ -38,14 +38,20 @@
     } else if (status === 0) {
       message = 'API offline ou indisponível no momento.';
     } else if (status === 401) {
-      clearToken();
-      message = 'Sua sessão expirou. Entre novamente para continuar.';
-      // A protected BFF request can outlive the server-side session. Do not leave
-      // an authenticated-looking page stalled behind an inline 401 error.
-      const returnUrl = window.location.pathname + window.location.search;
-      window.setTimeout(function () {
-        window.location.assign('/Account/Login?returnUrl=' + encodeURIComponent(returnUrl));
-      }, 800);
+      const sessionCodes = ['SESSION_EXPIRED', 'AUTH_SESSION_INVALID', 'AUTHENTICATION_REQUIRED'];
+      const isSessionFailure = sessionCodes.indexOf(String(body.code || '').toUpperCase()) >= 0;
+      message = isSessionFailure
+        ? 'Sessão expirada. Faça login novamente para continuar.'
+        : (body.message || 'Não foi possível validar esta operação. Tente novamente.');
+      // A 401 from a downstream feature is not proof that the BFF cookie is invalid.
+      // Redirect only when the BFF explicitly identifies an expired session.
+      if (isSessionFailure) {
+        clearToken();
+        const returnUrl = window.location.pathname + window.location.search;
+        window.setTimeout(function () {
+          window.location.assign('/Account/Login?reason=session-expired&returnUrl=' + encodeURIComponent(returnUrl));
+        }, 800);
+      }
     } else if (status === 403) {
       message = 'Você não tem permissão para executar esta ação.';
     } else if (status === 404) {

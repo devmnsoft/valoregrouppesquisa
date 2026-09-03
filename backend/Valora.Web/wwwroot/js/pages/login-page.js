@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     label.textContent = 'Entrando...';
     spinner.classList.remove('d-none');
     try {
-      await AuthApi.login({ email: form.email.value.trim(), password: form.password.value });
+      await AuthApi.login({ email: form.email.value.trim(), password: form.password.value, rememberMe: form.rememberMe.checked });
       const authenticated = await AuthApi.me();
       if (!authenticated?.user) throw new Error('A sessão segura não pôde ser confirmada.');
       window.location.assign('/Dashboard');

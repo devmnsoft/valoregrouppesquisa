@@ -7,7 +7,8 @@ namespace Valora.Web.Services.Bff;
 
 public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffSessionStore sessions, ILogger<BffAuthenticationService> logger)
 {
-    public async Task<BffSafeSession> SignInAsync(HttpContext context, string endpoint, object request, CancellationToken cancellationToken)
+    public async Task<BffSafeSession> SignInAsync(HttpContext context, string endpoint, object request,
+        CancellationToken cancellationToken, bool isPersistent = false)
     {
         var result = await api.PostAuthenticationAsync(endpoint, request, CorrelationId(context), cancellationToken);
         var ticket = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
@@ -29,9 +30,10 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
         claims.AddRange(result.AccessContext.Capabilities.Select(value => new Claim("capability", value)));
         claims.AddRange(result.AccessContext.Scopes.Select(value => new Claim("scope", value)));
         claims.Add(new Claim("subscription_status", result.AccessContext.SubscriptionStatus));
+        AddContextClaims(claims, result);
         await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
-            new AuthenticationProperties { IsPersistent = false, ExpiresUtc = result.RefreshTokenExpiresAt });
+            CookieProperties(result.RefreshTokenExpiresAt, isPersistent));
         return safe;
     }
 
@@ -97,7 +99,7 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
             ? value.ToString()
             : context.TraceIdentifier;
 
-    private static Task RenewCookieAsync(HttpContext context, string ticket, BffAuthenticationResult result, CancellationToken cancellationToken)
+    private static async Task RenewCookieAsync(HttpContext context, string ticket, BffAuthenticationResult result, CancellationToken cancellationToken)
     {
         var claims = new List<Claim>
         {
@@ -110,8 +112,29 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
         claims.AddRange(result.AccessContext.EnabledModules.Select(value => new Claim("module", value)));
         claims.AddRange(result.AccessContext.Capabilities.Select(value => new Claim("capability", value)));
         claims.AddRange(result.AccessContext.Scopes.Select(value => new Claim("scope", value)));
-        return context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
+        AddContextClaims(claims, result);
+        var authentication = await context.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        var wasPersistent = authentication.Properties?.IsPersistent == true;
+        await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
-            new AuthenticationProperties { IsPersistent = false, ExpiresUtc = result.RefreshTokenExpiresAt });
+            CookieProperties(result.RefreshTokenExpiresAt, wasPersistent));
+    }
+
+    private static AuthenticationProperties CookieProperties(DateTimeOffset expiresAt, bool isPersistent) => new()
+    {
+        IsPersistent = isPersistent,
+        ExpiresUtc = expiresAt,
+        AllowRefresh = true
+    };
+
+    private static void AddContextClaims(ICollection<Claim> claims, BffAuthenticationResult result)
+    {
+        var organizationId = result.AccessContext.OrganizationId ?? result.Organization?.Id;
+        if (organizationId is { } id && id != Guid.Empty)
+        {
+            claims.Add(new Claim("organization_id", id.ToString()));
+            claims.Add(new Claim("tenant_id", id.ToString()));
+        }
+        claims.Add(new Claim("session_id", result.SessionId.ToString()));
     }
 }

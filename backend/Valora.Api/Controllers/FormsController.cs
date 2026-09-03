@@ -28,10 +28,42 @@ public sealed class FormsController(
     [HttpGet("{formId:guid}")]
     public async Task<ActionResult<FormDetailResponse>> Get(Guid formId, CancellationToken cancellationToken)
     {
+        if (formId == Guid.Empty)
+            return BadRequest(FormIdentifierRequired());
+
         var organization = ResolveOrganization();
         if (!organization.IsResolved) return OrganizationRequired();
-        var form = await forms.GetAsync(organization.RequireOrganizationId(), formId, cancellationToken);
-        return form is null ? NotFound() : Ok(form);
+
+        try
+        {
+            var form = await forms.GetAsync(organization.RequireOrganizationId(), formId, cancellationToken);
+            return form is null
+                ? NotFound(new ProblemDetails
+                {
+                    Title = "Formulário não encontrado",
+                    Detail = "O formulário solicitado não existe ou não pertence à organização selecionada.",
+                    Status = StatusCodes.Status404NotFound,
+                    Extensions = { ["correlationId"] = HttpContext.TraceIdentifier }
+                })
+                : Ok(form);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception,
+                "Falha ao carregar formulário. FormId={FormId} OrganizationId={OrganizationId} CorrelationId={CorrelationId}",
+                formId, organization.RequireOrganizationId(), HttpContext.TraceIdentifier);
+            return StatusCode(StatusCodes.Status500InternalServerError, new ProblemDetails
+            {
+                Title = "Não foi possível carregar este formulário",
+                Detail = "Não foi possível carregar este formulário. Verifique se a organização está selecionada e tente novamente.",
+                Status = StatusCodes.Status500InternalServerError,
+                Extensions = { ["correlationId"] = HttpContext.TraceIdentifier }
+            });
+        }
     }
 
     [HttpPost]
@@ -89,10 +121,18 @@ public sealed class FormsController(
     private ObjectResult OrganizationRequired() => StatusCode(StatusCodes.Status403Forbidden, new ProblemDetails
     {
         Title = "Organização não selecionada",
-        Detail = CurrentOrganizationContext.RequiredMessage,
+        Detail = "Não foi possível carregar este formulário. Verifique se a organização está selecionada e tente novamente.",
         Status = StatusCodes.Status403Forbidden,
         Extensions = { ["code"] = "ORGANIZATION_SCOPE_REQUIRED", ["correlationId"] = HttpContext.TraceIdentifier }
     });
+
+    private ProblemDetails FormIdentifierRequired() => new()
+    {
+        Title = "Formulário inválido",
+        Detail = "Informe um identificador de formulário válido.",
+        Status = StatusCodes.Status400BadRequest,
+        Extensions = { ["correlationId"] = HttpContext.TraceIdentifier }
+    };
 
     private static ProblemDetails ConflictDetails() => new()
     {

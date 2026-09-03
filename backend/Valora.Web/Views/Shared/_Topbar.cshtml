@@ -8,6 +8,18 @@
     <strong data-page-title>@(ViewData["Title"] ?? "Painel Valora")</strong>
   </div>
   <div class="topbar-actions">
+    <details class="quick-actions" data-quick-actions>
+      <summary class="valora-button valora-button--primary" aria-label="Abrir atalhos rápidos">
+        <valora-icon name="plus" size="18" decorative="true" /><span>Criar</span>
+      </summary>
+      <div class="quick-actions__menu">
+        <strong>Atalhos rápidos</strong>
+        <a href="/Diagnostics/New"><valora-icon name="activity" size="18" decorative="true" /><span><b>Novo diagnóstico</b><small>Configure público e período</small></span></a>
+        <a href="/Forms/Create"><valora-icon name="file-text" size="18" decorative="true" /><span><b>Novo formulário</b><small>Estruture dimensões e perguntas</small></span></a>
+        <a href="/Reports"><valora-icon name="chart-radar" size="18" decorative="true" /><span><b>Gerar relatório</b><small>Consolide uma leitura executiva</small></span></a>
+        <a href="/ActionCenter/Plans/Create"><valora-icon name="check-circle" size="18" decorative="true" /><span><b>Novo plano de ação</b><small>Defina responsáveis e prazos</small></span></a>
+      </div>
+    </details>
     <details class="organization-switcher" data-organization-switcher>
       <summary aria-label="Selecionar organização">
         <valora-icon name="building" size="18" decorative="true" />

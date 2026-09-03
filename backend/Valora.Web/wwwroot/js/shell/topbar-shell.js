@@ -10,30 +10,21 @@
   let activeResult = 0;
   let timer;
 
+  // Keep this catalog deliberately small: every destination is backed by an MVC
+  // endpoint. Module-specific results continue to be discovered by the server search.
   const commands = [
-    ['Criar Novo Diagnóstico', 'Assistente do próximo ciclo de escuta', '/Diagnostics/New'], ['Criar formulário', 'Abrir o estúdio de diagnósticos', '/Forms'], ['Dashboard', 'Visão executiva', '/Dashboard'],
-    ['Diagnósticos', 'Pesquisas e campanhas', '/Surveys'], ['Formulários', 'Estúdio de diagnósticos', '/Forms'],
-    ['Resultados', 'Respostas e devolutivas', '/Responses'], ['Certificados', 'Emissão e validação', '/Certificates/Validate'],
-    ['Usuários', 'Pessoas, papéis e acessos', '/Users'], ['Organização', 'Estrutura e identidade', '/Organization'],
-    ['Abrir Estrutura Organizacional', 'Unidades, áreas e lideranças', '/Organization/Structure'], ['Ver Templates Oficiais', 'Biblioteca metodológica Valora', '/Experience/Templates'],
-    ['Abrir Planos e Uso', 'Plano atual e limites', '/Plans'], ['Abrir Governança', 'Eventos executivos da plataforma', '/Intelligence/PlatformGovernance'], ['Auditoria', 'Eventos e rastreabilidade', '/Audit'],
-    ['Abrir Integrações', 'Central Enterprise e status real dos conectores', '/Integrations'], ['Criar API Key', 'Credencial por escopo exibida uma única vez', '/Integrations/ApiKeys'],
-    ['Configurar Webhook', 'Assinaturas e histórico de entregas', '/Integrations/Webhooks'], ['Gerar Dataset Power BI', 'Exportação preparada, agregada e autorizada', '/Integrations/PowerBI'],
-    ['Processar Inteligência', 'Centro de processamento organizacional', '/Intelligence/Processing'], ['Gerar Executive Report', 'Relatório executivo rastreável', '/Intelligence/ExecutiveReport'],
-    ['Abrir Dicionário', 'Conceitos oficiais da Metodologia Valora', '/Methodology/Dictionary'], ['Abrir Mapa Cognitivo', 'Influências sistêmicas governadas', '/Methodology/CognitiveMap'],
-    ['Validar Mapeamento', 'Cobertura metodológica dos formulários', '/Methodology/Mappings'], ['Ver Evidências', 'Origem rastreável das leituras', '/Intelligence/Evidence'],
-    ['Ver Metrics', 'Métricas, contexto e limitações', '/Intelligence/Metrics'], ['Ver Índices', 'Índices oficiais e composição', '/Intelligence/Indices'],
-    ['Ver Inferências', 'Regras e evidências convergentes', '/Intelligence/Inference'], ['Ver Insights', 'Leituras executivas rastreáveis', '/Intelligence/Insights'],
-    ['Criar Action', 'Compromisso conectado a evidências', '/Intelligence/Action'], ['Abrir Journey', 'Memória organizacional', '/Intelligence/Journey'],
-    ['Gerar Report', 'Preview executivo baseado em inteligência', '/Intelligence/ExecutiveReport'],
-    ['Inteligência', 'Evidências e recomendações', '/Intelligence'], ['Plano de ação', 'Compromissos e evolução', '/ActionPlans'],
-    ['Relatórios executivos', 'Preview e exportações seguras', '/Reports'], ['Configurações', 'Preferências e segurança', '/Settings'],
-    ['Abrir Suporte', 'Central de chamados', '/Support'], ['Criar Chamado', 'Registrar um bloqueio operacional', '/Support?new=true'],
-    ['Enviar Feedback', 'Compartilhar experiência de uso', '/Feedback?new=true'], ['Abrir Customer Success', 'Saúde da carteira', '/CustomerSuccess'],
-    ['Ver Organizações em Risco', 'Ranking de atenção e risco', '/CustomerSuccess?status=risk'], ['Abrir Métricas de Adoção', 'Uso real do produto', '/UsageAnalytics'],
-    ['Abrir Onboarding', 'Checklist pós-venda', '/Onboarding'], ['Solicitar Upgrade', 'Plano, limite ou recurso Enterprise', '/Commercial/UpgradeRequests?new=true'],
-    ['Abrir Incidentes', 'Saúde e mitigação operacional', '/Platform/Incidents'], ['Criar Release Note', 'Registrar evolução controlada', '/ReleaseNotes?new=true'],
-    ['Rodar Data Quality Check', 'Verificação segura e não destrutiva', '/Platform/DataQuality?run=true'],
+    ['Criar novo diagnóstico', 'Configure o próximo ciclo de escuta', '/Diagnostics/New'],
+    ['Criar formulário', 'Abra o estúdio de diagnósticos', '/Forms/Create'],
+    ['Visão executiva', 'Indicadores e prioridades', '/Dashboard'],
+    ['Diagnósticos', 'Coletas, públicos e campanhas', '/Surveys'],
+    ['Formulários', 'Biblioteca e versões', '/Forms'],
+    ['Resultados', 'Evidências e devolutivas', '/Results'],
+    ['Relatórios', 'Geração e histórico', '/Reports'],
+    ['Certificados', 'Emissão e validação', '/Certificates'],
+    ['Planos de ação', 'Responsáveis, prazos e progresso', '/ActionCenter'],
+    ['Evolução', 'Ciclos e linha do tempo', '/Evolution'],
+    ['Administração', 'Usuários, organizações e auditoria', '/Administration'],
+    ['Configurações', 'Preferências da plataforma', '/Settings'],
     ['Sair', 'Encerrar a sessão com segurança', '/Account/Logout']
   ];
   const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

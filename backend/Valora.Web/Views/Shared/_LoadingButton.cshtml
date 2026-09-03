@@ -1,0 +1,5 @@
+@model LoadingButtonViewModel
+<button class="valora-button valora-button--@Model.Style" type="@Model.Type" data-action="@Model.DataAction" data-loading-button disabled="@Model.Disabled">
+  <span data-loading-button-label>@Model.Label</span>
+  <span data-loading-button-progress hidden><span class="spinner-border spinner-border-sm" aria-hidden="true"></span> @Model.LoadingLabel</span>
+</button>

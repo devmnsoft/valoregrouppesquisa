@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Valora.Web.Controllers;
 
@@ -10,6 +11,7 @@ public sealed class CertificatesController(ILogger<CertificatesController> logge
         return View();
     }
 
+    [AllowAnonymous]
     [Route("certificado/{certificateId}")]
     [Route("public/results/{certificateId}/certificate")]
     public IActionResult Public(string certificateId)
@@ -42,6 +44,7 @@ public sealed class CertificatesController(ILogger<CertificatesController> logge
         }
     }
 
+    [AllowAnonymous]
     [Route("Certificates/Validate/{certificateCode?}")]
     [Route("certificado/validar/{certificateCode?}")]
     public IActionResult Validate(string? certificateCode)

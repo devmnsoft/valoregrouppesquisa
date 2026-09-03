@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Valora.Web.Models;
 
 namespace Valora.Web.Controllers;
 
+[AllowAnonymous]
 public sealed class PublicSurveyController(ILogger<PublicSurveyController> logger) : Controller
 {
     [HttpGet("r/{token}")]

@@ -37,4 +37,27 @@ public sealed class BffSessionRegressionTests
         Assert.Contains("JsonValueKind.True", controller);
         Assert.Contains("rememberMe));", controller);
     }
+
+    [Fact]
+    public void RefreshPreservesPrimaryRoleAndTransientApiFailuresPreserveSession()
+    {
+        var source = File.ReadAllText(RepositoryPaths.WebFile("Services", "Bff", "BffAuthenticationService.cs"));
+
+        Assert.Contains("new(ClaimTypes.Role, result.User.Role)", source);
+        Assert.Contains("catch (BffApiUnavailableException exception)", source);
+        Assert.Contains("return session;", source);
+    }
+
+    [Fact]
+    public void CookieKeysArePersistentAndBffChallengesReturnJson()
+    {
+        var program = File.ReadAllText(RepositoryPaths.WebFile("Program.cs"));
+
+        Assert.Contains("PersistKeysToFileSystem", program);
+        Assert.Contains("Path.StartsWithSegments(\"/bff\")", program);
+        Assert.Contains("application/problem+json", program);
+        Assert.Contains("AUTHENTICATION_REQUIRED", program);
+        Assert.Contains("options.FallbackPolicy", program);
+        Assert.Contains("RequireAuthenticatedUser()", program);
+    }
 }

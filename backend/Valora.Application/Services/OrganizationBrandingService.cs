@@ -23,8 +23,8 @@ public sealed partial class OrganizationBrandingService(IOrganizationBrandingRep
         return await repository.UpdateAsync(organizationId, normalized, cancellationToken) ?? throw new ConcurrencyConflictException("A identidade visual foi atualizada por outra sessão ou o slug já está em uso.");
     }
 
-    public async Task<OrganizationSubscriptionResponse> GetSubscriptionAsync(Guid organizationId, CancellationToken cancellationToken = default) =>
-        await repository.GetSubscriptionAsync(RequireTenant(organizationId), cancellationToken) ?? throw new NotFoundAppException("Assinatura não encontrada.");
+    public Task<OrganizationSubscriptionResponse?> GetSubscriptionAsync(Guid organizationId, CancellationToken cancellationToken = default) =>
+        repository.GetSubscriptionAsync(RequireTenant(organizationId), cancellationToken);
     public Task<IReadOnlyList<OnboardingStepResponse>> GetOnboardingAsync(Guid organizationId, CancellationToken cancellationToken = default) => repository.GetOnboardingAsync(RequireTenant(organizationId), cancellationToken);
     public async Task CompleteStepAsync(Guid organizationId, string stepCode, CancellationToken cancellationToken = default)
     {

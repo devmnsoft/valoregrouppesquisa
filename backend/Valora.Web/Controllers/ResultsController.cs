@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Valora.Web.Models;
 
 namespace Valora.Web.Controllers;
@@ -11,6 +12,7 @@ public sealed class ResultsController(ILogger<ResultsController> logger) : Contr
         return View();
     }
 
+    [AllowAnonymous]
     [Route("public/results/{token}")]
     [Route("public/results/{token}/executive")]
     [Route("public/results/{token}/report")]
@@ -31,6 +33,7 @@ public sealed class ResultsController(ILogger<ResultsController> logger) : Contr
         }
     }
 
+    [AllowAnonymous]
     [Route("resultado/{responseId}/email")]
     public IActionResult Email(string responseId)
     {

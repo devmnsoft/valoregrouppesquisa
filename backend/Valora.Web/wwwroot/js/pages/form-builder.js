@@ -94,5 +94,7 @@
   host.querySelector('[data-close-preview]').addEventListener('click', () => host.querySelector('[data-preview-dialog]').close());
   host.querySelectorAll('[data-preview-size]').forEach(button => button.addEventListener('click', () => host.querySelector('[data-preview-content]').classList.toggle('is-mobile', button.dataset.previewSize === 'mobile')));
   host.querySelector('[data-publish]').addEventListener('click', async event => { if (!form.currentDraftVersionId || isReadOnly() || !confirm('Publicar esta versão? Ela se tornará imutável.')) return; event.currentTarget.disabled = true; try { await FormsApi.publish(formId, { expectedVersion: form.draftVersion }); window.ValoraToast?.success?.('Formulário publicado. A versão foi protegida para preservar o histórico.'); await load(); } catch (problem) { fail(problem); } finally { event.currentTarget.disabled = false; } });
-  load();
+  load().then(() => {
+    if (form && new URLSearchParams(window.location.search).get('preview') === 'true') host.querySelector('[data-preview]').click();
+  });
 })();

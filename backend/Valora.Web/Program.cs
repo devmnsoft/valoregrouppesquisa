@@ -1,6 +1,7 @@
 using Serilog;
 using Valora.Web.Models;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.DataProtection;
 using Valora.Web.Services.Bff;
 using Valora.Web.Ui;
@@ -9,6 +10,7 @@ using Valora.Web.Services;
 using Valora.Application.Common;
 using Valora.Application.DependencyInjection;
 using Valora.Infrastructure.DependencyInjection;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +32,7 @@ builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddScoped<INavigationRouteResolver, EndpointNavigationRouteResolver>();
 var isDevelopment = builder.Environment.IsDevelopment();
+var sessionMinutes = Math.Clamp(builder.Configuration.GetValue("Authentication:SessionMinutes", 30), 5, 720);
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -39,13 +42,33 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.SameSite = SameSiteMode.Lax;
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/error/403";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(Math.Clamp(
-            builder.Configuration.GetValue("Authentication:SessionMinutes", 30), 5, 720));
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(sessionMinutes);
         options.SlidingExpiration = true;
+        options.Events.OnRedirectToLogin = context => WriteBffAuthenticationFailure(context, StatusCodes.Status401Unauthorized,
+            "AUTHENTICATION_REQUIRED", "Sua sessão expirou. Entre novamente para continuar.");
+        options.Events.OnRedirectToAccessDenied = context => WriteBffAuthenticationFailure(context, StatusCodes.Status403Forbidden,
+            "ACCESS_DENIED", "Você não tem permissão para executar esta ação.");
     });
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Internal MVC pages are private by default. Public controllers/actions must make
+    // that decision explicit with [AllowAnonymous], preventing newly added screens
+    // from accidentally exposing the authenticated shell or organization data.
+    options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
-builder.Services.AddDataProtection().SetApplicationName("Valora.Web.Bff");
+var dataProtection = builder.Services.AddDataProtection().SetApplicationName("Valora.Web.Bff");
+var keyDirectory = builder.Configuration["DataProtection:KeysPath"];
+if (!string.IsNullOrWhiteSpace(keyDirectory))
+{
+    var absoluteKeyDirectory = Path.IsPathRooted(keyDirectory)
+        ? keyDirectory
+        : Path.Combine(builder.Environment.ContentRootPath, keyDirectory);
+    Directory.CreateDirectory(absoluteKeyDirectory);
+    dataProtection.PersistKeysToFileSystem(new DirectoryInfo(absoluteKeyDirectory));
+}
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSingleton<BffSessionProtector>();
 builder.Services.AddSingleton<IDistributedBffSessionStore, DistributedBffSessionStore>();
@@ -108,3 +131,23 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();
+
+static Task WriteBffAuthenticationFailure(RedirectContext<CookieAuthenticationOptions> context, int status,
+    string code, string message)
+{
+    if (!context.Request.Path.StartsWithSegments("/bff"))
+    {
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    }
+
+    context.Response.StatusCode = status;
+    context.Response.ContentType = "application/problem+json";
+    return context.Response.WriteAsync(JsonSerializer.Serialize(new
+    {
+        status,
+        code,
+        message,
+        correlationId = context.HttpContext.TraceIdentifier
+    }));
+}

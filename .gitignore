@@ -89,3 +89,5 @@ secrets/
 .env
 .env.*
 !.env.example
+# Runtime cryptographic keys must be persisted by the deployment, never committed.
+backend/Valora.Web/App_Data/DataProtection-Keys/

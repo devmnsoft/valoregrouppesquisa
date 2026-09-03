@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Net;
 
 namespace Valora.Web.Services.Bff;
 
@@ -57,7 +58,19 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
             await RefreshAsync(context, cancellationToken);
             return await sessions.GetAsync(ticket, cancellationToken);
         }
-        catch (Exception exception) when (exception is BffApiException or BffApiUnavailableException)
+        catch (BffApiUnavailableException exception)
+        {
+            logger.LogWarning(exception, "API unavailable while rehydrating BFF session; preserving the authenticated session. UserId={UserId} CorrelationId={CorrelationId}",
+                session.SafeSession.User.Id, CorrelationId(context));
+            return session;
+        }
+        catch (BffApiException exception) when (exception.StatusCode is not HttpStatusCode.Unauthorized and not HttpStatusCode.Forbidden)
+        {
+            logger.LogWarning(exception, "API rejected access-context rehydration without invalidating credentials; preserving the session. Status={Status} UserId={UserId} CorrelationId={CorrelationId}",
+                (int)exception.StatusCode, session.SafeSession.User.Id, CorrelationId(context));
+            return session;
+        }
+        catch (BffApiException exception)
         {
             logger.LogWarning(exception, "Unable to rehydrate incompatible BFF session. UserId={UserId} CorrelationId={CorrelationId}", session.SafeSession.User.Id, CorrelationId(context));
             await sessions.RemoveAsync(ticket, cancellationToken);
@@ -87,9 +100,19 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
         if (ticket is not null)
         {
             var session = await sessions.GetAsync(ticket, cancellationToken);
-            if (session is not null)
-                await api.PostAsync("/api/v1/auth/logout", new { refreshToken = session.RefreshToken }, session.AccessToken, cancellationToken);
-            await sessions.RemoveAsync(ticket, cancellationToken);
+            try
+            {
+                if (session is not null)
+                    await api.PostAsync("/api/v1/auth/logout", new { refreshToken = session.RefreshToken }, session.AccessToken, cancellationToken);
+            }
+            catch (Exception exception) when (exception is BffApiException or BffApiUnavailableException)
+            {
+                logger.LogWarning(exception, "Remote logout could not be completed; clearing the local BFF session. CorrelationId={CorrelationId}", CorrelationId(context));
+            }
+            finally
+            {
+                await sessions.RemoveAsync(ticket, cancellationToken);
+            }
         }
         await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
     }
@@ -104,7 +127,7 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, result.User.Id.ToString()), new(ClaimTypes.Name, result.User.Name),
-            new(ClaimTypes.Email, result.User.Email), new("bff_ticket", ticket),
+            new(ClaimTypes.Email, result.User.Email), new(ClaimTypes.Role, result.User.Role), new("bff_ticket", ticket),
             new("subscription_status", result.AccessContext.SubscriptionStatus)
         };
         claims.AddRange(result.AccessContext.Roles.Select(value => new Claim(ClaimTypes.Role, value)));

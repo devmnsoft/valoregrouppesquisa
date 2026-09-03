@@ -74,5 +74,6 @@
       error.classList.remove('d-none');
     } finally { submit.disabled = false; }
   });
+  if (new URLSearchParams(window.location.search).get('intent') === 'create') dialog.showModal();
   load();
 }());

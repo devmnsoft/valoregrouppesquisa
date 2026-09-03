@@ -177,6 +177,12 @@ public static class ApplicationServiceCollectionExtensions
         services.AddSingleton<ValoraInsightDevolutivaService>();
         services.AddSingleton<StrategicMaturityScoringService>();
         services.AddSingleton<MethodologicalScoringService>();
+        services.AddSingleton<EvidenceAggregationService>();
+        services.AddSingleton<ValoraIndexScoreService>();
+        services.AddSingleton<ResultSnapshotService>();
+        services.AddSingleton<ResultRecommendationService>();
+        services.AddScoped<ResultCalculationService>();
+        services.AddSingleton<ResultPublicationService>();
         services.AddScoped<CertificateService>();
         services.AddScoped<ICertificateService>(sp => sp.GetRequiredService<CertificateService>());
         services.AddSingleton<EmailService>();

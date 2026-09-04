@@ -16,6 +16,7 @@ public sealed class MenuService(IEntitlementService entitlements, IPermissionSer
         var items = new List<MenuItemDto>
         {
             new("dashboard", "Dashboard", "/Dashboard", "speedometer", 10, Array.Empty<MenuItemDto>()),
+            new("command-center", "Command Center", "/CommandCenter", "activity", 15, Array.Empty<MenuItemDto>()),
             new("surveys", "Pesquisas", "/Surveys", "clipboard", 20, Array.Empty<MenuItemDto>())
         };
         if (!organizationId.HasValue || Has("organizational_intelligence", "inteligenciaOrganizacional"))

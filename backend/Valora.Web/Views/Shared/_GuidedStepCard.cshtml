@@ -1,0 +1,12 @@
+@model GuidedStepCardViewModel
+@{ var complete = Model.Status == "complete"; var current = Model.Status == "current"; }
+<li class="guided-step guided-step--@Model.Status" aria-current="@(current ? "step" : null)">
+  <span class="guided-step__marker" aria-hidden="true">@(complete ? "✓" : current ? "→" : "○")</span>
+  <div class="guided-step__content">
+    <strong>@Model.Label</strong>
+    <span>@Model.Description</span>
+  </div>
+  @if (!string.IsNullOrWhiteSpace(Model.Href) && !string.IsNullOrWhiteSpace(Model.ActionLabel)) {
+    <a class="guided-step__action" href="@Model.Href">@Model.ActionLabel</a>
+  }
+</li>

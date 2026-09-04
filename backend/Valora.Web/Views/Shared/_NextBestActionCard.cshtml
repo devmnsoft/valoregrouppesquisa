@@ -1,0 +1,6 @@
+@model NextBestActionCardViewModel
+<aside class="next-best-action next-best-action--@Model.Tone valora-card" aria-labelledby="next-best-action-title">
+  <div><p class="eyebrow">Próximo passo recomendado</p><h2 id="next-best-action-title">@Model.Title</h2><p>@Model.Description</p>
+  @if (!string.IsNullOrWhiteSpace(Model.Requirement)) { <small><strong>Antes de continuar:</strong> @Model.Requirement</small> }</div>
+  <a class="valora-button valora-button--primary" href="@Model.ActionHref">@Model.ActionLabel</a>
+</aside>

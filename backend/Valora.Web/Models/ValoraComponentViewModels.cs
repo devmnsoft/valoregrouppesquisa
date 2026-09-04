@@ -27,6 +27,27 @@ public sealed record ResponsiveTabsViewModel(string Label, IReadOnlyList<Respons
 public sealed record PageToolbarAction(string Label, string? Href = null, string Style = "ghost", string? DataAction = null);
 public sealed record PageToolbarViewModel(string? Label = null, IReadOnlyList<PageToolbarAction>? Actions = null);
 
+public sealed record GuidedStepCardViewModel(
+    string Label,
+    string Description,
+    string Status = "pending",
+    string? Href = null,
+    string? ActionLabel = null);
+
+public sealed record PageProgressChecklistViewModel(
+    string Title,
+    string Description,
+    IReadOnlyList<GuidedStepCardViewModel> Steps,
+    string? Eyebrow = "Jornada guiada");
+
+public sealed record NextBestActionCardViewModel(
+    string Title,
+    string Description,
+    string ActionLabel,
+    string ActionHref,
+    string? Requirement = null,
+    string Tone = "primary");
+
 public sealed class ResultDetailsViewModel
 {
     [Required]

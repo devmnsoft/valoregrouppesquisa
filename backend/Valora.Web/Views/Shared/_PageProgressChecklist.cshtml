@@ -1,0 +1,12 @@
+@model PageProgressChecklistViewModel
+@{ var completed = Model.Steps.Count(step => step.Status == "complete"); var percent = Model.Steps.Count == 0 ? 0 : completed * 100 / Model.Steps.Count; }
+<section class="page-progress-checklist valora-card" aria-labelledby="guided-progress-title">
+  <header class="page-progress-checklist__header">
+    <div><p class="eyebrow">@Model.Eyebrow</p><h2 id="guided-progress-title">@Model.Title</h2><p>@Model.Description</p></div>
+    <strong class="page-progress-checklist__value" aria-label="@percent por cento concluído">@completed/@Model.Steps.Count</strong>
+  </header>
+  <div class="page-progress-checklist__bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@percent"><span style="width:@percent%"></span></div>
+  <ol class="page-progress-checklist__steps">
+    @foreach (var step in Model.Steps) { <partial name="_GuidedStepCard" model="step" /> }
+  </ol>
+</section>

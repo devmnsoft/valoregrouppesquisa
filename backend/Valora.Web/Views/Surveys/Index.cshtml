@@ -2,6 +2,7 @@
 <main class="valora-page surveys-studio" data-page="surveys-page">
   <partial name="_PageHeader" model="@(new PageHeaderViewModel("Diagnósticos", "Crie, publique e acompanhe ciclos de escuta com rastreabilidade.", "Estúdio de Diagnósticos", Actions: new[] { new PageHeaderAction("Novo diagnóstico", DataAction: "new-survey", Style: "primary", Icon: "plus") }))" />
   <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como conduzir diagnósticos", "Selecione um formulário publicado, defina o público e acompanhe o ciclo. Encerre a coleta antes de consolidar resultados."))" />
+  <partial name="_PageProgressChecklist" model="@(new PageProgressChecklistViewModel("Conduza um diagnóstico", "Cada etapa protege a qualidade da coleta e deixa claro quando o resultado pode ser gerado.", new[] { new GuidedStepCardViewModel("Organização e formulário", "Confirme o contexto e escolha uma versão publicada.", "current"), new GuidedStepCardViewModel("Público e prazo", "Defina participantes e período da coleta."), new GuidedStepCardViewModel("Convites", "Envie o link seguro e acompanhe entregas."), new GuidedStepCardViewModel("Respostas", "Monitore adesão e suficiência da amostra."), new GuidedStepCardViewModel("Resultado", "Encerre a coleta e processe as evidências.") }))" />
 
   <section class="metric-grid" aria-label="Resumo dos diagnósticos" data-summary-cards>
     <article class="metric-card"><span>Total</span><strong data-metric="total">—</strong><small>diagnósticos cadastrados</small></article>

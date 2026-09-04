@@ -18,6 +18,7 @@
     <div class="alert alert-info d-none" role="status" data-readonly-notice>
         <strong>Versão publicada protegida.</strong> Para preservar resultados e auditoria, esta estrutura está disponível somente para visualização. Crie um novo rascunho na biblioteca para continuar a evolução metodológica.
     </div>
+    <partial name="_PageProgressChecklist" model="@(new PageProgressChecklistViewModel("Checklist desta versão", "O progresso é confirmado durante a revisão e antes da publicação.", new[] { new GuidedStepCardViewModel("Dados básicos", "Identidade do formulário definida.", "complete"), new GuidedStepCardViewModel("Seções", "Crie a estrutura de navegação.", "current"), new GuidedStepCardViewModel("Perguntas e dimensões", "Cadastre e vincule o conteúdo."), new GuidedStepCardViewModel("Preview revisado", "Valide texto e comportamento responsivo."), new GuidedStepCardViewModel("Pronto para publicar", "A publicação bloqueará alterações estruturais.") }))" />
     <div class="builder-loading" data-loading aria-live="polite">Carregando estrutura do formulário…</div>
     <div class="builder-layout d-none" data-builder-content>
         <nav class="builder-sections" aria-label="Seções do formulário">

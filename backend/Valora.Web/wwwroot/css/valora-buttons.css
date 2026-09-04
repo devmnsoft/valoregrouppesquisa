@@ -1,0 +1,14 @@
+/* Action vocabulary shared by server-rendered and progressively enhanced screens. */
+.valora-button,.btn{align-items:center;border-radius:12px;display:inline-flex;font-weight:750;gap:.5rem;justify-content:center;max-width:100%;min-height:44px;padding:.65rem 1rem;text-align:center;white-space:normal}
+.valora-button svg,.btn svg{block-size:1.15rem;flex:0 0 auto;inline-size:1.15rem}
+.valora-button--primary{background:var(--valora-primary,#0b6973);border:1px solid transparent;color:#fff}
+.valora-button--danger{background:var(--valora-danger,#b42318);border:1px solid transparent;color:#fff}
+.valora-button--ghost{background:transparent;border:1px solid var(--valora-border,#dce5e7);color:var(--valora-text,#15363d)}
+.valora-button:is(:hover,:focus-visible){filter:brightness(.94);transform:translateY(-1px)}
+.valora-button:focus-visible,.btn:focus-visible{outline:3px solid rgb(22 138 132 / 28%);outline-offset:2px}
+.valora-button[disabled],.btn[disabled],[aria-disabled="true"]{cursor:not-allowed;opacity:.58;pointer-events:none}
+.button-group,.row-actions,.page-actions{align-items:center;display:flex;flex-wrap:wrap;gap:.65rem;min-width:0}
+.btn-loading::before{animation:valora-spin .8s linear infinite;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;content:"";height:1em;width:1em}
+@keyframes valora-spin{to{transform:rotate(1turn)}}
+@media(max-width:480px){.form-actions>.valora-button,.form-actions>.btn,.page-actions>.valora-button,.page-actions>.btn{flex:1 1 100%}}
+@media(prefers-reduced-motion:reduce){.valora-button{transition:none}.btn-loading::before{animation-duration:1.6s}}

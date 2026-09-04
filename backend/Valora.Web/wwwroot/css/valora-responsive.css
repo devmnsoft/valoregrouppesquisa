@@ -13,6 +13,7 @@ img, svg, canvas { max-width: 100%; }
   .valora-page-header__actions :is(.valora-button, .btn), .workspace-toolbar > :is(.valora-button, .btn) { width: 100%; }
   .metric-grid, .executive-grid { grid-template-columns: 1fr 1fr; }
   .valora-table { font-size: .875rem; }
+  .help-hero,.onboarding-hero,.next-best-action,.checklist-list li{align-items:stretch;flex-direction:column}.checklist-list form{width:100%;margin-left:0}.checklist-list form .valora-button{width:100%}.progress-ring{width:6.5rem}.help-steps li{padding:1rem}.help-step-number{flex-basis:2.25rem}
 }
 
 @media (max-width: 390px) {

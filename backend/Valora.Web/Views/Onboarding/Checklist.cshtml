@@ -1,0 +1,11 @@
+@model Valora.Web.Controllers.OnboardingChecklistViewModel
+@{ ViewData["Title"] = "Onboarding · Checklist"; var percentage = Model.Total == 0 ? 0 : Model.Completed * 100 / Model.Total; }
+<section class="onboarding-checklist" aria-labelledby="onboarding-title">
+  <header class="onboarding-hero"><div><span class="eyebrow">Implantação Valora Insight™</span><h1 id="onboarding-title">Sua operação, passo a passo</h1><p>Conclua cada etapa no contexto correto. O progresso fica salvo neste navegador.</p></div><div class="progress-ring" style="--progress:@percentage"><strong>@percentage%</strong><span>@Model.Completed de @Model.Total</span></div></header>
+  <div class="journey-progress" role="progressbar" aria-label="Progresso do onboarding" aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"><span style="width:@percentage%"></span></div>
+  @if (Model.Next is not null) { <aside class="next-best-action"><div><strong>Próximo passo recomendado</strong><p>@Model.Next.Title — @Model.Next.Description</p></div><a class="valora-button valora-button--primary" href="@Model.Next.Url">Começar agora</a></aside> }
+  <ol class="checklist-list">
+  @{ var index = 0; }
+  @foreach (var item in Model.Items) { index++; <li class="@(item.Completed ? "is-complete" : null)"><span class="checklist-index">@(item.Completed ? "✓" : index)</span><div><strong>@item.Title</strong><p>@item.Description</p><a href="@item.Url">Abrir etapa</a></div><form method="post" action="/Onboarding/Progress">@Html.AntiForgeryToken()<input type="hidden" name="code" value="@item.Code"><input type="hidden" name="completed" value="@(!item.Completed ? "true" : "false")"><button type="submit" class="valora-button valora-button--@(item.Completed ? "ghost" : "secondary")" data-confirm="@(item.Completed ? "Reabrir esta etapa para revisão?" : "Confirmar que esta etapa foi revisada e concluída?")">@(item.Completed ? "Reabrir" : "Concluir")</button></form></li> }
+  </ol>
+</section>

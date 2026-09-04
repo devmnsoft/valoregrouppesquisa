@@ -1,0 +1,10 @@
+@model Valora.Web.Controllers.HelpCenterViewModel
+@{ ViewData["Title"] = "Central de ajuda"; }
+<section class="help-center" aria-labelledby="help-title">
+  <header class="help-hero"><span class="eyebrow">Valora Insight™ · orientação prática</span><h1 id="help-title">Como podemos ajudar?</h1><p>Encontre o próximo passo para implantar, operar e governar diagnósticos com segurança.</p><a class="valora-button valora-button--primary" href="/Onboarding/Checklist">Abrir checklist de implantação</a></header>
+  <div class="help-grid">
+  @foreach (var topic in Model.Topics) {
+    <a class="help-card" href="/Help/@topic.Code"><valora-icon name="book-open" size="24" decorative="true" /><span><strong>@topic.Title</strong><small>@topic.Summary</small></span><valora-icon name="chevron-right" size="18" decorative="true" /></a>
+  }
+  </div>
+</section>

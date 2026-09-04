@@ -44,7 +44,7 @@ A solution `Valora.sln` segue Clean Architecture com separação entre API, apli
    ```
 
 5. Aplique o bootstrap idempotente com `./database/postgresql/apply-local.ps1`. O script pode ser executado novamente e interrompe no primeiro erro SQL.
-6. Para uma demonstração controlada, antes do passo anterior defina `$env:VALORA_SEED_DEMO = "true"`. O wrapper recusa o seed fora de `Development`. Ele cria somente a organização **Organização Demo Valora [DEMO]**, estrutura sintética, assinatura Professional temporária e `admin.demo@valora.local` / `Valora!12345`. Troque a senha em qualquer ambiente compartilhado. A flag permanece `false` por padrão e nunca deve ser habilitada em produção.
+6. Para uma demonstração controlada, antes do passo anterior defina `$env:VALORA_SEED_DEMO = "true"`. O wrapper recusa o seed fora de `Development`. Ele cria somente a organização **Empresa Demonstração Valora**, estrutura sintética, assinatura Enterprise temporária e `admin.demo@valora.local` / `Valora@123456`. Troque a senha em qualquer ambiente compartilhado. A flag permanece `false` por padrão e nunca deve ser habilitada em produção.
 7. Execute `./run-local.bat`. A API abre em `http://localhost:5080` e o Web em `http://localhost:5088`; acesse `/Account/Login`.
 8. No Dashboard, abra a jornada guiada, revise Organização, Diagnósticos e o diagnóstico oficial. Publique, copie o link na área de links públicos e valide-o em uma janela anônima, incluindo consentimento LGPD, envio e tela final.
 

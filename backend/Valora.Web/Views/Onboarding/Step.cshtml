@@ -1,13 +1,6 @@
 @model Valora.Web.Controllers.OnboardingStepViewModel
 @{ ViewData["Title"] = "Onboarding · " + Model.Title; }
-<div class="journey-page">
-  <header class="journey-hero">
-    <span class="journey-kicker">Configuração guiada · etapa @Model.Position de @Model.Total</span>
-    <h1>@Model.Title</h1><p>@Model.Description</p>
-    <div class="journey-progress" role="progressbar" aria-valuenow="@Model.Position" aria-valuemin="1" aria-valuemax="@Model.Total"><span style="width:@(Model.Position * 100 / Model.Total)%"></span></div>
-  </header>
-  <section class="journey-panel">
-    <div><span class="journey-label">O que fazer agora</span><h2>Revise e registre as informações desta etapa</h2><p>As alterações ficam vinculadas à organização e podem ser auditadas. Você poderá voltar e complementar os dados antes da ativação.</p></div>
-    <div class="journey-actions"><a class="btn btn-outline-secondary" href="/Onboarding">Visão do onboarding</a><a class="btn btn-primary" href="@Model.NextUrl">@Model.NextLabel <span aria-hidden="true">→</span></a></div>
-  </section>
-</div>
+<section class="onboarding-step">
+  <header class="help-topic-header"><a href="/Onboarding/Checklist">← Voltar ao checklist</a><span class="eyebrow">Configuração guiada</span><h1>@Model.Title</h1><p>@Model.Description</p></header>
+  <article class="next-best-action"><div><strong>O que fazer agora</strong><p>Abra a configuração, revise os dados no contexto da organização selecionada e volte para marcar esta etapa como concluída.</p></div><a class="valora-button valora-button--primary" href="@Model.NextUrl">@Model.NextLabel →</a></article>
+</section>

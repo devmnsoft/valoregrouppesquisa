@@ -1,0 +1,10 @@
+@model Valora.Web.Controllers.HelpTopicViewModel
+@{ ViewData["Title"] = "Ajuda · " + Model.Title; }
+<section class="help-center" aria-labelledby="topic-title">
+  <header class="help-topic-header"><a href="/Help">← Central de ajuda</a><span class="eyebrow">Guia executivo</span><h1 id="topic-title">@Model.Title</h1><p>@Model.Summary</p></header>
+  <ol class="help-steps">
+  @{ var position = 0; }
+  @foreach (var step in Model.Steps) { position++; <li><span class="help-step-number">@position</span><div><h2>@step.Title</h2><p>@step.Description</p><a class="valora-button valora-button--secondary" href="@step.Url">Ir para esta etapa <span aria-hidden="true">→</span></a></div></li> }
+  </ol>
+  <aside class="next-best-action"><div><strong>Precisa concluir a implantação?</strong><p>O checklist mantém o progresso e indica a próxima ação recomendada.</p></div><a class="valora-button valora-button--primary" href="/Onboarding/Checklist">Ver checklist</a></aside>
+</section>

@@ -1,0 +1,3 @@
+@model Valora.Application.Indicators.IndicatorDto
+@{var quality=Model.LatestValue.HasValue&&Model.HasReliableSource?"Verificada":Model.HasReliableSource?"Aguardando dados":"Fonte pendente";}
+<span class="cc-badge @(quality=="Verificada"?"cc-badge--good":"cc-badge--warning")">@quality</span>

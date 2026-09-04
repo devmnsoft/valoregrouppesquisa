@@ -1,0 +1,53 @@
+@model Valora.Web.Models.ViewModels.CommandCenterViewModel
+@using Valora.Application.Indicators
+@{ var page = Model.Page; var openAlerts = Model.Alerts.Where(x => x.Status != "resolved").ToArray(); }
+<link rel="stylesheet" href="~/css/command-center.css" asp-append-version="true" />
+<main class="command-center" data-page="command-center">
+  <partial name="_CommandCenterShell" model="Model" />
+  <partial name="_ToastMessages" />
+  <form method="get" class="cc-filters" aria-label="Filtros do painel" data-filter-form>
+    <partial name="_PeriodFilter" model="Model.Filter" />
+    <label>Módulo<select asp-for="Filter.Module"><option value="">Todos os módulos</option><option value="diagnostics">Diagnósticos</option><option value="actions">Ações</option><option value="reports">Relatórios</option></select></label>
+    <label>Severidade<select asp-for="Filter.Severity"><option value="">Todas</option><option value="critical">Crítica</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></label>
+    <button class="cc-button cc-button--primary" type="submit">Aplicar filtros</button>
+    <a class="cc-button" href="@Context.Request.Path" data-clear-filters>Limpar filtros</a>
+  </form>
+
+  @if (page is "Overview" or "Executive") {
+    <section class="cc-metric-grid" aria-label="Indicadores executivos">
+      <partial name="_ExecutiveMetricCard" model="@(new ExecutiveMetricCardModel("Indicadores com dados", Model.MetricsWithData.ToString(), "Métricas oficiais atualizadas", "good", "/CommandCenter/Metrics"))" />
+      <partial name="_ExecutiveMetricCard" model="@(new ExecutiveMetricCardModel("Dados insuficientes", Model.InsufficientMetrics.ToString(), "Sem inferir ou inventar resultados", Model.InsufficientMetrics > 0 ? "warning" : "good", "/CommandCenter/Metrics"))" />
+      <partial name="_ExecutiveMetricCard" model="@(new ExecutiveMetricCardModel("Alertas críticos", Model.CriticalAlerts.ToString(), "Exigem resolução ou arquivamento", Model.CriticalAlerts > 0 ? "critical" : "good", "/CommandCenter/Alerts?severity=critical"))" />
+      <partial name="_ExecutiveMetricCard" model="@(new ExecutiveMetricCardModel("Tendência de queda", Model.WorseningMetrics.ToString(), "Compare apenas ciclos equivalentes", Model.WorseningMetrics > 0 ? "warning" : "good", "/CommandCenter/Metrics"))" />
+    </section>
+    <div class="cc-dashboard-grid">
+      <section class="cc-panel"><header><div><span class="cc-eyebrow">Prioridades</span><h2>O que requer atenção</h2></div><a href="/CommandCenter/Alerts">Ver todos</a></header>
+        @if (!openAlerts.Any()) { <partial name="_EmptyDashboardState" model="@(new EmptyDashboardStateModel("Nenhum alerta aberto", "Novos sinais aparecerão aqui sem ocultar o histórico.", "/CommandCenter/Metrics", "Revisar indicadores"))" /> }
+        else { <div class="cc-alert-list">@foreach(var alert in openAlerts.Take(4)){<partial name="_AlertCard" model="alert" />}</div> }
+      </section>
+      <section class="cc-panel"><header><div><span class="cc-eyebrow">Próximo passo</span><h2>Ações recomendadas</h2></div></header>
+        <partial name="_NextActionCard" model="@(new NextActionCardModel(Model.InsufficientMetrics > 0 ? "Complete as fontes pendentes" : "Revise a evolução do período", Model.InsufficientMetrics > 0 ? "Indicadores incompletos não entram na leitura executiva." : "Valide tendências com responsáveis antes de decidir.", Model.InsufficientMetrics > 0 ? "/Indicators/Catalog" : "/CommandCenter/Timeline", "Começar agora"))" />
+      </section>
+    </div>
+  }
+  else if (page == "Metrics") {
+    <section class="cc-panel"><header><div><span class="cc-eyebrow">Valora Metrics™</span><h2>Indicadores oficiais</h2></div><a class="cc-button cc-button--primary" href="/Indicators/Catalog">Gerenciar catálogo</a></header>
+      <div class="cc-table-wrap"><table><thead><tr><th>Indicador</th><th>Categoria</th><th>Resultado</th><th>Tendência</th><th>Fonte</th><th>Qualidade</th><th>Atualização</th></tr></thead><tbody>
+      @foreach(var metric in Model.Metrics){var trend=Model.Trends[metric.Id];<tr><td><strong>@metric.Name</strong><small>@(metric.Formula ?? "Medição manual declarada")</small></td><td>@metric.Category</td><td>@(metric.LatestValue?.ToString("0.##") ?? "Dados insuficientes") @if(metric.LatestValue.HasValue){<span>@metric.Unit</span>}</td><td><partial name="_MetricTrendBadge" model="trend" /></td><td>@(metric.SourceName ?? "Não configurada")</td><td><partial name="_DataQualityBadge" model="metric" /></td><td>@(metric.LatestMeasuredAt?.ToString("dd/MM/yyyy") ?? "—")</td></tr>}
+      </tbody></table></div>@if(!Model.Metrics.Any()){<partial name="_EmptyDashboardState" model="@(new EmptyDashboardStateModel("Nenhum indicador oficial", "Cadastre nome, fórmula, fonte, periodicidade e responsável antes de calcular.", "/Indicators/Catalog", "Criar indicador"))" />}</section>
+  }
+  else if (page == "Alerts") {
+    <section class="cc-panel"><header><div><span class="cc-eyebrow">Alertas inteligentes</span><h2>Riscos e pendências</h2></div></header>
+      <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+      @if(!Model.Alerts.Any()){<partial name="_EmptyDashboardState" model="@(new EmptyDashboardStateModel("Nenhum alerta neste filtro", "Ajuste os filtros ou revise as regras dos indicadores.", "/CommandCenter/Alerts", "Limpar filtros"))" />}
+      else {<div class="cc-alert-list">@foreach(var alert in Model.Alerts){<partial name="_AlertCard" model="alert" />}</div>}
+    </section>
+  }
+  else if (page == "Timeline") {
+    <section class="cc-panel"><header><div><span class="cc-eyebrow">Linha do tempo</span><h2>Evolução verificável</h2></div></header><div class="cc-timeline">@foreach(var metric in Model.Metrics.OrderByDescending(x=>x.LatestMeasuredAt).Where(x=>x.LatestMeasuredAt.HasValue)){<article><time>@metric.LatestMeasuredAt!.Value.ToString("dd/MM/yyyy")</time><div><strong>@metric.Name</strong><p>@(metric.LatestValue?.ToString("0.##") ?? "Dados insuficientes") @metric.Unit · @Model.Trends[metric.Id].Limitation</p></div></article>}@if(!Model.Metrics.Any(x=>x.LatestMeasuredAt.HasValue)){<partial name="_EmptyDashboardState" model="@(new EmptyDashboardStateModel("Histórico ainda indisponível", "São necessárias medições verificáveis para montar a evolução.", "/Indicators/Measurements", "Registrar medição"))" />}</div></section>
+  }
+  else {
+    <section class="cc-panel"><header><div><span class="cc-eyebrow">Ações pendentes</span><h2>Transforme sinais em execução</h2></div></header><partial name="_NextActionCard" model="@(new NextActionCardModel("Priorize alertas não resolvidos", "Cada alerta mantém origem, severidade e histórico de resolução.", "/CommandCenter/Alerts", "Abrir alertas"))" /><partial name="_NextActionCard" model="@(new NextActionCardModel("Conecte evidência e responsável", "Crie uma ação com prazo mensurável no plano de ação.", "/ActionPlans", "Criar ação"))" /></section>
+  }
+</main>
+@section Scripts { <script src="~/js/pages/command-center.js" asp-append-version="true"></script> }

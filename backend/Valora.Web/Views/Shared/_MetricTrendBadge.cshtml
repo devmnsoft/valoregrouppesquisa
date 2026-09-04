@@ -1,0 +1,3 @@
+@model Valora.Application.Indicators.TrendResult
+@{var label=Model.Trend switch{Valora.Application.Indicators.IndicatorTrend.Improving=>"Melhorando",Valora.Application.Indicators.IndicatorTrend.Worsening=>"Piorando",Valora.Application.Indicators.IndicatorTrend.Stable=>"Estável",_=>"Dados insuficientes"};}
+<span class="cc-badge cc-badge--@Model.Trend.ToString().ToLowerInvariant()" title="@Model.Limitation">@label</span>

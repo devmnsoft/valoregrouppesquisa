@@ -1,0 +1,3 @@
+@model Valora.Web.Models.ViewModels.SaasClientAreaViewModel
+@{ ViewData["Title"] = Model.Title; }
+<main class="saas-console"><partial name="_PageHeader" model="@(new PageHeaderViewModel(Model.Title, Model.Description, "Administração do cliente", null, new[] { new PageHeaderAction("Módulos contratados", $"/Admin/Clients/{Model.ClientId}/Modules", null, "primary"), new PageHeaderAction("Voltar aos clientes", "/Admin/Clients") }))" /><div class="valora-alert valora-alert--info" role="status">Esta área utiliza os fluxos administrativos existentes e mantém o cliente selecionado como escopo obrigatório.</div></main>

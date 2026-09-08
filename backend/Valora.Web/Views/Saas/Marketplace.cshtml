@@ -1,0 +1,30 @@
+@model Valora.Web.Models.ViewModels.SaasMarketplaceViewModel
+@using System.Globalization
+@{ ViewData["Title"] = "Módulos e planos"; var br = CultureInfo.GetCultureInfo("pt-BR"); }
+<main class="saas-console saas-marketplace">
+ <header class="saas-hero"><div><span class="saas-eyebrow">Valora Insight™ · Marketplace</span><h1>Monte a plataforma certa para sua evolução</h1><p>Módulos comerciais, limites transparentes e dados preservados mesmo quando a contratação muda.</p></div><a class="saas-upgrade" href="#plans">Comparar planos</a></header>
+ @if (!string.IsNullOrWhiteSpace(Model.BlockedModule))
+ { <div class="valora-alert valora-alert--warning" role="alert"><strong>Módulo não contratado.</strong> Este recurso não faz parte do plano atual. Consulte as opções abaixo ou solicite um upgrade.</div> }
+ @if (Model.ClientId is null && !Model.IsPlatformAdministrator)
+ { <div class="valora-alert valora-alert--warning" role="alert">Selecione um cliente para consultar contratação, limites e uso.</div> }
+ <section class="module-market-grid" aria-label="Catálogo de módulos">
+ @foreach (var module in Model.Modules)
+ {
+  <article class="module-market-card @(module.IsContracted ? "is-contracted" : null)">
+   <header><span class="module-market-icon"><valora-icon name="@module.Icon" decorative="true" /></span><span class="badge">@module.MenuCategory</span></header>
+   <div><h2>@module.Name</h2><p>@module.Description</p></div>
+   <ul><li>@module.FeatureCount funcionalidades catalogadas</li><li>Acesso por perfil e permissão</li><li>Histórico preservado</li></ul>
+   <footer><div><small>A partir de</small><strong>@(module.BasePrice == 0 ? "Incluso" : module.BasePrice.ToString("C", br) + "/mês")</strong></div>
+    @if (Model.IsPlatformAdministrator) { <a class="valora-button" href="/Admin/Modules">Administrar</a> }
+    else if (module.IsContracted) { <a class="valora-button valora-button--primary" href="@module.MainRoute">@(module.IsReadOnly ? "Consultar histórico" : "Abrir módulo")</a> }
+    else
+    { <details class="module-upgrade"><summary class="valora-button valora-button--primary">Solicitar upgrade</summary><form method="post" action="/Subscription/Modules/Request">@Html.AntiForgeryToken()<input type="hidden" name="ModuleCode" value="@module.Code" /><label>Como pretende usar este módulo?<textarea name="Reason" required minlength="10" maxlength="1000" rows="3"></textarea></label><button class="valora-button valora-button--primary" type="submit" data-confirm="Sua solicitação será registrada e encaminhada ao time comercial. Deseja continuar?" data-confirm-title="Solicitar upgrade?" data-loading-text="Enviando…">Enviar solicitação</button></form></details> }
+   </footer>
+  </article>
+ }
+ </section>
+ <section class="saas-plan-section" id="plans"><div class="section-heading"><span class="saas-eyebrow">Planos comerciais</span><h2>Compare benefícios e escala</h2><p>Valores mensais de referência. O plano Enterprise aceita limites e composição personalizados.</p></div><div class="saas-plan-grid">
+ @foreach (var plan in Model.Plans)
+ { <article><span class="badge">@plan.ModuleCount módulos</span><h3>@plan.Name</h3><p>@plan.Description</p><strong>@(plan.MonthlyPrice == 0 ? (plan.Code == "free" ? "Grátis" : "Sob consulta") : plan.MonthlyPrice.ToString("C", br) + "/mês")</strong><a class="valora-button" href="mailto:comercial@valoragroup.com.br?subject=Plano @plan.Name">Falar com especialista</a></article> }
+ </div></section>
+</main>

@@ -1,0 +1,5 @@
+@model IReadOnlyList<string>
+@{ ViewData["Title"] = "Catálogo de permissões"; }
+<main class="saas-console"><partial name="_PageHeader" model="@(new PageHeaderViewModel("Catálogo de permissões", "Fonte única para perfis e funcionalidades do sistema.", "Super Admin"))" /><section class="permission-catalog">
+@foreach(var group in Model.GroupBy(code=>code.Split('.')[0]).OrderBy(group=>group.Key)){<article><h2>@group.Key</h2><ul>@foreach(var permission in group){<li><code>@permission</code></li>}</ul></article>}
+</section></main>

@@ -38,6 +38,7 @@ using Valora.Application.Processes;
 using Valora.Application.Benchmarks;
 using Valora.Application.SaasAdministration;
 using Valora.Application.SolutionPacks;
+using Valora.Application.ModularSaas;
 
 namespace Valora.Application.DependencyInjection;
 
@@ -356,6 +357,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<SendDiagnosticInvitationUseCase>();
         services.AddScoped<SendReportLinkUseCase>();
         services.AddScoped<SendCertificateLinkUseCase>();
+        services.AddScoped<CommercialSaasService>();
         return services;
     }
 }

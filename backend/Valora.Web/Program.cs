@@ -11,6 +11,7 @@ using Valora.Application.Common;
 using Valora.Application.DependencyInjection;
 using Valora.Infrastructure.DependencyInjection;
 using System.Text.Json;
+using Valora.Web.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -115,6 +116,7 @@ app.Use(async (context, next) =>
 });
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<CommercialModuleAccessMiddleware>();
 
 app.Use(async (context, next) =>
 {

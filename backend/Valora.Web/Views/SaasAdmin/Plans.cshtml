@@ -1,0 +1,6 @@
+@model IReadOnlyList<Valora.Application.ModularSaas.CommercialPlan>
+@using System.Globalization
+@{ ViewData["Title"] = "Planos comerciais"; var br = CultureInfo.GetCultureInfo("pt-BR"); }
+<main class="saas-console"><partial name="_PageHeader" model="@(new PageHeaderViewModel("Planos comerciais", "Composição modular e preços de referência.", "Super Admin"))" /><section class="saas-plan-grid">
+@foreach(var plan in Model){<article><span class="badge">@plan.Code</span><h2>@plan.Name</h2><p>@plan.Description</p><strong>@plan.MonthlyPrice.ToString("C",br)/mês</strong><small>@plan.ModuleCount módulos incluídos</small></article>}
+</section></main>

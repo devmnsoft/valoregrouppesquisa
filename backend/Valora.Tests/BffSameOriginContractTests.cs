@@ -10,6 +10,7 @@ public sealed class BffSameOriginContractTests
         var source = Read("backend", "Valora.Web", "Controllers", "WebConfigController.cs");
         Assert.DoesNotContain("API_BASE_URL =", source, StringComparison.Ordinal);
         Assert.Contains("BFF_BASE_URL = string.Empty", source, StringComparison.Ordinal);
+        Assert.Contains("[AllowAnonymous]", source, StringComparison.Ordinal);
     }
 
     [Fact]

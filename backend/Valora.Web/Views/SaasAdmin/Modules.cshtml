@@ -1,0 +1,6 @@
+@model IReadOnlyList<Valora.Application.ModularSaas.CommercialModule>
+@using System.Globalization
+@{ ViewData["Title"] = "Catálogo de módulos"; var br = CultureInfo.GetCultureInfo("pt-BR"); }
+<main class="saas-console"><partial name="_PageHeader" model="@(new PageHeaderViewModel("Catálogo de módulos", "Códigos, preços, rotas e recursos oficiais do SaaS.", "Super Admin"))" /><section class="module-admin-grid">
+@foreach(var module in Model){<article><header><span class="module-market-icon"><valora-icon name="@module.Icon" decorative="true" /></span><div><h2>@module.Name</h2><span class="badge">@module.Code</span></div></header><p>@module.Description</p><dl><dt>Preço base</dt><dd>@module.BasePrice.ToString("C",br)</dd><dt>Rota</dt><dd><a href="@module.MainRoute">@module.MainRoute</a></dd><dt>Permissão interna</dt><dd>@module.AccessModuleCode</dd></dl></article>}
+</section></main>

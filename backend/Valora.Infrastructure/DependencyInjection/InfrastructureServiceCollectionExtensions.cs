@@ -48,6 +48,8 @@ using Valora.Application.People;
 using Valora.Infrastructure.People;
 using Valora.Application.RiskCompliance;
 using Valora.Infrastructure.RiskCompliance;
+using Valora.Application.ModularSaas;
+using Valora.Infrastructure.ModularSaas;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
@@ -199,6 +201,7 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<RegisterSecurityIncidentUseCase>(); services.AddScoped<ResolveSecurityIncidentUseCase>();
         services.AddScoped<StartAccessReviewCycleUseCase>(); services.AddScoped<CompleteAccessReviewCycleUseCase>(); services.AddScoped<LogSensitiveDataAccessUseCase>();
         services.AddScoped<IExportAuditService, ExportAuditService>();
+        services.AddScoped<ICommercialSaasRepository, CommercialSaasRepository>();
         return services;
     }
 

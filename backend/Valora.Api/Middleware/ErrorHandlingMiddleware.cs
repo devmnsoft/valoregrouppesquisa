@@ -95,6 +95,7 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
         ArgumentException => (StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Requisição inválida."),
         UnauthorizedAccessException => (StatusCodes.Status403Forbidden, "FORBIDDEN", "Você não possui acesso a esta ação."),
         InactiveUserException inactive => (StatusCodes.Status403Forbidden, "AUTH_USER_INACTIVE", inactive.Message),
+        InactiveOrganizationException inactive => (StatusCodes.Status403Forbidden, "AUTH_ORGANIZATION_INACTIVE", inactive.Message),
         OrganizationAccessNotConfiguredException access => (StatusCodes.Status403Forbidden, "AUTH_ACCESS_NOT_CONFIGURED", access.Message),
         ApplicationConfigurationException => (StatusCodes.Status500InternalServerError, "APPLICATION_CONFIGURATION_ERROR", "A configuração da aplicação está incompleta."),
         ForbiddenAppException => (StatusCodes.Status403Forbidden, "FORBIDDEN", "Acesso proibido."),

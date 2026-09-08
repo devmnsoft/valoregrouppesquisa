@@ -60,6 +60,40 @@ public sealed class UserRepository(IDbConnectionFactory factory, ILogger<UserRep
         catch (Exception ex) { logger.LogError(ex, "Erro ao buscar usuário por e-mail. Email={Email}", LogSanitizer.MaskEmail(email)); throw; }
     }
 
+    public async Task<UserAuthenticationRecord?> GetByLoginAsync(string identifierType, string normalizedIdentifier)
+    {
+        using var connection = factory.Create();
+        const string sql = """
+            SELECT u.id AS Id,u.organization_id AS OrganizationId,u.name AS Name,u.email AS Email,
+                   u.password_hash AS PasswordHash,u.status AS Status,u.phone AS Phone,
+                   COALESCE((SELECT string_agg(r.code, ',' ORDER BY r.code)
+                     FROM valorapesquisa.user_roles ur JOIN valorapesquisa.roles r ON r.id=ur.role_id
+                     WHERE ur.user_id=u.id), '') AS RoleCodesCsv
+              FROM valorapesquisa.users u
+             WHERE u.deleted_at IS NULL AND (
+                   (@IdentifierType='email' AND lower(u.email)=@NormalizedIdentifier)
+                   OR EXISTS (
+                       SELECT 1 FROM valorapesquisa.saas_customer_users scu
+                       JOIN valorapesquisa.saas_login_identifiers sli ON sli.customer_user_id=scu.id
+                       WHERE scu.user_id=u.id AND scu.status='active'
+                         AND sli.identifier_type=@IdentifierType AND sli.normalized_value=@NormalizedIdentifier))
+             ORDER BY u.updated_at DESC NULLS LAST LIMIT 1;
+            """;
+        try
+        {
+            var row = await connection.QuerySingleOrDefaultAsync<AuthUserRow>(new CommandDefinition(sql,
+                new { IdentifierType = identifierType, NormalizedIdentifier = normalizedIdentifier }));
+            return row is null ? null : new UserAuthenticationRecord(row.Id,row.OrganizationId,row.Name,row.Email,
+                row.PasswordHash,row.Status,row.Phone,row.RoleCodesCsv ?? string.Empty);
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Erro ao buscar usuário por identificador. IdentifierType={IdentifierType} IdentifierHash={IdentifierHash}",
+                identifierType, LogSanitizer.HashForLog(normalizedIdentifier));
+            throw;
+        }
+    }
+
     public async Task<UserRecord?> GetAsync(Guid id)
     {
         using var connection = factory.Create();

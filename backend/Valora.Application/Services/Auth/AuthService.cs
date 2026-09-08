@@ -10,6 +10,7 @@ using Valora.Domain.ValueObjects;
 using Valora.Application.CompanyRegistration;
 using Valora.Application.Exceptions;
 using Valora.Application.Access;
+using System.ComponentModel.DataAnnotations;
 
 namespace Valora.Application.Services;
 
@@ -49,7 +50,10 @@ public sealed class AuthService(
 
     public async Task<AuthenticationResult> LoginAsync(LoginRequest request)
     {
-        logger.LogInformation("Login started. Email={Email}", LogSanitizer.MaskEmail(request.Email));
+        var maskedIdentifier = request.Email?.Contains('@') == true
+            ? LogSanitizer.MaskEmail(request.Email)
+            : LogSanitizer.MaskDocument(request.Email);
+        logger.LogInformation("Login started. Identifier={Identifier}", maskedIdentifier);
 
         if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
         {
@@ -57,8 +61,9 @@ public sealed class AuthService(
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
+        var (identifierType, normalizedIdentifier) = NormalizeLoginIdentifier(request.Email);
         var maskedEmail = LogSanitizer.MaskEmail(request.Email);
-        var user = await users.GetByEmailAsync(request.Email);
+        var user = await users.GetByLoginAsync(identifierType, normalizedIdentifier);
         if (user is null)
         {
             logger.LogWarning("Login rejected: user not found. Email={Email}", maskedEmail);
@@ -121,6 +126,12 @@ public sealed class AuthService(
         {
             logger.LogWarning("Login rejected: active organization missing. Email={Email} OrganizationId={OrganizationId}", maskedEmail, organizationId);
             throw new OrganizationAccessNotConfiguredException();
+        }
+        if (!string.Equals(organization.Status, "active", StringComparison.OrdinalIgnoreCase))
+        {
+            logger.LogWarning("Login rejected: organization inactive. OrganizationId={OrganizationId} Status={Status}", organizationId, organization.Status);
+            await RecordAuthenticationEventSafelyAsync(organizationId, user.Id, "auth.login_failed", "inactive_organization");
+            throw new InactiveOrganizationException();
         }
 
         var planId = await plans.GetCurrentPlanIdAsync(organizationId);
@@ -267,6 +278,22 @@ public sealed class AuthService(
     }
 
     private static string HashToken(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
+
+    private static (string Type, string Value) NormalizeLoginIdentifier(string value)
+    {
+        var trimmed = value.Trim();
+        if (trimmed.Contains('@'))
+        {
+            if (!new EmailAddressAttribute().IsValid(trimmed))
+                throw new ArgumentException("Informe um CPF, CNPJ ou e-mail válido.");
+            return ("email", trimmed.ToLowerInvariant());
+        }
+
+        var digits = new string(trimmed.Where(char.IsDigit).ToArray());
+        if (digits.Length == 11 && Cpf.TryCreate(digits, out var cpf)) return ("cpf", cpf!.Value);
+        if (digits.Length == 14 && Cnpj.TryCreate(digits, out var cnpj)) return ("cnpj", cnpj!.Value);
+        throw new ArgumentException("Informe um CPF, CNPJ ou e-mail válido.");
+    }
 
     private static string? HashNullable(string? value) => string.IsNullOrWhiteSpace(value) ? null : HashToken(value);
 

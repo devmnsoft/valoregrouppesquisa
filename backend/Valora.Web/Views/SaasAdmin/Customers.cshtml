@@ -1,0 +1,8 @@
+@model IReadOnlyList<Valora.Application.SaasAdministration.SaasCustomerDto>
+@{ ViewData["Title"] = "Clientes SaaS"; }
+<main class="saas-console"><partial name="_PageHeader" model="@(new PageHeaderViewModel("Clientes SaaS", "Situação contratual e acesso administrativo por cliente.", "Super Admin", null, new[] { new PageHeaderAction("Criar cliente", "/Admin/Clients/Create", null, "primary") }))" />
+ <section class="saas-panel"><div class="saas-table-wrap"><table><thead><tr><th>Cliente</th><th>Documento</th><th>Plano</th><th>Status</th><th>Ações</th></tr></thead><tbody>
+ @if (Model.Count == 0) { <tr><td colspan="5"><div class="admin-empty">Nenhum cliente cadastrado.</div></td></tr> }
+ @foreach (var client in Model) { <tr><td><strong>@client.TradeName</strong><small>@client.LegalName</small></td><td>@client.TaxIdNormalized</td><td>@client.PlanCode</td><td><span class="badge">@client.Status</span></td><td><a class="valora-button" href="/Admin/Clients/@client.Id/Modules">Administrar</a></td></tr> }
+ </tbody></table></div></section>
+</main>

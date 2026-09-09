@@ -79,15 +79,15 @@ public sealed class MigrationImportTests {
     }
 
     [Fact]
-    public void MaskSensitiveJson_Invalid_Json_Throws_Controlled_Error_From_Reader() {
+    public async Task MaskSensitiveJson_Invalid_Json_Throws_Controlled_Error_From_Reader() {
         var reader = new ManualJsonReader(new LegacyMappingService(), normalizer);
 
-        var ex = Assert.ThrowsAsync<InvalidOperationException>(() => reader.ReadAsync(new MigrationUploadRequest(
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => reader.ReadAsync(new MigrationUploadRequest(
             "manual",
             "invalid",
             "bad.json",
             "application/json",
-            "{\"users\":[{"))).GetAwaiter().GetResult();
+            "{\"users\":[{")));
 
         Assert.Contains("JSON inválido para importação", ex.Message);
     }

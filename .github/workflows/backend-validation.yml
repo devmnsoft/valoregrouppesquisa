@@ -141,7 +141,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with: { global-json-file: backend/global.json }
-      - run: dotnet format Valora.sln --verify-no-changes 2>&1 | tee artifacts/format.log
+      - run: |
+          set -o pipefail
+          dotnet format Valora.sln --verify-no-changes 2>&1 | tee artifacts/format.log
         working-directory: backend
       - if: always()
         uses: actions/upload-artifact@v4

@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Threading.RateLimiting;
 using Dapper;
 using Microsoft.AspNetCore.RateLimiting;
@@ -12,6 +13,9 @@ using Valora.Infrastructure.DependencyInjection;
 DefaultTypeMap.MatchNamesWithUnderscores = true;
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (builder.Environment.IsEnvironment("Testing") && string.IsNullOrWhiteSpace(builder.Configuration["Jwt:SigningKey"]))
+    builder.Configuration["Jwt:SigningKey"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
 builder.Host.UseSerilog((context, logger) => logger
     .ReadFrom.Configuration(context.Configuration)

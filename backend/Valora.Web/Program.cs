@@ -12,6 +12,7 @@ using Valora.Application.DependencyInjection;
 using Valora.Infrastructure.DependencyInjection;
 using System.Text.Json;
 using Valora.Web.Security;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -28,11 +29,15 @@ builder.Services.AddSingleton<PageExperienceCatalog>();
 builder.Services.AddSingleton<NavigationCatalog>();
 builder.Services.AddScoped<NavigationService>();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentRequestContext, CurrentRequestContextProvider>();
 builder.Services.AddScoped<ICurrentOrganizationProvider, CurrentOrganizationProvider>();
 builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddScoped<INavigationRouteResolver, EndpointNavigationRouteResolver>();
 var isDevelopment = builder.Environment.IsDevelopment();
+var requiresDistributedSession = builder.Environment.IsProduction()
+    || builder.Environment.IsStaging()
+    || builder.Environment.IsEnvironment("Homologation");
 var sessionMinutes = Math.Clamp(builder.Configuration.GetValue("Authentication:SessionMinutes", 30), 5, 720);
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -44,7 +49,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/error/403";
         options.ExpireTimeSpan = TimeSpan.FromMinutes(sessionMinutes);
-        options.SlidingExpiration = true;
+        options.SlidingExpiration = false;
         options.Events.OnRedirectToLogin = context => WriteBffAuthenticationFailure(context, StatusCodes.Status401Unauthorized,
             "AUTHENTICATION_REQUIRED", "Sua sessão expirou. Entre novamente para continuar.");
         options.Events.OnRedirectToAccessDenied = context => WriteBffAuthenticationFailure(context, StatusCodes.Status403Forbidden,
@@ -62,6 +67,8 @@ builder.Services.AddAuthorization(options =>
 builder.Services.AddAntiforgery(options => options.HeaderName = "X-CSRF-TOKEN");
 var dataProtection = builder.Services.AddDataProtection().SetApplicationName("Valora.Web.Bff");
 var keyDirectory = builder.Configuration["DataProtection:KeysPath"];
+if (requiresDistributedSession && (string.IsNullOrWhiteSpace(keyDirectory) || !Path.IsPathRooted(keyDirectory)))
+    throw new InvalidOperationException("DataProtection:KeysPath deve apontar para um diretório absoluto e compartilhado fora de Development.");
 if (!string.IsNullOrWhiteSpace(keyDirectory))
 {
     var absoluteKeyDirectory = Path.IsPathRooted(keyDirectory)
@@ -70,7 +77,26 @@ if (!string.IsNullOrWhiteSpace(keyDirectory))
     Directory.CreateDirectory(absoluteKeyDirectory);
     dataProtection.PersistKeysToFileSystem(new DirectoryInfo(absoluteKeyDirectory));
 }
-builder.Services.AddDistributedMemoryCache();
+var redisConnection = builder.Configuration.GetConnectionString("BffRedis");
+if (!requiresDistributedSession)
+{
+    builder.Services.AddDistributedMemoryCache();
+}
+else
+{
+    if (string.IsNullOrWhiteSpace(redisConnection))
+        throw new InvalidOperationException("ConnectionStrings:BffRedis é obrigatório em homologação e produção.");
+    builder.Services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = redisConnection;
+        options.InstanceName = "valora:bff:";
+    });
+}
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = 1;
+});
 builder.Services.AddSingleton<BffSessionProtector>();
 builder.Services.AddSingleton<IDistributedBffSessionStore, DistributedBffSessionStore>();
 builder.Services.AddHostedService<BffSessionCleanupService>();
@@ -89,6 +115,8 @@ builder.Services.Configure<WebAppOptions>(
     builder.Configuration.GetSection("WebApp"));
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 if (!app.Environment.IsDevelopment())
 {

@@ -93,4 +93,40 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
         var session = await authentication.GetAsync(HttpContext, cancellationToken);
         return session is null ? Unauthorized() : Ok(new[] { session.SafeSession });
     }
+
+    [Authorize(Roles = "admin_valora"), HttpPost("select-organization")]
+    public async Task<IActionResult> SelectOrganization([FromBody] SelectOrganizationRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request.OrganizationId == Guid.Empty)
+            return BadRequest(new { code = "ORGANIZATION_ID_REQUIRED", message = "Selecione uma organização válida." });
+
+        var correlationId = CorrelationId();
+        using var validation = await authentication.SendAuthorizedAsync(HttpContext, HttpMethod.Post,
+            $"/api/v1/saas/customers/{request.OrganizationId}/select-context",
+            new { reason = request.Reason }, correlationId, cancellationToken);
+        if (validation is null) return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou." });
+        if (!validation.IsSuccessStatusCode)
+        {
+            var payload = await validation.Content.ReadAsStringAsync(cancellationToken);
+            return new ContentResult
+            {
+                StatusCode = (int)validation.StatusCode,
+                ContentType = validation.Content.Headers.ContentType?.ToString() ?? "application/problem+json",
+                Content = payload
+            };
+        }
+
+        var session = await authentication.SelectOrganizationAsync(HttpContext, request.OrganizationId, cancellationToken);
+        return session is null ? Forbid() : Ok(session);
+    }
+
+    [Authorize(Roles = "admin_valora"), HttpDelete("selected-organization")]
+    public async Task<IActionResult> ClearSelectedOrganization(CancellationToken cancellationToken)
+    {
+        var session = await authentication.SelectOrganizationAsync(HttpContext, null, cancellationToken);
+        return session is null ? Forbid() : Ok(session);
+    }
 }
+
+public sealed record SelectOrganizationRequest(Guid OrganizationId, string? Reason);

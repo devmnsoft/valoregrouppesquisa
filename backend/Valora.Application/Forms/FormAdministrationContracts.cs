@@ -8,6 +8,7 @@ public sealed record UpdateFormRequest(string Name, string? Description, string?
 public sealed record ArchiveFormRequest(long ExpectedVersion);
 public sealed record FormVersionResponse(Guid Id, Guid FormId, int VersionNumber, string Status, int MaximumScore, DateTimeOffset? PublishedAt, long Version);
 public sealed record CreateFormVersionRequest(long ExpectedFormVersion);
+public sealed record DuplicateFormRequest(string? Name, long ExpectedVersion);
 public sealed record PublishFormVersionRequest(long ExpectedVersion);
 public sealed record FormSectionResponse(Guid Id, Guid FormVersionId, string Title, string? Description, int Position, long Version, IReadOnlyList<QuestionResponse> Questions);
 public sealed record CreateFormSectionRequest(string Title, string? Description, int Position, long ExpectedVersion);

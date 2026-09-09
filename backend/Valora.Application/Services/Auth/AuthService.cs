@@ -355,9 +355,13 @@ public sealed class AuthService(
         if (roles.Contains(ValoraAccessCatalog.PlatformRole, StringComparer.OrdinalIgnoreCase))
         {
             var permissions = ValoraPermissions.All;
-            return new(roles.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), permissions,
+            return new AuthenticatedAccessContextDto(roles.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), permissions,
                 ValoraAccessCatalog.PlatformModules, ResolveCapabilitiesSafely(permissions),
-                ["platform", "organization", $"organization:{organizationId}"], "platform", organizationId, planCode);
+                ["platform"], "platform", organizationId, planCode)
+            {
+                IsGlobalAdministrator = true,
+                SelectedOrganizationId = null
+            };
         }
 
         if (accessAdministration is null)
@@ -371,9 +375,13 @@ public sealed class AuthService(
             .Append("organization").Append($"organization:{organizationId}")
             .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
         var capabilities = ResolveCapabilitiesSafely(effective.GrantedPermissions);
-        return new(roles.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), effective.GrantedPermissions,
+        return new AuthenticatedAccessContextDto(roles.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), effective.GrantedPermissions,
             effective.AvailableModules.Select(ValoraAccessCatalog.NormalizeModule).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
-            capabilities, scopes, "active", organizationId, planCode);
+            capabilities, scopes, "active", organizationId, planCode)
+        {
+            SelectedOrganizationId = organizationId,
+            IsGlobalAdministrator = false
+        };
     }
 
     private IReadOnlyList<string> ResolveCapabilitiesSafely(IEnumerable<string> permissions) =>

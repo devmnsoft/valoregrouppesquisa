@@ -1,7 +1,6 @@
 namespace Valora.Domain.Enums;
 
-public enum SubscriptionStatus
-{
+public enum SubscriptionStatus {
     Trialing,
     Active,
     PastDue,

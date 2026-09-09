@@ -17,8 +17,7 @@ public sealed record IntelligenceAnalysis(Guid OrganizationId, DateTime Generate
     IReadOnlyList<IntelligenceInference> Inferences, IReadOnlyList<CausalRelation> CausalMap,
     IReadOnlyList<IntelligenceRecommendation> Recommendations, IReadOnlyList<DecisionSuggestion> Decisions);
 
-public interface IIntelligenceAnalysisService
-{
+public interface IIntelligenceAnalysisService {
     Task<IntelligenceAnalysis> AnalyzeAsync(Guid organizationId, CancellationToken cancellationToken);
 }
 
@@ -29,10 +28,8 @@ public sealed class IntelligenceAnalysisService(
     InferenceEngineService inferenceEngine,
     CausalMapService causalMap,
     RecommendationService recommendations,
-    DecisionSupportService decisions) : IIntelligenceAnalysisService
-{
-    public async Task<IntelligenceAnalysis> AnalyzeAsync(Guid organizationId, CancellationToken cancellationToken)
-    {
+    DecisionSupportService decisions) : IIntelligenceAnalysisService {
+    public async Task<IntelligenceAnalysis> AnalyzeAsync(Guid organizationId, CancellationToken cancellationToken) {
         var source = await repository.ListEvidenceItemsAsync(organizationId, cancellationToken);
         var evidence = evidenceMatrix.Build(source);
         var inferences = inferenceEngine.Infer(evidence);

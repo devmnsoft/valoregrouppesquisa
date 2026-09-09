@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed class ExportJob
-{
+public sealed class ExportJob {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
     public Guid? RequestedBy { get; set; }

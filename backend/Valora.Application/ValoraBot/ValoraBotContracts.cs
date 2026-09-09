@@ -8,8 +8,7 @@ public sealed record ValoraBotFeedbackRequest(Guid SessionId, Guid MessageId, bo
 public sealed record ValoraBotKnowledgeDto(Guid Id, string Intent, string QuestionPatterns, string Answer,
     string? ActionLabel, string? ActionUrl, int Priority);
 
-public interface IValoraBotRepository
-{
+public interface IValoraBotRepository {
     Task<IReadOnlyList<ValoraBotKnowledgeDto>> GetKnowledgeAsync(CancellationToken ct);
     Task<Guid> EnsureSessionAsync(Guid? sessionId, string? context, CancellationToken ct);
     Task<Guid> SaveExchangeAsync(Guid sessionId, string question, string answer, string intent, decimal confidence,
@@ -17,8 +16,7 @@ public interface IValoraBotRepository
     Task SaveFeedbackAsync(ValoraBotFeedbackRequest request, CancellationToken ct);
 }
 
-public interface IValoraBotService
-{
+public interface IValoraBotService {
     Task<ValoraBotAnswerDto> AskAsync(ValoraBotAskRequest request, CancellationToken ct = default);
     Task RegisterFeedbackAsync(ValoraBotFeedbackRequest request, CancellationToken ct = default);
 }

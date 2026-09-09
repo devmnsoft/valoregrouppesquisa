@@ -5,8 +5,7 @@ public sealed record CurrentOrganizationContext(
     bool IsResolved,
     string Source,
     bool RequiresSelection,
-    string? ErrorMessage)
-{
+    string? ErrorMessage) {
     public const string RequiredMessage = "Selecione uma organização para continuar.";
 
     public static CurrentOrganizationContext Resolved(Guid organizationId, string source) =>
@@ -19,7 +18,6 @@ public sealed record CurrentOrganizationContext(
         ?? throw new UnauthorizedAccessException(RequiredMessage);
 }
 
-public interface ICurrentOrganizationProvider
-{
+public interface ICurrentOrganizationProvider {
     CurrentOrganizationContext GetCurrent();
 }

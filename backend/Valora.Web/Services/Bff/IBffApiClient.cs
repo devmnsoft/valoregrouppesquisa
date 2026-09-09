@@ -6,8 +6,7 @@ using Valora.Web.Models;
 
 namespace Valora.Web.Services.Bff;
 
-public interface IBffApiClient
-{
+public interface IBffApiClient {
     Task CheckHealthAsync(CancellationToken cancellationToken);
     Task<JsonElement> GetHealthAsync(string path, string correlationId, CancellationToken cancellationToken);
     Task<BffAuthenticationResult> PostAuthenticationAsync(string path, object request, string correlationId, CancellationToken cancellationToken);

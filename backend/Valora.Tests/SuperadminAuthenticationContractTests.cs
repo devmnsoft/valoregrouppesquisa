@@ -2,11 +2,9 @@ using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
-public sealed class SuperadminAuthenticationContractTests
-{
+public sealed class SuperadminAuthenticationContractTests {
     [Fact]
-    public void CanonicalBootstrapDoesNotShipDevelopmentAdministratorCredentials()
-    {
+    public void CanonicalBootstrapDoesNotShipDevelopmentAdministratorCredentials() {
         var sql = File.ReadAllText(RepositoryPaths.CanonicalDatabaseScript);
 
         Assert.DoesNotContain("e2e-admin@valoragroup.local", sql, StringComparison.OrdinalIgnoreCase);
@@ -15,8 +13,7 @@ public sealed class SuperadminAuthenticationContractTests
     }
 
     [Fact]
-    public void DevelopmentDiagnosticsIsEnvironmentGatedAndDoesNotExposeSecrets()
-    {
+    public void DevelopmentDiagnosticsIsEnvironmentGatedAndDoesNotExposeSecrets() {
         var source = File.ReadAllText(RepositoryPaths.ApiFile("Controllers", "DevelopmentAuthDiagnosticsController.cs"));
 
         Assert.Contains("if (!environment.IsDevelopment()) return NotFound();", source);

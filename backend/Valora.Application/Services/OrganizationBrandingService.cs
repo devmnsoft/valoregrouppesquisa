@@ -5,12 +5,10 @@ using Valora.Application.Exceptions;
 
 namespace Valora.Application.Services;
 
-public sealed partial class OrganizationBrandingService(IOrganizationBrandingRepository repository) : IOrganizationBrandingService
-{
+public sealed partial class OrganizationBrandingService(IOrganizationBrandingRepository repository) : IOrganizationBrandingService {
     public Task<OrganizationBrandingResponse> GetAsync(Guid organizationId, CancellationToken cancellationToken = default) => repository.GetAsync(RequireTenant(organizationId), cancellationToken);
 
-    public async Task<OrganizationBrandingResponse> UpdateAsync(Guid organizationId, UpdateOrganizationBrandingRequest request, CancellationToken cancellationToken = default)
-    {
+    public async Task<OrganizationBrandingResponse> UpdateAsync(Guid organizationId, UpdateOrganizationBrandingRequest request, CancellationToken cancellationToken = default) {
         RequireTenant(organizationId);
         var slug = SlugRegex().Replace(request.PublicSlug.Trim().ToLowerInvariant().Normalize(), "-").Trim('-');
         if (!HexRegex().IsMatch(request.PrimaryColor) || !HexRegex().IsMatch(request.SecondaryColor)) throw new ValidationAppException("As cores devem usar o formato hexadecimal #RRGGBB.");
@@ -26,8 +24,7 @@ public sealed partial class OrganizationBrandingService(IOrganizationBrandingRep
     public Task<OrganizationSubscriptionResponse?> GetSubscriptionAsync(Guid organizationId, CancellationToken cancellationToken = default) =>
         repository.GetSubscriptionAsync(RequireTenant(organizationId), cancellationToken);
     public Task<IReadOnlyList<OnboardingStepResponse>> GetOnboardingAsync(Guid organizationId, CancellationToken cancellationToken = default) => repository.GetOnboardingAsync(RequireTenant(organizationId), cancellationToken);
-    public async Task CompleteStepAsync(Guid organizationId, string stepCode, CancellationToken cancellationToken = default)
-    {
+    public async Task CompleteStepAsync(Guid organizationId, string stepCode, CancellationToken cancellationToken = default) {
         if (!ManualSteps.Contains(stepCode) || !await repository.CompleteStepAsync(RequireTenant(organizationId), stepCode, cancellationToken)) throw new ValidationAppException("Passo de onboarding inválido ou automático.");
     }
     private static readonly HashSet<string> ManualSteps = ["company_profile", "branding"];
@@ -35,7 +32,7 @@ public sealed partial class OrganizationBrandingService(IOrganizationBrandingRep
         ? throw new ForbiddenAppException("Selecione uma organização para continuar.")
         : id;
     private static bool IsSafeLogo(string? value) => string.IsNullOrWhiteSpace(value) || value.StartsWith("/", StringComparison.Ordinal) || Uri.TryCreate(value, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttps;
-    private static decimal Contrast(string a, string b) { static decimal L(string c) { var r=Convert.ToInt32(c[1..3],16)/255m;var g=Convert.ToInt32(c[3..5],16)/255m;var b=Convert.ToInt32(c[5..7],16)/255m;return .2126m*r+.7152m*g+.0722m*b;} var x=L(a);var y=L(b);return (Math.Max(x,y)+.05m)/(Math.Min(x,y)+.05m); }
+    private static decimal Contrast(string a, string b) { static decimal L(string c) { var r = Convert.ToInt32(c[1..3], 16) / 255m; var g = Convert.ToInt32(c[3..5], 16) / 255m; var b = Convert.ToInt32(c[5..7], 16) / 255m; return .2126m * r + .7152m * g + .0722m * b; } var x = L(a); var y = L(b); return (Math.Max(x, y) + .05m) / (Math.Min(x, y) + .05m); }
     [GeneratedRegex("^#[0-9a-fA-F]{6}$")] private static partial Regex HexRegex();
     [GeneratedRegex("[^a-z0-9]+", RegexOptions.CultureInvariant)] private static partial Regex SlugRegex();
 }

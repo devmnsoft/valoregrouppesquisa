@@ -4,10 +4,8 @@ using Valora.Application.ModularSaas;
 
 namespace Valora.Infrastructure.ModularSaas;
 
-public sealed class CommercialSaasRepository(IDbConnectionFactory connections) : ICommercialSaasRepository
-{
-    public async Task<IReadOnlyList<CommercialModule>> ListModulesAsync(Guid? clientId, CancellationToken cancellationToken)
-    {
+public sealed class CommercialSaasRepository(IDbConnectionFactory connections) : ICommercialSaasRepository {
+    public async Task<IReadOnlyList<CommercialModule>> ListModulesAsync(Guid? clientId, CancellationToken cancellationToken) {
         using var connection = connections.Create();
         const string sql = """
             SELECT m.id AS Id, m.code AS Code, m.commercial_name AS Name, m.description AS Description,
@@ -34,8 +32,7 @@ public sealed class CommercialSaasRepository(IDbConnectionFactory connections) :
         return (await connection.QueryAsync<CommercialModule>(command)).AsList();
     }
 
-    public async Task<IReadOnlyList<CommercialPlan>> ListPlansAsync(CancellationToken cancellationToken)
-    {
+    public async Task<IReadOnlyList<CommercialPlan>> ListPlansAsync(CancellationToken cancellationToken) {
         using var connection = connections.Create();
         const string sql = """
             SELECT p.id AS Id,p.code AS Code,p.name AS Name,p.description AS Description,
@@ -52,8 +49,7 @@ public sealed class CommercialSaasRepository(IDbConnectionFactory connections) :
     }
 
     public async Task<ModuleAccessDecision> EvaluateAccessAsync(Guid clientId, string moduleCode, bool writeOperation,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         using var connection = connections.Create();
         const string sql = """
             SELECT m.requires_contract AS RequiresContract,m.status AS ModuleStatus,
@@ -78,8 +74,7 @@ public sealed class CommercialSaasRepository(IDbConnectionFactory connections) :
             return writeOperation
                 ? ModuleAccessDecision.Denied("SUBSCRIPTION_INACTIVE", "Sua assinatura permite consultar dados anteriores, mas novas ações estão temporariamente bloqueadas.")
                 : ModuleAccessDecision.Granted(true);
-        return row.ContractStatus switch
-        {
+        return row.ContractStatus switch {
             "active" => ModuleAccessDecision.Granted(),
             "read_only" or "suspended" or "expired" when !writeOperation => ModuleAccessDecision.Granted(true),
             "read_only" or "suspended" or "expired" => ModuleAccessDecision.Denied("MODULE_READ_ONLY", "Este módulo está disponível somente para consulta."),
@@ -88,8 +83,7 @@ public sealed class CommercialSaasRepository(IDbConnectionFactory connections) :
     }
 
     public async Task<bool> SetModuleStatusAsync(Guid clientId, string moduleCode, string status, Guid actorUserId,
-        string reason, string correlationId, CancellationToken cancellationToken)
-    {
+        string reason, string correlationId, CancellationToken cancellationToken) {
         using var connection = connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction();
@@ -111,8 +105,7 @@ public sealed class CommercialSaasRepository(IDbConnectionFactory connections) :
             ON CONFLICT(subscription_id,module_id) DO UPDATE SET status=excluded.status,source='manual',
               suspended_at=excluded.suspended_at,cancelled_at=excluded.cancelled_at,updated_at=now();
             """;
-        await connection.ExecuteAsync(new CommandDefinition(upsertSql, new
-        {
+        await connection.ExecuteAsync(new CommandDefinition(upsertSql, new {
             target.SubscriptionId,
             ClientId = clientId,
             target.ModuleId,
@@ -124,8 +117,7 @@ public sealed class CommercialSaasRepository(IDbConnectionFactory connections) :
             SELECT @ClientId,id,code,@Enabled,'contract' FROM valorapesquisa.modules WHERE code=@AccessModuleCode
             ON CONFLICT(organization_id,module_code) DO UPDATE SET enabled=excluded.enabled,source='contract',updated_at=now();
             """;
-        await connection.ExecuteAsync(new CommandDefinition(bridgeSql, new
-        {
+        await connection.ExecuteAsync(new CommandDefinition(bridgeSql, new {
             ClientId = clientId,
             target.AccessModuleCode,
             Enabled = status is "active" or "read_only"
@@ -138,8 +130,7 @@ public sealed class CommercialSaasRepository(IDbConnectionFactory connections) :
             VALUES(@ClientId,@SubscriptionId,@ActorUserId,'subscription.module.changed',@Reason,@CorrelationId,
                    jsonb_build_object('moduleCode',@ModuleCode,'status',@PreviousStatus),jsonb_build_object('moduleCode',@ModuleCode,'status',@Status));
             """;
-        await connection.ExecuteAsync(new CommandDefinition(auditSql, new
-        {
+        await connection.ExecuteAsync(new CommandDefinition(auditSql, new {
             ClientId = clientId,
             target.SubscriptionId,
             target.ModuleId,
@@ -155,8 +146,7 @@ public sealed class CommercialSaasRepository(IDbConnectionFactory connections) :
     }
 
     public async Task RequestUpgradeAsync(Guid clientId, Guid actorUserId, string moduleCode, string reason,
-        string correlationId, CancellationToken cancellationToken)
-    {
+        string correlationId, CancellationToken cancellationToken) {
         using var connection = connections.Create();
         const string sql = """
             INSERT INTO valorapesquisa.subscription_audit_events(client_id,subscription_id,actor_user_id,event_type,reason,correlation_id,after_jsonb)

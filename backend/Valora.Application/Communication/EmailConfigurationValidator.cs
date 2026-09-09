@@ -2,14 +2,11 @@ using System.Net.Mail;
 
 namespace Valora.Application.Communication;
 
-public static class EmailConfigurationValidator
-{
-    public static EmailConfigurationStatus Validate(EmailOptions options)
-    {
+public static class EmailConfigurationValidator {
+    public static EmailConfigurationStatus Validate(EmailOptions options) {
         var errors = new List<string>();
         var provider = string.IsNullOrWhiteSpace(options.Provider) ? "Smtp" : options.Provider.Trim();
-        if (options.Enabled)
-        {
+        if (options.Enabled) {
             if (!provider.Equals("Smtp", StringComparison.OrdinalIgnoreCase)) errors.Add("Email.Provider deve ser Smtp.");
             if (!IsEmail(options.FromEmail)) errors.Add("Email.FromEmail obrigatório e válido.");
             if (string.IsNullOrWhiteSpace(options.FromName)) errors.Add("Email.FromName obrigatório.");

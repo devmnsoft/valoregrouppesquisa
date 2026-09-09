@@ -11,8 +11,7 @@ namespace Valora.Api.Controllers;
 public sealed class OnboardingCenterController(
     OnboardingFlowService flow, OnboardingProgressService progress, OnboardingChecklistService checklist,
     CustomerAdoptionService adoption, CustomerHealthScoreService health, CustomerSuccessService success,
-    ICurrentRequestContext currentRequest) : ControllerBase
-{
+    ICurrentRequestContext currentRequest) : ControllerBase {
     [HttpGet("/api/v1/onboarding")]
     public async Task<IActionResult> Get(CancellationToken ct) => Ok(await flow.GetAsync(OrganizationId(), ct));
     [HttpGet("/api/v1/onboarding/progress")]

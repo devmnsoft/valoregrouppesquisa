@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed class ReportDefinition
-{
+public sealed class ReportDefinition {
     public Guid Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;

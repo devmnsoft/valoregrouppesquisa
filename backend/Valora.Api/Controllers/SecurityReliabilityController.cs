@@ -10,8 +10,7 @@ using Valora.Application.Contracts;
 namespace Valora.Api.Controllers;
 
 [ApiController, Authorize(Roles = "admin_valora,empresa_admin")]
-public sealed class SecurityReliabilityController(IDbConnectionFactory connections,ICurrentRequestContext currentRequest) : ControllerBase
-{
+public sealed class SecurityReliabilityController(IDbConnectionFactory connections, ICurrentRequestContext currentRequest) : ControllerBase {
     [HttpGet("/api/v1/security/audit")]
     public Task<IActionResult> Audit(CancellationToken ct) => TenantList(
         "SELECT id,organization_id,actor_user_id,event_type,entity_type,entity_id,action,outcome,correlation_id,occurred_at FROM valorapesquisa.security_audit_events WHERE organization_id=@organizationId ORDER BY occurred_at DESC LIMIT 250", ct);
@@ -33,8 +32,7 @@ public sealed class SecurityReliabilityController(IDbConnectionFactory connectio
         "SELECT id,organization_id,requester_email,request_type,status,justification,assigned_to_user_id,due_at,completed_at,created_at FROM valorapesquisa.data_privacy_requests WHERE organization_id=@organizationId ORDER BY created_at DESC LIMIT 250", ct);
 
     [HttpPost("/api/v1/privacy/requests")]
-    public async Task<IActionResult> CreatePrivacyRequest([FromBody] PrivacyRequestInput input, CancellationToken ct)
-    {
+    public async Task<IActionResult> CreatePrivacyRequest([FromBody] PrivacyRequestInput input, CancellationToken ct) {
         if (!TryTenant(out var organizationId, out var denied)) return denied!;
         if (!new[] { "access", "correction", "export", "anonymization", "erasure" }.Contains(input.RequestType))
             return ValidationProblem("Tipo de solicitação LGPD inválido.");
@@ -50,8 +48,7 @@ public sealed class SecurityReliabilityController(IDbConnectionFactory connectio
         "SELECT id,organization_id,name,key_prefix,scopes,status,expires_at,last_used_at,use_count,created_at,revoked_at FROM valorapesquisa.api_keys WHERE organization_id=@organizationId AND deleted_at IS NULL ORDER BY created_at DESC", ct);
 
     [HttpPost("/api/v1/api-keys")]
-    public async Task<IActionResult> CreateApiKey([FromBody] ApiKeyInput input, CancellationToken ct)
-    {
+    public async Task<IActionResult> CreateApiKey([FromBody] ApiKeyInput input, CancellationToken ct) {
         if (!TryTenant(out var organizationId, out var denied)) return denied!;
         var rawSecret = $"valora_{Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant()}";
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawSecret))).ToLowerInvariant();
@@ -67,8 +64,7 @@ public sealed class SecurityReliabilityController(IDbConnectionFactory connectio
     }
 
     [HttpPost("/api/v1/api-keys/{id:guid}/revoke")]
-    public async Task<IActionResult> RevokeApiKey(Guid id, CancellationToken ct)
-    {
+    public async Task<IActionResult> RevokeApiKey(Guid id, CancellationToken ct) {
         if (!TryTenant(out var organizationId, out var denied)) return denied!;
         using var connection = connections.Create();
         var changed = await connection.ExecuteAsync(new CommandDefinition(
@@ -82,8 +78,7 @@ public sealed class SecurityReliabilityController(IDbConnectionFactory connectio
     }
 
     [HttpGet("/api/v1/system-health")]
-    public async Task<IActionResult> Health(CancellationToken ct)
-    {
+    public async Task<IActionResult> Health(CancellationToken ct) {
         using var connection = connections.Create();
         var checks = await connection.QueryAsync(new CommandDefinition("SELECT component,status,response_time_ms,friendly_message,correlation_id,checked_at FROM valorapesquisa.system_health_checks ORDER BY checked_at DESC LIMIT 100", cancellationToken: ct));
         return Ok(new { status = "available", checks, correlationId = HttpContext.TraceIdentifier });
@@ -97,18 +92,15 @@ public sealed class SecurityReliabilityController(IDbConnectionFactory connectio
     public Task<IActionResult> Jobs(CancellationToken ct) => TenantList(
         "SELECT id,organization_id,job_name,status,correlation_id,started_at,completed_at,duration_ms,retry_of_id FROM valorapesquisa.background_job_runs WHERE organization_id=@organizationId OR organization_id IS NULL ORDER BY started_at DESC LIMIT 250", ct);
 
-    private async Task<IActionResult> TenantList(string sql, CancellationToken ct)
-    {
+    private async Task<IActionResult> TenantList(string sql, CancellationToken ct) {
         if (!TryTenant(out var organizationId, out var denied)) return denied!;
         using var connection = connections.Create();
         return Ok(new { data = await connection.QueryAsync(new CommandDefinition(sql, new { organizationId }, cancellationToken: ct)), correlationId = HttpContext.TraceIdentifier });
     }
 
-    private bool TryTenant(out Guid organizationId, out IActionResult? denied)
-    {
+    private bool TryTenant(out Guid organizationId, out IActionResult? denied) {
         var resolved = currentRequest.GetCurrent().EffectiveOrganizationId;
-        if (resolved is not { } tenantId)
-        {
+        if (resolved is not { } tenantId) {
             organizationId = default;
             denied = BadRequest(new { message = "Selecione uma organização para consultar dados protegidos.", correlationId = HttpContext.TraceIdentifier });
             return false;

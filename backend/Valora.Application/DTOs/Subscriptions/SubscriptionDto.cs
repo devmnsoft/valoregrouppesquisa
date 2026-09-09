@@ -1,7 +1,6 @@
 namespace Valora.Application.DTOs;
 
-public sealed class SubscriptionDto
-{
+public sealed class SubscriptionDto {
     public Guid Id { get; init; }
     public Guid OrganizationId { get; init; }
     public Guid PlanId { get; init; }

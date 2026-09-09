@@ -14,30 +14,26 @@ public sealed record PublicResultView(Guid Id, Guid OrganizationId, Guid Diagnos
 
 public sealed record IssuedPublicToken(Guid Id, string Token, DateTimeOffset ExpiresAt);
 
-public sealed class SaveRespondentProgressRequest
-{
+public sealed class SaveRespondentProgressRequest {
     [Range(0, 100)] public decimal ProgressPercent { get; init; }
     public Guid? CurrentSectionId { get; init; }
     [Required, MinLength(2)] public string AnswersJson { get; init; } = "{}";
 }
 
-public interface IRespondentAccessTokenRepository
-{
+public interface IRespondentAccessTokenRepository {
     Task<Guid> CreateAsync(Guid organizationId, Guid diagnosticId, Guid respondentId, string tokenHash, DateTimeOffset expiresAt, CancellationToken ct);
     Task<RespondentAccessToken?> ResolveAsync(string tokenHash, CancellationToken ct);
     Task MarkOpenedAsync(Guid id, CancellationToken ct);
     Task MarkCompletedAsync(Guid id, CancellationToken ct);
 }
 
-public interface IRespondentSessionRepository
-{
+public interface IRespondentSessionRepository {
     Task<RespondentSession> StartOrResumeAsync(RespondentAccessToken token, string? ipAddress, string? userAgent, CancellationToken ct);
     Task SaveProgressAsync(RespondentSession session, SaveRespondentProgressRequest request, CancellationToken ct);
     Task CompleteAsync(RespondentSession session, CancellationToken ct);
 }
 
-public interface IPublicResultViewRepository
-{
+public interface IPublicResultViewRepository {
     Task<Guid> CreateAsync(Guid organizationId, Guid diagnosticId, Guid resultId, string title, string tokenHash,
         DateTimeOffset expiresAt, bool allowReport, bool allowCertificate, CancellationToken ct);
     Task<PublicResultView?> ResolveAsync(string tokenHash, CancellationToken ct);

@@ -8,8 +8,7 @@ using Valora.Web.Models.ViewModels;
 namespace Valora.Web.Controllers;
 
 [Authorize]
-public sealed class SaasController(CommercialSaasService saas, ILogger<SaasController> logger) : Controller
-{
+public sealed class SaasController(CommercialSaasService saas, ILogger<SaasController> logger) : Controller {
     [HttpGet("/Modules")]
     [HttpGet("/Marketplace")]
     [HttpGet("/Subscription")]
@@ -35,34 +34,28 @@ public sealed class SaasController(CommercialSaasService saas, ILogger<SaasContr
     public IActionResult Invoices() => LegacyPage("Faturas", "Cobrança e histórico financeiro.", "invoices");
 
     [ValidateAntiForgeryToken, HttpPost("/Subscription/Modules/Request")]
-    public async Task<IActionResult> RequestUpgrade(RequestModuleUpgradeViewModel model, CancellationToken cancellationToken)
-    {
-        if (!TryContext(out var clientId, out var userId))
-        {
+    public async Task<IActionResult> RequestUpgrade(RequestModuleUpgradeViewModel model, CancellationToken cancellationToken) {
+        if (!TryContext(out var clientId, out var userId)) {
             TempData["Warning"] = "Selecione um cliente para operar esta área.";
             return RedirectToAction(nameof(Marketplace));
         }
-        if (!ModelState.IsValid)
-        {
+        if (!ModelState.IsValid) {
             TempData["Warning"] = "Revise o módulo e a justificativa antes de continuar.";
             return RedirectToAction(nameof(Marketplace));
         }
 
-        try
-        {
+        try {
             await saas.RequestUpgradeAsync(clientId, userId, model.ModuleCode, model.Reason,
                 HttpContext.TraceIdentifier, cancellationToken);
             TempData["Success"] = "Solicitação de upgrade registrada. Nosso time entrará em contato.";
         }
-        catch (Exception exception) when (exception is ValidationException or InvalidOperationException)
-        {
+        catch (Exception exception) when (exception is ValidationException or InvalidOperationException) {
             logger.LogWarning(exception,
                 "Upgrade request rejected. ClientId={ClientId} UserId={UserId} ModuleCode={ModuleCode} CorrelationId={CorrelationId}",
                 clientId, userId, model.ModuleCode, HttpContext.TraceIdentifier);
             TempData["Warning"] = exception.Message;
         }
-        catch (Exception exception)
-        {
+        catch (Exception exception) {
             logger.LogError(exception,
                 "Upgrade request failed. ClientId={ClientId} UserId={UserId} ModuleCode={ModuleCode} CorrelationId={CorrelationId}",
                 clientId, userId, model.ModuleCode, HttpContext.TraceIdentifier);
@@ -71,8 +64,7 @@ public sealed class SaasController(CommercialSaasService saas, ILogger<SaasContr
         return RedirectToAction(nameof(Marketplace));
     }
 
-    private async Task<IActionResult> RenderMarketplaceAsync(string? blocked, CancellationToken cancellationToken)
-    {
+    private async Task<IActionResult> RenderMarketplaceAsync(string? blocked, CancellationToken cancellationToken) {
         var isPlatformAdministrator = User.IsInRole("admin_valora");
         var clientId = OrganizationId();
         var modules = await saas.ListModulesAsync(isPlatformAdministrator ? null : clientId, cancellationToken);
@@ -81,8 +73,7 @@ public sealed class SaasController(CommercialSaasService saas, ILogger<SaasContr
         return View("Marketplace", new SaasMarketplaceViewModel(modules, plans, isPlatformAdministrator, clientId, blocked));
     }
 
-    private IActionResult LegacyPage(string title, string subtitle, string mode)
-    {
+    private IActionResult LegacyPage(string title, string subtitle, string mode) {
         ViewData["Title"] = title;
         ViewData["Subtitle"] = subtitle;
         ViewData["Mode"] = mode;
@@ -91,8 +82,7 @@ public sealed class SaasController(CommercialSaasService saas, ILogger<SaasContr
 
     private Guid? OrganizationId() => Guid.TryParse(User.FindFirstValue("organization_id"), out var id) && id != Guid.Empty ? id : null;
 
-    private bool TryContext(out Guid clientId, out Guid userId)
-    {
+    private bool TryContext(out Guid clientId, out Guid userId) {
         clientId = OrganizationId() ?? Guid.Empty;
         userId = Guid.Empty;
         return clientId != Guid.Empty

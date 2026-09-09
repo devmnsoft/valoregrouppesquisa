@@ -1,7 +1,6 @@
 namespace Valora.Web.Navigation;
 
-public sealed class NavigationCatalog
-{
+public sealed class NavigationCatalog {
     private static readonly IReadOnlySet<string> Administrators = Roles("admin_valora", "consultor_valora", "empresa_admin");
     private static readonly IReadOnlySet<string> Diagnostics = Roles("admin_valora", "consultor_valora", "empresa_admin", "gestor_pesquisa");
     private static readonly IReadOnlySet<string> Results = Roles("admin_valora", "consultor_valora", "empresa_admin", "gestor_pesquisa", "analista_resultados", "gestor_area");

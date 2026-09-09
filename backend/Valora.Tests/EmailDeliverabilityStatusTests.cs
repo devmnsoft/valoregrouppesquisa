@@ -1,15 +1,13 @@
 using System.IO;
-using Xunit;
 using Valora.Tests.Support;
+using Xunit;
 
 namespace Valora.Tests;
 
 [Trait("Category", "StaticContract")]
-public sealed class EmailDeliverabilityStatusTests
-{
+public sealed class EmailDeliverabilityStatusTests {
     [Fact]
-    public void DeliverabilityEndpointReturnsOnlyBooleanConfiguration()
-    {
+    public void DeliverabilityEndpointReturnsOnlyBooleanConfiguration() {
         var controller = File.ReadAllText(RepositoryPaths.ApiFile("Controllers", "CommunicationsController.cs"));
         Assert.Contains("/admin/email/deliverability/status", controller);
         Assert.Contains("fromEmailConfigured", controller);

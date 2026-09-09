@@ -7,12 +7,10 @@ using Valora.Application.Contracts;
 namespace Valora.Api.Controllers;
 
 [ApiController]
-public sealed class ResponsesController(IResponseRepository responses) : ControllerBase
-{
+public sealed class ResponsesController(IResponseRepository responses) : ControllerBase {
     [HttpGet("/responses/{responseId:guid}/result")]
     [Authorize(Policy = ValoraPermissions.Results.Read)]
-    public async Task<IActionResult> Result(Guid responseId)
-    {
+    public async Task<IActionResult> Result(Guid responseId) {
         if (!Guid.TryParse(User.FindFirstValue("organization_id") ?? User.FindFirstValue("organizationId"), out var organizationId))
             return Unauthorized(new { ok = false, code = "ORGANIZATION_SCOPE_REQUIRED", correlationId = HttpContext.TraceIdentifier });
 

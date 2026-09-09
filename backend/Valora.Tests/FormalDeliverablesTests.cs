@@ -4,8 +4,7 @@ using Valora.Application.FormalDeliverables;
 
 namespace Valora.Tests;
 
-public sealed class FormalDeliverablesTests
-{
+public sealed class FormalDeliverablesTests {
     private static DiagnosisDocumentSnapshot Snapshot(bool completed = true) => new(
         Guid.NewGuid(), "Organização Exemplo", Guid.NewGuid(), "Diagnóstico de Cultura",
         completed ? DateTimeOffset.UtcNow : default, 78.4m, "Estruturado", "Valora Insight", "3.2",
@@ -18,8 +17,7 @@ public sealed class FormalDeliverablesTests
         ["Leitura limitada às evidências disponíveis no ciclo."], true);
 
     [Fact]
-    public void Pdf_HasSignatureContentTypeSafeNameAndNonEmptyContent()
-    {
+    public void Pdf_HasSignatureContentTypeSafeNameAndNonEmptyContent() {
         var file = new ExecutiveReportExportService().Render(Snapshot(), DeliverableFormat.Pdf, DateTimeOffset.UtcNow);
         Assert.True(file.Content.Length > 500);
         Assert.Equal("%PDF", System.Text.Encoding.ASCII.GetString(file.Content, 0, 4));
@@ -29,8 +27,7 @@ public sealed class FormalDeliverablesTests
     }
 
     [Fact]
-    public void Xlsx_IsValidOpenXmlZipWithExpectedWorksheets()
-    {
+    public void Xlsx_IsValidOpenXmlZipWithExpectedWorksheets() {
         var file = new ExecutiveReportExportService().Render(Snapshot(), DeliverableFormat.Xlsx, DateTimeOffset.UtcNow);
         Assert.NotEmpty(file.Content);
         Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", file.ContentType);
@@ -42,8 +39,7 @@ public sealed class FormalDeliverablesTests
     }
 
     [Fact]
-    public void Json_IsNonEmptyAndDoesNotExposeRespondentPersonalData()
-    {
+    public void Json_IsNonEmptyAndDoesNotExposeRespondentPersonalData() {
         var file = new ExecutiveReportExportService().Render(Snapshot(), DeliverableFormat.Json, DateTimeOffset.UtcNow);
         Assert.NotEmpty(file.Content);
         Assert.Equal("application/json", file.ContentType);
@@ -56,8 +52,7 @@ public sealed class FormalDeliverablesTests
     }
 
     [Fact]
-    public async Task IncompleteDiagnosis_IsRejectedAndAudited()
-    {
+    public async Task IncompleteDiagnosis_IsRejectedAndAudited() {
         var snapshot = Snapshot(false); var audit = new AuditSpy();
         var service = new ValoraDocumentService(new SnapshotProvider(snapshot), new AllowPolicy(), new MemoryStore(), new ExecutiveReportExportService(), audit);
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.GenerateAsync(new(snapshot.OrganizationId, snapshot.DiagnosisId, DeliverableFormat.Pdf, null)));

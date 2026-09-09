@@ -1,7 +1,6 @@
 namespace Valora.Web.Navigation;
 
-public sealed record NavigationDestination(string Controller, string Action)
-{
+public sealed record NavigationDestination(string Controller, string Action) {
     public static NavigationDestination Mvc(string controller, string action = "Index") => new(controller, action);
 }
 

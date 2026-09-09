@@ -2,8 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Valora.Web.Models;
 
-public sealed class ContactRequest
-{
+public sealed class ContactRequest {
     [Required(ErrorMessage = "Informe seu nome.")]
     [StringLength(120, MinimumLength = 2, ErrorMessage = "Informe um nome válido.")]
     public string Name { get; init; } = string.Empty;

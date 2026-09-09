@@ -1,7 +1,6 @@
 namespace Valora.Domain.Enums;
 
-public enum TenantStatus
-{
+public enum TenantStatus {
     Active,
     Inactive,
     Suspended

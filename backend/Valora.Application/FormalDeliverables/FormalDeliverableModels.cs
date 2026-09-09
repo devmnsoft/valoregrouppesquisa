@@ -37,35 +37,29 @@ public sealed record GeneratedDocument(
 
 public sealed record DocumentRequest(Guid OrganizationId, Guid DiagnosisId, DeliverableFormat Format, Guid? UserId);
 
-public interface IDiagnosisDocumentSnapshotProvider
-{
+public interface IDiagnosisDocumentSnapshotProvider {
     Task<DiagnosisDocumentSnapshot?> LoadAsync(Guid organizationId, Guid diagnosisId, CancellationToken cancellationToken = default);
 }
 
-public interface IDocumentAccessPolicy
-{
+public interface IDocumentAccessPolicy {
     Task EnsureCanGenerateAsync(Guid organizationId, Guid? userId, DeliverableFormat format, CancellationToken cancellationToken = default);
 }
 
-public interface IDocumentStore
-{
+public interface IDocumentStore {
     Task SaveAsync(GeneratedDocument document, Guid? generatedBy, CancellationToken cancellationToken = default);
     Task<GeneratedDocument?> FindAsync(Guid organizationId, Guid documentId, CancellationToken cancellationToken = default);
 }
 
-public interface IExportAuditService
-{
+public interface IExportAuditService {
     Task RecordAsync(Guid organizationId, Guid? userId, string action, string resourceType,
         string resourceId, bool succeeded, string? detail = null, CancellationToken cancellationToken = default);
 }
 
-public interface IExecutiveReportExportService
-{
+public interface IExecutiveReportExportService {
     GeneratedDocument Render(DiagnosisDocumentSnapshot snapshot, DeliverableFormat format, DateTimeOffset generatedAt);
 }
 
-public interface IValoraDocumentService
-{
+public interface IValoraDocumentService {
     Task<GeneratedDocument> GenerateAsync(DocumentRequest request, CancellationToken cancellationToken = default);
     Task<GeneratedDocument?> OpenForDownloadAsync(Guid organizationId, Guid documentId, Guid? userId, CancellationToken cancellationToken = default);
 }
@@ -75,16 +69,14 @@ public sealed record ShareLink(Guid Id, Guid OrganizationId, Guid DiagnosisId, s
     int AccessCount = 0, DateTimeOffset? RevokedAt = null);
 public sealed record CreatedShareLink(Guid Id, string Token, string PublicSlug, DateTimeOffset ExpiresAt, bool AllowDownload);
 
-public interface IShareLinkRepository
-{
+public interface IShareLinkRepository {
     Task SaveAsync(ShareLink link, Guid? createdBy, CancellationToken cancellationToken = default);
     Task<ShareLink?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default);
     Task RegisterAccessAsync(Guid linkId, bool downloadRequested, CancellationToken cancellationToken = default);
     Task<bool> RevokeAsync(Guid organizationId, Guid linkId, CancellationToken cancellationToken = default);
 }
 
-public interface ISecureShareLinkService
-{
+public interface ISecureShareLinkService {
     Task<CreatedShareLink> CreateAsync(Guid organizationId, Guid diagnosisId, Guid? userId, TimeSpan lifetime, bool allowDownload, CancellationToken cancellationToken = default);
     Task<ShareLink?> ResolveAsync(string token, bool downloadRequested, CancellationToken cancellationToken = default);
     Task<bool> RevokeAsync(Guid organizationId, Guid linkId, Guid? userId, CancellationToken cancellationToken = default);

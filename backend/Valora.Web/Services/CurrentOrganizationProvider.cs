@@ -5,10 +5,8 @@ namespace Valora.Web.Services;
 
 public sealed class CurrentOrganizationProvider(
     ICurrentRequestContext requestContext,
-    ILogger<CurrentOrganizationProvider> logger) : ICurrentOrganizationProvider
-{
-    public CurrentOrganizationContext GetCurrent()
-    {
+    ILogger<CurrentOrganizationProvider> logger) : ICurrentOrganizationProvider {
+    public CurrentOrganizationContext GetCurrent() {
         var current = requestContext.GetCurrent();
         if (current.EffectiveOrganizationId is { } id && id != Guid.Empty)
             return CurrentOrganizationContext.Resolved(id, current.IsGlobalAdministrator ? "selected-session" : "canonical-claim");

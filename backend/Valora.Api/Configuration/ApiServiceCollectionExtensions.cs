@@ -1,26 +1,22 @@
-using Valora.Application.Communication;
-using Valora.Application.Services;
-using Valora.Application.Access;
-using Valora.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
+using Valora.Api.Authorization;
 using Valora.Api.Operations;
 using Valora.Api.Services;
+using Valora.Application.Access;
 using Valora.Application.Common;
+using Valora.Application.Communication;
+using Valora.Application.Services;
 
 namespace Valora.Api.Configuration;
 
-public static class ApiServiceCollectionExtensions
-{
-    public static IServiceCollection AddApiServices(this IServiceCollection services, IConfiguration configuration)
-    {
+public static class ApiServiceCollectionExtensions {
+    public static IServiceCollection AddApiServices(this IServiceCollection services, IConfiguration configuration) {
         services.AddControllers();
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentRequestContext, CurrentRequestContextProvider>();
         services.AddScoped<ICurrentOrganizationProvider, CurrentOrganizationProvider>();
-        services.AddCors(options =>
-        {
-            options.AddPolicy("ValoraWebCors", policy =>
-            {
+        services.AddCors(options => {
+            options.AddPolicy("ValoraWebCors", policy => {
                 var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
                     ?? new[]
                     {
@@ -38,8 +34,7 @@ public static class ApiServiceCollectionExtensions
         services.Configure<EmailOptions>(configuration.GetSection("Email"));
         services.Configure<AuthenticationOptions>(configuration.GetSection("Authentication"));
         services.AddJwtAuthentication(configuration);
-        services.AddAuthorization(options =>
-        {
+        services.AddAuthorization(options => {
             foreach (var permission in ValoraPermissions.All)
                 options.AddPolicy(permission, policy => policy.RequireAuthenticatedUser().AddRequirements(new PermissionRequirement(permission)));
         });

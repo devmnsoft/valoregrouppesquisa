@@ -3,11 +3,9 @@ using Valora.Application.OrganizationalIntelligence;
 
 namespace Valora.Tests;
 
-public sealed class OrganizationalDiagnosticFlowContractTests
-{
+public sealed class OrganizationalDiagnosticFlowContractTests {
     [Fact]
-    public void CompleteWorkflowPermissionsAreCanonical()
-    {
+    public void CompleteWorkflowPermissionsAreCanonical() {
         string[] permissions =
         [
             "diagnostics.read", "diagnostics.manage", "forms.read", "forms.manage",
@@ -24,8 +22,7 @@ public sealed class OrganizationalDiagnosticFlowContractTests
     }
 
     [Fact]
-    public void IntelligenceJobAcceptsMissingDatabaseScheduleTimestamps()
-    {
+    public void IntelligenceJobAcceptsMissingDatabaseScheduleTimestamps() {
         var job = new IntelligenceProcessingJob(
             Guid.NewGuid(), Guid.NewGuid(), null, null, null, null, "diagnosis_closed",
             IntelligenceProcessingStatus.Pending, 0, 0, 3, null, null, null, null,

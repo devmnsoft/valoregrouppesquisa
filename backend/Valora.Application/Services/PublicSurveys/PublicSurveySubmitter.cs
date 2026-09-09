@@ -5,12 +5,9 @@ using Valora.Application.Security;
 
 namespace Valora.Application.Services;
 
-public sealed class PublicSurveySubmitter(PublicSurveyValidator validator, PublicAnswerScorer scorer, ValoraInsightCalculator calculator, PublicResponseTransactionService tx, ILogger<PublicSurveySubmitter> logger)
-{
-    public async Task<SubmitSurveyResponseResult> SubmitAsync(Guid surveyId, SubmitSurveyResponseRequest request)
-    {
-        try
-        {
+public sealed class PublicSurveySubmitter(PublicSurveyValidator validator, PublicAnswerScorer scorer, ValoraInsightCalculator calculator, PublicResponseTransactionService tx, ILogger<PublicSurveySubmitter> logger) {
+    public async Task<SubmitSurveyResponseResult> SubmitAsync(Guid surveyId, SubmitSurveyResponseRequest request) {
+        try {
             logger.LogInformation("Public survey submit started. SurveyId={SurveyId} ParticipantEmail={ParticipantEmail} ParticipantPhone={ParticipantPhone}", surveyId, LogSanitizer.MaskEmail(request.Participant.Email), LogSanitizer.MaskPhone(request.Participant.Phone));
             var data = await validator.ValidateForReadAsync(surveyId, new ValidateSurveyRequest(request.Token, null));
             await validator.ValidateForSubmitAsync(data.Survey.OrganizationId, request, data.Questions, data.Options);
@@ -25,8 +22,7 @@ public sealed class PublicSurveySubmitter(PublicSurveyValidator validator, Publi
             logger.LogInformation("Public survey submit succeeded. SurveyId={SurveyId} ResponseId={ResponseId}", surveyId, result.ResponseId);
             return result;
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             logger.LogError(ex, "Erro na submissão pública. SurveyId={SurveyId}", surveyId);
             throw;
         }

@@ -18,13 +18,12 @@ public sealed class CreateDependencyRequest { public Guid? SourceUnitId { get; i
 public sealed record ArchitectureRisk(Guid Id, string RiskType, string Title, string ProbableCause, string Impact, string Evidence, string RecommendedAction, string Severity, string Status, DateTimeOffset DetectedAt);
 public sealed record ArchitectureSnapshot(Guid Id, decimal MaturityScore, DateTimeOffset CreatedAt, string CorrelationId);
 
-public interface IOrganizationalArchitectureRepository
-{
- Task<ArchitectureSummary> SummaryAsync(Guid organizationId, CancellationToken ct); Task<IReadOnlyList<ArchitectureUnit>> UnitsAsync(Guid organizationId, CancellationToken ct); Task<ArchitectureUnit> CreateUnitAsync(Guid organizationId, CreateUnitRequest request, string correlationId, CancellationToken ct);
- Task<IReadOnlyList<ArchitecturePosition>> PositionsAsync(Guid organizationId, CancellationToken ct); Task<ArchitecturePosition> CreatePositionAsync(Guid organizationId, CreatePositionRequest request, string correlationId, CancellationToken ct);
- Task<IReadOnlyList<ResponsibilityItem>> ResponsibilitiesAsync(Guid organizationId, CancellationToken ct); Task<ResponsibilityItem> CreateResponsibilityAsync(Guid organizationId, CreateResponsibilityRequest request, string correlationId, CancellationToken ct);
- Task<IReadOnlyList<BusinessProcess>> ProcessesAsync(Guid organizationId, CancellationToken ct); Task<BusinessProcess> CreateProcessAsync(Guid organizationId, CreateProcessRequest request, string correlationId, CancellationToken ct);
- Task<IReadOnlyList<DecisionRight>> DecisionRightsAsync(Guid organizationId, CancellationToken ct); Task<DecisionRight> CreateDecisionRightAsync(Guid organizationId, CreateDecisionRightRequest request, string correlationId, CancellationToken ct);
- Task<IReadOnlyList<OrganizationalDependency>> DependenciesAsync(Guid organizationId, CancellationToken ct); Task<OrganizationalDependency> CreateDependencyAsync(Guid organizationId, CreateDependencyRequest request, string correlationId, CancellationToken ct);
- Task<IReadOnlyList<ArchitectureRisk>> RisksAsync(Guid organizationId, CancellationToken ct); Task<ArchitectureSnapshot> SnapshotAsync(Guid organizationId, Guid? actorId, string correlationId, CancellationToken ct);
+public interface IOrganizationalArchitectureRepository {
+    Task<ArchitectureSummary> SummaryAsync(Guid organizationId, CancellationToken ct); Task<IReadOnlyList<ArchitectureUnit>> UnitsAsync(Guid organizationId, CancellationToken ct); Task<ArchitectureUnit> CreateUnitAsync(Guid organizationId, CreateUnitRequest request, string correlationId, CancellationToken ct);
+    Task<IReadOnlyList<ArchitecturePosition>> PositionsAsync(Guid organizationId, CancellationToken ct); Task<ArchitecturePosition> CreatePositionAsync(Guid organizationId, CreatePositionRequest request, string correlationId, CancellationToken ct);
+    Task<IReadOnlyList<ResponsibilityItem>> ResponsibilitiesAsync(Guid organizationId, CancellationToken ct); Task<ResponsibilityItem> CreateResponsibilityAsync(Guid organizationId, CreateResponsibilityRequest request, string correlationId, CancellationToken ct);
+    Task<IReadOnlyList<BusinessProcess>> ProcessesAsync(Guid organizationId, CancellationToken ct); Task<BusinessProcess> CreateProcessAsync(Guid organizationId, CreateProcessRequest request, string correlationId, CancellationToken ct);
+    Task<IReadOnlyList<DecisionRight>> DecisionRightsAsync(Guid organizationId, CancellationToken ct); Task<DecisionRight> CreateDecisionRightAsync(Guid organizationId, CreateDecisionRightRequest request, string correlationId, CancellationToken ct);
+    Task<IReadOnlyList<OrganizationalDependency>> DependenciesAsync(Guid organizationId, CancellationToken ct); Task<OrganizationalDependency> CreateDependencyAsync(Guid organizationId, CreateDependencyRequest request, string correlationId, CancellationToken ct);
+    Task<IReadOnlyList<ArchitectureRisk>> RisksAsync(Guid organizationId, CancellationToken ct); Task<ArchitectureSnapshot> SnapshotAsync(Guid organizationId, Guid? actorId, string correlationId, CancellationToken ct);
 }

@@ -13,14 +13,12 @@ public sealed record TemplateRequest(Guid? OrganizationId, string Key, string Na
     string? BodyText, IReadOnlyCollection<string> AllowedVariables, Guid? ActorUserId = null);
 public sealed record ReminderRuleRequest(Guid OrganizationId, string Name, string Type, int DelayMinutes, string? TemplateKey, Guid? ActorUserId = null);
 
-public interface INotificationRepository
-{
+public interface INotificationRepository {
     Task<Guid> CreateAsync(NotificationRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<NotificationItem>> ListForUserAsync(Guid organizationId, Guid userId, string? type, string? status, string? severity, CancellationToken cancellationToken = default);
     Task<bool> MarkReadAsync(Guid organizationId, Guid userId, Guid notificationId, CancellationToken cancellationToken = default);
 }
-public interface ICommunicationOutboxRepository
-{
+public interface ICommunicationOutboxRepository {
     Task<Guid> QueueAsync(OutboxRequest request, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<OutboxItem>> ClaimDueAsync(int batchSize, CancellationToken cancellationToken = default);
     Task RecordAttemptAsync(Guid organizationId, Guid outboxId, bool delivered, string? provider, string? providerMessageId, string? error, CancellationToken cancellationToken = default);
@@ -30,10 +28,8 @@ public interface INotificationTemplateRepository { Task<Guid> SaveAsync(Template
 public interface IReminderRepository { Task<Guid> CreateRuleAsync(ReminderRuleRequest request, CancellationToken cancellationToken = default); }
 public interface ICommunicationAuditRepository { Task WriteAsync(Guid organizationId, string messageType, Guid? messageId, string action, Guid? actorUserId, string metadataJson, CancellationToken cancellationToken = default); }
 
-public sealed class NotificationService(INotificationRepository repository)
-{
-    public Task<Guid> CreateAsync(NotificationRequest request, CancellationToken ct = default)
-    {
+public sealed class NotificationService(INotificationRepository repository) {
+    public Task<Guid> CreateAsync(NotificationRequest request, CancellationToken ct = default) {
         if (request.OrganizationId == Guid.Empty || string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Message))
             throw new ArgumentException("Organização, título e mensagem são obrigatórios.");
         if (request.UserIds.Count == 0) throw new ArgumentException("Selecione ao menos um destinatário.");
@@ -45,10 +41,8 @@ public sealed class NotificationService(INotificationRepository repository)
         repository.MarkReadAsync(organizationId, userId, notificationId, ct);
 }
 
-public sealed class CommunicationOutboxService(ICommunicationOutboxRepository repository, ICommunicationAuditRepository audit)
-{
-    public async Task<Guid> QueueAsync(OutboxRequest request, CancellationToken ct = default)
-    {
+public sealed class CommunicationOutboxService(ICommunicationOutboxRepository repository, ICommunicationAuditRepository audit) {
+    public async Task<Guid> QueueAsync(OutboxRequest request, CancellationToken ct = default) {
         if (request.OrganizationId == Guid.Empty || string.IsNullOrWhiteSpace(request.Subject) ||
             (request.RecipientUserId is null && string.IsNullOrWhiteSpace(request.RecipientEmail)))
             throw new ArgumentException("Organização, destinatário e assunto são obrigatórios.");
@@ -59,10 +53,8 @@ public sealed class CommunicationOutboxService(ICommunicationOutboxRepository re
     public Task<bool> ReprocessAsync(Guid organizationId, Guid id, CancellationToken ct = default) => repository.RequeueAsync(organizationId, id, ct);
 }
 
-public sealed partial class EmailTemplateService
-{
-    public static void ValidatePlaceholders(string content, IReadOnlyCollection<string> allowedVariables)
-    {
+public sealed partial class EmailTemplateService {
+    public static void ValidatePlaceholders(string content, IReadOnlyCollection<string> allowedVariables) {
         var allowed = new HashSet<string>(allowedVariables, StringComparer.OrdinalIgnoreCase);
         var invalid = PlaceholderRegex().Matches(content ?? string.Empty).Select(match => match.Groups[1].Value).Where(value => !allowed.Contains(value)).Distinct().ToArray();
         if (invalid.Length > 0) throw new ArgumentException($"Placeholders não permitidos: {string.Join(", ", invalid)}.");
@@ -72,23 +64,19 @@ public sealed partial class EmailTemplateService
     private static partial Regex PlaceholderRegex();
 }
 
-public sealed class NotificationTemplateService(INotificationTemplateRepository repository)
-{
-    public Task<Guid> SaveAsync(TemplateRequest request, CancellationToken ct = default)
-    {
+public sealed class NotificationTemplateService(INotificationTemplateRepository repository) {
+    public Task<Guid> SaveAsync(TemplateRequest request, CancellationToken ct = default) {
         EmailTemplateService.ValidatePlaceholders(request.Subject, request.AllowedVariables);
         EmailTemplateService.ValidatePlaceholders(request.BodyHtml ?? string.Empty, request.AllowedVariables);
         EmailTemplateService.ValidatePlaceholders(request.BodyText ?? string.Empty, request.AllowedVariables);
         return repository.SaveAsync(request, ct);
     }
 }
-public sealed class ReminderService(IReminderRepository repository)
-{
+public sealed class ReminderService(IReminderRepository repository) {
     public Task<Guid> CreateRuleAsync(ReminderRuleRequest request, CancellationToken ct = default) =>
         request.DelayMinutes < 0 ? throw new ArgumentException("O prazo do lembrete não pode ser negativo.") : repository.CreateRuleAsync(request, ct);
 }
-public sealed class CommunicationAuditService(ICommunicationAuditRepository repository)
-{
+public sealed class CommunicationAuditService(ICommunicationAuditRepository repository) {
     public Task RegisterAsync(Guid organizationId, string type, Guid? id, string action, Guid? actor, string metadataJson = "{}", CancellationToken ct = default) =>
         repository.WriteAsync(organizationId, type, id, action, actor, metadataJson, ct);
 }

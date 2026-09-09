@@ -9,8 +9,7 @@ namespace Valora.Web.Controllers;
 [AutoValidateAntiforgeryToken]
 [ApiController]
 [Route("bff")]
-public sealed class BffAdministrationController(IBffApiClient api, BffAuthenticationService authentication, ILogger<BffAdministrationController> logger) : ControllerBase
-{
+public sealed class BffAdministrationController(IBffApiClient api, BffAuthenticationService authentication, ILogger<BffAdministrationController> logger) : ControllerBase {
     [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
     [Route("organization/{**resource}")]
     public Task<IActionResult> Organization(string? resource, CancellationToken cancellationToken) =>
@@ -141,11 +140,9 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
     public Task<IActionResult> Health(string? resource, CancellationToken cancellationToken) =>
         ForwardAsync($"/health/{resource}", cancellationToken);
 
-    private async Task<IActionResult> ForwardAsync(string path, CancellationToken cancellationToken)
-    {
+    private async Task<IActionResult> ForwardAsync(string path, CancellationToken cancellationToken) {
         var session = await authentication.GetAsync(HttpContext, cancellationToken);
-        if (session is null) return Unauthorized(new
-        {
+        if (session is null) return Unauthorized(new {
             code = "SESSION_EXPIRED",
             message = "Sua sessão expirou. Entre novamente para continuar.",
             correlationId = HttpContext.TraceIdentifier
@@ -155,12 +152,10 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
             body = await JsonSerializer.DeserializeAsync<JsonElement>(Request.Body, cancellationToken: cancellationToken);
         var query = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
         var correlationId = Request.Headers["X-Correlation-Id"].FirstOrDefault() ?? HttpContext.TraceIdentifier;
-        try
-        {
+        try {
             using var response = await authentication.SendAuthorizedAsync(HttpContext, new HttpMethod(Request.Method),
                 path + query, body, correlationId, cancellationToken);
-            if (response is null) return Unauthorized(new
-            {
+            if (response is null) return Unauthorized(new {
                 code = "SESSION_EXPIRED",
                 message = "Sua sessão expirou. Entre novamente para continuar.",
                 correlationId
@@ -169,12 +164,10 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
             Response.Headers["X-Correlation-Id"] = response.Headers.TryGetValues("X-Correlation-Id", out var values) ? values.First() : correlationId;
             return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/json", Content = payload };
         }
-        catch (BffApiUnavailableException exception) when (!cancellationToken.IsCancellationRequested)
-        {
+        catch (BffApiUnavailableException exception) when (!cancellationToken.IsCancellationRequested) {
             logger.LogWarning(exception, "Falha de conectividade ao encaminhar requisição. Path={Path} CorrelationId={CorrelationId}", path, correlationId);
             Response.Headers["X-Correlation-Id"] = correlationId;
-            return StatusCode(StatusCodes.Status504GatewayTimeout, new
-            {
+            return StatusCode(StatusCodes.Status504GatewayTimeout, new {
                 code = "API_UNAVAILABLE",
                 message = "Não foi possível carregar os dados agora.",
                 correlationId

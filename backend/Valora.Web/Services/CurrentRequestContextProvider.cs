@@ -4,10 +4,8 @@ using Valora.Application.Common;
 
 namespace Valora.Web.Services;
 
-public sealed class CurrentRequestContextProvider(IHttpContextAccessor accessor) : ICurrentRequestContext
-{
-    public CurrentRequestContext GetCurrent()
-    {
+public sealed class CurrentRequestContextProvider(IHttpContextAccessor accessor) : ICurrentRequestContext {
+    public CurrentRequestContext GetCurrent() {
         var http = accessor.HttpContext;
         if (http is null) return new(null, null, null, null, false, [], [], [], [], [], "missing", 0);
 
@@ -38,8 +36,7 @@ public sealed class CurrentRequestContextProvider(IHttpContextAccessor accessor)
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
 
-    private static Guid? ReadGuid(ClaimsPrincipal principal, params string[] types)
-    {
+    private static Guid? ReadGuid(ClaimsPrincipal principal, params string[] types) {
         foreach (var type in types)
             if (Guid.TryParse(principal.FindFirstValue(type), out var id) && id != Guid.Empty) return id;
         return null;

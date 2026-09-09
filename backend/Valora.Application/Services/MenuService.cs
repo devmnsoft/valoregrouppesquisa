@@ -4,10 +4,8 @@ using Valora.Application.DTOs;
 namespace Valora.Application.Services;
 
 
-public sealed class MenuService(IEntitlementService entitlements, IPermissionService permissions) : IMenuService
-{
-    public async Task<IReadOnlyList<MenuItemDto>> GetMenuAsync(Guid userId, Guid? organizationId)
-    {
+public sealed class MenuService(IEntitlementService entitlements, IPermissionService permissions) : IMenuService {
+    public async Task<IReadOnlyList<MenuItemDto>> GetMenuAsync(Guid userId, Guid? organizationId) {
         var modules = organizationId.HasValue
             ? (await entitlements.ResolveAsync(organizationId.Value)).EnabledModules
             : Array.Empty<string>();

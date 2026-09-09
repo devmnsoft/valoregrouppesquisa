@@ -6,11 +6,9 @@ namespace Valora.Api.Controllers;
 
 [AllowAnonymous, ApiController]
 [Route("api/v1/public/results/{token}")]
-public sealed class PublicResultExperienceController(RegisterPublicResultAccessUseCase access) : ControllerBase
-{
+public sealed class PublicResultExperienceController(RegisterPublicResultAccessUseCase access) : ControllerBase {
     [HttpGet]
-    public async Task<IActionResult> Open(string token, CancellationToken cancellationToken)
-    {
+    public async Task<IActionResult> Open(string token, CancellationToken cancellationToken) {
         var result = await access.ExecuteAsync(token, HttpContext.Connection.RemoteIpAddress?.ToString(),
             Request.Headers.UserAgent.ToString(), HttpContext.TraceIdentifier, cancellationToken);
         return result is null

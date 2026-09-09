@@ -1,14 +1,12 @@
-using Xunit;
 using Valora.Tests.Support;
+using Xunit;
 
 namespace Valora.Tests;
 
 [Trait("Category", "StaticContract")]
-public sealed class AdminRepositoryMigrationTests
-{
+public sealed class AdminRepositoryMigrationTests {
     [Fact]
-    public void WebAdminModulesControllerDoesNotExposeRepositoryRequired501ForMainAdminEndpoints()
-    {
+    public void WebAdminModulesControllerDoesNotExposeRepositoryRequired501ForMainAdminEndpoints() {
         var controller = File.ReadAllText(RepositoryPaths.ApiFile("Controllers", "WebAdminModulesController.cs"));
         Assert.DoesNotContain("WEB_ADMIN_REAL_REPOSITORY_REQUIRED", controller);
         Assert.DoesNotContain("StatusCode(501", controller);
@@ -20,8 +18,7 @@ public sealed class AdminRepositoryMigrationTests
     }
 
     [Fact]
-    public void CompleteDatabaseScriptKeepsUsersCompatibleWithRepositoriesAndRoles()
-    {
+    public void CompleteDatabaseScriptKeepsUsersCompatibleWithRepositoriesAndRoles() {
         var sql = File.ReadAllText(RepositoryPaths.CanonicalDatabaseScript);
         Assert.Contains("CREATE TABLE IF NOT EXISTS valorapesquisa.user_roles", sql);
         Assert.Contains("ADD COLUMN IF NOT EXISTS role_id uuid", sql);
@@ -30,8 +27,7 @@ public sealed class AdminRepositoryMigrationTests
     }
 
     [Fact]
-    public void CanonicalPostgresScriptIncludesColumnsUsedByAdminRepositories()
-    {
+    public void CanonicalPostgresScriptIncludesColumnsUsedByAdminRepositories() {
         var sql = File.ReadAllText(RepositoryPaths.CanonicalDatabaseScript);
         Assert.Contains("role_id", sql);
         Assert.Contains("organization_settings", sql);
@@ -39,18 +35,15 @@ public sealed class AdminRepositoryMigrationTests
         Assert.Contains("plan_id", sql);
     }
     [Fact]
-    public void CompleteDatabaseScriptContainsOrganizationColumnsRequiredByAdminRepository()
-    {
+    public void CompleteDatabaseScriptContainsOrganizationColumnsRequiredByAdminRepository() {
         var sql = File.ReadAllText(RepositoryPaths.CanonicalDatabaseScript);
-        foreach (var column in new[] { "public_name", "email", "phone", "default_language_code", "time_zone", "onboarding_status", "legal_name", "cnpj", "minimum_aggregation_size" })
-        {
+        foreach (var column in new[] { "public_name", "email", "phone", "default_language_code", "time_zone", "onboarding_status", "legal_name", "cnpj", "minimum_aggregation_size" }) {
             Assert.Contains(column, sql);
         }
     }
 
     [Fact]
-    public void CompleteDatabaseScriptUsesOfficialCodeBasedPlanSchema()
-    {
+    public void CompleteDatabaseScriptUsesOfficialCodeBasedPlanSchema() {
         var sql = File.ReadAllText(RepositoryPaths.CanonicalDatabaseScript);
         Assert.Contains("code text NOT NULL UNIQUE", sql);
         Assert.Contains("ADD COLUMN IF NOT EXISTS monthly_price numeric", sql);
@@ -65,8 +58,7 @@ public sealed class AdminRepositoryMigrationTests
     }
 
     [Fact]
-    public void AdminRepositoriesDoNotSelectSensitiveHashColumnsForListEndpoints()
-    {
+    public void AdminRepositoriesDoNotSelectSensitiveHashColumnsForListEndpoints() {
         var repositoriesDir = RepositoryPaths.InfrastructureFile("Repositories");
         var userRepository = File.ReadAllText(Path.Combine(repositoriesDir, "UserRepository.cs"));
         var surveyRepository = File.ReadAllText(Path.Combine(repositoriesDir, "SurveyRepository.cs"));

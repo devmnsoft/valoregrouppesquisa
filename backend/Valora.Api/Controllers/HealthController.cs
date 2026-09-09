@@ -10,33 +10,27 @@ public sealed class HealthController(
     IDbConnectionFactory factory,
     IWebHostEnvironment environment,
     IConfiguration configuration,
-    ILogger<HealthController> logger) : ControllerBase
-{
+    ILogger<HealthController> logger) : ControllerBase {
     [HttpGet("/health")]
     public IActionResult Get() => Ok(Base(new { database = "not_checked", logging = "ok", migration = MigrationInfo() }));
 
     [HttpGet("/health/database")]
-    public async Task<IActionResult> Database()
-    {
-        try
-        {
+    public async Task<IActionResult> Database() {
+        try {
             using var connection = factory.Create();
             var isHealthy = await connection.ExecuteScalarAsync<int>("SELECT 1;") == 1;
             logger.LogInformation("Health database checked. Healthy={Healthy} CorrelationId={CorrelationId}", isHealthy, CorrelationId());
             return Ok(Base(new { database = isHealthy ? "ok" : "fail" }));
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             logger.LogError(ex, "Health database failed. CorrelationId={CorrelationId}", CorrelationId());
             return StatusCode(StatusCodes.Status503ServiceUnavailable, Base(new { ok = false, database = "fail" }));
         }
     }
 
     [HttpGet("/health/ready")]
-    public async Task<IActionResult> Ready()
-    {
-        try
-        {
+    public async Task<IActionResult> Ready() {
+        try {
             using var connection = factory.Create();
             var database = await connection.ExecuteScalarAsync<int>("SELECT 1;") == 1;
             var outboxBacklog = await SafeCountAsync(connection,
@@ -45,8 +39,7 @@ public sealed class HealthController(
                 "SELECT count(*)::int FROM valorapesquisa.email_jobs WHERE status='failed' AND is_deleted=false;");
             var intelligenceBacklog = await SafeCountAsync(connection,
                 "SELECT count(*)::int FROM valorapesquisa.intelligence_processing_jobs WHERE status IN ('pending','processing');");
-            var payload = Base(new
-            {
+            var payload = Base(new {
                 database = database ? "ok" : "fail",
                 api = "ok",
                 web = "external_probe_required",
@@ -60,8 +53,7 @@ public sealed class HealthController(
             });
             return database ? Ok(payload) : StatusCode(StatusCodes.Status503ServiceUnavailable, payload);
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             logger.LogError(ex, "Readiness health failed. CorrelationId={CorrelationId}", CorrelationId());
             return StatusCode(StatusCodes.Status503ServiceUnavailable,
                 Base(new { ok = false, database = "fail", status = "not_ready" }));
@@ -69,8 +61,7 @@ public sealed class HealthController(
     }
 
     [HttpGet("/health/logging")]
-    public IActionResult Logging()
-    {
+    public IActionResult Logging() {
         logger.LogInformation("Health logging checked. CorrelationId={CorrelationId}", CorrelationId());
         return Ok(Base(new { logging = "ok" }));
     }
@@ -79,8 +70,7 @@ public sealed class HealthController(
     public IActionResult Migration() => Ok(Base(new { migration = MigrationInfo() }));
 
     [HttpGet("/health/email")]
-    public IActionResult Email() => Ok(Base(new
-    {
+    public IActionResult Email() => Ok(Base(new {
         email = configuration.GetValue<bool>("Email:Enabled")
             ? string.IsNullOrWhiteSpace(configuration["Email:Smtp:Host"]) ? "not_configured" : "configured"
             : "disabled"
@@ -93,8 +83,7 @@ public sealed class HealthController(
     public IActionResult Version() => Ok(Base(new { version = VersionValue(), build = configuration["Build:Sha"] ?? "local" }));
 
     [HttpGet("/health/config")]
-    public IActionResult Config()
-    {
+    public IActionResult Config() {
         var signingKey = configuration["Jwt:SigningKey"];
         var isDemoKey = signingKey?.TrimStart().StartsWith("DEV_ONLY_", StringComparison.OrdinalIgnoreCase) == true;
         var jwtStatus = string.IsNullOrWhiteSpace(signingKey)
@@ -103,11 +92,9 @@ public sealed class HealthController(
                 ? "invalid"
                 : "configured";
 
-        return Ok(Base(new
-        {
+        return Ok(Base(new {
             // Somente estados sanitizados: este endpoint nunca devolve chaves, senhas ou connection strings.
-            jwt = new
-            {
+            jwt = new {
                 signingKey = jwtStatus,
                 issuer = Status(configuration["Jwt:Issuer"]),
                 audience = Status(configuration["Jwt:Audience"])
@@ -125,10 +112,8 @@ public sealed class HealthController(
         }));
     }
 
-    private object Base(object extra)
-    {
-        var basePayload = new Dictionary<string, object?>
-        {
+    private object Base(object extra) {
+        var basePayload = new Dictionary<string, object?> {
             ["ok"] = true,
             ["service"] = "Valora.Api",
             ["environment"] = environment.EnvironmentName,
@@ -145,8 +130,7 @@ public sealed class HealthController(
     private string VersionValue() => typeof(HealthController).Assembly.GetName().Version?.ToString() ?? "0.0.0";
     private string CorrelationId() => HttpContext.Items.TryGetValue(CorrelationIdMiddleware.ItemName, out var v) ? v?.ToString() ?? string.Empty : string.Empty;
 
-    private static async Task<int?> SafeCountAsync(System.Data.IDbConnection connection, string sql)
-    {
+    private static async Task<int?> SafeCountAsync(System.Data.IDbConnection connection, string sql) {
         try { return await connection.ExecuteScalarAsync<int>(sql); }
         catch { return null; }
     }

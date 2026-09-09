@@ -3,21 +3,18 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
+using Valora.Application.OrganizationalIntelligence;
 using Valora.Application.ReadModels;
 using Valora.Application.Results;
 using Valora.Application.Security;
-using Valora.Application.OrganizationalIntelligence;
 
 namespace Valora.Application.Services;
 
-public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IResponseRepository responses, IResultRepository results, ICertificateRepository certificates, ICommunicationRepository communications, IAuditRepository audit, ILgpdRepository lgpd, IResultTokenService tokens, IIntelligenceProcessingJobService processingJobs, ILogger<PublicResponseTransactionService> logger)
-{
-    public async Task<SubmitSurveyResponseResult> SaveAsync(SurveyPublicReadModel survey, SubmitSurveyResponseRequest request, IReadOnlyList<ScoredAnswer> scored, ValoraInsightResult calc, IReadOnlyList<DimensionScoreInput> dimensions)
-    {
+public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IResponseRepository responses, IResultRepository results, ICertificateRepository certificates, ICommunicationRepository communications, IAuditRepository audit, ILgpdRepository lgpd, IResultTokenService tokens, IIntelligenceProcessingJobService processingJobs, ILogger<PublicResponseTransactionService> logger) {
+    public async Task<SubmitSurveyResponseResult> SaveAsync(SurveyPublicReadModel survey, SubmitSurveyResponseRequest request, IReadOnlyList<ScoredAnswer> scored, ValoraInsightResult calc, IReadOnlyList<DimensionScoreInput> dimensions) {
         using var connection = db.Create(); connection.Open(); using var transaction = connection.BeginTransaction();
         logger.LogInformation("Public response transaction started. SurveyId={SurveyId} OrganizationId={OrganizationId}", survey.Id, survey.OrganizationId);
-        try
-        {
+        try {
             var token = tokens.CreateToken(); var tokenHash = tokens.HashToken(token);
             var responseId = await responses.CreateResponseAsync(survey.OrganizationId, survey.Id, survey.FormId, request.Participant.Name, request.Participant.Email, request.Participant.Phone, tokenHash, connection, transaction);
             logger.LogInformation("Public response created. SurveyId={SurveyId} OrganizationId={OrganizationId} ResponseId={ResponseId}", survey.Id, survey.OrganizationId, responseId);
@@ -37,13 +34,11 @@ public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IR
             logger.LogInformation("Public response audit_log created. SurveyId={SurveyId} ResponseId={ResponseId}", survey.Id, responseId);
             transaction.Commit();
             logger.LogInformation("Public response transaction committed. SurveyId={SurveyId} OrganizationId={OrganizationId} ResponseId={ResponseId}", survey.Id, survey.OrganizationId, responseId);
-            try
-            {
+            try {
                 var jobId = await processingJobs.EnqueueResponseProcessingAsync(new(survey.OrganizationId, survey.Id, responseId, survey.FormId), $"public-response-{responseId:N}", CancellationToken.None);
                 logger.LogInformation("Organizational intelligence processing job {JobId} queued. SurveyId={SurveyId} ResponseId={ResponseId}", jobId, survey.Id, responseId);
             }
-            catch (Exception pipelineError)
-            {
+            catch (Exception pipelineError) {
                 // The response is already durably committed. Preserve it and expose the
                 // processing failure through operations instead of asking the respondent
                 // to submit the same evidence twice.
@@ -51,20 +46,17 @@ public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IR
             }
             return new(true, responseId, token, emailStatus, new CertificateMetadataDto(responseId, code, "metadata-ready", name, "Valora Group", survey.Title, DateTime.UtcNow), MapResult(calc, dimensions));
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             try { transaction.Rollback(); logger.LogWarning("Rollback executado na submissão pública. SurveyId={SurveyId} OrganizationId={OrganizationId}", survey.Id, survey.OrganizationId); }
             catch (Exception rollbackEx) { logger.LogError(rollbackEx, "Falha ao executar rollback da submissão pública. SurveyId={SurveyId} OrganizationId={OrganizationId}", survey.Id, survey.OrganizationId); }
             logger.LogError(ex, "Erro transacional na submissão pública. SurveyId={SurveyId} OrganizationId={OrganizationId}", survey.Id, survey.OrganizationId);
             throw;
         }
     }
-    async Task<string> SaveCommunicationAsync(SurveyPublicReadModel survey, SubmitSurveyResponseRequest request, Guid responseId, string? email, System.Data.IDbTransaction tx)
-    { var status = request.CommunicationConsent && !string.IsNullOrWhiteSpace(email) ? "pending" : "cancelled"; if (status == "pending") { await communications.CreateEmailJobAsync(survey.OrganizationId, responseId, email!, status, tx); await communications.CreateCommunicationAsync(survey.OrganizationId, survey.Id, responseId, "email", "result-ready", status, LogSanitizer.MaskEmail(email) ?? "***", tx); } return status; }
+    async Task<string> SaveCommunicationAsync(SurveyPublicReadModel survey, SubmitSurveyResponseRequest request, Guid responseId, string? email, System.Data.IDbTransaction tx) { var status = request.CommunicationConsent && !string.IsNullOrWhiteSpace(email) ? "pending" : "cancelled"; if (status == "pending") { await communications.CreateEmailJobAsync(survey.OrganizationId, responseId, email!, status, tx); await communications.CreateCommunicationAsync(survey.OrganizationId, survey.Id, responseId, "email", "result-ready", status, LogSanitizer.MaskEmail(email) ?? "***", tx); } return status; }
     static ResultScoreDto MapResult(ValoraInsightResult calc, IReadOnlyList<DimensionScoreInput> dims) => new(calc.TotalScore, calc.MaxScore, Percent(calc), calc.Level, dims.OrderByDescending(x => x.Score).FirstOrDefault()?.DimensionName, dims.OrderBy(x => x.Score).FirstOrDefault()?.DimensionName, "Radar calculado com respostas reais por dimensão.", calc.StrategicTruth, calc.Risk, calc.NextLevel);
     static decimal Percent(ValoraInsightResult c) => c.MaxScore == 0 ? 0 : Math.Round(c.TotalScore / c.MaxScore * 100, 2);
-    Task SaveLgpdConsentAsync(SurveyPublicReadModel survey, SubmitSurveyResponseRequest request, Guid responseId, string? email, System.Data.IDbConnection connection, System.Data.IDbTransaction transaction)
-    {
+    Task SaveLgpdConsentAsync(SurveyPublicReadModel survey, SubmitSurveyResponseRequest request, Guid responseId, string? email, System.Data.IDbConnection connection, System.Data.IDbTransaction transaction) {
         var suppliedVersion = request.Participant.ConsentVersion;
         var version = string.IsNullOrWhiteSpace(suppliedVersion) || suppliedVersion.Length > 32 ? "8.0" : suppliedVersion.Trim();
         var emailHash = string.IsNullOrWhiteSpace(email)

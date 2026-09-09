@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed class PrivacyRequest
-{
+public sealed class PrivacyRequest {
     public Guid Id { get; set; }
     public Guid? OrganizationId { get; set; }
     public string RequesterEmailHash { get; set; } = string.Empty;

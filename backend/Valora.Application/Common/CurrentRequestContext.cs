@@ -12,8 +12,7 @@ public sealed record CurrentRequestContext(
     IReadOnlyList<string> Capabilities,
     IReadOnlyList<string> Scopes,
     string SubscriptionStatus,
-    long AccessVersion)
-{
+    long AccessVersion) {
     public bool IsOrganizationResolved => EffectiveOrganizationId is not null;
 
     public Guid? EffectiveOrganizationId => IsGlobalAdministrator
@@ -29,7 +28,6 @@ public sealed record CurrentRequestContext(
         : throw new UnauthorizedAccessException(CurrentOrganizationContext.RequiredMessage);
 }
 
-public interface ICurrentRequestContext
-{
+public interface ICurrentRequestContext {
     CurrentRequestContext GetCurrent();
 }

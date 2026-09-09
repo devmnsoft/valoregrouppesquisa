@@ -4,15 +4,12 @@ using Valora.Application.Contracts;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class CompanyRegistrationRepository : ICompanyRegistrationRepository
-{
-    public async Task<RegisterCompanyResult> RegisterAsync(IUnitOfWork uow, RegisterCompanyCommand c)
-    {
+public sealed class CompanyRegistrationRepository : ICompanyRegistrationRepository {
+    public async Task<RegisterCompanyResult> RegisterAsync(IUnitOfWork uow, RegisterCompanyCommand c) {
         var existing = await uow.Connection.QuerySingleOrDefaultAsync<(string RequestHash, Guid? OrganizationId)>(
             "SELECT request_hash,organization_id FROM idempotency_keys WHERE key=@IdempotencyKey FOR UPDATE",
             c, uow.Transaction);
-        if (existing.OrganizationId is not null)
-        {
+        if (existing.OrganizationId is not null) {
             if (!string.Equals(existing.RequestHash, c.RequestHash, StringComparison.Ordinal))
                 throw new InvalidOperationException("Idempotency key já utilizada com outro conteúdo.");
             return await LoadAsync(uow, existing.OrganizationId.Value, true);

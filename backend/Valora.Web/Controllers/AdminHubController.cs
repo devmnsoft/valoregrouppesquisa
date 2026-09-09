@@ -9,8 +9,7 @@ namespace Valora.Web.Controllers;
 /// <summary>Typed MVC shell for tenant-safe administration. Mutations are sent to the authenticated BFF; tenant IDs are never accepted as free text.</summary>
 [Authorize(Roles = "admin_valora,empresa_admin")]
 [Route("Admin")]
-public sealed class AdminHubController : Controller
-{
+public sealed class AdminHubController : Controller {
     [HttpGet("")]
     public IActionResult Index() => View(new AdminHubIndexViewModel([
         new("Organizações ativas", 0, "success"), new("Usuários ativos", 0), new("Unidades", 0), new("Eventos hoje", 0, "warning")]));
@@ -24,8 +23,7 @@ public sealed class AdminHubController : Controller
 
     [Authorize(Roles = "admin_valora")]
     [ValidateAntiForgeryToken, HttpPost("Organizations/Create")]
-    public IActionResult CreateOrganization(CreateOrganizationViewModel model)
-    {
+    public IActionResult CreateOrganization(CreateOrganizationViewModel model) {
         if (!ModelState.IsValid) return View(model.WithOptions(PlanOptions()));
         TempData["AdminHubCommand"] = "organization.create";
         return RedirectToAction(nameof(Organizations));
@@ -41,8 +39,7 @@ public sealed class AdminHubController : Controller
     public IActionResult CreateUser() => View(new CreateAdminUserViewModel());
 
     [ValidateAntiForgeryToken, HttpPost("Users/Create")]
-    public IActionResult CreateUser(CreateAdminUserViewModel model)
-    {
+    public IActionResult CreateUser(CreateAdminUserViewModel model) {
         if (!ModelState.IsValid) return View(model);
         TempData["AdminHubCommand"] = "user.create";
         return RedirectToAction(nameof(Users));
@@ -60,8 +57,6 @@ public sealed class AdminHubController : Controller
     private static IReadOnlyList<SelectListItem> PlanOptions() => [new("Free", "free"), new("Start", "start"), new("Growth", "growth"), new("Enterprise", "enterprise")];
 }
 
-file static class AdminHubModelExtensions
-{
-    public static CreateOrganizationViewModel WithOptions(this CreateOrganizationViewModel model, IReadOnlyList<SelectListItem> plans) => new()
-    { Name=model.Name, Slug=model.Slug, PlanCode=model.PlanCode, UserLimit=model.UserLimit, Plans=plans };
+file static class AdminHubModelExtensions {
+    public static CreateOrganizationViewModel WithOptions(this CreateOrganizationViewModel model, IReadOnlyList<SelectListItem> plans) => new() { Name = model.Name, Slug = model.Slug, PlanCode = model.PlanCode, UserLimit = model.UserLimit, Plans = plans };
 }

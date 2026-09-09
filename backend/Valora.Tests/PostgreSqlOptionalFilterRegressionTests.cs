@@ -2,15 +2,13 @@ using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
-public sealed class PostgreSqlOptionalFilterRegressionTests
-{
+public sealed class PostgreSqlOptionalFilterRegressionTests {
     [Theory]
     [InlineData("IntelligenceProcessingJobRepository.cs")]
     [InlineData("JourneyRepository.cs")]
     [InlineData("AssistedOperationsRepository.cs")]
     [InlineData("UserAdministrationRepository.cs")]
-    public void OptionalFilters_HaveExplicitPostgreSqlTypes(string fileName)
-    {
+    public void OptionalFilters_HaveExplicitPostgreSqlTypes(string fileName) {
         var source = ReadRepository(fileName);
 
         Assert.DoesNotContain("@Search IS NULL", source, StringComparison.OrdinalIgnoreCase);
@@ -20,8 +18,7 @@ public sealed class PostgreSqlOptionalFilterRegressionTests
     }
 
     [Fact]
-    public void JourneyProjection_UsesQuotedPropertyAliases()
-    {
+    public void JourneyProjection_UsesQuotedPropertyAliases() {
         var source = ReadRepository("JourneyRepository.cs");
 
         Assert.Contains("AS \"EventType\"", source, StringComparison.Ordinal);
@@ -30,8 +27,7 @@ public sealed class PostgreSqlOptionalFilterRegressionTests
     }
 
     [Fact]
-    public void IntegerOperationsDashboardCounts_AreExplicitlyCast()
-    {
+    public void IntegerOperationsDashboardCounts_AreExplicitlyCast() {
         var source = ReadRepository("AssistedOperationsRepository.cs");
 
         Assert.Contains("count(*)::int", source, StringComparison.OrdinalIgnoreCase);

@@ -5,14 +5,11 @@ public sealed class ValoraDocumentService(
     IDocumentAccessPolicy access,
     IDocumentStore store,
     IExecutiveReportExportService exporter,
-    IExportAuditService audit) : IValoraDocumentService
-{
-    public async Task<GeneratedDocument> GenerateAsync(DocumentRequest request, CancellationToken cancellationToken = default)
-    {
+    IExportAuditService audit) : IValoraDocumentService {
+    public async Task<GeneratedDocument> GenerateAsync(DocumentRequest request, CancellationToken cancellationToken = default) {
         if (request.OrganizationId == Guid.Empty) throw new ArgumentException("Contexto de organização ausente.", nameof(request));
         if (request.DiagnosisId == Guid.Empty) throw new ArgumentException("Selecione um diagnóstico válido.", nameof(request));
-        try
-        {
+        try {
             await access.EnsureCanGenerateAsync(request.OrganizationId, request.UserId, request.Format, cancellationToken);
             var snapshot = await snapshots.LoadAsync(request.OrganizationId, request.DiagnosisId, cancellationToken)
                 ?? throw new KeyNotFoundException("Diagnóstico não encontrado para esta organização.");
@@ -23,15 +20,13 @@ public sealed class ValoraDocumentService(
             await audit.RecordAsync(request.OrganizationId, request.UserId, "deliverable.generated", request.Format.ToString(), document.Id.ToString(), true, document.TraceCode, cancellationToken);
             return document;
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             await audit.RecordAsync(request.OrganizationId, request.UserId, "deliverable.generation_failed", request.Format.ToString(), request.DiagnosisId.ToString(), false, ex.Message, cancellationToken);
             throw;
         }
     }
 
-    public async Task<GeneratedDocument?> OpenForDownloadAsync(Guid organizationId, Guid documentId, Guid? userId, CancellationToken cancellationToken = default)
-    {
+    public async Task<GeneratedDocument?> OpenForDownloadAsync(Guid organizationId, Guid documentId, Guid? userId, CancellationToken cancellationToken = default) {
         await access.EnsureCanGenerateAsync(organizationId, userId, DeliverableFormat.Pdf, cancellationToken);
         var document = await store.FindAsync(organizationId, documentId, cancellationToken);
         await audit.RecordAsync(organizationId, userId, "deliverable.downloaded", "document", documentId.ToString(), document is not null, null, cancellationToken);

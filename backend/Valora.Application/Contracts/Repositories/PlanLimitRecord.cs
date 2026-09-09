@@ -1,8 +1,7 @@
 using Valora.Application.DTOs;
 namespace Valora.Application.Contracts;
 
-public sealed class PlanLimitRecord
-{
+public sealed class PlanLimitRecord {
     public string? LimitKey { get; init; }
     public int? LimitValue { get; init; }
     public string? Period { get; init; }

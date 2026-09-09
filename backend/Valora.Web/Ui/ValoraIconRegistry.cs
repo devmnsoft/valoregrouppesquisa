@@ -1,11 +1,9 @@
 namespace Valora.Web.Ui;
 
-public sealed class ValoraIconRegistry
-{
+public sealed class ValoraIconRegistry {
     public const string FallbackIcon = "help-circle";
 
-    private static readonly IReadOnlyDictionary<string, string> Icons = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-    {
+    private static readonly IReadOnlyDictionary<string, string> Icons = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
         ["home"] = "<path d=\"m3 11 9-8 9 8\"/><path d=\"M5 10v10h14V10M9 20v-6h6v6\"/>",
         ["layout-dashboard"] = "<rect x=\"3\" y=\"3\" width=\"7\" height=\"9\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"5\" rx=\"1\"/><rect x=\"14\" y=\"12\" width=\"7\" height=\"9\" rx=\"1\"/><rect x=\"3\" y=\"16\" width=\"7\" height=\"5\" rx=\"1\"/>",
         ["activity"] = "<path d=\"M3 12h4l3-9 4 18 3-9h4\"/>",
@@ -99,10 +97,8 @@ public sealed class ValoraIconRegistry
         ? markup
         : throw new InvalidOperationException($"Ícone Valora desconhecido: {name}");
 
-    public bool TryGet(string? name, out string markup)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-        {
+    public bool TryGet(string? name, out string markup) {
+        if (string.IsNullOrWhiteSpace(name)) {
             markup = string.Empty;
             return false;
         }

@@ -6,8 +6,7 @@ namespace Valora.Web.Controllers;
 
 [Authorize(Roles = "admin_valora,empresa_admin")]
 [Route("SystemHealth")]
-public sealed class SystemHealthController : Controller
-{
+public sealed class SystemHealthController : Controller {
     [HttpGet("")]
     public IActionResult Index() => View(Page("Reliability Center™", "Banco, API, BFF, workers, filas e processamentos em uma visão operacional.", "Componentes saudáveis", "Alertas", "Erros críticos"));
 

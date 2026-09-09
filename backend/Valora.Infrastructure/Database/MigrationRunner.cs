@@ -1,17 +1,15 @@
+using System.Security.Cryptography;
 using Dapper;
 using Microsoft.Extensions.Logging;
-using System.Security.Cryptography;
 using Valora.Application.Contracts;
 
 namespace Valora.Infrastructure.Database;
 
-public sealed class MigrationRunner(IDbConnectionFactory factory, ILogger<MigrationRunner> logger)
-{
+public sealed class MigrationRunner(IDbConnectionFactory factory, ILogger<MigrationRunner> logger) {
     private const string BootstrapFileName = "script_completo.sql";
     private const string BootstrapVersion = "script_completo_2026_07";
 
-    public async Task<IReadOnlyList<string>> RunAsync(string root)
-    {
+    public async Task<IReadOnlyList<string>> RunAsync(string root) {
         var directory = Path.Combine(root, "database", "postgresql");
         logger.LogInformation("Migration scan started. Directory={Directory}", directory);
         var files = Directory.GetFiles(directory, "*.sql")
@@ -20,8 +18,7 @@ public sealed class MigrationRunner(IDbConnectionFactory factory, ILogger<Migrat
             .ToList();
         using var connection = factory.Create();
         connection.Open();
-        try
-        {
+        try {
             await connection.ExecuteAsync("""
                 CREATE SCHEMA IF NOT EXISTS valorapesquisa;
                 CREATE TABLE IF NOT EXISTS valorapesquisa.schema_migrations (
@@ -37,27 +34,23 @@ public sealed class MigrationRunner(IDbConnectionFactory factory, ILogger<Migrat
                 ALTER TABLE valorapesquisa.schema_migrations ADD COLUMN IF NOT EXISTS application_version text;
                 """);
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             logger.LogError(ex, "schema_migrations unavailable.");
             throw;
         }
         var completed = (await connection.QueryAsync<string>("SELECT version FROM valorapesquisa.schema_migrations")).ToHashSet();
         var applied = new List<string>();
-        foreach (var file in files)
-        {
+        foreach (var file in files) {
             var scriptName = Path.GetFileName(file);
             var bootstrapAlreadyApplied = string.Equals(scriptName, BootstrapFileName, StringComparison.OrdinalIgnoreCase)
                 && completed.Contains(BootstrapVersion);
-            if (completed.Contains(scriptName) || bootstrapAlreadyApplied)
-            {
+            if (completed.Contains(scriptName) || bootstrapAlreadyApplied) {
                 logger.LogInformation("Migration already applied. ScriptName={ScriptName}", scriptName);
                 continue;
             }
             using var transaction = connection.BeginTransaction();
             logger.LogInformation("Migration started. ScriptName={ScriptName}", scriptName);
-            try
-            {
+            try {
                 var script = await File.ReadAllTextAsync(file);
                 var checksum = $"sha256:{Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(script))).ToLowerInvariant()}";
                 await connection.ExecuteAsync(script, transaction: transaction);
@@ -69,8 +62,7 @@ public sealed class MigrationRunner(IDbConnectionFactory factory, ILogger<Migrat
                 applied.Add(scriptName);
                 logger.LogInformation("Migration applied. ScriptName={ScriptName}", scriptName);
             }
-            catch (Exception ex)
-            {
+            catch (Exception ex) {
                 try { transaction.Rollback(); logger.LogWarning("Migration rollback executed. ScriptName={ScriptName}", scriptName); }
                 catch (Exception rollbackEx) { logger.LogError(rollbackEx, "Migration rollback failed. ScriptName={ScriptName}", scriptName); }
                 logger.LogError(ex, "Migration failed. ScriptName={ScriptName}", scriptName);

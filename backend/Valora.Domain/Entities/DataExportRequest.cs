@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record DataExportRequest
-{
+public sealed record DataExportRequest {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid OrganizationId { get; init; }
     public string Email { get; init; } = string.Empty;

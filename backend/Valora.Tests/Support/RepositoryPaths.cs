@@ -1,7 +1,6 @@
 namespace Valora.Tests.Support;
 
-public static class RepositoryPaths
-{
+public static class RepositoryPaths {
     public static string RepositoryRoot { get; } = ResolveRepositoryRoot();
     public static string BackendRoot => Path.Combine(RepositoryRoot, "backend");
     public static string ApiRoot => Path.Combine(BackendRoot, "Valora.Api");
@@ -25,11 +24,9 @@ public static class RepositoryPaths
     public static string RootFile(params string[] segments) => SafeCombine(RepositoryRoot, segments);
     public static string MigrationFile(string fileName) => SafeCombine(MigrationsDirectory, [fileName]);
 
-    private static string ResolveRepositoryRoot()
-    {
+    private static string ResolveRepositoryRoot() {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
-        while (directory is not null)
-        {
+        while (directory is not null) {
             if (File.Exists(Path.Combine(directory.FullName, "backend", "Valora.sln"))) return directory.FullName;
             directory = directory.Parent;
         }
@@ -37,8 +34,7 @@ public static class RepositoryPaths
         throw new DirectoryNotFoundException("Nao foi possivel localizar a raiz que contem backend/Valora.sln.");
     }
 
-    private static string SafeCombine(string root, IReadOnlyList<string> segments)
-    {
+    private static string SafeCombine(string root, IReadOnlyList<string> segments) {
         if (segments.Count == 0 || segments.Any(segment => string.IsNullOrWhiteSpace(segment) || Path.IsPathRooted(segment)))
             throw new ArgumentException("Informe somente segmentos de caminho relativos.", nameof(segments));
 

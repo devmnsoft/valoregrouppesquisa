@@ -3,8 +3,7 @@ using Valora.Domain.Enums;
 
 namespace Valora.Domain.Entities;
 
-public sealed record LegalEntity : AuditableEntity
-{
+public sealed record LegalEntity : AuditableEntity {
     public Guid OrganizationId { get; init; }
     public Guid? BusinessGroupId { get; init; }
     public string LegalName { get; init; } = string.Empty;

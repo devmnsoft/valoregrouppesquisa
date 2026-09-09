@@ -2,8 +2,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Contracts;
-using Valora.Application.OrganizationalIntelligence;
 using Valora.Application.Heatmap;
+using Valora.Application.OrganizationalIntelligence;
 
 namespace Valora.Api.Controllers;
 
@@ -11,12 +11,10 @@ namespace Valora.Api.Controllers;
 public sealed class OrganizationalIntelligenceController(IOrganizationalIntelligenceService service,
     IValoraIntelligenceEngine deliverables, IOrganizationalIntelligencePipeline pipeline,
     IPermissionService permissions, IEntitlementService entitlements, IBenchmarkManagementService benchmarks,
-    Valora.Application.Heatmap.IHeatmapService heatmaps) : ControllerBase
-{
+    Valora.Application.Heatmap.IHeatmapService heatmaps) : ControllerBase {
     /// <summary>Canonical evidence-first read model shared by Dashboard, Radar, Report, Action, Heatmap and Insights.</summary>
     [HttpGet("deliverables")]
-    public async Task<IActionResult> Deliverables([FromQuery] Guid? organizationId, [FromQuery] Guid? surveyId, CancellationToken ct)
-    {
+    public async Task<IActionResult> Deliverables([FromQuery] Guid? organizationId, [FromQuery] Guid? surveyId, CancellationToken ct) {
         var access = await Validate(organizationId, Valora.Application.Access.ValoraPermissions.IntelligentDeliverables.DashboardRead);
         if (access.Error is not null) return access.Error;
         var items = await service.EvidenceItemsAsync(access.OrganizationId, ct);
@@ -32,24 +30,21 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     [HttpGet("runs")]
     public async Task<IActionResult> Runs([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", (id) => service.RunsAsync(id, ct));
     [HttpGet("runs/{id:guid}")]
-    public async Task<IActionResult> Run(Guid id, [FromQuery] Guid? organizationId, CancellationToken ct)
-    {
+    public async Task<IActionResult> Run(Guid id, [FromQuery] Guid? organizationId, CancellationToken ct) {
         var denied = await Validate(organizationId, "organizational_intelligence.read"); if (denied.Error is not null) return denied.Error;
         var run = await service.RunAsync(denied.OrganizationId, id, ct); return run is null ? NotFound(new { code = "INTELLIGENCE_RUN_NOT_FOUND", message = "Leitura não encontrada." }) : Ok(run);
     }
     [HttpPost("generate")]
     public async Task<IActionResult> Generate([FromBody] GenerateOrganizationalIntelligenceRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.generate", (id) => service.GenerateAsync(id, ct));
     [HttpPost("pipeline/recalculate")]
-    public async Task<IActionResult> Recalculate([FromQuery] Guid? organizationId, CancellationToken ct)
-    {
+    public async Task<IActionResult> Recalculate([FromQuery] Guid? organizationId, CancellationToken ct) {
         var access = await Validate(organizationId, "organizational_intelligence.generate"); if (access.Error is not null) return access.Error;
         return Ok(await pipeline.ProcessResponseAsync(new(access.OrganizationId, UserId: UserId, Trigger: "manual_recalculation"), ct));
     }
     [HttpGet("journey")]
     public async Task<IActionResult> Journey([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", (id) => service.JourneyAsync(id, ct));
     [HttpPost("journey")]
-    public async Task<IActionResult> CreateJourney([FromBody] CreateJourneyEventRequest request, [FromQuery] Guid? organizationId, CancellationToken ct)
-    {
+    public async Task<IActionResult> CreateJourney([FromBody] CreateJourneyEventRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) {
         var access = await Validate(organizationId, "organizational_intelligence.journey.create"); if (access.Error is not null) return access.Error;
         return StatusCode(201, await service.CreateJourneyAsync(access.OrganizationId, UserId, request, ct));
     }
@@ -58,13 +53,11 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     [HttpGet("evolution")]
     public async Task<IActionResult> Evolution([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.EvolutionAsync(id, ct));
     [HttpGet("heatmap")]
-    public async Task<IActionResult> Heatmap([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, Valora.Application.Access.ValoraPermissions.IntelligentDeliverables.HeatmapRead, id => heatmaps.OverviewAsync(id,ct));
+    public async Task<IActionResult> Heatmap([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, Valora.Application.Access.ValoraPermissions.IntelligentDeliverables.HeatmapRead, id => heatmaps.OverviewAsync(id, ct));
     [HttpGet("heatmap/{id:guid}")]
-    public async Task<IActionResult> HeatmapDetail(Guid id,[FromQuery] Guid? organizationId,CancellationToken ct)
-    { var access=await Validate(organizationId,Valora.Application.Access.ValoraPermissions.IntelligentDeliverables.HeatmapRead);if(access.Error is not null)return access.Error;var item=await heatmaps.GetAsync(access.OrganizationId,id,ct);return item is null?NotFound():Ok(item); }
+    public async Task<IActionResult> HeatmapDetail(Guid id, [FromQuery] Guid? organizationId, CancellationToken ct) { var access = await Validate(organizationId, Valora.Application.Access.ValoraPermissions.IntelligentDeliverables.HeatmapRead); if (access.Error is not null) return access.Error; var item = await heatmaps.GetAsync(access.OrganizationId, id, ct); return item is null ? NotFound() : Ok(item); }
     [HttpPost("heatmap/generate")]
-    public async Task<IActionResult> GenerateHeatmap([FromBody] GenerateHeatmapRequest request,[FromQuery] Guid? organizationId,CancellationToken ct)
-    { var access=await Validate(organizationId,Valora.Application.Access.ValoraPermissions.Heatmap.Generate);if(access.Error is not null)return access.Error;return StatusCode(201,await heatmaps.GenerateAsync(access.OrganizationId,UserId,request,ct)); }
+    public async Task<IActionResult> GenerateHeatmap([FromBody] GenerateHeatmapRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) { var access = await Validate(organizationId, Valora.Application.Access.ValoraPermissions.Heatmap.Generate); if (access.Error is not null) return access.Error; return StatusCode(201, await heatmaps.GenerateAsync(access.OrganizationId, UserId, request, ct)); }
     [HttpGet("evidence")]
     public async Task<IActionResult> Evidence([FromQuery] Guid? organizationId, [FromQuery] Guid? surveyId,
         [FromQuery] Guid? responseId, [FromQuery] Guid? questionId, [FromQuery] string? concept,
@@ -99,14 +92,13 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     [HttpGet("benchmark")]
     public async Task<IActionResult> Benchmark([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, Valora.Application.Access.ValoraPermissions.IntelligentDeliverables.BenchmarkRead, id => benchmarks.DashboardAsync(id, ct));
     [HttpGet("benchmark/{id:guid}")]
-    public async Task<IActionResult> BenchmarkDetail(Guid id, [FromQuery] Guid? organizationId, CancellationToken ct)
-    { var access=await Validate(organizationId,Valora.Application.Access.ValoraPermissions.IntelligentDeliverables.BenchmarkRead); if(access.Error is not null)return access.Error; var item=await benchmarks.GetAsync(access.OrganizationId,id,ct); return item is null?NotFound():Ok(item); }
+    public async Task<IActionResult> BenchmarkDetail(Guid id, [FromQuery] Guid? organizationId, CancellationToken ct) { var access = await Validate(organizationId, Valora.Application.Access.ValoraPermissions.IntelligentDeliverables.BenchmarkRead); if (access.Error is not null) return access.Error; var item = await benchmarks.GetAsync(access.OrganizationId, id, ct); return item is null ? NotFound() : Ok(item); }
     [HttpPost("benchmark/generate")]
-    public async Task<IActionResult> GenerateBenchmark([FromBody] GenerateBenchmarkRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, Valora.Application.Access.ValoraPermissions.Benchmark.Generate, id => benchmarks.GenerateAsync(id,request,ct));
+    public async Task<IActionResult> GenerateBenchmark([FromBody] GenerateBenchmarkRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, Valora.Application.Access.ValoraPermissions.Benchmark.Generate, id => benchmarks.GenerateAsync(id, request, ct));
     [HttpPost("benchmark/compare")]
-    public async Task<IActionResult> CompareBenchmark([FromBody] CompareBenchmarkRequest request,[FromQuery] Guid? organizationId,CancellationToken ct)=>await Read(organizationId,Valora.Application.Access.ValoraPermissions.Benchmark.Compare,id=>benchmarks.CompareAsync(id,request,ct));
+    public async Task<IActionResult> CompareBenchmark([FromBody] CompareBenchmarkRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, Valora.Application.Access.ValoraPermissions.Benchmark.Compare, id => benchmarks.CompareAsync(id, request, ct));
     [HttpPut("benchmark/settings")]
-    public async Task<IActionResult> BenchmarkSettings([FromBody] BenchmarkSettings request,[FromQuery] Guid? organizationId,CancellationToken ct)=>await Read(organizationId,Valora.Application.Access.ValoraPermissions.Benchmark.Admin,id=>benchmarks.UpdateSettingsAsync(id,request,ct));
+    public async Task<IActionResult> BenchmarkSettings([FromBody] BenchmarkSettings request, [FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, Valora.Application.Access.ValoraPermissions.Benchmark.Admin, id => benchmarks.UpdateSettingsAsync(id, request, ct));
     [HttpGet("executive-report")]
     public async Task<IActionResult> ExecutiveReport([FromQuery] Guid? organizationId, CancellationToken ct) => await Module("executive-reports", organizationId, ct);
     [HttpPost("executive-report/preview")]
@@ -126,11 +118,9 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     public async Task<IActionResult> Actions([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.ActionsAsync(id, ct));
     [HttpPost("action-plans")]
     [HttpPost("actions")]
-    public async Task<IActionResult> CreateAction([FromBody] CreateValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct)
-    { var access = await Validate(organizationId, "organizational_intelligence.generate"); if (access.Error is not null) return access.Error; return StatusCode(201, await service.CreateActionAsync(access.OrganizationId, UserId, request, ct)); }
+    public async Task<IActionResult> CreateAction([FromBody] CreateValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) { var access = await Validate(organizationId, "organizational_intelligence.generate"); if (access.Error is not null) return access.Error; return StatusCode(201, await service.CreateActionAsync(access.OrganizationId, UserId, request, ct)); }
     [HttpPatch("action-plans/{id:guid}")]
-    public async Task<IActionResult> UpdateAction(Guid id, [FromBody] UpdateValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct)
-    {
+    public async Task<IActionResult> UpdateAction(Guid id, [FromBody] UpdateValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) {
         var access = await Validate(organizationId, "organizational_intelligence.generate"); if (access.Error is not null) return access.Error;
         var action = await service.UpdateActionAsync(access.OrganizationId, id, UserId, request, ct);
         return action is null ? NotFound(new { code = "ACTION_PLAN_NOT_FOUND", message = "Plano de ação não encontrado." }) : Ok(action);
@@ -147,23 +137,19 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     public Task<IActionResult> ReplanAction(Guid id, [FromBody] ReplanValoraActionRequest request, [FromQuery] Guid? organizationId, CancellationToken ct) =>
         TransitionAction(id, new("replanned", request.Owner, DueAt: request.DueAt, Priority: request.Priority, Notes: request.Justification), organizationId, ct);
     [HttpDelete("action-plans/{id:guid}")]
-    public async Task<IActionResult> DeleteAction(Guid id, [FromQuery] Guid? organizationId, CancellationToken ct)
-    {
+    public async Task<IActionResult> DeleteAction(Guid id, [FromQuery] Guid? organizationId, CancellationToken ct) {
         var access = await Validate(organizationId, "organizational_intelligence.generate"); if (access.Error is not null) return access.Error;
         return await service.DeleteActionAsync(access.OrganizationId, id, UserId, ct) ? Ok(new { archived = true }) : NotFound(new { code = "ACTION_PLAN_NOT_FOUND", message = "Plano de ação não encontrado." });
     }
 
-    private async Task<IActionResult> TransitionAction(Guid id, UpdateValoraActionRequest request, Guid? organizationId, CancellationToken ct)
-    {
+    private async Task<IActionResult> TransitionAction(Guid id, UpdateValoraActionRequest request, Guid? organizationId, CancellationToken ct) {
         var access = await Validate(organizationId, "organizational_intelligence.generate"); if (access.Error is not null) return access.Error;
         var action = await service.UpdateActionAsync(access.OrganizationId, id, UserId, request, ct);
         return action is null ? NotFound(new { code = "ACTION_PLAN_NOT_FOUND", message = "Plano de ação não encontrado.", correlationId = HttpContext.TraceIdentifier }) : Ok(action);
     }
 
-    private async Task<IActionResult> Read<T>(Guid? requested, string permission, Func<Guid, Task<T>> action)
-    { var access = await Validate(requested, permission); return access.Error ?? Ok(await action(access.OrganizationId)); }
-    private async Task<(Guid OrganizationId, IActionResult? Error)> Validate(Guid? requested, string permission)
-    {
+    private async Task<IActionResult> Read<T>(Guid? requested, string permission, Func<Guid, Task<T>> action) { var access = await Validate(requested, permission); return access.Error ?? Ok(await action(access.OrganizationId)); }
+    private async Task<(Guid OrganizationId, IActionResult? Error)> Validate(Guid? requested, string permission) {
         if (requested.HasValue && !CanSelectOrganization && requested != ClaimOrganizationId)
             return (Guid.Empty, Denied("ORGANIZATION_SCOPE_DENIED", "Seu perfil não pode selecionar outra organização."));
         var organizationId = CanSelectOrganization ? requested ?? ClaimOrganizationId : ClaimOrganizationId;

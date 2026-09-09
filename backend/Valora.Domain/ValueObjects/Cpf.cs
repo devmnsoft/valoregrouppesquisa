@@ -2,16 +2,14 @@ using System.Text.RegularExpressions;
 
 namespace Valora.Domain.ValueObjects;
 
-public sealed partial class Cpf : IEquatable<Cpf>
-{
+public sealed partial class Cpf : IEquatable<Cpf> {
     public string Value { get; }
     public string Formatted => $"{Value[..3]}.{Value[3..6]}.{Value[6..9]}-{Value[9..]}";
     public string Masked => $"***.{Value[3..6]}.{Value[6..9]}-**";
 
     private Cpf(string value) => Value = value;
 
-    public static Cpf Create(string input)
-    {
+    public static Cpf Create(string input) {
         ArgumentException.ThrowIfNullOrWhiteSpace(input);
         var digits = NonDigitRegex().Replace(input, string.Empty);
         if (digits.Length != 11 || digits.Distinct().Count() == 1 || !HasValidCheckDigits(digits))
@@ -19,14 +17,12 @@ public sealed partial class Cpf : IEquatable<Cpf>
         return new Cpf(digits);
     }
 
-    public static bool TryCreate(string? input, out Cpf? cpf)
-    {
+    public static bool TryCreate(string? input, out Cpf? cpf) {
         try { cpf = Create(input ?? string.Empty); return true; }
         catch (ArgumentException) { cpf = null; return false; }
     }
 
-    private static bool HasValidCheckDigits(string value)
-    {
+    private static bool HasValidCheckDigits(string value) {
         var firstSum = 0;
         for (var index = 0; index < 9; index++) firstSum += (value[index] - '0') * (10 - index);
         var first = firstSum % 11 is 0 or 1 ? 0 : 11 - firstSum % 11;

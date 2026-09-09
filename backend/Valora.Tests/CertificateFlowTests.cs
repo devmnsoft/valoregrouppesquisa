@@ -3,11 +3,9 @@ using Xunit;
 namespace Valora.Tests;
 
 [Trait("Category", "Unit")]
-public sealed class CertificateFlowTests
-{
+public sealed class CertificateFlowTests {
     [Fact]
-    public void CertificateFallbackContractIsSafeForProduction()
-    {
+    public void CertificateFallbackContractIsSafeForProduction() {
         var forbidden = new[] { "Empresa Exemplo", "undefined", "NaN", "[object Object]" };
         foreach (var marker in forbidden) Assert.DoesNotContain(marker, "Valora Insight™ certificado metadata-ready");
     }

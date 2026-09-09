@@ -48,8 +48,7 @@ public sealed record NextBestActionCardViewModel(
     string? Requirement = null,
     string Tone = "primary");
 
-public sealed class ResultDetailsViewModel
-{
+public sealed class ResultDetailsViewModel {
     [Required]
     [StringLength(128, MinimumLength = 1)]
     [RegularExpression("^[A-Za-z0-9_-]+$")]

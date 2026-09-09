@@ -13,12 +13,10 @@ public sealed class MigrationApplyService(
     IMigrationMappingRepository mappings,
     IMigrationRecordRepository records,
     IMigrationRollbackRepository rollbacks,
-    IAuditRepository audit) : IMigrationApplyService
-{
+    IAuditRepository audit) : IMigrationApplyService {
     public async Task<MigrationReconciliationReportDto> ApplyAsync(
         MigrationApplyRequest request,
-        CancellationToken ct = default)
-    {
+        CancellationToken ct = default) {
         await audit.AddAsync(new AuditEntry(
             null,
             null,
@@ -28,27 +26,22 @@ public sealed class MigrationApplyService(
             "Apply iniciado",
             "{}"));
 
-        try
-        {
-            if (!request.ConfirmApply)
-            {
+        try {
+            if (!request.ConfirmApply) {
                 throw new InvalidOperationException("Importação real exige confirmApply=true.");
             }
 
-            if (request.RequestedByRole != "admin_valora")
-            {
+            if (request.RequestedByRole != "admin_valora") {
                 throw new UnauthorizedAccessException("Apenas admin_valora pode aplicar importação nesta sprint.");
             }
 
             var batch = await batches.GetAsync(request.BatchId, ct)
                 ?? throw new InvalidOperationException("Batch não encontrado.");
-            if (!batch.Status.Contains("dry_run") && batch.Status != "blocked")
-            {
+            if (!batch.Status.Contains("dry_run") && batch.Status != "blocked") {
                 throw new InvalidOperationException("Apply exige dry-run anterior.");
             }
 
-            if (await conflicts.HasBlockingAsync(request.BatchId, ct))
-            {
+            if (await conflicts.HasBlockingAsync(request.BatchId, ct)) {
                 throw new InvalidOperationException("Conflito bloqueante impede apply.");
             }
 
@@ -59,10 +52,8 @@ public sealed class MigrationApplyService(
                 1,
                 int.TryParse(Environment.GetEnvironmentVariable("VALORA_MIGRATION_BATCH_SIZE"), out var b) ? b : 500);
 
-            foreach (var chunk in all.Chunk(batchSize))
-            {
-                foreach (var r in chunk)
-                {
+            foreach (var chunk in all.Chunk(batchSize)) {
+                foreach (var r in chunk) {
                     ct.ThrowIfCancellationRequested();
                     var target = Guid.NewGuid();
                     await rollbacks.AddAsync(new MigrationRollbackItemDto(
@@ -107,8 +98,7 @@ public sealed class MigrationApplyService(
                 new Dictionary<string, int> { { "records", all.Count } },
                 Array.Empty<string>());
         }
-        catch
-        {
+        catch {
             await audit.AddAsync(new AuditEntry(
                 null,
                 null,

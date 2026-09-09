@@ -7,8 +7,7 @@ namespace Valora.Web.Controllers;
 [Authorize]
 [ApiController]
 [Route("bff/navigation")]
-public sealed class BffNavigationController(NavigationService navigation) : ControllerBase
-{
+public sealed class BffNavigationController(NavigationService navigation) : ControllerBase {
     [HttpGet]
     public async Task<ActionResult<NavigationViewModel>> Get(CancellationToken cancellationToken) =>
         Ok(await navigation.BuildAsync(HttpContext, cancellationToken));

@@ -10,8 +10,7 @@ using Valora.Application.Integrations;
 namespace Valora.Api.Controllers;
 
 [Authorize, ApiController, Route("api/v1/integration-operations")]
-public sealed class IntegrationOperationsController(EnterpriseService enterprise, IIntegrationRepository repository, ICnpjLookupService cnpj, ICepLookupService cep, ExternalImportValidator imports) : ControllerBase
-{
+public sealed class IntegrationOperationsController(EnterpriseService enterprise, IIntegrationRepository repository, ICnpjLookupService cnpj, ICepLookupService cep, ExternalImportValidator imports) : ControllerBase {
     private Guid? OrganizationId => Guid.TryParse(User.FindFirstValue("organization_id"), out var id) ? id : null;
     private Guid UserId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty;
 
@@ -21,8 +20,7 @@ public sealed class IntegrationOperationsController(EnterpriseService enterprise
     public async Task<IActionResult> Cep(string value, CancellationToken ct) => Ok(await cep.LookupAsync(Digits(value), ct));
 
     [HttpPost("imports/csv")]
-    public async Task<IActionResult> Import([FromBody] ImportRequest request, CancellationToken ct)
-    {
+    public async Task<IActionResult> Import([FromBody] ImportRequest request, CancellationToken ct) {
         if (OrganizationId is not Guid organizationId) return Forbid();
         var rows = imports.ValidateCsv(request.Type, request.Content);
         var checksum = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request.Content))).ToLowerInvariant();
@@ -31,8 +29,7 @@ public sealed class IntegrationOperationsController(EnterpriseService enterprise
     }
 
     [HttpPost("email")]
-    public async Task<IActionResult> Email([FromBody] EmailRequest request, CancellationToken ct)
-    {
+    public async Task<IActionResult> Email([FromBody] EmailRequest request, CancellationToken ct) {
         if (OrganizationId is not Guid organizationId) return Forbid();
         string[] templates = ["diagnosis.invitation", "diagnosis.reminder", "report.available", "certificate.issued", "plan.limit_reached", "invoice.generated", "security.password"];
         if (!templates.Contains(request.Template)) return BadRequest(new { message = "Template transacional inválido." });
@@ -43,8 +40,7 @@ public sealed class IntegrationOperationsController(EnterpriseService enterprise
     public async Task<IActionResult> Webhooks(CancellationToken ct) => OrganizationId is Guid id ? Ok(await enterprise.ItemsAsync(id, "webhook", ct)) : Forbid();
 
     [HttpPost("webhooks")]
-    public async Task<IActionResult> Webhook([FromBody] WebhookRequest request, CancellationToken ct)
-    {
+    public async Task<IActionResult> Webhook([FromBody] WebhookRequest request, CancellationToken ct) {
         if (OrganizationId is not Guid organizationId) return Forbid();
         if (!Uri.TryCreate(request.Url, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps) return BadRequest(new { message = "Use uma URL HTTPS válida." });
         var allowed = new HashSet<string>(["diagnosis.created", "diagnosis.published", "response.received", "diagnosis.completed", "report.generated", "certificate.issued", "action.created", "action.completed", "subscription.updated", "usage.limit_reached"]);

@@ -1,5 +1,4 @@
 namespace Valora.Application.Contracts;
 
-public interface IAuditService
-{
+public interface IAuditService {
 }

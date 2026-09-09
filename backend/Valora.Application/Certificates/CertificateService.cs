@@ -4,10 +4,8 @@ using Valora.Application.DTOs;
 
 namespace Valora.Application.Certificates;
 
-public sealed class CertificateService(IPublicResultService results) : ICertificateService
-{
-    public async Task<string> BuildCertificateHtmlAsync(Guid responseId, string resultToken)
-    {
+public sealed class CertificateService(IPublicResultService results) : ICertificateService {
+    public async Task<string> BuildCertificateHtmlAsync(Guid responseId, string resultToken) {
         var data = await results.GetAsync(responseId, new PublicResultRequest(resultToken));
         var issuedAt = data.Certificate.IssuedAt ?? DateTime.UtcNow;
         return $"""
@@ -28,23 +26,20 @@ public sealed class CertificateService(IPublicResultService results) : ICertific
 """;
     }
 
-    public async Task<byte[]> RenderPdfAsync(Guid responseId, string resultToken)
-    {
+    public async Task<byte[]> RenderPdfAsync(Guid responseId, string resultToken) {
         var data = await results.GetAsync(responseId, new PublicResultRequest(resultToken));
         var text = $"VALORA INSIGHT - CERTIFICADO\\nValora Group\\n\\nParticipante: {data.Response.ParticipantName ?? "Participante"}\\nOrganizacao: {data.Company.PublicName ?? data.Company.Name ?? "Valora Group"}\\nPesquisa: {data.Survey.Title}\\nEmissao: {(data.Certificate.IssuedAt ?? DateTime.UtcNow):dd/MM/yyyy}\\nResultado: {data.Result.Percentage:N2}% - {data.Result.MaturityLabel}\\nCodigo de validacao: {data.Certificate.CertificateCode}\\nValidacao: /certificado/validar/{data.Certificate.CertificateCode}";
         return MinimalPdf(text);
     }
 
-    public async Task<byte[]> RenderImageAsync(Guid responseId, string resultToken)
-    {
+    public async Task<byte[]> RenderImageAsync(Guid responseId, string resultToken) {
         _ = await results.GetAsync(responseId, new PublicResultRequest(resultToken));
         return Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAyAAAAGQCAIAAADZR5NjAAAAGXRFWHRTb2Z0d2FyZQBWYWxvcmEgR3JvdXAgUE5HFwmzfwAAADNJREFUeJztwTEBAAAAwqD1T20JT6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB4G8kQAAFWkUdVAAAAAElFTkSuQmCC");
     }
 
     static string Esc(string? value) => System.Net.WebUtility.HtmlEncode(value ?? string.Empty);
 
-    static byte[] MinimalPdf(string text)
-    {
+    static byte[] MinimalPdf(string text) {
         static string PdfEsc(string s) => s.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)").Replace("\r", "").Replace("\n", ") Tj 0 -18 Td (");
         var stream = $"0.063 0.184 0.212 rg 0 0 595 842 re f\n0.725 0.592 0.294 RG 5 w 28 28 539 786 re S\n1 1 1 rg BT /F1 18 Tf 72 740 Td ({PdfEsc(text)}) Tj ET";
         var objects = new[]
@@ -55,10 +50,10 @@ public sealed class CertificateService(IPublicResultService results) : ICertific
             "4 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj\n",
             $"5 0 obj << /Length {Encoding.ASCII.GetByteCount(stream)} >> stream\n{stream}\nendstream endobj\n"
         };
-        var sb = new StringBuilder("%PDF-1.4\n"); var offsets = new List<int>{0};
-        foreach (var obj in objects){ offsets.Add(Encoding.ASCII.GetByteCount(sb.ToString())); sb.Append(obj); }
+        var sb = new StringBuilder("%PDF-1.4\n"); var offsets = new List<int> { 0 };
+        foreach (var obj in objects) { offsets.Add(Encoding.ASCII.GetByteCount(sb.ToString())); sb.Append(obj); }
         var xref = Encoding.ASCII.GetByteCount(sb.ToString()); sb.Append($"xref\n0 {offsets.Count}\n0000000000 65535 f \n");
-        foreach(var off in offsets.Skip(1)) sb.Append(off.ToString("0000000000")+" 00000 n \n");
+        foreach (var off in offsets.Skip(1)) sb.Append(off.ToString("0000000000") + " 00000 n \n");
         sb.Append($"trailer << /Size {offsets.Count} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF");
         return Encoding.ASCII.GetBytes(sb.ToString());
     }

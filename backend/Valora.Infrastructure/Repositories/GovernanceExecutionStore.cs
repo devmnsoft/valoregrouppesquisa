@@ -6,27 +6,41 @@ using Valora.Application.GovernanceExecution;
 namespace Valora.Infrastructure.Repositories;
 
 /// <summary>Tenant-scoped write gateway for governance commands and their immutable audit trail.</summary>
-public sealed class GovernanceExecutionStore(IDbConnectionFactory factory) : IGovernanceExecutionStore
-{
-    public async Task ExecuteAsync(GovernanceCommand command, CancellationToken cancellationToken)
-    {
+public sealed class GovernanceExecutionStore(IDbConnectionFactory factory) : IGovernanceExecutionStore {
+    public async Task ExecuteAsync(GovernanceCommand command, CancellationToken cancellationToken) {
         var values = command.Values;
         object? Value(string key) => values.TryGetValue(key, out var value) ? value : null;
-        var parameters = new
-        {
-            command.EntityId, command.OrganizationId, command.ActorUserId,
-            objective = Value("objective"), periodStart = Value("period_start"), periodEnd = Value("period_end"),
-            title = Value("title"), scheduledAt = Value("scheduled_at"), context = Value("context"),
-            responsible = Value("responsible_user_id"), status = Value("status"), justification = Value("justification"),
-            decisionId = Value("decision_id"), evidenceId = Value("evidence_id"), sessionId = Value("session_id"),
-            actionItemId = Value("action_item_id"), evidence = Value("evidence_summary"), metric = Value("metric_name"),
-            value = Value("value"), source = Value("source"), learning = Value("learning"), name = Value("name"),
-            periodicity = Value("periodicity"), targetValue = Value("target_value"),
-            payload = JsonSerializer.Serialize(values), command.EventType, command.EntityType
+        var parameters = new {
+            command.EntityId,
+            command.OrganizationId,
+            command.ActorUserId,
+            objective = Value("objective"),
+            periodStart = Value("period_start"),
+            periodEnd = Value("period_end"),
+            title = Value("title"),
+            scheduledAt = Value("scheduled_at"),
+            context = Value("context"),
+            responsible = Value("responsible_user_id"),
+            status = Value("status"),
+            justification = Value("justification"),
+            decisionId = Value("decision_id"),
+            evidenceId = Value("evidence_id"),
+            sessionId = Value("session_id"),
+            actionItemId = Value("action_item_id"),
+            evidence = Value("evidence_summary"),
+            metric = Value("metric_name"),
+            value = Value("value"),
+            source = Value("source"),
+            learning = Value("learning"),
+            name = Value("name"),
+            periodicity = Value("periodicity"),
+            targetValue = Value("target_value"),
+            payload = JsonSerializer.Serialize(values),
+            command.EventType,
+            command.EntityType
         };
 
-        var sql = command.EntityType switch
-        {
+        var sql = command.EntityType switch {
             "governance_cycle" => "INSERT INTO valorapesquisa.governance_cycles(id,organization_id,objective,period_start,period_end,created_by_user_id) VALUES(@EntityId,@OrganizationId,@objective::text,@periodStart::date,@periodEnd::date,@ActorUserId)",
             "governance_meeting" => "INSERT INTO valorapesquisa.governance_meetings(id,organization_id,title,scheduled_at,created_by_user_id) VALUES(@EntityId,@OrganizationId,@title::text,@scheduledAt::timestamptz,@ActorUserId)",
             "governance_decision" => "INSERT INTO valorapesquisa.governance_decisions(id,organization_id,title,context,justification,responsible_user_id,status,created_by_user_id) VALUES(@EntityId,@OrganizationId,@title::text,@context::text,@justification::text,@responsible::uuid,coalesce(@status::text,'draft'),@ActorUserId)",

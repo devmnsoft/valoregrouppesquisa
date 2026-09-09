@@ -9,10 +9,8 @@ namespace Valora.Infrastructure.Repositories;
 
 public sealed class DiagnosticCampaignRepository(
     IDbConnectionFactory connections,
-    IDbTransactionFactory transactions) : IDiagnosticCampaignRepository
-{
-    public async Task<IReadOnlyList<DiagnosticCampaignDto>> ListAsync(Guid organizationId, CancellationToken ct)
-    {
+    IDbTransactionFactory transactions) : IDiagnosticCampaignRepository {
+    public async Task<IReadOnlyList<DiagnosticCampaignDto>> ListAsync(Guid organizationId, CancellationToken ct) {
         using var connection = connections.Create();
         var rows = (await connection.QueryAsync<CampaignRow>(new CommandDefinition(
             CampaignSql + " ORDER BY c.created_at DESC", new { organizationId, surveyId = (Guid?)null },
@@ -22,8 +20,7 @@ public sealed class DiagnosticCampaignRepository(
         return result;
     }
 
-    public async Task<DiagnosticCampaignDto?> GetAsync(Guid organizationId, Guid surveyId, CancellationToken ct)
-    {
+    public async Task<DiagnosticCampaignDto?> GetAsync(Guid organizationId, Guid surveyId, CancellationToken ct) {
         using var connection = connections.Create();
         var campaign = await connection.QuerySingleOrDefaultAsync<CampaignRow>(new CommandDefinition(
             CampaignSql + " ORDER BY c.created_at DESC LIMIT 1", new { organizationId, surveyId = (Guid?)surveyId },
@@ -32,13 +29,11 @@ public sealed class DiagnosticCampaignRepository(
     }
 
     public async Task<DiagnosticCampaignDto?> CreateAsync(Guid organizationId, Guid surveyId, Guid userId,
-        CreateCampaignRequest request, string correlationId, CancellationToken ct)
-    {
+        CreateCampaignRequest request, string correlationId, CancellationToken ct) {
         var recipients = (request.Recipients ?? []).Where(recipient => IsEmail(recipient.Email))
             .DistinctBy(recipient => recipient.Email.Trim(), StringComparer.OrdinalIgnoreCase).ToList();
         await using var unit = await transactions.BeginAsync(ct);
-        try
-        {
+        try {
             var survey = await unit.Connection.QuerySingleOrDefaultAsync<SurveyRow>(new CommandDefinition(
                 """
                 SELECT id AS "Id", public_url AS "PublicUrl", status AS "Status"
@@ -63,15 +58,26 @@ public sealed class DiagnosticCampaignRepository(
                 INSERT INTO valorapesquisa.diagnostic_campaign_messages
                     (organization_id,campaign_id,channel,subject,body,status,correlation_id)
                 VALUES(@organizationId,@campaignId,@channel,@subject,@message,'draft',@correlationId);
-                """, new
-                {
-                    campaignId, organizationId, surveyId, userId, request.Name, request.Channel, request.Subject,
-                    request.Message, request.Audience, survey.PublicUrl, request.StartsAt, request.EndsAt,
-                    request.TargetParticipationRate, request.UnitId, request.DepartmentId, correlationId
+                """, new {
+                    campaignId,
+                    organizationId,
+                    surveyId,
+                    userId,
+                    request.Name,
+                    request.Channel,
+                    request.Subject,
+                    request.Message,
+                    request.Audience,
+                    survey.PublicUrl,
+                    request.StartsAt,
+                    request.EndsAt,
+                    request.TargetParticipationRate,
+                    request.UnitId,
+                    request.DepartmentId,
+                    correlationId
                 }, unit.Transaction, cancellationToken: ct));
 
-            foreach (var recipient in recipients)
-            {
+            foreach (var recipient in recipients) {
                 var email = recipient.Email.Trim().ToLowerInvariant();
                 var emailJobId = Guid.NewGuid();
                 var idempotencyKey = Hash($"{campaignId:N}:{email}:invitation");
@@ -92,12 +98,21 @@ public sealed class DiagnosticCampaignRepository(
                         (@organizationId,@campaignId,@emailHash,@masked,@emailHash,@masked,'pending',@correlationId,
                          @emailJobId,@idempotencyKey,jsonb_build_object('consent',@hasConsent,'legalBasis',@hasLegalBasis))
                     ON CONFLICT(idempotency_key) DO NOTHING;
-                    """, new
-                    {
-                        emailJobId, organizationId, campaignId, surveyId, email,
-                        subject = request.Subject ?? request.Name, body = $"{request.Message}\n\n{survey.PublicUrl}",
-                        publicUrl = survey.PublicUrl, idempotencyKey, emailHash = Hash(email), masked = Mask(email),
-                        recipient.HasConsent, recipient.HasLegalBasis, correlationId
+                    """, new {
+                        emailJobId,
+                        organizationId,
+                        campaignId,
+                        surveyId,
+                        email,
+                        subject = request.Subject ?? request.Name,
+                        body = $"{request.Message}\n\n{survey.PublicUrl}",
+                        publicUrl = survey.PublicUrl,
+                        idempotencyKey,
+                        emailHash = Hash(email),
+                        masked = Mask(email),
+                        recipient.HasConsent,
+                        recipient.HasLegalBasis,
+                        correlationId
                     }, unit.Transaction, cancellationToken: ct));
             }
             await RecordAsync(unit, organizationId, surveyId, campaignId, userId, "campaign.created",
@@ -105,19 +120,16 @@ public sealed class DiagnosticCampaignRepository(
             await unit.CommitAsync();
             return await GetAsync(organizationId, surveyId, ct);
         }
-        catch
-        {
+        catch {
             await unit.RollbackAsync();
             throw;
         }
     }
 
     public async Task<CampaignCommandResult?> TransitionAsync(Guid organizationId, Guid surveyId, Guid userId,
-        string targetStatus, CampaignTransitionRequest request, string correlationId, CancellationToken ct)
-    {
+        string targetStatus, CampaignTransitionRequest request, string correlationId, CancellationToken ct) {
         await using var unit = await transactions.BeginAsync(ct);
-        try
-        {
+        try {
             var row = await unit.Connection.QuerySingleOrDefaultAsync<TransitionRow>(new CommandDefinition(
                 """
                 SELECT c.id AS "Id", c.status AS "Status", c.channel AS "Channel", c.public_url AS "PublicUrl",
@@ -142,8 +154,7 @@ public sealed class DiagnosticCampaignRepository(
                 """, new { effectiveStatus, row.Id, organizationId, row.Version }, unit.Transaction, cancellationToken: ct));
             if (affected != 1) return null;
 
-            if (effectiveStatus is DiagnosticCampaignStatus.Sending or DiagnosticCampaignStatus.Active)
-            {
+            if (effectiveStatus is DiagnosticCampaignStatus.Sending or DiagnosticCampaignStatus.Active) {
                 await unit.Connection.ExecuteAsync(new CommandDefinition(
                     """
                     UPDATE valorapesquisa.email_jobs j
@@ -156,8 +167,7 @@ public sealed class DiagnosticCampaignRepository(
                      WHERE campaign_id=@id AND organization_id=@organizationId AND status IN ('pending','failed');
                     """, new { row.Id, organizationId }, unit.Transaction, cancellationToken: ct));
             }
-            else if (effectiveStatus == DiagnosticCampaignStatus.Scheduled)
-            {
+            else if (effectiveStatus == DiagnosticCampaignStatus.Scheduled) {
                 await unit.Connection.ExecuteAsync(new CommandDefinition(
                     """
                     UPDATE valorapesquisa.email_jobs j SET next_attempt_at=@startsAt,updated_at=now()
@@ -165,8 +175,7 @@ public sealed class DiagnosticCampaignRepository(
                      WHERE r.campaign_id=@id AND r.email_job_id=j.id AND j.status='queued';
                     """, new { row.Id, startsAt = row.StartsAt ?? DateTimeOffset.UtcNow }, unit.Transaction, cancellationToken: ct));
             }
-            else if (effectiveStatus == DiagnosticCampaignStatus.Paused)
-            {
+            else if (effectiveStatus == DiagnosticCampaignStatus.Paused) {
                 await unit.Connection.ExecuteAsync(new CommandDefinition(
                     """
                     UPDATE valorapesquisa.email_jobs j SET next_attempt_at='9999-12-31 00:00:00+00'::timestamptz,updated_at=now()
@@ -174,8 +183,7 @@ public sealed class DiagnosticCampaignRepository(
                      WHERE r.campaign_id=@id AND r.email_job_id=j.id AND j.status IN ('queued','retrying');
                     """, new { row.Id }, unit.Transaction, cancellationToken: ct));
             }
-            else if (effectiveStatus == DiagnosticCampaignStatus.Cancelled)
-            {
+            else if (effectiveStatus == DiagnosticCampaignStatus.Cancelled) {
                 await unit.Connection.ExecuteAsync(new CommandDefinition(
                     """
                     UPDATE valorapesquisa.email_jobs j SET status='cancelled',updated_at=now()
@@ -193,16 +201,14 @@ public sealed class DiagnosticCampaignRepository(
             await unit.CommitAsync();
             return new(row.Id, effectiveStatus, message, row.PublicUrl, row.Version + 1);
         }
-        catch
-        {
+        catch {
             await unit.RollbackAsync();
             throw;
         }
     }
 
     public async Task<CampaignCommandResult?> ResendFailuresAsync(Guid organizationId, Guid surveyId, Guid userId,
-        string correlationId, CancellationToken ct)
-    {
+        string correlationId, CancellationToken ct) {
         await using var unit = await transactions.BeginAsync(ct);
         var row = await unit.Connection.QuerySingleOrDefaultAsync<TransitionRow>(new CommandDefinition(
             """
@@ -231,8 +237,7 @@ public sealed class DiagnosticCampaignRepository(
     }
 
     public async Task<IReadOnlyList<CampaignHistoryDto>> HistoryAsync(Guid organizationId, Guid surveyId,
-        CancellationToken ct)
-    {
+        CancellationToken ct) {
         using var connection = connections.Create();
         return (await connection.QueryAsync<CampaignHistoryDto>(new CommandDefinition(
             """
@@ -249,8 +254,7 @@ public sealed class DiagnosticCampaignRepository(
     }
 
     private static async Task<DiagnosticCampaignDto> MapAsync(System.Data.IDbConnection connection, CampaignRow row,
-        CancellationToken ct)
-    {
+        CancellationToken ct) {
         var recipients = (await connection.QueryAsync<CampaignRecipientDto>(new CommandDefinition(
             """
             SELECT id AS "Id",recipient_masked AS "MaskedRecipient",status AS "Status",error_code AS "ErrorCode",
@@ -308,8 +312,7 @@ public sealed class DiagnosticCampaignRepository(
            AND c.deleted_at IS NULL
         """;
 
-    private static string MessageFor(string status) => status switch
-    {
+    private static string MessageFor(string status) => status switch {
         DiagnosticCampaignStatus.Scheduled => "Campanha agendada.",
         DiagnosticCampaignStatus.Sending => "Convites idempotentes foram encaminhados para a fila.",
         DiagnosticCampaignStatus.Active => "Campanha ativa.",
@@ -320,8 +323,7 @@ public sealed class DiagnosticCampaignRepository(
         _ => "Estado da campanha atualizado."
     };
 
-    private static bool IsEmail(string value)
-    {
+    private static bool IsEmail(string value) {
         try { return new MailAddress(value).Address.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase); }
         catch { return false; }
     }
@@ -329,8 +331,7 @@ public sealed class DiagnosticCampaignRepository(
     private static string Hash(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value.Trim().ToLowerInvariant()))).ToLowerInvariant();
 
-    private static string Mask(string value)
-    {
+    private static string Mask(string value) {
         var parts = value.Trim().Split('@');
         return parts.Length == 2 && parts[0].Length > 0 ? $"{parts[0][0]}***@{parts[1]}" : "***";
     }

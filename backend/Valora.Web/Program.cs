@@ -1,23 +1,22 @@
-using Serilog;
-using Valora.Web.Models;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
-using Valora.Web.Services.Bff;
-using Valora.Web.Ui;
-using Valora.Web.Navigation;
-using Valora.Web.Services;
+using Microsoft.AspNetCore.HttpOverrides;
+using Serilog;
 using Valora.Application.Common;
 using Valora.Application.DependencyInjection;
 using Valora.Infrastructure.DependencyInjection;
-using System.Text.Json;
+using Valora.Web.Models;
+using Valora.Web.Navigation;
 using Valora.Web.Security;
-using Microsoft.AspNetCore.HttpOverrides;
+using Valora.Web.Services;
+using Valora.Web.Services.Bff;
+using Valora.Web.Ui;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Host.UseSerilog((context, logger) =>
-{
+builder.Host.UseSerilog((context, logger) => {
     logger
         .ReadFrom.Configuration(context.Configuration)
         .WriteTo.Console();
@@ -40,8 +39,7 @@ var requiresDistributedSession = builder.Environment.IsProduction()
     || builder.Environment.IsEnvironment("Homologation");
 var sessionMinutes = Math.Clamp(builder.Configuration.GetValue("Authentication:SessionMinutes", 30), 5, 720);
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
+    .AddCookie(options => {
         options.Cookie.Name = isDevelopment ? "Valora.Session" : "__Host-Valora.Session";
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = isDevelopment ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
@@ -55,8 +53,7 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Events.OnRedirectToAccessDenied = context => WriteBffAuthenticationFailure(context, StatusCodes.Status403Forbidden,
             "ACCESS_DENIED", "Você não tem permissão para executar esta ação.");
     });
-builder.Services.AddAuthorization(options =>
-{
+builder.Services.AddAuthorization(options => {
     // Internal MVC pages are private by default. Public controllers/actions must make
     // that decision explicit with [AllowAnonymous], preventing newly added screens
     // from accidentally exposing the authenticated shell or organization data.
@@ -69,8 +66,7 @@ var dataProtection = builder.Services.AddDataProtection().SetApplicationName("Va
 var keyDirectory = builder.Configuration["DataProtection:KeysPath"];
 if (requiresDistributedSession && (string.IsNullOrWhiteSpace(keyDirectory) || !Path.IsPathRooted(keyDirectory)))
     throw new InvalidOperationException("DataProtection:KeysPath deve apontar para um diretório absoluto e compartilhado fora de Development.");
-if (!string.IsNullOrWhiteSpace(keyDirectory))
-{
+if (!string.IsNullOrWhiteSpace(keyDirectory)) {
     var absoluteKeyDirectory = Path.IsPathRooted(keyDirectory)
         ? keyDirectory
         : Path.Combine(builder.Environment.ContentRootPath, keyDirectory);
@@ -78,22 +74,18 @@ if (!string.IsNullOrWhiteSpace(keyDirectory))
     dataProtection.PersistKeysToFileSystem(new DirectoryInfo(absoluteKeyDirectory));
 }
 var redisConnection = builder.Configuration.GetConnectionString("BffRedis");
-if (!requiresDistributedSession)
-{
+if (!requiresDistributedSession) {
     builder.Services.AddDistributedMemoryCache();
 }
-else
-{
+else {
     if (string.IsNullOrWhiteSpace(redisConnection))
         throw new InvalidOperationException("ConnectionStrings:BffRedis é obrigatório em homologação e produção.");
-    builder.Services.AddStackExchangeRedisCache(options =>
-    {
+    builder.Services.AddStackExchangeRedisCache(options => {
         options.Configuration = redisConnection;
         options.InstanceName = "valora:bff:";
     });
 }
-builder.Services.Configure<ForwardedHeadersOptions>(options =>
-{
+builder.Services.Configure<ForwardedHeadersOptions>(options => {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
     options.ForwardLimit = 1;
 });
@@ -102,8 +94,7 @@ builder.Services.AddSingleton<IDistributedBffSessionStore, DistributedBffSession
 builder.Services.AddScoped<PublicAccessSessionStore>();
 builder.Services.AddHostedService<BffSessionCleanupService>();
 builder.Services.AddScoped<BffAuthenticationService>();
-builder.Services.AddHttpClient<IBffApiClient, BffApiClient>((services, client) =>
-{
+builder.Services.AddHttpClient<IBffApiClient, BffApiClient>((services, client) => {
     var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<ApiOptions>>().Value;
     client.BaseAddress = new Uri(options.BaseUrl);
     client.Timeout = TimeSpan.FromMilliseconds(options.TimeoutMs);
@@ -119,8 +110,7 @@ var app = builder.Build();
 
 app.UseForwardedHeaders();
 
-if (!app.Environment.IsDevelopment())
-{
+if (!app.Environment.IsDevelopment()) {
     app.UseExceptionHandler("/error/500");
     app.UseHsts();
 }
@@ -131,8 +121,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-app.Use(async (context, next) =>
-{
+app.Use(async (context, next) => {
     const string header = "X-Correlation-ID";
     var incoming = context.Request.Headers[header].FirstOrDefault();
     var correlationId = !string.IsNullOrWhiteSpace(incoming) && incoming.Length <= 128
@@ -147,8 +136,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<CommercialModuleAccessMiddleware>();
 
-app.Use(async (context, next) =>
-{
+app.Use(async (context, next) => {
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     context.Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
@@ -161,8 +149,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-app.MapFallback(static context =>
-{
+app.MapFallback(static context => {
     context.Response.StatusCode = StatusCodes.Status404NotFound;
     return Task.CompletedTask;
 }).AllowAnonymous();
@@ -170,18 +157,15 @@ app.MapFallback(static context =>
 app.Run();
 
 static Task WriteBffAuthenticationFailure(RedirectContext<CookieAuthenticationOptions> context, int status,
-    string code, string message)
-{
-    if (!context.Request.Path.StartsWithSegments("/bff"))
-    {
+    string code, string message) {
+    if (!context.Request.Path.StartsWithSegments("/bff")) {
         context.Response.Redirect(context.RedirectUri);
         return Task.CompletedTask;
     }
 
     context.Response.StatusCode = status;
     context.Response.ContentType = "application/problem+json";
-    return context.Response.WriteAsync(JsonSerializer.Serialize(new
-    {
+    return context.Response.WriteAsync(JsonSerializer.Serialize(new {
         status,
         code,
         message,

@@ -1,5 +1,4 @@
 namespace Valora.Application.Contracts;
 
-public interface IEmailJobService
-{
+public interface IEmailJobService {
 }

@@ -1,7 +1,6 @@
 namespace Valora.Application.DTOs;
 
-public sealed record AuditEntry
-{
+public sealed record AuditEntry {
     private static readonly IReadOnlySet<string> CanonicalSeverities =
         new HashSet<string>(["debug", "info", "warning", "error", "critical"], StringComparer.Ordinal);
 
@@ -18,8 +17,7 @@ public sealed record AuditEntry
         string? ipHash = null,
         string? userAgent = null,
         string? severity = "info",
-        string? module = null)
-    {
+        string? module = null) {
         OrganizationId = organizationId;
         UserId = userId;
         Action = action;

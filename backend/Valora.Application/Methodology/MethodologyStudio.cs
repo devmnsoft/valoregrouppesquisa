@@ -41,26 +41,22 @@ public sealed record MethodologyValidationIssue(string Code, string Severity, st
 public sealed record MethodologyStudioDashboard(MethodologyVersionSummary? ActiveVersion, int CriticalIssues,
     IReadOnlyList<MethodologyValidationIssue> Issues, IReadOnlyList<MethodologyVersionSummary> Versions);
 
-public interface IMethodologyStudioRepository
-{
+public interface IMethodologyStudioRepository {
     Task<IReadOnlyList<MethodologyVersionSummary>> ListVersionsAsync(CancellationToken ct);
     Task<Guid> CreateDraftAsync(string code, string name, string? description, Guid? sourceVersionId, Guid? actorId, CancellationToken ct);
     Task<IReadOnlyList<MethodologyValidationIssue>> ValidateAsync(Guid versionId, CancellationToken ct);
     Task PublishAsync(Guid versionId, Guid? actorId, string justification, CancellationToken ct);
 }
 
-public sealed class MethodologyValidationService(IMethodologyStudioRepository repository)
-{
+public sealed class MethodologyValidationService(IMethodologyStudioRepository repository) {
     public Task<IReadOnlyList<MethodologyValidationIssue>> ValidateAsync(Guid versionId, CancellationToken ct) => repository.ValidateAsync(versionId, ct);
 
-    public static void EnsureDimension(UpdateMethodologyDimensionRequest request)
-    {
+    public static void EnsureDimension(UpdateMethodologyDimensionRequest request) {
         EnsureAnnotations(request);
         if (request.Weight <= 0) throw new ValidationException("O peso da dimensão deve ser maior que zero.");
     }
 
-    public static void EnsureConcept(CreateConceptRequest request)
-    {
+    public static void EnsureConcept(CreateConceptRequest request) {
         EnsureAnnotations(request);
         if (request.DimensionIds.Count == 0 || request.DimensionIds.Any(x => x == Guid.Empty))
             throw new ValidationException("O conceito deve estar vinculado a pelo menos uma dimensão válida.");
@@ -68,8 +64,7 @@ public sealed class MethodologyValidationService(IMethodologyStudioRepository re
             throw new ValidationException("O conceito deve possuir critérios de evidência verificáveis.");
     }
 
-    public static void EnsureQuestion(CreateQuestionBankItemRequest request)
-    {
+    public static void EnsureQuestion(CreateQuestionBankItemRequest request) {
         EnsureAnnotations(request);
         var validTypes = new[] { "scale", "scale_1_5", "single_choice", "multiple_choice", "boolean", "text", "number" };
         if (!validTypes.Contains(request.ResponseType, StringComparer.OrdinalIgnoreCase))
@@ -82,8 +77,7 @@ public sealed class MethodologyValidationService(IMethodologyStudioRepository re
             throw new ValidationException("Perguntas avaliativas devem possuir peso maior que zero.");
     }
 
-    public static void EnsureTemplate(CreateDiagnosticTemplateRequest request)
-    {
+    public static void EnsureTemplate(CreateDiagnosticTemplateRequest request) {
         EnsureAnnotations(request);
         if (request.SectionIds.Count == 0 || request.SectionIds.Any(x => x == Guid.Empty))
             throw new ValidationException("O template deve possuir ao menos uma seção válida.");
@@ -94,14 +88,11 @@ public sealed class MethodologyValidationService(IMethodologyStudioRepository re
     private static void EnsureAnnotations(object request) =>
         Validator.ValidateObject(request, new ValidationContext(request), validateAllProperties: true);
 }
-public sealed class MethodologyVersionService(IMethodologyStudioRepository repository)
-{
+public sealed class MethodologyVersionService(IMethodologyStudioRepository repository) {
     public Task<IReadOnlyList<MethodologyVersionSummary>> ListAsync(CancellationToken ct) => repository.ListVersionsAsync(ct);
 }
-public sealed class MethodologyPublicationService(IMethodologyStudioRepository repository, MethodologyValidationService validation)
-{
-    public async Task PublishAsync(Guid id, Guid? actor, string justification, CancellationToken ct)
-    {
+public sealed class MethodologyPublicationService(IMethodologyStudioRepository repository, MethodologyValidationService validation) {
+    public async Task PublishAsync(Guid id, Guid? actor, string justification, CancellationToken ct) {
         var issues = await validation.ValidateAsync(id, ct);
         if (issues.Any(x => x.Severity == "critical")) throw new InvalidOperationException("A versão possui inconsistências críticas e não pode ser publicada.");
         await repository.PublishAsync(id, actor, justification, ct);
@@ -120,20 +111,16 @@ public sealed class MethodologyQuestionBankService { }
 public sealed class MethodologyPromptTemplateService { }
 public sealed class MethodologyGuardrailService { }
 
-public sealed class CreateMethodologyVersionUseCase(IMethodologyStudioRepository repository)
-{
+public sealed class CreateMethodologyVersionUseCase(IMethodologyStudioRepository repository) {
     public Task<Guid> ExecuteAsync(string code, string name, string? description, Guid? actor, CancellationToken ct) => repository.CreateDraftAsync(code, name, description, null, actor, ct);
 }
-public sealed class CloneMethodologyVersionUseCase(IMethodologyStudioRepository repository)
-{
+public sealed class CloneMethodologyVersionUseCase(IMethodologyStudioRepository repository) {
     public Task<Guid> ExecuteAsync(Guid source, string code, string name, Guid? actor, CancellationToken ct) => repository.CreateDraftAsync(code, name, "Versão clonada para evolução controlada.", source, actor, ct);
 }
-public sealed class PublishMethodologyVersionUseCase(MethodologyPublicationService service)
-{
+public sealed class PublishMethodologyVersionUseCase(MethodologyPublicationService service) {
     public Task ExecuteAsync(Guid id, Guid? actor, string justification, CancellationToken ct) => service.PublishAsync(id, actor, justification, ct);
 }
-public sealed class ValidateMethodologyConsistencyUseCase(MethodologyValidationService service)
-{
+public sealed class ValidateMethodologyConsistencyUseCase(MethodologyValidationService service) {
     public Task<IReadOnlyList<MethodologyValidationIssue>> ExecuteAsync(Guid id, CancellationToken ct) => service.ValidateAsync(id, ct);
 }
 public sealed class ImportOfficialMethodologySeedUseCase { }

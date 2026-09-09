@@ -4,8 +4,7 @@ using Valora.Application.Journey;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class JourneyRepository(IDbConnectionFactory connections) : IJourneyRepository
-{
+public sealed class JourneyRepository(IDbConnectionFactory connections) : IJourneyRepository {
     private const string Projection = """
         id AS "Id", event_type AS "EventType", title AS "Title", description AS "Description",
         source_type AS "SourceType", source_id AS "SourceId", impact_level AS "ImpactLevel",
@@ -13,8 +12,7 @@ public sealed class JourneyRepository(IDbConnectionFactory connections) : IJourn
         evidence_summary AS "EvidenceSummary", occurred_at AS "OccurredAt", created_at AS "CreatedAt"
         """;
 
-    public async Task<IReadOnlyList<JourneyEventDto>> Timeline(Guid organizationId, JourneyFilter filter, CancellationToken ct)
-    {
+    public async Task<IReadOnlyList<JourneyEventDto>> Timeline(Guid organizationId, JourneyFilter filter, CancellationToken ct) {
         var sql = $"""
             SELECT {Projection}
             FROM valorapesquisa.journey_events
@@ -29,8 +27,7 @@ public sealed class JourneyRepository(IDbConnectionFactory connections) : IJourn
             ORDER BY occurred_at DESC
             """;
         using var db = connections.Create();
-        var rows = await db.QueryAsync<JourneyEventDto>(new CommandDefinition(sql, new
-        {
+        var rows = await db.QueryAsync<JourneyEventDto>(new CommandDefinition(sql, new {
             OrganizationId = organizationId,
             filter.From,
             filter.To,
@@ -42,15 +39,13 @@ public sealed class JourneyRepository(IDbConnectionFactory connections) : IJourn
         return rows.AsList();
     }
 
-    public async Task<JourneyEventDto?> Get(Guid organizationId, Guid id, CancellationToken ct)
-    {
+    public async Task<JourneyEventDto?> Get(Guid organizationId, Guid id, CancellationToken ct) {
         var sql = $"SELECT {Projection} FROM valorapesquisa.journey_events WHERE organization_id=@OrganizationId AND id=@Id AND deleted_at IS NULL";
         using var db = connections.Create();
         return await db.QuerySingleOrDefaultAsync<JourneyEventDto>(new CommandDefinition(sql, new { OrganizationId = organizationId, Id = id }, cancellationToken: ct));
     }
 
-    public async Task<Guid> Register(Guid organizationId, Guid userId, RegisterJourneyEventRequest request, CancellationToken ct)
-    {
+    public async Task<Guid> Register(Guid organizationId, Guid userId, RegisterJourneyEventRequest request, CancellationToken ct) {
         const string sql = """
             INSERT INTO valorapesquisa.journey_events
                 (id,organization_id,diagnostic_id,result_id,governance_cycle_id,event_type,title,description,source_type,source_id,impact_level,related_dimension,related_index_code,evidence_summary,occurred_at,created_by_user_id)
@@ -59,8 +54,7 @@ public sealed class JourneyRepository(IDbConnectionFactory connections) : IJourn
             """;
         var id = Guid.NewGuid();
         using var db = connections.Create();
-        await db.ExecuteAsync(new CommandDefinition(sql, new
-        {
+        await db.ExecuteAsync(new CommandDefinition(sql, new {
             Id = id,
             OrganizationId = organizationId,
             UserId = userId,

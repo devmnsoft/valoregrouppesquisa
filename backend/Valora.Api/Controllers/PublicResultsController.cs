@@ -5,18 +5,15 @@ using Valora.Application.DTOs;
 namespace Valora.Api.Controllers;
 
 [ApiController]
-public sealed class PublicResultsController(IPublicResultService service, ICertificateService certificates, ICommunicationRepository communications) : ControllerBase
-{
+public sealed class PublicResultsController(IPublicResultService service, ICertificateService certificates, ICommunicationRepository communications) : ControllerBase {
     [HttpGet("/public/results/{responseId:guid}")]
-    public async Task<IActionResult> GetResult(Guid responseId, [FromQuery] string token)
-    {
+    public async Task<IActionResult> GetResult(Guid responseId, [FromQuery] string token) {
         var result = await service.GetAsync(responseId, new PublicResultRequest(token));
         return Ok(result);
     }
 
     [HttpPost("/public/results/{responseId:guid}")]
-    public async Task<IActionResult> Result(Guid responseId, PublicResultRequest request)
-    {
+    public async Task<IActionResult> Result(Guid responseId, PublicResultRequest request) {
         var result = await service.GetAsync(responseId, request);
         return Ok(result);
     }
@@ -34,8 +31,7 @@ public sealed class PublicResultsController(IPublicResultService service, ICerti
         => File(await certificates.RenderImageAsync(responseId, token), "image/png", $"certificado-valora-{responseId:N}.png");
 
     [HttpPost("/public/results/{responseId:guid}/email")]
-    public async Task<IActionResult> ResendEmail(Guid responseId, [FromQuery] string token, [FromBody] Dictionary<string,string>? body)
-    {
+    public async Task<IActionResult> ResendEmail(Guid responseId, [FromQuery] string token, [FromBody] Dictionary<string, string>? body) {
         var result = await service.GetAsync(responseId, new PublicResultRequest(token));
         var to = body?.GetValueOrDefault("toEmail") ?? result.Response.ParticipantEmail;
         if (string.IsNullOrWhiteSpace(to)) return BadRequest(new { ok = false, code = "EMAIL_REQUIRED" });

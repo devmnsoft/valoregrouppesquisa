@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record Employee
-{
+public sealed record Employee {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid OrganizationId { get; init; }
     public Guid? DepartmentId { get; init; }

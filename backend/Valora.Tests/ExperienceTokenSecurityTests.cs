@@ -2,11 +2,9 @@ using Valora.Application.Experience;
 
 namespace Valora.Tests;
 
-public sealed class ExperienceTokenSecurityTests
-{
+public sealed class ExperienceTokenSecurityTests {
     [Fact]
-    public void Generate_ReturnsOpaqueHighEntropyToken()
-    {
+    public void Generate_ReturnsOpaqueHighEntropyToken() {
         var first = ExperienceToken.Generate();
         var second = ExperienceToken.Generate();
 
@@ -20,8 +18,7 @@ public sealed class ExperienceTokenSecurityTests
     [InlineData("")]
     [InlineData("token-publico")]
     [InlineData("zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz")]
-    public void IsWellFormed_RejectsPredictableOrMalformedValues(string token)
-    {
+    public void IsWellFormed_RejectsPredictableOrMalformedValues(string token) {
         Assert.False(ExperienceToken.IsWellFormed(token));
     }
 }

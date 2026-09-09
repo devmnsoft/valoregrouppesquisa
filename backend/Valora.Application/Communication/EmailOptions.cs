@@ -1,7 +1,6 @@
 namespace Valora.Application.Communication;
 
-public sealed class EmailOptions
-{
+public sealed class EmailOptions {
     public bool Enabled { get; set; }
     public string Provider { get; set; } = "Smtp";
     public string FromName { get; set; } = "Valora Group";

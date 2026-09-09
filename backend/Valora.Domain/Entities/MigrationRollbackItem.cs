@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record MigrationRollbackItem
-{
+public sealed record MigrationRollbackItem {
     public Guid Id { get; init; }
     public Guid BatchId { get; init; }
     public string TargetEntity { get; init; } = string.Empty;

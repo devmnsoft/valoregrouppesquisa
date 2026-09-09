@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record MigrationSourceFile
-{
+public sealed record MigrationSourceFile {
     public Guid Id { get; init; }
     public Guid? BatchId { get; init; }
     public string FileName { get; init; } = string.Empty;

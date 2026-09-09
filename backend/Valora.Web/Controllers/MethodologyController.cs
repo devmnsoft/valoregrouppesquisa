@@ -4,8 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Valora.Web.Controllers;
 
 [Authorize]
-public sealed class MethodologyController : Controller
-{
+public sealed class MethodologyController : Controller {
     [HttpGet("Methodology/Overview")]
     [HttpGet("Methodology")]
     [HttpGet("MethodologyStudio")]
@@ -59,6 +58,5 @@ public sealed class MethodologyController : Controller
     [HttpGet("Methodology/Validation")]
     public IActionResult Validation() => Studio("Validação", "Bloqueios, alertas e recomendações antes da publicação.");
 
-    private IActionResult Studio(string title, string description)
-    { ViewData["StudioTitle"] = title; ViewData["StudioDescription"] = description; return View("Studio"); }
+    private IActionResult Studio(string title, string description) { ViewData["StudioTitle"] = title; ViewData["StudioDescription"] = description; return View("Studio"); }
 }

@@ -5,19 +5,16 @@ using Microsoft.Extensions.Caching.Distributed;
 namespace Valora.Web.Services.Bff;
 
 public sealed class DistributedBffSessionStore(IDistributedCache cache, BffSessionProtector protector)
-    : IDistributedBffSessionStore
-{
+    : IDistributedBffSessionStore {
     private static string Key(string ticket) => $"valora:bff:session:{ticket}";
 
     public Task SetAsync(string ticket, BffServerSession session, CancellationToken cancellationToken = default) =>
-        cache.SetAsync(Key(ticket), protector.Protect(session), new DistributedCacheEntryOptions
-        {
+        cache.SetAsync(Key(ticket), protector.Protect(session), new DistributedCacheEntryOptions {
             AbsoluteExpiration = session.RefreshTokenExpiresAt,
             SlidingExpiration = TimeSpan.FromMinutes(30)
         }, cancellationToken);
 
-    public async Task<BffServerSession?> GetAsync(string ticket, CancellationToken cancellationToken = default)
-    {
+    public async Task<BffServerSession?> GetAsync(string ticket, CancellationToken cancellationToken = default) {
         var value = await cache.GetAsync(Key(ticket), cancellationToken);
         return value is null ? null : protector.Unprotect(value);
     }

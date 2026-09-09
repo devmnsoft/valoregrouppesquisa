@@ -6,8 +6,7 @@ using Valora.Application.Integrations;
 namespace Valora.Api.Controllers;
 
 [AllowAnonymous, ApiController, Route("api/public/v1")]
-public sealed class PublicIntegrationsController(ApiKeyAuthenticator authenticator, IIntegrationRepository repository, IMemoryCache cache) : ControllerBase
-{
+public sealed class PublicIntegrationsController(ApiKeyAuthenticator authenticator, IIntegrationRepository repository, IMemoryCache cache) : ControllerBase {
     [HttpGet("organizations/{id:guid}/summary")]
     public Task<IActionResult> Organization(Guid id, CancellationToken ct) => Read("organizations", id, IntegrationScopes.OrganizationsRead, ct);
     [HttpGet("diagnostics/{id:guid}/summary")]
@@ -24,23 +23,20 @@ public sealed class PublicIntegrationsController(ApiKeyAuthenticator authenticat
     public Task<IActionResult> Evolution(Guid organizationId, CancellationToken ct) => Read("evolution", organizationId, IntegrationScopes.EvolutionRead, ct);
 
     [HttpGet("certificates/{code}/validation")]
-    public async Task<IActionResult> Certificate(string code, CancellationToken ct)
-    {
+    public async Task<IActionResult> Certificate(string code, CancellationToken ct) {
         var auth = await Authenticate(IntegrationScopes.CertificatesValidate, ct);
         if (auth.Result is not null) return auth.Result;
         var data = await repository.CertificateAsync(code, ct);
         return await Finish(auth.Key!, data, IntegrationScopes.CertificatesValidate, ct);
     }
 
-    private async Task<IActionResult> Read(string resource, Guid id, string scope, CancellationToken ct)
-    {
+    private async Task<IActionResult> Read(string resource, Guid id, string scope, CancellationToken ct) {
         var auth = await Authenticate(scope, ct);
         if (auth.Result is not null) return auth.Result;
         return await Finish(auth.Key!, await repository.PublicDataAsync(resource, id, ct), scope, ct);
     }
 
-    private async Task<(AuthenticatedApiKey? Key, IActionResult? Result)> Authenticate(string scope, CancellationToken ct)
-    {
+    private async Task<(AuthenticatedApiKey? Key, IActionResult? Result)> Authenticate(string scope, CancellationToken ct) {
         var presented = Request.Headers["X-API-Key"].FirstOrDefault() ?? Request.Headers.Authorization.FirstOrDefault()?.Replace("Bearer ", "", StringComparison.OrdinalIgnoreCase);
         var prefix = presented is { Length: >= 12 } ? presented[..12] : "missing";
         var key = await authenticator.AuthenticateAsync(presented, ct);
@@ -53,8 +49,7 @@ public sealed class PublicIntegrationsController(ApiKeyAuthenticator authenticat
         return (key, null);
     }
 
-    private async Task<IActionResult> Finish(AuthenticatedApiKey key, PublicDataResult? result, string scope, CancellationToken ct)
-    {
+    private async Task<IActionResult> Finish(AuthenticatedApiKey key, PublicDataResult? result, string scope, CancellationToken ct) {
         if (result is null) { await Log(key, "authorized", 404, scope, ct); return NotFound(); }
         if (result.OrganizationId != key.OrganizationId) { await Log(key, "authorized", 404, scope, ct); return NotFound(); }
         await Log(key, "authorized", 200, scope, ct);

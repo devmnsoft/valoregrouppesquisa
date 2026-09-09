@@ -5,8 +5,7 @@ namespace Valora.Application.ReadModels;
 /// <see cref="DateTime"/> here because this type is materialized directly by Dapper/Npgsql.
 /// API/domain conversions, when needed, belong outside the persistence projection.
 /// </summary>
-public sealed class OrganizationRecord
-{
+public sealed class OrganizationRecord {
     public Guid Id { get; init; }
     public string Name { get; init; } = string.Empty;
     public string? PublicName { get; init; }

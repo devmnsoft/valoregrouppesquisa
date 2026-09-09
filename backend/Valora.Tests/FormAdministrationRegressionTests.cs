@@ -2,13 +2,11 @@ using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
-public sealed class FormAdministrationRegressionTests
-{
+public sealed class FormAdministrationRegressionTests {
     private static readonly string RepositorySource = Read("Valora.Infrastructure", "Repositories", "FormAdministrationRepository.cs");
 
     [Fact]
-    public void GetQuery_UsesStableQuotedAliasesAndExplicitDatabaseTypes()
-    {
+    public void GetQuery_UsesStableQuotedAliasesAndExplicitDatabaseTypes() {
         string[] requiredAliases =
         [
             "AS \"Id\"", "AS \"OrganizationId\"", "AS \"Name\"", "AS \"Description\"",
@@ -24,8 +22,7 @@ public sealed class FormAdministrationRegressionTests
     }
 
     [Fact]
-    public void FormRow_IsPropertyMaterializableAndPreservesNullableDatabaseValues()
-    {
+    public void FormRow_IsPropertyMaterializableAndPreservesNullableDatabaseValues() {
         Assert.Contains("private sealed class FormRow", RepositorySource, StringComparison.Ordinal);
         Assert.Contains("public string? Description { get; init; }", RepositorySource, StringComparison.Ordinal);
         Assert.Contains("public Guid? CurrentDraftVersionId { get; init; }", RepositorySource, StringComparison.Ordinal);
@@ -35,8 +32,7 @@ public sealed class FormAdministrationRegressionTests
     }
 
     [Fact]
-    public void GetEndpoint_RejectsEmptyIdentifiersAndReturnsSanitizedCorrelatedProblems()
-    {
+    public void GetEndpoint_RejectsEmptyIdentifiersAndReturnsSanitizedCorrelatedProblems() {
         var controller = Read("Valora.Api", "Controllers", "FormsController.cs");
 
         Assert.Contains("if (formId == Guid.Empty)", controller, StringComparison.Ordinal);

@@ -9,8 +9,7 @@ namespace Valora.Application.Services;
 
 public sealed class FirestoreExportReader(
     ILegacyMappingService m,
-    ILegacyDataNormalizer n) : JsonLegacySourceReader(m, n), IFirestoreExportReader
-{
+    ILegacyDataNormalizer n) : JsonLegacySourceReader(m, n), IFirestoreExportReader {
     public override bool CanRead(string sourceType) =>
         sourceType.Equals("firestore", StringComparison.OrdinalIgnoreCase);
 }

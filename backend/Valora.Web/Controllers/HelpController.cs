@@ -5,11 +5,9 @@ namespace Valora.Web.Controllers;
 
 [Authorize]
 [Route("Help")]
-public sealed class HelpController : Controller
-{
+public sealed class HelpController : Controller {
     private static readonly IReadOnlyDictionary<string, HelpTopicViewModel> Topics =
-        new Dictionary<string, HelpTopicViewModel>(StringComparer.OrdinalIgnoreCase)
-        {
+        new Dictionary<string, HelpTopicViewModel>(StringComparer.OrdinalIgnoreCase) {
             ["GettingStarted"] = Topic("GettingStarted", "Primeiros passos", "Ative o contexto correto antes de começar.",
                 ("Selecione a organização", "Confirme no topo qual organização receberá os dados.", "/Organization"),
                 ("Conclua a configuração", "Revise plano, marca e pessoas no checklist guiado.", "/Onboarding/Checklist"),

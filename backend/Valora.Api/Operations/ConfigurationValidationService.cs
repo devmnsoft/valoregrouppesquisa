@@ -1,7 +1,6 @@
 namespace Valora.Api.Operations;
 
-public interface IConfigurationValidationService
-{
+public interface IConfigurationValidationService {
     ConfigurationValidationResult Validate();
 }
 
@@ -25,12 +24,10 @@ public sealed record ConfigurationValidationResult(
     DateTimeOffset CheckedAt);
 
 public sealed class ConfigurationValidationService(IConfiguration configuration, IWebHostEnvironment environment)
-    : IConfigurationValidationService
-{
+    : IConfigurationValidationService {
     private const string RequiredMessage = "Configuração obrigatória ausente para este recurso. Verifique o painel de Saúde do Sistema.";
 
-    public ConfigurationValidationResult Validate()
-    {
+    public ConfigurationValidationResult Validate() {
         var issues = new List<ConfigurationValidationIssue>();
         Require(issues, "DB_CONNECTION", "database", ConnectionString(), true, "Configure ConnectionStrings__Postgres.");
         Require(issues, "JWT_ISSUER", "authentication", configuration["Jwt:Issuer"], true, "Configure Jwt__Issuer.");
@@ -50,8 +47,7 @@ public sealed class ConfigurationValidationService(IConfiguration configuration,
         if (!configuration.GetValue<bool>("Certificates:PdfEnabled") && !configuration.GetValue<bool>("Reports:PdfEnabled"))
             Add(issues, "PDF_NOT_CONFIGURED", "pdf", "warning", "Geração de PDF não configurada.", "Habilite e configure Certificates__PdfEnabled ou Reports__PdfEnabled quando o recurso for utilizado.", false);
 
-        if (configuration.GetValue<bool>("Email:Enabled"))
-        {
+        if (configuration.GetValue<bool>("Email:Enabled")) {
             Require(issues, "SMTP_HOST", "email", configuration["Email:SmtpHost"] ?? configuration["Email:Smtp:Host"], false, "Configure o host SMTP.");
             Require(issues, "EMAIL_FROM", "email", configuration["Email:From"] ?? configuration["Email:FromEmail"], false, "Configure o remetente.");
         }
@@ -76,8 +72,7 @@ public sealed class ConfigurationValidationService(IConfiguration configuration,
     }
 
     private string? ConnectionString() => configuration.GetConnectionString("Postgres") ?? configuration.GetConnectionString("DefaultConnection");
-    private static bool IsKnownPlaceholder(string? value)
-    {
+    private static bool IsKnownPlaceholder(string? value) {
         if (string.IsNullOrWhiteSpace(value)) return false;
 
         var normalized = value.Trim();
@@ -87,8 +82,7 @@ public sealed class ConfigurationValidationService(IConfiguration configuration,
             || normalized.Contains("PLACEHOLDER", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static void Require(List<ConfigurationValidationIssue> issues, string code, string category, string? value, bool blocking, string action)
-    {
+    private static void Require(List<ConfigurationValidationIssue> issues, string code, string category, string? value, bool blocking, string action) {
         if (string.IsNullOrWhiteSpace(value)) Add(issues, code, category, blocking ? "critical" : "warning", RequiredMessage, action, blocking);
     }
     private static void Add(List<ConfigurationValidationIssue> issues, string code, string category, string severity, string message, string action, bool blocking) =>

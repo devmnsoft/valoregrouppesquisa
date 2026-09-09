@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record OperationalLog
-{
+public sealed record OperationalLog {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid? OrganizationId { get; init; }
     public string Level { get; init; } = "Information";

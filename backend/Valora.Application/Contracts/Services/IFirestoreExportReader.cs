@@ -1,4 +1,4 @@
 using Valora.Application.DTOs;
 namespace Valora.Application.Contracts;
 
-public interface IFirestoreExportReader:ILegacySourceReader { }
+public interface IFirestoreExportReader : ILegacySourceReader { }

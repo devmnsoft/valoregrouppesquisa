@@ -1,16 +1,15 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Valora.Application.Access;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
-using Valora.Application.Access;
 
 namespace Valora.Api.Controllers;
 
 [Authorize]
 [ApiController]
-public sealed class OrganizationStructureController(IOrganizationStructureService service) : ControllerBase
-{
+public sealed class OrganizationStructureController(IOrganizationStructureService service) : ControllerBase {
     [HttpGet("/api/v1/units")]
     [Authorize(Policy = ValoraPermissions.Units.Read)]
     public async Task<IActionResult> Units([FromQuery] string? status, CancellationToken cancellationToken) => Ok(await service.ListUnitsAsync(CurrentOrganizationId(), status, cancellationToken));
@@ -43,8 +42,7 @@ public sealed class OrganizationStructureController(IOrganizationStructureServic
     [Authorize(Policy = ValoraPermissions.Departments.Disable)]
     public async Task<IActionResult> ReactivateDepartment(Guid id, CancellationToken cancellationToken) => Ok(await service.SetDepartmentStatusAsync(CurrentOrganizationId(), id, true, cancellationToken));
 
-    private Guid CurrentOrganizationId()
-    {
+    private Guid CurrentOrganizationId() {
         var value = User.FindFirstValue("organization_id") ?? User.FindFirstValue("organizationId");
         if (Guid.TryParse(value, out var organizationId)) return organizationId;
         throw new UnauthorizedAccessException("Sessão sem empresa válida. Entre novamente para continuar.");

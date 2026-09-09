@@ -3,8 +3,7 @@ namespace Valora.Web.Models.ViewModels;
 public sealed record IntelligenceModuleViewModel(
     string Slug, string ProductName, string Eyebrow, string Title, string Description,
     string DataSource, string ApiResource, string RequiredPlan, string EmptyMessage,
-    IReadOnlyList<string> Capabilities)
-{
+    IReadOnlyList<string> Capabilities) {
     private static readonly IReadOnlyDictionary<string, IntelligenceModuleViewModel> Catalog =
         new[]
         {

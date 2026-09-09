@@ -5,14 +5,12 @@ using Valora.Application.Exports;
 
 namespace Valora.Tests;
 
-public sealed class ExportDocumentRendererTests
-{
+public sealed class ExportDocumentRendererTests {
     private static readonly Guid OrganizationId = Guid.NewGuid();
     private readonly ExportDocumentRenderer renderer = new();
 
     [Fact]
-    public void CsvProtectsSpreadsheetFormulaInjection()
-    {
+    public void CsvProtectsSpreadsheetFormulaInjection() {
         var export = renderer.Render(Job("csv"), Data("=HYPERLINK(\"https://invalid\")"), DateTimeOffset.UnixEpoch);
         var csv = Encoding.UTF8.GetString(export.Content);
 
@@ -22,8 +20,7 @@ public sealed class ExportDocumentRendererTests
     }
 
     [Fact]
-    public void XlsxIsAValidOpenXmlZipWithWorksheet()
-    {
+    public void XlsxIsAValidOpenXmlZipWithWorksheet() {
         var export = renderer.Render(Job("xlsx"), Data("valor"), DateTimeOffset.UnixEpoch);
         using var zip = new ZipArchive(new MemoryStream(export.Content), ZipArchiveMode.Read);
 
@@ -33,8 +30,7 @@ public sealed class ExportDocumentRendererTests
     }
 
     [Fact]
-    public void PdfHasSignatureAndJsonCarriesEvidenceCountWithoutPiiFields()
-    {
+    public void PdfHasSignatureAndJsonCarriesEvidenceCountWithoutPiiFields() {
         var pdf = renderer.Render(Job("pdf"), Data("observado"), DateTimeOffset.UnixEpoch);
         var json = renderer.Render(Job("json"), Data("observado"), DateTimeOffset.UnixEpoch);
 

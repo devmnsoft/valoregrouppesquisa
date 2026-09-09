@@ -1,12 +1,9 @@
 namespace Valora.Application.Results;
 
-public sealed class QuestionScoreCalculator
-{
-    public (decimal raw, decimal max) Calculate(SurveyQuestionInput question, object? answer)
-    {
+public sealed class QuestionScoreCalculator {
+    public (decimal raw, decimal max) Calculate(SurveyQuestionInput question, object? answer) {
         var max = question.MaxScore > 0 ? question.MaxScore : 5;
-        var raw = question.Type switch
-        {
+        var raw = question.Type switch {
             "scale" => Math.Clamp(Convert.ToDecimal(answer ?? 0), 0, 5) / 5 * max,
             "single" => question.Options.FirstOrDefault(o => o.Id == Convert.ToString(answer))?.Score ?? 0,
             "singleCorrect" => question.Options.FirstOrDefault(o => o.Id == Convert.ToString(answer) && o.Correct) is null ? 0 : max,
@@ -18,8 +15,7 @@ public sealed class QuestionScoreCalculator
         return (raw * Math.Max(0, question.Weight), configuredMax * Math.Max(0, question.Weight));
     }
 
-    private static decimal ScoreMultiple(SurveyQuestionInput question, object? answer)
-    {
+    private static decimal ScoreMultiple(SurveyQuestionInput question, object? answer) {
         var selected = answer as IEnumerable<string> ?? Convert.ToString(answer)?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? Array.Empty<string>();
         return question.Options.Where(o => selected.Contains(o.Id)).Sum(o => o.Score);
     }

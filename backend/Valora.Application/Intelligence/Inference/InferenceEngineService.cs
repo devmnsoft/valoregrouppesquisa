@@ -1,13 +1,11 @@
 namespace Valora.Application.Intelligence;
 
-public sealed class InferenceEngineService
-{
+public sealed class InferenceEngineService {
     public const int MinimumConvergentEvidence = 3;
 
     public IReadOnlyList<IntelligenceInference> Infer(IEnumerable<IntelligenceEvidence> evidence) => evidence
         .GroupBy(x => string.IsNullOrWhiteSpace(x.Dimension) ? x.Concept : x.Dimension, StringComparer.OrdinalIgnoreCase)
-        .Select(group =>
-        {
+        .Select(group => {
             var items = group.ToList();
             var strong = items.Select(x => x.SourceType).Distinct(StringComparer.OrdinalIgnoreCase).Count() >= 2
                 && items.Count >= MinimumConvergentEvidence;

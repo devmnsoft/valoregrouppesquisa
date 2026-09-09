@@ -1,7 +1,6 @@
 namespace Valora.Domain.Enums;
 
-public enum UserStatus
-{
+public enum UserStatus {
     Active,
     Inactive,
     Blocked

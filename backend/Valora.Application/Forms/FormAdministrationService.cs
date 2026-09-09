@@ -1,7 +1,6 @@
 namespace Valora.Application.Forms;
 
-public sealed class FormAdministrationService(IFormAdministrationRepository repository) : IFormAdministrationService
-{
+public sealed class FormAdministrationService(IFormAdministrationRepository repository) : IFormAdministrationService {
     private static readonly HashSet<string> ItemTypes = ["section", "question", "option"];
 
     public Task<IReadOnlyList<FormListItemResponse>> ListAsync(Guid organizationId, FormListQuery query, CancellationToken cancellationToken) =>
@@ -10,8 +9,7 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
     public Task<FormDetailResponse?> GetAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken) =>
         repository.GetAsync(RequireOrganization(organizationId), formId, cancellationToken);
 
-    public Task<FormDetailResponse> CreateAsync(Guid organizationId, Guid userId, CreateFormRequest request, CancellationToken cancellationToken)
-    {
+    public Task<FormDetailResponse> CreateAsync(Guid organizationId, Guid userId, CreateFormRequest request, CancellationToken cancellationToken) {
         RequireUser(userId);
         if (string.IsNullOrWhiteSpace(request.Name)) throw new ArgumentException("Informe o nome do formulário.", nameof(request));
         if (request.EstimatedMinutes is < 1 or > 480) throw new ArgumentException("O tempo estimado deve estar entre 1 e 480 minutos.", nameof(request));
@@ -27,16 +25,14 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
     public Task<FormVersionResponse?> PublishAsync(Guid organizationId, Guid formId, Guid userId, PublishFormVersionRequest request, CancellationToken cancellationToken) =>
         repository.PublishVersionAsync(RequireOrganization(organizationId), formId, RequireUser(userId), request, cancellationToken);
 
-    public Task<ReorderFormItemResponse?> ReorderAsync(Guid organizationId, Guid formId, ReorderFormItemRequest request, CancellationToken cancellationToken)
-    {
+    public Task<ReorderFormItemResponse?> ReorderAsync(Guid organizationId, Guid formId, ReorderFormItemRequest request, CancellationToken cancellationToken) {
         if (!ItemTypes.Contains(request.ItemType)) throw new ArgumentException("Tipo de item inválido.", nameof(request));
         if (request.NewPosition < 0) throw new ArgumentException("A posição deve ser positiva.", nameof(request));
         return repository.ReorderAsync(RequireOrganization(organizationId), formId, request, cancellationToken);
     }
 
     public Task<FormSectionResponse?> CreateSectionAsync(Guid organizationId, Guid formId, Guid userId,
-        CreateFormSectionRequest request, CancellationToken cancellationToken)
-    {
+        CreateFormSectionRequest request, CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(request.Title)) throw new ArgumentException("Informe o título da seção.", nameof(request));
         if (request.Position < 0) throw new ArgumentException("A posição deve ser positiva.", nameof(request));
         return repository.CreateSectionAsync(RequireOrganization(organizationId), formId, RequireUser(userId),
@@ -44,8 +40,7 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
     }
 
     public Task<FormSectionResponse?> UpdateSectionAsync(Guid organizationId, Guid formId, Guid sectionId, Guid userId,
-        UpdateFormSectionRequest request, CancellationToken cancellationToken)
-    {
+        UpdateFormSectionRequest request, CancellationToken cancellationToken) {
         if (string.IsNullOrWhiteSpace(request.Title)) throw new ArgumentException("Informe o título da seção.", nameof(request));
         return repository.UpdateSectionAsync(RequireOrganization(organizationId), formId, sectionId, RequireUser(userId),
             request with { Title = request.Title.Trim() }, cancellationToken);
@@ -56,22 +51,20 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
         repository.DeleteSectionAsync(RequireOrganization(organizationId), formId, sectionId, RequireUser(userId), request, cancellationToken);
 
     public Task<QuestionResponse?> CreateQuestionAsync(Guid organizationId, Guid formId, Guid userId,
-        CreateQuestionRequest request, CancellationToken cancellationToken)
-    {
+        CreateQuestionRequest request, CancellationToken cancellationToken) {
         ValidateQuestion(request.Code, request.Type, request.Title, request.Weight, request.Settings);
-        return repository.CreateQuestionAsync(RequireOrganization(organizationId), formId, RequireUser(userId), request with
-        {
-            Code = request.Code.Trim().ToLowerInvariant(), Title = request.Title.Trim()
+        return repository.CreateQuestionAsync(RequireOrganization(organizationId), formId, RequireUser(userId), request with {
+            Code = request.Code.Trim().ToLowerInvariant(),
+            Title = request.Title.Trim()
         }, cancellationToken);
     }
 
     public Task<QuestionResponse?> UpdateQuestionAsync(Guid organizationId, Guid formId, Guid questionId, Guid userId,
-        UpdateQuestionRequest request, CancellationToken cancellationToken)
-    {
+        UpdateQuestionRequest request, CancellationToken cancellationToken) {
         ValidateQuestion(request.Code, request.Type, request.Title, request.Weight, request.Settings);
-        return repository.UpdateQuestionAsync(RequireOrganization(organizationId), formId, questionId, RequireUser(userId), request with
-        {
-            Code = request.Code.Trim().ToLowerInvariant(), Title = request.Title.Trim()
+        return repository.UpdateQuestionAsync(RequireOrganization(organizationId), formId, questionId, RequireUser(userId), request with {
+            Code = request.Code.Trim().ToLowerInvariant(),
+            Title = request.Title.Trim()
         }, cancellationToken);
     }
 
@@ -80,22 +73,20 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
         repository.DeleteQuestionAsync(RequireOrganization(organizationId), formId, questionId, RequireUser(userId), request, cancellationToken);
 
     public Task<QuestionOptionResponse?> CreateOptionAsync(Guid organizationId, Guid formId, Guid questionId, Guid userId,
-        CreateQuestionOptionRequest request, CancellationToken cancellationToken)
-    {
+        CreateQuestionOptionRequest request, CancellationToken cancellationToken) {
         ValidateOption(request.Label, request.Value, request.Score, request.Position);
-        return repository.CreateOptionAsync(RequireOrganization(organizationId), formId, questionId, RequireUser(userId), request with
-        {
-            Label = request.Label.Trim(), Value = request.Value.Trim()
+        return repository.CreateOptionAsync(RequireOrganization(organizationId), formId, questionId, RequireUser(userId), request with {
+            Label = request.Label.Trim(),
+            Value = request.Value.Trim()
         }, cancellationToken);
     }
 
     public Task<QuestionOptionResponse?> UpdateOptionAsync(Guid organizationId, Guid formId, Guid optionId, Guid userId,
-        UpdateQuestionOptionRequest request, CancellationToken cancellationToken)
-    {
+        UpdateQuestionOptionRequest request, CancellationToken cancellationToken) {
         ValidateOption(request.Label, request.Value, request.Score, 0);
-        return repository.UpdateOptionAsync(RequireOrganization(organizationId), formId, optionId, RequireUser(userId), request with
-        {
-            Label = request.Label.Trim(), Value = request.Value.Trim()
+        return repository.UpdateOptionAsync(RequireOrganization(organizationId), formId, optionId, RequireUser(userId), request with {
+            Label = request.Label.Trim(),
+            Value = request.Value.Trim()
         }, cancellationToken);
     }
 
@@ -114,8 +105,7 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
     public Task<FormDetailResponse?> PreviewAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken) =>
         repository.PreviewAsync(RequireOrganization(organizationId), formId, cancellationToken);
 
-    private static void ValidateQuestion(string code, string type, string title, decimal weight, string? settings)
-    {
+    private static void ValidateQuestion(string code, string type, string title, decimal weight, string? settings) {
         string[] allowedTypes = ["likert_1_5", "single_choice", "multiple_choice", "short_text", "long_text", "heading", "description", "separator"];
         if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(title)) throw new ArgumentException("Código e título da pergunta são obrigatórios.");
         if (!allowedTypes.Contains(type, StringComparer.Ordinal)) throw new ArgumentException("Tipo de pergunta inválido.");
@@ -125,8 +115,7 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
             catch (System.Text.Json.JsonException) { throw new ArgumentException("As configurações da pergunta devem conter JSON válido."); }
     }
 
-    private static void ValidateOption(string label, string value, decimal? score, int position)
-    {
+    private static void ValidateOption(string label, string value, decimal? score, int position) {
         if (string.IsNullOrWhiteSpace(label) || string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Rótulo e valor da opção são obrigatórios.");
         if (score is < 1 or > 5) throw new ArgumentException("A pontuação da opção deve estar entre 1 e 5.");
         if (position < 0) throw new ArgumentException("A posição deve ser positiva.");

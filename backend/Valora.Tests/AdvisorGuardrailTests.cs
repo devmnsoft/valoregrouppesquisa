@@ -3,11 +3,9 @@ using Xunit;
 
 namespace Valora.Tests;
 
-public sealed class AdvisorGuardrailTests
-{
+public sealed class AdvisorGuardrailTests {
     [Fact]
-    public async Task RejectsWhenAnyRequestedSourceCannotBeResolvedInTenant()
-    {
+    public async Task RejectsWhenAnyRequestedSourceCannotBeResolvedInTenant() {
         var repository = new RecordingGuardrailRepository();
         var service = new AdvisorGuardrailService(repository);
         var evidence = new[] { new AdvisorContextOptionDto("indicator", Guid.NewGuid(), "Participação", "Fonte real") };
@@ -20,8 +18,7 @@ public sealed class AdvisorGuardrailTests
     }
 
     [Fact]
-    public async Task AcceptsOnlyWhenEveryRequestedSourceWasResolved()
-    {
+    public async Task AcceptsOnlyWhenEveryRequestedSourceWasResolved() {
         var repository = new RecordingGuardrailRepository();
         var service = new AdvisorGuardrailService(repository);
         var evidence = new[] { new AdvisorContextOptionDto("report", Guid.NewGuid(), "Relatório", "Fonte real") };
@@ -31,11 +28,9 @@ public sealed class AdvisorGuardrailTests
         Assert.Null(repository.Rule);
     }
 
-    private sealed class RecordingGuardrailRepository : IAdvisorGuardrailRepository
-    {
+    private sealed class RecordingGuardrailRepository : IAdvisorGuardrailRepository {
         public string? Rule { get; private set; }
-        public Task Record(Guid organizationId, Guid userId, Guid? conversationId, string rule, string reason, CancellationToken ct)
-        {
+        public Task Record(Guid organizationId, Guid userId, Guid? conversationId, string rule, string reason, CancellationToken ct) {
             Rule = rule;
             return Task.CompletedTask;
         }

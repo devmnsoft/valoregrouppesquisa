@@ -4,25 +4,21 @@ using Valora.Application.ReadModels;
 
 namespace Valora.Application.Services;
 
-public sealed class PublicAnswerNormalizer
-{
+public sealed class PublicAnswerNormalizer {
     public IReadOnlyList<NormalizedAnswer> Normalize(
         IReadOnlyList<QuestionPublicReadModel> questions,
         IReadOnlyList<QuestionOptionPublicReadModel> options,
-        IReadOnlyList<PublicSurveyAnswerRequest>? answers)
-    {
+        IReadOnlyList<PublicSurveyAnswerRequest>? answers) {
         var supplied = (answers ?? [])
             .GroupBy(answer => answer.QuestionId)
             .ToDictionary(group => group.Key, group => group.Single());
 
-        return questions.Select(question =>
-        {
+        return questions.Select(question => {
             if (!supplied.TryGetValue(question.Id, out var answer))
                 return new NormalizedAnswer(question.Id, null, "null", null);
 
             var type = NormalizeType(question.Type);
-            var text = type switch
-            {
+            var text = type switch {
                 "scale" or "likert" => answer.ScaleValue?.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 "single_choice" => LabelFor(answer.OptionId, question.Id, options),
                 "multiple_choice" => string.Join(", ", (answer.OptionIds ?? []).Select(id => LabelFor(id, question.Id, options))),
@@ -31,8 +27,7 @@ public sealed class PublicAnswerNormalizer
                 "yes_no" => answer.BooleanValue is null ? null : answer.BooleanValue.Value ? "Sim" : "Não",
                 _ => null
             };
-            var numeric = type switch
-            {
+            var numeric = type switch {
                 "scale" or "likert" => answer.ScaleValue,
                 "single_choice" => ScoreFor(answer.OptionId, question.Id, options),
                 "multiple_choice" => AverageScore(answer.OptionIds, question.Id, options),
@@ -44,8 +39,7 @@ public sealed class PublicAnswerNormalizer
         }).ToList();
     }
 
-    public static string NormalizeType(string value) => value.Trim().ToLowerInvariant() switch
-    {
+    public static string NormalizeType(string value) => value.Trim().ToLowerInvariant() switch {
         "scale" or "escala" => "scale",
         "likert" or "likert_1_5" => "likert",
         "single_choice" or "unique_choice" or "unica_escolha" => "single_choice",
@@ -63,8 +57,7 @@ public sealed class PublicAnswerNormalizer
     private static decimal? ScoreFor(Guid? optionId, Guid questionId, IReadOnlyList<QuestionOptionPublicReadModel> options) =>
         optionId is null ? null : options.Single(option => option.Id == optionId && option.QuestionId == questionId).Score;
 
-    private static decimal? AverageScore(IReadOnlyList<Guid>? optionIds, Guid questionId, IReadOnlyList<QuestionOptionPublicReadModel> options)
-    {
+    private static decimal? AverageScore(IReadOnlyList<Guid>? optionIds, Guid questionId, IReadOnlyList<QuestionOptionPublicReadModel> options) {
         if (optionIds is not { Count: > 0 }) return null;
         var scores = optionIds.Select(id => options.Single(option => option.Id == id && option.QuestionId == questionId).Score ?? 0).ToList();
         return scores.Average();

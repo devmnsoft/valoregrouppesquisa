@@ -24,20 +24,16 @@ public sealed record MethodologicalScoreResult(
 /// Motor decimal, determinístico e independente de persistência da Metodologia Valora.
 /// Recebe somente o snapshot metodológico travado no diagnóstico; nunca consulta a versão corrente.
 /// </summary>
-public sealed class MethodologicalScoringService
-{
-    public MethodologicalScoreResult Calculate(IEnumerable<MethodologicalAnswer> input)
-    {
+public sealed class MethodologicalScoringService {
+    public MethodologicalScoreResult Calculate(IEnumerable<MethodologicalAnswer> input) {
         ArgumentNullException.ThrowIfNull(input);
         var ignored = new List<string>();
         var valid = new List<(MethodologicalAnswer Answer, decimal Score)>();
 
-        foreach (var answer in input)
-        {
+        foreach (var answer in input) {
             if (string.IsNullOrWhiteSpace(answer.QuestionCode) ||
                 string.IsNullOrWhiteSpace(answer.DimensionCode) ||
-                string.IsNullOrWhiteSpace(answer.ConceptCode) || answer.Weight <= 0m)
-            {
+                string.IsNullOrWhiteSpace(answer.ConceptCode) || answer.Weight <= 0m) {
                 ignored.Add(answer.QuestionCode);
                 continue;
             }
@@ -45,8 +41,7 @@ public sealed class MethodologicalScoringService
             decimal? normalized = answer.IsQualitative
                 ? answer.QualitativeNormalizedValue
                 : Normalize(answer.RawValue, answer.Minimum, answer.Maximum);
-            if (normalized is null or < 0m or > 100m)
-            {
+            if (normalized is null or < 0m or > 100m) {
                 ignored.Add(answer.QuestionCode);
                 continue;
             }
@@ -79,8 +74,7 @@ public sealed class MethodologicalScoringService
     private static MethodologicalScoreGroup[] Group(
         IEnumerable<(MethodologicalAnswer Answer, decimal Score)> values,
         Func<(MethodologicalAnswer Answer, decimal Score), string> keySelector)
-        => values.GroupBy(keySelector, StringComparer.OrdinalIgnoreCase).Select(group =>
-        {
+        => values.GroupBy(keySelector, StringComparer.OrdinalIgnoreCase).Select(group => {
             var weight = group.Sum(x => x.Answer.Weight);
             return new MethodologicalScoreGroup(group.Key,
                 decimal.Round(group.Sum(x => x.Score * x.Answer.Weight) / weight, 2), weight, group.Count());

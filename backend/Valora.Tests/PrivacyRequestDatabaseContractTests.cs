@@ -3,17 +3,14 @@ using Npgsql;
 namespace Valora.Tests;
 
 [Trait("Category", "DatabaseContract")]
-public sealed class PrivacyRequestDatabaseContractTests
-{
+public sealed class PrivacyRequestDatabaseContractTests {
     [Fact]
-    public async Task Public_protocol_column_and_unique_index_match_the_catalog_contract()
-    {
+    public async Task Public_protocol_column_and_unique_index_match_the_catalog_contract() {
         var connectionString = Environment.GetEnvironmentVariable("VALORA_TEST_POSTGRES_CONNECTION");
-        if (string.IsNullOrWhiteSpace(connectionString))
-        {
+        if (string.IsNullOrWhiteSpace(connectionString)) {
             var sql = File.ReadAllText(Support.RepositoryPaths.CanonicalDatabaseScript);
             Assert.Matches(@"(?is)privacy_requests\s*\([^;]*protocol\s+text\s+NOT NULL", sql);
-            Assert.Matches(@"(?is)CREATE UNIQUE INDEX IF NOT EXISTS idx_privacy_requests_protocol\s+ON\s+valorapesquisa\.privacy_requests\s*\(protocol\)", sql);
+            Assert.Matches(@"(?is)CREATE UNIQUE INDEX(?: IF NOT EXISTS)? idx_privacy_requests_protocol\s+ON\s+valorapesquisa\.privacy_requests\s*\(protocol\)", sql);
             return;
         }
 

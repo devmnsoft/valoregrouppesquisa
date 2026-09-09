@@ -3,8 +3,7 @@ namespace Valora.Application.Common;
 /// <summary>
 /// Stable feature identifiers used by plan and entitlement checks.
 /// </summary>
-public static class FeatureCodes
-{
+public static class FeatureCodes {
     // This is the module code currently persisted for the Enterprise integrations bundle.
     public const string EnterpriseIntegrations = "enterprise_integrations";
 

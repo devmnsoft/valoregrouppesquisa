@@ -3,8 +3,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Valora.Application.ModularSaas;
 
-public sealed class CommercialSaasService(ICommercialSaasRepository repository, ILogger<CommercialSaasService> logger)
-{
+public sealed class CommercialSaasService(ICommercialSaasRepository repository, ILogger<CommercialSaasService> logger) {
     private static readonly IReadOnlySet<string> ModuleStatuses =
         new HashSet<string>(["active", "read_only", "suspended", "expired", "cancelled"], StringComparer.OrdinalIgnoreCase);
 
@@ -15,16 +14,14 @@ public sealed class CommercialSaasService(ICommercialSaasRepository repository, 
         repository.ListPlansAsync(cancellationToken);
 
     public Task<ModuleAccessDecision> EvaluateAccessAsync(Guid clientId, string moduleCode, bool writeOperation,
-        CancellationToken cancellationToken = default)
-    {
+        CancellationToken cancellationToken = default) {
         if (clientId == Guid.Empty)
             return Task.FromResult(ModuleAccessDecision.Denied("CLIENT_CONTEXT_REQUIRED", "Selecione um cliente para operar esta área."));
         return repository.EvaluateAccessAsync(clientId, NormalizeModuleCode(moduleCode), writeOperation, cancellationToken);
     }
 
     public async Task SetModuleStatusAsync(Guid clientId, string moduleCode, string status, Guid actorUserId,
-        string reason, string correlationId, CancellationToken cancellationToken = default)
-    {
+        string reason, string correlationId, CancellationToken cancellationToken = default) {
         ValidateIdentity(clientId, actorUserId);
         var normalizedStatus = status.Trim().ToLowerInvariant();
         if (!ModuleStatuses.Contains(normalizedStatus)) throw new ValidationException("Selecione um status de contratação válido.");
@@ -40,8 +37,7 @@ public sealed class CommercialSaasService(ICommercialSaasRepository repository, 
     }
 
     public async Task RequestUpgradeAsync(Guid clientId, Guid actorUserId, string moduleCode, string reason,
-        string correlationId, CancellationToken cancellationToken = default)
-    {
+        string correlationId, CancellationToken cancellationToken = default) {
         ValidateIdentity(clientId, actorUserId);
         if (string.IsNullOrWhiteSpace(reason)) throw new ValidationException("Informe como este módulo será utilizado.");
         var normalizedModule = NormalizeModuleCode(moduleCode);
@@ -51,8 +47,7 @@ public sealed class CommercialSaasService(ICommercialSaasRepository repository, 
             clientId, actorUserId, normalizedModule, correlationId);
     }
 
-    private static string NormalizeModuleCode(string value)
-    {
+    private static string NormalizeModuleCode(string value) {
         if (string.IsNullOrWhiteSpace(value)) throw new ValidationException("Selecione um módulo.");
         var normalized = value.Trim().ToLowerInvariant().Replace('-', '_');
         if (normalized.Any(character => !char.IsLetterOrDigit(character) && character != '_'))
@@ -60,8 +55,7 @@ public sealed class CommercialSaasService(ICommercialSaasRepository repository, 
         return normalized;
     }
 
-    private static void ValidateIdentity(Guid clientId, Guid actorUserId)
-    {
+    private static void ValidateIdentity(Guid clientId, Guid actorUserId) {
         if (clientId == Guid.Empty) throw new ValidationException("Selecione um cliente para continuar.");
         if (actorUserId == Guid.Empty) throw new ValidationException("Usuário autenticado inválido.");
     }

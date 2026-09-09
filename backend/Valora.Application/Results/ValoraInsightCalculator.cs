@@ -1,12 +1,10 @@
 namespace Valora.Application.Results;
-public sealed class ValoraInsightCalculator
-{
-    public ValoraInsightResult Calculate(IEnumerable<AnswerScore> answers)
-    {
+
+public sealed class ValoraInsightCalculator {
+    public ValoraInsightResult Calculate(IEnumerable<AnswerScore> answers) {
         var byDimension = answers.GroupBy(a => a.Dimension).ToDictionary(g => g.Key, g => g.Sum(x => x.Score));
         var total = byDimension.Values.Sum();
-        var level = total switch
-        {
+        var level = total switch {
             >= 25 and <= 55 => "Crítico",
             >= 56 and <= 85 => "Em estruturação",
             >= 86 and <= 110 => "Estruturada",

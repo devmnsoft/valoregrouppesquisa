@@ -15,8 +15,7 @@ public sealed record ApiKeyIssued(Guid Id, string Name, string Prefix, string Se
 public sealed record ApiKeySummary(Guid Id, string Name, string Prefix, IReadOnlyList<string> Scopes, string Status, DateTime CreatedAt, DateTime? ExpiresAt, DateTime? LastUsedAt);
 public sealed record ApiKeyUsage(Guid Id, string Endpoint, string Method, int StatusCode, string? ScopeUsed, string? CorrelationId, DateTime CreatedAt);
 
-public interface IEnterpriseRepository
-{
+public interface IEnterpriseRepository {
     Task<PortfolioSummary> SummaryAsync(CancellationToken ct);
     Task<EnterprisePage<PortfolioCompany>> CompaniesAsync(EnterpriseListQuery query, CancellationToken ct);
     Task<EnterprisePage<CrmLead>> LeadsAsync(EnterpriseListQuery query, CancellationToken ct);

@@ -2,11 +2,9 @@ using Valora.Application.OperationalIntelligence;
 
 namespace Valora.Tests.OperationalIntelligence;
 
-public sealed class AccountHealthServiceTests
-{
+public sealed class AccountHealthServiceTests {
     [Fact]
-    public void Evaluate_EmptyAccount_IsCriticalAndSuggestsConcreteRoutes()
-    {
+    public void Evaluate_EmptyAccount_IsCriticalAndSuggestsConcreteRoutes() {
         var result = new AccountHealthService().Evaluate(new(false, false, 0, 0, 0, 0, true, 0, 0, 0));
         Assert.Equal(AccountHealthStatus.Critical, result.Status);
         Assert.Equal(20, result.Score);
@@ -15,8 +13,7 @@ public sealed class AccountHealthServiceTests
     }
 
     [Fact]
-    public void Evaluate_CompleteOperatingCycle_IsExcellent()
-    {
+    public void Evaluate_CompleteOperatingCycle_IsExcellent() {
         var result = new AccountHealthService().Evaluate(new(true, true, 2, 3, 1, 20, true, 1, 0, 2));
         Assert.Equal(AccountHealthStatus.Excellent, result.Status);
         Assert.Equal(100, result.Score);
@@ -24,8 +21,7 @@ public sealed class AccountHealthServiceTests
     }
 
     [Fact]
-    public void Evaluate_PendingRecommendation_UsesExistingActionPlanRoute()
-    {
+    public void Evaluate_PendingRecommendation_UsesExistingActionPlanRoute() {
         var result = new AccountHealthService().Evaluate(new(true, true, 1, 1, 1, 10, true, 1, 1, 0));
 
         Assert.Contains(result.NextActions, action =>

@@ -5,13 +5,11 @@ public sealed record IntelligenceProcessingContext(Guid OrganizationId, Guid? Su
 public sealed record ProcessingStageResult(string Stage, int Records, bool SufficientEvidence, string Message,
     IReadOnlyList<Guid> EvidenceIds);
 public sealed record IntelligencePipelineResult(Guid RunId, string Trigger, IReadOnlyList<ProcessingStageResult> Stages,
-    DateTime CompletedAt)
-{
+    DateTime CompletedAt) {
     public bool HasSufficientEvidence => Stages.Any(x => x.SufficientEvidence);
 }
 
-public interface IIntelligencePipelineRepository
-{
+public interface IIntelligencePipelineRepository {
     Task<IReadOnlyList<Guid>> ExtractResponseEvidenceAsync(IntelligenceProcessingContext context, CancellationToken ct);
     Task<ProcessingStageResult> CalculateMetricsAsync(IntelligenceProcessingContext context, IReadOnlyList<Guid> evidenceIds, CancellationToken ct);
     Task<ProcessingStageResult> CalculateIndicesAsync(IntelligenceProcessingContext context, IReadOnlyList<Guid> evidenceIds, CancellationToken ct);
@@ -21,8 +19,7 @@ public interface IIntelligencePipelineRepository
     Task RecordEventAsync(IntelligenceProcessingContext context, Guid runId, string eventType, string title, string description, CancellationToken ct);
 }
 
-public interface IOrganizationalIntelligencePipeline
-{
+public interface IOrganizationalIntelligencePipeline {
     Task<IntelligencePipelineResult> ProcessResponseAsync(IntelligenceProcessingContext context, CancellationToken ct);
     Task<IntelligencePipelineResult> ProcessDiagnosisClosedAsync(IntelligenceProcessingContext context, CancellationToken ct);
     Task<IntelligencePipelineResult> ProcessActionAsync(IntelligenceProcessingContext context, bool completed, CancellationToken ct);

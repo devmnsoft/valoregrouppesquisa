@@ -6,8 +6,7 @@ using Valora.Web.Services.Bff;
 namespace Valora.Web.Controllers;
 
 [Authorize, ApiController, AutoValidateAntiforgeryToken, Route("bff/diagnostics/{id:guid}")]
-public sealed class BffDiagnosticOperationsController(IBffApiClient api, BffAuthenticationService authentication) : ControllerBase
-{
+public sealed class BffDiagnosticOperationsController(IBffApiClient api, BffAuthenticationService authentication) : ControllerBase {
     [HttpGet("/bff/diagnostic-campaigns")]
     public Task<IActionResult> Campaigns(CancellationToken ct) => ForwardPath("/api/v1/diagnostic-campaigns", ct);
 
@@ -25,8 +24,7 @@ public sealed class BffDiagnosticOperationsController(IBffApiClient api, BffAuth
     private async Task<IActionResult> Forward(Guid id, string resource, CancellationToken ct)
         => await ForwardPath($"/api/v1/diagnostics/{id}/{resource}{Request.QueryString}", ct);
 
-    private async Task<IActionResult> ForwardPath(string path, CancellationToken ct)
-    {
+    private async Task<IActionResult> ForwardPath(string path, CancellationToken ct) {
         var session = await authentication.GetAsync(HttpContext, ct);
         if (session is null)
             return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou. Entre novamente.", correlationId = HttpContext.TraceIdentifier });

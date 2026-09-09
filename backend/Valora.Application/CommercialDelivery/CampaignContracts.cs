@@ -1,7 +1,6 @@
 namespace Valora.Application.CommercialDelivery;
 
-public static class DiagnosticCampaignStatus
-{
+public static class DiagnosticCampaignStatus {
     public const string Draft = "draft";
     public const string Scheduled = "scheduled";
     public const string Sending = "sending";
@@ -67,8 +66,7 @@ public sealed record DiagnosticCampaignDto(
     IReadOnlyList<CampaignRecipientDto> Recipients);
 public sealed record CampaignCommandResult(Guid CampaignId, string Status, string Message, string? PublicUrl, long Version);
 
-public interface IDiagnosticCampaignRepository
-{
+public interface IDiagnosticCampaignRepository {
     Task<IReadOnlyList<DiagnosticCampaignDto>> ListAsync(Guid organizationId, CancellationToken ct);
     Task<DiagnosticCampaignDto?> GetAsync(Guid organizationId, Guid surveyId, CancellationToken ct);
     Task<DiagnosticCampaignDto?> CreateAsync(Guid organizationId, Guid surveyId, Guid userId, CreateCampaignRequest request, string correlationId, CancellationToken ct);
@@ -77,8 +75,7 @@ public interface IDiagnosticCampaignRepository
     Task<IReadOnlyList<CampaignHistoryDto>> HistoryAsync(Guid organizationId, Guid surveyId, CancellationToken ct);
 }
 
-public interface IDiagnosticCampaignService
-{
+public interface IDiagnosticCampaignService {
     Task<IReadOnlyList<DiagnosticCampaignDto>> ListAsync(Guid organizationId, CancellationToken ct);
     Task<DiagnosticCampaignDto?> GetAsync(Guid organizationId, Guid surveyId, CancellationToken ct);
     Task<DiagnosticCampaignDto?> CreateAsync(Guid organizationId, Guid surveyId, Guid userId, CreateCampaignRequest request, string correlationId, CancellationToken ct);

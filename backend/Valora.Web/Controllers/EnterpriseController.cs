@@ -3,12 +3,10 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Valora.Web.Controllers;
 
-[Authorize(Roles="admin_valora")]
-public sealed class EnterpriseController : Controller
-{
+[Authorize(Roles = "admin_valora")]
+public sealed class EnterpriseController : Controller {
     [HttpGet("AdminValora")]
-    public IActionResult Index(string? module=null)
-    { ViewData["Title"]="Admin Valora"; ViewData["Module"]=module??"overview"; return View(); }
+    public IActionResult Index(string? module = null) { ViewData["Title"] = "Admin Valora"; ViewData["Module"] = module ?? "overview"; return View(); }
 
     [HttpGet("AdminValora/Organizations")]
     public IActionResult Organizations() => Redirect("/AdminValora?module=companies");

@@ -10,8 +10,7 @@ public sealed record CreateDecisionRequest(string Title, string Summary, string 
 public sealed record CreateGovernanceCycleRequest(string Name, string PeriodLabel, Guid? PrimaryDiagnosticId, DateTime OpenedAt);
 public sealed record RegisterGovernanceMeetingRequest(Guid? CycleId, string Title, string Agenda, DateTime ScheduledAt, string? ParticipantsSummary, string? EvidenceSummary, string? NextSteps);
 
-public interface IDecisionCenterRepository
-{
+public interface IDecisionCenterRepository {
     Task<DecisionCenterOverviewDto> GetOverviewAsync(Guid organizationId, CancellationToken ct);
     Task<IReadOnlyList<IntelligentAlertDto>> ListAlertsAsync(Guid organizationId, string? severity, string? status, CancellationToken ct);
     Task<IReadOnlyList<OrganizationalDecisionDto>> ListDecisionsAsync(Guid organizationId, CancellationToken ct);
@@ -26,8 +25,7 @@ public interface IDecisionCenterRepository
     Task<Guid> RegisterMeetingAsync(Guid organizationId, Guid userId, RegisterGovernanceMeetingRequest request, CancellationToken ct);
 }
 
-public sealed class DecisionCenterService(IDecisionCenterRepository repository)
-{
+public sealed class DecisionCenterService(IDecisionCenterRepository repository) {
     public Task<DecisionCenterOverviewDto> Overview(Guid organizationId, CancellationToken ct) => repository.GetOverviewAsync(organizationId, ct);
     public Task<IReadOnlyList<IntelligentAlertDto>> Alerts(Guid organizationId, string? severity, string? status, CancellationToken ct) => repository.ListAlertsAsync(organizationId, severity, status, ct);
     public Task<IReadOnlyList<OrganizationalDecisionDto>> Decisions(Guid organizationId, CancellationToken ct) => repository.ListDecisionsAsync(organizationId, ct);

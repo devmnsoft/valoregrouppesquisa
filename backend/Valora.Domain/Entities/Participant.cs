@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record Participant
-{
+public sealed record Participant {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid OrganizationId { get; init; }
     public string Name { get; init; } = string.Empty;

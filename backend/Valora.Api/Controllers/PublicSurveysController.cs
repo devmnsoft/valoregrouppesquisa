@@ -11,18 +11,15 @@ using Valora.Application.Security;
 namespace Valora.Api.Controllers;
 
 [ApiController]
-public sealed class PublicSurveysController(IPublicSurveyService service, IMemoryCache cache, IOptions<FreeSurveySecurityOptions> securityOptions, ILogger<PublicSurveysController> logger) : ControllerBase
-{
+public sealed class PublicSurveysController(IPublicSurveyService service, IMemoryCache cache, IOptions<FreeSurveySecurityOptions> securityOptions, ILogger<PublicSurveysController> logger) : ControllerBase {
     [HttpPost("/public/surveys/{surveyId:guid}/validate")]
-    public async Task<IActionResult> Validate(Guid surveyId, ValidateSurveyRequest request)
-    {
+    public async Task<IActionResult> Validate(Guid surveyId, ValidateSurveyRequest request) {
         var result = await service.ValidateAsync(surveyId, request);
         return Ok(result);
     }
 
     [HttpPost("/public/surveys/{surveyId:guid}/responses")]
-    public async Task<IActionResult> Submit(Guid surveyId, SubmitSurveyResponseRequest request)
-    {
+    public async Task<IActionResult> Submit(Guid surveyId, SubmitSurveyResponseRequest request) {
         if (string.IsNullOrWhiteSpace(request.IdempotencyKey) || request.IdempotencyKey.Length > 128)
             return BadRequest(new { code = "IDEMPOTENCY_KEY_REQUIRED", message = "Não foi possível confirmar a identidade desta tentativa.", correlationId = HttpContext.TraceIdentifier });
         var idempotencyCacheKey = $"public-survey:idempotency:{surveyId}:{Hash(request.Token ?? string.Empty)}:{Hash(request.IdempotencyKey)}";
@@ -35,8 +32,7 @@ public sealed class PublicSurveysController(IPublicSurveyService service, IMemor
         return Ok(result);
     }
 
-    private object? CheckAbuse(Guid surveyId, SubmitSurveyResponseRequest request)
-    {
+    private object? CheckAbuse(Guid surveyId, SubmitSurveyResponseRequest request) {
         var opt = securityOptions.Value;
         if (!opt.Enabled) return null;
         var ipHash = Hash(HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
@@ -59,8 +55,7 @@ public sealed class PublicSurveysController(IPublicSurveyService service, IMemor
         return new { ok = false, code = "FREE_SURVEY_SECURITY_BLOCKED", reason, correlationId = HttpContext.TraceIdentifier };
     }
 
-    private bool Increment(string key, int max, TimeSpan ttl)
-    {
+    private bool Increment(string key, int max, TimeSpan ttl) {
         var count = cache.Get<int?>(key) ?? 0;
         count++;
         cache.Set(key, count, ttl);

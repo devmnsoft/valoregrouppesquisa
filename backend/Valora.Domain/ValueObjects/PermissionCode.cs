@@ -2,13 +2,10 @@ using System.Text.RegularExpressions;
 
 namespace Valora.Domain.ValueObjects;
 
-public readonly partial record struct PermissionCode
-{
-    public PermissionCode(string value)
-    {
+public readonly partial record struct PermissionCode {
+    public PermissionCode(string value) {
         var normalized = value?.Trim().ToLowerInvariant();
-        if (string.IsNullOrWhiteSpace(normalized) || !PermissionPattern().IsMatch(normalized))
-        {
+        if (string.IsNullOrWhiteSpace(normalized) || !PermissionPattern().IsMatch(normalized)) {
             throw new ArgumentException("Código de permissão inválido.", nameof(value));
         }
 

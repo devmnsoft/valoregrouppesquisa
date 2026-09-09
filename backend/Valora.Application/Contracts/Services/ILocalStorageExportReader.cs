@@ -1,4 +1,4 @@
 using Valora.Application.DTOs;
 namespace Valora.Application.Contracts;
 
-public interface ILocalStorageExportReader:ILegacySourceReader { }
+public interface ILocalStorageExportReader : ILegacySourceReader { }

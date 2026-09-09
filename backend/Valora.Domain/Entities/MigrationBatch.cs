@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record MigrationBatch
-{
+public sealed record MigrationBatch {
     public Guid Id { get; init; } = Guid.NewGuid();
     public string SourceType { get; init; } = string.Empty;
     public string SourceName { get; init; } = string.Empty;

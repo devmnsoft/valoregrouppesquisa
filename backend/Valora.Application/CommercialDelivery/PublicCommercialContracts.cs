@@ -11,8 +11,7 @@ public sealed record CommercialLeadItem(Guid Id, string Name, string EmailMasked
 public sealed record CommercialDashboard(int NewLeads, int DiagnosticsStarted, int DiagnosticsCompleted,
     int ContactRequests, int ProfessionalRequests, int EnterpriseRequests, int Converted, int Lost);
 
-public interface IPublicCommercialRepository
-{
+public interface IPublicCommercialRepository {
     Task<PublicLeadCreated> UpsertAndStartAsync(PublicLeadRequest request, string emailHash, string emailMasked,
         string? phoneHash, string? phoneMasked, string? ipHash, string? userAgentHash, CancellationToken ct);
     Task<Guid> CreateRequestAsync(CommercialRequestInput request, CancellationToken ct);

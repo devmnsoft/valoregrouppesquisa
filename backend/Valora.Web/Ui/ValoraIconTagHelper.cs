@@ -7,8 +7,7 @@ namespace Valora.Web.Ui;
 public sealed class ValoraIconTagHelper(
     ValoraIconRegistry registry,
     ILogger<ValoraIconTagHelper> logger,
-    IWebHostEnvironment environment) : TagHelper
-{
+    IWebHostEnvironment environment) : TagHelper {
     [HtmlAttributeName("name")] public string? Name { get; set; }
     [HtmlAttributeName("size")] public int Size { get; set; } = 20;
     [HtmlAttributeName("stroke-width")] public decimal StrokeWidth { get; set; } = 1.75m;
@@ -16,11 +15,9 @@ public sealed class ValoraIconTagHelper(
     [HtmlAttributeName("title")] public string? Title { get; set; }
     [HtmlAttributeName("decorative")] public bool Decorative { get; set; }
 
-    public override void Process(TagHelperContext context, TagHelperOutput output)
-    {
+    public override void Process(TagHelperContext context, TagHelperOutput output) {
         var resolvedName = registry.GetOrFallback(Name);
-        if (!registry.Contains(Name) && environment.IsDevelopment())
-        {
+        if (!registry.Contains(Name) && environment.IsDevelopment()) {
             logger.LogWarning("Ícone Valora desconhecido: {IconName}. Renderizando fallback {FallbackIcon}.",
                 string.IsNullOrWhiteSpace(Name) ? "(vazio)" : Name, resolvedName);
         }
@@ -41,13 +38,11 @@ public sealed class ValoraIconTagHelper(
         output.Attributes.SetAttribute("data-valora-icon", resolvedName);
         if (!string.Equals(Name, resolvedName, StringComparison.OrdinalIgnoreCase))
             output.Attributes.SetAttribute("data-icon-fallback", "true");
-        if (Decorative)
-        {
+        if (Decorative) {
             output.Attributes.SetAttribute("aria-hidden", "true");
             output.Attributes.SetAttribute("focusable", "false");
         }
-        else
-        {
+        else {
             if (string.IsNullOrWhiteSpace(Title))
                 throw new InvalidOperationException($"O ícone informativo '{resolvedName}' precisa de um título acessível ou decorative=\"true\".");
             output.Attributes.SetAttribute("role", "img");

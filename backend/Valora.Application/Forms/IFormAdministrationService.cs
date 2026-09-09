@@ -1,7 +1,6 @@
 namespace Valora.Application.Forms;
 
-public interface IFormAdministrationService
-{
+public interface IFormAdministrationService {
     Task<IReadOnlyList<FormListItemResponse>> ListAsync(Guid organizationId, FormListQuery query, CancellationToken cancellationToken);
     Task<FormDetailResponse?> GetAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken);
     Task<FormDetailResponse> CreateAsync(Guid organizationId, Guid userId, CreateFormRequest request, CancellationToken cancellationToken);

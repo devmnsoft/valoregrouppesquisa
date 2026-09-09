@@ -1,11 +1,9 @@
 namespace Valora.Tests;
 
 [Trait("Category", "StaticContract")]
-public sealed class PostgreSqlCanonicalScriptTests
-{
+public sealed class PostgreSqlCanonicalScriptTests {
     [Fact]
-    public void CanonicalScriptIsIdempotentAndNonDestructiveByInspection()
-    {
+    public void CanonicalScriptIsIdempotentAndNonDestructiveByInspection() {
         var sql = File.ReadAllText(Support.RepositoryPaths.CanonicalDatabaseScript);
         Assert.Contains("CREATE SCHEMA IF NOT EXISTS valorapesquisa", sql);
         Assert.Contains("CREATE TABLE IF NOT EXISTS valorapesquisa.organizations", sql);
@@ -20,8 +18,7 @@ public sealed class PostgreSqlCanonicalScriptTests
     }
 
     [Fact]
-    public void CanonicalScriptSafelyReplacesOrganizationScopedCnpjIndex()
-    {
+    public void CanonicalScriptSafelyReplacesOrganizationScopedCnpjIndex() {
         var sql = File.ReadAllText(Support.RepositoryPaths.CanonicalDatabaseScript);
 
         Assert.Contains("DROP INDEX IF EXISTS ux_legal_entities_org_cnpj_active", sql);
@@ -32,11 +29,9 @@ public sealed class PostgreSqlCanonicalScriptTests
     }
 
     [Fact]
-    public void CanonicalScriptSeedsOfficialPlansAndValoraSurvey()
-    {
+    public void CanonicalScriptSeedsOfficialPlansAndValoraSurvey() {
         var sql = File.ReadAllText(Support.RepositoryPaths.CanonicalDatabaseScript);
-        foreach (var plan in new[] { "free", "professional", "corporate", "enterprise" })
-        {
+        foreach (var plan in new[] { "free", "professional", "corporate", "enterprise" }) {
             Assert.Contains($"'{plan}'", sql);
         }
         Assert.Contains("'essential'", sql);

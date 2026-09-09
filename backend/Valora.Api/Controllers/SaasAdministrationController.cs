@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Valora.Api.Operations;
 using Valora.Application.Access;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
-using Valora.Api.Operations;
 
 namespace Valora.Api.Controllers;
 
@@ -20,8 +20,7 @@ public sealed class SaasAdministrationController(
     IWebHostEnvironment environment,
     IConfiguration configuration,
     IConfigurationValidationService configurationValidation,
-    IPrivacyRequestService privacy) : ControllerBase
-{
+    IPrivacyRequestService privacy) : ControllerBase {
     [HttpGet("roles")]
     [Authorize(Policy = ValoraPermissions.Roles.Read)]
     public async Task<IActionResult> Roles(CancellationToken ct) => Ok(await access.ListRolesAsync(OrganizationId, ct));
@@ -40,8 +39,7 @@ public sealed class SaasAdministrationController(
         Ok(await access.ReplacePermissionsAsync(OrganizationId, UserId, id, request, ct));
 
     [HttpGet("plans/current")]
-    public async Task<IActionResult> CurrentPlan()
-    {
+    public async Task<IActionResult> CurrentPlan() {
         var id = await plans.GetCurrentPlanIdAsync(OrganizationId) ?? "free";
         return Ok(await plans.GetByIdAsync(id));
     }
@@ -58,30 +56,26 @@ public sealed class SaasAdministrationController(
 
     [HttpGet("audit")]
     [Authorize(Policy = ValoraPermissions.Audit.Read)]
-    public async Task<IActionResult> Audit(CancellationToken ct)
-    {
+    public async Task<IActionResult> Audit(CancellationToken ct) {
         ct.ThrowIfCancellationRequested();
         return Ok(await audit.ListAdminAsync(OrganizationId));
     }
 
     [HttpGet("privacy/requests")]
-    public async Task<IActionResult> PrivacyRequests(CancellationToken ct)
-    {
+    public async Task<IActionResult> PrivacyRequests(CancellationToken ct) {
         ct.ThrowIfCancellationRequested();
         return Ok(await privacy.ListAsync(OrganizationId));
     }
 
     [HttpPost("privacy/requests")]
-    public async Task<IActionResult> CreatePrivacyRequest(CreatePrivacyRequestRequest request)
-    {
+    public async Task<IActionResult> CreatePrivacyRequest(CreatePrivacyRequestRequest request) {
         var scoped = request with { OrganizationId = OrganizationId };
         var created = await privacy.CreatePublicAsync(scoped);
         return Created($"/api/v1/privacy/requests/{created.Id}", created);
     }
 
     [HttpPatch("privacy/requests/{id:guid}")]
-    public async Task<IActionResult> UpdatePrivacyRequest(Guid id, UpdatePrivacyRequestStatusRequest request)
-    {
+    public async Task<IActionResult> UpdatePrivacyRequest(Guid id, UpdatePrivacyRequestStatusRequest request) {
         await privacy.UpdateStatusAsync(OrganizationId, id, request.Status, UserId);
         return NoContent();
     }
@@ -91,8 +85,7 @@ public sealed class SaasAdministrationController(
         Ok(await repository.ListGovernanceAsync(OrganizationId, IsPlatformAdmin, action, from, to, ct));
 
     [HttpGet("platform-governance/{id:guid}")]
-    public async Task<IActionResult> Governance(Guid id, CancellationToken ct)
-    {
+    public async Task<IActionResult> Governance(Guid id, CancellationToken ct) {
         var item = await repository.GetGovernanceAsync(OrganizationId, IsPlatformAdmin, id, ct);
         return item is null ? NotFound(new { message = "Evento de governança não encontrado." }) : Ok(item);
     }
@@ -112,22 +105,18 @@ public sealed class SaasAdministrationController(
         Ok(new { updated = await repository.MarkAllNotificationsReadAsync(OrganizationId, UserId, ct) });
 
     [HttpGet("system-health")]
-    public async Task<IActionResult> SystemHealth(CancellationToken ct)
-    {
+    public async Task<IActionResult> SystemHealth(CancellationToken ct) {
         IReadOnlyList<SaasHealthEvent> events = IsPlatformAdmin
             ? await repository.ListHealthEventsAsync(ct)
             : Array.Empty<SaasHealthEvent>();
         IReadOnlyList<SchemaHealthItem> schema;
-        try
-        {
+        try {
             schema = await repository.GetSchemaHealthAsync(ct);
         }
-        catch
-        {
+        catch {
             schema = [new("database.schema", "critical")];
         }
-        return Ok(new
-        {
+        return Ok(new {
             status = "operational",
             api = "operational",
             web = "operational",
@@ -135,14 +124,12 @@ public sealed class SaasAdministrationController(
             version = typeof(SaasAdministrationController).Assembly.GetName().Version?.ToString(),
             configuration = configurationValidation.Validate(),
             schema,
-            backup = new
-            {
+            backup = new {
                 status = configuration.GetValue<bool>("Backup:Configured") ? "configured" : "not_configured",
                 lastKnownAt = DateTimeOffset.TryParse(configuration["Backup:LastKnownAt"], out var backupAt) ? backupAt : (DateTimeOffset?)null,
                 runbook = "/docs/operacao/BACKUP_RESTORE_POSTGRESQL.md"
             },
-            maintenance = new
-            {
+            maintenance = new {
                 enabled = configuration.GetValue<bool>("App:MaintenanceModeEnabled"),
                 status = configuration.GetValue<bool>("App:MaintenanceModeEnabled") ? "warning" : "healthy"
             },
@@ -153,8 +140,7 @@ public sealed class SaasAdministrationController(
     [HttpGet("configuration-validation")]
     public IActionResult ConfigurationValidation() => Ok(configurationValidation.Validate());
 
-    private async Task<PlanDto?> CurrentPlanRecord()
-    {
+    private async Task<PlanDto?> CurrentPlanRecord() {
         var id = await plans.GetCurrentPlanIdAsync(OrganizationId) ?? "free";
         return await plans.GetByIdAsync(id);
     }

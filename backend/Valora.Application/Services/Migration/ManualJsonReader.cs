@@ -9,8 +9,7 @@ namespace Valora.Application.Services;
 
 public sealed class ManualJsonReader(
     ILegacyMappingService m,
-    ILegacyDataNormalizer n) : JsonLegacySourceReader(m, n), IManualJsonReader
-{
+    ILegacyDataNormalizer n) : JsonLegacySourceReader(m, n), IManualJsonReader {
     public override bool CanRead(string sourceType) =>
         sourceType.Equals("manual", StringComparison.OrdinalIgnoreCase)
         || sourceType.Equals("json", StringComparison.OrdinalIgnoreCase);

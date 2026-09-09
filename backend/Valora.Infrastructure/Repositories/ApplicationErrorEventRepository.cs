@@ -3,11 +3,9 @@ using Valora.Application.Contracts;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class ApplicationErrorEventRepository(IDbConnectionFactory connections) : IApplicationErrorEventRepository
-{
+public sealed class ApplicationErrorEventRepository(IDbConnectionFactory connections) : IApplicationErrorEventRepository {
     public async Task AddAsync(Guid? organizationId, string source, string severity, string friendlyMessage,
-        string technicalDetail, string correlationId, CancellationToken cancellationToken)
-    {
+        string technicalDetail, string correlationId, CancellationToken cancellationToken) {
         const string sql = """
             INSERT INTO valorapesquisa.application_error_events
                 (organization_id,user_id,source,severity,friendly_message,technical_detail,correlation_id)

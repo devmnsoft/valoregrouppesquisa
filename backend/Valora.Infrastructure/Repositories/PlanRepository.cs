@@ -6,10 +6,8 @@ using Valora.Application.DTOs;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class PlanRepository(IDbConnectionFactory connections, ILogger<PlanRepository> logger) : IPlanRepository
-{
-    public async Task<IReadOnlyList<PlanDto>> GetPublicPlansAsync(CancellationToken cancellationToken = default)
-    {
+public sealed class PlanRepository(IDbConnectionFactory connections, ILogger<PlanRepository> logger) : IPlanRepository {
+    public async Task<IReadOnlyList<PlanDto>> GetPublicPlansAsync(CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
         const string sql = """
             SELECT
@@ -23,23 +21,20 @@ public sealed class PlanRepository(IDbConnectionFactory connections, ILogger<Pla
               AND is_active = true
             ORDER BY name;
             """;
-        try
-        {
+        try {
             var command = new CommandDefinition(sql, cancellationToken: cancellationToken);
             var plans = (await connection.QueryAsync<PlanRecord>(command)).AsList();
             var result = new List<PlanDto>(plans.Count);
             foreach (var plan in plans) result.Add(await HydrateAsync(connection, plan, cancellationToken));
             return result;
         }
-        catch (Exception exception)
-        {
+        catch (Exception exception) {
             logger.LogError(exception, "Failed to list public plans.");
             throw;
         }
     }
 
-    public async Task<PlanDto?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
-    {
+    public async Task<PlanDto?> GetByIdAsync(string id, CancellationToken cancellationToken = default) {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         using var connection = connections.Create();
         const string sql = """
@@ -59,8 +54,7 @@ public sealed class PlanRepository(IDbConnectionFactory connections, ILogger<Pla
         return plan is null ? null : await HydrateAsync(connection, plan, cancellationToken);
     }
 
-    private async Task<PlanDto> HydrateAsync(IDbConnection connection, PlanRecord plan, CancellationToken cancellationToken)
-    {
+    private async Task<PlanDto> HydrateAsync(IDbConnection connection, PlanRecord plan, CancellationToken cancellationToken) {
         const string limitsSql = """
             SELECT
                 id AS Id,
@@ -92,11 +86,9 @@ public sealed class PlanRepository(IDbConnectionFactory connections, ILogger<Pla
             new CommandDefinition(capabilitiesSql, parameters, cancellationToken: cancellationToken))).AsList();
 
         var limits = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        foreach (var row in limitRows)
-        {
+        foreach (var row in limitRows) {
             var key = row.LimitKey?.Trim();
-            if (string.IsNullOrWhiteSpace(key))
-            {
+            if (string.IsNullOrWhiteSpace(key)) {
                 logger.LogWarning("Ignoring invalid plan limit row with empty key. PlanId={PlanId} PlanCode={PlanCode} RowId={RowId}", plan.Id, plan.Code, row.Id);
                 continue;
             }
@@ -106,11 +98,9 @@ public sealed class PlanRepository(IDbConnectionFactory connections, ILogger<Pla
         }
 
         var capabilities = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var row in capabilityRows)
-        {
+        foreach (var row in capabilityRows) {
             var key = row.CapabilityKey?.Trim();
-            if (string.IsNullOrWhiteSpace(key))
-            {
+            if (string.IsNullOrWhiteSpace(key)) {
                 logger.LogWarning("Ignoring invalid plan capability row with empty key. PlanId={PlanId} PlanCode={PlanCode} RowId={RowId}", plan.Id, plan.Code, row.Id);
                 continue;
             }
@@ -129,8 +119,7 @@ public sealed class PlanRepository(IDbConnectionFactory connections, ILogger<Pla
         return new PlanDto(plan.Code, plan.Name, badge, plan.Code == "free" ? "Grátis" : "Sob consulta", null, displayOrder, limits, capabilities);
     }
 
-    public async Task<string?> GetCurrentPlanIdAsync(Guid organizationId, CancellationToken cancellationToken = default)
-    {
+    public async Task<string?> GetCurrentPlanIdAsync(Guid organizationId, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
         const string sql = """
             SELECT p.code
@@ -146,8 +135,7 @@ public sealed class PlanRepository(IDbConnectionFactory connections, ILogger<Pla
         return await connection.ExecuteScalarAsync<string?>(new CommandDefinition(sql, new { OrganizationId = organizationId }, cancellationToken: cancellationToken));
     }
 
-    public async Task CreateSubscriptionAsync(Guid organizationId, string planId, CancellationToken cancellationToken = default)
-    {
+    public async Task CreateSubscriptionAsync(Guid organizationId, string planId, CancellationToken cancellationToken = default) {
         ArgumentException.ThrowIfNullOrWhiteSpace(planId);
         using var connection = connections.Create();
         const string sql = """

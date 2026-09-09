@@ -7,13 +7,11 @@ using Xunit;
 namespace Valora.Tests;
 
 [Trait("Category", "Unit")]
-public sealed class MigrationImportTests
-{
+public sealed class MigrationImportTests {
     private readonly ILegacyDataNormalizer normalizer = new LegacyDataNormalizer();
 
     [Fact]
-    public void Normalizes_Email_Document_Status_Role_Module()
-    {
+    public void Normalizes_Email_Document_Status_Role_Module() {
         Assert.Equal("user@example.com", normalizer.NormalizeEmail(" User@Example.COM "));
         Assert.Equal("12345678000199", normalizer.NormalizeDocument("12.345.678/0001-99"));
         Assert.Equal("active", normalizer.NormalizeStatus("ativo"));
@@ -22,8 +20,7 @@ public sealed class MigrationImportTests
     }
 
     [Fact]
-    public async Task Firestore_Reader_Masks_Sensitive_Data()
-    {
+    public async Task Firestore_Reader_Masks_Sensitive_Data() {
         var reader = new FirestoreExportReader(new LegacyMappingService(), normalizer);
         var result = await reader.ReadAsync(new MigrationUploadRequest(
             "firestore",
@@ -38,8 +35,7 @@ public sealed class MigrationImportTests
     }
 
     [Fact]
-    public async Task LocalStorage_Reader_Accepts_Array_Structure()
-    {
+    public async Task LocalStorage_Reader_Accepts_Array_Structure() {
         var reader = new LocalStorageExportReader(new LegacyMappingService(), normalizer);
         var result = await reader.ReadAsync(new MigrationUploadRequest(
             "localStorage",
@@ -53,8 +49,7 @@ public sealed class MigrationImportTests
     }
 
     [Fact]
-    public void MaskSensitiveJson_Masks_Password_Token_And_SmtpSecret()
-    {
+    public void MaskSensitiveJson_Masks_Password_Token_And_SmtpSecret() {
         var masked = normalizer.MaskSensitiveJson(
             "{\"password\":\"plain\",\"token\":\"abc\",\"smtpSecret\":\"smtp-value\",\"name\":\"ok\"}");
 
@@ -68,8 +63,7 @@ public sealed class MigrationImportTests
     }
 
     [Fact]
-    public void MaskSensitiveJson_Preserves_Arrays_Numbers_And_Booleans()
-    {
+    public void MaskSensitiveJson_Preserves_Arrays_Numbers_And_Booleans() {
         var masked = normalizer.MaskSensitiveJson(
             "{\"items\":[{\"name\":\"a\"},{\"token\":\"hidden\"}],\"count\":42,\"enabled\":true}");
 
@@ -85,8 +79,7 @@ public sealed class MigrationImportTests
     }
 
     [Fact]
-    public void MaskSensitiveJson_Invalid_Json_Throws_Controlled_Error_From_Reader()
-    {
+    public void MaskSensitiveJson_Invalid_Json_Throws_Controlled_Error_From_Reader() {
         var reader = new ManualJsonReader(new LegacyMappingService(), normalizer);
 
         var ex = Assert.ThrowsAsync<InvalidOperationException>(() => reader.ReadAsync(new MigrationUploadRequest(
@@ -100,8 +93,7 @@ public sealed class MigrationImportTests
     }
 
     [Fact]
-    public void MaskSensitiveJson_Does_Not_Leak_Sensitive_Values()
-    {
+    public void MaskSensitiveJson_Does_Not_Leak_Sensitive_Values() {
         var masked = normalizer.MaskSensitiveJson(
             "{\"nested\":{\"senha\":\"123456\",\"refreshToken\":\"refresh-secret\",\"connectionString\":\"Server=prod\",\"hash\":\"hash-value\"}}");
 
@@ -113,8 +105,7 @@ public sealed class MigrationImportTests
     }
 
     [Fact]
-    public void Apply_And_Rollback_Requests_Expose_Confirmations()
-    {
+    public void Apply_And_Rollback_Requests_Expose_Confirmations() {
         var apply = new MigrationApplyRequest(Guid.NewGuid(), false, "admin_valora", null);
         var rollback = new MigrationRollbackRequest(Guid.NewGuid(), false, "admin_valora", null);
 
@@ -123,8 +114,7 @@ public sealed class MigrationImportTests
     }
 
     [Fact]
-    public void Dtos_Do_Not_Expose_Raw_Sensitive_Payload_Names()
-    {
+    public void Dtos_Do_Not_Expose_Raw_Sensitive_Payload_Names() {
         var props = typeof(MigrationRecordDto).GetProperties().Select(p => p.Name).ToArray();
 
         Assert.Contains("InputMaskedJson", props);
@@ -133,8 +123,7 @@ public sealed class MigrationImportTests
     }
 
     [Fact]
-    public void Cutover_Readiness_Can_Be_Blocked_By_Conflict_Dto()
-    {
+    public void Cutover_Readiness_Can_Be_Blocked_By_Conflict_Dto() {
         var conflict = new MigrationConflictDto(
             Guid.NewGuid(),
             Guid.NewGuid(),

@@ -9,15 +9,13 @@ using Valora.Application.Enterprise;
 namespace Valora.Api.Controllers;
 
 [Authorize, ApiController]
-public sealed class EnterpriseIntegrationsController(EnterpriseService service, IEntitlementService entitlements) : ControllerBase
-{
+public sealed class EnterpriseIntegrationsController(EnterpriseService service, IEntitlementService entitlements) : ControllerBase {
     private const string LockedMessage = "Este recurso faz parte dos módulos Enterprise do Valora Insight™.";
     private Guid? OrganizationId => Guid.TryParse(User.FindFirstValue("organization_id"), out var id) ? id : null;
     private Guid UserId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty;
 
     [HttpGet("api/v1/integrations")]
-    public async Task<IActionResult> Integrations(CancellationToken ct)
-    {
+    public async Task<IActionResult> Integrations(CancellationToken ct) {
         if (OrganizationId is not Guid organizationId) return Forbid();
         if (!await IsEnterprise(organizationId)) return EnterpriseLocked();
         var saved = await service.ItemsAsync(organizationId, "integration", ct);
@@ -28,16 +26,14 @@ public sealed class EnterpriseIntegrationsController(EnterpriseService service, 
     }
 
     [HttpGet("api/v1/integrations/{code}")]
-    public async Task<IActionResult> Integration(string code, CancellationToken ct)
-    {
+    public async Task<IActionResult> Integration(string code, CancellationToken ct) {
         var result = await Integrations(ct) as OkObjectResult;
         if (result?.Value is not IEnumerable<object> rows) return result ?? EnterpriseLocked();
         return rows.FirstOrDefault(x => string.Equals(x.GetType().GetProperty("code")?.GetValue(x)?.ToString(), code, StringComparison.OrdinalIgnoreCase)) is { } row ? Ok(row) : NotFound();
     }
 
     [HttpPatch("api/v1/integrations/{code}")]
-    public async Task<IActionResult> Configure(string code, [FromBody] IntegrationRequest request, CancellationToken ct)
-    {
+    public async Task<IActionResult> Configure(string code, [FromBody] IntegrationRequest request, CancellationToken ct) {
         if (OrganizationId is not Guid organizationId) return Forbid();
         if (!await IsEnterprise(organizationId)) return EnterpriseLocked();
         if (!KnownIntegration(code)) return NotFound();
@@ -49,8 +45,7 @@ public sealed class EnterpriseIntegrationsController(EnterpriseService service, 
     }
 
     [HttpPost("api/v1/integrations/{code}/disable")]
-    public async Task<IActionResult> Disable(string code, CancellationToken ct)
-    {
+    public async Task<IActionResult> Disable(string code, CancellationToken ct) {
         if (OrganizationId is not Guid organizationId) return Forbid();
         if (!await IsEnterprise(organizationId)) return EnterpriseLocked();
         var item = (await service.ItemsAsync(organizationId, "integration", ct)).FirstOrDefault(x => ConfigCode(x.Configuration) == code);
@@ -60,8 +55,7 @@ public sealed class EnterpriseIntegrationsController(EnterpriseService service, 
     }
 
     [HttpPost("api/v1/integrations/{code}/test")]
-    public async Task<IActionResult> Test(string code, CancellationToken ct)
-    {
+    public async Task<IActionResult> Test(string code, CancellationToken ct) {
         if (OrganizationId is not Guid organizationId) return Forbid();
         if (!await IsEnterprise(organizationId)) return EnterpriseLocked();
         var item = (await service.ItemsAsync(organizationId, "integration", ct)).FirstOrDefault(x => ConfigCode(x.Configuration) == code && x.Status == "configured");
@@ -83,8 +77,7 @@ public sealed class EnterpriseIntegrationsController(EnterpriseService service, 
     public async Task<IActionResult> ApiKeyUsage(Guid id, CancellationToken ct) => await Guard(ct, o => service.ApiKeyUsageAsync(o, id, ct));
 
     [HttpPost("api/v1/api-keys/{id:guid}/revoke")]
-    public async Task<IActionResult> RevokeApiKey(Guid id, CancellationToken ct)
-    {
+    public async Task<IActionResult> RevokeApiKey(Guid id, CancellationToken ct) {
         if (OrganizationId is not Guid organizationId) return Forbid();
         if (!await IsEnterprise(organizationId)) return EnterpriseLocked();
         await service.RevokeApiKeyAsync(organizationId, id, UserId, ct);
@@ -92,16 +85,14 @@ public sealed class EnterpriseIntegrationsController(EnterpriseService service, 
     }
 
     [HttpPost("api/v1/api-keys/{id:guid}/rotate")]
-    public async Task<IActionResult> RotateApiKey(Guid id, [FromBody] ApiKeyRequest request, CancellationToken ct)
-    {
+    public async Task<IActionResult> RotateApiKey(Guid id, [FromBody] ApiKeyRequest request, CancellationToken ct) {
         if (OrganizationId is not Guid organizationId) return Forbid();
         if (!await IsEnterprise(organizationId)) return EnterpriseLocked();
         await service.RevokeApiKeyAsync(organizationId, id, UserId, ct);
         return Ok(await service.CreateApiKeyAsync(organizationId, request.Name, request.Scopes, request.ExpiresAt, UserId, ct));
     }
 
-    private async Task<IActionResult> Guard<T>(CancellationToken ct, Func<Guid, Task<T>> action)
-    {
+    private async Task<IActionResult> Guard<T>(CancellationToken ct, Func<Guid, Task<T>> action) {
         if (OrganizationId is not Guid organizationId) return Forbid();
         if (!await IsEnterprise(organizationId)) return EnterpriseLocked();
         return Ok(await action(organizationId));

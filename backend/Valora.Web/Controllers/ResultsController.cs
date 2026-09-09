@@ -1,15 +1,13 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Valora.Web.Models;
 using Valora.Web.Services.Bff;
 
 namespace Valora.Web.Controllers;
 
 public sealed class ResultsController(ILogger<ResultsController> logger, IBffApiClient api,
-    PublicAccessSessionStore publicSessions) : Controller
-{
-    public IActionResult Index()
-    {
+    PublicAccessSessionStore publicSessions) : Controller {
+    public IActionResult Index() {
         ViewData["Title"] = "Resultados";
         return View();
     }
@@ -19,12 +17,9 @@ public sealed class ResultsController(ILogger<ResultsController> logger, IBffApi
     [Route("public/results/{responseId:guid}/executive")]
     [Route("public/results/{responseId:guid}/report")]
     [Route("resultado/{responseId:guid}")]
-    public async Task<IActionResult> Public(Guid responseId, string? token, CancellationToken cancellationToken)
-    {
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(token))
-            {
+    public async Task<IActionResult> Public(Guid responseId, string? token, CancellationToken cancellationToken) {
+        try {
+            if (!string.IsNullOrWhiteSpace(token)) {
                 using var validation = await api.SendAsync(HttpMethod.Get,
                     $"/public/results/{responseId}?token={Uri.EscapeDataString(token)}", null, string.Empty,
                     HttpContext.TraceIdentifier, cancellationToken);
@@ -37,8 +32,7 @@ public sealed class ResultsController(ILogger<ResultsController> logger, IBffApi
             if (!TryValidateModel(model)) return NotFound();
             return View(model);
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             logger.LogError(ex, "Falha ao renderizar ResultsController.Public no Valora.Web.");
             throw;
         }
@@ -46,23 +40,19 @@ public sealed class ResultsController(ILogger<ResultsController> logger, IBffApi
 
     [AllowAnonymous]
     [Route("resultado/{responseId}/email")]
-    public IActionResult Email(string responseId)
-    {
-        try
-        {
+    public IActionResult Email(string responseId) {
+        try {
             if (!Guid.TryParse(responseId, out var parsedResponseId)) return NotFound();
             ViewData["Title"] = "Enviar resultado por e-mail";
             return View("Public", new PublicResultExperienceViewModel { ResponseId = parsedResponseId });
         }
-        catch (Exception ex)
-        {
+        catch (Exception ex) {
             logger.LogError(ex, "Falha ao renderizar ResultsController.Email no Valora.Web.");
             throw;
         }
     }
 
-    public IActionResult Details(string id)
-    {
+    public IActionResult Details(string id) {
         var model = new ResultDetailsViewModel { ResponseId = id };
         if (!TryValidateModel(model)) return NotFound();
 

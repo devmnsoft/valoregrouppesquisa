@@ -3,8 +3,7 @@ namespace Valora.Application.Experience;
 public sealed record OfficialTemplate(string Code, string Name, string Description, string RecommendedPlan, int Questions,
     IReadOnlyList<string> Dimensions, bool Certificate, bool Report, bool Comparison, int EstimatedMinutes);
 
-public static class OfficialTemplateCatalog
-{
+public static class OfficialTemplateCatalog {
     public static IReadOnlyList<OfficialTemplate> All { get; } =
     [
         Template("diagnostico-essencial", "Diagnóstico Essencial", "Uma leitura objetiva para iniciar a jornada de maturidade.", "Essencial", 18, 8, "Estratégia", "Pessoas", "Processos"),

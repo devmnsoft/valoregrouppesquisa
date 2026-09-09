@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record Notification
-{
+public sealed record Notification {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid OrganizationId { get; init; }
     public Guid? UserId { get; init; }

@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record UserSession
-{
+public sealed record UserSession {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid UserId { get; init; }
     public string RefreshTokenHash { get; init; } = string.Empty;

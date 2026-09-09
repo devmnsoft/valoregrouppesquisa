@@ -1,14 +1,12 @@
-using Xunit;
 using Valora.Tests.Support;
+using Xunit;
 
 namespace Valora.Tests;
 
 [Trait("Category", "StaticContract")]
-public sealed class SurveyRepositoryFreeSurveyExpirationTests
-{
+public sealed class SurveyRepositoryFreeSurveyExpirationTests {
     [Fact]
-    public void RepositoryKeepsOfficialFreeSurveyAvailableWhenExpiresAtIsPast()
-    {
+    public void RepositoryKeepsOfficialFreeSurveyAvailableWhenExpiresAtIsPast() {
         var source = File.ReadAllText(RepositoryPaths.InfrastructureFile("Repositories", "SurveyRepository.cs"));
         Assert.Contains("IsFreeOfficialSurvey", source);
         Assert.Contains("FreeOfficialSql", source);

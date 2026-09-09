@@ -3,11 +3,9 @@ using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
-public sealed class ModularSaasFoundationTests
-{
+public sealed class ModularSaasFoundationTests {
     [Fact]
-    public void MigrationDefinesTheCanonicalModularSaasContract()
-    {
+    public void MigrationDefinesTheCanonicalModularSaasContract() {
         var sql = File.ReadAllText(RepositoryPaths.CanonicalDatabaseScript);
         foreach (var table in new[]
         {
@@ -30,8 +28,7 @@ public sealed class ModularSaasFoundationTests
     }
 
     [Fact]
-    public void DirectModuleAccessIsProtectedAndPlatformAdministratorBypassesTenantContract()
-    {
+    public void DirectModuleAccessIsProtectedAndPlatformAdministratorBypassesTenantContract() {
         var middleware = File.ReadAllText(RepositoryPaths.WebFile("Security", "CommercialModuleAccessMiddleware.cs"));
         var repository = File.ReadAllText(Path.Combine(RepositoryPaths.RepositoryRoot, "backend",
             "Valora.Infrastructure", "ModularSaas", "CommercialSaasRepository.cs"));
@@ -47,8 +44,7 @@ public sealed class ModularSaasFoundationTests
     [Theory]
     [InlineData("529.982.247-25", "52998224725")]
     [InlineData("52998224725", "52998224725")]
-    public void CpfIsValidatedAndNormalized(string input, string expected)
-    {
+    public void CpfIsValidatedAndNormalized(string input, string expected) {
         Assert.True(Cpf.TryCreate(input, out var cpf));
         Assert.Equal(expected, cpf!.Value);
     }
@@ -59,8 +55,7 @@ public sealed class ModularSaasFoundationTests
     public void InvalidCpfIsRejected(string input) => Assert.False(Cpf.TryCreate(input, out _));
 
     [Fact]
-    public void LoginAcceptsEmailCpfAndCnpjWithoutLoggingTheRawIdentifier()
-    {
+    public void LoginAcceptsEmailCpfAndCnpjWithoutLoggingTheRawIdentifier() {
         var auth = File.ReadAllText(RepositoryPaths.ApplicationFile("Services", "Auth", "AuthService.cs"));
         var repository = File.ReadAllText(RepositoryPaths.InfrastructureFile("Repositories", "UserRepository.cs"));
         var view = File.ReadAllText(RepositoryPaths.WebFile("Views", "Account", "Login.cshtml"));
@@ -73,8 +68,7 @@ public sealed class ModularSaasFoundationTests
     }
 
     [Fact]
-    public void MigrationRunnerUsesCanonicalVersionChecksumsAndBootstrapOrdering()
-    {
+    public void MigrationRunnerUsesCanonicalVersionChecksumsAndBootstrapOrdering() {
         var runner = File.ReadAllText(RepositoryPaths.InfrastructureFile("Database", "MigrationRunner.cs"));
         Assert.Contains("SELECT version FROM valorapesquisa.schema_migrations", runner);
         Assert.Contains("SHA256.HashData", runner);
@@ -83,8 +77,7 @@ public sealed class ModularSaasFoundationTests
     }
 
     [Fact]
-    public void MarketplaceAndSuperadminSurfacesAreRealRazorRoutes()
-    {
+    public void MarketplaceAndSuperadminSurfacesAreRealRazorRoutes() {
         var marketplace = File.ReadAllText(RepositoryPaths.WebFile("Views", "Saas", "Marketplace.cshtml"));
         var admin = File.ReadAllText(RepositoryPaths.WebFile("Controllers", "SaasAdminController.cs"));
         Assert.Contains("Solicitar upgrade", marketplace);

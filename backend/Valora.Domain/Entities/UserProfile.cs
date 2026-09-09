@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record UserProfile
-{
+public sealed record UserProfile {
     public Guid Id { get; init; }
     public Guid UserId { get; init; }
     public Guid? OrganizationId { get; init; }

@@ -1,7 +1,6 @@
 namespace Valora.Domain.Enums;
 
-public enum EmailJobStatus
-{
+public enum EmailJobStatus {
     Pending,
     Processing,
     Sent,

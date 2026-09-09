@@ -8,8 +8,7 @@ using Valora.Application.Indicators;
 namespace Valora.Api.Controllers;
 
 [Authorize, ApiController, Route("api/v1/analytics/snapshots")]
-public sealed class AnalyticsSnapshotsController(AnalyticsSnapshotService service, ICurrentRequestContext currentRequest) : ControllerBase
-{
+public sealed class AnalyticsSnapshotsController(AnalyticsSnapshotService service, ICurrentRequestContext currentRequest) : ControllerBase {
     private Guid OrganizationId => currentRequest.GetCurrent().RequireOrganizationId();
     private Guid UserId => currentRequest.GetCurrent().RequireUserId();
 

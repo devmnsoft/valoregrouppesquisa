@@ -3,11 +3,9 @@ using Valora.Tests.Support;
 namespace Valora.Tests;
 
 [Trait("Category", "StaticContract")]
-public sealed class IntelligenceJobClaimContractTests
-{
+public sealed class IntelligenceJobClaimContractTests {
     [Fact]
-    public void RepositoryClaimsDueJobsAtomicallyAndUsesDeadLetterAfterRetries()
-    {
+    public void RepositoryClaimsDueJobsAtomicallyAndUsesDeadLetterAfterRetries() {
         var source = File.ReadAllText(RepositoryPaths.InfrastructureFile("Repositories", "IntelligenceProcessingJobRepository.cs"));
 
         Assert.Contains("FOR UPDATE SKIP LOCKED", source, StringComparison.Ordinal);
@@ -20,8 +18,7 @@ public sealed class IntelligenceJobClaimContractTests
     }
 
     [Fact]
-    public void WorkerProcessesOnlyJobsReturnedByTheAtomicClaim()
-    {
+    public void WorkerProcessesOnlyJobsReturnedByTheAtomicClaim() {
         var source = File.ReadAllText(RepositoryPaths.ApiFile("IntelligenceProcessingWorker.cs"));
 
         Assert.Contains("ClaimPendingJobsAsync", source, StringComparison.Ordinal);

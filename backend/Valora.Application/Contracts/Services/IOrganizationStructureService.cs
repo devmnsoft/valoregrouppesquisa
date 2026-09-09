@@ -2,8 +2,7 @@ using Valora.Application.DTOs;
 
 namespace Valora.Application.Contracts;
 
-public interface IOrganizationStructureService
-{
+public interface IOrganizationStructureService {
     Task<IReadOnlyList<UnitResponse>> ListUnitsAsync(Guid organizationId, string? status = null, CancellationToken cancellationToken = default);
     Task<UnitResponse> CreateUnitAsync(Guid organizationId, UpsertUnitRequest request, CancellationToken cancellationToken = default);
     Task<UnitResponse> UpdateUnitAsync(Guid organizationId, Guid id, UpsertUnitRequest request, CancellationToken cancellationToken = default);

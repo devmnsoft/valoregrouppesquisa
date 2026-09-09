@@ -7,11 +7,9 @@ namespace Valora.Infrastructure.Database;
 
 public sealed class SchemaContractValidator(
     IDbConnectionFactory connectionFactory,
-    ILogger<SchemaContractValidator> logger)
-{
+    ILogger<SchemaContractValidator> logger) {
     private static readonly IReadOnlyDictionary<string, string[]> CriticalContract =
-        new Dictionary<string, string[]>(StringComparer.Ordinal)
-        {
+        new Dictionary<string, string[]>(StringComparer.Ordinal) {
             ["organizations"] = ["id", "status"],
             ["users"] = ["id", "organization_id", "email", "password_hash", "status", "last_login_at", "deleted_at"],
             ["roles"] = ["id", "code"],
@@ -38,8 +36,7 @@ public sealed class SchemaContractValidator(
             ["subscription_audit_events"] = ["client_id", "event_type", "correlation_id"]
         };
 
-    public async Task ValidateAsync(CancellationToken cancellationToken = default)
-    {
+    public async Task ValidateAsync(CancellationToken cancellationToken = default) {
         const string sql = """
             SELECT table_name AS "TableName", column_name AS "ColumnName"
               FROM information_schema.columns
@@ -55,8 +52,7 @@ public sealed class SchemaContractValidator(
                 .Where(column => !actual.TryGetValue(table.Key, out var columns) || !columns.Contains(column))
                 .Select(column => $"{table.Key}.{column}"))
             .ToArray();
-        if (missing.Length == 0)
-        {
+        if (missing.Length == 0) {
             logger.LogInformation("PostgreSQL critical schema contract validated.");
             return;
         }

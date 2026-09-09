@@ -7,8 +7,7 @@ public sealed class BffApiException(
     string code,
     string message,
     string? correlationId)
-    : Exception(message)
-{
+    : Exception(message) {
     public HttpStatusCode StatusCode { get; } = statusCode;
     public string Code { get; } = code;
     public string? CorrelationId { get; } = correlationId;

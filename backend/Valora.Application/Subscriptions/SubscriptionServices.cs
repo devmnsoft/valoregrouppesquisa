@@ -1,19 +1,15 @@
 namespace Valora.Application.Subscriptions;
 
-public sealed class SubscriptionPlanService(ISubscriptionPlanRepository plans)
-{
+public sealed class SubscriptionPlanService(ISubscriptionPlanRepository plans) {
     public Task<SubscriptionPlan> GetFreeAsync(CancellationToken ct = default) => plans.GetFreeAsync(ct);
 }
 
 public sealed class OrganizationSubscriptionService(ISubscriptionPlanRepository plans,
-    IOrganizationSubscriptionRepository subscriptions, IUsageCounterRepository usage)
-{
-    public async Task<CurrentSubscription> GetCurrentAsync(Guid organizationId, CancellationToken ct = default)
-    {
+    IOrganizationSubscriptionRepository subscriptions, IUsageCounterRepository usage) {
+    public async Task<CurrentSubscription> GetCurrentAsync(Guid organizationId, CancellationToken ct = default) {
         if (organizationId == Guid.Empty) throw new ArgumentException("A organização é obrigatória.", nameof(organizationId));
         var subscription = await subscriptions.GetCurrentAsync(organizationId, ct);
-        if (subscription is null)
-        {
+        if (subscription is null) {
             var free = await plans.GetFreeAsync(ct);
             subscription = await subscriptions.CreateFreeAsync(organizationId, free.Id, ct);
         }
@@ -26,10 +22,8 @@ public sealed class OrganizationSubscriptionService(ISubscriptionPlanRepository 
     }
 }
 
-public sealed class FeatureAccessService(OrganizationSubscriptionService subscriptions, IUsageCounterRepository usage)
-{
-    public async Task<FeatureAccessDecision> CanAccessAsync(Guid organizationId, string featureCode, CancellationToken ct = default)
-    {
+public sealed class FeatureAccessService(OrganizationSubscriptionService subscriptions, IUsageCounterRepository usage) {
+    public async Task<FeatureAccessDecision> CanAccessAsync(Guid organizationId, string featureCode, CancellationToken ct = default) {
         if (!SubscriptionFeatures.All.Contains(featureCode)) throw new ArgumentException("Código de funcionalidade inválido.", nameof(featureCode));
         var current = await subscriptions.GetCurrentAsync(organizationId, ct);
         var now = DateTimeOffset.UtcNow;
@@ -47,10 +41,8 @@ public sealed class FeatureAccessService(OrganizationSubscriptionService subscri
     }
 }
 
-public sealed class UsageLimitService(OrganizationSubscriptionService subscriptions, IUsageCounterRepository usage)
-{
-    public async Task<UsageLimitDecision> ValidateAsync(Guid organizationId, string metric, int amount = 1, CancellationToken ct = default)
-    {
+public sealed class UsageLimitService(OrganizationSubscriptionService subscriptions, IUsageCounterRepository usage) {
+    public async Task<UsageLimitDecision> ValidateAsync(Guid organizationId, string metric, int amount = 1, CancellationToken ct = default) {
         if (amount < 1) throw new ArgumentOutOfRangeException(nameof(amount));
         var current = await subscriptions.GetCurrentAsync(organizationId, ct);
         var used = current.Usage.Counters.GetValueOrDefault(metric);
@@ -65,11 +57,9 @@ public sealed class UsageLimitService(OrganizationSubscriptionService subscripti
     }
 }
 
-public sealed class UpgradeRequestService(OrganizationSubscriptionService subscriptions, IUpgradeRequestRepository requests)
-{
+public sealed class UpgradeRequestService(OrganizationSubscriptionService subscriptions, IUpgradeRequestRepository requests) {
     public async Task<UpgradeRequest> RequestAsync(Guid organizationId, Guid requestedPlanId, Guid requestedBy,
-        string reason, string billingEmail, CancellationToken ct = default)
-    {
+        string reason, string billingEmail, CancellationToken ct = default) {
         if (requestedPlanId == Guid.Empty || requestedBy == Guid.Empty) throw new ArgumentException("Plano e solicitante são obrigatórios.");
         if (string.IsNullOrWhiteSpace(reason) || reason.Length > 1000) throw new ArgumentException("Informe um motivo com até 1000 caracteres.");
         if (string.IsNullOrWhiteSpace(billingEmail) || !billingEmail.Contains('@')) throw new ArgumentException("Informe um e-mail financeiro válido.");

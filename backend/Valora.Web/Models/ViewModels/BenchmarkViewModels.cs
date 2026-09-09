@@ -1,9 +1,9 @@
 using System.ComponentModel.DataAnnotations;
 using Valora.Application.Benchmarks;
 namespace Valora.Web.Models.ViewModels;
-public sealed record BenchmarksViewModel(BenchmarkSnapshotDto? Current,IReadOnlyList<BenchmarkSnapshotDto> History,IReadOnlyList<BenchmarkCohortDto> Cohorts,IReadOnlyList<BenchmarkInsightDto> Insights,BenchmarkPrivacyRuleDto Privacy,string Section);
-public sealed class BenchmarkCompareForm : IValidatableObject
-{
+
+public sealed record BenchmarksViewModel(BenchmarkSnapshotDto? Current, IReadOnlyList<BenchmarkSnapshotDto> History, IReadOnlyList<BenchmarkCohortDto> Cohorts, IReadOnlyList<BenchmarkInsightDto> Insights, BenchmarkPrivacyRuleDto Privacy, string Section);
+public sealed class BenchmarkCompareForm : IValidatableObject {
     private static readonly string[] ComparisonTypes = ["history", "units", "cohort"];
     private static readonly string[] Criteria = ["maturity", "dimension", "indicator", "evolution"];
 
@@ -21,8 +21,7 @@ public sealed class BenchmarkCompareForm : IValidatableObject
     public string? Dimension { get; set; }
     public string? Indicator { get; set; }
 
-    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-    {
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext) {
         if (!ComparisonTypes.Contains(ComparisonType, StringComparer.OrdinalIgnoreCase))
             yield return new ValidationResult("Selecione um tipo de comparação válido.", [nameof(ComparisonType)]);
         if (!Criteria.Contains(Criterion, StringComparer.OrdinalIgnoreCase))
@@ -37,4 +36,4 @@ public sealed class BenchmarkCompareForm : IValidatableObject
             yield return new ValidationResult("Informe o indicador que será comparado.", [nameof(Indicator)]);
     }
 }
-public sealed class BenchmarkCohortForm { [Required,StringLength(160)] public string Name {get;set;}=""; [StringLength(1000)] public string Description {get;set;}=""; [Required] public string Segment {get;set;}=""; [Required] public string Industry {get;set;}=""; [Required] public string CompanySizeRange {get;set;}=""; [Required] public string Region {get;set;}=""; [Range(5,10000)] public int MinimumSampleSize {get;set;}=5; }
+public sealed class BenchmarkCohortForm { [Required, StringLength(160)] public string Name { get; set; } = ""; [StringLength(1000)] public string Description { get; set; } = ""; [Required] public string Segment { get; set; } = ""; [Required] public string Industry { get; set; } = ""; [Required] public string CompanySizeRange { get; set; } = ""; [Required] public string Region { get; set; } = ""; [Range(5, 10000)] public int MinimumSampleSize { get; set; } = 5; }

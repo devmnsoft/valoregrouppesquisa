@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Valora.Application.CommercialDelivery;
 using Valora.Application.Access;
+using Valora.Application.CommercialDelivery;
 using Valora.Application.Common;
 
 namespace Valora.Api.Controllers;
@@ -9,20 +9,17 @@ namespace Valora.Api.Controllers;
 [Authorize, ApiController]
 [Route("api/v1/diagnostics/{id:guid}/campaign")]
 [Route("api/v1/diagnostics/{id:guid}/campaigns")]
-public sealed class DiagnosticCampaignsController(IDiagnosticCampaignService campaigns, ICurrentRequestContext currentRequest) : ControllerBase
-{
+public sealed class DiagnosticCampaignsController(IDiagnosticCampaignService campaigns, ICurrentRequestContext currentRequest) : ControllerBase {
     [HttpGet("/api/v1/diagnostic-campaigns")]
     [Authorize(Policy = ValoraPermissions.Campaigns.Read)]
-    public async Task<IActionResult> List(CancellationToken ct)
-    {
+    public async Task<IActionResult> List(CancellationToken ct) {
         var access = Access();
         return access.Error ?? Ok(await campaigns.ListAsync(access.OrganizationId, ct));
     }
 
     [HttpGet]
     [Authorize(Policy = ValoraPermissions.Campaigns.Read)]
-    public async Task<IActionResult> Get(Guid id, CancellationToken ct)
-    {
+    public async Task<IActionResult> Get(Guid id, CancellationToken ct) {
         var access = Access();
         if (access.Error is not null) return access.Error;
         var campaign = await campaigns.GetAsync(access.OrganizationId, id, ct);
@@ -31,17 +28,14 @@ public sealed class DiagnosticCampaignsController(IDiagnosticCampaignService cam
 
     [HttpPost]
     [Authorize(Policy = ValoraPermissions.Campaigns.Manage)]
-    public async Task<IActionResult> Create(Guid id, [FromBody] CreateCampaignRequest request, CancellationToken ct)
-    {
+    public async Task<IActionResult> Create(Guid id, [FromBody] CreateCampaignRequest request, CancellationToken ct) {
         var access = Access();
         if (access.Error is not null) return access.Error;
-        try
-        {
+        try {
             var campaign = await campaigns.CreateAsync(access.OrganizationId, id, UserId, request, HttpContext.TraceIdentifier, ct);
             return campaign is null ? NotFound(Error("DIAGNOSTIC_NOT_FOUND", "Diagnóstico não encontrado.")) : Created($"/api/v1/diagnostics/{id}/campaign", campaign);
         }
-        catch (InvalidOperationException exception)
-        {
+        catch (InvalidOperationException exception) {
             return UnprocessableEntity(Error("CAMPAIGN_NOT_AVAILABLE", exception.Message));
         }
     }
@@ -72,8 +66,7 @@ public sealed class DiagnosticCampaignsController(IDiagnosticCampaignService cam
 
     [HttpGet("recipients")]
     [Authorize(Policy = ValoraPermissions.Campaigns.Read)]
-    public async Task<IActionResult> Recipients(Guid id, CancellationToken ct)
-    {
+    public async Task<IActionResult> Recipients(Guid id, CancellationToken ct) {
         var access = Access(); if (access.Error is not null) return access.Error;
         var campaign = await campaigns.GetAsync(access.OrganizationId, id, ct);
         return campaign is null ? NotFound(Error("CAMPAIGN_NOT_FOUND", "Campanha não encontrada.")) : Ok(campaign.Recipients);
@@ -81,8 +74,7 @@ public sealed class DiagnosticCampaignsController(IDiagnosticCampaignService cam
 
     [HttpGet("metrics")]
     [Authorize(Policy = ValoraPermissions.Campaigns.Read)]
-    public async Task<IActionResult> Metrics(Guid id, CancellationToken ct)
-    {
+    public async Task<IActionResult> Metrics(Guid id, CancellationToken ct) {
         var access = Access(); if (access.Error is not null) return access.Error;
         var campaign = await campaigns.GetAsync(access.OrganizationId, id, ct);
         return campaign is null ? NotFound(Error("CAMPAIGN_NOT_FOUND", "Campanha não encontrada.")) : Ok(new CampaignMetricsDto(
@@ -93,8 +85,7 @@ public sealed class DiagnosticCampaignsController(IDiagnosticCampaignService cam
 
     [HttpGet("history")]
     [Authorize(Policy = ValoraPermissions.Campaigns.Read)]
-    public async Task<IActionResult> History(Guid id, CancellationToken ct)
-    {
+    public async Task<IActionResult> History(Guid id, CancellationToken ct) {
         var access = Access(); if (access.Error is not null) return access.Error;
         return Ok(await campaigns.HistoryAsync(access.OrganizationId, id, ct));
     }
@@ -105,29 +96,24 @@ public sealed class DiagnosticCampaignsController(IDiagnosticCampaignService cam
         await Command(id, ValoraPermissions.Campaigns.Manage, organizationId =>
             campaigns.ResendFailuresAsync(organizationId, id, UserId, HttpContext.TraceIdentifier, ct));
 
-    private async Task<IActionResult> Transition(Guid id, string status, CampaignTransitionRequest request, CancellationToken ct)
-    {
-        try
-        {
+    private async Task<IActionResult> Transition(Guid id, string status, CampaignTransitionRequest request, CancellationToken ct) {
+        try {
             return await Command(id, ValoraPermissions.Campaigns.Manage, organizationId =>
                 campaigns.TransitionAsync(organizationId, id, UserId, status, request, HttpContext.TraceIdentifier, ct));
         }
-        catch (InvalidOperationException exception)
-        {
+        catch (InvalidOperationException exception) {
             return Conflict(Error("CAMPAIGN_TRANSITION_INVALID", exception.Message));
         }
     }
 
-    private async Task<IActionResult> Command(Guid id, string permission, Func<Guid, Task<CampaignCommandResult?>> command)
-    {
+    private async Task<IActionResult> Command(Guid id, string permission, Func<Guid, Task<CampaignCommandResult?>> command) {
         var access = Access();
         if (access.Error is not null) return access.Error;
         var result = await command(access.OrganizationId);
         return result is null ? NotFound(Error("CAMPAIGN_NOT_FOUND", "Nenhuma campanha foi criada para este diagnóstico.")) : Ok(result);
     }
 
-    private (Guid OrganizationId, IActionResult? Error) Access()
-    {
+    private (Guid OrganizationId, IActionResult? Error) Access() {
         var organizationId = currentRequest.GetCurrent().EffectiveOrganizationId;
         if (organizationId is null || organizationId == Guid.Empty)
             return (Guid.Empty, StatusCode(403, Error("ORGANIZATION_SCOPE_REQUIRED", "Selecione uma organização para acessar este recurso.")));

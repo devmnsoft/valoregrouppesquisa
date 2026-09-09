@@ -1,51 +1,49 @@
 using Microsoft.Extensions.DependencyInjection;
-using Valora.Application.Certificates;
-using Valora.Application.Communication;
-using Valora.Application.FreeDiagnostics;
-using Valora.Application.Forms;
-using Valora.Application.Results;
-using Valora.Application.Services;
-using Valora.Application.Security;
-using Valora.Application.Contracts;
-using Valora.Application.CompanyRegistration;
 using Valora.Application.Access;
-using Valora.Application.OperationalIntelligence;
-using Valora.Application.Enterprise;
-using Valora.Application.OrganizationalIntelligence;
-using Valora.Application.ValoraBot;
-using Valora.Application.Methodology;
-using Valora.Application.DiagnosticWorkspace;
-using Valora.Application.CommercialDelivery;
-using Valora.Application.FormalDeliverables;
-using Valora.Application.Integrations;
-using Valora.Application.ValoraAi;
-using Valora.Application.DecisionCenter;
 using Valora.Application.ActionCenter;
+using Valora.Application.Advisor;
+using Valora.Application.Benchmarks;
+using Valora.Application.Certificates;
+using Valora.Application.CommercialDelivery;
+using Valora.Application.Communication;
+using Valora.Application.CompanyRegistration;
+using Valora.Application.Contracts;
+using Valora.Application.DecisionCenter;
+using Valora.Application.DiagnosticWorkspace;
+using Valora.Application.Enterprise;
 using Valora.Application.Evolution;
+using Valora.Application.Experience;
+using Valora.Application.FormalDeliverables;
+using Valora.Application.Forms;
+using Valora.Application.FreeDiagnostics;
+using Valora.Application.GovernanceExecution;
+using Valora.Application.Integrations;
+using Valora.Application.Intelligence;
 using Valora.Application.Journey;
+using Valora.Application.Knowledge;
+using Valora.Application.Methodology;
+using Valora.Application.ModularSaas;
+using Valora.Application.Onboarding;
 using Valora.Application.OneOnOne;
+using Valora.Application.OperationalIntelligence;
+using Valora.Application.OrganizationalArchitecture;
+using Valora.Application.OrganizationalIntelligence;
+using Valora.Application.Processes;
+using Valora.Application.Results;
+using Valora.Application.SaasAdministration;
+using Valora.Application.Security;
+using Valora.Application.Services;
+using Valora.Application.SolutionPacks;
 using Valora.Application.Subscriptions;
 using Valora.Application.SuccessCenter;
-using Valora.Application.Onboarding;
-using Valora.Application.Experience;
-using Valora.Application.Intelligence;
-using Valora.Application.GovernanceExecution;
+using Valora.Application.ValoraAi;
+using Valora.Application.ValoraBot;
 using Valora.Application.Workspace;
-using Valora.Application.OrganizationalArchitecture;
-using Valora.Application.Knowledge;
-using Valora.Application.Advisor;
-using Valora.Application.Processes;
-using Valora.Application.Benchmarks;
-using Valora.Application.SaasAdministration;
-using Valora.Application.SolutionPacks;
-using Valora.Application.ModularSaas;
 
 namespace Valora.Application.DependencyInjection;
 
-public static class ApplicationServiceCollectionExtensions
-{
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
-    {
+public static class ApplicationServiceCollectionExtensions {
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services) {
         services.AddScoped<SaasCustomerService>();
         services.AddScoped<SolutionPackService>(); services.AddScoped<SolutionPackVersionService>();
         services.AddScoped<SolutionPackInstallationService>(); services.AddScoped<SolutionPackDependencyService>();

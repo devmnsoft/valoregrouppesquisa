@@ -5,11 +5,9 @@ namespace Valora.Application.CommercialDelivery;
 
 public sealed class DiagnosticCampaignService(
     IDiagnosticCampaignRepository repository,
-    IOptions<EmailOptions> emailOptions) : IDiagnosticCampaignService
-{
+    IOptions<EmailOptions> emailOptions) : IDiagnosticCampaignService {
     private static readonly IReadOnlyDictionary<string, IReadOnlySet<string>> Transitions =
-        new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal)
-        {
+        new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal) {
             [DiagnosticCampaignStatus.Draft] = Set(DiagnosticCampaignStatus.Scheduled, DiagnosticCampaignStatus.Sending, DiagnosticCampaignStatus.Active, DiagnosticCampaignStatus.Cancelled),
             [DiagnosticCampaignStatus.Scheduled] = Set(DiagnosticCampaignStatus.Sending, DiagnosticCampaignStatus.Active, DiagnosticCampaignStatus.Cancelled),
             [DiagnosticCampaignStatus.Sending] = Set(DiagnosticCampaignStatus.Active, DiagnosticCampaignStatus.Paused, DiagnosticCampaignStatus.Failed, DiagnosticCampaignStatus.Cancelled),
@@ -30,8 +28,7 @@ public sealed class DiagnosticCampaignService(
         repository.HistoryAsync(RequireOrganization(organizationId), surveyId, ct);
 
     public Task<DiagnosticCampaignDto?> CreateAsync(Guid organizationId, Guid surveyId, Guid userId,
-        CreateCampaignRequest request, string correlationId, CancellationToken ct)
-    {
+        CreateCampaignRequest request, string correlationId, CancellationToken ct) {
         RequireOrganization(organizationId);
         RequireUser(userId);
         if (surveyId == Guid.Empty) throw new ArgumentException("Selecione um diagnóstico publicado.");
@@ -49,8 +46,7 @@ public sealed class DiagnosticCampaignService(
             throw new ArgumentException("Adicione ao menos um destinatário para o canal de e-mail.");
         if (request.Recipients?.Any(recipient => !recipient.HasConsent && !recipient.HasLegalBasis) == true)
             throw new ArgumentException("Cada destinatário por e-mail exige consentimento ou base legal registrada.");
-        return repository.CreateAsync(organizationId, surveyId, userId, request with
-        {
+        return repository.CreateAsync(organizationId, surveyId, userId, request with {
             Name = request.Name.Trim(),
             Message = request.Message.Trim(),
             Channel = channel,
@@ -59,8 +55,7 @@ public sealed class DiagnosticCampaignService(
     }
 
     public async Task<CampaignCommandResult?> TransitionAsync(Guid organizationId, Guid surveyId, Guid userId,
-        string targetStatus, CampaignTransitionRequest request, string correlationId, CancellationToken ct)
-    {
+        string targetStatus, CampaignTransitionRequest request, string correlationId, CancellationToken ct) {
         RequireOrganization(organizationId);
         RequireUser(userId);
         targetStatus = targetStatus.Trim().ToLowerInvariant();

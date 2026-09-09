@@ -9,19 +9,16 @@ namespace Valora.Api.Controllers;
 [Authorize]
 [ApiController]
 [Route("api/v1/usage")]
-public sealed class SubscriptionUsageController(ISubscriptionUsageService usage) : ControllerBase
-{
+public sealed class SubscriptionUsageController(ISubscriptionUsageService usage) : ControllerBase {
     [HttpGet("current")]
     [Authorize(Policy = ValoraPermissions.Usage.Read)]
-    public async Task<IActionResult> Current(CancellationToken cancellationToken)
-    {
+    public async Task<IActionResult> Current(CancellationToken cancellationToken) {
         if (OrganizationId == Guid.Empty) return Unauthorized();
         return Ok(await usage.GetCurrentAsync(OrganizationId, cancellationToken));
     }
 
     [HttpGet("limits/{metric}")]
-    public async Task<IActionResult> Check(string metric, [FromQuery] int amount = 1, CancellationToken cancellationToken = default)
-    {
+    public async Task<IActionResult> Check(string metric, [FromQuery] int amount = 1, CancellationToken cancellationToken = default) {
         if (OrganizationId == Guid.Empty) return Unauthorized();
         var result = await usage.CheckAsync(OrganizationId, metric, amount, IsValoraAdmin, cancellationToken);
         return Ok(result); // A reached commercial limit is a business decision, not a technical HTTP error.

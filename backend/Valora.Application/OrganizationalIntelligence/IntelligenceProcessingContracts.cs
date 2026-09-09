@@ -1,7 +1,6 @@
 namespace Valora.Application.OrganizationalIntelligence;
 
-public static class IntelligenceProcessingStatus
-{
+public static class IntelligenceProcessingStatus {
     public const string Pending = "pending", Running = "running", Completed = "completed", Failed = "failed", DeadLetter = "dead_letter",
         RetryScheduled = "retry_scheduled", Cancelled = "cancelled", Skipped = "skipped", InsufficientEvidence = "insufficient_evidence";
 }
@@ -20,8 +19,7 @@ public sealed record IntelligenceProcessingSummary(int Pending, int Running, int
     DateTime? LastResponseProcessedAt, DateTime? LastDiagnosisProcessedAt);
 public sealed record IntelligenceJobDetails(IntelligenceProcessingJob Job, IReadOnlyList<IntelligenceStageRun> Stages);
 
-public interface IIntelligenceProcessingJobRepository
-{
+public interface IIntelligenceProcessingJobRepository {
     Task<Guid> EnqueueAsync(IntelligenceProcessingContext context, int maxAttempts, string correlationId, CancellationToken ct);
     Task<IReadOnlyList<IntelligenceProcessingJob>> ClaimPendingJobsAsync(int take, string workerId, CancellationToken ct);
     Task MarkRunningAsync(Guid jobId, Guid runId, CancellationToken ct);
@@ -37,8 +35,7 @@ public interface IIntelligenceProcessingJobRepository
     Task LogStageAsync(Guid organizationId, Guid jobId, Guid runId, ProcessingStageResult stage, string status, DateTime startedAt, DateTime completedAt, CancellationToken ct);
 }
 
-public interface IIntelligenceProcessingJobService
-{
+public interface IIntelligenceProcessingJobService {
     Task<Guid> EnqueueResponseProcessingAsync(IntelligenceProcessingContext context, string correlationId, CancellationToken ct);
     Task<Guid> EnqueueDiagnosisClosedProcessingAsync(IntelligenceProcessingContext context, string correlationId, CancellationToken ct);
     Task<Guid> EnqueueActionProcessingAsync(IntelligenceProcessingContext context, string correlationId, CancellationToken ct);

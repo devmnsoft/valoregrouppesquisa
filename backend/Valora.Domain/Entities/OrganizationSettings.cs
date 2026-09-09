@@ -3,8 +3,7 @@ using Valora.Domain.Enums;
 
 namespace Valora.Domain.Entities;
 
-public sealed record OrganizationSettings : AuditableEntity
-{
+public sealed record OrganizationSettings : AuditableEntity {
     public Guid OrganizationId { get; init; }
     public string SettingsJson { get; init; } = "{}";
     public bool LgpdConsentRequired { get; init; } = true;

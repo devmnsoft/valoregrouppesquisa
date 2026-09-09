@@ -5,12 +5,10 @@ using Valora.Application.DTOs;
 namespace Valora.Application.Services;
 
 
-public sealed class ReportBuilderService(IResponseRepository responses, ISurveyRepository surveys, IOrganizationRepository orgs)
-{
+public sealed class ReportBuilderService(IResponseRepository responses, ISurveyRepository surveys, IOrganizationRepository orgs) {
     private const int MinimumExecutiveSample = 5;
 
-    public async Task<string> BuildAsync(Guid organizationId, Guid? surveyId, Guid? responseId, string format)
-    {
+    public async Task<string> BuildAsync(Guid organizationId, Guid? surveyId, Guid? responseId, string format) {
         var organization = await orgs.GetAsync(organizationId);
         var allResponses = await responses.ListAdminAsync(organizationId);
         var selected = allResponses.Where(item => !surveyId.HasValue || ReadGuid(item, "survey_id") == surveyId).ToList();
@@ -19,8 +17,7 @@ public sealed class ReportBuilderService(IResponseRepository responses, ISurveyR
         var sufficient = selected.Count >= MinimumExecutiveSample;
         var warning = sufficient ? null : "Os dados disponíveis ainda são insuficientes para sustentar uma conclusão executiva completa.";
         var survey = surveyId.HasValue ? await surveys.GetAdminAsync(organizationId, surveyId.Value) : null;
-        var payload = new
-        {
+        var payload = new {
             organization,
             diagnostic = survey,
             period = new { from = selected.Select(x => ReadDate(x, "created_at")).Where(x => x.HasValue).Min(), to = DateTimeOffset.UtcNow },
@@ -36,11 +33,9 @@ public sealed class ReportBuilderService(IResponseRepository responses, ISurveyR
         return JsonSerializer.Serialize(payload, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
     }
 
-    private static string? Read(object? value, string name)
-    {
+    private static string? Read(object? value, string name) {
         if (value is null) return null;
-        if (value is IDictionary<string, object> values)
-        {
+        if (value is IDictionary<string, object> values) {
             var pair = values.FirstOrDefault(x => string.Equals(x.Key, name, StringComparison.OrdinalIgnoreCase));
             return pair.Value?.ToString();
         }

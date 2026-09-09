@@ -2,11 +2,9 @@ using Valora.Application.Results;
 
 namespace Valora.Tests;
 
-public sealed class MethodologicalScoringServiceTests
-{
+public sealed class MethodologicalScoringServiceTests {
     [Fact]
-    public void Calculates_weighted_overall_concept_and_dimension_scores_with_decimal_math()
-    {
+    public void Calculates_weighted_overall_concept_and_dimension_scores_with_decimal_math() {
         var result = new MethodologicalScoringService().Calculate([
             Answer("Q1", "governance", "decision", 5m, 2m),
             Answer("Q2", "governance", "accountability", 1m, 1m),
@@ -20,8 +18,7 @@ public sealed class MethodologicalScoringServiceTests
     }
 
     [Fact]
-    public void Ignores_zero_weight_invalid_range_and_unmapped_answers_without_dividing_by_zero()
-    {
+    public void Ignores_zero_weight_invalid_range_and_unmapped_answers_without_dividing_by_zero() {
         var result = new MethodologicalScoringService().Calculate([
             Answer("ZERO", "governance", "decision", 3m, 0m),
             new(Guid.NewGuid(), "RANGE", "governance", "decision", 6m, 1m, 5m),
@@ -34,8 +31,7 @@ public sealed class MethodologicalScoringServiceTests
     }
 
     [Fact]
-    public void Qualitative_answer_requires_an_explicit_normalization_rule()
-    {
+    public void Qualitative_answer_requires_an_explicit_normalization_rule() {
         var invalid = new MethodologicalAnswer(Guid.NewGuid(), "Q1", "culture", "communication", null, 0m, 1m, IsQualitative: true);
         var valid = invalid with { QuestionCode = "Q2", QualitativeNormalizedValue = 80m };
         var result = new MethodologicalScoringService().Calculate([invalid, valid]);

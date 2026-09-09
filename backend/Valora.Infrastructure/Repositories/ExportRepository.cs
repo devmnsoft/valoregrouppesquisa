@@ -4,8 +4,7 @@ using Valora.Application.DTOs;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class ExportRepository(IDbConnectionFactory connections) : IExportRepository
-{
+public sealed class ExportRepository(IDbConnectionFactory connections) : IExportRepository {
     private const string Projection = """
         id AS "Id", organization_id AS "OrganizationId", requested_by AS "RequestedBy",
         COALESCE(entity,'') AS "Entity", format AS "Format", status AS "Status",
@@ -15,8 +14,7 @@ public sealed class ExportRepository(IDbConnectionFactory connections) : IExport
         """;
 
     public async Task<ExportJobDto> CreateAsync(Guid organizationId, Guid? requestedBy, string entity, string format,
-        string? filterJson, string correlationId, CancellationToken cancellationToken)
-    {
+        string? filterJson, string correlationId, CancellationToken cancellationToken) {
         const string sql = """
             INSERT INTO valorapesquisa.export_jobs
                 (organization_id,requested_by,entity,format,status,filter_json,correlation_id,next_attempt_at)
@@ -28,8 +26,7 @@ public sealed class ExportRepository(IDbConnectionFactory connections) : IExport
             new { organizationId, requestedBy, entity, format, filterJson, correlationId }, cancellationToken: cancellationToken));
     }
 
-    public async Task<IReadOnlyList<ExportWorkItem>> ClaimAsync(string workerId, int take, CancellationToken cancellationToken)
-    {
+    public async Task<IReadOnlyList<ExportWorkItem>> ClaimAsync(string workerId, int take, CancellationToken cancellationToken) {
         const string sql = """
             WITH candidates AS (
                 SELECT id FROM valorapesquisa.export_jobs
@@ -49,8 +46,7 @@ public sealed class ExportRepository(IDbConnectionFactory connections) : IExport
         return (await connection.QueryAsync<ExportWorkItem>(new CommandDefinition(sql, new { workerId, take }, cancellationToken: cancellationToken))).AsList();
     }
 
-    public async Task CompleteAsync(GeneratedExport export, CancellationToken cancellationToken)
-    {
+    public async Task CompleteAsync(GeneratedExport export, CancellationToken cancellationToken) {
         const string sql = """
             UPDATE valorapesquisa.export_jobs
                SET status='completed',result_file_name=@FileName,result_mime_type=@MimeType,
@@ -64,8 +60,7 @@ public sealed class ExportRepository(IDbConnectionFactory connections) : IExport
         if (affected != 1) throw new InvalidOperationException("Export job was not owned by this worker state.");
     }
 
-    public async Task FailAsync(Guid id, string sanitizedError, DateTimeOffset? retryAt, bool deadLetter, CancellationToken cancellationToken)
-    {
+    public async Task FailAsync(Guid id, string sanitizedError, DateTimeOffset? retryAt, bool deadLetter, CancellationToken cancellationToken) {
         const string sql = """
             UPDATE valorapesquisa.export_jobs
                SET status=CASE WHEN @deadLetter THEN 'dead_letter' ELSE 'failed' END,
@@ -77,16 +72,14 @@ public sealed class ExportRepository(IDbConnectionFactory connections) : IExport
         await connection.ExecuteAsync(new CommandDefinition(sql, new { id, sanitizedError, retryAt, deadLetter }, cancellationToken: cancellationToken));
     }
 
-    public async Task<IReadOnlyList<ExportJobDto>> ListAsync(Guid organizationId, CancellationToken cancellationToken)
-    {
+    public async Task<IReadOnlyList<ExportJobDto>> ListAsync(Guid organizationId, CancellationToken cancellationToken) {
         using var connection = connections.Create();
         return (await connection.QueryAsync<ExportJobDto>(new CommandDefinition(
             $"SELECT {Projection} FROM valorapesquisa.export_jobs WHERE organization_id=@organizationId ORDER BY requested_at DESC",
             new { organizationId }, cancellationToken: cancellationToken))).AsList();
     }
 
-    public async Task<ExportJobDto?> GetAsync(Guid organizationId, Guid id, CancellationToken cancellationToken)
-    {
+    public async Task<ExportJobDto?> GetAsync(Guid organizationId, Guid id, CancellationToken cancellationToken) {
         using var connection = connections.Create();
         return await connection.QueryFirstOrDefaultAsync<ExportJobDto>(new CommandDefinition(
             $"SELECT {Projection} FROM valorapesquisa.export_jobs WHERE organization_id=@organizationId AND id=@id",

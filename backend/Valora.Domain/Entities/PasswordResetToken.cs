@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record PasswordResetToken
-{
+public sealed record PasswordResetToken {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid UserId { get; init; }
     public string TokenHash { get; init; } = string.Empty;

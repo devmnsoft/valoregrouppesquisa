@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record SystemEvent
-{
+public sealed record SystemEvent {
     public Guid Id { get; init; } = Guid.NewGuid();
     public string Code { get; init; } = string.Empty;
     public string Severity { get; init; } = "info";

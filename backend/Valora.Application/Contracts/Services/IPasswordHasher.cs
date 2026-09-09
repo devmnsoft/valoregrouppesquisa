@@ -1,3 +1,4 @@
 using Valora.Application.DTOs;
 namespace Valora.Application.Contracts;
-public interface IPasswordHasher { string Hash(string password); bool Verify(string password,string hash); }
+
+public interface IPasswordHasher { string Hash(string password); bool Verify(string password, string hash); }

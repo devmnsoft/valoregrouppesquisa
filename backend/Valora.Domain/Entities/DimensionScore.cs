@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record DimensionScore
-{
+public sealed record DimensionScore {
     public Guid Id { get; init; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
 }

@@ -1,7 +1,6 @@
 namespace Valora.Application.Results;
 
-public sealed class ValoraInsightDevolutivaService
-{
+public sealed class ValoraInsightDevolutivaService {
     public const string InsufficientEvidenceMessage =
         "As informações disponíveis ainda não permitem concluir essa análise com segurança. Recomenda-se ampliar a coleta de evidências antes de definir uma causa ou prioridade.";
 
@@ -13,8 +12,7 @@ public sealed class ValoraInsightDevolutivaService
         string? impacto = null,
         string? prioridade = null,
         IEnumerable<string>? plano = null,
-        string? limites = null)
-    {
+        string? limites = null) {
         var evidence = (evidencias ?? Array.Empty<string>())
             .Where(value => !string.IsNullOrWhiteSpace(value)).Select(value => value.Trim()).Distinct().ToArray();
         // A metodologia exige três sinais convergentes antes de permitir qualquer
@@ -30,8 +28,7 @@ public sealed class ValoraInsightDevolutivaService
             true, confidence);
     }
 
-    public string Build(ValoraInsightResult result)
-    {
+    public string Build(ValoraInsightResult result) {
         var analysis = Analyze(
             $"Pontuação consolidada de {result.TotalScore}/{result.MaxScore} no nível {result.Level}.",
             Array.Empty<string>());

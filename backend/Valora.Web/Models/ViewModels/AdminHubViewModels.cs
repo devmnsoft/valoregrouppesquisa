@@ -9,8 +9,7 @@ public sealed record AdminOrganizationRowViewModel(Guid Id, string Name, string 
 public sealed record AdminOrganizationsViewModel(IReadOnlyList<AdminOrganizationRowViewModel> Organizations, string? Search = null);
 public sealed record AdminOrganizationDetailsViewModel(AdminOrganizationRowViewModel Organization, IReadOnlyList<string> RecentEvents);
 
-public sealed class CreateOrganizationViewModel
-{
+public sealed class CreateOrganizationViewModel {
     [Required(ErrorMessage = "Informe o nome da organização."), StringLength(160)] public string Name { get; set; } = "";
     [Required(ErrorMessage = "Informe o identificador público."), RegularExpression("^[a-z0-9-]+$", ErrorMessage = "Use apenas letras minúsculas, números e hífens.")] public string Slug { get; set; } = "";
     [Required(ErrorMessage = "Selecione um plano.")] public string PlanCode { get; set; } = "";
@@ -18,8 +17,7 @@ public sealed class CreateOrganizationViewModel
     public IReadOnlyList<SelectListItem> Plans { get; init; } = [];
 }
 
-public sealed class CreateAdminUserViewModel
-{
+public sealed class CreateAdminUserViewModel {
     [Required, StringLength(160)] public string Name { get; set; } = "";
     [Required, EmailAddress, StringLength(320)] public string Email { get; set; } = "";
     [Required(ErrorMessage = "Selecione uma organização.")] public Guid? OrganizationId { get; set; }

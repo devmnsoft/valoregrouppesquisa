@@ -5,21 +5,26 @@ using Valora.Application.FormalDeliverables;
 
 namespace Valora.Infrastructure.FormalDeliverables;
 
-public sealed class ShareLinkRepository(IDbConnectionFactory connections) : IShareLinkRepository
-{
-    public async Task SaveAsync(ShareLink link, Guid? createdBy, CancellationToken cancellationToken = default)
-    {
+public sealed class ShareLinkRepository(IDbConnectionFactory connections) : IShareLinkRepository {
+    public async Task SaveAsync(ShareLink link, Guid? createdBy, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO valorapesquisa.secure_share_links
               (id,organization_id,diagnostic_id,token_hash,public_slug,title,status,expires_at,allow_download,created_by_user_id)
             VALUES (@Id,@OrganizationId,@DiagnosisId,@TokenHash,@DatabaseSlug,'Resultado Valora Insight','active',@ExpiresAt,@AllowDownload,@CreatedBy)
-            """, new { link.Id, link.OrganizationId, link.DiagnosisId, link.TokenHash, DatabaseSlug = link.Id.ToString("N"), link.ExpiresAt,
-                link.AllowDownload, CreatedBy = createdBy }, cancellationToken: cancellationToken));
+            """, new {
+            link.Id,
+            link.OrganizationId,
+            link.DiagnosisId,
+            link.TokenHash,
+            DatabaseSlug = link.Id.ToString("N"),
+            link.ExpiresAt,
+            link.AllowDownload,
+            CreatedBy = createdBy
+        }, cancellationToken: cancellationToken));
     }
 
-    public async Task<ShareLink?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default)
-    {
+    public async Task<ShareLink?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
         return await connection.QuerySingleOrDefaultAsync<ShareLink>(new CommandDefinition("""
             SELECT id, organization_id AS OrganizationId, diagnostic_id AS DiagnosisId, token_hash AS TokenHash,
@@ -30,8 +35,7 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
             """, new { TokenHash = tokenHash }, cancellationToken: cancellationToken));
     }
 
-    public async Task<bool> RevokeAsync(Guid organizationId, Guid linkId, CancellationToken cancellationToken = default)
-    {
+    public async Task<bool> RevokeAsync(Guid organizationId, Guid linkId, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
         return await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE valorapesquisa.secure_share_links SET status='revoked',revoked_at=now(),updated_at=now()
@@ -39,8 +43,7 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
             """, new { LinkId = linkId, OrganizationId = organizationId }, cancellationToken: cancellationToken)) == 1;
     }
 
-    public async Task RegisterAccessAsync(Guid linkId, bool downloadRequested, CancellationToken cancellationToken = default)
-    {
+    public async Task RegisterAccessAsync(Guid linkId, bool downloadRequested, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction();
@@ -49,18 +52,16 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
             WHERE id=@LinkId AND status='active' AND deleted_at IS NULL;
             INSERT INTO valorapesquisa.secure_share_link_access_logs(share_link_id,access_type,was_allowed)
             VALUES (@LinkId,CASE WHEN @DownloadRequested THEN 'download' ELSE 'view' END,true)
-            """, new { LinkId=linkId, DownloadRequested=downloadRequested }, transaction, cancellationToken: cancellationToken));
+            """, new { LinkId = linkId, DownloadRequested = downloadRequested }, transaction, cancellationToken: cancellationToken));
         transaction.Commit();
     }
 }
 
-public sealed class DiagnosisDocumentSnapshotProvider(IDbConnectionFactory connections) : IDiagnosisDocumentSnapshotProvider
-{
+public sealed class DiagnosisDocumentSnapshotProvider(IDbConnectionFactory connections) : IDiagnosisDocumentSnapshotProvider {
     private sealed record Header(Guid OrganizationId, string OrganizationName, Guid DiagnosisId, string DiagnosisName,
         DateTimeOffset CompletedAt, decimal OverallScore, string MaturityLevel, string MethodologyName, string MethodologyVersion);
 
-    public async Task<DiagnosisDocumentSnapshot?> LoadAsync(Guid organizationId, Guid diagnosisId, CancellationToken cancellationToken = default)
-    {
+    public async Task<DiagnosisDocumentSnapshot?> LoadAsync(Guid organizationId, Guid diagnosisId, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
         var header = await connection.QuerySingleOrDefaultAsync<Header>(new CommandDefinition("""
             SELECT o.id AS "OrganizationId",o.name AS "OrganizationName",r.id AS "DiagnosisId",s.name AS "DiagnosisName",
@@ -117,10 +118,8 @@ public sealed class DiagnosisDocumentSnapshotProvider(IDbConnectionFactory conne
     }
 }
 
-public sealed class DocumentAccessPolicy(IDbConnectionFactory connections) : IDocumentAccessPolicy
-{
-    public async Task EnsureCanGenerateAsync(Guid organizationId, Guid? userId, DeliverableFormat format, CancellationToken cancellationToken = default)
-    {
+public sealed class DocumentAccessPolicy(IDbConnectionFactory connections) : IDocumentAccessPolicy {
+    public async Task EnsureCanGenerateAsync(Guid organizationId, Guid? userId, DeliverableFormat format, CancellationToken cancellationToken = default) {
         if (!userId.HasValue) throw new UnauthorizedAccessException("Um usuário autenticado é necessário para gerar documentos.");
         using var connection = connections.Create();
         var allowed = await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
@@ -130,41 +129,52 @@ public sealed class DocumentAccessPolicy(IDbConnectionFactory connections) : IDo
     }
 }
 
-public sealed class DocumentStore(IDbConnectionFactory connections) : IDocumentStore
-{
-    public async Task SaveAsync(GeneratedDocument document, Guid? generatedBy, CancellationToken cancellationToken = default)
-    {
+public sealed class DocumentStore(IDbConnectionFactory connections) : IDocumentStore {
+    public async Task SaveAsync(GeneratedDocument document, Guid? generatedBy, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO valorapesquisa.formal_documents
               (id,organization_id,diagnosis_id,format,file_name,content_type,content,trace_code,generated_by,generated_at)
             VALUES (@Id,@OrganizationId,@DiagnosisId,@Format,@FileName,@ContentType,@Content,@TraceCode,@GeneratedBy,@GeneratedAt)
-            """, new { document.Id, document.OrganizationId, document.DiagnosisId, Format=document.Format.ToString(),
-                document.FileName, document.ContentType, document.Content, document.TraceCode, GeneratedBy=generatedBy,
-                document.GeneratedAt }, cancellationToken: cancellationToken));
+            """, new {
+            document.Id,
+            document.OrganizationId,
+            document.DiagnosisId,
+            Format = document.Format.ToString(),
+            document.FileName,
+            document.ContentType,
+            document.Content,
+            document.TraceCode,
+            GeneratedBy = generatedBy,
+            document.GeneratedAt
+        }, cancellationToken: cancellationToken));
     }
-    public async Task<GeneratedDocument?> FindAsync(Guid organizationId, Guid documentId, CancellationToken cancellationToken = default)
-    {
+    public async Task<GeneratedDocument?> FindAsync(Guid organizationId, Guid documentId, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
         return await connection.QuerySingleOrDefaultAsync<GeneratedDocument>(new CommandDefinition("""
             SELECT id,organization_id OrganizationId,diagnosis_id DiagnosisId,format,file_name FileName,
               content_type ContentType,content,trace_code TraceCode,generated_at GeneratedAt
             FROM valorapesquisa.formal_documents WHERE id=@DocumentId AND organization_id=@OrganizationId
-            """, new { DocumentId=documentId, OrganizationId=organizationId }, cancellationToken: cancellationToken));
+            """, new { DocumentId = documentId, OrganizationId = organizationId }, cancellationToken: cancellationToken));
     }
 }
 
-public sealed class ExportAuditService(IDbConnectionFactory connections) : IExportAuditService
-{
+public sealed class ExportAuditService(IDbConnectionFactory connections) : IExportAuditService {
     public async Task RecordAsync(Guid organizationId, Guid? userId, string action, string resourceType,
-        string resourceId, bool succeeded, string? detail = null, CancellationToken cancellationToken = default)
-    {
+        string resourceId, bool succeeded, string? detail = null, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO valorapesquisa.audit_logs(organization_id,user_id,action,entity_type,entity_id,message,metadata_json)
             VALUES (@OrganizationId,@UserId,@Action,@ResourceType,@ResourceId,@Detail,
                     jsonb_build_object('succeeded',@Succeeded))
-            """, new { OrganizationId=organizationId, UserId=userId, Action=action, ResourceType=resourceType,
-                ResourceId=resourceId, Detail=detail, Succeeded=succeeded }, cancellationToken: cancellationToken));
+            """, new {
+            OrganizationId = organizationId,
+            UserId = userId,
+            Action = action,
+            ResourceType = resourceType,
+            ResourceId = resourceId,
+            Detail = detail,
+            Succeeded = succeeded
+        }, cancellationToken: cancellationToken));
     }
 }

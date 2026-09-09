@@ -50,7 +50,7 @@ tests/visual/output/
 
 # Firebase migration exports/backups
 backups/
-exports/
+/exports/
 *.local-export.json
 valora-local-export-*.json
 
@@ -61,7 +61,7 @@ release-prd-report-*.md
 
 publish/
 backups/
-exports/
+/exports/
 
 reports/playwright/test-results/
 playwright-report/

@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record AccessPolicy
-{
+public sealed record AccessPolicy {
     public Guid Id { get; init; } = Guid.NewGuid();
     public string RoleCode { get; init; } = string.Empty;
     public string ModuleCode { get; init; } = string.Empty;

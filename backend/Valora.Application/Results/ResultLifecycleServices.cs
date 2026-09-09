@@ -17,10 +17,8 @@ public sealed record CalculatedResult(
     string Limitation);
 
 /// <summary>Agrega somente evidência válida e nunca devolve respostas individuais.</summary>
-public sealed class EvidenceAggregationService
-{
-    public AggregatedEvidence Aggregate(IEnumerable<MethodologicalAnswer> answers, int participantCount, bool requiresAnonymity)
-    {
+public sealed class EvidenceAggregationService {
+    public AggregatedEvidence Aggregate(IEnumerable<MethodologicalAnswer> answers, int participantCount, bool requiresAnonymity) {
         ArgumentNullException.ThrowIfNull(answers);
         if (participantCount < 0) throw new ArgumentOutOfRangeException(nameof(participantCount));
         var valid = answers.Where(IsValid).ToArray();
@@ -36,24 +34,20 @@ public sealed class EvidenceAggregationService
         !string.IsNullOrWhiteSpace(x.QuestionCode) && !string.IsNullOrWhiteSpace(x.DimensionCode) &&
         (x.IsQualitative ? x.QualitativeNormalizedValue is >= 0m and <= 100m
             : x.RawValue is not null && x.Maximum > x.Minimum && x.RawValue >= x.Minimum && x.RawValue <= x.Maximum);
-    private static decimal Normalize(MethodologicalAnswer x)
-    {
+    private static decimal Normalize(MethodologicalAnswer x) {
         var score = x.IsQualitative ? x.QualitativeNormalizedValue!.Value : (x.RawValue!.Value - x.Minimum) / (x.Maximum - x.Minimum) * 100m;
         return x.Reverse ? 100m - score : score;
     }
 }
 
-public sealed class ValoraIndexScoreService
-{
+public sealed class ValoraIndexScoreService {
     public MethodologicalScoreResult Calculate(IEnumerable<MethodologicalAnswer> answers) => new MethodologicalScoringService().Calculate(answers);
 }
 
-public sealed class ResultSnapshotService
-{
+public sealed class ResultSnapshotService {
     private static readonly JsonSerializerOptions Options = new() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
-    public ResultSnapshot Create(string ruleVersion, DateTimeOffset calculatedAt, IEnumerable<MethodologicalAnswer> answers)
-    {
+    public ResultSnapshot Create(string ruleVersion, DateTimeOffset calculatedAt, IEnumerable<MethodologicalAnswer> answers) {
         if (string.IsNullOrWhiteSpace(ruleVersion)) throw new ArgumentException("A versão da regra é obrigatória.", nameof(ruleVersion));
         var ordered = answers.OrderBy(x => x.QuestionCode, StringComparer.Ordinal).ThenBy(x => x.AnswerId).ToArray();
         var payload = JsonSerializer.Serialize(ordered, Options);
@@ -62,8 +56,7 @@ public sealed class ResultSnapshotService
     }
 }
 
-public sealed class ResultRecommendationService
-{
+public sealed class ResultRecommendationService {
     public IReadOnlyList<ResultRecommendation> Build(IReadOnlyList<MethodologicalScoreGroup> dimensions, AggregatedEvidence evidence) =>
         dimensions.Where(x => x.Score < 70m).OrderBy(x => x.Score).Select(d => new ResultRecommendation(
             d.Code, $"Evoluir {d.Code}", $"Priorize a dimensão com índice {d.Score:0.##}/100 e valide o avanço no próximo ciclo.",
@@ -75,18 +68,15 @@ public sealed class ResultRecommendationService
 public sealed class ResultCalculationService(
     EvidenceAggregationService evidenceService, ValoraIndexScoreService scoreService,
     ResultSnapshotService snapshotService, ResultRecommendationService recommendationService,
-    ILogger<ResultCalculationService> logger)
-{
+    ILogger<ResultCalculationService> logger) {
     public CalculatedResult Calculate(IEnumerable<MethodologicalAnswer> input, int participantCount, int minimumParticipants,
-        bool requiresAnonymity, string ruleVersion, string correlationId, DateTimeOffset? calculatedAt = null)
-    {
+        bool requiresAnonymity, string ruleVersion, string correlationId, DateTimeOffset? calculatedAt = null) {
         if (minimumParticipants <= 0) throw new ArgumentOutOfRangeException(nameof(minimumParticipants));
         var answers = input?.ToArray() ?? throw new ArgumentNullException(nameof(input));
         using var scope = logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = correlationId, ["RuleVersion"] = ruleVersion });
         var evidence = evidenceService.Aggregate(answers, participantCount, requiresAnonymity);
         var snapshot = snapshotService.Create(ruleVersion, calculatedAt ?? DateTimeOffset.UtcNow, answers);
-        if (participantCount < minimumParticipants || evidence.ValidAnswerCount == 0)
-        {
+        if (participantCount < minimumParticipants || evidence.ValidAnswerCount == 0) {
             logger.LogWarning("Resultado insuficiente: {Participants}/{MinimumParticipants} participantes e {EvidenceCount} evidências válidas.", participantCount, minimumParticipants, evidence.ValidAnswerCount);
             return new(ResultLifecycleStatus.Insufficient, null, Array.Empty<MethodologicalScoreGroup>(), evidence,
                 Array.Empty<ResultRecommendation>(), snapshot, "Ainda não há respostas suficientes para calcular este resultado.");
@@ -103,17 +93,14 @@ public sealed class ResultCalculationService(
     }
 }
 
-public sealed class ResultPublicationService
-{
-    public CalculatedResult Publish(CalculatedResult result) => result.Status switch
-    {
+public sealed class ResultPublicationService {
+    public CalculatedResult Publish(CalculatedResult result) => result.Status switch {
         ResultLifecycleStatus.Insufficient => throw new InvalidOperationException("Um resultado insuficiente não pode ser publicado."),
         ResultLifecycleStatus.Published => result,
         _ => result with { Status = ResultLifecycleStatus.Published }
     };
 
-    public void EnsureCanRecalculate(CalculatedResult result, bool createNewVersion)
-    {
+    public void EnsureCanRecalculate(CalculatedResult result, bool createNewVersion) {
         if (result.Status == ResultLifecycleStatus.Published && !createNewVersion)
             throw new InvalidOperationException("Este resultado publicado preserva rastreabilidade e não pode ser alterado diretamente.");
     }

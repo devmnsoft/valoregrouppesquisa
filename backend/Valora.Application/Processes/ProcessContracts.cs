@@ -17,15 +17,13 @@ public sealed record ProcessInsightDto(Guid Id, Guid ProcessDefinitionId, string
     string? StepName, string InsightType, string EvidenceSummary, decimal? AverageDurationHours, int OccurrenceCount);
 public sealed record ProcessTemplateDto(Guid Id, string Name, string Description, string Category, string Status);
 
-public sealed class CreateProcessRequest
-{
+public sealed class CreateProcessRequest {
     [Required, StringLength(160)] public string Name { get; init; } = "";
     [StringLength(2000)] public string Description { get; init; } = "";
     [Required, StringLength(80)] public string Category { get; init; } = "";
     [Required] public Guid OwnerUserId { get; init; }
 }
-public sealed class CreateProcessStepRequest
-{
+public sealed class CreateProcessStepRequest {
     [Required, StringLength(160)] public string Name { get; init; } = "";
     [StringLength(2000)] public string? Description { get; init; }
     [Required, RegularExpression("^(initial|task|approval|automation|final)$")] public string StepType { get; init; } = "task";
@@ -35,8 +33,7 @@ public sealed class CreateProcessStepRequest
     public bool RequiresApproval { get; init; }
     public bool EvidenceRequired { get; init; }
 }
-public sealed class CreateProcessInstanceRequest
-{
+public sealed class CreateProcessInstanceRequest {
     [Required] public Guid ProcessDefinitionId { get; init; }
     [Required, StringLength(180)] public string Title { get; init; } = "";
     [Required] public Guid ResponsibleUserId { get; init; }
@@ -45,14 +42,12 @@ public sealed class CreateProcessInstanceRequest
     [Required, RegularExpression("^(low|medium|high|critical)$")] public string Priority { get; init; } = "medium";
 }
 public sealed class AdvanceProcessRequest { public bool EvidenceProvided { get; init; } }
-public sealed class ApprovalDecisionRequest
-{
+public sealed class ApprovalDecisionRequest {
     [StringLength(2000)] public string? Justification { get; init; }
     public Guid? ReturnStepId { get; init; }
 }
 
-public interface IProcessDefinitionRepository
-{
+public interface IProcessDefinitionRepository {
     Task<IReadOnlyList<ProcessDefinitionDto>> List(Guid organizationId, CancellationToken ct);
     Task<ProcessDefinitionDto?> Get(Guid organizationId, Guid id, CancellationToken ct);
     Task<Guid> Create(Guid organizationId, Guid userId, CreateProcessRequest request, CancellationToken ct);

@@ -2,11 +2,9 @@ using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
-public sealed class UserAuthenticationRegressionTests
-{
+public sealed class UserAuthenticationRegressionTests {
     [Fact]
-    public void AuthenticationQueryUsesMutableRowProjectionAndMapsRecordExplicitly()
-    {
+    public void AuthenticationQueryUsesMutableRowProjectionAndMapsRecordExplicitly() {
         var source = File.ReadAllText(RepositoryPaths.InfrastructureFile("Repositories", "UserRepository.cs"));
 
         Assert.Contains("private sealed class AuthUserRow", source);
@@ -17,26 +15,21 @@ public sealed class UserAuthenticationRegressionTests
     }
 
     [Fact]
-    public void AuthenticationQueryOnlySelectsActiveRowsAndDoesNotProjectDeletedAt()
-    {
+    public void AuthenticationQueryOnlySelectsActiveRowsAndDoesNotProjectDeletedAt() {
         var source = File.ReadAllText(RepositoryPaths.InfrastructureFile("Repositories", "UserRepository.cs"));
-        var authenticationQuery = source[source.IndexOf("public async Task<UserAuthenticationRecord?> GetByEmailAsync", StringComparison.Ordinal)
-            ..source.IndexOf("public async Task<UserRecord?> GetAsync", StringComparison.Ordinal)];
+        var authenticationQuery = source[source.IndexOf("public async Task<UserAuthenticationRecord?> GetByEmailAsync", StringComparison.Ordinal)..source.IndexOf("public async Task<UserRecord?> GetAsync", StringComparison.Ordinal)];
 
         Assert.Contains("u.deleted_at IS NULL", authenticationQuery);
         Assert.DoesNotContain("AS DeletedAt", authenticationQuery);
-        foreach (var alias in new[] { "Id", "OrganizationId", "Name", "Email", "PasswordHash", "Status", "Phone", "RoleCodesCsv" })
-        {
+        foreach (var alias in new[] { "Id", "OrganizationId", "Name", "Email", "PasswordHash", "Status", "Phone", "RoleCodesCsv" }) {
             Assert.Contains($"AS {alias}", authenticationQuery);
         }
     }
 
     [Fact]
-    public void LoginKeepsAuthenticationFailuresGenericAndLogsOnlyMaskedEmail()
-    {
+    public void LoginKeepsAuthenticationFailuresGenericAndLogsOnlyMaskedEmail() {
         var source = File.ReadAllText(RepositoryPaths.ApplicationFile("Services", "Auth", "AuthService.cs"));
-        var login = source[source.IndexOf("public async Task<AuthenticationResult> LoginAsync", StringComparison.Ordinal)
-            ..source.IndexOf("public async Task<AuthenticationResult> RefreshAsync", StringComparison.Ordinal)];
+        var login = source[source.IndexOf("public async Task<AuthenticationResult> LoginAsync", StringComparison.Ordinal)..source.IndexOf("public async Task<AuthenticationResult> RefreshAsync", StringComparison.Ordinal)];
 
         Assert.Contains("LogSanitizer.MaskEmail(request.Email)", login);
         Assert.Contains("user not found", login);

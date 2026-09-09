@@ -1,7 +1,7 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Web.Services.Bff;
-using System.Text.Json;
 
 namespace Valora.Web.Controllers;
 
@@ -9,20 +9,16 @@ namespace Valora.Web.Controllers;
 [AutoValidateAntiforgeryToken]
 [Route("bff/auth")]
 public sealed class BffAuthController(BffAuthenticationService authentication, IBffApiClient api,
-    ILogger<BffAuthController> logger, IWebHostEnvironment environment) : ControllerBase
-{
+    ILogger<BffAuthController> logger, IWebHostEnvironment environment) : ControllerBase {
     [AllowAnonymous, HttpPost("login")]
-    public async Task<IActionResult> Login([FromBody] object request, CancellationToken cancellationToken)
-    {
-        try
-        {
+    public async Task<IActionResult> Login([FromBody] object request, CancellationToken cancellationToken) {
+        try {
             var rememberMe = request is JsonElement json
                 && json.TryGetProperty("rememberMe", out var remember)
                 && remember.ValueKind is JsonValueKind.True;
             return Ok(await authentication.SignInAsync(HttpContext, "/api/v1/auth/login", request, cancellationToken, rememberMe));
         }
-        catch (BffApiUnavailableException exception)
-        {
+        catch (BffApiUnavailableException exception) {
             var correlationId = CorrelationId();
             logger.LogError(exception, "Valora API unavailable during BFF login. CorrelationId={CorrelationId} ApiBaseUrl={ApiBaseUrl}",
                 correlationId, exception.BaseUrl);
@@ -31,12 +27,10 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
                 : "O serviço de autenticação está temporariamente indisponível. Tente novamente em instantes.";
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { error = "API_UNAVAILABLE", message, correlationId });
         }
-        catch (BffApiException exception)
-        {
+        catch (BffApiException exception) {
             var correlationId = exception.CorrelationId ?? CorrelationId();
             logger.LogWarning(exception, "Authentication API rejected BFF login. Status={Status} Code={Code} CorrelationId={CorrelationId}", (int)exception.StatusCode, exception.Code, correlationId);
-            return StatusCode((int)exception.StatusCode, new
-            {
+            return StatusCode((int)exception.StatusCode, new {
                 status = (int)exception.StatusCode,
                 code = exception.Code,
                 message = exception.Message,
@@ -53,51 +47,44 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
         Ok(await authentication.SignInAsync(HttpContext, "/api/v1/auth/register-company", request, cancellationToken));
 
     [AllowAnonymous, HttpPost("forgot-password")]
-    public async Task<IActionResult> Forgot([FromBody] object request, CancellationToken cancellationToken)
-    {
+    public async Task<IActionResult> Forgot([FromBody] object request, CancellationToken cancellationToken) {
         await api.PostAsync("/api/v1/auth/forgot-password", request, null, cancellationToken);
         return Accepted(new { ok = true });
     }
 
     [AllowAnonymous, HttpPost("reset-password")]
-    public async Task<IActionResult> Reset([FromBody] object request, CancellationToken cancellationToken)
-    {
+    public async Task<IActionResult> Reset([FromBody] object request, CancellationToken cancellationToken) {
         await api.PostAsync("/api/v1/auth/reset-password", request, null, cancellationToken);
         return Ok(new { ok = true });
     }
 
     [Authorize, HttpPost("logout")]
-    public async Task<IActionResult> Logout(CancellationToken cancellationToken)
-    {
+    public async Task<IActionResult> Logout(CancellationToken cancellationToken) {
         await authentication.SignOutAsync(HttpContext, cancellationToken);
         return NoContent();
     }
 
     [Authorize, HttpPost("refresh")]
-    public async Task<IActionResult> Refresh(CancellationToken cancellationToken)
-    {
+    public async Task<IActionResult> Refresh(CancellationToken cancellationToken) {
         var session = await authentication.RefreshAsync(HttpContext, cancellationToken);
         return session is null ? Unauthorized() : Ok(session);
     }
 
     [Authorize, HttpGet("me")]
-    public async Task<IActionResult> Me(CancellationToken cancellationToken)
-    {
+    public async Task<IActionResult> Me(CancellationToken cancellationToken) {
         var session = await authentication.GetAsync(HttpContext, cancellationToken);
         return session is null ? Unauthorized() : Ok(session.SafeSession);
     }
 
     [Authorize, HttpGet("sessions")]
-    public async Task<IActionResult> Sessions(CancellationToken cancellationToken)
-    {
+    public async Task<IActionResult> Sessions(CancellationToken cancellationToken) {
         var session = await authentication.GetAsync(HttpContext, cancellationToken);
         return session is null ? Unauthorized() : Ok(new[] { session.SafeSession });
     }
 
     [Authorize(Roles = "admin_valora"), HttpPost("select-organization")]
     public async Task<IActionResult> SelectOrganization([FromBody] SelectOrganizationRequest request,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         if (request.OrganizationId == Guid.Empty)
             return BadRequest(new { code = "ORGANIZATION_ID_REQUIRED", message = "Selecione uma organização válida." });
 
@@ -106,11 +93,9 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
             $"/api/v1/saas/customers/{request.OrganizationId}/select-context",
             new { reason = request.Reason }, correlationId, cancellationToken);
         if (validation is null) return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou." });
-        if (!validation.IsSuccessStatusCode)
-        {
+        if (!validation.IsSuccessStatusCode) {
             var payload = await validation.Content.ReadAsStringAsync(cancellationToken);
-            return new ContentResult
-            {
+            return new ContentResult {
                 StatusCode = (int)validation.StatusCode,
                 ContentType = validation.Content.Headers.ContentType?.ToString() ?? "application/problem+json",
                 Content = payload
@@ -122,8 +107,7 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
     }
 
     [Authorize(Roles = "admin_valora"), HttpDelete("selected-organization")]
-    public async Task<IActionResult> ClearSelectedOrganization(CancellationToken cancellationToken)
-    {
+    public async Task<IActionResult> ClearSelectedOrganization(CancellationToken cancellationToken) {
         var session = await authentication.SelectOrganizationAsync(HttpContext, null, cancellationToken);
         return session is null ? Forbid() : Ok(session);
     }

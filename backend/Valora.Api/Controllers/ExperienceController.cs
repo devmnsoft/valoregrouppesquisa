@@ -11,8 +11,7 @@ namespace Valora.Api.Controllers;
 [Authorize(Roles = "admin_valora,consultor_valora,empresa_admin,gestor_pesquisa")]
 [ApiController]
 [Route("api/v1/experience")]
-public sealed class ExperienceController(IFormAdministrationService forms, IAuditRepository audit) : ControllerBase
-{
+public sealed class ExperienceController(IFormAdministrationService forms, IAuditRepository audit) : ControllerBase {
     private Guid OrganizationId => Guid.TryParse(User.FindFirstValue("organization_id"), out var id) ? id : Guid.Empty;
     private Guid UserId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty;
 
@@ -20,8 +19,7 @@ public sealed class ExperienceController(IFormAdministrationService forms, IAudi
     public IActionResult Templates() => Ok(new { items = OfficialTemplateCatalog.All });
 
     [HttpPost("templates/{code}/use")]
-    public async Task<IActionResult> UseTemplate(string code, CancellationToken cancellationToken)
-    {
+    public async Task<IActionResult> UseTemplate(string code, CancellationToken cancellationToken) {
         var template = OfficialTemplateCatalog.Find(code);
         if (template is null) return NotFound(new ProblemDetails { Title = "Template não encontrado." });
         if (OrganizationId == Guid.Empty || UserId == Guid.Empty) return Unauthorized();

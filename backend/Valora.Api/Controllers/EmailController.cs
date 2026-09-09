@@ -8,8 +8,7 @@ namespace Valora.Api.Controllers;
 
 [Authorize]
 [ApiController]
-public sealed class EmailController(IEmailTemplateService templates, IEmailQueueService queue, IEmailSenderService sender, IEmailStatusService status) : ControllerBase
-{
+public sealed class EmailController(IEmailTemplateService templates, IEmailQueueService queue, IEmailSenderService sender, IEmailStatusService status) : ControllerBase {
     private Guid? OrganizationId => Guid.TryParse(User.FindFirstValue("organization_id"), out var id) && id != Guid.Empty ? id : null;
 
     [HttpGet("/email/templates")]

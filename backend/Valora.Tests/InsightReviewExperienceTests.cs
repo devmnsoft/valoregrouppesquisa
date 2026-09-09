@@ -3,11 +3,9 @@ using Valora.Tests.Support;
 namespace Valora.Tests;
 
 [Trait("Category", "StaticContract")]
-public sealed class InsightReviewExperienceTests
-{
+public sealed class InsightReviewExperienceTests {
     [Fact]
-    public void InsightReviewUsesRealProtectedEndpointsAndConfirmation()
-    {
+    public void InsightReviewUsesRealProtectedEndpointsAndConfirmation() {
         var controller = File.ReadAllText(RepositoryPaths.WebFile("Controllers", "InsightsController.cs"));
         var view = File.ReadAllText(RepositoryPaths.WebFile("Views", "Insights", "Details.cshtml"));
 
@@ -23,8 +21,7 @@ public sealed class InsightReviewExperienceTests
     }
 
     [Fact]
-    public void InsightActionsNavigateToExistingBusinessFlows()
-    {
+    public void InsightActionsNavigateToExistingBusinessFlows() {
         var view = File.ReadAllText(RepositoryPaths.WebFile("Views", "Insights", "Details.cshtml"));
         var actionPlan = File.ReadAllText(RepositoryPaths.WebFile("Views", "ActionCenter", "CreatePlan.cshtml"));
 

@@ -9,16 +9,13 @@ namespace Valora.Api.Controllers;
 public sealed class DevelopmentAuthDiagnosticsController(
     IWebHostEnvironment environment,
     IDbConnectionFactory connections,
-    IPasswordHasher passwordHasher) : ControllerBase
-{
+    IPasswordHasher passwordHasher) : ControllerBase {
     [HttpGet("/dev/auth/diagnostics")]
     [ApiExplorerSettings(IgnoreApi = true)]
-    public async Task<IActionResult> Get()
-    {
+    public async Task<IActionResult> Get() {
         if (!environment.IsDevelopment()) return NotFound();
 
-        try
-        {
+        try {
             using var connection = connections.Create();
             const string sql = """
                 SELECT u.id, u.status, u.deleted_at, u.password_hash,
@@ -36,8 +33,7 @@ public sealed class DevelopmentAuthDiagnosticsController(
                 """;
             var row = await connection.QuerySingleOrDefaultAsync(sql);
             bool passwordValid = VerifyDevelopmentPassword(row is null ? null : (string?)row.password_hash);
-            return Ok(new
-            {
+            return Ok(new {
                 api = "online",
                 database = "online",
                 superadminExists = row is not null,
@@ -50,14 +46,12 @@ public sealed class DevelopmentAuthDiagnosticsController(
                 developmentPasswordVerification = passwordValid ? "valid" : "invalid"
             });
         }
-        catch
-        {
+        catch {
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { api = "online", database = "offline" });
         }
     }
 
-    private bool VerifyDevelopmentPassword(string? hash)
-    {
+    private bool VerifyDevelopmentPassword(string? hash) {
         if (string.IsNullOrWhiteSpace(hash) || hash.Length != 60 || !hash.StartsWith("$2", StringComparison.Ordinal)) return false;
         try { return passwordHasher.Verify("Valora!12345", hash); }
         catch (ArgumentException) { return false; }

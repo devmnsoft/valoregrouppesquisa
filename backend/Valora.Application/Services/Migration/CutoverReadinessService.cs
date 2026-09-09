@@ -9,10 +9,8 @@ namespace Valora.Application.Services;
 
 public sealed class CutoverReadinessService(
     IMigrationConflictRepository conflicts,
-    IAuditRepository audit) : ICutoverReadinessService
-{
-    public async Task<CutoverReadinessDto> GetAsync(Guid batchId, CancellationToken ct = default)
-    {
+    IAuditRepository audit) : ICutoverReadinessService {
+    public async Task<CutoverReadinessDto> GetAsync(Guid batchId, CancellationToken ct = default) {
         var c = await conflicts.ListByBatchAsync(batchId, ct);
         var blockers = c
             .Where(x => x.Severity == "blocking")

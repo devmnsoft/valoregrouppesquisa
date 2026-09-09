@@ -4,10 +4,8 @@ using Valora.Application.DTOs;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class SubscriptionRepository(IDbConnectionFactory connections) : ISubscriptionRepository
-{
-    public async Task<SubscriptionDto?> GetByOrganizationAsync(Guid organizationId)
-    {
+public sealed class SubscriptionRepository(IDbConnectionFactory connections) : ISubscriptionRepository {
+    public async Task<SubscriptionDto?> GetByOrganizationAsync(Guid organizationId) {
         const string sql = """
             SELECT
                 id AS Id,
@@ -41,8 +39,7 @@ public sealed class SubscriptionRepository(IDbConnectionFactory connections) : I
         return await connection.QueryFirstOrDefaultAsync<SubscriptionDto>(sql, new { organizationId });
     }
 
-    public async Task UpsertAsync(SubscriptionDto subscription)
-    {
+    public async Task UpsertAsync(SubscriptionDto subscription) {
         const string sql = """
             INSERT INTO valorapesquisa.subscriptions
             (
@@ -106,8 +103,7 @@ public sealed class SubscriptionRepository(IDbConnectionFactory connections) : I
         await connection.ExecuteAsync(sql, subscription);
     }
 
-    public async Task SetStatusAsync(Guid organizationId, string status)
-    {
+    public async Task SetStatusAsync(Guid organizationId, string status) {
         const string sql = """
             UPDATE valorapesquisa.subscriptions
             SET
@@ -124,8 +120,7 @@ public sealed class SubscriptionRepository(IDbConnectionFactory connections) : I
     public async Task<ManualPaymentDto> RegisterPaymentAsync(
         Guid organizationId,
         Guid? userId,
-        RegisterManualPaymentRequest request)
-    {
+        RegisterManualPaymentRequest request) {
         const string sql = """
             INSERT INTO valorapesquisa.manual_payments
                 (id, subscription_id, organization_id, amount, paid_at, method, reference, notes, registered_by)
@@ -156,8 +151,7 @@ public sealed class SubscriptionRepository(IDbConnectionFactory connections) : I
                 created_at AS CreatedAt;
             """;
 
-        var parameters = new
-        {
+        var parameters = new {
             organizationId,
             userId,
             request.Amount,
@@ -171,8 +165,7 @@ public sealed class SubscriptionRepository(IDbConnectionFactory connections) : I
         return await connection.QuerySingleAsync<ManualPaymentDto>(sql, parameters);
     }
 
-    public async Task<IReadOnlyList<ManualPaymentDto>> ListPaymentsAsync(Guid organizationId)
-    {
+    public async Task<IReadOnlyList<ManualPaymentDto>> ListPaymentsAsync(Guid organizationId) {
         const string sql = """
             SELECT
                 id AS Id,

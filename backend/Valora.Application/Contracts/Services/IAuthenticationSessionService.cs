@@ -2,8 +2,7 @@ using Valora.Application.DTOs;
 
 namespace Valora.Application.Contracts;
 
-public interface IAuthenticationSessionService
-{
+public interface IAuthenticationSessionService {
     Task<TokenPair> CreateAsync(Guid userId, Guid organizationId, string email, string role, string locale, string? ipAddress = null, string? userAgent = null);
     Task<TokenPair> RefreshAsync(string rawRefreshToken);
     Task LogoutAsync(Guid userId, string rawRefreshToken);

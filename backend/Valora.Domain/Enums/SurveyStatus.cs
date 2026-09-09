@@ -1,7 +1,6 @@
 namespace Valora.Domain.Enums;
 
-public enum SurveyStatus
-{
+public enum SurveyStatus {
     Draft,
     Active,
     Published,

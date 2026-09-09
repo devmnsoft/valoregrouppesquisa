@@ -2,8 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Valora.Web.Controllers;
 
-public sealed class LgpdController : Controller
-{
+public sealed class LgpdController : Controller {
     [Route("lgpd/gestao")]
     public IActionResult Index() => View();
 

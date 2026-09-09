@@ -4,11 +4,9 @@ using Xunit;
 namespace Valora.Tests;
 
 [Trait("Category", "Unit")]
-public sealed class SurveyResultCalculatorTests
-{
+public sealed class SurveyResultCalculatorTests {
     [Fact]
-    public void Calculates_scale_single_multiple_text_and_dimensions()
-    {
+    public void Calculates_scale_single_multiple_text_and_dimensions() {
         var questions = new[]
         {
             new SurveyQuestionInput("q1", "scale", "Gestão", 1, 5, null, Array.Empty<SurveyOptionInput>()),

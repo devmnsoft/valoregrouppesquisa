@@ -1,15 +1,13 @@
+using System.Text.RegularExpressions;
 using Valora.Application.Access;
 using Valora.Application.Communication;
 using Valora.Tests.Support;
-using System.Text.RegularExpressions;
 
 namespace Valora.Tests;
 
-public sealed class CommunicationCenterContractTests
-{
+public sealed class CommunicationCenterContractTests {
     [Fact]
-    public void Communication_permissions_are_canonical_and_unique()
-    {
+    public void Communication_permissions_are_canonical_and_unique() {
         var required = new[]
         {
             "notifications.read", "notifications.manage", "notifications.mark_read",
@@ -23,8 +21,7 @@ public sealed class CommunicationCenterContractTests
     }
 
     [Fact]
-    public void Template_validation_rejects_variables_outside_allowlist()
-    {
+    public void Template_validation_rejects_variables_outside_allowlist() {
         var error = Assert.Throws<ArgumentException>(() =>
             EmailTemplateService.ValidatePlaceholders("Olá {{name}}, token {{secret}}", ["name"]));
 
@@ -32,8 +29,7 @@ public sealed class CommunicationCenterContractTests
     }
 
     [Fact]
-    public void Complete_script_guards_communication_tables_and_operational_columns()
-    {
+    public void Complete_script_guards_communication_tables_and_operational_columns() {
         var sql = File.ReadAllText(RepositoryPaths.CanonicalDatabaseScript);
         foreach (var table in new[] { "notification_recipients", "notification_templates", "notification_events", "communication_outbox", "communication_delivery_attempts", "email_template_versions", "reminder_rules", "reminder_jobs", "message_audit_logs" })
             Assert.Contains($"CREATE TABLE IF NOT EXISTS valorapesquisa.{table}", sql);
@@ -43,8 +39,7 @@ public sealed class CommunicationCenterContractTests
     }
 
     [Fact]
-    public void Canonical_script_keeps_collaboration_center_organization_scoped_and_complete()
-    {
+    public void Canonical_script_keeps_collaboration_center_organization_scoped_and_complete() {
         var sql = File.ReadAllText(RepositoryPaths.CanonicalDatabaseScript);
         var tables = new[]
         {

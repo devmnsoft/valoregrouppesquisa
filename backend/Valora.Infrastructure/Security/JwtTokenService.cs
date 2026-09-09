@@ -6,10 +6,9 @@ using Microsoft.IdentityModel.Tokens;
 using Valora.Application.Contracts;
 
 namespace Valora.Infrastructure.Security;
-public sealed class JwtTokenService(IConfiguration configuration) : IJwtTokenService
-{
-    public string CreateToken(Guid userId, Guid organizationId, Guid sessionId, string email, string role, string locale)
-    {
+
+public sealed class JwtTokenService(IConfiguration configuration) : IJwtTokenService {
+    public string CreateToken(Guid userId, Guid organizationId, Guid sessionId, string email, string role, string locale) {
         var options = configuration.GetSection("Jwt");
         var claims = new List<Claim>
         {

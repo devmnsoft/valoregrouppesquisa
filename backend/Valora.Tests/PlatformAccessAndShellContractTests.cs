@@ -1,13 +1,11 @@
-using Valora.Application.Access;
 using System.Text.RegularExpressions;
+using Valora.Application.Access;
 
 namespace Valora.Tests;
 
-public sealed class PlatformAccessAndShellContractTests
-{
+public sealed class PlatformAccessAndShellContractTests {
     [Fact]
-    public void Canonical_permission_codes_are_unique()
-    {
+    public void Canonical_permission_codes_are_unique() {
         var duplicates = ValoraPermissions.All
             .GroupBy(permission => permission, StringComparer.OrdinalIgnoreCase)
             .Where(group => group.Count() > 1)
@@ -18,8 +16,7 @@ public sealed class PlatformAccessAndShellContractTests
     }
 
     [Fact]
-    public void Action_evolution_and_journey_permissions_remain_canonical()
-    {
+    public void Action_evolution_and_journey_permissions_remain_canonical() {
         string[] expected =
         [
             "action.read", "action.manage", "action.approve", "action.complete", "action.comments.manage",
@@ -31,8 +28,7 @@ public sealed class PlatformAccessAndShellContractTests
     }
 
     [Fact]
-    public void PlatformCatalogMapsEveryPermissionWithoutPrefixGuessing()
-    {
+    public void PlatformCatalogMapsEveryPermissionWithoutPrefixGuessing() {
         var capabilities = ValoraAccessCatalog.CapabilitiesForStrict(ValoraPermissions.All);
         Assert.NotEmpty(capabilities);
         Assert.Contains("identity", capabilities);
@@ -42,15 +38,13 @@ public sealed class PlatformAccessAndShellContractTests
     }
 
     [Fact]
-    public void UnitsIsAnOfficialOrganizationPermission()
-    {
+    public void UnitsIsAnOfficialOrganizationPermission() {
         Assert.Equal("organization", ValoraAccessCatalog.PermissionCapability(ValoraPermissions.Units.Read));
         Assert.Equal(new[] { "organization" }, ValoraAccessCatalog.CapabilitiesForStrict(["units.read"]));
     }
 
     [Fact]
-    public void RuntimeResolutionDeniesUnknownPermissionWithoutBreakingLogin()
-    {
+    public void RuntimeResolutionDeniesUnknownPermissionWithoutBreakingLogin() {
         var warnings = new List<string>();
         var capabilities = ValoraAccessCatalog.CapabilitiesFor(["units.read", "legacy.unknown"], warnings.Add);
         Assert.Equal(new[] { "organization" }, capabilities);
@@ -58,8 +52,7 @@ public sealed class PlatformAccessAndShellContractTests
     }
 
     [Fact]
-    public void EveryPermissionSeededByTheCompleteDatabaseScriptIsCanonical()
-    {
+    public void EveryPermissionSeededByTheCompleteDatabaseScriptIsCanonical() {
         var root = FindRepositoryRoot();
         var sql = File.ReadAllText(Path.Combine(root, "backend/database/postgresql/script_completo.sql"));
         var insertStatements = Regex.Matches(sql, @"INSERT INTO valorapesquisa\.permissions\([^;]+?;",
@@ -73,8 +66,7 @@ public sealed class PlatformAccessAndShellContractTests
     }
 
     [Fact]
-    public void AdminValoraLoginPathUsesCompleteCatalogAndDoesNotDependOnTenantAccessService()
-    {
+    public void AdminValoraLoginPathUsesCompleteCatalogAndDoesNotDependOnTenantAccessService() {
         var root = FindRepositoryRoot();
         var source = File.ReadAllText(Path.Combine(root, "backend/Valora.Application/Services/Auth/AuthService.cs"));
         Assert.Contains("roles.Contains(ValoraAccessCatalog.PlatformRole", source);
@@ -86,8 +78,7 @@ public sealed class PlatformAccessAndShellContractTests
     }
 
     [Fact]
-    public void AdministrativeLayoutLoadsCanonicalHiddenRuleAndAdminModulesInOrder()
-    {
+    public void AdministrativeLayoutLoadsCanonicalHiddenRuleAndAdminModulesInOrder() {
         var root = FindRepositoryRoot();
         var layout = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/Views/Shared/_AdminLayout.cshtml"));
         Assert.True(layout.IndexOf("design-system/components.css", StringComparison.Ordinal) < layout.IndexOf("valora-v9.css", StringComparison.Ordinal));
@@ -100,8 +91,7 @@ public sealed class PlatformAccessAndShellContractTests
     }
 
     [Fact]
-    public void CriticalTypedAndWorkerRepositoriesNeverUseSelectStar()
-    {
+    public void CriticalTypedAndWorkerRepositoriesNeverUseSelectStar() {
         var root = FindRepositoryRoot();
         var repositories = new[]
         {
@@ -110,15 +100,13 @@ public sealed class PlatformAccessAndShellContractTests
             "CommunicationRepository.cs"
         };
 
-        foreach (var repository in repositories)
-        {
+        foreach (var repository in repositories) {
             var source = File.ReadAllText(Path.Combine(root, "backend/Valora.Infrastructure/Repositories", repository));
             Assert.DoesNotMatch(@"(?i)SELECT\s+\*", source);
         }
     }
 
-    private static string FindRepositoryRoot()
-    {
+    private static string FindRepositoryRoot() {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null && !Directory.Exists(Path.Combine(directory.FullName, "backend/Valora.Web"))) directory = directory.Parent;
         return directory?.FullName ?? throw new DirectoryNotFoundException("Repository root not found.");

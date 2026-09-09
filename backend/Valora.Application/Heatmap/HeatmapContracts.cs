@@ -13,15 +13,13 @@ public sealed record GenerateHeatmapRequest(Guid DiagnosticId, Guid? ResultId = 
     string? Area = null, string? Unit = null, string? Leadership = null, string? IndexCode = null,
     DateTime? PeriodStart = null, DateTime? PeriodEnd = null);
 
-public interface IHeatmapRepository
-{
+public interface IHeatmapRepository {
     Task<IReadOnlyList<HeatmapSnapshotDto>> ListAsync(Guid organizationId, CancellationToken ct);
     Task<HeatmapSnapshotDto?> GetAsync(Guid organizationId, Guid id, CancellationToken ct);
     Task<HeatmapSnapshotDto> GenerateAsync(Guid organizationId, Guid? userId, HeatmapFilter filter, CancellationToken ct);
 }
 
-public interface IHeatmapService
-{
+public interface IHeatmapService {
     Task<IReadOnlyList<HeatmapSnapshotDto>> OverviewAsync(Guid organizationId, CancellationToken ct);
     Task<HeatmapSnapshotDto?> GetAsync(Guid organizationId, Guid id, CancellationToken ct);
     Task<HeatmapSnapshotDto> GenerateAsync(Guid organizationId, Guid? userId, GenerateHeatmapRequest request, CancellationToken ct);

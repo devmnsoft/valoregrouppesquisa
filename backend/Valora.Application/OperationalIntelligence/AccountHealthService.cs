@@ -32,7 +32,7 @@ public sealed class AccountHealthService
         if (value.DepartmentCount == 0) actions.Add(new("department", "Cadastrar setores", "Crie ao menos um setor para segmentar as análises.", "/Organization#org-structure", "Alta", "layers"));
         if (value.InvitedMemberCount == 0) actions.Add(new("members", "Convidar gestores", "Distribua responsabilidades com escopos seguros.", "/Users", "Média", "users"));
         if (value.PublishedSurveyCount == 0) actions.Add(new("survey", "Publicar primeira pesquisa", "Inicie o primeiro ciclo de escuta da empresa.", "/Surveys", "Alta", "file-question"));
-        else if (value.ResponseCount > 0) actions.Add(new("results", "Analisar respostas recebidas", "Identifique tendências e dimensões prioritárias.", "/Results", "Alta", "chart-radar"));
+        else if (value.ResponseCount > 0 && value.GeneratedReportCount == 0) actions.Add(new("results", "Analisar respostas recebidas", "Identifique tendências e dimensões prioritárias.", "/Results", "Alta", "chart-radar"));
         if (value.ResponseCount > 0 && value.GeneratedReportCount == 0) actions.Add(new("report", "Gerar relatório executivo", "Compartilhe a leitura consolidada com a liderança.", "/Reports", "Média", "file-text"));
         if (value.PendingRecommendationCount > 0 && value.ActiveActionCount == 0) actions.Add(new("action", "Criar plano de ação", "Transforme recomendações prioritárias em execução.", "/OperationalIntelligence/ActionPlans", "Alta", "activity"));
         if (!value.PlanWithinLimits) actions.Add(new("plan", "Revisar plano e limites", "Libere capacidade para manter sua operação ativa.", "/Plans", "Crítica", "sparkles"));

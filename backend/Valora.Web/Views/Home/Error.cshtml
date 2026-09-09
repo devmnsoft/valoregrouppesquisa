@@ -14,8 +14,8 @@
 <main class="container py-5" aria-labelledby="error-title">
   <section class="valora-card mx-auto p-4 p-md-5 text-center" style="max-width:760px">
     <p class="eyebrow">Valora Insight™ · Código @status</p>
-    <h1 id="error-title">@content.Item1</h1>
-    <p class="text-muted mt-3">@content.Item2</p>
+    <h1 id="error-title">@Html.Raw(content.Item1)</h1>
+    <p class="text-muted mt-3">@Html.Raw(content.Item2)</p>
     @if (!string.IsNullOrWhiteSpace(correlationId))
     {
       <p class="small text-muted">Referência para suporte: <code>@correlationId</code></p>

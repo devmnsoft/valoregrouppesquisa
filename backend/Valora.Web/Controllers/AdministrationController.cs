@@ -81,7 +81,7 @@ public sealed class AdministrationController : Controller
     public IActionResult Branding() => Module("branding");
     public IActionResult Support() => Module("support");
 
-    [HttpGet("Privacy")]
+    [HttpGet("Administration/Privacy")]
     public IActionResult Privacy() => RedirectToAction(nameof(Module), new { module = "settings" });
 
     [HttpGet("Notifications")]

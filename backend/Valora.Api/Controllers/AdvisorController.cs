@@ -2,23 +2,17 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Advisor;
+using Valora.Application.Common;
 
 namespace Valora.Api.Controllers;
 
 [Authorize, ApiController, Route("api/v1/advisor")]
 public sealed class AdvisorController(AdvisorConversationService conversations,AdvisorMessageService messages,
     AdvisorContextBuilderService context,AdvisorPromptTemplateService templates,AdvisorFeedbackService feedback,
-    AdvisorActionSuggestionService suggestions) : ControllerBase
+    AdvisorActionSuggestionService suggestions,ICurrentRequestContext currentRequest) : ControllerBase
 {
-    private Guid UserId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier),out var id)?id:Guid.Empty;
-    private Guid OrganizationId
-    {
-        get
-        {
-            if(Guid.TryParse(User.FindFirstValue("organization_id"),out var claimId)&&claimId!=Guid.Empty)return claimId;
-            return Guid.TryParse(Request.Headers["X-Organization-Id"].FirstOrDefault(),out var headerId)?headerId:Guid.Empty;
-        }
-    }
+    private Guid UserId => currentRequest.GetCurrent().RequireUserId();
+    private Guid OrganizationId => currentRequest.GetCurrent().RequireOrganizationId();
     [HttpGet("conversations")] public async Task<ActionResult> List(CancellationToken ct)=>Ok(await conversations.List(OrganizationId,UserId,ct));
     [HttpPost("conversations")] public async Task<ActionResult> Create([FromBody]CreateAdvisorConversationRequest request,CancellationToken ct){var id=await conversations.Create(OrganizationId,UserId,request,ct);return CreatedAtAction(nameof(Get),new{id},new{id,eventName="advisor.conversation.created"});}
     [HttpGet("conversations/{id:guid}")] public async Task<ActionResult> Get(Guid id,CancellationToken ct){var result=await conversations.Get(OrganizationId,UserId,id,ct);return result is null?NotFound():Ok(result);}

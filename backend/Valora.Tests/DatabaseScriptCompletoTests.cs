@@ -14,6 +14,7 @@ public sealed class DatabaseScriptCompletoTests
         Assert.Contains("CREATE EXTENSION IF NOT EXISTS pgcrypto", sql);
         Assert.Contains("CREATE TABLE IF NOT EXISTS valorapesquisa.organizations", sql);
         Assert.Contains("CREATE TABLE IF NOT EXISTS valorapesquisa.survey_links", sql);
-        Assert.Contains("Diagnóstico gratuito Valora Insight", sql);
+        Assert.Contains("'valora-official'", sql);
+        Assert.Contains("ON CONFLICT", sql);
     }
 }

@@ -1,5 +1,6 @@
 using System.IO;
 using Xunit;
+using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
@@ -9,7 +10,7 @@ public sealed class FreeSurveySecurityTests
     [Fact]
     public void FreeSurveySecurityArtifactsContainRequiredControls()
     {
-        var controller = File.ReadAllText("../../../Valora.Api/Controllers/PublicSurveysController.cs");
+        var controller = File.ReadAllText(RepositoryPaths.ApiFile("Controllers", "PublicSurveysController.cs"));
         Assert.Contains("ip-rate-limit", controller);
         Assert.Contains("email-rate-limit", controller);
         Assert.Contains("token-rate-limit", controller);

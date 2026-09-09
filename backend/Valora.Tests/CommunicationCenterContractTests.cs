@@ -1,5 +1,7 @@
 using Valora.Application.Access;
 using Valora.Application.Communication;
+using Valora.Tests.Support;
+using System.Text.RegularExpressions;
 
 namespace Valora.Tests;
 
@@ -32,7 +34,7 @@ public sealed class CommunicationCenterContractTests
     [Fact]
     public void Complete_script_guards_communication_tables_and_operational_columns()
     {
-        var sql = File.ReadAllText("../../../database/postgresql/script_completo.sql");
+        var sql = File.ReadAllText(RepositoryPaths.CanonicalDatabaseScript);
         foreach (var table in new[] { "notification_recipients", "notification_templates", "notification_events", "communication_outbox", "communication_delivery_attempts", "email_template_versions", "reminder_rules", "reminder_jobs", "message_audit_logs" })
             Assert.Contains($"CREATE TABLE IF NOT EXISTS valorapesquisa.{table}", sql);
         Assert.Contains("ADD COLUMN IF NOT EXISTS read_at", sql);
@@ -41,9 +43,9 @@ public sealed class CommunicationCenterContractTests
     }
 
     [Fact]
-    public void Collaboration_center_migration_is_organization_scoped_and_complete()
+    public void Canonical_script_keeps_collaboration_center_organization_scoped_and_complete()
     {
-        var sql = File.ReadAllText("../../../database/postgresql/migrations/2026_08_communication_collaboration_center.sql");
+        var sql = File.ReadAllText(RepositoryPaths.CanonicalDatabaseScript);
         var tables = new[]
         {
             "communication_channels", "communication_batches", "communication_recipients", "communication_events",
@@ -53,7 +55,9 @@ public sealed class CommunicationCenterContractTests
         };
 
         Assert.All(tables, table => Assert.Contains($"CREATE TABLE IF NOT EXISTS valorapesquisa.{table}", sql));
-        Assert.Equal(tables.Length, sql.Split("organization_id uuid NOT NULL", StringSplitOptions.None).Length - 1);
+        Assert.All(tables, table => Assert.Matches(
+            $@"(?is)CREATE TABLE IF NOT EXISTS valorapesquisa\.{Regex.Escape(table)}\s*\([^;]*organization_id uuid NOT NULL[^;]*\);",
+            sql));
         Assert.Contains("ck_approval_rejection_reason", sql);
         Assert.Contains("destination_hash", sql);
         Assert.Contains("invitation_token_hash", sql);

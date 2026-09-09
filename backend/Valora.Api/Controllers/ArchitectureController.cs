@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Valora.Application.Common;
 using Valora.Application.OrganizationalArchitecture;
 
 namespace Valora.Api.Controllers;
@@ -9,7 +10,7 @@ namespace Valora.Api.Controllers;
 public sealed class ArchitectureController(ArchitectureOverviewService overview, OrganizationUnitService units,
  OrganizationPositionService positions, ResponsibilityMatrixService responsibilities, BusinessProcessService processes,
  DecisionRightService decisions, OrganizationalDependencyService dependencies, ArchitectureSnapshotService snapshots,
- ArchitectureRiskService risks) : ControllerBase
+ ArchitectureRiskService risks,ICurrentRequestContext currentRequest) : ControllerBase
 {
  [HttpGet] public Task<ArchitectureSummary> Get(CancellationToken ct)=>overview.GetAsync(OrganizationId(),ct);
  [HttpGet("units")] public Task<IReadOnlyList<ArchitectureUnit>> Units(CancellationToken ct)=>units.ListAsync(OrganizationId(),ct);
@@ -26,6 +27,6 @@ public sealed class ArchitectureController(ArchitectureOverviewService overview,
  [HttpPost("dependencies")] public async Task<IActionResult> CreateDependency(CreateDependencyRequest request,CancellationToken ct)=>Created("/api/v1/architecture/dependencies",await dependencies.CreateAsync(OrganizationId(),request,HttpContext.TraceIdentifier,ct));
  [HttpPost("snapshot")] public async Task<IActionResult> Snapshot(CancellationToken ct)=>Created("/api/v1/architecture",await snapshots.CreateAsync(OrganizationId(),UserId(),HttpContext.TraceIdentifier,ct));
  [HttpGet("risks")] public Task<IReadOnlyList<ArchitectureRisk>> Risks(CancellationToken ct)=>risks.ListAsync(OrganizationId(),ct);
- private Guid OrganizationId(){var value=Request.Headers["X-Organization-Id"].FirstOrDefault()??User.FindFirstValue("organization_id")??User.FindFirstValue("organizationId");return Guid.TryParse(value,out var id)?id:throw new UnauthorizedAccessException("Selecione uma organização para acessar o Studio de Arquitetura.");}
- private Guid? UserId()=>Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier),out var id)?id:null;
+ private Guid OrganizationId()=>currentRequest.GetCurrent().RequireOrganizationId();
+ private Guid? UserId()=>currentRequest.GetCurrent().UserId;
 }

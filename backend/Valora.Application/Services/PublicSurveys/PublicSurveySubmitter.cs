@@ -11,11 +11,11 @@ public sealed class PublicSurveySubmitter(PublicSurveyValidator validator, Publi
     {
         try
         {
-            logger.LogInformation("Public survey submit started. SurveyId={SurveyId} ParticipantEmail={ParticipantEmail} ParticipantPhone={ParticipantPhone}", surveyId, LogSanitizer.MaskEmail(Val(request.Participant, "email")), LogSanitizer.MaskPhone(Val(request.Participant, "phone")));
+            logger.LogInformation("Public survey submit started. SurveyId={SurveyId} ParticipantEmail={ParticipantEmail} ParticipantPhone={ParticipantPhone}", surveyId, LogSanitizer.MaskEmail(request.Participant.Email), LogSanitizer.MaskPhone(request.Participant.Phone));
             var data = await validator.ValidateForReadAsync(surveyId, new ValidateSurveyRequest(request.Token, null));
-            await validator.ValidateForSubmitAsync(data.Survey.OrganizationId, request, data.Questions);
+            await validator.ValidateForSubmitAsync(data.Survey.OrganizationId, request, data.Questions, data.Options);
             logger.LogInformation("Public survey validated. SurveyId={SurveyId} OrganizationId={OrganizationId}", surveyId, data.Survey.OrganizationId);
-            var scored = scorer.Score(data.Questions, data.Dims, request.Answers);
+            var scored = scorer.Score(data.Questions, data.Dims, data.Options, request.Answers);
             logger.LogInformation("Public survey answers scored. SurveyId={SurveyId} AnswerCount={AnswerCount}", surveyId, scored.Count);
             var calc = calculator.Calculate(scored.Select(x => new AnswerScore(x.DimensionName, x.Score)));
             logger.LogInformation("Public survey result calculated. SurveyId={SurveyId} Level={Level}", surveyId, calc.Level);
@@ -31,6 +31,4 @@ public sealed class PublicSurveySubmitter(PublicSurveyValidator validator, Publi
             throw;
         }
     }
-
-    static string? Val(Dictionary<string, object>? d, string k) => d != null && d.TryGetValue(k, out var v) ? v?.ToString() : null;
 }

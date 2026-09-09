@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -7,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
 using Valora.Application.Security;
+using Valora.Application.Common;
 
 namespace Valora.Api.Controllers;
 
@@ -15,20 +15,20 @@ namespace Valora.Api.Controllers;
 public sealed class WebAdminModulesController(
     ILogger<WebAdminModulesController> logger,
     IOrganizationRepository organizations,
-    IUserRepository users,
     ISurveyRepository surveys,
     IResponseRepository responses,
     IAuditRepository audit,
     IPlanRepository plans,
-    IPasswordHasher passwordHasher) : ControllerBase
+    ICurrentRequestContext currentRequest) : ControllerBase
 {
-    private Guid OrganizationId => Guid.TryParse(User.FindFirstValue("organization_id"), out var id) ? id : Guid.Empty;
-    private Guid? UserId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
+    private CurrentRequestContext Context => currentRequest.GetCurrent();
+    private Guid OrganizationId => Context.EffectiveOrganizationId ?? Guid.Empty;
+    private Guid? UserId => Context.UserId;
     private string CorrelationId => HttpContext.TraceIdentifier;
 
     private async Task<IActionResult> Safe(Func<Task<object?>> action, string actionName)
     {
-        if (OrganizationId == Guid.Empty) return Unauthorized(new { ok = false, code = "ORGANIZATION_SCOPE_REQUIRED", correlationId = CorrelationId });
+        if (OrganizationId == Guid.Empty) return StatusCode(StatusCodes.Status403Forbidden, new { status = 403, code = "ORGANIZATION_SCOPE_REQUIRED", message = "Selecione uma organização para acessar este recurso.", correlationId = CorrelationId });
         try { return Ok(await action()); }
         catch (Exception ex)
         {
@@ -63,7 +63,7 @@ public sealed class WebAdminModulesController(
     [HttpGet("/surveys/{surveyId:guid}/links")]
     public Task<IActionResult> Links(Guid surveyId) => Safe(async () => new { ok = true, data = await surveys.ListLinksAdminAsync(OrganizationId, surveyId), correlationId = CorrelationId }, "links.list");
     [HttpPost("/surveys/{surveyId:guid}/links")]
-    public Task<IActionResult> CreateLink(Guid surveyId, [FromBody] JsonElement request) => Safe(async () => { var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(); var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant(); var url = Text(request,"publicUrl") ?? $"/public/surveys/{surveyId}?token={token}"; var id = await surveys.CreateLinkAdminAsync(OrganizationId, surveyId, hash, url, null); await Audit("survey_link.created", "survey_link", id); return new { ok = true, id, surveyId, publicUrl = url, status = "active", correlationId = CorrelationId }; }, "links.create");
+    public Task<IActionResult> CreateLink(Guid surveyId, [FromBody] JsonElement request) => Safe(async () => { var token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant(); var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token))).ToLowerInvariant(); var cleanUrl = CleanPublicUrl(Text(request,"publicUrl"), surveyId); var id = await surveys.CreateLinkAdminAsync(OrganizationId, surveyId, hash, cleanUrl, null); await Audit("survey_link.created", "survey_link", id); return new { ok = true, id, surveyId, publicUrl = $"{cleanUrl}?token={token}", status = "active", correlationId = CorrelationId }; }, "links.create");
     [HttpPatch("/survey-links/{linkId:guid}/status")]
     public Task<IActionResult> LinkStatus(Guid linkId, [FromBody] JsonElement request) => Safe(async () => { await surveys.UpdateLinkStatusAdminAsync(OrganizationId, linkId, Text(request,"status") ?? "inactive"); await Audit("survey_link.status", "survey_link", linkId); return new { ok = true, id = linkId, correlationId = CorrelationId }; }, "links.status");
 
@@ -88,4 +88,10 @@ public sealed class WebAdminModulesController(
     private static string? Text(JsonElement e, string name) => e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var p) && p.ValueKind != JsonValueKind.Null ? p.ToString() : null;
     private static Guid? TryGuid(JsonElement e, string name) => Guid.TryParse(Text(e, name), out var g) ? g : null;
     private static Guid GuidValue(JsonElement e, string name) => TryGuid(e, name) ?? throw new ArgumentException($"{name} obrigatório");
+    private static string CleanPublicUrl(string? value, Guid surveyId)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return $"/public/surveys/{surveyId}";
+        var path = value.Split('?', '#')[0];
+        return Uri.TryCreate(path, UriKind.Relative, out _) && path.StartsWith('/') ? path : $"/public/surveys/{surveyId}";
+    }
 }

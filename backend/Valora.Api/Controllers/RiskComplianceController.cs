@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Access;
+using Valora.Application.Common;
 using Valora.Application.RiskCompliance;
 
 namespace Valora.Api.Controllers;
@@ -10,11 +11,10 @@ namespace Valora.Api.Controllers;
 public sealed class RiskComplianceController(RiskRegisterService risks,RiskAssessmentService assessments,
     RiskControlService controls,ComplianceFrameworkService frameworks,ComplianceAssessmentService compliance,
     NonConformityService nonConformities,MitigationPlanService mitigations,RiskHeatmapService heatmap,
-    ILogger<RiskComplianceController> logger):ControllerBase
+    ILogger<RiskComplianceController> logger,ICurrentRequestContext currentRequest):ControllerBase
 {
-    private Guid ActorId=>Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier),out var id)?id:Guid.Empty;
-    private Guid OrganizationId=>Guid.TryParse(User.FindFirstValue("organization_id"),out var claim)&&claim!=Guid.Empty?claim:
-        Guid.TryParse(Request.Headers["X-Organization-Id"].FirstOrDefault(),out var header)?header:Guid.Empty;
+    private Guid ActorId=>currentRequest.GetCurrent().RequireUserId();
+    private Guid OrganizationId=>currentRequest.GetCurrent().RequireOrganizationId();
 
     [HttpGet,Authorize(Policy=ValoraPermissions.RiskCompliance.View)] public async Task<ActionResult> Dashboard(CancellationToken ct)=>OrganizationId==Guid.Empty?MissingOrganization():Ok(await risks.Dashboard(OrganizationId,ct));
     [HttpGet("risks"),Authorize(Policy=ValoraPermissions.RiskCompliance.View)] public async Task<ActionResult> Risks(CancellationToken ct)=>OrganizationId==Guid.Empty?MissingOrganization():Ok(await risks.List(OrganizationId,ct));

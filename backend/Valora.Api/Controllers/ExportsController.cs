@@ -1,24 +1,25 @@
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Valora.Application.Common;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
 
 namespace Valora.Api.Controllers;
 
 [Authorize, ApiController]
-public sealed class ExportsController(IExportService exports) : ControllerBase
+public sealed class ExportsController(IExportService exports, ICurrentRequestContext currentRequest) : ControllerBase
 {
-    private Guid? OrganizationId => Guid.TryParse(User.FindFirstValue("organization_id"), out var id) && id != Guid.Empty ? id : null;
-    private Guid? UserId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) && id != Guid.Empty ? id : null;
+    private CurrentRequestContext Context => currentRequest.GetCurrent();
+    private Guid? OrganizationId => Context.EffectiveOrganizationId;
+    private Guid? UserId => Context.UserId;
 
     [HttpPost("/exports")]
-    public async Task<IActionResult> Create([FromBody] ExportRequest request)
+    public async Task<IActionResult> Create([FromBody] ExportRequest request, CancellationToken cancellationToken)
     {
         if (OrganizationId is not { } organizationId) return OrganizationRequired();
         try
         {
-            return Ok(new { ok = true, job = await exports.RequestAsync(organizationId, UserId, request) });
+            return Accepted(new { ok = true, job = await exports.RequestAsync(organizationId, UserId, request, HttpContext.TraceIdentifier, cancellationToken) });
         }
         catch (InvalidOperationException exception)
         {
@@ -27,34 +28,36 @@ public sealed class ExportsController(IExportService exports) : ControllerBase
     }
 
     [HttpGet("/exports")]
-    public async Task<IActionResult> List()
+    public async Task<IActionResult> List(CancellationToken cancellationToken)
     {
         if (OrganizationId is not { } organizationId) return OrganizationRequired();
-        return Ok(new { ok = true, data = await exports.ListAsync(organizationId) });
+        return Ok(new { ok = true, data = await exports.ListAsync(organizationId, cancellationToken) });
     }
 
     [HttpGet("/exports/{id:guid}")]
-    public async Task<IActionResult> Get(Guid id)
+    public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken)
     {
         if (OrganizationId is not { } organizationId) return OrganizationRequired();
-        var job = await exports.GetAsync(organizationId, id);
+        var job = await exports.GetAsync(organizationId, id, cancellationToken);
         return job is null ? NotFound() : Ok(new { ok = true, job });
     }
 
     [HttpGet("/exports/{id:guid}/download")]
-    public async Task<IActionResult> Download(Guid id)
+    public async Task<IActionResult> Download(Guid id, CancellationToken cancellationToken)
     {
         if (OrganizationId is not { } organizationId) return OrganizationRequired();
-        var job = await exports.GetAsync(organizationId, id);
-        return job?.ResultPayload is null
+        var job = await exports.GetAsync(organizationId, id, cancellationToken);
+        return job?.ResultPayload is null || job.Status != "completed" || job.ExpiresAt <= DateTimeOffset.UtcNow
             ? NotFound()
-            : File(System.Text.Encoding.UTF8.GetBytes(job.ResultPayload), job.ResultMimeType ?? "text/plain", job.ResultFileName ?? "export.txt");
+            : File(Convert.FromBase64String(job.ResultPayload), job.ResultMimeType ?? "application/octet-stream", job.ResultFileName ?? "export.bin");
     }
 
     private ObjectResult OrganizationRequired() => StatusCode(StatusCodes.Status403Forbidden, new
     {
         ok = false,
-        code = "ORGANIZATION_REQUIRED",
-        message = "Selecione uma organização para continuar."
+        status = StatusCodes.Status403Forbidden,
+        code = "ORGANIZATION_SCOPE_REQUIRED",
+        message = "Selecione uma organização para acessar este recurso.",
+        correlationId = HttpContext.TraceIdentifier
     });
 }

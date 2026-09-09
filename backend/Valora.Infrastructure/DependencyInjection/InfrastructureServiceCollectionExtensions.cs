@@ -149,6 +149,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<ICertificateOperationalRepository, CertificateOperationalRepository>();
         services.AddScoped<IExportRepository, ExportRepository>();
+        services.AddScoped<IExportDataReader, ExportDataReader>();
+        services.AddScoped<IApplicationErrorEventRepository, ApplicationErrorEventRepository>();
         services.AddScoped<ILgpdRepository, LgpdRepository>();
         services.AddScoped<IEmailOperationalRepository, EmailOperationalRepository>();
         services.AddScoped<IMigrationBatchRepository, MigrationBatchRepository>();

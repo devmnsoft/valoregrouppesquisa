@@ -86,6 +86,12 @@ public static class ValoraPermissions
     public static class Usage { public const string Read="usage.read", Manage="usage.manage"; }
     public static class FeatureAccess { public const string Read="feature_access.read", Manage="feature_access.manage"; }
     public static class Upgrades { public const string Manage="upgrades.manage"; }
+    public static class Commercial
+    {
+        public const string LeadsRead="leads.read", LeadsManage="leads.manage",
+            TrialsRead="trials.read", TrialsManage="trials.manage",
+            Read="commercial.read", Manage="commercial.manage";
+    }
     public static class Organization { public const string Read="organization.read", Update="organization.update", BrandingRead="organization.branding.read", BrandingUpdate="organization.branding.update", SubscriptionRead="organization.subscription.read", UsageRead="organization.usage.read"; }
     public static class OrganizationCurrent { public const string Read="organization.current.read", Update="organization.current.update"; }
     public static class OrganizationOnboarding { public const string Read="organization.onboarding.read", Update="organization.onboarding.update"; }
@@ -301,6 +307,7 @@ public static class ValoraPermissions
         "organizations" => ValoraModules.Organization,
         "admin" or "administration" or "saas_admin" or "saas_customers" or "saas_users" or "saas_modules" or
         "saas_billing" or "saas_impersonation" or "integrations" or "notifications" or "communication" or "jobs" or "logs" or "support" => ValoraModules.Operations,
+        "leads" or "trials" or "commercial" => ValoraModules.Operations,
         "organization_users" or "organization_profiles" => ValoraModules.Identity,
         "permissions" => ValoraModules.Identity,
         "api_keys" or "webhooks" or "powerbi" or "integration_logs" or "imports" or "email_templates" => ValoraModules.Operations,

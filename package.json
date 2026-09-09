@@ -464,7 +464,8 @@
     "repository:boundaries": "node --test scripts/repository/validate-project-boundaries.test.js && node scripts/repository/validate-project-boundaries.js",
     "legacy:identity": "node scripts/validate-legacy-identity-contract.js",
     "public:survey-error-preservation": "node scripts/validate-public-survey-error-preservation.js",
-    "web:premium-layout": "node tools/validate-valora-premium-layout.js"
+    "web:premium-layout": "node tools/validate-valora-premium-layout.js",
+    "validate:official": "dotnet restore backend/Valora.sln && dotnet build backend/Valora.sln --no-restore && dotnet test backend/Valora.sln --no-build && npm run repository:boundaries && npm run web:premium-layout && node backend/tools/validation/validate-phase2k3.js && node tools/validate-scriptbd-completo-sql-compat.js && npm run security:no-secrets"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

@@ -4,18 +4,22 @@ using System.Text.RegularExpressions;
 using Npgsql;
 using Valora.Application.Exceptions;
 using Valora.Application.Security;
+using Valora.Application.Common;
+using Valora.Application.Contracts;
 
 namespace Valora.Api.Middleware;
 
 public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger, IHostEnvironment environment)
 {
-    public async Task InvokeAsync(HttpContext context)
+    public async Task InvokeAsync(HttpContext context, IApplicationErrorEventRepository? errorEvents = null,
+        ICurrentRequestContext? currentRequest = null)
     {
         try { await next(context); }
-        catch (Exception ex) { await HandleExceptionAsync(context, ex); }
+        catch (Exception ex) { await HandleExceptionAsync(context, ex, errorEvents, currentRequest); }
     }
 
-    private async Task HandleExceptionAsync(HttpContext context, Exception ex)
+    private async Task HandleExceptionAsync(HttpContext context, Exception ex,
+        IApplicationErrorEventRepository? errorEvents, ICurrentRequestContext? currentRequest)
     {
         var (status, code, message) = MapException(ex);
         var correlationId = context.Items.TryGetValue(CorrelationIdMiddleware.ItemName, out var value) ? value?.ToString() : Guid.NewGuid().ToString("N");
@@ -28,6 +32,21 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
             logger.LogError(ex, "API exception. StatusCode={StatusCode} ErrorCode={ErrorCode} TraceId={TraceId} CorrelationId={CorrelationId} Path={Path}", status, code, traceId, correlationId, safePath);
         else
             logger.LogWarning(ex, "Expected API exception. StatusCode={StatusCode} ErrorCode={ErrorCode} TraceId={TraceId} CorrelationId={CorrelationId} Path={Path}", status, code, traceId, correlationId, safePath);
+
+        if (status >= 500 && errorEvents is not null && currentRequest is not null)
+        {
+            try
+            {
+                var organizationId = currentRequest.GetCurrent().EffectiveOrganizationId;
+                await errorEvents.AddAsync(organizationId, $"{context.Request.Method} {safePath}", "error",
+                    $"{code}: {message}", ex.GetType().Name, correlationId ?? context.TraceIdentifier,
+                    context.RequestAborted);
+            }
+            catch (Exception persistenceException)
+            {
+                logger.LogWarning(persistenceException, "Could not persist sanitized application error. CorrelationId={CorrelationId}", correlationId);
+            }
+        }
 
         if (context.Response.HasStarted) return;
 

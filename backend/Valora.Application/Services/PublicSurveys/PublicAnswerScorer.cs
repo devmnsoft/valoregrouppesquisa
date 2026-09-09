@@ -1,10 +1,11 @@
 using Valora.Application.ReadModels;
+using Valora.Application.DTOs;
 namespace Valora.Application.Services;
 public sealed class PublicAnswerScorer(PublicAnswerNormalizer normalizer)
 {
-    public IReadOnlyList<ScoredAnswer> Score(IReadOnlyList<QuestionPublicReadModel> questions,IReadOnlyList<FormDimensionReadModel> dimensions,Dictionary<string,object>? answers)
+    public IReadOnlyList<ScoredAnswer> Score(IReadOnlyList<QuestionPublicReadModel> questions,IReadOnlyList<FormDimensionReadModel> dimensions,IReadOnlyList<QuestionOptionPublicReadModel> options,IReadOnlyList<PublicSurveyAnswerRequest>? answers)
     {
-        var normalized = normalizer.Normalize(questions, answers)
+        var normalized = normalizer.Normalize(questions, options, answers)
             .GroupBy(answer => answer.QuestionId)
             .ToDictionary(group => group.Key, group => group.Last());
         var scored = new List<ScoredAnswer>();

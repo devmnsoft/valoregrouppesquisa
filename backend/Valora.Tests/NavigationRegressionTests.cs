@@ -79,12 +79,18 @@ public sealed class NavigationRegressionTests
             var controller = assembly.GetType($"Valora.Web.Controllers.{destination.Controller}Controller");
             var exists = controller?.GetMethods(BindingFlags.Instance | BindingFlags.Public)
                 .Any(method => method.Name.Equals(destination.Action, StringComparison.OrdinalIgnoreCase)
-                    && typeof(IActionResult).IsAssignableFrom(method.ReturnType)) == true;
+                    && IsActionResult(method.ReturnType)) == true;
             if (!exists) missing.Add($"{destination.Controller}.{destination.Action}");
         }
 
         Assert.Empty(missing);
     }
+
+    private static bool IsActionResult(Type returnType) =>
+        typeof(IActionResult).IsAssignableFrom(returnType)
+        || (returnType.IsGenericType
+            && returnType.GetGenericTypeDefinition() == typeof(Task<>)
+            && typeof(IActionResult).IsAssignableFrom(returnType.GenericTypeArguments[0]));
 
     [Fact]
     public async Task AdminValoraReceivesTheCompleteNavigationWithoutTenantClaims()
@@ -149,9 +155,8 @@ public sealed class NavigationRenderingTests : IClassFixture<WebApplicationFacto
         using var response = await client.GetAsync("/Dashboard");
         var html = await response.Content.ReadAsStringAsync();
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("data-admin-sidebar", html);
-        Assert.Contains("Vamos configurar seu espaço", html);
-        Assert.DoesNotContain("NavigationContext vazio", html);
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.Equal("/Account/Login", response.Headers.Location?.AbsolutePath);
+        Assert.Empty(html);
     }
 }

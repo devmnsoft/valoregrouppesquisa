@@ -12,7 +12,8 @@ public sealed class EmailQueueTests
         var sql = File.ReadAllText(RepositoryPaths.CanonicalDatabaseScript);
         Assert.Contains("valorapesquisa.email_jobs", sql);
         Assert.Contains("valorapesquisa.email_templates", sql);
-        Assert.Contains("valoragroup@mnsoft.com.br", sql);
+        Assert.Contains("recipient_hash", sql);
+        Assert.Contains("status", sql);
         Assert.DoesNotContain("SMTP_PASSWORD", sql);
     }
 }

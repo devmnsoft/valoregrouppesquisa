@@ -21,7 +21,9 @@ public sealed class ValoraIntelligenceEngine : IValoraIntelligenceEngine
             .Select(group => Dimension(organizationId, surveyId, group.Key, group.ToList(), now))
             .OrderBy(x => OfficialOrder(x.Dimension)).ThenBy(x => x.Dimension).ToList();
         var allIds = valid.Select(x => x.Id).Distinct().ToList();
-        decimal? score = valid.Count == 0 ? null : Math.Round(valid.Sum(x => x.NormalizedScore!.Value * x.Weight) / valid.Sum(x => x.Weight), 2);
+        // Evidence weights apply within each dimension. The overall index gives each observed
+        // dimension equal influence, avoiding questionnaire length as an accidental weight.
+        decimal? score = dimensions.Count == 0 ? null : Math.Round(dimensions.Average(x => x.Score!.Value), 2);
         var confidence = Confidence(allIds.Count);
         var risks = dimensions.Where(x => x.Score < 50).Select(x => new OrganizationalRisk(Guid.NewGuid(), organizationId,
             surveyId, x.Dimension, x.Concept, x.Score!.Value, x.MaturityLevel, x.ConfidenceLevel, x.Evidence,

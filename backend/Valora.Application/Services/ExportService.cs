@@ -4,4 +4,26 @@ using Valora.Application.DTOs;
 namespace Valora.Application.Services;
 
 
-public sealed class ExportService(IExportRepository repo,IEntitlementService ent,IAuditRepository audit):IExportService{ static readonly string[] Allowed={"responses","results","audit","surveys","forms"}; public async Task<ExportJobDto> RequestAsync(Guid o,Guid? u,ExportRequest req){ if(!await ent.CanUseAsync(o,"exportacoes")) throw new InvalidOperationException("MODULE_NOT_ENABLED"); if(!Allowed.Contains(req.Entity)) throw new InvalidOperationException("INVALID_EXPORT_ENTITY"); var j=await repo.CreateAsync(o,u,req.Entity,req.Format,req.FilterJson); var payload=req.Format=="json"?"[]":"id,status\n"; await repo.CompleteAsync(o,j.Id,$"{req.Entity}.{req.Format}",req.Format=="json"?"application/json":"text/csv",payload); await audit.AddAsync(new AuditEntry(o,u,"export.completed","export",j.Id.ToString(),"Exportação concluída","{}")); return (await repo.GetAsync(o,j.Id))!;} public Task<IReadOnlyList<ExportJobDto>> ListAsync(Guid o)=>repo.ListAsync(o); public Task<ExportJobDto?> GetAsync(Guid o,Guid id)=>repo.GetAsync(o,id); }
+public sealed class ExportService(IExportRepository repo,IEntitlementService ent,IAuditRepository audit):IExportService
+{
+    private static readonly HashSet<string> AllowedEntities = new(["responses","results","audit","surveys","forms"], StringComparer.OrdinalIgnoreCase);
+    private static readonly HashSet<string> AllowedFormats = new(["csv","json","xlsx","pdf"], StringComparer.OrdinalIgnoreCase);
+
+    public async Task<ExportJobDto> RequestAsync(Guid organizationId, Guid? userId, ExportRequest request,
+        string correlationId, CancellationToken cancellationToken)
+    {
+        if (organizationId == Guid.Empty) throw new InvalidOperationException("ORGANIZATION_SCOPE_REQUIRED");
+        if (!await ent.CanUseAsync(organizationId,"exportacoes")) throw new InvalidOperationException("MODULE_NOT_ENABLED");
+        var entity = request.Entity?.Trim().ToLowerInvariant() ?? string.Empty;
+        var format = request.Format?.Trim().ToLowerInvariant() ?? string.Empty;
+        if (!AllowedEntities.Contains(entity)) throw new InvalidOperationException("INVALID_EXPORT_ENTITY");
+        if (!AllowedFormats.Contains(format)) throw new InvalidOperationException("INVALID_EXPORT_FORMAT");
+
+        var job = await repo.CreateAsync(organizationId, userId, entity, format, request.FilterJson, correlationId, cancellationToken);
+        await audit.AddAsync(new AuditEntry(organizationId,userId,"export.requested","export",job.Id.ToString(),"Exportação solicitada","{}"));
+        return job;
+    }
+
+    public Task<IReadOnlyList<ExportJobDto>> ListAsync(Guid organizationId, CancellationToken cancellationToken) => repo.ListAsync(organizationId, cancellationToken);
+    public Task<ExportJobDto?> GetAsync(Guid organizationId, Guid id, CancellationToken cancellationToken) => repo.GetAsync(organizationId, id, cancellationToken);
+}

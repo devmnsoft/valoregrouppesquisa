@@ -38,18 +38,3 @@ public sealed class RespondentExperienceController(StartRespondentSessionUseCase
 
     private ObjectResult LinkUnavailable() => StatusCode(StatusCodes.Status410Gone, new ProblemDetails { Title = "Este link expirou ou não está mais disponível.", Detail = "Solicite um novo convite à organização responsável." });
 }
-
-[AllowAnonymous, ApiController]
-[Route("api/v1/public/results/{token}")]
-public sealed class PublicResultExperienceController(Valora.Application.Experience.RegisterPublicResultAccessUseCase access) : ControllerBase
-{
-    [HttpGet]
-    public async Task<IActionResult> Open(string token, CancellationToken ct)
-    {
-        var correlationId = HttpContext.TraceIdentifier;
-        var result = await access.ExecuteAsync(token, HttpContext.Connection.RemoteIpAddress?.ToString(), Request.Headers.UserAgent.ToString(), correlationId, ct);
-        return result is null
-            ? StatusCode(StatusCodes.Status410Gone, new ProblemDetails { Title = "Este link expirou. Solicite um novo compartilhamento." })
-            : Ok(new { result.Title, result.AllowReport, result.AllowCertificate, result.ExpiresAt, message = "Este resultado foi gerado a partir das respostas disponíveis." });
-    }
-}

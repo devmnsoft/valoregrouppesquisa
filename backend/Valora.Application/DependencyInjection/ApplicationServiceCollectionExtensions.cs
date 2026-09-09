@@ -222,6 +222,7 @@ public static class ApplicationServiceCollectionExtensions
         services.AddScoped<ICertificateOperationalService, CertificateOperationalService>();
         services.AddScoped<ICertificateValidationService, CertificateValidationService>();
         services.AddScoped<IExportService, ExportService>();
+        services.AddSingleton<Valora.Application.Exports.ExportDocumentRenderer>();
         services.AddScoped<ILgpdConsentService, LgpdConsentService>();
         services.AddScoped<IPrivacyRequestService, PrivacyRequestService>();
         services.AddScoped<IEmailTemplateService, OperationalEmailTemplateService>();

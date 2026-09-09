@@ -8,8 +8,7 @@ public sealed class ModularSaasFoundationTests
     [Fact]
     public void MigrationDefinesTheCanonicalModularSaasContract()
     {
-        var sql = File.ReadAllText(Path.Combine(RepositoryPaths.RepositoryRoot, "backend", "database", "postgresql",
-            "2026_09_modular_saas_foundation.sql"));
+        var sql = File.ReadAllText(RepositoryPaths.CanonicalDatabaseScript);
         foreach (var table in new[]
         {
             "saas_modules", "saas_module_features", "saas_module_prices", "saas_plans", "saas_plan_modules",

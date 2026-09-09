@@ -1,15 +1,16 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Valora.Application.Common;
 using Valora.Application.People;
 
 namespace Valora.Api.Controllers;
 
 [Authorize,ApiController,Route("api/v1/people")]
-public sealed class PeopleController(PeopleInsightService insights,PeopleProfileService profiles,PeopleTeamService teams,CultureAssessmentService culture,EngagementSignalService engagement,CompetencyFrameworkService competencies,CompetencyAssessmentService competencyAssessments,DevelopmentPlanService plans,PeopleRiskSignalService risks):ControllerBase
+public sealed class PeopleController(PeopleInsightService insights,PeopleProfileService profiles,PeopleTeamService teams,CultureAssessmentService culture,EngagementSignalService engagement,CompetencyFrameworkService competencies,CompetencyAssessmentService competencyAssessments,DevelopmentPlanService plans,PeopleRiskSignalService risks,ICurrentRequestContext currentRequest):ControllerBase
 {
-    private Guid UserId=>Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier),out var id)?id:Guid.Empty;
-    private Guid? OrganizationId=>Guid.TryParse(User.FindFirstValue("organization_id"),out var claim)&&claim!=Guid.Empty?claim:Guid.TryParse(Request.Headers["X-Organization-Id"].FirstOrDefault(),out var header)&&header!=Guid.Empty?header:null;
+    private Guid UserId=>currentRequest.GetCurrent().RequireUserId();
+    private Guid? OrganizationId=>currentRequest.GetCurrent().EffectiveOrganizationId;
     private ActionResult MissingOrganization()=>BadRequest(new{code="ORGANIZATION_REQUIRED",message="Selecione uma organização para acessar o People.",correlationId=HttpContext.TraceIdentifier});
     [HttpGet] public async Task<ActionResult> Dashboard(CancellationToken ct)=>OrganizationId is{}o?Ok(await insights.Get(o,ct)):MissingOrganization();
     [HttpGet("profiles")] public async Task<ActionResult> Profiles(CancellationToken ct)=>OrganizationId is{}o?Ok(await profiles.List(o,ct)):MissingOrganization();

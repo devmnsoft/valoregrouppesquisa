@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Valora.Web.Models;
+using Valora.Web.Services.Bff;
 
 namespace Valora.Web.Controllers;
 
 [AllowAnonymous]
-public sealed class PublicSurveyController(ILogger<PublicSurveyController> logger) : Controller
+public sealed class PublicSurveyController(ILogger<PublicSurveyController> logger, IBffApiClient api,
+    PublicAccessSessionStore publicSessions) : Controller
 {
     [HttpGet("r/{token}")]
     [HttpGet("r/{token}/start")]
@@ -14,23 +16,32 @@ public sealed class PublicSurveyController(ILogger<PublicSurveyController> logge
     [HttpGet("r/{token}/completed")]
     public IActionResult Respondent(string token)
     {
-        var step = Request.Path.Value?.Split('/', StringSplitOptions.RemoveEmptyEntries).LastOrDefault();
-        if (step == token) step = "start";
-        var model = new RespondentExperienceViewModel { Token = token, Step = step ?? "start" };
-        if (!TryValidateModel(model)) return View("RespondentUnavailable", model);
-        return View("Respondent", model);
+        Response.StatusCode = StatusCodes.Status410Gone;
+        return View("RespondentUnavailable", new RespondentExperienceViewModel { Token = "unavailable", Step = "start" });
     }
 
     [Route("s/{surveyId}")]
     [Route("public/surveys/{surveyId}")]
     [Route("pesquisa/{surveyId}")]
     [Route("pesquisa/{surveyId}/responder")]
-    public IActionResult Take(string surveyId)
+    public async Task<IActionResult> Take(Guid surveyId, string? token, CancellationToken cancellationToken)
     {
         try
         {
+            if (!string.IsNullOrWhiteSpace(token))
+            {
+                using var validation = await api.SendAsync(HttpMethod.Post, $"/public/surveys/{surveyId}/validate",
+                    new { token }, string.Empty, HttpContext.TraceIdentifier, cancellationToken);
+                if (!validation.IsSuccessStatusCode)
+                {
+                    Response.StatusCode = (int)validation.StatusCode;
+                    return View("RespondentUnavailable", new RespondentExperienceViewModel { Token = "unavailable", Step = "start" });
+                }
+                await publicSessions.WriteAsync(HttpContext, "survey", surveyId, token, cancellationToken);
+                return Redirect($"/public/surveys/{surveyId}");
+            }
             ViewData["Title"] = "Take";
-            ViewData["SurveyId"] = surveyId;
+            ViewData["SurveyId"] = surveyId.ToString();
             return View();
         }
         catch (Exception ex)

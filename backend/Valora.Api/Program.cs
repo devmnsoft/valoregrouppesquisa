@@ -32,6 +32,7 @@ builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.Configure<IntelligenceProcessingOptions>(builder.Configuration.GetSection("Valora:Processing"));
 builder.Services.AddHostedService<IntelligenceProcessingWorker>();
+builder.Services.AddHostedService<ExportProcessingWorker>();
 
 var app = builder.Build();
 

@@ -99,6 +99,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 builder.Services.AddSingleton<BffSessionProtector>();
 builder.Services.AddSingleton<IDistributedBffSessionStore, DistributedBffSessionStore>();
+builder.Services.AddScoped<PublicAccessSessionStore>();
 builder.Services.AddHostedService<BffSessionCleanupService>();
 builder.Services.AddScoped<BffAuthenticationService>();
 builder.Services.AddHttpClient<IBffApiClient, BffApiClient>((services, client) =>
@@ -159,6 +160,12 @@ app.Use(async (context, next) =>
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.MapFallback(static context =>
+{
+    context.Response.StatusCode = StatusCodes.Status404NotFound;
+    return Task.CompletedTask;
+}).AllowAnonymous();
 
 app.Run();
 

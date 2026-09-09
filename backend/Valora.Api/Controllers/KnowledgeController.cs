@@ -1,11 +1,12 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Valora.Application.Common;
 using Valora.Application.Knowledge;
 namespace Valora.Api.Controllers;
 
 [Authorize,ApiController,Route("api/v1/knowledge")]
-public sealed class KnowledgeController(KnowledgeOverviewService overview,KnowledgeArticleService articles,PlaybookService playbooks,OrganizationalLessonService lessons,LearningPathService paths,CognitiveDictionaryService dictionary):ControllerBase
+public sealed class KnowledgeController(KnowledgeOverviewService overview,KnowledgeArticleService articles,PlaybookService playbooks,OrganizationalLessonService lessons,LearningPathService paths,CognitiveDictionaryService dictionary,ICurrentRequestContext currentRequest):ControllerBase
 {
  [HttpGet] public Task<KnowledgeSummary>Get(CancellationToken ct)=>overview.GetAsync(OrganizationId(),ct);
  [HttpGet("articles")] public Task<IReadOnlyList<KnowledgeArticle>>Articles([FromQuery]string? query,[FromQuery]string? status,[FromQuery]Guid? categoryId,CancellationToken ct)=>articles.ListAsync(OrganizationId(),query,status,categoryId,ct);
@@ -21,7 +22,7 @@ public sealed class KnowledgeController(KnowledgeOverviewService overview,Knowle
  [HttpPost("learning-paths"),Authorize(Roles="admin,admin_valora,super_admin")] public async Task<IActionResult>CreatePath(CreateLearningPathRequest request,CancellationToken ct)=>Created("/api/v1/knowledge/learning-paths",await paths.CreateAsync(OrganizationId(),request,UserId(),Correlation(),ct));
  [HttpGet("dictionary")] public Task<IReadOnlyList<CognitiveTerm>>Dictionary(CancellationToken ct)=>dictionary.ListAsync(OrganizationId(),ct);
  [HttpPost("dictionary"),Authorize(Roles="admin,admin_valora,super_admin")] public async Task<IActionResult>CreateTerm(CreateCognitiveTermRequest request,CancellationToken ct)=>Created("/api/v1/knowledge/dictionary",await dictionary.CreateAsync(OrganizationId(),request,UserId(),Correlation(),ct));
- private Guid OrganizationId(){var v=Request.Headers["X-Organization-Id"].FirstOrDefault()??User.FindFirstValue("organization_id")??User.FindFirstValue("organizationId");return Guid.TryParse(v,out var id)?id:throw new UnauthorizedAccessException("Selecione uma organização para acessar o Knowledge Center.");}
- private Guid UserId()=>Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier),out var id)?id:throw new UnauthorizedAccessException("Sua sessão precisa ser renovada.");
+ private Guid OrganizationId()=>currentRequest.GetCurrent().RequireOrganizationId();
+ private Guid UserId()=>currentRequest.GetCurrent().RequireUserId();
  private string Correlation()=>HttpContext.TraceIdentifier;
 }

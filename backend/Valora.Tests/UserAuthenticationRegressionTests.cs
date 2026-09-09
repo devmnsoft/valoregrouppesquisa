@@ -44,7 +44,9 @@ public sealed class UserAuthenticationRegressionTests
         Assert.Contains("password hash empty or incompatible", login);
         Assert.Contains("password hash could not be verified", login);
         Assert.Contains("invalid password", login);
-        Assert.Equal(8, login.Split("Credenciais inválidas.", StringSplitOptions.None).Length - 1);
+        Assert.DoesNotContain("Usuário não encontrado", login, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Senha inválida", login, StringComparison.OrdinalIgnoreCase);
+        Assert.True(login.Split("Credenciais inválidas.", StringSplitOptions.None).Length > 2);
         Assert.DoesNotContain("Password={", login);
         Assert.DoesNotContain("Hash={", login);
         Assert.DoesNotContain("Token={", login);

@@ -8,7 +8,7 @@ public sealed class IntelligenceProcessingJobService(IIntelligenceProcessingJobR
     public Task<Guid> EnqueueActionProcessingAsync(IntelligenceProcessingContext c, string id, CancellationToken ct) => Enqueue(c, "action_changed", id, ct);
     public Task<Guid> EnqueueExecutiveReportProcessingAsync(IntelligenceProcessingContext c, string id, CancellationToken ct) => Enqueue(c, "executive_report", id, ct);
     public Task<Guid> EnqueueManualRecalculationAsync(IntelligenceProcessingContext c, string id, CancellationToken ct) => Enqueue(c, "manual_recalculation", id, ct);
-    public Task<IReadOnlyList<IntelligenceProcessingJob>> GetPendingJobsAsync(int take, CancellationToken ct) => repository.GetPendingJobsAsync(take, ct);
+    public Task<IReadOnlyList<IntelligenceProcessingJob>> ClaimPendingJobsAsync(int take, string workerId, CancellationToken ct) => repository.ClaimPendingJobsAsync(take, workerId, ct);
     public Task<IReadOnlyList<IntelligenceProcessingJob>> ListJobsAsync(Guid o, IntelligenceJobFilter f, CancellationToken ct) => repository.ListJobsAsync(o, f, ct);
     public async Task<IntelligenceJobDetails?> GetJobDetailsAsync(Guid o, Guid id, CancellationToken ct) { var job = await repository.GetJobAsync(o,id,ct); return job is null ? null : new(job, await repository.ListStageRunsAsync(o,id,ct)); }
     public Task<IReadOnlyList<IntelligenceStageRun>> ListStageRunsAsync(Guid o, Guid id, CancellationToken ct) => repository.ListStageRunsAsync(o,id,ct);
@@ -41,7 +41,7 @@ public sealed class IntelligenceProcessingOrchestrator(IOrganizationalIntelligen
         {
             var message = "Não foi possível concluir esta etapa. A resposta original permanece preservada.";
             if (job.Attempts + 1 < job.MaxAttempts) await repository.ScheduleRetryAsync(job.Id, DateTime.UtcNow.AddSeconds(Math.Pow(2, job.Attempts + 1) * 15), "PIPELINE_STAGE_FAILED", message, ct);
-            else await repository.MarkFailedAsync(job.Id, "PIPELINE_FAILED", message, ct);
+            else await repository.MarkFailedAsync(job.Id, "PIPELINE_DEAD_LETTER", message, ct);
             throw new InvalidOperationException(message, ex);
         }
     }

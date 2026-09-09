@@ -94,7 +94,9 @@ public sealed class PlatformAccessAndShellContractTests
         Assert.True(layout.IndexOf("valora-v9.css", StringComparison.Ordinal) < layout.IndexOf("valora-admin.css", StringComparison.Ordinal));
         Assert.True(layout.IndexOf("valora-admin.css", StringComparison.Ordinal) < layout.IndexOf("design-system/responsive.css", StringComparison.Ordinal));
         Assert.Contains("[hidden]", File.ReadAllText(Path.Combine(root, "backend/Valora.Web/wwwroot/css/design-system/tokens.css")));
-        Assert.DoesNotContain("quick-action", File.ReadAllText(Path.Combine(root, "backend/Valora.Web/Views/Shared/_Topbar.cshtml")));
+        var topbar = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/Views/Shared/_Topbar.cshtml"));
+        Assert.Contains("<details class=\"quick-actions\"", topbar);
+        Assert.DoesNotContain("onclick=\"confirm(", topbar, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

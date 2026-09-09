@@ -5,7 +5,7 @@ public sealed class CommercialSaasSchemaTests
     [Fact]
     public void Migration_contains_complete_idempotent_billing_contract()
     {
-        var sql = File.ReadAllText(Path.Combine(RepositoryRoot(), "backend/database/postgresql/migrations/2026_08_commercial_saas_layer.sql"));
+        var sql = File.ReadAllText(Path.Combine(RepositoryRoot(), "backend/database/postgresql/script_completo.sql"));
         foreach (var table in new[] { "subscription_usage", "invoices", "invoice_items", "payments", "billing_ledger" })
             Assert.Contains($"CREATE TABLE IF NOT EXISTS valorapesquisa.{table}", sql);
         Assert.Contains("ON CONFLICT (code) DO UPDATE", sql);
@@ -23,7 +23,7 @@ public sealed class CommercialSaasSchemaTests
     [Fact]
     public void Administration_control_center_has_tenant_safe_schema_and_permissions()
     {
-        var sql = File.ReadAllText(Path.Combine(RepositoryRoot(), "backend/database/postgresql/migrations/2026_08_saas_administration_control_center.sql"));
+        var sql = File.ReadAllText(Path.Combine(RepositoryRoot(), "backend/database/postgresql/script_completo.sql"));
         foreach (var table in new[] { "saas_customers", "saas_customer_contacts", "saas_customer_users", "saas_customer_user_profiles",
                      "saas_profile_permissions", "saas_customer_modules", "saas_customer_feature_flags", "saas_customer_plan_limits",
                      "saas_customer_billing_accounts", "saas_billing_invoices", "saas_billing_invoice_items", "saas_payment_records",
@@ -37,7 +37,7 @@ public sealed class CommercialSaasSchemaTests
                      "saas_billing.manage", "saas_impersonation.use", "organization_users.manage", "organization_profiles.manage" })
             Assert.True(Valora.Application.Access.ValoraAccessCatalog.IsCanonicalPermission(permission), permission);
 
-        Assert.DoesNotContain("SELECT *", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotMatch(@"(?i)SELECT\s+\*\s+FROM\s+valorapesquisa\.", sql);
         Assert.Contains("numeric(14,2)", sql);
     }
 

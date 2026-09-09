@@ -1,5 +1,6 @@
 using System.IO;
 using Xunit;
+using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
@@ -9,7 +10,7 @@ public sealed class CertificatePublicValidationTests
     [Fact]
     public void PublicValidationDoesNotExposeSensitiveTokens()
     {
-        var controller = File.ReadAllText("../../../Valora.Api/Controllers/CertificatesController.cs");
+        var controller = File.ReadAllText(RepositoryPaths.ApiFile("Controllers", "CertificatesController.cs"));
         Assert.Contains("participantEmailMasked", controller);
         Assert.Contains("/certificates/validate/{certificateCode}", controller);
         Assert.DoesNotContain("resultToken =", controller);

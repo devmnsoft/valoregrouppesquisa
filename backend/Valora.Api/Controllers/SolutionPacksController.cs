@@ -1,13 +1,14 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Valora.Application.Common;
 using Valora.Application.SolutionPacks;
 namespace Valora.Api.Controllers;
 [Authorize,ApiController,Route("api/v1/solution-packs")]
-public sealed class SolutionPacksController(SolutionPackService packs,SolutionPackVersionService versions,SolutionPackInstallationService installations,SolutionPackDependencyService dependencies,SolutionPackRollbackService rollbacks,SolutionPackCatalogService catalog):ControllerBase
+public sealed class SolutionPacksController(SolutionPackService packs,SolutionPackVersionService versions,SolutionPackInstallationService installations,SolutionPackDependencyService dependencies,SolutionPackRollbackService rollbacks,SolutionPackCatalogService catalog,ICurrentRequestContext currentRequest):ControllerBase
 {
- private Guid OrganizationId=>Guid.TryParse(User.FindFirstValue("organization_id"),out var c)&&c!=Guid.Empty?c:Guid.TryParse(Request.Headers["X-Organization-Id"].FirstOrDefault(),out var h)?h:Guid.Empty;
- private Guid UserId=>Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier),out var id)?id:Guid.Empty;
+ private Guid OrganizationId=>currentRequest.GetCurrent().RequireOrganizationId();
+ private Guid UserId=>currentRequest.GetCurrent().RequireUserId();
  private ActionResult InvalidScope()=>BadRequest(new{code="ORGANIZATION_REQUIRED",message="Selecione uma organização válida.",correlationId=HttpContext.TraceIdentifier});
  [HttpGet] public async Task<ActionResult> List([FromQuery]string? segment,[FromQuery]string? category,CancellationToken ct)=>OrganizationId==Guid.Empty?InvalidScope():Ok(await packs.List(OrganizationId,segment,category,ct));
  [HttpGet("{id:guid}")] public async Task<ActionResult> Get(Guid id,CancellationToken ct){if(OrganizationId==Guid.Empty)return InvalidScope();var value=await packs.Get(id,OrganizationId,ct);return value is null?NotFound(new{code="PACK_NOT_FOUND",message="Pacote não encontrado."}):Ok(value);}

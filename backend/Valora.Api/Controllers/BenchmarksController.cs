@@ -2,14 +2,15 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Benchmarks;
+using Valora.Application.Common;
 
 namespace Valora.Api.Controllers;
 
 [Authorize,ApiController,Route("api/v1/benchmarks")]
-public sealed class BenchmarksController(BenchmarkCohortService cohorts,BenchmarkSnapshotService snapshots,BenchmarkComparisonService comparisons,BenchmarkInsightService insights,BenchmarkPrivacyService privacy,BenchmarkExportService exports):ControllerBase
+public sealed class BenchmarksController(BenchmarkCohortService cohorts,BenchmarkSnapshotService snapshots,BenchmarkComparisonService comparisons,BenchmarkInsightService insights,BenchmarkPrivacyService privacy,BenchmarkExportService exports,ICurrentRequestContext currentRequest):ControllerBase
 {
-    private Guid UserId=>Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier),out var id)&&id!=Guid.Empty?id:Guid.Empty;
-    private Guid OrganizationId=>Guid.TryParse(User.FindFirstValue("organization_id"),out var claim)&&claim!=Guid.Empty?claim:Guid.TryParse(Request.Headers["X-Organization-Id"].FirstOrDefault(),out var header)&&header!=Guid.Empty?header:Guid.Empty;
+    private Guid UserId=>currentRequest.GetCurrent().RequireUserId();
+    private Guid OrganizationId=>currentRequest.GetCurrent().RequireOrganizationId();
     [HttpGet] public async Task<ActionResult> Dashboard(CancellationToken ct){var history=await snapshots.List(OrganizationId,ct);var warnings=history.Count==0?["Ainda não há snapshots reais para comparação."]:Array.Empty<string>();return Ok(new BenchmarkDashboardDto(history.FirstOrDefault(),history,await insights.List(OrganizationId,ct),warnings));}
     [HttpGet("cohorts")] public async Task<ActionResult> Cohorts(CancellationToken ct)=>Ok(await cohorts.List(OrganizationId,ct));
     [HttpPost("cohorts")] public async Task<ActionResult> CreateCohort(CreateBenchmarkCohortRequest request,CancellationToken ct){var id=await cohorts.Create(OrganizationId,UserId,request,ct);return Created($"/api/v1/benchmarks/cohorts/{id}",new{id});}

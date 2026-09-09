@@ -5,8 +5,6 @@ using Valora.Application.Common;
 
 namespace Valora.Api.Authorization;
 
-public sealed record PermissionRequirement(string Code) : IAuthorizationRequirement;
-
 public sealed class PermissionAuthorizationHandler(IPermissionService permissions, ICurrentRequestContext requestContext) : AuthorizationHandler<PermissionRequirement>
 {
     protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, PermissionRequirement requirement)

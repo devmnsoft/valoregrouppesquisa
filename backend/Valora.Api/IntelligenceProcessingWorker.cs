@@ -17,11 +17,9 @@ public sealed class IntelligenceProcessingWorker(IServiceScopeFactory scopes, IO
             {
                 await using var scope = scopes.CreateAsyncScope();
                 var jobs = scope.ServiceProvider.GetRequiredService<IIntelligenceProcessingJobService>();
-                var repository = scope.ServiceProvider.GetRequiredService<IIntelligenceProcessingJobRepository>();
-                var pending = await jobs.GetPendingJobsAsync(Math.Clamp(options.Value.MaxConcurrentJobs, 1, 8), stoppingToken);
+                var pending = await jobs.ClaimPendingJobsAsync(Math.Clamp(options.Value.MaxConcurrentJobs, 1, 8), workerId, stoppingToken);
                 foreach (var job in pending)
                 {
-                    if (!await repository.LockJobAsync(job.Id, workerId, stoppingToken)) continue;
                     try { await scope.ServiceProvider.GetRequiredService<IIntelligenceProcessingOrchestrator>().ProcessAsync(job, stoppingToken); }
                     catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested) { throw; }
                     catch (Exception ex) { logger.LogError(ex, "Processing job failed safely. JobId={JobId} OrganizationId={OrganizationId} CorrelationId={CorrelationId}",job.Id,job.OrganizationId,job.CorrelationId); }

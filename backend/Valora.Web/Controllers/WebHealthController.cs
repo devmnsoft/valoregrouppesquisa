@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using Valora.Web.Models;
 using Valora.Web.Services.Bff;
 
 namespace Valora.Web.Controllers;
 
-[ApiController]
+[ApiController, AllowAnonymous]
 public sealed class WebHealthController : ControllerBase
 {
     private readonly ILogger<WebHealthController> _logger;

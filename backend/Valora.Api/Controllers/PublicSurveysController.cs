@@ -23,9 +23,15 @@ public sealed class PublicSurveysController(IPublicSurveyService service, IMemor
     [HttpPost("/public/surveys/{surveyId:guid}/responses")]
     public async Task<IActionResult> Submit(Guid surveyId, SubmitSurveyResponseRequest request)
     {
+        if (string.IsNullOrWhiteSpace(request.IdempotencyKey) || request.IdempotencyKey.Length > 128)
+            return BadRequest(new { code = "IDEMPOTENCY_KEY_REQUIRED", message = "Não foi possível confirmar a identidade desta tentativa.", correlationId = HttpContext.TraceIdentifier });
+        var idempotencyCacheKey = $"public-survey:idempotency:{surveyId}:{Hash(request.Token ?? string.Empty)}:{Hash(request.IdempotencyKey)}";
+        if (cache.TryGetValue(idempotencyCacheKey, out SubmitSurveyResponseResult? previous) && previous is not null)
+            return Ok(previous);
         var blocked = CheckAbuse(surveyId, request);
         if (blocked is not null) return StatusCode(StatusCodes.Status429TooManyRequests, blocked);
         var result = await service.SubmitAsync(surveyId, request);
+        cache.Set(idempotencyCacheKey, result, TimeSpan.FromHours(24));
         return Ok(result);
     }
 
@@ -34,14 +40,14 @@ public sealed class PublicSurveysController(IPublicSurveyService service, IMemor
         var opt = securityOptions.Value;
         if (!opt.Enabled) return null;
         var ipHash = Hash(HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
-        var email = request.Participant != null && request.Participant.TryGetValue("email", out var e) ? e?.ToString()?.Trim().ToLowerInvariant() : string.Empty;
+        var email = request.Participant.Email?.Trim().ToLowerInvariant() ?? string.Empty;
         var emailHash = Hash(email ?? string.Empty);
         var tokenHash = Hash(request.Token ?? string.Empty);
         var userAgent = Request.Headers.UserAgent.ToString();
         string? reason = null;
         if (string.IsNullOrWhiteSpace(userAgent) || userAgent.Length < 6 || userAgent.Contains("bot", StringComparison.OrdinalIgnoreCase) || userAgent.Contains("curl", StringComparison.OrdinalIgnoreCase)) reason = "suspicious-user-agent";
-        if (opt.EnableHoneypot && request.Participant != null && request.Participant.TryGetValue("website", out var hp) && !string.IsNullOrWhiteSpace(hp?.ToString())) reason = "honeypot-filled";
-        if (request.Participant != null && request.Participant.TryGetValue("formStartedAt", out var started) && DateTimeOffset.TryParse(started?.ToString(), out var start) && DateTimeOffset.UtcNow.Subtract(start).TotalSeconds < opt.MinSecondsToSubmit) reason = "minimum-fill-time";
+        if (opt.EnableHoneypot && !string.IsNullOrWhiteSpace(request.Participant.Website)) reason = "honeypot-filled";
+        if (request.Participant.FormStartedAt is { } start && DateTimeOffset.UtcNow.Subtract(start).TotalSeconds < opt.MinSecondsToSubmit) reason = "minimum-fill-time";
         reason ??= Increment($"free-survey:ip:{ipHash}", opt.MaxSubmissionsPerIpPerHour, TimeSpan.FromHours(1)) ? "ip-rate-limit" : null;
         reason ??= !string.IsNullOrWhiteSpace(email) && Increment($"free-survey:email:{emailHash}", opt.MaxSubmissionsPerEmailPerDay, TimeSpan.FromDays(1)) ? "email-rate-limit" : null;
         reason ??= Increment($"free-survey:token:{tokenHash}", opt.MaxSubmissionsPerTokenPerHour, TimeSpan.FromHours(1)) ? "token-rate-limit" : null;

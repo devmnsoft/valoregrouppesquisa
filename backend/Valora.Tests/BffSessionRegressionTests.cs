@@ -10,7 +10,10 @@ public sealed class BffSessionRegressionTests
     {
         var source = File.ReadAllText(RepositoryPaths.WebFile("Services", "Bff", "BffAuthenticationService.cs"));
 
-        Assert.Contains("Guid.TryParse", File.ReadAllText(RepositoryPaths.WebFile("Services", "CurrentOrganizationProvider.cs")));
+        var organizationProvider = File.ReadAllText(RepositoryPaths.WebFile("Services", "CurrentOrganizationProvider.cs"));
+        Assert.Contains("ICurrentRequestContext requestContext", organizationProvider);
+        Assert.Contains("current.EffectiveOrganizationId", organizationProvider);
+        Assert.DoesNotContain("FindFirstValue", organizationProvider);
         Assert.Contains("new Claim(\"organization_id\"", source);
         Assert.Contains("new Claim(\"tenant_id\"", source);
         Assert.Contains("new Claim(\"session_id\"", source);

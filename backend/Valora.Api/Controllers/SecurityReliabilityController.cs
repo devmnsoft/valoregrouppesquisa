@@ -4,12 +4,13 @@ using System.Text;
 using Dapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Valora.Application.Common;
 using Valora.Application.Contracts;
 
 namespace Valora.Api.Controllers;
 
 [ApiController, Authorize(Roles = "admin_valora,empresa_admin")]
-public sealed class SecurityReliabilityController(IDbConnectionFactory connections) : ControllerBase
+public sealed class SecurityReliabilityController(IDbConnectionFactory connections,ICurrentRequestContext currentRequest) : ControllerBase
 {
     [HttpGet("/api/v1/security/audit")]
     public Task<IActionResult> Audit(CancellationToken ct) => TenantList(
@@ -105,27 +106,19 @@ public sealed class SecurityReliabilityController(IDbConnectionFactory connectio
 
     private bool TryTenant(out Guid organizationId, out IActionResult? denied)
     {
-        var claimOrganization = User.FindFirstValue("organization_id");
-        var requestedOrganization = Request.Headers["X-Organization-Id"].FirstOrDefault();
-        var isPlatformAdmin = User.IsInRole("admin_valora");
-        if (!isPlatformAdmin && !string.IsNullOrWhiteSpace(requestedOrganization) &&
-            !string.Equals(requestedOrganization, claimOrganization, StringComparison.OrdinalIgnoreCase))
+        var resolved = currentRequest.GetCurrent().EffectiveOrganizationId;
+        if (resolved is not { } tenantId)
         {
-            organizationId = Guid.Empty;
-            denied = Forbid();
-            return false;
-        }
-        var raw = requestedOrganization ?? claimOrganization;
-        if (!Guid.TryParse(raw, out organizationId) || organizationId == Guid.Empty)
-        {
+            organizationId = default;
             denied = BadRequest(new { message = "Selecione uma organização para consultar dados protegidos.", correlationId = HttpContext.TraceIdentifier });
             return false;
         }
+        organizationId = tenantId;
         denied = null;
         return true;
     }
 
-    private Guid? UserId() => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var value) ? value : null;
+    private Guid? UserId() => currentRequest.GetCurrent().UserId;
 
     public sealed record PrivacyRequestInput(
         [property: System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.EmailAddress] string RequesterEmail,

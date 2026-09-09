@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Valora.Application.Common;
 using Valora.Application.Processes;
 
 namespace Valora.Api.Controllers;
@@ -8,11 +9,10 @@ namespace Valora.Api.Controllers;
 [Authorize,ApiController,Route("api/v1/processes")]
 public sealed class ProcessesController(ProcessDefinitionService definitions,ProcessStepService steps,
     ProcessInstanceService instances,ProcessApprovalService approvals,ProcessSlaService sla,
-    ProcessBottleneckInsightService insights,ProcessTemplateService templates):ControllerBase
+    ProcessBottleneckInsightService insights,ProcessTemplateService templates,ICurrentRequestContext currentRequest):ControllerBase
 {
-    private Guid UserId=>Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier),out var id)?id:Guid.Empty;
-    private Guid OrganizationId=>Guid.TryParse(User.FindFirstValue("organization_id"),out var claim)&&claim!=Guid.Empty?claim:
-        Guid.TryParse(Request.Headers["X-Organization-Id"].FirstOrDefault(),out var header)?header:Guid.Empty;
+    private Guid UserId=>currentRequest.GetCurrent().RequireUserId();
+    private Guid OrganizationId=>currentRequest.GetCurrent().RequireOrganizationId();
     [HttpGet] public async Task<ActionResult> List(CancellationToken ct)=>Ok(await definitions.List(OrganizationId,ct));
     [HttpPost] public async Task<ActionResult> Create(CreateProcessRequest request,CancellationToken ct){var id=await definitions.Create(OrganizationId,UserId,request,ct);return CreatedAtAction(nameof(Get),new{id},new{id,eventName="process.created",message="Processo salvo com sucesso."});}
     [HttpGet("{id:guid}")] public async Task<ActionResult> Get(Guid id,CancellationToken ct){var item=await definitions.Get(OrganizationId,id,ct);return item is null?NotFound():Ok(item);}

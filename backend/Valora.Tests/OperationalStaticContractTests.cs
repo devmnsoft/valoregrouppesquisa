@@ -16,7 +16,8 @@ public sealed class OperationalStaticContractTests
     }
     [Fact] public void Reports_certificates_exports_lgpd_email_are_declared()
     {
-        var services = File.ReadAllText(RepositoryPaths.BackendFile("Valora.Application", "Services", "OperationalFeatureServices.cs"));
+        var servicesDirectory = RepositoryPaths.ApplicationFile("Services");
+        var services = string.Join('\n', Directory.EnumerateFiles(servicesDirectory, "*.cs", SearchOption.AllDirectories).Select(File.ReadAllText));
         Assert.Contains("ReportService", services);
         Assert.Contains("CertificateOperationalService", services);
         Assert.Contains("ExportService", services);

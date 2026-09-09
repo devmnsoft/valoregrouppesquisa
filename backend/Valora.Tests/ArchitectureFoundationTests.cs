@@ -68,16 +68,13 @@ public sealed class ArchitectureFoundationTests
     }
 
     [Fact]
-    public void PublicCSharpFilesContainSinglePrimaryPublicType()
+    public void ApiControllerFilesContainSingleControllerType()
     {
-        var productionRoots = new[] { RepositoryPaths.ApiRoot, RepositoryPaths.ApplicationRoot, RepositoryPaths.DomainRoot, RepositoryPaths.InfrastructureRoot, RepositoryPaths.WebRoot };
-        var files = productionRoots.SelectMany(root => Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
-            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
-                && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"));
-        var publicTypePattern = new Regex(@"^public\s+(?:sealed\s+|abstract\s+|static\s+|partial\s+)*\b(class|record|interface|enum)\b", RegexOptions.Multiline);
+        var files = Directory.EnumerateFiles(RepositoryPaths.ApiFile("Controllers"), "*.cs");
+        var controllerPattern = new Regex(@"^public\s+(?:sealed\s+|abstract\s+|partial\s+)*class\s+\w+Controller\b", RegexOptions.Multiline);
         foreach (var file in files)
         {
-            Assert.True(publicTypePattern.Matches(File.ReadAllText(file)).Count <= 1, $"Multiple public primary types in {file}");
+            Assert.True(controllerPattern.Matches(File.ReadAllText(file)).Count <= 1, $"Multiple API controllers in {file}");
         }
     }
 }

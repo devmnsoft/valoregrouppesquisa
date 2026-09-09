@@ -11,8 +11,7 @@ public sealed record QuickActionDto(string Code, string Label, string Descriptio
 public sealed record SearchResultDto(Guid Id, string ResultType, string Title, string? Description, string? Route, DateTimeOffset UpdatedAt);
 public sealed record ExecutiveWorkspaceDto(IReadOnlyList<WorkspaceItemDto> MyDay, IReadOnlyList<ExecutivePriorityDto> Priorities,
     IReadOnlyList<WorkspaceItemDto> Recent, IReadOnlyList<WorkspaceItemDto> Pinned, IReadOnlyList<QuickActionDto> QuickActions);
-public sealed class CreatePriorityRequest
-{
+public sealed class CreatePriorityRequest {
     [Required, StringLength(180)] public string Title { get; init; } = "";
     [StringLength(2000)] public string? Description { get; init; }
     [Required, RegularExpression("critical|high|medium|low")] public string Priority { get; init; } = "medium";
@@ -23,8 +22,7 @@ public sealed class CreatePriorityRequest
 }
 public sealed class PinItemRequest { [Required] public Guid ItemId { get; init; } }
 
-public interface IWorkspaceRepository
-{
+public interface IWorkspaceRepository {
     Task<IReadOnlyList<WorkspaceItemDto>> MyDayAsync(Guid organizationId, Guid userId, bool organizationWide, CancellationToken ct);
     Task<IReadOnlyList<WorkspaceItemDto>> RecentAsync(Guid organizationId, Guid userId, CancellationToken ct);
     Task<IReadOnlyList<WorkspaceItemDto>> PinnedAsync(Guid organizationId, Guid userId, CancellationToken ct);

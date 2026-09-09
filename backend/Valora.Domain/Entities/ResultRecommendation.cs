@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record ResultRecommendation
-{
+public sealed record ResultRecommendation {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid ResultScoreId { get; init; }
     public string Band { get; init; } = string.Empty;

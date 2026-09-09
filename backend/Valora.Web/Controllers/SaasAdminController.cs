@@ -14,8 +14,7 @@ namespace Valora.Web.Controllers;
 public sealed class SaasAdminController(
     SaasCustomerService customers,
     CommercialSaasService saas,
-    ILogger<SaasAdminController> logger) : Controller
-{
+    ILogger<SaasAdminController> logger) : Controller {
     [HttpGet("SaaS")]
     public async Task<IActionResult> Index(CancellationToken cancellationToken) => View(new SaasAdminDashboardViewModel(
         await customers.ListAsync(cancellationToken),
@@ -33,8 +32,7 @@ public sealed class SaasAdminController(
     public IActionResult Client(Guid id) => RedirectToAction(nameof(ClientModules), new { id });
 
     [HttpGet("Clients/{id:guid}/Modules")]
-    public async Task<IActionResult> ClientModules(Guid id, CancellationToken cancellationToken)
-    {
+    public async Task<IActionResult> ClientModules(Guid id, CancellationToken cancellationToken) {
         var client = await customers.GetAsync(id, cancellationToken);
         if (client is null) return NotFound();
         return View(new SaasClientModulesViewModel(client,
@@ -68,32 +66,27 @@ public sealed class SaasAdminController(
     public IActionResult Permissions() => View(ValoraPermissions.All.Order(StringComparer.Ordinal).ToArray());
 
     [ValidateAntiForgeryToken, HttpPost("Clients/{id:guid}/Modules")]
-    public async Task<IActionResult> ChangeModule(Guid id, ChangeClientModuleViewModel model, CancellationToken cancellationToken)
-    {
+    public async Task<IActionResult> ChangeModule(Guid id, ChangeClientModuleViewModel model, CancellationToken cancellationToken) {
         model.ClientId = id;
-        if (!ModelState.IsValid)
-        {
+        if (!ModelState.IsValid) {
             TempData["Warning"] = "Revise o status e informe um motivo com pelo menos 10 caracteres.";
             return RedirectToAction(nameof(ClientModules), new { id });
         }
         if (!Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId) || actorId == Guid.Empty)
             return Forbid();
 
-        try
-        {
+        try {
             await saas.SetModuleStatusAsync(id, model.ModuleCode, model.Status, actorId, model.Reason,
                 HttpContext.TraceIdentifier, cancellationToken);
             TempData["Success"] = "Contratação do módulo atualizada com auditoria.";
         }
-        catch (Exception exception) when (exception is ValidationException or InvalidOperationException)
-        {
+        catch (Exception exception) when (exception is ValidationException or InvalidOperationException) {
             logger.LogWarning(exception,
                 "Module contract update rejected. ClientId={ClientId} UserId={UserId} ModuleCode={ModuleCode} CorrelationId={CorrelationId}",
                 id, actorId, model.ModuleCode, HttpContext.TraceIdentifier);
             TempData["Warning"] = exception.Message;
         }
-        catch (Exception exception)
-        {
+        catch (Exception exception) {
             logger.LogError(exception,
                 "Module contract update failed. ClientId={ClientId} UserId={UserId} ModuleCode={ModuleCode} CorrelationId={CorrelationId}",
                 id, actorId, model.ModuleCode, HttpContext.TraceIdentifier);

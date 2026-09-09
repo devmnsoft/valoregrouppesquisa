@@ -11,11 +11,9 @@ public sealed class AuthenticationSessionService(
     ISessionRepository sessions,
     IRefreshTokenRepository refreshTokens,
     IJwtTokenService jwt,
-    IOptions<AuthenticationOptions> options) : IAuthenticationSessionService
-{
+    IOptions<AuthenticationOptions> options) : IAuthenticationSessionService {
     public async Task<TokenPair> CreateAsync(Guid userId, Guid organizationId, string email, string role,
-        string locale, string? ipAddress = null, string? userAgent = null)
-    {
+        string locale, string? ipAddress = null, string? userAgent = null) {
         var now = DateTimeOffset.UtcNow;
         var refreshExpiresAt = now.AddDays(options.Value.RefreshTokenDays);
         var sessionId = await sessions.CreateAsync(userId, organizationId, refreshExpiresAt, HashNullable(ipAddress), userAgent);
@@ -25,8 +23,7 @@ public sealed class AuthenticationSessionService(
         return Pair(userId, organizationId, sessionId, email, role, locale, raw, refreshExpiresAt);
     }
 
-    public async Task<TokenPair> RefreshAsync(string rawRefreshToken)
-    {
+    public async Task<TokenPair> RefreshAsync(string rawRefreshToken) {
         if (string.IsNullOrWhiteSpace(rawRefreshToken)) throw new UnauthorizedAccessException("Refresh token inválido.");
         var replacementRaw = GenerateToken();
         var replacementExpiresAt = DateTimeOffset.UtcNow.AddDays(options.Value.RefreshTokenDays);
@@ -38,8 +35,7 @@ public sealed class AuthenticationSessionService(
             result.Current.Email, result.Current.Role, result.Current.Locale, replacementRaw, replacementExpiresAt);
     }
 
-    public async Task LogoutAsync(Guid userId, string rawRefreshToken)
-    {
+    public async Task LogoutAsync(Guid userId, string rawRefreshToken) {
         await refreshTokens.RevokeByHashAsync(Hash(rawRefreshToken), "logout");
     }
 
@@ -49,8 +45,7 @@ public sealed class AuthenticationSessionService(
     public Task RevokeAsync(Guid userId, Guid sessionId) => sessions.RevokeAsync(sessionId, userId, "user_revoked");
 
     private TokenPair Pair(Guid userId, Guid organizationId, Guid sessionId, string email, string role,
-        string locale, string refreshToken, DateTimeOffset refreshExpiresAt)
-    {
+        string locale, string refreshToken, DateTimeOffset refreshExpiresAt) {
         var accessExpiresAt = DateTimeOffset.UtcNow.AddMinutes(options.Value.AccessTokenMinutes);
         return new TokenPair(sessionId, userId, organizationId,
             jwt.CreateToken(userId, organizationId, sessionId, email, role, locale),

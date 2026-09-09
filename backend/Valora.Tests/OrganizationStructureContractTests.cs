@@ -1,14 +1,13 @@
 using System.IO;
+using Valora.Tests.Support;
 using Xunit;
 
 namespace Valora.Tests;
 
-public sealed class OrganizationStructureContractTests
-{
+public sealed class OrganizationStructureContractTests {
     [Fact]
-    public void Api_exposes_unit_and_department_lifecycle_endpoints()
-    {
-        var controller = File.ReadAllText(Path.Combine("..", "..", "..", "..", "backend", "Valora.Api", "Controllers", "OrganizationStructureController.cs"));
+    public void Api_exposes_unit_and_department_lifecycle_endpoints() {
+        var controller = File.ReadAllText(RepositoryPaths.ApiFile("Controllers", "OrganizationStructureController.cs"));
         Assert.Contains("/api/v1/units", controller);
         Assert.Contains("/api/v1/units/{id:guid}/deactivate", controller);
         Assert.Contains("/api/v1/units/{id:guid}/reactivate", controller);
@@ -21,9 +20,8 @@ public sealed class OrganizationStructureContractTests
     }
 
     [Fact]
-    public void Structure_service_blocks_creation_with_friendly_plan_message()
-    {
-        var service = File.ReadAllText(Path.Combine("..", "..", "..", "..", "backend", "Valora.Application", "Services", "OrganizationStructureService.cs"));
+    public void Structure_service_blocks_creation_with_friendly_plan_message() {
+        var service = File.ReadAllText(RepositoryPaths.ApplicationFile("Services", "OrganizationStructureService.cs"));
         Assert.Contains("Seu plano atual não permite esta ação", service);
         Assert.Contains("CheckLimitAsync(organizationId, \"units\", 1)", service);
         Assert.Contains("CheckLimitAsync(organizationId, \"departments\", 1)", service);
@@ -33,15 +31,14 @@ public sealed class OrganizationStructureContractTests
     }
 
     [Fact]
-    public void Organization_page_is_connected_to_structure_bff_actions()
-    {
-        var api = File.ReadAllText(Path.Combine("..", "..", "..", "..", "backend", "Valora.Web", "wwwroot", "js", "api", "organization-api.js"));
-        var page = File.ReadAllText(Path.Combine("..", "..", "..", "..", "backend", "Valora.Web", "wwwroot", "js", "pages", "organization-page.js"));
+    public void Organization_page_is_connected_to_structure_bff_actions() {
+        var api = File.ReadAllText(RepositoryPaths.WebFile("wwwroot", "js", "api", "organization-api.js"));
+        var page = File.ReadAllText(RepositoryPaths.WebFile("wwwroot", "js", "pages", "organization-page.js"));
         Assert.Contains("/bff/units", api);
         Assert.Contains("/bff/departments", api);
         Assert.Contains("data-add-unit", page);
         Assert.Contains("Confirma alterar o status", page);
-        Assert.Contains("data-structure-status", File.ReadAllText(Path.Combine("..", "..", "..", "..", "backend", "Valora.Web", "Views", "Organization", "Index.cshtml")));
+        Assert.Contains("data-structure-status", File.ReadAllText(RepositoryPaths.WebFile("Views", "Organization", "Index.cshtml")));
         Assert.Contains("unitId", page);
     }
 }

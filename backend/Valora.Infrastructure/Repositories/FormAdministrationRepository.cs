@@ -1,15 +1,13 @@
 using Dapper;
 using Valora.Application.Contracts;
-using Valora.Application.Forms;
 using Valora.Application.DTOs;
+using Valora.Application.Forms;
 
 namespace Valora.Infrastructure.Repositories;
 
 public sealed class FormAdministrationRepository(IDbConnectionFactory connections, IDbTransactionFactory transactions,
-    IAuditRepository audit) : IFormAdministrationRepository
-{
-    public async Task<IReadOnlyList<FormListItemResponse>> ListAsync(Guid organizationId, FormListQuery query, CancellationToken cancellationToken)
-    {
+    IAuditRepository audit) : IFormAdministrationRepository {
+    public async Task<IReadOnlyList<FormListItemResponse>> ListAsync(Guid organizationId, FormListQuery query, CancellationToken cancellationToken) {
         const string sql = """
             SELECT f.id AS "Id",
                    COALESCE(f.name, '') AS "Name",
@@ -45,8 +43,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         return (await connection.QueryAsync<FormListItemResponse>(command)).AsList();
     }
 
-    public async Task<FormDetailResponse?> GetAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken)
-    {
+    public async Task<FormDetailResponse?> GetAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken) {
         const string formSql = """
             SELECT f.id AS "Id",
                    f.organization_id AS "OrganizationId",
@@ -76,8 +73,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         return new(row.Id, row.OrganizationId, row.Name, row.Description, row.Category, row.EstimatedMinutes, row.Status, row.CurrentDraftVersionId, row.LatestPublishedVersionId, row.Version, row.DraftVersion, sections);
     }
 
-    public async Task<FormDetailResponse> CreateAsync(Guid organizationId, Guid userId, CreateFormRequest request, CancellationToken cancellationToken)
-    {
+    public async Task<FormDetailResponse> CreateAsync(Guid organizationId, Guid userId, CreateFormRequest request, CancellationToken cancellationToken) {
         await using var unit = await transactions.BeginAsync(cancellationToken);
         var formId = Guid.NewGuid();
         var versionId = Guid.NewGuid();
@@ -99,8 +95,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         return (await GetAsync(organizationId, formId, cancellationToken))!;
     }
 
-    public async Task<FormDetailResponse?> UpdateAsync(Guid organizationId, Guid formId, UpdateFormRequest request, CancellationToken cancellationToken)
-    {
+    public async Task<FormDetailResponse?> UpdateAsync(Guid organizationId, Guid formId, UpdateFormRequest request, CancellationToken cancellationToken) {
         const string sql = """
             UPDATE valorapesquisa.forms
                SET name = @name, description = @description, category = @category,
@@ -113,15 +108,13 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         return affected == 1 ? await GetAsync(organizationId, formId, cancellationToken) : null;
     }
 
-    public async Task<bool> ArchiveAsync(Guid organizationId, Guid formId, ArchiveFormRequest request, CancellationToken cancellationToken)
-    {
+    public async Task<bool> ArchiveAsync(Guid organizationId, Guid formId, ArchiveFormRequest request, CancellationToken cancellationToken) {
         const string sql = "UPDATE valorapesquisa.forms SET status='archived', updated_at=now(), version=version+1 WHERE id=@formId AND organization_id=@organizationId AND deleted_at IS NULL AND status<>'archived' AND version=@expectedVersion;";
         using var connection = connections.Create();
         return await connection.ExecuteAsync(new CommandDefinition(sql, new { organizationId, formId, request.ExpectedVersion }, cancellationToken: cancellationToken)) == 1;
     }
 
-    public async Task<FormVersionResponse?> PublishVersionAsync(Guid organizationId, Guid formId, Guid userId, PublishFormVersionRequest request, CancellationToken cancellationToken)
-    {
+    public async Task<FormVersionResponse?> PublishVersionAsync(Guid organizationId, Guid formId, Guid userId, PublishFormVersionRequest request, CancellationToken cancellationToken) {
         await using var unit = await transactions.BeginAsync(cancellationToken);
         const string validationSql = """
             SELECT fv.id AS "Id", fv.form_id AS "FormId", fv.version_number::int AS "VersionNumber",
@@ -160,8 +153,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         return version with { Status = "published", PublishedAt = DateTimeOffset.UtcNow, Version = version.Version + 1 };
     }
 
-    public async Task<ReorderFormItemResponse?> ReorderAsync(Guid organizationId, Guid formId, ReorderFormItemRequest request, CancellationToken cancellationToken)
-    {
+    public async Task<ReorderFormItemResponse?> ReorderAsync(Guid organizationId, Guid formId, ReorderFormItemRequest request, CancellationToken cancellationToken) {
         var table = request.ItemType switch { "section" => "form_section_versions", "question" => "question_versions", "option" => "question_option_versions", _ => throw new ArgumentOutOfRangeException(nameof(request)) };
         var containerColumn = request.ItemType switch { "section" => "form_version_id", "question" => "section_id", _ => "question_id" };
         await using var unit = await transactions.BeginAsync(cancellationToken);
@@ -170,8 +162,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         if (draftVersionId is null) return null;
         var containerId = request.TargetContainerId ?? request.SourceContainerId;
         if (containerId is null) return null;
-        var targetIsValid = request.ItemType switch
-        {
+        var targetIsValid = request.ItemType switch {
             "section" => containerId == draftVersionId,
             "question" => await unit.Connection.ExecuteScalarAsync<bool>(new CommandDefinition("SELECT EXISTS(SELECT 1 FROM valorapesquisa.form_section_versions WHERE id=@containerId AND form_version_id=@draftVersionId AND deleted_at IS NULL)", new { containerId, draftVersionId }, unit.Transaction, cancellationToken: cancellationToken)),
             _ => await unit.Connection.ExecuteScalarAsync<bool>(new CommandDefinition("SELECT EXISTS(SELECT 1 FROM valorapesquisa.question_versions q JOIN valorapesquisa.form_section_versions s ON s.id=q.section_id WHERE q.id=@containerId AND s.form_version_id=@draftVersionId AND q.deleted_at IS NULL AND s.deleted_at IS NULL)", new { containerId, draftVersionId }, unit.Transaction, cancellationToken: cancellationToken))
@@ -185,8 +176,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
     }
 
     public async Task<FormSectionResponse?> CreateSectionAsync(Guid organizationId, Guid formId, Guid userId,
-        CreateFormSectionRequest request, CancellationToken cancellationToken)
-    {
+        CreateFormSectionRequest request, CancellationToken cancellationToken) {
         await using var unit = await transactions.BeginAsync(cancellationToken);
         const string sql = """
             WITH draft AS (
@@ -211,8 +201,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
     }
 
     public async Task<FormSectionResponse?> UpdateSectionAsync(Guid organizationId, Guid formId, Guid sectionId, Guid userId,
-        UpdateFormSectionRequest request, CancellationToken cancellationToken)
-    {
+        UpdateFormSectionRequest request, CancellationToken cancellationToken) {
         await using var unit = await transactions.BeginAsync(cancellationToken);
         const string sql = """
             UPDATE valorapesquisa.form_section_versions s
@@ -238,8 +227,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
             "i.form_version_id", "form.section.archived", "form_section", cancellationToken);
 
     public async Task<QuestionResponse?> CreateQuestionAsync(Guid organizationId, Guid formId, Guid userId,
-        CreateQuestionRequest request, CancellationToken cancellationToken)
-    {
+        CreateQuestionRequest request, CancellationToken cancellationToken) {
         await using var unit = await transactions.BeginAsync(cancellationToken);
         const string sql = """
             WITH draft AS (
@@ -255,10 +243,20 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
             RETURNING id AS "Id",section_id AS "SectionId",code AS "Code",type AS "Type",title AS "Title",description AS "Description",required AS "Required",dimension_code AS "DimensionCode",weight AS "Weight",position::int AS "Position",settings::text AS "Settings",version::bigint AS "Version";
             """;
         var id = Guid.NewGuid();
-        var row = await unit.Connection.QuerySingleOrDefaultAsync<QuestionRow>(new CommandDefinition(sql, new
-        {
-            id, organizationId, formId, request.SectionId, request.Code, request.Type, request.Title, request.Description,
-            request.Required, request.DimensionCode, request.Weight, request.Position, settings = NullIfEmpty(request.Settings) ?? "{}",
+        var row = await unit.Connection.QuerySingleOrDefaultAsync<QuestionRow>(new CommandDefinition(sql, new {
+            id,
+            organizationId,
+            formId,
+            request.SectionId,
+            request.Code,
+            request.Type,
+            request.Title,
+            request.Description,
+            request.Required,
+            request.DimensionCode,
+            request.Weight,
+            request.Position,
+            settings = NullIfEmpty(request.Settings) ?? "{}",
             request.ExpectedVersion
         }, unit.Transaction, cancellationToken: cancellationToken));
         if (row is null) return null;
@@ -268,8 +266,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
     }
 
     public async Task<QuestionResponse?> UpdateQuestionAsync(Guid organizationId, Guid formId, Guid questionId, Guid userId,
-        UpdateQuestionRequest request, CancellationToken cancellationToken)
-    {
+        UpdateQuestionRequest request, CancellationToken cancellationToken) {
         await using var unit = await transactions.BeginAsync(cancellationToken);
         const string sql = """
             UPDATE valorapesquisa.question_versions q
@@ -281,10 +278,19 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
                AND fv.status='draft' AND q.deleted_at IS NULL AND q.version=@expectedVersion
             RETURNING q.id AS "Id",q.section_id AS "SectionId",q.code AS "Code",q.type AS "Type",q.title AS "Title",q.description AS "Description",q.required AS "Required",q.dimension_code AS "DimensionCode",q.weight AS "Weight",q.position::int AS "Position",q.settings::text AS "Settings",q.version::bigint AS "Version";
             """;
-        var row = await unit.Connection.QuerySingleOrDefaultAsync<QuestionRow>(new CommandDefinition(sql, new
-        {
-            organizationId, formId, questionId, request.Code, request.Type, request.Title, request.Description,
-            request.Required, request.DimensionCode, request.Weight, settings = NullIfEmpty(request.Settings) ?? "{}", request.ExpectedVersion
+        var row = await unit.Connection.QuerySingleOrDefaultAsync<QuestionRow>(new CommandDefinition(sql, new {
+            organizationId,
+            formId,
+            questionId,
+            request.Code,
+            request.Type,
+            request.Title,
+            request.Description,
+            request.Required,
+            request.DimensionCode,
+            request.Weight,
+            settings = NullIfEmpty(request.Settings) ?? "{}",
+            request.ExpectedVersion
         }, unit.Transaction, cancellationToken: cancellationToken));
         if (row is null) return null;
         var draftId = await DraftIdForQuestionAsync(unit, questionId, cancellationToken);
@@ -301,8 +307,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
             "form.question.archived", "question", cancellationToken);
 
     public async Task<QuestionOptionResponse?> CreateOptionAsync(Guid organizationId, Guid formId, Guid questionId, Guid userId,
-        CreateQuestionOptionRequest request, CancellationToken cancellationToken)
-    {
+        CreateQuestionOptionRequest request, CancellationToken cancellationToken) {
         await using var unit = await transactions.BeginAsync(cancellationToken);
         const string sql = """
             WITH draft AS (
@@ -327,8 +332,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
     }
 
     public async Task<QuestionOptionResponse?> UpdateOptionAsync(Guid organizationId, Guid formId, Guid optionId, Guid userId,
-        UpdateQuestionOptionRequest request, CancellationToken cancellationToken)
-    {
+        UpdateQuestionOptionRequest request, CancellationToken cancellationToken) {
         await using var unit = await transactions.BeginAsync(cancellationToken);
         const string sql = """
             UPDATE valorapesquisa.question_option_versions o
@@ -359,8 +363,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         await GetAsync(organizationId, formId, cancellationToken);
 
     public async Task<FormDetailResponse?> DuplicateAsync(Guid organizationId, Guid formId, Guid userId,
-        DuplicateFormRequest request, CancellationToken cancellationToken)
-    {
+        DuplicateFormRequest request, CancellationToken cancellationToken) {
         await using var unit = await transactions.BeginAsync(cancellationToken);
         const string sourceSql = """
             SELECT f.id AS "Id",f.name AS "Name",f.description AS "Description",f.category AS "Category",
@@ -388,8 +391,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
     }
 
     public async Task<FormDetailResponse?> CreateDraftVersionAsync(Guid organizationId, Guid formId, Guid userId,
-        CreateFormVersionRequest request, CancellationToken cancellationToken)
-    {
+        CreateFormVersionRequest request, CancellationToken cancellationToken) {
         await using var unit = await transactions.BeginAsync(cancellationToken);
         const string sourceSql = """
             SELECT f.latest_published_version_id AS "SourceVersionId",COALESCE(MAX(fv.version_number),0)::int+1 AS "NextVersion"
@@ -417,8 +419,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
 
     private async Task<bool> DeleteStructuralAsync(Guid organizationId, Guid formId, Guid itemId, Guid userId,
         long expectedVersion, string table, string versionExpression, string action, string entityType,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         await using var unit = await transactions.BeginAsync(cancellationToken);
         var sql = $"UPDATE valorapesquisa.{table} i SET deleted_at=now(),updated_at=now(),version=version+1 FROM valorapesquisa.form_versions fv,valorapesquisa.forms f WHERE i.id=@itemId AND fv.id={versionExpression} AND f.id=fv.form_id AND f.id=@formId AND f.organization_id=@organizationId AND f.current_draft_version_id=fv.id AND fv.status='draft' AND i.deleted_at IS NULL AND i.version=@expectedVersion RETURNING fv.id;";
         var draftId = await unit.Connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(sql,
@@ -451,20 +452,17 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         new(row.Id, row.QuestionId, row.Label, row.Value, row.Score, row.Position, row.Version);
 
     private static async Task CloneVersionContentAsync(IUnitOfWork unit, Guid organizationId, Guid sourceVersionId,
-        Guid targetVersionId, CancellationToken cancellationToken)
-    {
+        Guid targetVersionId, CancellationToken cancellationToken) {
         var sections = (await unit.Connection.QueryAsync<SectionRow>(new CommandDefinition(
             "SELECT id AS \"Id\",form_version_id AS \"FormVersionId\",title AS \"Title\",description AS \"Description\",position::int AS \"Position\",version::bigint AS \"Version\" FROM valorapesquisa.form_section_versions WHERE form_version_id=@sourceVersionId AND deleted_at IS NULL ORDER BY position,id",
             new { sourceVersionId }, unit.Transaction, cancellationToken: cancellationToken))).AsList();
-        foreach (var section in sections)
-        {
+        foreach (var section in sections) {
             var newSectionId = Guid.NewGuid();
             await unit.Connection.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.form_section_versions(id,organization_id,form_version_id,title,description,position,display_order,version) VALUES(@newSectionId,@organizationId,@targetVersionId,@Title,@Description,@Position,@Position,1)", new { newSectionId, organizationId, targetVersionId, section.Title, section.Description, section.Position }, unit.Transaction, cancellationToken: cancellationToken));
             var questions = (await unit.Connection.QueryAsync<QuestionRow>(new CommandDefinition(
                 "SELECT id AS \"Id\",section_id AS \"SectionId\",code AS \"Code\",type AS \"Type\",title AS \"Title\",description AS \"Description\",required AS \"Required\",dimension_code AS \"DimensionCode\",weight AS \"Weight\",position::int AS \"Position\",settings::text AS \"Settings\",version::bigint AS \"Version\" FROM valorapesquisa.question_versions WHERE section_id=@sectionId AND deleted_at IS NULL ORDER BY position,id",
                 new { sectionId = section.Id }, unit.Transaction, cancellationToken: cancellationToken))).AsList();
-            foreach (var question in questions)
-            {
+            foreach (var question in questions) {
                 var newQuestionId = Guid.NewGuid();
                 await unit.Connection.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.question_versions(id,organization_id,section_id,code,type,title,description,required,dimension_code,weight,position,display_order,settings,version) VALUES(@newQuestionId,@organizationId,@newSectionId,@Code,@Type,@Title,@Description,@Required,@DimensionCode,@Weight,@Position,@Position,CAST(@Settings AS jsonb),1)", new { newQuestionId, organizationId, newSectionId, question.Code, question.Type, question.Title, question.Description, question.Required, question.DimensionCode, question.Weight, question.Position, question.Settings }, unit.Transaction, cancellationToken: cancellationToken));
                 var options = await unit.Connection.QueryAsync<OptionRow>(new CommandDefinition(
@@ -476,8 +474,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         }
     }
 
-    private static async Task<IReadOnlyList<FormSectionResponse>> LoadSectionsAsync(System.Data.IDbConnection connection, Guid versionId, CancellationToken cancellationToken)
-    {
+    private static async Task<IReadOnlyList<FormSectionResponse>> LoadSectionsAsync(System.Data.IDbConnection connection, Guid versionId, CancellationToken cancellationToken) {
         const string sql = """
             SELECT id AS "Id", form_version_id AS "FormVersionId", title AS "Title",
                    description AS "Description", position::int AS "Position", version::bigint AS "Version"
@@ -518,8 +515,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
     }
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    private sealed class FormRow
-    {
+    private sealed class FormRow {
         public Guid Id { get; init; }
         public Guid OrganizationId { get; init; }
         public string Name { get; init; } = string.Empty;
@@ -533,8 +529,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         public long? DraftVersion { get; init; }
     }
 
-    private sealed class SectionRow
-    {
+    private sealed class SectionRow {
         public Guid Id { get; init; }
         public Guid FormVersionId { get; init; }
         public string Title { get; init; } = string.Empty;
@@ -543,8 +538,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         public long Version { get; init; }
     }
 
-    private sealed class QuestionRow
-    {
+    private sealed class QuestionRow {
         public Guid Id { get; init; }
         public Guid SectionId { get; init; }
         public string Code { get; init; } = string.Empty;
@@ -559,8 +553,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         public long Version { get; init; }
     }
 
-    private sealed class OptionRow
-    {
+    private sealed class OptionRow {
         public Guid Id { get; init; }
         public Guid QuestionId { get; init; }
         public string Label { get; init; } = string.Empty;

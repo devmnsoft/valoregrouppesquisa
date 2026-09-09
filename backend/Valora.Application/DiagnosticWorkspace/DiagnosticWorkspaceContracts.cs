@@ -21,8 +21,7 @@ public sealed record DiagnosticWorkspaceDto(DiagnosticWorkspaceOverviewDto Overv
     IReadOnlyList<DiagnosticWorkspaceItemDto> Insights, IReadOnlyList<DiagnosticWorkspaceItemDto> Actions);
 public sealed record DiagnosticWorkspaceCommandDto(Guid CycleId, string Status, string Message, Guid? JobId = null, bool HasLimitation = false);
 
-public interface IDiagnosticWorkspaceRepository
-{
+public interface IDiagnosticWorkspaceRepository {
     Task<DiagnosticCycleDto?> GetCycleAsync(Guid organizationId, Guid id, CancellationToken ct);
     Task<IReadOnlyList<DiagnosticWorkspaceEvidenceDto>> EvidenceAsync(Guid organizationId, Guid surveyId, CancellationToken ct);
     Task<IReadOnlyList<DiagnosticWorkspaceItemDto>> ModuleAsync(Guid organizationId, Guid cycleId, Guid surveyId, string module, CancellationToken ct);
@@ -33,8 +32,7 @@ public interface IDiagnosticWorkspaceRepository
     Task<DiagnosticWorkspaceCommandDto> GenerateReportAsync(Guid organizationId, DiagnosticCycleDto cycle, Guid userId, bool preview, CancellationToken ct);
 }
 
-public interface IDiagnosticWorkspaceService
-{
+public interface IDiagnosticWorkspaceService {
     Task<DiagnosticWorkspaceDto?> GetWorkspaceAsync(Guid organizationId, Guid id, CancellationToken ct);
     Task<DiagnosticWorkspaceOverviewDto?> GetOverviewAsync(Guid organizationId, Guid id, CancellationToken ct);
     Task<IReadOnlyList<DiagnosticWorkspaceEvidenceDto>?> GetEvidenceAsync(Guid organizationId, Guid id, CancellationToken ct);

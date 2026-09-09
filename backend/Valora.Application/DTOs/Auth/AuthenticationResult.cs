@@ -9,8 +9,7 @@ public sealed record AuthenticationResult(
     AuthenticatedUserDto User,
     AuthenticatedOrganizationDto? Organization,
     AuthenticatedPlanDto? Plan,
-    AuthenticatedAccessContextDto AccessContext)
-{
+    AuthenticatedAccessContextDto AccessContext) {
     public EffectiveAccessSnapshot EffectiveAccessSnapshot => new(
         User,
         Organization,
@@ -34,8 +33,7 @@ public sealed record AuthenticatedAccessContextDto(
     IReadOnlyList<string> Scopes,
     string SubscriptionStatus,
     Guid? OrganizationId,
-    string? PlanCode)
-{
+    string? PlanCode) {
     public Guid? SelectedOrganizationId { get; init; }
     public bool IsGlobalAdministrator { get; init; }
     public long AccessVersion { get; init; } = DateTimeOffset.UtcNow.ToUnixTimeSeconds();

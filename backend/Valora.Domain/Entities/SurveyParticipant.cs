@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record SurveyParticipant
-{
+public sealed record SurveyParticipant {
     public Guid Id { get; init; }
     public Guid SurveyId { get; init; }
     public Guid? ParticipantId { get; init; }

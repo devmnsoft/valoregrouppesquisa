@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Valora.Application.Common;
 using Valora.Application.Onboarding;
 
 namespace Valora.Api.Controllers;
@@ -9,8 +10,8 @@ namespace Valora.Api.Controllers;
 [Authorize, ApiController]
 public sealed class OnboardingCenterController(
     OnboardingFlowService flow, OnboardingProgressService progress, OnboardingChecklistService checklist,
-    CustomerAdoptionService adoption, CustomerHealthScoreService health, CustomerSuccessService success) : ControllerBase
-{
+    CustomerAdoptionService adoption, CustomerHealthScoreService health, CustomerSuccessService success,
+    ICurrentRequestContext currentRequest) : ControllerBase {
     [HttpGet("/api/v1/onboarding")]
     public async Task<IActionResult> Get(CancellationToken ct) => Ok(await flow.GetAsync(OrganizationId(), ct));
     [HttpGet("/api/v1/onboarding/progress")]
@@ -32,13 +33,6 @@ public sealed class OnboardingCenterController(
     [HttpPost("/api/v1/customer-success/notes")]
     public async Task<IActionResult> Note(CreateCustomerSuccessNoteRequest request, CancellationToken ct) => Ok(new { id = await success.CreateNoteAsync(OrganizationId(), UserId(), request, ct) });
 
-    private Guid OrganizationId()
-    {
-        var claim = User.FindFirstValue("organization_id");
-        if (Guid.TryParse(claim, out var id) && id != Guid.Empty) return id;
-        var isPlatformAdmin = User.IsInRole("admin_valora") || User.IsInRole("super_admin");
-        if (isPlatformAdmin && Guid.TryParse(Request.Headers["X-Organization-Id"].FirstOrDefault(), out id) && id != Guid.Empty) return id;
-        throw new ValidationException("Selecione uma organização válida para continuar.");
-    }
-    private Guid UserId() => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var id) ? id : Guid.Empty;
+    private Guid OrganizationId() => currentRequest.GetCurrent().RequireOrganizationId();
+    private Guid UserId() => currentRequest.GetCurrent().RequireUserId();
 }

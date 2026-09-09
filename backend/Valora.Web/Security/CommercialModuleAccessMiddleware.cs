@@ -4,8 +4,7 @@ using Valora.Application.ModularSaas;
 
 namespace Valora.Web.Security;
 
-public sealed class CommercialModuleAccessMiddleware(RequestDelegate next, ILogger<CommercialModuleAccessMiddleware> logger)
-{
+public sealed class CommercialModuleAccessMiddleware(RequestDelegate next, ILogger<CommercialModuleAccessMiddleware> logger) {
     private static readonly IReadOnlyList<(PathString Prefix, string Module)> Routes =
     [
         ("/Diagnostics", "diagnostics"), ("/Forms", "forms"), ("/Surveys", "surveys"),
@@ -18,33 +17,27 @@ public sealed class CommercialModuleAccessMiddleware(RequestDelegate next, ILogg
         ("/SecurityCompliance", "security_compliance"), ("/SuccessCenter", "success_center")
     ];
 
-    public async Task InvokeAsync(HttpContext context, CommercialSaasService saas)
-    {
-        if (context.User.Identity?.IsAuthenticated != true || IsPlatformAdministrator(context.User))
-        {
+    public async Task InvokeAsync(HttpContext context, CommercialSaasService saas) {
+        if (context.User.Identity?.IsAuthenticated != true || IsPlatformAdministrator(context.User)) {
             await next(context);
             return;
         }
 
         var route = Routes.FirstOrDefault(candidate => context.Request.Path.StartsWithSegments(candidate.Prefix));
-        if (route == default)
-        {
+        if (route == default) {
             await next(context);
             return;
         }
 
-        if (!Guid.TryParse(context.User.FindFirstValue("organization_id"), out var clientId) || clientId == Guid.Empty)
-        {
+        if (!Guid.TryParse(context.User.FindFirstValue("organization_id"), out var clientId) || clientId == Guid.Empty) {
             await DenyAsync(context, route.Module, "CLIENT_CONTEXT_REQUIRED", "Selecione um cliente para operar esta área.");
             return;
         }
 
-        try
-        {
+        try {
             var writeOperation = !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method);
             var decision = await saas.EvaluateAccessAsync(clientId, route.Module, writeOperation, context.RequestAborted);
-            if (!decision.Allowed)
-            {
+            if (!decision.Allowed) {
                 logger.LogWarning(
                     "Commercial module access denied. UserId={UserId} ClientId={ClientId} ModuleCode={ModuleCode} Action={Action} Status={Status} CorrelationId={CorrelationId}",
                     context.User.FindFirstValue(ClaimTypes.NameIdentifier), clientId, route.Module,
@@ -55,15 +48,13 @@ public sealed class CommercialModuleAccessMiddleware(RequestDelegate next, ILogg
             if (decision.ReadOnly) context.Response.Headers["X-Valora-Module-Access"] = "read-only";
             await next(context);
         }
-        catch (Exception exception)
-        {
+        catch (Exception exception) {
             logger.LogError(exception,
                 "Commercial module authorization failed. UserId={UserId} ClientId={ClientId} ModuleCode={ModuleCode} CorrelationId={CorrelationId}",
                 context.User.FindFirstValue(ClaimTypes.NameIdentifier), clientId, route.Module, context.TraceIdentifier);
             context.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
             context.Response.ContentType = "application/problem+json";
-            await context.Response.WriteAsync(JsonSerializer.Serialize(new
-            {
+            await context.Response.WriteAsync(JsonSerializer.Serialize(new {
                 status = 503,
                 code = "MODULE_ACCESS_UNAVAILABLE",
                 message = "Não foi possível validar o acesso agora. Tente novamente.",
@@ -75,18 +66,15 @@ public sealed class CommercialModuleAccessMiddleware(RequestDelegate next, ILogg
     private static bool IsPlatformAdministrator(ClaimsPrincipal user) =>
         user.IsInRole("admin_valora") || user.IsInRole("SuperAdmin") || user.IsInRole("platform_admin");
 
-    private static Task DenyAsync(HttpContext context, string moduleCode, string code, string message)
-    {
-        if (HttpMethods.IsGet(context.Request.Method) && !context.Request.Path.StartsWithSegments("/bff"))
-        {
+    private static Task DenyAsync(HttpContext context, string moduleCode, string code, string message) {
+        if (HttpMethods.IsGet(context.Request.Method) && !context.Request.Path.StartsWithSegments("/bff")) {
             context.Response.Redirect($"/Modules?blocked={Uri.EscapeDataString(moduleCode)}&reason={Uri.EscapeDataString(code)}");
             return Task.CompletedTask;
         }
 
         context.Response.StatusCode = StatusCodes.Status403Forbidden;
         context.Response.ContentType = "application/problem+json";
-        return context.Response.WriteAsync(JsonSerializer.Serialize(new
-        {
+        return context.Response.WriteAsync(JsonSerializer.Serialize(new {
             status = 403,
             code,
             message,

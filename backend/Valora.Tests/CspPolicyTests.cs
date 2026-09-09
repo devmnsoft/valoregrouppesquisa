@@ -1,4 +1,15 @@
-using System.IO;
+using Valora.Tests.Support;
 using Xunit;
+
 [Trait("Category", "StaticContract")]
-public class CspPolicyTests { [Fact] public void Firebase_csp_allows_bootstrap_and_api(){ var s=File.ReadAllText("../../../../firebase.json"); Assert.Contains("https://cdn.jsdelivr.net", s); Assert.Contains("https://api.valoragroup.mnsoft.com.br", s); Assert.Contains("script-src-elem", s); Assert.Contains("style-src-elem", s); } }
+public sealed class CspPolicyTests {
+    [Fact]
+    public void OfficialWebRuntimeUsesOnlySameOriginAssets() {
+        var program = File.ReadAllText(RepositoryPaths.WebFile("Program.cs"));
+        var layout = File.ReadAllText(RepositoryPaths.WebFile("Views", "Shared", "_Layout.cshtml"));
+        Assert.Contains("Content-Security-Policy", program);
+        Assert.DoesNotContain("https://cdn.jsdelivr.net", layout, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("src=\"http", layout, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("href=\"http", layout, StringComparison.OrdinalIgnoreCase);
+    }
+}

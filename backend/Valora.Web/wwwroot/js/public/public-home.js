@@ -6,9 +6,8 @@
   const formatDate=window.formatValoraDate || function formatValoraDate(value){ if(!value) return 'Data não informada'; const date=new Date(value); if(Number.isNaN(date.getTime())) return 'Data não informada'; return date.toLocaleDateString('pt-BR'); };
   if(page!=='public-result') return;
   const id=document.querySelector('[name=responseId]')?.value;
-  const token=new URLSearchParams(location.search).get('token') || sessionStorage.getItem('valora.publicResultToken.'+id) || '';
   const setText=(selector,value)=>{ const el=document.querySelector(selector); if(el) el.textContent=value; };
-  vp.api('/api/public/results/'+encodeURIComponent(id)+(token?'?token='+encodeURIComponent(token):''))
+  ResultsApi.public(id)
     .then(r=>{
       const response=r?.response || r || {};
       const result=r?.result || r || {};

@@ -1,76 +1,74 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Valora.Application.Access;
+using Valora.Application.ActionCenter;
+using Valora.Application.Advisor;
+using Valora.Application.Benchmarks;
+using Valora.Application.CommercialDelivery;
+using Valora.Application.Communication;
 using Valora.Application.Contracts;
-using Valora.Application.Onboarding;
-using Valora.Infrastructure.Onboarding;
-using Valora.Application.SaasAdministration;
-using Valora.Infrastructure.SaasAdministration;
-using Valora.Infrastructure.SolutionPacks;
-using Valora.Application.SolutionPacks;
+using Valora.Application.DecisionCenter;
+using Valora.Application.DiagnosticWorkspace;
+using Valora.Application.Enterprise;
+using Valora.Application.Evolution;
+using Valora.Application.Experience;
+using Valora.Application.FormalDeliverables;
 using Valora.Application.Forms;
+using Valora.Application.GovernanceExecution;
+using Valora.Application.Indicators;
+using Valora.Application.Integrations;
+using Valora.Application.Journey;
+using Valora.Application.Knowledge;
+using Valora.Application.Methodology;
+using Valora.Application.ModularSaas;
+using Valora.Application.Onboarding;
+using Valora.Application.OneOnOne;
+using Valora.Application.OrganizationalArchitecture;
+using Valora.Application.OrganizationalIntelligence;
+using Valora.Application.People;
+using Valora.Application.Processes;
+using Valora.Application.RiskCompliance;
+using Valora.Application.SaasAdministration;
+using Valora.Application.SecurityCompliance;
+using Valora.Application.SolutionPacks;
+using Valora.Application.Subscriptions;
+using Valora.Application.SuccessCenter;
+using Valora.Application.ValoraAi;
+using Valora.Application.ValoraBot;
+using Valora.Application.Workspace;
+using Valora.Infrastructure.Benchmarks;
 using Valora.Infrastructure.Database;
 using Valora.Infrastructure.Email;
-using Valora.Infrastructure.Repositories;
-using Valora.Infrastructure.Security;
-using Valora.Application.Access;
-using Valora.Application.Knowledge;
-using Valora.Application.Enterprise;
-using Valora.Application.OrganizationalIntelligence;
-using Valora.Application.ValoraBot;
-using Valora.Application.Methodology;
-using Valora.Application.DiagnosticWorkspace;
-using Valora.Application.Workspace;
-using Valora.Application.CommercialDelivery;
-using Valora.Application.Integrations;
-using Valora.Application.DecisionCenter;
-using Valora.Application.FormalDeliverables;
-using Valora.Application.ValoraAi;
-using Valora.Application.ActionCenter;
-using Valora.Application.Evolution;
-using Valora.Application.Journey;
-using Valora.Application.OneOnOne;
 using Valora.Infrastructure.FormalDeliverables;
-using Valora.Application.Communication;
-using Valora.Application.SecurityCompliance;
-using Valora.Application.SuccessCenter;
-using Valora.Application.Subscriptions;
-using Valora.Infrastructure.Subscriptions;
-using Valora.Application.Experience;
-using Valora.Application.GovernanceExecution;
-using Valora.Application.OrganizationalArchitecture;
-using Valora.Application.Indicators;
-using Valora.Application.Advisor;
-using Valora.Application.Processes;
-using Valora.Infrastructure.Processes;
-using Valora.Application.Benchmarks;
-using Valora.Infrastructure.Benchmarks;
-using Valora.Application.People;
-using Valora.Infrastructure.People;
-using Valora.Application.RiskCompliance;
-using Valora.Infrastructure.RiskCompliance;
-using Valora.Application.ModularSaas;
 using Valora.Infrastructure.ModularSaas;
+using Valora.Infrastructure.Onboarding;
+using Valora.Infrastructure.People;
+using Valora.Infrastructure.Processes;
+using Valora.Infrastructure.Repositories;
+using Valora.Infrastructure.RiskCompliance;
+using Valora.Infrastructure.SaasAdministration;
+using Valora.Infrastructure.Security;
+using Valora.Infrastructure.SolutionPacks;
+using Valora.Infrastructure.Subscriptions;
 
 namespace Valora.Infrastructure.DependencyInjection;
 
-public static class InfrastructureServiceCollectionExtensions
-{
-    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration)
-    {
-        services.AddScoped<IRiskComplianceRepository,RiskComplianceRepository>();
+public static class InfrastructureServiceCollectionExtensions {
+    public static IServiceCollection AddInfrastructureServices(this IServiceCollection services, IConfiguration configuration) {
+        services.AddScoped<IRiskComplianceRepository, RiskComplianceRepository>();
         services.AddScoped<RiskRegisterService>(); services.AddScoped<RiskAssessmentService>();
         services.AddScoped<RiskControlService>(); services.AddScoped<ComplianceFrameworkService>();
         services.AddScoped<ComplianceAssessmentService>(); services.AddScoped<NonConformityService>();
         services.AddScoped<MitigationPlanService>(); services.AddScoped<AuditReviewService>();
         services.AddScoped<RiskHeatmapService>();
         services.AddScoped<PeopleRepository>();
-        services.AddScoped<IPeopleProfileRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
-        services.AddScoped<IPeopleTeamRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
-        services.AddScoped<ICultureAssessmentRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
-        services.AddScoped<IEngagementSignalRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
-        services.AddScoped<ICompetencyRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
-        services.AddScoped<IDevelopmentPlanRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
-        services.AddScoped<IPeopleRiskSignalRepository>(sp=>sp.GetRequiredService<PeopleRepository>());
+        services.AddScoped<IPeopleProfileRepository>(sp => sp.GetRequiredService<PeopleRepository>());
+        services.AddScoped<IPeopleTeamRepository>(sp => sp.GetRequiredService<PeopleRepository>());
+        services.AddScoped<ICultureAssessmentRepository>(sp => sp.GetRequiredService<PeopleRepository>());
+        services.AddScoped<IEngagementSignalRepository>(sp => sp.GetRequiredService<PeopleRepository>());
+        services.AddScoped<ICompetencyRepository>(sp => sp.GetRequiredService<PeopleRepository>());
+        services.AddScoped<IDevelopmentPlanRepository>(sp => sp.GetRequiredService<PeopleRepository>());
+        services.AddScoped<IPeopleRiskSignalRepository>(sp => sp.GetRequiredService<PeopleRepository>());
         services.AddScoped<BenchmarkComparisonRepository>();
         services.AddScoped<IBenchmarkCohortRepository>(sp => sp.GetRequiredService<BenchmarkComparisonRepository>());
         services.AddScoped<IBenchmarkSnapshotRepository>(sp => sp.GetRequiredService<BenchmarkComparisonRepository>());
@@ -80,14 +78,14 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IBenchmarkPrivacyRepository>(sp => sp.GetRequiredService<BenchmarkComparisonRepository>());
         services.AddScoped<IBenchmarkExportRepository>(sp => sp.GetRequiredService<BenchmarkComparisonRepository>());
         services.AddScoped<ProcessRepository>();
-        services.AddScoped<IProcessDefinitionRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
-        services.AddScoped<IProcessStepRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
-        services.AddScoped<IProcessInstanceRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
-        services.AddScoped<IProcessApprovalRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
-        services.AddScoped<IProcessSlaRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
-        services.AddScoped<IProcessAutomationRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
-        services.AddScoped<IProcessInsightRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
-        services.AddScoped<IProcessTemplateRepository>(sp=>sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessDefinitionRepository>(sp => sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessStepRepository>(sp => sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessInstanceRepository>(sp => sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessApprovalRepository>(sp => sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessSlaRepository>(sp => sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessAutomationRepository>(sp => sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessInsightRepository>(sp => sp.GetRequiredService<ProcessRepository>());
+        services.AddScoped<IProcessTemplateRepository>(sp => sp.GetRequiredService<ProcessRepository>());
         services.AddScoped<AdvisorRepository>();
         services.AddScoped<IAdvisorConversationRepository>(sp => sp.GetRequiredService<AdvisorRepository>());
         services.AddScoped<IAdvisorMessageRepository>(sp => sp.GetRequiredService<AdvisorRepository>());
@@ -149,6 +147,8 @@ public static class InfrastructureServiceCollectionExtensions
         services.AddScoped<IReportRepository, ReportRepository>();
         services.AddScoped<ICertificateOperationalRepository, CertificateOperationalRepository>();
         services.AddScoped<IExportRepository, ExportRepository>();
+        services.AddScoped<IExportDataReader, ExportDataReader>();
+        services.AddScoped<IApplicationErrorEventRepository, ApplicationErrorEventRepository>();
         services.AddScoped<ILgpdRepository, LgpdRepository>();
         services.AddScoped<IEmailOperationalRepository, EmailOperationalRepository>();
         services.AddScoped<IMigrationBatchRepository, MigrationBatchRepository>();
@@ -205,8 +205,7 @@ public static class InfrastructureServiceCollectionExtensions
         return services;
     }
 
-    private static IServiceCollection AddAiAndFormalDeliverablePersistence(this IServiceCollection services)
-    {
+    private static IServiceCollection AddAiAndFormalDeliverablePersistence(this IServiceCollection services) {
         services.AddScoped<IValoraAiRunRepository, ValoraAiRunRepository>();
         services.AddScoped<IValoraAiEvidenceRepository, ValoraAiEvidenceRepository>();
         services.AddScoped<IValoraAiInsightRepository, ValoraAiInsightRepository>();

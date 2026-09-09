@@ -2,12 +2,10 @@ using System.Text;
 
 namespace Valora.Application.Communication;
 
-public static class WhatsAppLinkBuilder
-{
+public static class WhatsAppLinkBuilder {
     public const string OfficialNumber = "5591992545353";
 
-    public static string Build(string company, string user, string module, string subject, string? relevantUrl = null, string? correlationId = null)
-    {
+    public static string Build(string company, string user, string module, string subject, string? relevantUrl = null, string? correlationId = null) {
         static string Clean(string value) => value.Replace('\r', ' ').Replace('\n', ' ').Trim();
         var message = new StringBuilder("Olá, Valora. ")
             .Append("Preciso de atendimento sobre ").Append(Clean(subject)).Append(" da empresa ").Append(Clean(company)).Append(". ")

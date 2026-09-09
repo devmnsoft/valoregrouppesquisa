@@ -1,7 +1,7 @@
 using Valora.Application.DTOs.FreeDiagnostics;
 namespace Valora.Application.Contracts;
-public interface IFreeDiagnosticsRepository
-{
+
+public interface IFreeDiagnosticsRepository {
     Task<IReadOnlyList<FreeDiagnosticListItemDto>> ListAsync(FreeDiagnosticFilter filter, Guid? organizationId);
     Task<FreeDiagnosticSummaryDto> SummaryAsync(FreeDiagnosticFilter filter, Guid? organizationId);
     Task<FreeDiagnosticDetailDto?> DetailAsync(Guid responseId, Guid? organizationId);

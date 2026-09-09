@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed class CertificateValidation
-{
+public sealed class CertificateValidation {
     public Guid Id { get; set; }
     public Guid CertificateId { get; set; }
     public string ValidationCode { get; set; } = string.Empty;

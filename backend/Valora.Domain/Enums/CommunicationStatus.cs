@@ -1,7 +1,6 @@
 namespace Valora.Domain.Enums;
 
-public enum CommunicationStatus
-{
+public enum CommunicationStatus {
     Pending,
     Processing,
     Sent,

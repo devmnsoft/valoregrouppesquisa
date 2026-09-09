@@ -2,19 +2,17 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging.Abstractions;
+using Npgsql;
 using Valora.Api.Middleware;
 using Valora.Application.Exceptions;
-using Npgsql;
 using Xunit;
 
 namespace Valora.Tests;
 
 [Trait("Category", "Unit")]
-public sealed class ErrorHandlingMiddlewareTests
-{
+public sealed class ErrorHandlingMiddlewareTests {
     [Fact]
-    public async Task Unhandled_exception_returns_standard_json_without_stack_in_production()
-    {
+    public async Task Unhandled_exception_returns_standard_json_without_stack_in_production() {
         var env = new TestHostEnvironment { EnvironmentName = "Production" };
         var middleware = new ErrorHandlingMiddleware(_ => throw new Exception("boom"), NullLogger<ErrorHandlingMiddleware>.Instance, env);
         var context = new DefaultHttpContext(); context.Response.Body = new MemoryStream(); context.Items[CorrelationIdMiddleware.ItemName] = "corr-1";
@@ -28,8 +26,7 @@ public sealed class ErrorHandlingMiddlewareTests
     [InlineData(typeof(UnauthorizedAccessException), 403)]
     [InlineData(typeof(NotFoundAppException), 404)]
     [InlineData(typeof(BusinessRuleAppException), 422)]
-    public async Task Maps_app_exceptions(Type type, int expected)
-    {
+    public async Task Maps_app_exceptions(Type type, int expected) {
         var env = new TestHostEnvironment { EnvironmentName = "Production" };
         var ex = (Exception)Activator.CreateInstance(type, "message")!;
         var middleware = new ErrorHandlingMiddleware(_ => throw ex, NullLogger<ErrorHandlingMiddleware>.Instance, env);
@@ -39,8 +36,7 @@ public sealed class ErrorHandlingMiddlewareTests
     }
 
     [Fact]
-    public async Task Undefined_column_is_a_schema_mismatch_not_database_unavailability()
-    {
+    public async Task Undefined_column_is_a_schema_mismatch_not_database_unavailability() {
         var exception = new PostgresException("column missing", "ERROR", "ERROR", "42703");
         var context = await Invoke(exception);
         var body = await ReadBody(context);
@@ -51,8 +47,7 @@ public sealed class ErrorHandlingMiddlewareTests
     }
 
     [Fact]
-    public async Task Unexpected_invalid_operation_is_an_internal_materialization_error()
-    {
+    public async Task Unexpected_invalid_operation_is_an_internal_materialization_error() {
         var context = await Invoke(new InvalidOperationException("Dapper constructor details"));
         var body = await ReadBody(context);
         Assert.Equal(500, context.Response.StatusCode);
@@ -62,8 +57,7 @@ public sealed class ErrorHandlingMiddlewareTests
     }
 
     [Fact]
-    public async Task Npgsql_connectivity_failure_is_service_unavailable()
-    {
+    public async Task Npgsql_connectivity_failure_is_service_unavailable() {
         var context = await Invoke(new NpgsqlException("connection failed"));
         var body = await ReadBody(context);
         Assert.Equal(503, context.Response.StatusCode);
@@ -71,8 +65,7 @@ public sealed class ErrorHandlingMiddlewareTests
         Assert.DoesNotContain("connection failed", body);
     }
 
-    private static async Task<DefaultHttpContext> Invoke(Exception exception)
-    {
+    private static async Task<DefaultHttpContext> Invoke(Exception exception) {
         var middleware = new ErrorHandlingMiddleware(_ => throw exception, NullLogger<ErrorHandlingMiddleware>.Instance, new TestHostEnvironment());
         var context = new DefaultHttpContext();
         context.Response.Body = new MemoryStream();
@@ -80,16 +73,14 @@ public sealed class ErrorHandlingMiddlewareTests
         return context;
     }
 
-    private static async Task<string> ReadBody(DefaultHttpContext context)
-    {
+    private static async Task<string> ReadBody(DefaultHttpContext context) {
         context.Response.Body.Position = 0;
         return await new StreamReader(context.Response.Body).ReadToEndAsync();
     }
 }
 
 
-public sealed class TestHostEnvironment : IHostEnvironment
-{
+public sealed class TestHostEnvironment : IHostEnvironment {
     public string EnvironmentName { get; set; } = Environments.Production;
     public string ApplicationName { get; set; } = "Tests";
     public string ContentRootPath { get; set; } = Directory.GetCurrentDirectory();

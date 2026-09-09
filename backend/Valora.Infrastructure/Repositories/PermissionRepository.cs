@@ -3,10 +3,8 @@ using Valora.Application.Contracts;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class PermissionRepository(IDbConnectionFactory factory) : IPermissionRepository
-{
-    public async Task<bool> HasAsync(Guid userId, string permissionCode, Guid? organizationId)
-    {
+public sealed class PermissionRepository(IDbConnectionFactory factory) : IPermissionRepository {
+    public async Task<bool> HasAsync(Guid userId, string permissionCode, Guid? organizationId) {
         using var connection = factory.Create();
         return await connection.ExecuteScalarAsync<bool>("""
             SELECT EXISTS (

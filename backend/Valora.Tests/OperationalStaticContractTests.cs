@@ -1,12 +1,12 @@
-using Xunit;
 using Valora.Tests.Support;
+using Xunit;
 
 namespace Valora.Tests;
+
 [Trait("Category", "StaticContract")]
-public sealed class OperationalStaticContractTests
-{
-    [Fact] public void Operational_contracts_do_not_expose_sensitive_fields()
-    {
+public sealed class OperationalStaticContractTests {
+    [Fact]
+    public void Operational_contracts_do_not_expose_sensitive_fields() {
         var dtoDirectory = RepositoryPaths.BackendFile("Valora.Application", "DTOs");
         var dto = string.Join('\n', Directory.EnumerateFiles(dtoDirectory, "*.cs", SearchOption.AllDirectories).Select(File.ReadAllText));
         Assert.DoesNotContain("password_hash", dto, StringComparison.OrdinalIgnoreCase);
@@ -14,9 +14,10 @@ public sealed class OperationalStaticContractTests
         Assert.DoesNotContain("result_token_hash", dto, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("smtp_password", dto, StringComparison.OrdinalIgnoreCase);
     }
-    [Fact] public void Reports_certificates_exports_lgpd_email_are_declared()
-    {
-        var services = File.ReadAllText(RepositoryPaths.BackendFile("Valora.Application", "Services", "OperationalFeatureServices.cs"));
+    [Fact]
+    public void Reports_certificates_exports_lgpd_email_are_declared() {
+        var servicesDirectory = RepositoryPaths.ApplicationFile("Services");
+        var services = string.Join('\n', Directory.EnumerateFiles(servicesDirectory, "*.cs", SearchOption.AllDirectories).Select(File.ReadAllText));
         Assert.Contains("ReportService", services);
         Assert.Contains("CertificateOperationalService", services);
         Assert.Contains("ExportService", services);

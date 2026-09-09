@@ -6,12 +6,10 @@ using Valora.Web.Services.Bff;
 namespace Valora.Web.Controllers;
 
 [Authorize, ApiController, AutoValidateAntiforgeryToken, Route("bff/methodology")]
-public sealed class BffMethodologyController(IBffApiClient api, BffAuthenticationService authentication) : ControllerBase
-{
+public sealed class BffMethodologyController(IBffApiClient api, BffAuthenticationService authentication) : ControllerBase {
     [AcceptVerbs("GET", "POST", "PATCH")]
     [Route("{**resource}")]
-    public async Task<IActionResult> Forward(string? resource, CancellationToken ct)
-    {
+    public async Task<IActionResult> Forward(string? resource, CancellationToken ct) {
         var session = await authentication.GetAsync(HttpContext, ct);
         if (session is null) return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou. Entre novamente." });
         object? body = null;

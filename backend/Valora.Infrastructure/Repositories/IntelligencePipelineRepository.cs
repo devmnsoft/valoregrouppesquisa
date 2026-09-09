@@ -5,10 +5,8 @@ using Valora.Application.OrganizationalIntelligence;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class IntelligencePipelineRepository(IDbConnectionFactory connections) : IIntelligencePipelineRepository
-{
-    public async Task<IReadOnlyList<Guid>> ExtractResponseEvidenceAsync(IntelligenceProcessingContext context, CancellationToken ct)
-    {
+public sealed class IntelligencePipelineRepository(IDbConnectionFactory connections) : IIntelligencePipelineRepository {
+    public async Task<IReadOnlyList<Guid>> ExtractResponseEvidenceAsync(IntelligenceProcessingContext context, CancellationToken ct) {
         if (context.ResponseId is null) return await ExistingEvidence(context, ct);
         const string sql = """
             INSERT INTO valorapesquisa.evidence_items
@@ -47,8 +45,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
         return (await db.QueryAsync<Guid>(new CommandDefinition(sql, new { context.ResponseId, context.OrganizationId }, cancellationToken: ct))).ToList();
     }
 
-    public async Task<ProcessingStageResult> CalculateMetricsAsync(IntelligenceProcessingContext c, IReadOnlyList<Guid> evidenceIds, CancellationToken ct)
-    {
+    public async Task<ProcessingStageResult> CalculateMetricsAsync(IntelligenceProcessingContext c, IReadOnlyList<Guid> evidenceIds, CancellationToken ct) {
         const string sql = """
             WITH source AS (
               SELECT metric_code code,
@@ -65,8 +62,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
         return await ExecuteStage(c, evidenceIds, "metrics", sql, ct);
     }
 
-    public async Task<ProcessingStageResult> CalculateIndicesAsync(IntelligenceProcessingContext c, IReadOnlyList<Guid> evidenceIds, CancellationToken ct)
-    {
+    public async Task<ProcessingStageResult> CalculateIndicesAsync(IntelligenceProcessingContext c, IReadOnlyList<Guid> evidenceIds, CancellationToken ct) {
         const string sql = """
             WITH source AS (
               SELECT index_code code,
@@ -82,8 +78,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
         return await ExecuteStage(c, evidenceIds, "indices", sql, ct);
     }
 
-    public async Task<ProcessingStageResult> GenerateInferencesAsync(IntelligenceProcessingContext c, IReadOnlyList<Guid> evidenceIds, CancellationToken ct)
-    {
+    public async Task<ProcessingStageResult> GenerateInferencesAsync(IntelligenceProcessingContext c, IReadOnlyList<Guid> evidenceIds, CancellationToken ct) {
         const string sql = """
             WITH source AS (SELECT concept_code,count(*)::int evidence_count,
                 round(sum((CASE WHEN polarity=-1 THEN 100-normalized_value ELSE normalized_value END)*weight*confidence_weight)/nullif(sum(weight*confidence_weight),0),2) score,
@@ -104,8 +99,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
         return await ExecuteStage(c, evidenceIds, "inference", sql, ct);
     }
 
-    public async Task<ProcessingStageResult> GenerateInsightsAsync(IntelligenceProcessingContext c, IReadOnlyList<Guid> evidenceIds, CancellationToken ct)
-    {
+    public async Task<ProcessingStageResult> GenerateInsightsAsync(IntelligenceProcessingContext c, IReadOnlyList<Guid> evidenceIds, CancellationToken ct) {
         const string sql = """
             WITH valid AS (SELECT code,data FROM valorapesquisa.inference_results WHERE organization_id=@organizationId
               AND status<>'insufficient_evidence' AND data->'evidenceIds' ?| @evidenceTexts ORDER BY created_at DESC),
@@ -121,8 +115,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
         return await ExecuteStage(c, evidenceIds, "insights", sql, ct);
     }
 
-    public async Task<ProcessingStageResult> RefreshProjectionAsync(IntelligenceProcessingContext c, string module, IReadOnlyList<Guid> evidenceIds, CancellationToken ct)
-    {
+    public async Task<ProcessingStageResult> RefreshProjectionAsync(IntelligenceProcessingContext c, string module, IReadOnlyList<Guid> evidenceIds, CancellationToken ct) {
         var table = module switch { "action" => "action_items", "evolution" => "evolution_cycles", "heatmap" => "heatmap_snapshots", "radar" => "radar_snapshots", "benchmark" => "benchmark_runs", "executive_report" => "executive_reports", _ => throw new ArgumentOutOfRangeException(nameof(module)) };
         var status = evidenceIds.Count >= 3 ? "ready" : "insufficient_evidence";
         using var db = connections.Create();
@@ -139,8 +132,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
                   WHERE organization_id=@organizationId AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 20) s),'[]'::jsonb)::text Insights
             """;
         var source = await db.QuerySingleAsync<ProjectionSource>(new CommandDefinition(sourceSql, new { organizationId = c.OrganizationId }, cancellationToken: ct));
-        var data = JsonSerializer.Serialize(new
-        {
+        var data = JsonSerializer.Serialize(new {
             trigger = c.Trigger,
             surveyId = c.SurveyId,
             evidenceIds,
@@ -158,8 +150,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
 
     private sealed record ProjectionSource(string Metrics, string Indices, string Insights);
 
-    public async Task RecordEventAsync(IntelligenceProcessingContext c, Guid runId, string eventType, string title, string description, CancellationToken ct)
-    {
+    public async Task RecordEventAsync(IntelligenceProcessingContext c, Guid runId, string eventType, string title, string description, CancellationToken ct) {
         using var db = connections.Create();
         if (eventType.StartsWith("notification:"))
             await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.notifications(organization_id,user_id,type,title,message,related_module,related_entity_id) VALUES(@OrganizationId,@UserId,@type,@title,@description,'organizational_intelligence',@runId)", new { c.OrganizationId, c.UserId, type = eventType[13..], title, description, runId }, cancellationToken: ct));
@@ -169,14 +160,12 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.journey_events(organization_id,code,status,data,created_by) VALUES(@OrganizationId,@eventType,'recorded',jsonb_build_object('title',@title,'description',@description,'trigger',@Trigger,'runId',@runId,'confidentiality','organizational'),@UserId)", new { c.OrganizationId, c.UserId, c.Trigger, eventType, title, description, runId }, cancellationToken: ct));
     }
 
-    private async Task<ProcessingStageResult> ExecuteStage(IntelligenceProcessingContext c, IReadOnlyList<Guid> evidenceIds, string stage, string sql, CancellationToken ct)
-    {
+    private async Task<ProcessingStageResult> ExecuteStage(IntelligenceProcessingContext c, IReadOnlyList<Guid> evidenceIds, string stage, string sql, CancellationToken ct) {
         using var db = connections.Create();
         var ids = (await db.QueryAsync<Guid>(new CommandDefinition(sql, new { organizationId = c.OrganizationId, evidenceIds = evidenceIds.ToArray(), evidenceTexts = evidenceIds.Select(x => x.ToString()).ToArray(), evidenceHash = string.Join('|', evidenceIds), runCode = $"{stage}-{Guid.NewGuid():N}" }, cancellationToken: ct))).ToList();
         return new(stage, ids.Count, evidenceIds.Count >= 3, ids.Count == 0 ? "Nenhum resultado elegível foi produzido; a insuficiência foi preservada." : "Resultado calculado e versionado a partir de evidências rastreáveis.", evidenceIds);
     }
-    private async Task<IReadOnlyList<Guid>> ExistingEvidence(IntelligenceProcessingContext c, CancellationToken ct)
-    {
+    private async Task<IReadOnlyList<Guid>> ExistingEvidence(IntelligenceProcessingContext c, CancellationToken ct) {
         using var db = connections.Create();
         return (await db.QueryAsync<Guid>(new CommandDefinition("SELECT id FROM valorapesquisa.evidence_items WHERE organization_id=@OrganizationId AND (@SurveyId IS NULL OR survey_id=@SurveyId) AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 500", new { c.OrganizationId, c.SurveyId }, cancellationToken: ct))).ToList();
     }

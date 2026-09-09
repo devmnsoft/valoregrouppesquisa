@@ -3,8 +3,7 @@ using Valora.Domain.Enums;
 
 namespace Valora.Domain.Entities;
 
-public sealed record UsageMonthly : AuditableEntity
-{
+public sealed record UsageMonthly : AuditableEntity {
     public Guid OrganizationId { get; init; }
     public string UsageKey { get; init; } = string.Empty;
     public int Year { get; init; }

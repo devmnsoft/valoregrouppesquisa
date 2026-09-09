@@ -3,10 +3,8 @@ using Valora.Web.Models;
 
 namespace Valora.Web.Ui;
 
-public sealed class PageExperienceCatalog
-{
-    private static readonly IReadOnlyDictionary<string, string[]> Guidance = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
-    {
+public sealed class PageExperienceCatalog {
+    private static readonly IReadOnlyDictionary<string, string[]> Guidance = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase) {
         ["Dashboard"] = ["acompanhar a situação da organização e priorizar o que requer atenção", "na abertura da rotina de gestão", "revise alertas e abra o indicador ou diagnóstico que precisa de ação", "interprete tendências no contexto; um sinal isolado não determina uma decisão"],
         ["Forms"] = ["criar, revisar e versionar formulários de diagnóstico", "antes de iniciar uma nova coleta", "revise perguntas e regras antes de publicar", "formulários publicados não devem sofrer alteração estrutural; crie uma nova versão"],
         ["Diagnostics"] = ["acompanhar diagnósticos ativos e identificar pendências de resposta", "durante o planejamento e a execução das coletas", "selecione um diagnóstico para conferir público, prazo e progresso", "não conclua análises sem respostas e evidências suficientes"],
@@ -36,8 +34,7 @@ public sealed class PageExperienceCatalog
         ["Account"] = ["acessar sua conta Valora Insight™ com segurança", "para iniciar ou recuperar uma sessão", "informe suas credenciais ou use a recuperação de acesso", "não compartilhe sua senha; confirme o endereço antes de entrar"]
     };
 
-    public PageExperienceViewModel Create(string controller, ITempDataDictionary tempData)
-    {
+    public PageExperienceViewModel Create(string controller, ITempDataDictionary tempData) {
         var copy = Guidance.TryGetValue(controller, out var found) ? found :
             ["realizar as atividades desta área com contexto e rastreabilidade", "quando esta etapa fizer parte da sua rotina", "revise as informações disponíveis e escolha a próxima ação", "confirme dados, permissões e evidências antes de concluir"];
         return new($"Use esta página para {copy[0]}.", $"Quando usar: {copy[1]}.",
@@ -47,8 +44,7 @@ public sealed class PageExperienceCatalog
             Read(tempData, "Info", "Information", "InformationMessage"));
     }
 
-    private static string? Read(ITempDataDictionary data, params string[] keys)
-    {
+    private static string? Read(ITempDataDictionary data, params string[] keys) {
         foreach (var key in keys)
             if (data.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value?.ToString())) return value!.ToString();
         return null;

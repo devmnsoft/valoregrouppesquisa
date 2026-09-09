@@ -7,8 +7,7 @@ using WebProgram = ValoraWeb::Program;
 namespace Valora.Tests;
 
 [Trait("Category", "BffIntegration")]
-public sealed class ErrorPageIntegrationTests : IClassFixture<WebApplicationFactory<WebProgram>>
-{
+public sealed class ErrorPageIntegrationTests : IClassFixture<WebApplicationFactory<WebProgram>> {
     private readonly WebApplicationFactory<WebProgram> _factory;
 
     public ErrorPageIntegrationTests(WebApplicationFactory<WebProgram> factory) => _factory = factory;
@@ -19,10 +18,8 @@ public sealed class ErrorPageIntegrationTests : IClassFixture<WebApplicationFact
     [InlineData(403, HttpStatusCode.Forbidden, "Acesso não autorizado")]
     [InlineData(404, HttpStatusCode.NotFound, "Página não encontrada")]
     [InlineData(500, HttpStatusCode.InternalServerError, "Não foi possível concluir")]
-    public async Task FriendlyErrorPagePreservesItsHttpStatus(int code, HttpStatusCode expected, string heading)
-    {
-        using var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
+    public async Task FriendlyErrorPagePreservesItsHttpStatus(int code, HttpStatusCode expected, string heading) {
+        using var client = _factory.CreateClient(new WebApplicationFactoryClientOptions {
             AllowAutoRedirect = false,
             BaseAddress = new Uri("https://localhost")
         });
@@ -38,10 +35,8 @@ public sealed class ErrorPageIntegrationTests : IClassFixture<WebApplicationFact
     }
 
     [Fact]
-    public async Task UnknownRouteUsesTheFriendly404Page()
-    {
-        using var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
+    public async Task UnknownRouteUsesTheFriendly404Page() {
+        using var client = _factory.CreateClient(new WebApplicationFactoryClientOptions {
             AllowAutoRedirect = false,
             BaseAddress = new Uri("https://localhost")
         });

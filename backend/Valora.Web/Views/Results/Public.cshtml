@@ -15,7 +15,7 @@
         <p class="lead">Data do diagnóstico: <strong data-result-date>Data não informada</strong></p>
       </div>
     </div>
-    <input type="hidden" name="responseId" value="@Model.Token">
+    <input type="hidden" name="responseId" value="@Model.ResponseId">
 
     <div class="result-card result-hero" data-result-card>
       <div class="score-hero">
@@ -51,7 +51,7 @@
 
     <div class="cta-row result-cta-row">
       <a class="btn-public primary" href="@WhatsAppUrl" target="_blank" rel="noopener noreferrer">Fale com a Valora Group</a>
-      <a class="btn-public secondary" href="/public/results/@Model.Token/certificate">Abrir certificado</a>
+      <a class="btn-public secondary" href="/public/results/@Model.ResponseId/certificate">Abrir certificado</a>
       <button class="btn-public ghost" type="button" data-send-result-email>Enviar por e-mail</button>
     </div>
   </div>

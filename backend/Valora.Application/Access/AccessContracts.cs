@@ -10,8 +10,7 @@ public sealed record EffectiveAccessDto(Guid UserId, IReadOnlyList<string> Grant
 public sealed record BlockedAccessDto(string Permission, string Reason);
 public sealed record AccessScopeDto(string Type, Guid Id, string Label);
 
-public interface IAccessAdministrationService
-{
+public interface IAccessAdministrationService {
     Task<IReadOnlyList<AccessRoleDto>> ListRolesAsync(Guid organizationId, CancellationToken ct);
     Task<AccessRoleDto> GetRoleAsync(Guid organizationId, Guid roleId, CancellationToken ct);
     Task<AccessRoleDto> CreateRoleAsync(Guid organizationId, Guid actorId, CreateAccessRoleRequest request, CancellationToken ct);
@@ -23,8 +22,7 @@ public interface IAccessAdministrationService
     Task<EffectiveAccessDto> GetEffectiveAccessAsync(Guid organizationId, Guid userId, CancellationToken ct);
 }
 
-public interface IAccessAdministrationRepository
-{
+public interface IAccessAdministrationRepository {
     Task<IReadOnlyList<AccessRoleDto>> ListRolesAsync(Guid organizationId, CancellationToken ct);
     Task<AccessRoleDto?> GetRoleAsync(Guid organizationId, Guid roleId, CancellationToken ct);
     Task<AccessRoleDto> CreateRoleAsync(Guid organizationId, Guid actorId, CreateAccessRoleRequest request, CancellationToken ct);

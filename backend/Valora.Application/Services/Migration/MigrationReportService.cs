@@ -10,12 +10,10 @@ namespace Valora.Application.Services;
 public sealed class MigrationReportService(
     IMigrationRecordRepository records,
     IMigrationConflictRepository conflicts,
-    IMigrationReconciliationService rec) : IMigrationReportService
-{
+    IMigrationReconciliationService rec) : IMigrationReportService {
     public async Task<MigrationValidationReportDto> GetDryRunReportAsync(
         Guid batchId,
-        CancellationToken ct = default)
-    {
+        CancellationToken ct = default) {
         var r = await records.ListByBatchAsync(batchId, ct);
         var c = await conflicts.ListByBatchAsync(batchId, ct);
         var s = new MigrationSummaryDto(

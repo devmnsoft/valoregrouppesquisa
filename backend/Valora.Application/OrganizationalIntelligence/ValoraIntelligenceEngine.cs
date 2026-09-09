@@ -3,16 +3,14 @@ using Valora.Domain.Methodology;
 namespace Valora.Application.OrganizationalIntelligence;
 
 /// <summary>Deterministic, evidence-first read engine. It never completes absent dimensions with synthetic values.</summary>
-public sealed class ValoraIntelligenceEngine : IValoraIntelligenceEngine
-{
+public sealed class ValoraIntelligenceEngine : IValoraIntelligenceEngine {
     private static readonly string[] ReportSections = ["Resumo Executivo", "Leitura Estratégica", "Situação Atual",
         "Índice Geral", "Índices por Dimensão", "Análise das Evidências", "Riscos Organizacionais",
         "Oportunidades", "Pontos Fortes", "Fragilidades", "Comparativos", "Prioridades",
         "Plano Estratégico Recomendado", "Indicadores", "Anexos"];
 
     public OrganizationalDiagnosisSummary Analyze(Guid organizationId, Guid? surveyId,
-        IEnumerable<DiagnosisEvidence> evidence, DateTime? createdAt = null)
-    {
+        IEnumerable<DiagnosisEvidence> evidence, DateTime? createdAt = null) {
         var now = createdAt ?? DateTime.UtcNow;
         var valid = evidence.Where(x => x.OrganizationId == organizationId &&
             (!surveyId.HasValue || x.SurveyId == surveyId) && x.NormalizedScore is >= 0 and <= 100 &&
@@ -21,7 +19,9 @@ public sealed class ValoraIntelligenceEngine : IValoraIntelligenceEngine
             .Select(group => Dimension(organizationId, surveyId, group.Key, group.ToList(), now))
             .OrderBy(x => OfficialOrder(x.Dimension)).ThenBy(x => x.Dimension).ToList();
         var allIds = valid.Select(x => x.Id).Distinct().ToList();
-        decimal? score = valid.Count == 0 ? null : Math.Round(valid.Sum(x => x.NormalizedScore!.Value * x.Weight) / valid.Sum(x => x.Weight), 2);
+        // Evidence weights apply within each dimension. The overall index gives each observed
+        // dimension equal influence, avoiding questionnaire length as an accidental weight.
+        decimal? score = dimensions.Count == 0 ? null : Math.Round(dimensions.Average(x => x.Score!.Value), 2);
         var confidence = Confidence(allIds.Count);
         var risks = dimensions.Where(x => x.Score < 50).Select(x => new OrganizationalRisk(Guid.NewGuid(), organizationId,
             surveyId, x.Dimension, x.Concept, x.Score!.Value, x.MaturityLevel, x.ConfidenceLevel, x.Evidence,
@@ -57,8 +57,7 @@ public sealed class ValoraIntelligenceEngine : IValoraIntelligenceEngine
             dimensions, risks, opportunities, strengths, fragilities, priorities, insights, actions, heatmap, radar, report, now);
     }
 
-    private static MaturityDimensionScore Dimension(Guid org, Guid? survey, string name, List<DiagnosisEvidence> items, DateTime now)
-    {
+    private static MaturityDimensionScore Dimension(Guid org, Guid? survey, string name, List<DiagnosisEvidence> items, DateTime now) {
         var score = Math.Round(items.Sum(x => x.NormalizedScore!.Value * x.Weight) / items.Sum(x => x.Weight), 2);
         var ids = items.Select(x => x.Id).Distinct().ToList(); var priority = score < 35 ? "critical" : score < 50 ? "high" : score < 75 ? "medium" : "monitor";
         var risk = score < 50 ? $"A baixa consistência observada em {name} pode comprometer capacidades relacionadas; a causa deve ser validada." : null;
@@ -85,10 +84,8 @@ public sealed class ValoraIntelligenceEngine : IValoraIntelligenceEngine
     private static ExecutiveReportViewModel Report(Guid org, Guid? survey, decimal? score, string confidence,
         IReadOnlyList<Guid> ids, string interpretation, IReadOnlyList<MaturityDimensionScore> dimensions,
         IReadOnlyList<OrganizationalRisk> risks, IReadOnlyList<OrganizationalOpportunity> opportunities,
-        IReadOnlyList<OrganizationalStrength> strengths, IReadOnlyList<RecommendedPriority> priorities, DateTime now)
-    {
-        string Content(string title) => title switch
-        {
+        IReadOnlyList<OrganizationalStrength> strengths, IReadOnlyList<RecommendedPriority> priorities, DateTime now) {
+        string Content(string title) => title switch {
             "Resumo Executivo" or "Leitura Estratégica" or "Situação Atual" => interpretation,
             "Índice Geral" => score is null ? "Índice não calculado por ausência de evidências válidas." : $"Índice geral: {score:0.##}%, confiança {confidence}.",
             "Índices por Dimensão" => dimensions.Count == 0 ? "Nenhuma dimensão observada." : string.Join("; ", dimensions.Select(x => $"{x.Dimension}: {x.Score:0.##}% ({x.MaturityLevel})")),

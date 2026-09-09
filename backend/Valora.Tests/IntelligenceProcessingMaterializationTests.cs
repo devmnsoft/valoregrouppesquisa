@@ -2,14 +2,12 @@ using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
-public sealed class IntelligenceProcessingMaterializationTests
-{
+public sealed class IntelligenceProcessingMaterializationTests {
     private static readonly string Repository = File.ReadAllText(Path.Combine(
         RepositoryPaths.RepositoryRoot, "backend", "Valora.Infrastructure", "Repositories", "IntelligenceProcessingJobRepository.cs"));
 
     [Fact]
-    public void JobAndStageQueries_UseExplicitReusableProjections()
-    {
+    public void JobAndStageQueries_UseExplicitReusableProjections() {
         Assert.DoesNotContain("SELECT *", Repository, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("JobProjection", Repository, StringComparison.Ordinal);
         Assert.Contains("StageProjection", Repository, StringComparison.Ordinal);
@@ -18,8 +16,7 @@ public sealed class IntelligenceProcessingMaterializationTests
     }
 
     [Fact]
-    public void PersistenceRows_AreMutableAndPreserveNullableDatabaseColumns()
-    {
+    public void PersistenceRows_AreMutableAndPreserveNullableDatabaseColumns() {
         Assert.Contains("private sealed class IntelligenceProcessingJobRow", Repository, StringComparison.Ordinal);
         Assert.Contains("Guid? RunId", Repository, StringComparison.Ordinal);
         Assert.Contains("DateTime? LockedAt", Repository, StringComparison.Ordinal);
@@ -30,8 +27,7 @@ public sealed class IntelligenceProcessingMaterializationTests
     }
 
     [Fact]
-    public void Worker_IsRegisteredExactlyOnce()
-    {
+    public void Worker_IsRegisteredExactlyOnce() {
         var program = File.ReadAllText(Path.Combine(RepositoryPaths.RepositoryRoot, "backend", "Valora.Api", "Program.cs"));
         Assert.Equal(1, Count(program, "AddHostedService<IntelligenceProcessingWorker>"));
     }

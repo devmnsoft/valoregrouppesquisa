@@ -1,18 +1,16 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Valora.Web.Services.Bff;
 using Valora.Web.Models;
+using Valora.Web.Services.Bff;
 
 namespace Valora.Web.Controllers;
 
 [Authorize]
 [ApiController]
 [Route("bff/account")]
-public sealed class BffAccountController(BffAuthenticationService authentication) : ControllerBase
-{
+public sealed class BffAccountController(BffAuthenticationService authentication) : ControllerBase {
     [HttpGet("context")]
-    public async Task<IActionResult> Context(CancellationToken cancellationToken)
-    {
+    public async Task<IActionResult> Context(CancellationToken cancellationToken) {
         var session = await authentication.GetAsync(HttpContext, cancellationToken);
         if (session is null) return Unauthorized();
 

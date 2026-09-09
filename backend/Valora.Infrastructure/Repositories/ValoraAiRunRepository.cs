@@ -5,12 +5,10 @@ using Valora.Application.ValoraAi;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class ValoraAiRunRepository(IDbConnectionFactory connections) : IValoraAiRunRepository
-{
+public sealed class ValoraAiRunRepository(IDbConnectionFactory connections) : IValoraAiRunRepository {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public async Task CreateAsync(ValoraAiRun run, ValoraEvidencePack input, CancellationToken ct)
-    {
+    public async Task CreateAsync(ValoraAiRun run, ValoraEvidencePack input, CancellationToken ct) {
         using var connection = connections.Create();
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO valorapesquisa.valora_ai_runs
@@ -18,14 +16,23 @@ public sealed class ValoraAiRunRepository(IDbConnectionFactory connections) : IV
                correlation_id, input_json, run_type, started_at, created_at)
             VALUES (@Id, @OrganizationId, @DiagnosisId, @PromptCode, @PromptVersion, @Provider, @Model, @Status,
                     @CorrelationId, CAST(@InputJson AS jsonb), @PromptCode, @CreatedAt, @CreatedAt)
-            """, new { run.Id, run.OrganizationId, run.DiagnosisId, run.PromptCode, run.PromptVersion,
-                run.Provider, run.Model, Status = run.Status.ToString(), run.CorrelationId,
-                InputJson = JsonSerializer.Serialize(input, JsonOptions), run.CreatedAt }, cancellationToken: ct));
+            """, new {
+            run.Id,
+            run.OrganizationId,
+            run.DiagnosisId,
+            run.PromptCode,
+            run.PromptVersion,
+            run.Provider,
+            run.Model,
+            Status = run.Status.ToString(),
+            run.CorrelationId,
+            InputJson = JsonSerializer.Serialize(input, JsonOptions),
+            run.CreatedAt
+        }, cancellationToken: ct));
     }
 
     public async Task CompleteAsync(Guid runId, AiRunStatus status, string? output, ValoraAiValidation? validation,
-        ValoraAiProviderResult? usage, string? error, CancellationToken ct)
-    {
+        ValoraAiProviderResult? usage, string? error, CancellationToken ct) {
         using var connection = connections.Create();
         await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE valorapesquisa.valora_ai_runs SET status=@Status, output_json=CAST(@Output AS jsonb),
@@ -33,14 +40,21 @@ public sealed class ValoraAiRunRepository(IDbConnectionFactory connections) : IV
               model=COALESCE(@Model,model), input_tokens=@InputTokens, output_tokens=@OutputTokens,
               estimated_cost=@EstimatedCost, error=@Error, error_message=@Error, completed_at=now(), updated_at=now()
             WHERE id=@RunId
-            """, new { RunId = runId, Status = status.ToString(), Output = output,
-                Validation = validation is null ? null : JsonSerializer.Serialize(validation, JsonOptions),
-                Provider = usage?.Provider, Model = usage?.Model, InputTokens = usage?.InputTokens,
-                OutputTokens = usage?.OutputTokens, EstimatedCost = usage?.EstimatedCost, Error = error }, cancellationToken: ct));
+            """, new {
+            RunId = runId,
+            Status = status.ToString(),
+            Output = output,
+            Validation = validation is null ? null : JsonSerializer.Serialize(validation, JsonOptions),
+            Provider = usage?.Provider,
+            Model = usage?.Model,
+            InputTokens = usage?.InputTokens,
+            OutputTokens = usage?.OutputTokens,
+            EstimatedCost = usage?.EstimatedCost,
+            Error = error
+        }, cancellationToken: ct));
     }
 
-    public async Task<AiUsageAllowance> CheckAllowanceAsync(Guid organizationId, CancellationToken ct)
-    {
+    public async Task<AiUsageAllowance> CheckAllowanceAsync(Guid organizationId, CancellationToken ct) {
         using var connection = connections.Create();
         var used = await connection.ExecuteScalarAsync<int>(new CommandDefinition("""
             SELECT count(*)::int FROM valorapesquisa.valora_ai_runs
@@ -50,8 +64,7 @@ public sealed class ValoraAiRunRepository(IDbConnectionFactory connections) : IV
         return new AiUsageAllowance(used < monthlyLimit, used, monthlyLimit);
     }
 
-    public async Task RecordReviewAsync(Guid runId, Guid reviewerId, AiRunStatus status, string? note, CancellationToken ct)
-    {
+    public async Task RecordReviewAsync(Guid runId, Guid reviewerId, AiRunStatus status, string? note, CancellationToken ct) {
         using var connection = connections.Create();
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO valorapesquisa.valora_ai_reviews(id, run_id, reviewer_id, status, note)

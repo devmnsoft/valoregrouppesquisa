@@ -3,14 +3,11 @@ using Xunit;
 namespace Valora.Tests.Integration;
 
 [Trait("Category", "Integration")]
-public sealed class PostgresHomologationFlowTests
-{
+public sealed class PostgresHomologationFlowTests {
     [Fact]
-    public void HomologationFlowContractDocumentsRequiredScenarios()
-    {
+    public void HomologationFlowContractDocumentsRequiredScenarios() {
         var connection = Environment.GetEnvironmentVariable("VALORA_TEST_POSTGRES_CONNECTION");
-        if (string.IsNullOrWhiteSpace(connection))
-        {
+        if (string.IsNullOrWhiteSpace(connection)) {
             Assert.True(true, "Set VALORA_TEST_POSTGRES_CONNECTION to run the real PostgreSQL integrated homologation flow; never point it to production.");
             return;
         }
@@ -25,6 +22,6 @@ public sealed class PostgresHomologationFlowTests
         };
 
         Assert.Equal(21, scenarios.Length);
-  
+
     }
 }

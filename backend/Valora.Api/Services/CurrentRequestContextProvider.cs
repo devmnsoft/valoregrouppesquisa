@@ -4,13 +4,11 @@ using Valora.Application.Common;
 
 namespace Valora.Api.Services;
 
-public sealed class CurrentRequestContextProvider(IHttpContextAccessor accessor) : ICurrentRequestContext
-{
+public sealed class CurrentRequestContextProvider(IHttpContextAccessor accessor) : ICurrentRequestContext {
     private static readonly string[] OrganizationAliases = ["organizationId", "tenant_id", "tenantId"];
     private static readonly string[] SessionAliases = ["sessionId"];
 
-    public CurrentRequestContext GetCurrent()
-    {
+    public CurrentRequestContext GetCurrent() {
         var http = accessor.HttpContext;
         if (http is null) return Empty();
 
@@ -19,8 +17,7 @@ public sealed class CurrentRequestContextProvider(IHttpContextAccessor accessor)
         var organizationId = ReadGuid(http.User, "organization_id", OrganizationAliases);
         var selected = ReadGuid(http.User, "selected_organization_id");
 
-        if (TryGuid(http.Request.Headers["X-Organization-Id"].FirstOrDefault(), out var requested))
-        {
+        if (TryGuid(http.Request.Headers["X-Organization-Id"].FirstOrDefault(), out var requested)) {
             if (global)
                 selected = requested;
             else if (organizationId != requested)
@@ -52,8 +49,7 @@ public sealed class CurrentRequestContextProvider(IHttpContextAccessor accessor)
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
 
-    private static Guid? ReadGuid(ClaimsPrincipal principal, string canonical, IReadOnlyList<string>? aliases = null)
-    {
+    private static Guid? ReadGuid(ClaimsPrincipal principal, string canonical, IReadOnlyList<string>? aliases = null) {
         if (TryGuid(principal.FindFirstValue(canonical), out var value)) return value;
         if (aliases is not null)
             foreach (var alias in aliases)

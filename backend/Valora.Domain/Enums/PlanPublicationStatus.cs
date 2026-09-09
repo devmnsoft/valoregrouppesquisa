@@ -1,7 +1,6 @@
 namespace Valora.Domain.Enums;
 
-public enum PlanPublicationStatus
-{
+public enum PlanPublicationStatus {
     PublicActive,
     InternalLegacyInactive
 }

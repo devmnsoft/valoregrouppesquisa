@@ -1,7 +1,6 @@
 namespace Valora.Application.OrganizationalIntelligence;
 
-public static class ValoraOfficialDimensions
-{
+public static class ValoraOfficialDimensions {
     public static readonly IReadOnlyList<string> All =
     [
         "Cultura Organizacional", "Governança Organizacional", "Liderança", "Pessoas", "Sistemas",
@@ -74,8 +73,7 @@ public sealed record OrganizationalDiagnosisSummary(Guid Id, Guid OrganizationId
     IReadOnlyList<HeatmapCell> Heatmap, IReadOnlyList<RadarDimension> Radar,
     ExecutiveReportViewModel Report, DateTime CreatedAt);
 
-public interface IValoraIntelligenceEngine
-{
+public interface IValoraIntelligenceEngine {
     OrganizationalDiagnosisSummary Analyze(Guid organizationId, Guid? surveyId,
         IEnumerable<DiagnosisEvidence> evidence, DateTime? createdAt = null);
 }

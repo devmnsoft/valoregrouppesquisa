@@ -7,17 +7,14 @@ using WebProgram = ValoraWeb::Program;
 namespace Valora.Tests;
 
 [Trait("Category", "BffIntegration")]
-public sealed class BffHostIntegrationTests : IClassFixture<WebApplicationFactory<WebProgram>>
-{
+public sealed class BffHostIntegrationTests : IClassFixture<WebApplicationFactory<WebProgram>> {
     private readonly WebApplicationFactory<WebProgram> _factory;
 
     public BffHostIntegrationTests(WebApplicationFactory<WebProgram> factory) => _factory = factory;
 
     [Fact]
-    public async Task HealthEndpoint_IsServedByTheRealWebPipeline()
-    {
-        using var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
+    public async Task HealthEndpoint_IsServedByTheRealWebPipeline() {
+        using var client = _factory.CreateClient(new WebApplicationFactoryClientOptions {
             AllowAutoRedirect = false,
             BaseAddress = new Uri("https://localhost")
         });

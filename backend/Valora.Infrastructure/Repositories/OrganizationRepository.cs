@@ -7,10 +7,8 @@ using Valora.Application.Security;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class OrganizationRepository(IDbConnectionFactory factory, ILogger<OrganizationRepository> logger) : IOrganizationRepository
-{
-    public async Task<OrganizationRecord?> GetAsync(Guid id, CancellationToken cancellationToken = default)
-    {
+public sealed class OrganizationRepository(IDbConnectionFactory factory, ILogger<OrganizationRepository> logger) : IOrganizationRepository {
+    public async Task<OrganizationRecord?> GetAsync(Guid id, CancellationToken cancellationToken = default) {
         const string sql = """
             SELECT
                 o.id AS "Id",
@@ -37,30 +35,26 @@ public sealed class OrganizationRepository(IDbConnectionFactory factory, ILogger
             LIMIT 1;
             """;
 
-        try
-        {
+        try {
             using var connection = factory.Create();
             var command = new CommandDefinition(sql, new { id }, cancellationToken: cancellationToken);
             var organization = await connection.QuerySingleOrDefaultAsync<OrganizationRecord>(command);
             logger.LogDebug("Organization lookup completed. OrganizationId={OrganizationId} Found={Found}", id, organization is not null);
             return organization;
         }
-        catch (Exception exception)
-        {
+        catch (Exception exception) {
             logger.LogError(exception, "Organization lookup failed. OrganizationId={OrganizationId}", id);
             throw;
         }
     }
 
-    public async Task<Guid> CreateAsync(string name,string email,string slug,string planId)
-    {
-        using var c=factory.Create();
-        return await c.ExecuteScalarAsync<Guid>("INSERT INTO valorapesquisa.organizations(name,public_name,email,slug) VALUES (@name,@name,@email,@slug) RETURNING id",new{name,email,slug});
+    public async Task<Guid> CreateAsync(string name, string email, string slug, string planId) {
+        using var c = factory.Create();
+        return await c.ExecuteScalarAsync<Guid>("INSERT INTO valorapesquisa.organizations(name,public_name,email,slug) VALUES (@name,@name,@email,@slug) RETURNING id", new { name, email, slug });
     }
 
-    public async Task<long?> UpdateCurrentAsync(Guid id,UpdateOrganizationRequest request, CancellationToken cancellationToken = default)
-    {
-        using var c=factory.Create();
+    public async Task<long?> UpdateCurrentAsync(Guid id, UpdateOrganizationRequest request, CancellationToken cancellationToken = default) {
+        using var c = factory.Create();
         return await c.QuerySingleOrDefaultAsync<long?>(new CommandDefinition("""
             UPDATE valorapesquisa.organizations SET
                 public_name=COALESCE(@PublicName,public_name), phone=COALESCE(@Phone,phone),
@@ -75,35 +69,49 @@ public sealed class OrganizationRepository(IDbConnectionFactory factory, ILogger
                 ,minimum_aggregation_size=COALESCE(@MinimumAggregationSize,minimum_aggregation_size)
             WHERE id=@id AND version=@ExpectedVersion AND deleted_at IS NULL
             RETURNING version
-            """,new{request.PublicName,request.Phone,request.Email,request.DefaultLanguageCode,request.TimeZone,request.ExpectedVersion,
-                request.LegalName,request.Cnpj,request.Segment,request.Cnae,request.CompanySize,request.ApproximateEmployeeCount,
-                request.LeadershipCount,request.BusinessModel,request.Region,request.City,request.State,request.PrimaryContactName,
-                request.MinimumAggregationSize,id}, cancellationToken: cancellationToken));
+            """, new {
+            request.PublicName,
+            request.Phone,
+            request.Email,
+            request.DefaultLanguageCode,
+            request.TimeZone,
+            request.ExpectedVersion,
+            request.LegalName,
+            request.Cnpj,
+            request.Segment,
+            request.Cnae,
+            request.CompanySize,
+            request.ApproximateEmployeeCount,
+            request.LeadershipCount,
+            request.BusinessModel,
+            request.Region,
+            request.City,
+            request.State,
+            request.PrimaryContactName,
+            request.MinimumAggregationSize,
+            id
+        }, cancellationToken: cancellationToken));
     }
 
-    public async Task<int> CountManagersAsync(Guid organizationId)
-    {
-        using var c=factory.Create();
-        return await c.ExecuteScalarAsync<int>("SELECT count(*) FROM valorapesquisa.users u JOIN valorapesquisa.user_roles ur ON ur.user_id=u.id JOIN valorapesquisa.roles r ON r.id=ur.role_id WHERE u.organization_id=@organizationId AND u.deleted_at IS NULL AND u.status='active' AND r.code='empresa_admin'",new{organizationId});
+    public async Task<int> CountManagersAsync(Guid organizationId) {
+        using var c = factory.Create();
+        return await c.ExecuteScalarAsync<int>("SELECT count(*) FROM valorapesquisa.users u JOIN valorapesquisa.user_roles ur ON ur.user_id=u.id JOIN valorapesquisa.roles r ON r.id=ur.role_id WHERE u.organization_id=@organizationId AND u.deleted_at IS NULL AND u.status='active' AND r.code='empresa_admin'", new { organizationId });
     }
 
-    public async Task<IReadOnlyList<OrganizationSettingRecord>> GetSettingsAsync(Guid organizationId)
-    {
-        using var c=factory.Create();
-        var rows=await c.QueryAsync<OrganizationSettingRecord>("SELECT id AS Id,settings::text AS Settings,created_at AS CreatedAt,updated_at AS UpdatedAt FROM valorapesquisa.organization_settings WHERE organization_id=@organizationId",new{organizationId});
+    public async Task<IReadOnlyList<OrganizationSettingRecord>> GetSettingsAsync(Guid organizationId) {
+        using var c = factory.Create();
+        var rows = await c.QueryAsync<OrganizationSettingRecord>("SELECT id AS Id,settings::text AS Settings,created_at AS CreatedAt,updated_at AS UpdatedAt FROM valorapesquisa.organization_settings WHERE organization_id=@organizationId", new { organizationId });
         return rows.AsList();
     }
 
-    public async Task UpsertSettingsAsync(Guid organizationId,IReadOnlyDictionary<string,object?> settings)
-    {
-        using var c=factory.Create();
-        var safe=settings.Where(x=>!x.Key.Contains("password",StringComparison.OrdinalIgnoreCase)&&!x.Key.Contains("token",StringComparison.OrdinalIgnoreCase)&&!x.Key.Contains("secret",StringComparison.OrdinalIgnoreCase)).ToDictionary(x=>x.Key,x=>x.Value);
-        await c.ExecuteAsync("INSERT INTO valorapesquisa.organization_settings(organization_id,settings) VALUES (@organizationId,CAST(@settingsJson AS jsonb)) ON CONFLICT (organization_id) DO UPDATE SET settings=EXCLUDED.settings,updated_at=now()",new{organizationId,settingsJson=System.Text.Json.JsonSerializer.Serialize(safe)});
+    public async Task UpsertSettingsAsync(Guid organizationId, IReadOnlyDictionary<string, object?> settings) {
+        using var c = factory.Create();
+        var safe = settings.Where(x => !x.Key.Contains("password", StringComparison.OrdinalIgnoreCase) && !x.Key.Contains("token", StringComparison.OrdinalIgnoreCase) && !x.Key.Contains("secret", StringComparison.OrdinalIgnoreCase)).ToDictionary(x => x.Key, x => x.Value);
+        await c.ExecuteAsync("INSERT INTO valorapesquisa.organization_settings(organization_id,settings) VALUES (@organizationId,CAST(@settingsJson AS jsonb)) ON CONFLICT (organization_id) DO UPDATE SET settings=EXCLUDED.settings,updated_at=now()", new { organizationId, settingsJson = System.Text.Json.JsonSerializer.Serialize(safe) });
     }
 
-    public async Task<IReadOnlyList<OrganizationUsageRecord>> GetUsageAsync(Guid organizationId)
-    {
-        using var c=factory.Create();
+    public async Task<IReadOnlyList<OrganizationUsageRecord>> GetUsageAsync(Guid organizationId) {
+        using var c = factory.Create();
         const string sql = """
             WITH current_subscription AS (
                 SELECT s.plan_id FROM valorapesquisa.subscriptions s
@@ -130,7 +138,7 @@ public sealed class OrganizationRepository(IDbConnectionFactory factory, ILogger
                 (limit_value IS NULL) AS Unlimited
             FROM totals ORDER BY key
             """;
-        var rows=await c.QueryAsync<OrganizationUsageRecord>(sql,new{organizationId});
+        var rows = await c.QueryAsync<OrganizationUsageRecord>(sql, new { organizationId });
         return rows.AsList();
     }
 }

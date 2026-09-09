@@ -1219,6 +1219,11 @@ $validation$;
 
 
 -- Phase 2V.2 is registered only after catalog validations succeed. A changed checksum requires an explicit new migration version.
+INSERT INTO valorapesquisa.modules(code,name,category,status)
+SELECT DISTINCT p.module_code, initcap(replace(p.module_code,'_',' ')), 'functional', 'active'
+FROM valorapesquisa.permissions p
+WHERE p.module_code IS NOT NULL
+ON CONFLICT(code) DO NOTHING;
 DO $migration$
 DECLARE expected_checksum constant text := 'sha256:phase-2v2-access-v1'; actual_checksum text;
 BEGIN
@@ -1381,8 +1386,8 @@ INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_e
 -- Organizational Architecture Studio: tenant-safe, non-destructive convergence.
 CREATE TABLE IF NOT EXISTS valorapesquisa.organization_units (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, parent_unit_id uuid,
- name text NOT NULL, unit_type text NOT NULL, status text NOT NULL DEFAULT 'active', owner_user_id uuid,
- created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), archived_at timestamptz,
+ name text NOT NULL, code varchar(80), unit_type text NOT NULL, status text NOT NULL DEFAULT 'active', owner_user_id uuid,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), archived_at timestamptz, deleted_at timestamptz,
  CONSTRAINT fk_arch_unit_parent FOREIGN KEY(parent_unit_id) REFERENCES valorapesquisa.organization_units(id),
  CONSTRAINT ck_arch_unit_status CHECK(status IN ('active','inactive','archived')));
 ALTER TABLE valorapesquisa.organization_units ADD COLUMN IF NOT EXISTS unit_type text NOT NULL DEFAULT 'department';
@@ -1823,12 +1828,18 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_evidence_patterns(
 CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_maturity_levels(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code varchar(30) NOT NULL UNIQUE, name varchar(100) NOT NULL,
  minimum_score numeric(5,2) NOT NULL, maximum_score numeric(5,2) NOT NULL, description text NOT NULL,
- version integer NOT NULL DEFAULT 1, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+ methodology_version_id uuid, version integer NOT NULL DEFAULT 1, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
 CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_inference_rules(
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code varchar(80) NOT NULL UNIQUE, name varchar(180) NOT NULL,
  minimum_evidence integer NOT NULL DEFAULT 3 CHECK(minimum_evidence>=3), condition_definition jsonb NOT NULL DEFAULT '{}',
  outcome_definition jsonb NOT NULL DEFAULT '{}', methodology_version integer NOT NULL DEFAULT 1, is_active boolean NOT NULL DEFAULT true,
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+ALTER TABLE valorapesquisa.methodology_inference_rules ADD COLUMN IF NOT EXISTS methodology_version_id uuid;
+ALTER TABLE valorapesquisa.methodology_inference_rules ADD COLUMN IF NOT EXISTS origin text NOT NULL DEFAULT 'catálogo oficial Valora';
+ALTER TABLE valorapesquisa.methodology_inference_rules ADD COLUMN IF NOT EXISTS purpose text NOT NULL DEFAULT 'interpretação orientada por evidências';
+ALTER TABLE valorapesquisa.methodology_inference_rules ADD COLUMN IF NOT EXISTS condition_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE valorapesquisa.methodology_inference_rules ADD COLUMN IF NOT EXISTS result_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE valorapesquisa.methodology_inference_rules ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
 
 INSERT INTO valorapesquisa.methodology_maturity_levels(code,name,minimum_score,maximum_score,description) VALUES
  ('initial','Nível 1 — Inicial',0,25,'Práticas incipientes e dependentes de iniciativas isoladas.'),
@@ -1908,6 +1919,16 @@ BEGIN
   EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON valorapesquisa.%I(organization_id,created_at DESC) WHERE deleted_at IS NULL','ix_'||table_name||'_organization',table_name);
  END LOOP;
 END $modules$;
+
+-- Converge the generic module placeholder before later One-on-One indexes and services use it.
+ALTER TABLE valorapesquisa.one_on_one_commitments ADD COLUMN IF NOT EXISTS session_id uuid;
+ALTER TABLE valorapesquisa.one_on_one_commitments ADD COLUMN IF NOT EXISTS responsible_user_id uuid;
+ALTER TABLE valorapesquisa.one_on_one_commitments ADD COLUMN IF NOT EXISTS title text;
+ALTER TABLE valorapesquisa.one_on_one_commitments ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE valorapesquisa.one_on_one_commitments ADD COLUMN IF NOT EXISTS due_at timestamptz;
+ALTER TABLE valorapesquisa.one_on_one_commitments ADD COLUMN IF NOT EXISTS action_item_id uuid;
+ALTER TABLE valorapesquisa.one_on_one_commitments ADD COLUMN IF NOT EXISTS created_by_user_id uuid;
+ALTER TABLE valorapesquisa.one_on_one_commitments ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
 
 -- 41. PIPELINE VIVO DE INTELIGÊNCIA ORGANIZACIONAL (aditivo, rastreável e multiempresa)
 BEGIN;
@@ -2384,6 +2405,12 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.plan_limits (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), plan_id uuid NOT NULL, limit_key varchar(100) NOT NULL, limit_value bigint NOT NULL,
  status varchar(30) NOT NULL DEFAULT 'active', version int NOT NULL DEFAULT 1, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS status varchar(30) NOT NULL DEFAULT 'active';
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS version int NOT NULL DEFAULT 1;
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.plan_limits ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_limits ON valorapesquisa.plan_limits(plan_id,limit_key) WHERE deleted_at IS NULL;
 CREATE TABLE IF NOT EXISTS valorapesquisa.usage_events (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), subscription_id uuid,
@@ -2594,11 +2621,27 @@ ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS schedul
 ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS sent_at timestamptz;
 ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS cancelled_at timestamptz;
 ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS created_by uuid;
+ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS starts_at timestamptz;
+ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS ends_at timestamptz;
+ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS target_participation_rate numeric(5,2);
+ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS unit_id uuid;
+ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS department_id uuid;
+ALTER TABLE valorapesquisa.diagnostic_campaigns ADD COLUMN IF NOT EXISTS version bigint NOT NULL DEFAULT 1;
 ALTER TABLE valorapesquisa.diagnostic_campaign_recipients ADD COLUMN IF NOT EXISTS recipient_hash text;
 ALTER TABLE valorapesquisa.diagnostic_campaign_recipients ADD COLUMN IF NOT EXISTS recipient_masked text;
 ALTER TABLE valorapesquisa.diagnostic_campaign_recipients ADD COLUMN IF NOT EXISTS queued_at timestamptz;
 ALTER TABLE valorapesquisa.diagnostic_campaign_recipients ADD COLUMN IF NOT EXISTS responded_at timestamptz;
 ALTER TABLE valorapesquisa.diagnostic_campaign_recipients ADD COLUMN IF NOT EXISTS error_message text;
+ALTER TABLE valorapesquisa.diagnostic_campaign_recipients ADD COLUMN IF NOT EXISTS opened_at timestamptz;
+ALTER TABLE valorapesquisa.diagnostic_campaign_recipients ADD COLUMN IF NOT EXISTS email_job_id uuid;
+ALTER TABLE valorapesquisa.diagnostic_campaign_recipients ADD COLUMN IF NOT EXISTS idempotency_key text;
+WITH duplicates AS (
+ SELECT id,row_number() OVER(PARTITION BY idempotency_key ORDER BY created_at,id) AS occurrence
+ FROM valorapesquisa.diagnostic_campaign_recipients WHERE idempotency_key IS NOT NULL)
+UPDATE valorapesquisa.diagnostic_campaign_recipients r SET idempotency_key=NULL
+FROM duplicates d WHERE r.id=d.id AND d.occurrence>1;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_campaign_recipient_idempotency
+ ON valorapesquisa.diagnostic_campaign_recipients(idempotency_key);
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.communication_templates (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id),
@@ -3199,7 +3242,7 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.webhook_delivery_attempts (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
  delivery_id uuid NOT NULL REFERENCES valorapesquisa.webhook_deliveries(id), attempt_number int NOT NULL, status varchar(30) NOT NULL,
  status_code int, error_message text, response_hash text, correlation_id text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
- created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ next_attempt_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
  UNIQUE(delivery_id,attempt_number));
 
 ALTER TABLE valorapesquisa.powerbi_datasets ADD COLUMN IF NOT EXISTS name varchar(160);
@@ -3395,8 +3438,8 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE SCHEMA IF NOT EXISTS valorapesquisa;
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_versions (
- id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code varchar(30) NOT NULL UNIQUE, version integer NOT NULL,
- name varchar(160) NOT NULL, status varchar(20) NOT NULL CHECK(status IN ('draft','active','retired')),
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code varchar(30) NOT NULL UNIQUE, version integer NOT NULL, version_number integer,
+ name varchar(160) NOT NULL, status varchar(20) NOT NULL CHECK(status IN ('draft','active','retired','published','archived')),
  effective_from timestamptz NOT NULL, effective_to timestamptz, change_log text NOT NULL DEFAULT '',
  snapshot_json jsonb NOT NULL DEFAULT '{}'::jsonb, published_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(),
  CHECK(effective_to IS NULL OR effective_to > effective_from));
@@ -3496,8 +3539,8 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.recommendation_evidence (
  recommendation_id uuid NOT NULL REFERENCES valorapesquisa.recommendation_catalog(id), evidence_id uuid NOT NULL REFERENCES valorapesquisa.evidence_items_methodology(id),
  created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(recommendation_id,evidence_id));
 
-INSERT INTO valorapesquisa.methodology_versions(code,version,name,status,effective_from,published_at,change_log)
-VALUES('VALORA-2026.1',1,'Metodologia Valora Insight™ 2026.1','active','2026-01-01',now(),'Base cognitiva oficial inicial.') ON CONFLICT(code) DO NOTHING;
+INSERT INTO valorapesquisa.methodology_versions(code,version,version_number,name,status,effective_from,published_at,change_log)
+VALUES('VALORA-2026.1',1,1,'Metodologia Valora Insight™ 2026.1','published','2026-01-01',now(),'Base cognitiva oficial inicial.') ON CONFLICT(code) DO NOTHING;
 WITH v AS (SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1')
 INSERT INTO valorapesquisa.maturity_dimensions(methodology_version_id,code,name,description,weight)
 SELECT v.id,x.code,x.name,x.description,1 FROM v CROSS JOIN (VALUES
@@ -3522,7 +3565,7 @@ FROM v JOIN concepts c ON true JOIN valorapesquisa.maturity_dimensions d ON d.me
 ON CONFLICT(methodology_version_id,code) DO UPDATE SET name=excluded.name,methodological_definition=excluded.methodological_definition,updated_at=now();
 WITH v AS (SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1')
 INSERT INTO valorapesquisa.maturity_levels(methodology_version_id,code,name,minimum_score,maximum_score,description,organizational_meaning,typical_risks,recommended_next_step,display_order)
-SELECT v.id,x.* FROM v CROSS JOIN (VALUES
+SELECT v.id,x.code,x.name,x.min,x.max,x.description,x.meaning,x.risks::jsonb,x.next_step,x.display_order FROM v CROSS JOIN (VALUES
  ('initial','Inicial',0,19.99,'Práticas incipientes.','Alta dependência de iniciativas isoladas.','["descontinuidade"]','Estabelecer fundamentos explícitos.',1),
  ('structuring','Em estruturação',20,39.99,'Fundamentos em definição.','Existem iniciativas ainda pouco integradas.','["fragmentação"]','Formalizar papéis e rotinas.',2),
  ('developing','Em desenvolvimento',40,59.99,'Práticas em adoção.','Capacidades evoluem com consistência variável.','["execução irregular"]','Medir adoção e remover barreiras.',3),
@@ -3543,7 +3586,7 @@ SELECT v.id,t.code,t.name,t.audience,t.minutes,t.plan,t.deliverables,r.id FROM v
 ON CONFLICT(methodology_version_id,code) DO UPDATE SET name=excluded.name,estimated_minutes=excluded.estimated_minutes,enabled_deliverables=excluded.enabled_deliverables;
 
 -- Uma pergunta oficial inicial por conceito garante cobertura canônica; novas versões são inseridas, nunca sobrescritas.
-WITH v AS (SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1')
+WITH v AS (SELECT id,effective_from FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1')
 INSERT INTO valorapesquisa.official_questions(methodology_version_id,code,text,internal_description,response_type,scale_json,dimension_id,primary_concept_id,weight,is_required,target_audience,normalization_rule,effective_from)
 SELECT v.id,'VALORA_'||upper(c.code)||'_01','Em que medida '||lower(c.name)||' está formalizada, é praticada e revisada com evidências?',
  'Item basal oficial de '||c.name||'.','scale_1_5','{"minimum":1,"maximum":5,"labels":{"1":"não existe","5":"integrada e adaptativa"}}',c.primary_dimension_id,c.id,1,true,ARRAY['organização'],
@@ -4225,7 +4268,11 @@ CREATE INDEX IF NOT EXISTS ix_customer_health_org ON valorapesquisa.customer_hea
 CREATE TABLE IF NOT EXISTS valorapesquisa.customer_training_sessions(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),title text NOT NULL,scheduled_at timestamptz NOT NULL,status text NOT NULL DEFAULT 'scheduled',attendee_count int NOT NULL DEFAULT 0,created_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS valorapesquisa.customer_success_tasks(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),title text NOT NULL,description text,due_at timestamptz,status text NOT NULL DEFAULT 'open',created_by_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS valorapesquisa.onboarding_audit_events(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),actor_user_id uuid REFERENCES valorapesquisa.users(id),event_type text NOT NULL,entity_id uuid,metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,correlation_id text,created_at timestamptz NOT NULL DEFAULT now());
-ALTER TABLE valorapesquisa.onboarding_checklist_items ADD COLUMN IF NOT EXISTS title text,ADD COLUMN IF NOT EXISTS is_required boolean NOT NULL DEFAULT true,ADD COLUMN IF NOT EXISTS display_order int NOT NULL DEFAULT 0,ADD COLUMN IF NOT EXISTS completed_at timestamptz,ADD COLUMN IF NOT EXISTS completed_by_user_id uuid REFERENCES valorapesquisa.users(id),ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+DO $onboarding_items$ BEGIN
+ IF to_regclass('valorapesquisa.onboarding_checklist_items') IS NOT NULL THEN
+  ALTER TABLE valorapesquisa.onboarding_checklist_items ADD COLUMN IF NOT EXISTS title text,ADD COLUMN IF NOT EXISTS is_required boolean NOT NULL DEFAULT true,ADD COLUMN IF NOT EXISTS display_order int NOT NULL DEFAULT 0,ADD COLUMN IF NOT EXISTS completed_at timestamptz,ADD COLUMN IF NOT EXISTS completed_by_user_id uuid REFERENCES valorapesquisa.users(id),ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+ END IF;
+END $onboarding_items$;
 INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
 ('onboarding.view','Visualizar onboarding','Consulta a implantação da organização.','organization'),
 ('onboarding.steps.complete','Concluir etapas do onboarding','Conclui etapas autorizadas e auditáveis.','organization'),
@@ -4355,6 +4402,10 @@ COMMIT;
 -- Canonical, additive contract. Every statement is safe on clean and partially migrated databases.
 BEGIN;
 CREATE TABLE IF NOT EXISTS valorapesquisa.governance_cycles (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), objective text NOT NULL, period_start date NOT NULL, period_end date NOT NULL, status varchar(24) NOT NULL DEFAULT 'draft', created_by_user_id uuid REFERENCES valorapesquisa.users(id), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), CHECK(period_end>=period_start));
+ALTER TABLE valorapesquisa.governance_cycles ADD COLUMN IF NOT EXISTS objective text;
+ALTER TABLE valorapesquisa.governance_cycles ADD COLUMN IF NOT EXISTS period_start date;
+ALTER TABLE valorapesquisa.governance_cycles ADD COLUMN IF NOT EXISTS period_end date;
+ALTER TABLE valorapesquisa.governance_cycles ADD COLUMN IF NOT EXISTS created_by_user_id uuid REFERENCES valorapesquisa.users(id);
 CREATE TABLE IF NOT EXISTS valorapesquisa.governance_meetings (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), governance_cycle_id uuid REFERENCES valorapesquisa.governance_cycles(id), title text NOT NULL, agenda text NOT NULL DEFAULT '', scheduled_at timestamptz NOT NULL, status varchar(24) NOT NULL DEFAULT 'scheduled', minutes text, created_by_user_id uuid REFERENCES valorapesquisa.users(id), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
 CREATE TABLE IF NOT EXISTS valorapesquisa.governance_meeting_participants (meeting_id uuid NOT NULL REFERENCES valorapesquisa.governance_meetings(id), user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), role varchar(40) NOT NULL DEFAULT 'participant', attended boolean, PRIMARY KEY(meeting_id,user_id));
 CREATE TABLE IF NOT EXISTS valorapesquisa.governance_decisions (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), governance_cycle_id uuid REFERENCES valorapesquisa.governance_cycles(id), meeting_id uuid REFERENCES valorapesquisa.governance_meetings(id), title text NOT NULL, context text NOT NULL, justification text NOT NULL, responsible_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), status varchar(24) NOT NULL DEFAULT 'draft', priority varchar(20) NOT NULL DEFAULT 'medium', origin_type varchar(40) NOT NULL DEFAULT 'manual', origin_id uuid, decided_at timestamptz, created_by_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
@@ -4445,6 +4496,8 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.onboarding_checklist_items (
  title varchar(180) NOT NULL, status varchar(24) NOT NULL DEFAULT 'pending', display_order integer NOT NULL, completed_by uuid REFERENCES valorapesquisa.users(id),
  completed_at timestamptz, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
  CONSTRAINT uq_onboarding_checklist_item UNIQUE(checklist_id,item_code));
+ALTER TABLE valorapesquisa.onboarding_checklist_items ADD COLUMN IF NOT EXISTS is_required boolean NOT NULL DEFAULT true;
+ALTER TABLE valorapesquisa.onboarding_checklist_items ADD COLUMN IF NOT EXISTS completed_by_user_id uuid REFERENCES valorapesquisa.users(id);
 CREATE TABLE IF NOT EXISTS valorapesquisa.organization_health_score_events (
  id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
  health_score_id uuid REFERENCES valorapesquisa.organization_health_scores(id), event_type varchar(80) NOT NULL, previous_score numeric(5,2), new_score numeric(5,2),
@@ -4471,9 +4524,293 @@ SELECT p.id,v.metric,v.limit_value FROM valorapesquisa.subscription_plans p CROS
  ('exports',CASE WHEN p.code IN ('growth','enterprise') THEN -1 ELSE 0 END)) v(metric,limit_value)
 ON CONFLICT(plan_id,metric) DO UPDATE SET limit_value=EXCLUDED.limit_value,updated_at=now();
 
-\i migrations/2026_08_methodology_operational_catalog.sql
-\i migrations/2026_08_deliverables_factory.sql
-\i migrations/2026_08_communication_collaboration_center.sql
+-- Conteúdo consolidado de 2026_08_methodology_operational_catalog.sql; arquivo histórico executável aposentado.
+BEGIN;
+-- Operational catalog complements the canonical Methodology Studio schema. All
+-- calculated results point to immutable, versioned rules instead of code constants.
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_maturity_levels (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),
+ code varchar(80) NOT NULL, name varchar(160) NOT NULL, description text NOT NULL, maturity_level integer NOT NULL CHECK(maturity_level>0),
+ score_min numeric(8,2) NOT NULL, score_max numeric(8,2) NOT NULL, verifiable_criteria text NOT NULL,
+ status varchar(20) NOT NULL DEFAULT 'active', metadata_json jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ UNIQUE(methodology_version_id,code), CHECK(score_max>=score_min));
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_evidence_criteria (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id), concept_id uuid NOT NULL REFERENCES valorapesquisa.methodology_concepts(id),
+ code varchar(80) NOT NULL, name varchar(160) NOT NULL, description text NOT NULL, expected_source text NOT NULL, evidence_strength integer NOT NULL CHECK(evidence_strength BETWEEN 1 AND 5), usage_rule text NOT NULL, evidence_required boolean NOT NULL DEFAULT true,
+ status varchar(20) NOT NULL DEFAULT 'active', metadata_json jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, UNIQUE(methodology_version_id,code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_scoring_rules (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id), dimension_id uuid REFERENCES valorapesquisa.methodology_dimensions(id), concept_id uuid REFERENCES valorapesquisa.methodology_concepts(id),
+ code varchar(80) NOT NULL, name varchar(160) NOT NULL, description text NOT NULL, weight numeric(8,4) NOT NULL CHECK(weight>0), score_min numeric(8,2) NOT NULL, score_max numeric(8,2) NOT NULL, minimum_answers integer NOT NULL DEFAULT 1 CHECK(minimum_answers>0), rule_json jsonb NOT NULL,
+ status varchar(20) NOT NULL DEFAULT 'active', metadata_json jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, UNIQUE(methodology_version_id,code), CHECK(score_max>=score_min), CHECK(dimension_id IS NOT NULL OR concept_id IS NOT NULL));
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_indicator_rules (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id), scoring_rule_id uuid NOT NULL REFERENCES valorapesquisa.methodology_scoring_rules(id), code varchar(80) NOT NULL, name varchar(160) NOT NULL, description text NOT NULL, rule_json jsonb NOT NULL, status varchar(20) NOT NULL DEFAULT 'active', metadata_json jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, UNIQUE(methodology_version_id,code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.question_bank_options (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), question_id uuid NOT NULL REFERENCES valorapesquisa.methodology_question_bank(id), code varchar(80) NOT NULL, label text NOT NULL, score numeric(8,2), display_order integer NOT NULL DEFAULT 0, metadata_json jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, UNIQUE(question_id,code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnostic_templates (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid, methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id), scoring_rule_id uuid REFERENCES valorapesquisa.methodology_scoring_rules(id), code varchar(80) NOT NULL, name varchar(160) NOT NULL, description text NOT NULL, status varchar(20) NOT NULL DEFAULT 'draft' CHECK(status IN('draft','published','archived')), version_number integer NOT NULL DEFAULT 1 CHECK(version_number>0), metadata_json jsonb NOT NULL DEFAULT '{}', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, UNIQUE(organization_id,code,version_number));
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnostic_template_sections (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), template_id uuid NOT NULL REFERENCES valorapesquisa.diagnostic_templates(id), code varchar(80) NOT NULL, name varchar(160) NOT NULL, description text NOT NULL DEFAULT '', display_order integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, UNIQUE(template_id,code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnostic_template_questions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), section_id uuid NOT NULL REFERENCES valorapesquisa.diagnostic_template_sections(id), question_id uuid NOT NULL REFERENCES valorapesquisa.methodology_question_bank(id), weight numeric(8,4) NOT NULL CHECK(weight>0), display_order integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, UNIQUE(section_id,question_id));
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnostic_template_publications (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), template_id uuid NOT NULL REFERENCES valorapesquisa.diagnostic_templates(id), publication_number integer NOT NULL CHECK(publication_number>0), snapshot_json jsonb NOT NULL, justification text NOT NULL, published_by_user_id uuid, published_at timestamptz NOT NULL DEFAULT now(), created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(template_id,publication_number));
+CREATE INDEX IF NOT EXISTS ix_maturity_levels_version ON valorapesquisa.methodology_maturity_levels(methodology_version_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_evidence_criteria_concept ON valorapesquisa.methodology_evidence_criteria(concept_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_scoring_rules_version ON valorapesquisa.methodology_scoring_rules(methodology_version_id) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_diagnostic_templates_methodology ON valorapesquisa.diagnostic_templates(methodology_version_id,status) WHERE deleted_at IS NULL;
+COMMIT;
+
+
+-- Conteúdo consolidado de 2026_08_deliverables_factory.sql; arquivo histórico executável aposentado.
+-- Valora Deliverables Factory: documentos rastreáveis, aprovações e acesso seguro.
+-- Deliberadamente não remove nem renomeia estruturas legadas; pode ser reaplicado.
+BEGIN;
+SET search_path TO valorapesquisa, public;
+
+CREATE TABLE IF NOT EXISTS report_templates (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES organizations(id), name varchar(160) NOT NULL,
+ description text, format varchar(16) NOT NULL DEFAULT 'pdf', methodology_version varchar(60), is_active boolean NOT NULL DEFAULT true,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_report_templates_global_name ON report_templates(name) WHERE organization_id IS NULL AND deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_report_templates_org_name ON report_templates(organization_id,name) WHERE organization_id IS NOT NULL AND deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS report_template_sections (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), template_id uuid NOT NULL REFERENCES report_templates(id), section_code varchar(80) NOT NULL,
+ title varchar(180) NOT NULL, display_order integer NOT NULL DEFAULT 0, is_required boolean NOT NULL DEFAULT false,
+ configuration_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+ CONSTRAINT uq_report_template_section UNIQUE(template_id,section_code));
+
+CREATE TABLE IF NOT EXISTS report_generation_jobs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), diagnostic_id uuid NOT NULL,
+ result_id uuid, template_id uuid REFERENCES report_templates(id), status varchar(24) NOT NULL DEFAULT 'pending', requested_by uuid,
+ started_at timestamptz, finished_at timestamptz, error_message text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+ CONSTRAINT ck_report_generation_job_status CHECK(status IN ('pending','processing','generated','approved','failed','revoked')));
+CREATE INDEX IF NOT EXISTS ix_report_generation_jobs_org_status ON report_generation_jobs(organization_id,status,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS report_documents (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), diagnostic_id uuid NOT NULL,
+ result_id uuid, generation_job_id uuid REFERENCES report_generation_jobs(id), title varchar(240) NOT NULL, format varchar(16) NOT NULL,
+ status varchar(24) NOT NULL DEFAULT 'pending', file_path text, file_name varchar(240), file_size bigint, content_hash char(64),
+ version_number integer NOT NULL DEFAULT 1, generated_at timestamptz, approved_at timestamptz, approved_by uuid,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ CONSTRAINT ck_report_document_status CHECK(status IN ('pending','processing','generated','approved','failed','revoked')),
+ CONSTRAINT ck_report_document_version CHECK(version_number > 0));
+CREATE INDEX IF NOT EXISTS ix_report_documents_org_status ON report_documents(organization_id,status,created_at DESC) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS report_document_sections (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), report_document_id uuid NOT NULL REFERENCES report_documents(id), section_code varchar(80) NOT NULL,
+ title varchar(180) NOT NULL, content_json jsonb NOT NULL DEFAULT '{}'::jsonb, evidence_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+ limitations_json jsonb NOT NULL DEFAULT '[]'::jsonb, display_order integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(),
+ CONSTRAINT uq_report_document_section UNIQUE(report_document_id,section_code));
+
+CREATE TABLE IF NOT EXISTS report_downloads (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), report_document_id uuid NOT NULL REFERENCES report_documents(id),
+ downloaded_by uuid, ip_hash char(64), user_agent_hash char(64), outcome varchar(20) NOT NULL DEFAULT 'allowed', downloaded_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_report_downloads_document ON report_downloads(report_document_id,downloaded_at DESC);
+
+CREATE TABLE IF NOT EXISTS report_share_links (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), report_document_id uuid NOT NULL REFERENCES report_documents(id),
+ token_hash char(64) NOT NULL UNIQUE, expires_at timestamptz NOT NULL, allow_download boolean NOT NULL DEFAULT false, created_by uuid,
+ access_count integer NOT NULL DEFAULT 0, revoked_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_report_share_links_active ON report_share_links(token_hash,expires_at) WHERE revoked_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS certificate_templates (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES organizations(id), name varchar(160) NOT NULL, title varchar(200) NOT NULL,
+ is_active boolean NOT NULL DEFAULT true, configuration_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_certificate_templates_global_name ON certificate_templates(name) WHERE organization_id IS NULL AND deleted_at IS NULL;
+
+-- Compatibilidade: a instalação histórica já pode possuir certificates.
+CREATE TABLE IF NOT EXISTS certificates (id uuid PRIMARY KEY DEFAULT gen_random_uuid());
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS organization_id uuid REFERENCES organizations(id);
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS diagnostic_id uuid;
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS result_id uuid;
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS certificate_code varchar(64);
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS participant_name varchar(240);
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS title varchar(240);
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS status varchar(24) NOT NULL DEFAULT 'draft';
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS issued_at timestamptz;
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS expires_at timestamptz;
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS revoked_at timestamptz;
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS revoked_reason text;
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS file_path text;
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS content_hash char(64);
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_certificates_certificate_code ON certificates(certificate_code) WHERE certificate_code IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_certificates_org_status ON certificates(organization_id,status,created_at DESC) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS certificate_downloads (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), certificate_id uuid NOT NULL REFERENCES certificates(id),
+ downloaded_by uuid, ip_hash char(64), user_agent_hash char(64), outcome varchar(20) NOT NULL DEFAULT 'allowed', downloaded_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_certificate_downloads_certificate ON certificate_downloads(certificate_id,downloaded_at DESC);
+
+CREATE TABLE IF NOT EXISTS certificate_validation_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), certificate_id uuid REFERENCES certificates(id), validation_code_hash char(64) NOT NULL,
+ validation_status varchar(24) NOT NULL DEFAULT 'not_found', ip_hash char(64), user_agent_hash char(64), validated_at timestamptz NOT NULL DEFAULT now());
+ALTER TABLE certificate_validation_events ADD COLUMN IF NOT EXISTS validation_status varchar(24) NOT NULL DEFAULT 'not_found';
+
+CREATE TABLE IF NOT EXISTS deliverable_files (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), resource_type varchar(40) NOT NULL,
+ resource_id uuid NOT NULL, storage_key text NOT NULL UNIQUE, file_name varchar(240) NOT NULL, content_type varchar(160) NOT NULL,
+ file_size bigint NOT NULL, content_hash char(64) NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_deliverable_files_resource ON deliverable_files(organization_id,resource_type,resource_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS deliverable_access_tokens (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), resource_type varchar(40) NOT NULL,
+ resource_id uuid NOT NULL, token_hash char(64) NOT NULL UNIQUE, purpose varchar(40) NOT NULL, expires_at timestamptz NOT NULL,
+ created_by uuid, revoked_at timestamptz, last_used_at timestamptz, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_deliverable_access_tokens_active ON deliverable_access_tokens(token_hash,expires_at) WHERE revoked_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS deliverable_audit_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES organizations(id), actor_user_id uuid, event_type varchar(100) NOT NULL,
+ resource_type varchar(40) NOT NULL, resource_id uuid, outcome varchar(24) NOT NULL, correlation_id text,
+ ip_hash char(64), user_agent_hash char(64), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_deliverable_audit_events_org_time ON deliverable_audit_events(organization_id,occurred_at DESC);
+
+CREATE TABLE IF NOT EXISTS executive_report_approvals (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), report_document_id uuid NOT NULL REFERENCES report_documents(id),
+ version_number integer NOT NULL, status varchar(24) NOT NULL, decided_by uuid NOT NULL, decision_notes text, decided_at timestamptz NOT NULL DEFAULT now(),
+ CONSTRAINT uq_executive_report_approval UNIQUE(report_document_id,version_number));
+
+CREATE TABLE IF NOT EXISTS executive_report_snapshots (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), report_document_id uuid NOT NULL REFERENCES report_documents(id),
+ version_number integer NOT NULL, methodology_name varchar(160) NOT NULL, methodology_version varchar(60) NOT NULL,
+ evidence_json jsonb NOT NULL DEFAULT '[]'::jsonb, limitations_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+ snapshot_json jsonb NOT NULL, content_hash char(64) NOT NULL, created_at timestamptz NOT NULL DEFAULT now(),
+ CONSTRAINT uq_executive_report_snapshot UNIQUE(report_document_id,version_number));
+-- A tabela homônima de versões anteriores usava survey/cycle. As colunas novas
+-- são aditivas e anuláveis para preservar snapshots históricos.
+ALTER TABLE executive_report_snapshots ADD COLUMN IF NOT EXISTS report_document_id uuid REFERENCES report_documents(id);
+ALTER TABLE executive_report_snapshots ADD COLUMN IF NOT EXISTS version_number integer;
+ALTER TABLE executive_report_snapshots ADD COLUMN IF NOT EXISTS methodology_name varchar(160);
+ALTER TABLE executive_report_snapshots ADD COLUMN IF NOT EXISTS methodology_version varchar(60);
+ALTER TABLE executive_report_snapshots ADD COLUMN IF NOT EXISTS evidence_json jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE executive_report_snapshots ADD COLUMN IF NOT EXISTS snapshot_json jsonb;
+ALTER TABLE executive_report_snapshots ADD COLUMN IF NOT EXISTS content_hash char(64);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_executive_report_snapshot_document_version
+ ON executive_report_snapshots(report_document_id,version_number) WHERE report_document_id IS NOT NULL;
+
+INSERT INTO report_templates(name,description,format,methodology_version,metadata_json)
+VALUES ('Relatório Executivo Valora','Síntese executiva baseada exclusivamente em resultados e evidências registradas.','pdf','current',
+        '{"requiresResult":true,"requiresEvidence":true,"recordsLimitations":true}'::jsonb)
+ON CONFLICT DO NOTHING;
+INSERT INTO certificate_templates(name,title,configuration_json)
+VALUES ('Certificado Valora','Certificado Valora Insight','{"publicValidation":true}'::jsonb)
+ON CONFLICT DO NOTHING;
+
+COMMIT;
+
+
+-- Conteúdo consolidado de 2026_08_communication_collaboration_center.sql; arquivo histórico executável aposentado.
+-- Valora Communication & Collaboration Center.
+-- Migração estritamente aditiva: preserva dados e isola todos os registros por organização.
+CREATE TABLE IF NOT EXISTS valorapesquisa.communication_channels (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ code varchar(60) NOT NULL, name varchar(120) NOT NULL, channel_type varchar(30) NOT NULL,
+ consent_required boolean NOT NULL DEFAULT false, status varchar(30) NOT NULL DEFAULT 'active', configuration_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ UNIQUE (organization_id,code));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.communication_batches (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ channel_id uuid NOT NULL REFERENCES valorapesquisa.communication_channels(id), template_id uuid NOT NULL REFERENCES valorapesquisa.communication_templates(id),
+ origin_type varchar(60) NOT NULL, origin_id uuid, status varchar(30) NOT NULL DEFAULT 'draft', scheduled_at timestamptz,
+ sent_at timestamptz, created_by_user_id uuid REFERENCES valorapesquisa.users(id), correlation_id text,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_communication_batches_org_status ON valorapesquisa.communication_batches(organization_id,status,created_at DESC) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.communication_recipients (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ batch_id uuid NOT NULL REFERENCES valorapesquisa.communication_batches(id), recipient_user_id uuid REFERENCES valorapesquisa.users(id),
+ destination_masked text NOT NULL, destination_hash text NOT NULL, invitation_token_hash text, status varchar(30) NOT NULL DEFAULT 'pending',
+ consent_verified_at timestamptz, expires_at timestamptz, opened_at timestamptz, clicked_at timestamptz, completed_at timestamptz,
+ last_error text, resend_count integer NOT NULL DEFAULT 0, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE (organization_id,batch_id,destination_hash));
+CREATE INDEX IF NOT EXISTS ix_communication_recipients_batch_status ON valorapesquisa.communication_recipients(organization_id,batch_id,status);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.communication_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ batch_id uuid REFERENCES valorapesquisa.communication_batches(id), recipient_id uuid REFERENCES valorapesquisa.communication_recipients(id),
+ event_type varchar(60) NOT NULL, outcome varchar(30) NOT NULL DEFAULT 'success', actor_user_id uuid REFERENCES valorapesquisa.users(id),
+ correlation_id text, evidence_json jsonb NOT NULL DEFAULT '{}'::jsonb, occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_communication_events_recipient ON valorapesquisa.communication_events(organization_id,recipient_id,occurred_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.notification_center_items (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ target_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), notification_type varchar(60) NOT NULL, severity varchar(20) NOT NULL DEFAULT 'information',
+ title varchar(220) NOT NULL, message text NOT NULL, origin_type varchar(60) NOT NULL, origin_id uuid, group_type varchar(60), group_id uuid,
+ status varchar(20) NOT NULL DEFAULT 'unread', read_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_notification_center_user_status ON valorapesquisa.notification_center_items(organization_id,target_user_id,status,created_at DESC) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.collaboration_threads (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ entity_type varchar(40) NOT NULL CHECK (entity_type IN ('diagnostic','evidence','action','decision','report','cycle')),
+ entity_id uuid NOT NULL, title varchar(220), status varchar(30) NOT NULL DEFAULT 'open', created_by_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), archived_at timestamptz,
+ UNIQUE (organization_id,entity_type,entity_id));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.collaboration_comments (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ thread_id uuid NOT NULL REFERENCES valorapesquisa.collaboration_threads(id), author_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
+ body text NOT NULL CHECK (length(btrim(body)) > 0), evidence_text text, revision integer NOT NULL DEFAULT 1,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), edited_at timestamptz, deleted_at timestamptz,
+ deleted_by_user_id uuid REFERENCES valorapesquisa.users(id));
+CREATE INDEX IF NOT EXISTS ix_collaboration_comments_thread ON valorapesquisa.collaboration_comments(organization_id,thread_id,created_at);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.collaboration_mentions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ comment_id uuid NOT NULL REFERENCES valorapesquisa.collaboration_comments(id), mentioned_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
+ notification_id uuid REFERENCES valorapesquisa.notification_center_items(id), created_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE (organization_id,comment_id,mentioned_user_id));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.approval_flows (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ name varchar(180) NOT NULL, entity_type varchar(50) NOT NULL CHECK (entity_type IN ('report','decision','certificate','methodology_publication')),
+ status varchar(30) NOT NULL DEFAULT 'active', created_by_user_id uuid REFERENCES valorapesquisa.users(id),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.approval_flow_steps (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ flow_id uuid NOT NULL REFERENCES valorapesquisa.approval_flows(id), step_order integer NOT NULL CHECK (step_order > 0),
+ approver_user_id uuid REFERENCES valorapesquisa.users(id), approver_role_code varchar(100), is_required boolean NOT NULL DEFAULT true,
+ created_at timestamptz NOT NULL DEFAULT now(), UNIQUE (organization_id,flow_id,step_order));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.approval_requests (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ flow_id uuid NOT NULL REFERENCES valorapesquisa.approval_flows(id), entity_type varchar(50) NOT NULL, entity_id uuid NOT NULL,
+ status varchar(30) NOT NULL DEFAULT 'pending', current_step integer NOT NULL DEFAULT 1, requested_by_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
+ evidence_json jsonb NOT NULL DEFAULT '[]'::jsonb, requested_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz, updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_approval_requests_queue ON valorapesquisa.approval_requests(organization_id,status,requested_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.approval_decisions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ request_id uuid NOT NULL REFERENCES valorapesquisa.approval_requests(id), step_id uuid NOT NULL REFERENCES valorapesquisa.approval_flow_steps(id),
+ approver_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), decision varchar(20) NOT NULL CHECK (decision IN ('approved','rejected')),
+ justification text, evidence_json jsonb NOT NULL DEFAULT '[]'::jsonb, decided_at timestamptz NOT NULL DEFAULT now(),
+ CONSTRAINT ck_approval_rejection_reason CHECK (decision <> 'rejected' OR length(btrim(COALESCE(justification,''))) > 0),
+ UNIQUE (organization_id,request_id,step_id));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.reminder_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ reminder_rule_id uuid REFERENCES valorapesquisa.reminder_rules(id), target_user_id uuid REFERENCES valorapesquisa.users(id),
+ source_type varchar(60) NOT NULL, source_id uuid, event_type varchar(60) NOT NULL, status varchar(30) NOT NULL DEFAULT 'created',
+ scheduled_at timestamptz NOT NULL, delivered_at timestamptz, correlation_id text, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_reminder_events_due ON valorapesquisa.reminder_events(organization_id,status,scheduled_at);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_announcements (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ title varchar(220) NOT NULL, body text NOT NULL, severity varchar(20) NOT NULL DEFAULT 'information', audience_json jsonb NOT NULL DEFAULT '[]'::jsonb,
+ status varchar(30) NOT NULL DEFAULT 'draft', published_by_user_id uuid REFERENCES valorapesquisa.users(id), published_at timestamptz,
+ archived_by_user_id uuid REFERENCES valorapesquisa.users(id), archived_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_announcements_org_status ON valorapesquisa.organization_announcements(organization_id,status,published_at DESC) WHERE deleted_at IS NULL;
+
+
 
 -- Valora Executive Workspace™ (aditivo, idempotente e tenant-safe)
 CREATE TABLE IF NOT EXISTS valorapesquisa.workspace_items (
@@ -5064,3 +5401,1389 @@ INSERT INTO permissions(code,name,description,module_code) VALUES
 ('risk_heatmap.view','Visualizar mapa de riscos','Consultar mapa de probabilidade e impacto','organizational_intelligence')
 ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code;
 COMMIT;
+
+-- Histórico consolidado de 2026_08_align_audit_logs_contract.sql; fonte executável paralela aposentada.
+BEGIN;
+
+CREATE SCHEMA IF NOT EXISTS valorapesquisa;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.audit_logs (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    organization_id uuid NULL,
+    user_id uuid NULL,
+    action text NOT NULL,
+    entity_type text NULL,
+    entity_id text NULL,
+    message text NULL,
+    metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+    correlation_id text NULL,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+DO $migration$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'valorapesquisa' AND table_name = 'audit_logs' AND column_name = 'actor_id')
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'valorapesquisa' AND table_name = 'audit_logs' AND column_name = 'user_id') THEN
+        ALTER TABLE valorapesquisa.audit_logs RENAME COLUMN actor_id TO user_id;
+    ELSE
+        ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS user_id uuid;
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'valorapesquisa' AND table_name = 'audit_logs' AND column_name = 'actor_id') THEN
+            UPDATE valorapesquisa.audit_logs SET user_id = actor_id WHERE user_id IS NULL;
+            ALTER TABLE valorapesquisa.audit_logs DROP COLUMN actor_id;
+        END IF;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'valorapesquisa' AND table_name = 'audit_logs' AND column_name = 'entity_name')
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'valorapesquisa' AND table_name = 'audit_logs' AND column_name = 'entity_type') THEN
+        ALTER TABLE valorapesquisa.audit_logs RENAME COLUMN entity_name TO entity_type;
+    ELSE
+        ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS entity_type text;
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'valorapesquisa' AND table_name = 'audit_logs' AND column_name = 'entity_name') THEN
+            UPDATE valorapesquisa.audit_logs SET entity_type = entity_name WHERE entity_type IS NULL;
+            ALTER TABLE valorapesquisa.audit_logs DROP COLUMN entity_name;
+        END IF;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'valorapesquisa' AND table_name = 'audit_logs' AND column_name = 'details')
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'valorapesquisa' AND table_name = 'audit_logs' AND column_name = 'metadata_json') THEN
+        ALTER TABLE valorapesquisa.audit_logs RENAME COLUMN details TO metadata_json;
+    ELSE
+        ALTER TABLE valorapesquisa.audit_logs ADD COLUMN IF NOT EXISTS metadata_json jsonb;
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'valorapesquisa' AND table_name = 'audit_logs' AND column_name = 'details') THEN
+            UPDATE valorapesquisa.audit_logs SET metadata_json = details WHERE metadata_json IS NULL;
+            ALTER TABLE valorapesquisa.audit_logs DROP COLUMN details;
+        END IF;
+    END IF;
+END $migration$;
+
+ALTER TABLE valorapesquisa.audit_logs
+    ADD COLUMN IF NOT EXISTS message text,
+    ADD COLUMN IF NOT EXISTS correlation_id text,
+    ADD COLUMN IF NOT EXISTS created_at timestamptz,
+    ADD COLUMN IF NOT EXISTS ip_hash text,
+    ADD COLUMN IF NOT EXISTS user_agent text,
+    ADD COLUMN IF NOT EXISTS severity varchar(32) NOT NULL DEFAULT 'info',
+    ADD COLUMN IF NOT EXISTS module varchar(80);
+
+ALTER TABLE valorapesquisa.audit_logs
+    ALTER COLUMN severity TYPE varchar(32),
+    ALTER COLUMN severity SET DEFAULT 'info';
+
+UPDATE valorapesquisa.audit_logs
+SET severity = CASE lower(severity)
+    WHEN 'debug' THEN 'debug'
+    WHEN 'warning' THEN 'warning'
+    WHEN 'error' THEN 'error'
+    WHEN 'critical' THEN 'critical'
+    ELSE 'info'
+END
+WHERE severity IS NULL
+   OR severity NOT IN ('debug', 'info', 'warning', 'error', 'critical');
+
+ALTER TABLE valorapesquisa.audit_logs
+    ALTER COLUMN severity SET NOT NULL;
+
+DO $severity_constraint$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'ck_audit_logs_severity'
+          AND conrelid = 'valorapesquisa.audit_logs'::regclass
+    ) THEN
+        ALTER TABLE valorapesquisa.audit_logs
+        ADD CONSTRAINT ck_audit_logs_severity
+        CHECK (severity IN ('debug', 'info', 'warning', 'error', 'critical'));
+    END IF;
+END $severity_constraint$;
+
+CREATE INDEX IF NOT EXISTS ix_audit_logs_severity
+    ON valorapesquisa.audit_logs (severity);
+
+ALTER TABLE valorapesquisa.audit_logs
+    ALTER COLUMN entity_id TYPE text USING entity_id::text,
+    ALTER COLUMN metadata_json TYPE jsonb USING metadata_json::jsonb,
+    ALTER COLUMN metadata_json SET DEFAULT '{}'::jsonb,
+    ALTER COLUMN created_at SET DEFAULT now();
+
+UPDATE valorapesquisa.audit_logs SET metadata_json = '{}'::jsonb WHERE metadata_json IS NULL;
+UPDATE valorapesquisa.audit_logs SET created_at = now() WHERE created_at IS NULL;
+
+ALTER TABLE valorapesquisa.audit_logs
+    ALTER COLUMN metadata_json SET NOT NULL,
+    ALTER COLUMN created_at SET NOT NULL;
+
+CREATE INDEX IF NOT EXISTS ix_audit_logs_organization_created_at
+    ON valorapesquisa.audit_logs (organization_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_audit_logs_correlation_id
+    ON valorapesquisa.audit_logs (correlation_id)
+    WHERE correlation_id IS NOT NULL;
+
+COMMIT;
+
+
+
+-- Histórico consolidado de 2026_08_canonical_access_permissions.sql; fonte executável paralela aposentada.
+-- Converges historical names for organizational units into the canonical units.* vocabulary.
+-- Safe to execute repeatedly: role links are merged before aliases are removed.
+BEGIN;
+
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+('units.read','Visualizar unidades','Consulta unidades.','organization'),
+('units.create','Criar unidades','Cria unidades.','organization'),
+('units.update','Atualizar unidades','Atualiza unidades.','organization'),
+('units.disable','Desativar unidades','Desativa unidades.','organization'),
+('units.delete','Excluir unidades','Exclui logicamente unidades.','organization')
+ON CONFLICT(code) DO UPDATE SET module_code='organization',updated_at=now();
+
+WITH aliases(alias_code, canonical_code) AS (VALUES
+  ('organizational_units.read','units.read'), ('organization_units.read','units.read'),
+  ('organizational_units.create','units.create'), ('organization_units.create','units.create'),
+  ('organizational_units.update','units.update'), ('organization_units.update','units.update'),
+  ('organizational_units.disable','units.disable'), ('organization_units.disable','units.disable'),
+  ('organizational_units.delete','units.delete'), ('organization_units.delete','units.delete')
+)
+INSERT INTO valorapesquisa.role_permissions(role_id, permission_id, created_at)
+SELECT rp.role_id, canonical.id, rp.created_at
+FROM aliases a
+JOIN valorapesquisa.permissions legacy ON legacy.code=a.alias_code
+JOIN valorapesquisa.permissions canonical ON canonical.code=a.canonical_code
+JOIN valorapesquisa.role_permissions rp ON rp.permission_id=legacy.id
+ON CONFLICT(role_id,permission_id) DO NOTHING;
+
+WITH aliases(alias_code) AS (VALUES
+  ('organizational_units.read'),('organization_units.read'),('organizational_units.create'),('organization_units.create'),
+  ('organizational_units.update'),('organization_units.update'),('organizational_units.disable'),('organization_units.disable'),
+  ('organizational_units.delete'),('organization_units.delete')
+), legacy AS (SELECT id FROM valorapesquisa.permissions WHERE code IN (SELECT alias_code FROM aliases))
+DELETE FROM valorapesquisa.permission_migration_reviews WHERE permission_id IN (SELECT id FROM legacy);
+
+WITH aliases(alias_code) AS (VALUES
+  ('organizational_units.read'),('organization_units.read'),('organizational_units.create'),('organization_units.create'),
+  ('organizational_units.update'),('organization_units.update'),('organizational_units.disable'),('organization_units.disable'),
+  ('organizational_units.delete'),('organization_units.delete')
+), legacy AS (SELECT id FROM valorapesquisa.permissions WHERE code IN (SELECT alias_code FROM aliases))
+DELETE FROM valorapesquisa.role_permissions WHERE permission_id IN (SELECT id FROM legacy);
+
+DELETE FROM valorapesquisa.permissions WHERE code IN (
+  'organizational_units.read','organization_units.read','organizational_units.create','organization_units.create',
+  'organizational_units.update','organization_units.update','organizational_units.disable','organization_units.disable',
+  'organizational_units.delete','organization_units.delete');
+
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_08_canonical_access_permissions','sha256:canonical-access-permissions-v1')
+ON CONFLICT(version) DO UPDATE SET checksum=EXCLUDED.checksum,applied_at=now();
+
+COMMIT;
+
+
+
+-- Histórico consolidado de 2026_08_commercial_saas_layer.sql; fonte executável paralela aposentada.
+-- Valora Insight(TM) commercial SaaS layer. Safe for clean and previously provisioned databases.
+CREATE SCHEMA IF NOT EXISTS valorapesquisa;
+
+ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS monthly_price numeric(14,2) NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS annual_price numeric(14,2);
+ALTER TABLE valorapesquisa.plans ADD COLUMN IF NOT EXISTS display_order integer NOT NULL DEFAULT 0;
+
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS billing_cycle text NOT NULL DEFAULT 'monthly';
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS contracted_value numeric(14,2) NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS discount_value numeric(14,2) NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS renewal_at timestamptz;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS due_at timestamptz;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS canceled_at timestamptz;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS trial_ends_at timestamptz;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS payment_method text;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS financial_contact text;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS financial_email text;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS financial_phone text;
+ALTER TABLE valorapesquisa.subscriptions ADD COLUMN IF NOT EXISTS notes text;
+UPDATE valorapesquisa.subscriptions SET status = CASE status
+ WHEN 'current' THEN 'active' WHEN 'trial' THEN 'trialing'
+ WHEN 'overdue' THEN 'past_due' WHEN 'delinquent' THEN 'past_due'
+ WHEN 'cancelled' THEN 'canceled' ELSE status END;
+
+CREATE UNIQUE INDEX IF NOT EXISTS ux_subscriptions_active_organization
+ ON valorapesquisa.subscriptions(organization_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.subscription_usage (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ subscription_id uuid REFERENCES valorapesquisa.subscriptions(id), competence date NOT NULL, metric_code text NOT NULL,
+ quantity bigint NOT NULL DEFAULT 0 CHECK (quantity >= 0), created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE (organization_id, competence, metric_code));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.invoices (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ subscription_id uuid NOT NULL REFERENCES valorapesquisa.subscriptions(id), competence date NOT NULL, amount numeric(14,2) NOT NULL CHECK(amount >= 0),
+ due_at timestamptz NOT NULL, status text NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','open','paid','overdue','canceled')),
+ paid_at timestamptz, payment_method text, reference text, notes text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_invoices_organization_status ON valorapesquisa.invoices(organization_id,status,due_at);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.invoice_items (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), invoice_id uuid NOT NULL REFERENCES valorapesquisa.invoices(id) ON DELETE CASCADE,
+ description text NOT NULL, quantity numeric(12,2) NOT NULL DEFAULT 1 CHECK(quantity > 0), unit_amount numeric(14,2) NOT NULL CHECK(unit_amount >= 0),
+ total_amount numeric(14,2) NOT NULL CHECK(total_amount >= 0), created_at timestamptz NOT NULL DEFAULT now());
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.payments (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ subscription_id uuid NOT NULL REFERENCES valorapesquisa.subscriptions(id), invoice_id uuid REFERENCES valorapesquisa.invoices(id),
+ amount numeric(14,2) NOT NULL CHECK(amount > 0), paid_at timestamptz NOT NULL, method text NOT NULL, reference text,
+ status text NOT NULL DEFAULT 'confirmed', notes text, created_at timestamptz NOT NULL DEFAULT now());
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.billing_ledger (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ subscription_id uuid REFERENCES valorapesquisa.subscriptions(id), invoice_id uuid REFERENCES valorapesquisa.invoices(id), payment_id uuid REFERENCES valorapesquisa.payments(id),
+ entry_type text NOT NULL CHECK(entry_type IN ('debit','credit','adjustment')), amount numeric(14,2) NOT NULL,
+ description text NOT NULL, occurred_at timestamptz NOT NULL DEFAULT now(), reference text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_billing_ledger_organization ON valorapesquisa.billing_ledger(organization_id,occurred_at DESC);
+
+INSERT INTO valorapesquisa.plans(code,name,description,monthly_price,annual_price,is_public,is_active,is_legacy,display_order)
+VALUES ('free','Grátis','Para conhecer o Valora Insight™.',0,0,true,true,false,10),
+ ('start','Start','Para iniciar a gestão de diagnósticos.',149,1490,true,true,false,20),
+ ('growth','Growth','Escala, inteligência e colaboração.',399,3990,true,true,false,30),
+ ('enterprise','Enterprise','Governança multiempresa e limites personalizados.',0,NULL,false,true,false,40)
+ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,monthly_price=EXCLUDED.monthly_price,
+ annual_price=EXCLUDED.annual_price,is_active=EXCLUDED.is_active,display_order=EXCLUDED.display_order,updated_at=now();
+
+INSERT INTO valorapesquisa.plan_limits(plan_id,limit_key,limit_value,period)
+SELECT p.id,v.key,v.value,v.period FROM valorapesquisa.plans p CROSS JOIN (VALUES
+ ('diagnosticsCreated',1,'lifetime'),('diagnosticsPublished',1,'lifetime'),('responsesPerMonth',50,'monthly'),('users',2,'lifetime'),('units',1,'lifetime')) v(key,value,period)
+WHERE p.code='free' ON CONFLICT(plan_id,limit_key) DO UPDATE SET limit_value=EXCLUDED.limit_value,period=EXCLUDED.period,updated_at=now();
+
+INSERT INTO valorapesquisa.plan_limits(plan_id,limit_key,limit_value,period)
+SELECT p.id,v.key,v.value,v.period FROM valorapesquisa.plans p JOIN (VALUES
+ ('start','diagnosticsCreated',5,'lifetime'),('start','diagnosticsPublished',5,'lifetime'),('start','responsesPerMonth',500,'monthly'),('start','users',5,'lifetime'),('start','units',3,'lifetime'),
+ ('growth','diagnosticsCreated',25,'lifetime'),('growth','diagnosticsPublished',25,'lifetime'),('growth','responsesPerMonth',5000,'monthly'),('growth','users',25,'lifetime'),('growth','units',15,'lifetime'),
+ ('enterprise','diagnosticsCreated',-1,'lifetime'),('enterprise','diagnosticsPublished',-1,'lifetime'),('enterprise','responsesPerMonth',-1,'monthly'),('enterprise','users',-1,'lifetime'),('enterprise','units',-1,'lifetime'))
+ v(plan,key,value,period) ON v.plan=p.code
+ON CONFLICT(plan_id,limit_key) DO UPDATE SET limit_value=EXCLUDED.limit_value,period=EXCLUDED.period,updated_at=now();
+
+INSERT INTO valorapesquisa.plan_features(plan_id,feature_key,enabled)
+SELECT p.id,f.feature,(p.code,f.feature) IN (
+ ('free','reports'),('start','reports'),('start','certificates'),
+ ('growth','reports'),('growth','certificates'),('growth','ai'),('growth','benchmark'),('growth','exports'),
+ ('enterprise','reports'),('enterprise','certificates'),('enterprise','ai'),('enterprise','benchmark'),('enterprise','exports'))
+FROM valorapesquisa.plans p CROSS JOIN (VALUES ('reports'),('certificates'),('ai'),('benchmark'),('exports')) f(feature)
+WHERE p.code IN ('free','start','growth','enterprise')
+ON CONFLICT(plan_id,feature_key) WHERE deleted_at IS NULL DO UPDATE SET enabled=EXCLUDED.enabled,updated_at=now();
+
+INSERT INTO valorapesquisa.permissions(code,name,module_code,status)
+SELECT code,name,'organization','active' FROM (VALUES
+ ('plans.read','Consultar planos'),('plans.manage','Gerenciar planos'),('subscriptions.read','Consultar assinaturas'),
+ ('subscriptions.manage','Gerenciar assinaturas'),('billing.read','Consultar cobrança'),('billing.manage','Gerenciar cobrança'),
+ ('usage.read','Consultar consumo'),('usage.manage','Gerenciar consumo'),('upgrades.manage','Gerenciar upgrades')) p(code,name)
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,module_code=EXCLUDED.module_code,status='active';
+
+INSERT INTO valorapesquisa.role_permissions(role_id,permission_id)
+SELECT r.id,p.id FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p
+WHERE lower(r.code)='admin_valora' AND r.organization_id IS NULL
+  AND p.code IN ('plans.read','plans.manage','subscriptions.read','subscriptions.manage','billing.read','billing.manage','usage.read','usage.manage','upgrades.manage')
+ON CONFLICT DO NOTHING;
+
+
+
+-- Histórico consolidado de 2026_08_fix_plan_limits_capabilities_contract.sql; fonte executável paralela aposentada.
+-- Converges legacy plan entitlement rows to the Valora Insight canonical contract.
+-- Idempotent: invalid/duplicate rows are preserved in a review table before removal.
+BEGIN;
+CREATE SCHEMA IF NOT EXISTS valorapesquisa;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.plan_contract_data_reviews (
+    source_table text NOT NULL,
+    source_id uuid NOT NULL,
+    plan_id uuid,
+    invalid_key text,
+    payload jsonb NOT NULL,
+    reason text NOT NULL,
+    detected_at timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (source_table, source_id)
+);
+
+INSERT INTO valorapesquisa.plan_contract_data_reviews(source_table, source_id, plan_id, invalid_key, payload, reason)
+SELECT 'plan_limits', id, plan_id, limit_key, to_jsonb(pl), 'limit_key is null or blank'
+FROM valorapesquisa.plan_limits pl
+WHERE nullif(btrim(limit_key), '') IS NULL
+ON CONFLICT (source_table, source_id) DO UPDATE SET payload=EXCLUDED.payload, detected_at=now();
+
+INSERT INTO valorapesquisa.plan_contract_data_reviews(source_table, source_id, plan_id, invalid_key, payload, reason)
+SELECT 'plan_capabilities', id, plan_id, capability_key, to_jsonb(pc), 'capability_key is null or blank'
+FROM valorapesquisa.plan_capabilities pc
+WHERE nullif(btrim(capability_key), '') IS NULL
+ON CONFLICT (source_table, source_id) DO UPDATE SET payload=EXCLUDED.payload, detected_at=now();
+
+-- Rows without a semantic key cannot grant an entitlement safely. They remain fully auditable above.
+DELETE FROM valorapesquisa.plan_limits WHERE nullif(btrim(limit_key), '') IS NULL;
+DELETE FROM valorapesquisa.plan_capabilities WHERE nullif(btrim(capability_key), '') IS NULL;
+UPDATE valorapesquisa.plan_limits SET limit_key=btrim(limit_key) WHERE limit_key<>btrim(limit_key);
+UPDATE valorapesquisa.plan_capabilities SET capability_key=btrim(capability_key) WHERE capability_key<>btrim(capability_key);
+
+WITH ranked AS (
+    SELECT id, row_number() OVER (PARTITION BY plan_id, lower(limit_key) ORDER BY COALESCE(updated_at, created_at) DESC, id DESC) AS position
+    FROM valorapesquisa.plan_limits
+), archived AS (
+    INSERT INTO valorapesquisa.plan_contract_data_reviews(source_table, source_id, plan_id, invalid_key, payload, reason)
+    SELECT 'plan_limits', pl.id, pl.plan_id, pl.limit_key, to_jsonb(pl), 'duplicate key superseded by newest row'
+    FROM valorapesquisa.plan_limits pl JOIN ranked r ON r.id=pl.id WHERE r.position>1
+    ON CONFLICT (source_table, source_id) DO UPDATE SET payload=EXCLUDED.payload, detected_at=now()
+)
+DELETE FROM valorapesquisa.plan_limits pl USING ranked r WHERE r.id=pl.id AND r.position>1;
+
+WITH ranked AS (
+    SELECT id, row_number() OVER (PARTITION BY plan_id, lower(capability_key) ORDER BY COALESCE(updated_at, created_at) DESC, id DESC) AS position
+    FROM valorapesquisa.plan_capabilities
+), archived AS (
+    INSERT INTO valorapesquisa.plan_contract_data_reviews(source_table, source_id, plan_id, invalid_key, payload, reason)
+    SELECT 'plan_capabilities', pc.id, pc.plan_id, pc.capability_key, to_jsonb(pc), 'duplicate key superseded by newest row'
+    FROM valorapesquisa.plan_capabilities pc JOIN ranked r ON r.id=pc.id WHERE r.position>1
+    ON CONFLICT (source_table, source_id) DO UPDATE SET payload=EXCLUDED.payload, detected_at=now()
+)
+DELETE FROM valorapesquisa.plan_capabilities pc USING ranked r WHERE r.id=pc.id AND r.position>1;
+
+ALTER TABLE valorapesquisa.plan_limits ALTER COLUMN plan_id SET NOT NULL;
+ALTER TABLE valorapesquisa.plan_limits ALTER COLUMN limit_key SET NOT NULL;
+ALTER TABLE valorapesquisa.plan_capabilities ALTER COLUMN plan_id SET NOT NULL;
+ALTER TABLE valorapesquisa.plan_capabilities ALTER COLUMN capability_key SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_limits_plan_key_ci ON valorapesquisa.plan_limits(plan_id, lower(limit_key));
+CREATE UNIQUE INDEX IF NOT EXISTS ux_plan_capabilities_plan_key_ci ON valorapesquisa.plan_capabilities(plan_id, lower(capability_key));
+
+INSERT INTO valorapesquisa.plans(code,name,is_public,is_active,is_legacy)
+VALUES ('free','Gratuito',true,true,false),('professional','Profissional',true,true,false),('enterprise','Enterprise',true,true,false)
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,is_public=EXCLUDED.is_public,is_active=true,is_legacy=false,updated_at=now();
+
+WITH configured(limit_key, free_value, professional_value, enterprise_value) AS (VALUES
+ ('users'::text,3,20,NULL::integer), ('activeSurveys',1,5,NULL), ('monthlyResponses',100,1000,NULL),
+ ('diagnosticCycles',1,12,NULL), ('storageMb',100,2048,NULL)
+)
+INSERT INTO valorapesquisa.plan_limits(plan_id,limit_key,limit_value,period)
+SELECT p.id,c.limit_key,CASE p.code WHEN 'free' THEN c.free_value WHEN 'professional' THEN c.professional_value ELSE c.enterprise_value END,'lifetime'
+FROM valorapesquisa.plans p CROSS JOIN configured c WHERE p.code IN ('free','professional','enterprise')
+ON CONFLICT(plan_id,limit_key) DO UPDATE SET limit_value=EXCLUDED.limit_value,updated_at=now();
+
+WITH configured(capability_key) AS (VALUES ('officialValoraProgram'),('shareLink'),('basicResult'),('actionPlan'),('organizationReport'))
+INSERT INTO valorapesquisa.plan_capabilities(plan_id,capability,capability_code,capability_key,enabled,is_enabled)
+SELECT p.id,c.capability_key,c.capability_key,c.capability_key,
+       p.code<>'free' OR c.capability_key IN ('officialValoraProgram','shareLink','basicResult'),
+       p.code<>'free' OR c.capability_key IN ('officialValoraProgram','shareLink','basicResult')
+FROM valorapesquisa.plans p CROSS JOIN configured c WHERE p.code IN ('free','professional','enterprise')
+ON CONFLICT(plan_id,capability_key) DO UPDATE SET enabled=EXCLUDED.enabled,is_enabled=EXCLUDED.is_enabled,updated_at=now();
+COMMIT;
+
+
+
+-- Histórico consolidado de 2026_08_formal_deliverables.sql; fonte executável paralela aposentada.
+-- Formal, immutable and auditable Valora Insight deliverables.
+-- Safe on a clean database after the canonical schema and safe to re-run.
+BEGIN;
+SET search_path TO valorapesquisa, public;
+
+CREATE TABLE IF NOT EXISTS generated_reports (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id),
+ diagnosis_id uuid NOT NULL, title varchar(180) NOT NULL, format varchar(16) NOT NULL,
+ methodology_version varchar(60) NOT NULL, trace_code varchar(64) NOT NULL UNIQUE,
+ status varchar(24) NOT NULL DEFAULT 'completed', generated_by uuid NULL,
+ generated_at timestamptz NOT NULL DEFAULT now(), error_message text NULL,
+ CONSTRAINT ck_generated_reports_format CHECK (format IN ('pdf','docx','xlsx','json')),
+ CONSTRAINT ck_generated_reports_status CHECK (status IN ('processing','completed','failed','revoked'))
+);
+CREATE INDEX IF NOT EXISTS ix_generated_reports_org_diagnosis ON generated_reports(organization_id, diagnosis_id, generated_at DESC);
+
+CREATE TABLE IF NOT EXISTS report_files (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), report_id uuid NOT NULL REFERENCES generated_reports(id),
+ storage_key text NOT NULL UNIQUE, file_name varchar(240) NOT NULL, content_type varchar(160) NOT NULL,
+ byte_length bigint NOT NULL CHECK (byte_length > 0), sha256 char(64) NOT NULL, created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS export_jobs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), diagnosis_id uuid NOT NULL,
+ format varchar(16) NOT NULL CHECK (format IN ('xlsx','json','docx')), status varchar(24) NOT NULL DEFAULT 'processing',
+ requested_by uuid NULL, requested_at timestamptz NOT NULL DEFAULT now(), completed_at timestamptz NULL, error_message text NULL
+);
+ALTER TABLE export_jobs ALTER COLUMN diagnosis_id DROP NOT NULL;
+ALTER TABLE export_jobs DROP CONSTRAINT IF EXISTS export_jobs_format_check;
+ALTER TABLE export_jobs ADD CONSTRAINT export_jobs_format_check CHECK (format IN ('csv','json','xlsx','pdf','docx')) NOT VALID;
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS entity varchar(40);
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS filter_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS result_file_name varchar(240);
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS result_mime_type varchar(160);
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS result_payload text;
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS checksum_sha256 char(64);
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS expires_at timestamptz;
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS locked_at timestamptz;
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS locked_by text;
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS attempts integer NOT NULL DEFAULT 0;
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS max_attempts integer NOT NULL DEFAULT 3;
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS next_attempt_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS failed_at timestamptz;
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS idempotency_key text;
+ALTER TABLE export_jobs ADD COLUMN IF NOT EXISTS correlation_id text;
+CREATE INDEX IF NOT EXISTS ix_export_jobs_claim ON export_jobs(status,next_attempt_at,requested_at) WHERE completed_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_export_jobs_idempotency ON export_jobs(organization_id,idempotency_key) WHERE idempotency_key IS NOT NULL AND completed_at IS NULL;
+CREATE TABLE IF NOT EXISTS export_files (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), export_job_id uuid NOT NULL REFERENCES export_jobs(id), storage_key text NOT NULL UNIQUE,
+ file_name varchar(240) NOT NULL, content_type varchar(160) NOT NULL, byte_length bigint NOT NULL CHECK (byte_length > 0),
+ sha256 char(64) NOT NULL, created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS certificates (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), diagnosis_id uuid NOT NULL,
+ validation_code varchar(64) NOT NULL UNIQUE, version integer NOT NULL DEFAULT 1 CHECK (version > 0),
+ methodology_version varchar(60) NOT NULL, score numeric(8,2) NOT NULL, maturity_level varchar(100) NOT NULL,
+ storage_key text NOT NULL UNIQUE, status varchar(24) NOT NULL DEFAULT 'valid' CHECK(status IN ('valid','revoked','expired')),
+ issued_by uuid NULL, issued_at timestamptz NOT NULL DEFAULT now(), revoked_at timestamptz NULL,
+ UNIQUE(diagnosis_id, version)
+);
+CREATE TABLE IF NOT EXISTS certificate_validation_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), certificate_id uuid NULL REFERENCES certificates(id), validation_code_hash char(64) NOT NULL,
+ was_valid boolean NOT NULL, ip_hash char(64) NULL, user_agent_hash char(64) NULL, validated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS share_links (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id), diagnosis_id uuid NOT NULL,
+ document_id uuid NULL, token_hash char(64) NOT NULL UNIQUE, expires_at timestamptz NOT NULL, allow_download boolean NOT NULL DEFAULT false,
+ created_by uuid NULL, created_at timestamptz NOT NULL DEFAULT now(), revoked_at timestamptz NULL,
+ CONSTRAINT ck_share_expiry CHECK (expires_at > created_at)
+);
+CREATE INDEX IF NOT EXISTS ix_share_links_active ON share_links(token_hash, expires_at) WHERE revoked_at IS NULL;
+CREATE TABLE IF NOT EXISTS download_audit_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES organizations(id),
+ resource_type varchar(40) NOT NULL, resource_id uuid NOT NULL, actor_user_id uuid NULL, share_link_id uuid NULL REFERENCES share_links(id),
+ outcome varchar(20) NOT NULL CHECK(outcome IN ('allowed','denied','not_found','failed')), ip_hash char(64) NULL,
+ occurred_at timestamptz NOT NULL DEFAULT now()
+);
+
+INSERT INTO permissions(code,name,description,module_code) VALUES
+('reports.download','Baixar relatórios','Baixa relatórios formais autorizados.','organizational_intelligence'),
+('exports.read','Visualizar exportações','Consulta o histórico de exportações.','organizational_intelligence'),
+('exports.generate','Gerar exportações','Gera exportações técnicas autorizadas.','organizational_intelligence'),
+('certificates.read','Visualizar certificados','Consulta certificados da organização.','organizational_intelligence'),
+('certificates.generate','Emitir certificados','Emite certificados para diagnósticos concluídos.','organizational_intelligence'),
+('certificates.download','Baixar certificados','Baixa certificados autorizados.','organizational_intelligence'),
+('certificates.validate','Validar certificados','Consulta a validade pública de certificados.','organizational_intelligence'),
+('share_links.manage','Gerenciar compartilhamentos','Cria e revoga links seguros.','organizational_intelligence')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code,updated_at=now();
+INSERT INTO role_permissions(role_id,permission_id,created_at)
+SELECT r.id,p.id,now() FROM roles r CROSS JOIN permissions p
+WHERE r.code='admin_valora' AND p.code IN ('reports.read','reports.generate','reports.download','exports.read','exports.generate','certificates.read','certificates.generate','certificates.download','certificates.validate','share_links.manage')
+ON CONFLICT(role_id,permission_id) DO NOTHING;
+INSERT INTO schema_migrations(version,checksum) VALUES('2026_08_formal_deliverables','sha256:formal-deliverables-v1')
+ON CONFLICT(version) DO UPDATE SET checksum=EXCLUDED.checksum,applied_at=now();
+COMMIT;
+
+
+
+-- Histórico consolidado de 2026_08_intelligent_deliverables_permissions.sql; fonte executável paralela aposentada.
+-- Canonical capabilities for Valora's evidence-based intelligent deliverables.
+-- Idempotent and intentionally limited to access data; the intelligence tables are
+-- already created by script_completo.sql and remain the canonical persistence model.
+BEGIN;
+
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+('dashboard.read','Visualizar Valora Dashboard','Consulta a visão executiva baseada em evidências.','organizational_intelligence'),
+('radar.read','Visualizar Valora Radar','Consulta o equilíbrio entre dimensões oficiais.','organizational_intelligence'),
+('reports.read','Visualizar relatório executivo','Consulta relatórios executivos autorizados.','organizational_intelligence'),
+('reports.generate','Gerar relatório executivo','Materializa relatório a partir do diagnóstico.','organizational_intelligence'),
+('action.read','Visualizar Valora Action','Consulta planos e ações rastreáveis.','organizational_intelligence'),
+('action.manage','Gerenciar Valora Action','Cria e atualiza ações ligadas a evidências.','organizational_intelligence'),
+('heatmap.read','Visualizar Valora Heatmap','Consulta concentração interpretada de risco e oportunidade.','organizational_intelligence'),
+('evolution.read','Visualizar Valora Evolution','Consulta snapshots históricos sem sobrescrita.','organizational_intelligence'),
+('journey.read','Visualizar Valora Journey','Consulta a memória organizacional.','organizational_intelligence'),
+('benchmark.read','Visualizar Valora Benchmark','Compara grupos e ciclos, nunca indivíduos.','organizational_intelligence'),
+('insights.read','Visualizar Valora Insights IA','Consulta insights sustentados por evidências.','organizational_intelligence')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,
+ module_code=EXCLUDED.module_code,updated_at=now();
+
+INSERT INTO valorapesquisa.role_permissions(role_id,permission_id,created_at)
+SELECT r.id,p.id,now() FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p
+WHERE r.code='admin_valora' AND r.deleted_at IS NULL AND p.code IN
+('dashboard.read','radar.read','reports.read','reports.generate','action.read','action.manage','heatmap.read',
+ 'evolution.read','journey.read','benchmark.read','insights.read')
+ON CONFLICT(role_id,permission_id) DO NOTHING;
+
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_08_intelligent_deliverables_permissions','sha256:intelligent-deliverables-permissions-v1')
+ON CONFLICT(version) DO UPDATE SET checksum=EXCLUDED.checksum,applied_at=now();
+
+COMMIT;
+
+
+
+-- Histórico consolidado de 2026_08_official_valora_methodology.sql; fonte executável paralela aposentada.
+-- Base metodológica oficial Valora Insight™. Aditiva, idempotente e sem recálculo histórico.
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE SCHEMA IF NOT EXISTS valorapesquisa;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_versions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code varchar(30) NOT NULL UNIQUE, version integer NOT NULL, version_number integer,
+ name varchar(160) NOT NULL, status varchar(20) NOT NULL CHECK(status IN ('draft','active','retired','published','archived')),
+ effective_from timestamptz NOT NULL, effective_to timestamptz, change_log text NOT NULL DEFAULT '',
+ snapshot_json jsonb NOT NULL DEFAULT '{}'::jsonb, published_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(),
+ CHECK(effective_to IS NULL OR effective_to > effective_from));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.maturity_dimensions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),
+ code varchar(80) NOT NULL, name varchar(160) NOT NULL, description text NOT NULL, weight numeric(8,4) NOT NULL DEFAULT 1,
+ status varchar(20) NOT NULL DEFAULT 'active' CHECK(status IN ('draft','active','inactive')),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(methodology_version_id,code), CHECK(weight>0));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.cognitive_concepts (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),
+ code varchar(80) NOT NULL, name varchar(180) NOT NULL, description text NOT NULL, primary_dimension_id uuid NOT NULL REFERENCES valorapesquisa.maturity_dimensions(id),
+ related_dimension_ids uuid[] NOT NULL DEFAULT '{}', methodological_definition text NOT NULL, expected_evidence jsonb NOT NULL DEFAULT '[]',
+ low_maturity_signs jsonb NOT NULL DEFAULT '[]', medium_maturity_signs jsonb NOT NULL DEFAULT '[]', high_maturity_signs jsonb NOT NULL DEFAULT '[]',
+ associated_risks jsonb NOT NULL DEFAULT '[]', associated_opportunities jsonb NOT NULL DEFAULT '[]', possible_recommendations jsonb NOT NULL DEFAULT '[]',
+ status varchar(20) NOT NULL DEFAULT 'active' CHECK(status IN ('draft','active','inactive')), version integer NOT NULL DEFAULT 1,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(methodology_version_id,code));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.cognitive_concept_relations (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),
+ source_concept_id uuid NOT NULL REFERENCES valorapesquisa.cognitive_concepts(id), target_concept_id uuid NOT NULL REFERENCES valorapesquisa.cognitive_concepts(id),
+ relation_type varchar(30) NOT NULL CHECK(relation_type IN ('probable_cause','impact','dependency','correlation','aggravating','mitigating','prerequisite')),
+ intensity numeric(5,4) NOT NULL CHECK(intensity>0 AND intensity<=1), direction varchar(20) NOT NULL CHECK(direction IN ('positive','negative','bidirectional')),
+ description text NOT NULL, interpretation_rule jsonb NOT NULL DEFAULT '{}', version integer NOT NULL DEFAULT 1,
+ created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(methodology_version_id,source_concept_id,target_concept_id,relation_type));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.official_questions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),
+ code varchar(80) NOT NULL, text text NOT NULL, internal_description text NOT NULL DEFAULT '',
+ response_type varchar(30) NOT NULL CHECK(response_type IN ('scale_1_5','multiple_choice','yes_no','qualitative_text','matrix','single_choice')),
+ scale_json jsonb NOT NULL DEFAULT '{}', dimension_id uuid NOT NULL REFERENCES valorapesquisa.maturity_dimensions(id),
+ primary_concept_id uuid NOT NULL REFERENCES valorapesquisa.cognitive_concepts(id), weight numeric(8,4) NOT NULL DEFAULT 1 CHECK(weight>0),
+ is_required boolean NOT NULL DEFAULT true, target_audience text[] NOT NULL DEFAULT '{}', assessed_maturity_level varchar(30),
+ normalization_rule jsonb NOT NULL, status varchar(20) NOT NULL DEFAULT 'active' CHECK(status IN ('draft','active','inactive')),
+ version integer NOT NULL DEFAULT 1, effective_from timestamptz NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(methodology_version_id,code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.official_question_options (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), question_id uuid NOT NULL REFERENCES valorapesquisa.official_questions(id) ON DELETE CASCADE,
+ code varchar(50) NOT NULL, label text NOT NULL, normalized_value numeric(7,4), display_order integer NOT NULL DEFAULT 0,
+ UNIQUE(question_id,code), CHECK(normalized_value IS NULL OR normalized_value BETWEEN 0 AND 100));
+
+-- Corrige resíduos antes de fortalecer o contrato da tabela legada.
+DO $mapping$ BEGIN
+ IF to_regclass('valorapesquisa.question_concept_mappings') IS NOT NULL THEN
+  UPDATE valorapesquisa.question_concept_mappings SET weight=1 WHERE weight IS NULL OR weight<=0;
+  ALTER TABLE valorapesquisa.question_concept_mappings DROP CONSTRAINT IF EXISTS question_concept_mappings_weight_check;
+  ALTER TABLE valorapesquisa.question_concept_mappings ADD CONSTRAINT question_concept_mappings_weight_check CHECK(weight>0) NOT VALID;
+  ALTER TABLE valorapesquisa.question_concept_mappings VALIDATE CONSTRAINT question_concept_mappings_weight_check;
+ END IF;
+END $mapping$;
+CREATE TABLE IF NOT EXISTS valorapesquisa.official_question_concepts (
+ question_id uuid NOT NULL REFERENCES valorapesquisa.official_questions(id) ON DELETE CASCADE,
+ concept_id uuid NOT NULL REFERENCES valorapesquisa.cognitive_concepts(id), weight numeric(8,4) NOT NULL DEFAULT 1 CHECK(weight>0),
+ is_primary boolean NOT NULL DEFAULT false, PRIMARY KEY(question_id,concept_id));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.scoring_rules (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),
+ code varchar(80) NOT NULL, name varchar(180) NOT NULL, rule_json jsonb NOT NULL, status varchar(20) NOT NULL DEFAULT 'active',
+ version integer NOT NULL DEFAULT 1, created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(methodology_version_id,code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.maturity_levels (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),
+ code varchar(30) NOT NULL, name varchar(100) NOT NULL, minimum_score numeric(5,2) NOT NULL, maximum_score numeric(5,2) NOT NULL,
+ description text NOT NULL, organizational_meaning text NOT NULL, typical_risks jsonb NOT NULL DEFAULT '[]', recommended_next_step text NOT NULL,
+ display_order integer NOT NULL, UNIQUE(methodology_version_id,code), CHECK(minimum_score>=0 AND maximum_score<=100 AND maximum_score>minimum_score));
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnosis_templates (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),
+ code varchar(80) NOT NULL, name varchar(180) NOT NULL, audience text[] NOT NULL DEFAULT '{}', estimated_minutes integer NOT NULL CHECK(estimated_minutes>0),
+ minimum_plan varchar(40) NOT NULL, enabled_deliverables jsonb NOT NULL DEFAULT '[]', scoring_rule_id uuid NOT NULL REFERENCES valorapesquisa.scoring_rules(id),
+ dimensions_json jsonb NOT NULL DEFAULT '[]', status varchar(20) NOT NULL DEFAULT 'active', version integer NOT NULL DEFAULT 1,
+ created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(methodology_version_id,code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.diagnosis_template_questions (
+ template_id uuid NOT NULL REFERENCES valorapesquisa.diagnosis_templates(id) ON DELETE CASCADE,
+ question_id uuid NOT NULL REFERENCES valorapesquisa.official_questions(id), display_order integer NOT NULL, is_required boolean NOT NULL DEFAULT true,
+ PRIMARY KEY(template_id,question_id), UNIQUE(template_id,display_order));
+
+-- Snapshot imutável: o diagnóstico publicado aponta para uma versão e seu conteúdo materializado.
+DO $diagnosis_version$ BEGIN
+ IF to_regclass('valorapesquisa.surveys') IS NOT NULL THEN
+  ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS methodology_version_id uuid REFERENCES valorapesquisa.methodology_versions(id);
+  ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS methodology_snapshot_json jsonb;
+  ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS diagnosis_template_id uuid REFERENCES valorapesquisa.diagnosis_templates(id);
+ END IF;
+END $diagnosis_version$;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.evidence_items_methodology (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), diagnosis_id uuid NOT NULL, question_id uuid NOT NULL REFERENCES valorapesquisa.official_questions(id),
+ answer_id uuid NOT NULL, dimension_id uuid NOT NULL REFERENCES valorapesquisa.maturity_dimensions(id), concept_id uuid NOT NULL REFERENCES valorapesquisa.cognitive_concepts(id),
+ intensity numeric(7,4) NOT NULL CHECK(intensity BETWEEN 0 AND 100), polarity varchar(10) NOT NULL CHECK(polarity IN ('positive','negative','neutral')),
+ confidence numeric(5,4) NOT NULL CHECK(confidence BETWEEN 0 AND 1), interpretation text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.recommendation_catalog (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),
+ code varchar(80) NOT NULL, concept_id uuid NOT NULL REFERENCES valorapesquisa.cognitive_concepts(id), dimension_id uuid NOT NULL REFERENCES valorapesquisa.maturity_dimensions(id),
+ trigger_condition jsonb NOT NULL CHECK(trigger_condition<>'{}'::jsonb), priority varchar(20) NOT NULL, description text NOT NULL, objective text NOT NULL,
+ prerequisites jsonb NOT NULL DEFAULT '[]', mitigated_risks jsonb NOT NULL DEFAULT '[]', success_indicators jsonb NOT NULL DEFAULT '[]', suggested_actions jsonb NOT NULL DEFAULT '[]',
+ status varchar(20) NOT NULL DEFAULT 'active', version integer NOT NULL DEFAULT 1, UNIQUE(methodology_version_id,code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.recommendation_evidence (
+ recommendation_id uuid NOT NULL REFERENCES valorapesquisa.recommendation_catalog(id), evidence_id uuid NOT NULL REFERENCES valorapesquisa.evidence_items_methodology(id),
+ created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(recommendation_id,evidence_id));
+
+INSERT INTO valorapesquisa.methodology_versions(code,version,version_number,name,status,effective_from,published_at,change_log)
+VALUES('VALORA-2026.1',1,1,'Metodologia Valora Insight™ 2026.1','published','2026-01-01',now(),'Base cognitiva oficial inicial.') ON CONFLICT(code) DO NOTHING;
+WITH v AS (SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1')
+INSERT INTO valorapesquisa.maturity_dimensions(methodology_version_id,code,name,description,weight)
+SELECT v.id,x.code,x.name,x.description,1 FROM v CROSS JOIN (VALUES
+ ('clarity','Clareza Sistêmica','Propósito, papéis, responsabilidades e interfaces explícitos.'),('governance','Governança','Decisões, accountability, riscos e indicadores.'),
+ ('leadership','Liderança','Contexto, direção e desenvolvimento.'),('culture_people','Cultura e Pessoas','Padrões, comunicação e capacidade humana.'),
+ ('process_systems','Processos e Sistemas','Fluxos, tecnologia, repetibilidade e integração.'),('intelligence_learning','Inteligência e Aprendizagem','Evidências convertidas em decisão e evolução.'),
+ ('sustainability','Sustentabilidade','Autonomia, resiliência e continuidade organizacional.')) x(code,name,description)
+ON CONFLICT(methodology_version_id,code) DO UPDATE SET name=excluded.name,description=excluded.description,updated_at=now();
+WITH v AS (SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1'), concepts(code,name,dimension,definition) AS (VALUES
+ ('systemic_clarity','Clareza sistêmica','clarity','Compreensão compartilhada de propósito, papéis, critérios e interfaces.'),
+ ('organizational_governance','Governança organizacional','governance','Sistema de direção, decisão, prestação de contas e supervisão.'),('leadership','Liderança','leadership','Capacidade de produzir contexto, direção e desenvolvimento.'),
+ ('organizational_culture','Cultura organizacional','culture_people','Padrões compartilhados que orientam comportamentos.'),('people','Pessoas','culture_people','Condições para contribuição, desenvolvimento e pertencimento.'),
+ ('processes','Processos','process_systems','Fluxos de valor explícitos, medidos e aprimorados.'),('systems','Sistemas','process_systems','Recursos técnicos e sociais integrados ao trabalho.'),
+ ('organizational_learning','Aprendizagem organizacional','intelligence_learning','Capacidade de aprender com ciclos e evidências.'),('organizational_intelligence','Inteligência organizacional','intelligence_learning','Capacidade de converter evidência em decisão melhor.'),
+ ('organizational_sustainability','Sustentabilidade organizacional','sustainability','Capacidade de sustentar resultados e adaptação no tempo.'),('organizational_autonomy','Autonomia organizacional','sustainability','Decisão distribuída com contexto, limites e responsabilidade.'),
+ ('key_person_dependency','Dependência de pessoas específicas','sustainability','Concentração crítica de conhecimento ou decisão.'),('decision_making','Tomada de decisão','governance','Escolha rastreável por critérios e evidências.'),
+ ('internal_communication','Comunicação interna','culture_people','Fluxo confiável de contexto, acordos e feedback.'),('indicators','Indicadores','intelligence_learning','Evidências quantitativas e qualitativas interpretadas em contexto.'),
+ ('accountability','Accountability','governance','Assumir, prestar contas e aprender sobre compromissos.'),('organizational_development','Desenvolvimento organizacional','intelligence_learning','Transformação planejada da arquitetura organizacional.'))
+INSERT INTO valorapesquisa.cognitive_concepts(methodology_version_id,code,name,description,primary_dimension_id,methodological_definition,expected_evidence,low_maturity_signs,medium_maturity_signs,high_maturity_signs,associated_risks,associated_opportunities,possible_recommendations)
+SELECT v.id,c.code,c.name,c.definition,d.id,c.definition,'["práticas observáveis","registros recorrentes"]','["prática informal ou dependente"]','["prática definida, ainda irregular"]','["prática integrada, medida e aprendida"]','["descontinuidade","decisão sem evidência"]','["integração","aprendizagem"]','["instituir ciclo com responsável, indicador e revisão"]'
+FROM v JOIN concepts c ON true JOIN valorapesquisa.maturity_dimensions d ON d.methodology_version_id=v.id AND d.code=c.dimension
+ON CONFLICT(methodology_version_id,code) DO UPDATE SET name=excluded.name,methodological_definition=excluded.methodological_definition,updated_at=now();
+WITH v AS (SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1')
+INSERT INTO valorapesquisa.maturity_levels(methodology_version_id,code,name,minimum_score,maximum_score,description,organizational_meaning,typical_risks,recommended_next_step,display_order)
+SELECT v.id,x.code,x.name,x.min,x.max,x.description,x.meaning,x.risks::jsonb,x.next_step,x.display_order FROM v CROSS JOIN (VALUES
+ ('initial','Inicial',0,19.99,'Práticas incipientes.','Alta dependência de iniciativas isoladas.','["descontinuidade"]','Estabelecer fundamentos explícitos.',1),
+ ('structuring','Em estruturação',20,39.99,'Fundamentos em definição.','Existem iniciativas ainda pouco integradas.','["fragmentação"]','Formalizar papéis e rotinas.',2),
+ ('developing','Em desenvolvimento',40,59.99,'Práticas em adoção.','Capacidades evoluem com consistência variável.','["execução irregular"]','Medir adoção e remover barreiras.',3),
+ ('consistent','Consistente',60,74.99,'Práticas recorrentes.','A organização opera com previsibilidade.','["acomodação"]','Integrar capacidades e aprendizagem.',4),
+ ('mature','Madura',75,89.99,'Práticas integradas.','Decisões e resultados são sustentáveis.','["otimização local"]','Ampliar adaptação sistêmica.',5),
+ ('intelligent','Inteligente',90,100,'Práticas adaptativas.','O sistema aprende e evolui por evidências.','["excesso de confiança"]','Preservar aprendizagem e renovação.',6)) x(code,name,min,max,description,meaning,risks,next_step,display_order)
+ON CONFLICT(methodology_version_id,code) DO UPDATE SET name=excluded.name,minimum_score=excluded.minimum_score,maximum_score=excluded.maximum_score;
+WITH v AS (SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1')
+INSERT INTO valorapesquisa.scoring_rules(methodology_version_id,code,name,rule_json)
+SELECT id,'weighted-evidence-v1','Scoring ponderado por evidências','{"scale":"0-100","aggregation":"weighted_average","invalid":"ignore","zeroDenominator":"insufficient_evidence","confidence":"valid_required_ratio"}' FROM v ON CONFLICT(methodology_version_id,code) DO NOTHING;
+WITH v AS (SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1'), r AS (SELECT id FROM valorapesquisa.scoring_rules WHERE code='weighted-evidence-v1'), templates(code,name,audience,minutes,plan,deliverables) AS (VALUES
+ ('essential','Diagnóstico Essencial',ARRAY['equipes'],15,'Free','["score","radar"]'::jsonb),('professional','Diagnóstico Profissional',ARRAY['organização'],30,'Professional','["score","radar","heatmap","action_plan"]'),
+ ('executive','Diagnóstico Executivo',ARRAY['alta liderança'],25,'Professional','["executive_report","benchmark"]'),('leadership','Diagnóstico de Liderança',ARRAY['líderes'],20,'Professional','["score","insights"]'),
+ ('governance','Diagnóstico de Governança',ARRAY['governança'],25,'Professional','["score","risks","recommendations"]'),('culture','Diagnóstico de Cultura',ARRAY['organização'],25,'Professional','["score","heatmap"]'),
+ ('enterprise_units','Diagnóstico Enterprise por unidades',ARRAY['múltiplas unidades'],45,'Enterprise','["score","radar","heatmap","benchmark","action_plan","certificate"]'))
+INSERT INTO valorapesquisa.diagnosis_templates(methodology_version_id,code,name,audience,estimated_minutes,minimum_plan,enabled_deliverables,scoring_rule_id)
+SELECT v.id,t.code,t.name,t.audience,t.minutes,t.plan,t.deliverables,r.id FROM v CROSS JOIN r CROSS JOIN templates t
+ON CONFLICT(methodology_version_id,code) DO UPDATE SET name=excluded.name,estimated_minutes=excluded.estimated_minutes,enabled_deliverables=excluded.enabled_deliverables;
+
+-- Uma pergunta oficial inicial por conceito garante cobertura canônica; novas versões são inseridas, nunca sobrescritas.
+WITH v AS (SELECT id,effective_from FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1')
+INSERT INTO valorapesquisa.official_questions(methodology_version_id,code,text,internal_description,response_type,scale_json,dimension_id,primary_concept_id,weight,is_required,target_audience,normalization_rule,effective_from)
+SELECT v.id,'VALORA_'||upper(c.code)||'_01','Em que medida '||lower(c.name)||' está formalizada, é praticada e revisada com evidências?',
+ 'Item basal oficial de '||c.name||'.','scale_1_5','{"minimum":1,"maximum":5,"labels":{"1":"não existe","5":"integrada e adaptativa"}}',c.primary_dimension_id,c.id,1,true,ARRAY['organização'],
+ '{"type":"linear","minimum":1,"maximum":5,"outputMinimum":0,"outputMaximum":100}',v.effective_from
+FROM v JOIN valorapesquisa.cognitive_concepts c ON c.methodology_version_id=v.id
+ON CONFLICT(methodology_version_id,code) DO UPDATE SET text=excluded.text,internal_description=excluded.internal_description;
+INSERT INTO valorapesquisa.official_question_concepts(question_id,concept_id,weight,is_primary)
+SELECT q.id,q.primary_concept_id,1,true FROM valorapesquisa.official_questions q
+ON CONFLICT(question_id,concept_id) DO UPDATE SET weight=1,is_primary=true;
+WITH edges(source,target,type,direction,description) AS (VALUES
+ ('systemic_clarity','organizational_governance','impact','positive','Baixa clareza sistêmica fragiliza a governança.'),
+ ('organizational_governance','key_person_dependency','impact','negative','Governança fraca amplia dependência de pessoas específicas.'),
+ ('indicators','decision_making','prerequisite','positive','Indicadores contextualizados qualificam a decisão.'),
+ ('leadership','organizational_autonomy','impact','positive','Liderança que distribui contexto fortalece autonomia.'))
+INSERT INTO valorapesquisa.cognitive_concept_relations(methodology_version_id,source_concept_id,target_concept_id,relation_type,intensity,direction,description,interpretation_rule)
+SELECT s.methodology_version_id,s.id,t.id,e.type,.8,e.direction,e.description,'{"minimumEvidence":3,"causality":"hypothesis_only"}'
+FROM edges e JOIN valorapesquisa.cognitive_concepts s ON s.code=e.source JOIN valorapesquisa.cognitive_concepts t ON t.code=e.target AND t.methodology_version_id=s.methodology_version_id
+ON CONFLICT(methodology_version_id,source_concept_id,target_concept_id,relation_type) DO UPDATE SET description=excluded.description,interpretation_rule=excluded.interpretation_rule;
+WITH v AS (SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1')
+INSERT INTO valorapesquisa.recommendation_catalog(methodology_version_id,code,concept_id,dimension_id,trigger_condition,priority,description,objective,prerequisites,mitigated_risks,success_indicators,suggested_actions)
+SELECT v.id,'REC_'||upper(c.code)||'_FOUNDATION',c.id,c.primary_dimension_id,'{"conceptScore":{"lessThan":60},"minimumEvidence":1}','high',
+ 'Estruturar '||lower(c.name)||' com responsabilidade e cadência de revisão.','Elevar a maturidade observável de '||lower(c.name)||'.','["responsável definido"]','["descontinuidade","dependência"]','["score do conceito","evidências recorrentes"]','["definir prática","registrar evidência","revisar resultado"]'
+FROM v JOIN valorapesquisa.cognitive_concepts c ON c.methodology_version_id=v.id
+ON CONFLICT(methodology_version_id,code) DO UPDATE SET trigger_condition=excluded.trigger_condition,description=excluded.description;
+
+-- Catálogo fechado e concessão integral ao admin_valora.
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+ ('methodology.read','Visualizar metodologia','Consulta a metodologia oficial versionada.','organizational_intelligence'),
+ ('methodology.manage','Gerenciar metodologia','Publica e versiona a metodologia oficial.','organizational_intelligence'),
+ ('dimensions.manage','Gerenciar dimensões','Administra dimensões metodológicas.','organizational_intelligence'),
+ ('concepts.manage','Gerenciar conceitos','Administra o dicionário cognitivo.','organizational_intelligence'),
+ ('cognitive_map.manage','Gerenciar mapa cognitivo','Administra relações cognitivas.','organizational_intelligence'),
+ ('official_questions.manage','Gerenciar perguntas oficiais','Administra perguntas versionadas.','forms'),
+ ('diagnosis_templates.manage','Gerenciar templates diagnósticos','Administra templates oficiais.','forms'),
+ ('scoring_rules.manage','Gerenciar regras de score','Administra regras versionadas de scoring.','results'),
+ ('maturity_levels.manage','Gerenciar níveis de maturidade','Administra faixas oficiais.','results'),
+ ('recommendations.manage','Gerenciar recomendações','Administra catálogo baseado em evidências.','results')
+ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,module_code=excluded.module_code,updated_at=now();
+INSERT INTO valorapesquisa.role_permissions(role_id,permission_id)
+SELECT r.id,p.id FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p
+WHERE r.code='admin_valora' AND p.code IN ('methodology.read','methodology.manage','dimensions.manage','concepts.manage','cognitive_map.manage','official_questions.manage','diagnosis_templates.manage','scoring_rules.manage','maturity_levels.manage','recommendations.manage')
+ON CONFLICT(role_id,permission_id) DO NOTHING;
+
+COMMIT;
+
+
+
+-- Histórico consolidado de 2026_08_one_on_one_leadership.sql; fonte executável paralela aposentada.
+
+-- Valora One-on-One™: contrato canônico e evolução idempotente de instalações parciais.
+ALTER TABLE valorapesquisa.one_on_one_sessions
+ ADD COLUMN IF NOT EXISTS leader_user_id uuid REFERENCES valorapesquisa.users(id),
+ ADD COLUMN IF NOT EXISTS participant_user_id uuid REFERENCES valorapesquisa.users(id),
+ ADD COLUMN IF NOT EXISTS title varchar(200),
+ ADD COLUMN IF NOT EXISTS purpose text,
+ ADD COLUMN IF NOT EXISTS scheduled_at timestamptz,
+ ADD COLUMN IF NOT EXISTS started_at timestamptz,
+ ADD COLUMN IF NOT EXISTS completed_at timestamptz,
+ ADD COLUMN IF NOT EXISTS canceled_at timestamptz,
+ ADD COLUMN IF NOT EXISTS duration_minutes integer,
+ ADD COLUMN IF NOT EXISTS summary text,
+ ADD COLUMN IF NOT EXISTS private_notes text,
+ ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ ADD COLUMN IF NOT EXISTS created_at timestamptz NOT NULL DEFAULT now(),
+ ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now(),
+ ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+UPDATE valorapesquisa.one_on_one_sessions
+ SET leader_user_id=COALESCE(leader_user_id,facilitator_user_id),
+     title=COALESCE(NULLIF(btrim(title),''),NULLIF(btrim(agenda),''),'Sessão individual'),
+     purpose=COALESCE(NULLIF(btrim(purpose),''),NULLIF(btrim(objective),''),'Acompanhamento organizacional'),
+     duration_minutes=COALESCE(duration_minutes,60), metadata_json=COALESCE(metadata_json,'{}'::jsonb),
+     created_at=COALESCE(created_at,now()), updated_at=COALESCE(updated_at,created_at,now());
+CREATE INDEX IF NOT EXISTS ix_one_on_one_sessions_tenant_schedule ON valorapesquisa.one_on_one_sessions(organization_id,scheduled_at) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_one_on_one_sessions_leader ON valorapesquisa.one_on_one_sessions(organization_id,leader_user_id,status) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.one_on_one_session_topics (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), session_id uuid NOT NULL REFERENCES valorapesquisa.one_on_one_sessions(id),
+ theme varchar(160) NOT NULL, observation text, evidence text, correlation text, probable_cause text, organizational_impact text, priority varchar(30), display_order integer NOT NULL DEFAULT 0,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_one_on_one_topics_session ON valorapesquisa.one_on_one_session_topics(organization_id,session_id,display_order) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.one_on_one_session_notes (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), session_id uuid NOT NULL REFERENCES valorapesquisa.one_on_one_sessions(id), author_user_id uuid REFERENCES valorapesquisa.users(id),
+ content text NOT NULL, visibility varchar(20) NOT NULL DEFAULT 'reportable', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_one_on_one_session_notes_scope ON valorapesquisa.one_on_one_session_notes(organization_id,session_id,visibility) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.one_on_one_action_items (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), session_id uuid NOT NULL REFERENCES valorapesquisa.one_on_one_sessions(id), action_id uuid REFERENCES valorapesquisa.valora_actions(id),
+ description text NOT NULL, evidence_reference text NOT NULL, owner_user_id uuid REFERENCES valorapesquisa.users(id), due_at timestamptz, completed_at timestamptz, status varchar(30) NOT NULL DEFAULT 'open',
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_one_on_one_action_items_due ON valorapesquisa.one_on_one_action_items(organization_id,status,due_at) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.leadership_development_profiles (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), leader_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), strengths text, risks text, evidence_summary text,
+ metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, UNIQUE(organization_id,leader_user_id));
+CREATE TABLE IF NOT EXISTS valorapesquisa.leadership_development_plans (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), profile_id uuid NOT NULL REFERENCES valorapesquisa.leadership_development_profiles(id), title varchar(200) NOT NULL, purpose text NOT NULL,
+ status varchar(30) NOT NULL DEFAULT 'active', starts_at timestamptz, target_at timestamptz, completed_at timestamptz, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.leadership_development_plan_items (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), plan_id uuid NOT NULL REFERENCES valorapesquisa.leadership_development_plans(id), evidence_reference text NOT NULL, description text NOT NULL,
+ owner_user_id uuid REFERENCES valorapesquisa.users(id), status varchar(30) NOT NULL DEFAULT 'open', due_at timestamptz, completed_at timestamptz, progress numeric(5,2) NOT NULL DEFAULT 0, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.follow_up_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), session_id uuid REFERENCES valorapesquisa.one_on_one_sessions(id), plan_item_id uuid REFERENCES valorapesquisa.leadership_development_plan_items(id), event_type varchar(50) NOT NULL, description text NOT NULL,
+ occurred_at timestamptz NOT NULL DEFAULT now(), created_by uuid REFERENCES valorapesquisa.users(id), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.leadership_metrics_snapshots (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), profile_id uuid NOT NULL REFERENCES valorapesquisa.leadership_development_profiles(id), metric_code varchar(100) NOT NULL, value numeric(12,4), evidence_count integer NOT NULL DEFAULT 0, limitation text,
+ captured_at timestamptz NOT NULL DEFAULT now(), metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_leadership_metrics_history ON valorapesquisa.leadership_metrics_snapshots(organization_id,profile_id,captured_at DESC) WHERE deleted_at IS NULL;
+
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+('one_on_one.read','Visualizar One-on-One','Consulta sessões autorizadas da organização.','organizational_intelligence'),
+('one_on_one.manage','Gerenciar One-on-One','Atualiza e cancela sessões da organização.','organizational_intelligence'),
+('one_on_one.schedule','Agendar One-on-One','Agenda sessões e pautas iniciais.','organizational_intelligence'),
+('one_on_one.notes.manage','Gerenciar notas de One-on-One','Registra notas respeitando sua visibilidade.','organizational_intelligence'),
+('one_on_one.feedback.manage','Gerenciar devolutivas de One-on-One','Registra decisões e devolutivas reportáveis.','organizational_intelligence'),
+('leadership_development.read','Visualizar desenvolvimento de lideranças','Consulta perfis e evolução autorizados.','organizational_intelligence'),
+('leadership_development.manage','Gerenciar desenvolvimento de lideranças','Mantém planos sustentados por evidências.','organizational_intelligence'),
+('evolution.manage','Gerenciar jornada de evolução','Mantém marcos da evolução organizacional.','organizational_intelligence')
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code,updated_at=now();
+INSERT INTO valorapesquisa.role_permissions(role_id,permission_id,created_at)
+SELECT r.id,p.id,now() FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p
+WHERE r.code='admin_valora' AND r.deleted_at IS NULL AND p.code IN
+('one_on_one.read','one_on_one.manage','one_on_one.schedule','one_on_one.notes.manage','one_on_one.feedback.manage','leadership_development.read','leadership_development.manage','evolution.read','evolution.manage','action.read','action.manage')
+ON CONFLICT(role_id,permission_id) DO NOTHING;
+
+
+
+-- Histórico consolidado de 2026_08_professional_integrations.sql; fonte executável paralela aposentada.
+BEGIN;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+CREATE TABLE IF NOT EXISTS valorapesquisa.api_keys(id uuid PRIMARY KEY DEFAULT gen_random_uuid());
+-- Columns precede every constraint/index/use, including upgrades from legacy tables.
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS name text;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS key_hash text;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS key_prefix text;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS scopes text[] DEFAULT '{}';
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS status text DEFAULT 'active';
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS expires_at timestamptz;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS last_used_at timestamptz;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS use_count bigint DEFAULT 0;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS created_by uuid;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS created_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS revoked_at timestamptz;
+ALTER TABLE valorapesquisa.api_keys ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_api_keys_hash ON valorapesquisa.api_keys(key_hash) WHERE deleted_at IS NULL;
+CREATE TABLE IF NOT EXISTS valorapesquisa.api_key_scopes(api_key_id uuid NOT NULL REFERENCES valorapesquisa.api_keys(id) ON DELETE CASCADE,scope text NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(api_key_id,scope));
+CREATE TABLE IF NOT EXISTS valorapesquisa.integration_settings(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),provider text NOT NULL,status text NOT NULL DEFAULT 'disabled',configuration jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),UNIQUE(organization_id,provider));
+CREATE TABLE IF NOT EXISTS valorapesquisa.webhook_subscriptions(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),name text NOT NULL,url text NOT NULL,secret_hash text NOT NULL,events text[] NOT NULL,status text NOT NULL DEFAULT 'active',max_attempts integer NOT NULL DEFAULT 6,last_sent_at timestamptz,last_error text,created_by uuid,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.webhook_events(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),event_type text NOT NULL,aggregate_id uuid,payload jsonb NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.webhook_delivery_attempts(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),webhook_id uuid NOT NULL REFERENCES valorapesquisa.webhook_subscriptions(id),event_id uuid NOT NULL REFERENCES valorapesquisa.webhook_events(id),attempt integer NOT NULL,status text NOT NULL,http_status integer,response_excerpt text,signature_prefix text,error text,next_attempt_at timestamptz,created_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,UNIQUE(webhook_id,event_id,attempt));
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS webhook_id uuid REFERENCES valorapesquisa.webhook_subscriptions(id);
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS event_id uuid REFERENCES valorapesquisa.webhook_events(id);
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS attempt integer;
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS http_status integer;
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS response_excerpt text;
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS signature_prefix text;
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS error text;
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS next_attempt_at timestamptz;
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS completed_at timestamptz;
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS webhook_id uuid REFERENCES valorapesquisa.webhook_subscriptions(id);
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS event_id uuid REFERENCES valorapesquisa.webhook_events(id);
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS attempt integer;
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS http_status integer;
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS response_excerpt text;
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS signature_prefix text;
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS error text;
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS next_attempt_at timestamptz;
+ALTER TABLE valorapesquisa.webhook_delivery_attempts ADD COLUMN IF NOT EXISTS completed_at timestamptz;
+CREATE INDEX IF NOT EXISTS ix_webhook_delivery_retry ON valorapesquisa.webhook_delivery_attempts(status,next_attempt_at);
+CREATE TABLE IF NOT EXISTS valorapesquisa.integration_logs(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid REFERENCES valorapesquisa.organizations(id),api_key_id uuid REFERENCES valorapesquisa.api_keys(id),event_type text NOT NULL,status integer,endpoint text,scope_used text,correlation_id text,metadata jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_integration_logs_tenant_date ON valorapesquisa.integration_logs(organization_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.email_templates(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid REFERENCES valorapesquisa.organizations(id),code text NOT NULL,subject text NOT NULL,body_html text NOT NULL,is_active boolean NOT NULL DEFAULT true,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.email_outbox(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),template_code text NOT NULL,recipient text NOT NULL,payload jsonb NOT NULL DEFAULT '{}',status text NOT NULL DEFAULT 'pending',attempts integer NOT NULL DEFAULT 0,next_attempt_at timestamptz NOT NULL DEFAULT now(),last_error text,created_at timestamptz NOT NULL DEFAULT now(),sent_at timestamptz);
+CREATE INDEX IF NOT EXISTS ix_email_outbox_dispatch ON valorapesquisa.email_outbox(status,next_attempt_at);
+CREATE TABLE IF NOT EXISTS valorapesquisa.import_batches(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),type text NOT NULL,format text NOT NULL,checksum text NOT NULL,status text NOT NULL DEFAULT 'pending',total_rows integer NOT NULL DEFAULT 0,valid_rows integer NOT NULL DEFAULT 0,error_rows integer NOT NULL DEFAULT 0,created_by uuid,created_at timestamptz NOT NULL DEFAULT now(),completed_at timestamptz,rolled_back_at timestamptz);
+CREATE TABLE IF NOT EXISTS valorapesquisa.import_batch_errors(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),batch_id uuid NOT NULL REFERENCES valorapesquisa.import_batches(id) ON DELETE CASCADE,row_number integer NOT NULL,field text,error_code text NOT NULL,message text NOT NULL,raw_data jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.external_data_sources(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),type text NOT NULL,name text NOT NULL,configuration jsonb NOT NULL DEFAULT '{}',status text NOT NULL DEFAULT 'disabled',last_sync_at timestamptz,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now());
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+('integrations.read','Consultar integrações','Consultar integrações','enterprise'),('integrations.manage','Gerenciar integrações','Configurar integrações','enterprise'),('api_keys.read','Consultar API Keys','Consultar chaves','enterprise'),('api_keys.manage','Gerenciar API Keys','Gerenciar chaves','enterprise'),('webhooks.read','Consultar webhooks','Consultar webhooks','enterprise'),('webhooks.manage','Gerenciar webhooks','Gerenciar webhooks','enterprise'),('powerbi.read','Consultar BI','Consultar BI','enterprise'),('powerbi.manage','Gerenciar BI','Gerenciar BI','enterprise'),('imports.read','Consultar importações','Consultar lotes','enterprise'),('imports.manage','Gerenciar importações','Gerenciar lotes','enterprise'),('email_templates.manage','Gerenciar templates','Gerenciar templates de e-mail','enterprise'),('integration_logs.read','Consultar logs','Consultar logs de integração','enterprise') ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module_code=EXCLUDED.module_code,updated_at=now();
+INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_08_professional_integrations','sha256:professional-integrations-v1') ON CONFLICT(version) DO NOTHING;
+COMMIT;
+
+
+
+-- Histórico consolidado de 2026_08_professional_valora_ai.sql; fonte executável paralela aposentada.
+-- Camada profissional de IA Valora Insight. Idempotente e preserva todo o histórico.
+CREATE SCHEMA IF NOT EXISTS valorapesquisa;
+CREATE TABLE IF NOT EXISTS valorapesquisa.ai_prompt_templates (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code text NOT NULL UNIQUE, name text NOT NULL,
+ objective text NOT NULL, status text NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.ai_prompt_versions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), template_id uuid NOT NULL REFERENCES valorapesquisa.ai_prompt_templates(id),
+ version integer NOT NULL, system_instructions text NOT NULL, user_template text NOT NULL, output_schema jsonb NOT NULL,
+ created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(template_id, version));
+CREATE TABLE IF NOT EXISTS valorapesquisa.ai_runs (
+ id uuid PRIMARY KEY, organization_id uuid NOT NULL, diagnosis_id uuid, prompt_version_id uuid REFERENCES valorapesquisa.ai_prompt_versions(id),
+ provider text, model text, status text NOT NULL, correlation_id text NOT NULL, origin_user_id uuid, origin_job_id uuid,
+ started_at timestamptz, completed_at timestamptz, duration_ms bigint, error_message text,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_ai_runs_org_created ON valorapesquisa.ai_runs(organization_id, created_at DESC);
+CREATE TABLE IF NOT EXISTS valorapesquisa.ai_run_inputs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), run_id uuid NOT NULL REFERENCES valorapesquisa.ai_runs(id), evidence_pack jsonb NOT NULL,
+ input_hash text NOT NULL, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.ai_run_outputs (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), run_id uuid NOT NULL REFERENCES valorapesquisa.ai_runs(id), output_json jsonb,
+ raw_output text, publication_status text NOT NULL DEFAULT 'draft', created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.ai_run_validations (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), run_id uuid NOT NULL REFERENCES valorapesquisa.ai_runs(id), is_valid boolean NOT NULL,
+ violations jsonb NOT NULL DEFAULT '[]', created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.ai_guardrail_violations (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), run_id uuid NOT NULL REFERENCES valorapesquisa.ai_runs(id), code text NOT NULL,
+ detail text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.ai_review_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), run_id uuid NOT NULL REFERENCES valorapesquisa.ai_runs(id), reviewer_id uuid NOT NULL,
+ from_status text, to_status text NOT NULL, note text, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.ai_usage_metrics (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), run_id uuid NOT NULL REFERENCES valorapesquisa.ai_runs(id), organization_id uuid NOT NULL,
+ provider text NOT NULL, model text NOT NULL, input_tokens integer NOT NULL DEFAULT 0, output_tokens integer NOT NULL DEFAULT 0,
+ estimated_cost numeric(14,6) NOT NULL DEFAULT 0, occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_ai_usage_org_month ON valorapesquisa.ai_usage_metrics(organization_id, occurred_at);
+CREATE TABLE IF NOT EXISTS valorapesquisa.ai_provider_settings (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid, provider text NOT NULL, model text NOT NULL,
+ secret_reference text, enabled boolean NOT NULL DEFAULT false, require_human_review boolean NOT NULL DEFAULT true,
+ monthly_run_limit integer NOT NULL DEFAULT 0 CHECK (monthly_run_limit >= 0), alert_threshold numeric(4,3) NOT NULL DEFAULT .8,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+
+INSERT INTO valorapesquisa.ai_prompt_templates(code,name,objective,status)
+SELECT p.code,p.name,p.objective,'active' FROM (VALUES
+ ('executive_reading','Leitura executiva','Interpretar evidências para decisão executiva'),('insights','Geração de insights','Gerar insights rastreáveis'),
+ ('risks','Análise de riscos','Identificar riscos evidenciados'),('probable_causes','Causas prováveis','Distinguir causas prováveis de sintomas'),
+ ('recommendations','Recomendações','Recomendar evolução vinculada a causas'),('action_plan','Plano de ação','Estruturar ações priorizadas'),
+ ('executive_report','Relatório executivo','Compor relatório metodológico'),('dashboard_summary','Resumo para dashboard','Resumir sem inventar informação'),
+ ('dimension_interpretation','Interpretação por dimensão','Interpretar dimensões e conceitos'),('historical_evolution','Evolução histórica','Comparar evolução com evidências')
+) p(code,name,objective) ON CONFLICT(code) DO UPDATE SET name=excluded.name, objective=excluded.objective, updated_at=now();
+
+INSERT INTO valorapesquisa.ai_prompt_versions(template_id,version,system_instructions,user_template,output_schema)
+SELECT id,1,
+ 'A IA do Valora não é chatbot. Interprete organizações. Nunca invente dados ou estatísticas, conclua sem evidência, trate sintomas como causas, use frases motivacionais, julgamento moral ou culpa pessoal. Declare insuficiência de dados quando necessário.',
+ 'Analise exclusivamente o evidence pack minimizado: {{evidence_pack}}',
+ '{"type":"array","items":{"required":["title","interpretation","evidence_ids","impact","priority","priority_justification","confidence","analysis_limitations"]}}'::jsonb
+FROM valorapesquisa.ai_prompt_templates ON CONFLICT(template_id,version) DO NOTHING;
+
+
+
+-- Histórico consolidado de 2026_08_public_commercial_portal.sql; fonte executável paralela aposentada.
+-- Public commercial portal support. Idempotent and non-destructive.
+CREATE SCHEMA IF NOT EXISTS valorapesquisa;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.public_signup_attempts (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), email_hash text NOT NULL, ip_hash text,
+ status text NOT NULL CHECK (status IN ('started','completed','rejected')), reason_code text,
+ organization_id uuid REFERENCES valorapesquisa.organizations(id), created_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_public_signup_attempts_created ON valorapesquisa.public_signup_attempts(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.email_confirmations (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),
+ token_hash text NOT NULL UNIQUE, expires_at timestamptz NOT NULL, confirmed_at timestamptz,
+ created_at timestamptz NOT NULL DEFAULT now());
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.commercial_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid REFERENCES valorapesquisa.organizations(id),
+ lead_id uuid, event_type text NOT NULL, source text NOT NULL DEFAULT 'public_portal', metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ occurred_at timestamptz NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS ix_commercial_events_occurred ON valorapesquisa.commercial_events(occurred_at DESC);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.lead_notes (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), lead_id uuid NOT NULL, author_user_id uuid REFERENCES valorapesquisa.users(id),
+ note text NOT NULL CHECK(length(note) BETWEEN 1 AND 4000), created_at timestamptz NOT NULL DEFAULT now());
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.onboarding_states (
+ organization_id uuid PRIMARY KEY REFERENCES valorapesquisa.organizations(id), status text NOT NULL DEFAULT 'pending',
+ current_step text NOT NULL DEFAULT 'organization_profile', completed_at timestamptz, updated_at timestamptz NOT NULL DEFAULT now());
+
+INSERT INTO valorapesquisa.permissions(code,name,module_code,status)
+SELECT code,name,'commercial','active' FROM (VALUES
+ ('leads.read','Consultar leads'),('leads.manage','Gerenciar leads'),
+ ('trials.read','Consultar trials'),('trials.manage','Gerenciar trials'),
+ ('commercial.read','Consultar operação comercial'),('commercial.manage','Gerenciar operação comercial'),
+ ('onboarding.read','Consultar onboarding'),('onboarding.manage','Gerenciar onboarding')) p(code,name)
+ON CONFLICT(code) DO UPDATE SET name=EXCLUDED.name,module_code=EXCLUDED.module_code,status='active';
+
+INSERT INTO valorapesquisa.role_permissions(role_id,permission_id)
+SELECT r.id,p.id FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p
+WHERE lower(r.code)='admin_valora' AND r.organization_id IS NULL
+AND p.code IN ('leads.read','leads.manage','trials.read','trials.manage','commercial.read','commercial.manage','onboarding.read','onboarding.manage')
+ON CONFLICT DO NOTHING;
+
+
+
+-- Histórico consolidado de 2026_08_saas_administration_control_center.sql; fonte executável paralela aposentada.
+-- Valora SaaS Administration & Customer Control Center.
+-- Additive, non-destructive and safe for clean or partially provisioned databases.
+CREATE SCHEMA IF NOT EXISTS valorapesquisa;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_customers (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ legal_name varchar(200) NOT NULL, trade_name varchar(160) NOT NULL, tax_id_normalized varchar(14) NOT NULL,
+ plan_code varchar(60) NOT NULL DEFAULT 'free', status varchar(24) NOT NULL DEFAULT 'active' CHECK(status IN ('active','blocked','inactive')),
+ blocked_at timestamptz, block_reason text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE(organization_id), UNIQUE(tax_id_normalized), CHECK(tax_id_normalized ~ '^[0-9]{11}([0-9]{3})?$'));
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_customer_contacts (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid NOT NULL REFERENCES valorapesquisa.saas_customers(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ name varchar(160) NOT NULL, email varchar(254) NOT NULL, phone varchar(30), contact_type varchar(30) NOT NULL DEFAULT 'primary', is_primary boolean NOT NULL DEFAULT false,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_customer_users (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid NOT NULL REFERENCES valorapesquisa.saas_customers(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), status varchar(24) NOT NULL DEFAULT 'active' CHECK(status IN ('invited','active','inactive','blocked')),
+ blocked_at timestamptz, block_reason text, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(customer_id,user_id));
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_customer_user_profiles (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid NOT NULL REFERENCES valorapesquisa.saas_customers(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ name varchar(100) NOT NULL, description text, is_system boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ UNIQUE(customer_id,name));
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_profile_permissions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), profile_id uuid NOT NULL REFERENCES valorapesquisa.saas_customer_user_profiles(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ permission_code varchar(120) NOT NULL, granted_by_user_id uuid REFERENCES valorapesquisa.users(id), created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(profile_id,permission_code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_customer_modules (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid NOT NULL REFERENCES valorapesquisa.saas_customers(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ module_code varchar(100) NOT NULL, enabled boolean NOT NULL DEFAULT true, enabled_at timestamptz, disabled_at timestamptz, updated_by_user_id uuid REFERENCES valorapesquisa.users(id),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(customer_id,module_code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_customer_feature_flags (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid NOT NULL REFERENCES valorapesquisa.saas_customers(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ feature_code varchar(120) NOT NULL, enabled boolean NOT NULL DEFAULT false, configuration_json jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(customer_id,feature_code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_customer_plan_limits (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid NOT NULL REFERENCES valorapesquisa.saas_customers(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ limit_code varchar(100) NOT NULL, limit_value bigint NOT NULL CHECK(limit_value >= -1), consumed_value bigint NOT NULL DEFAULT 0 CHECK(consumed_value >= 0), period varchar(24) NOT NULL DEFAULT 'lifetime',
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(customer_id,limit_code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_customer_billing_accounts (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid NOT NULL REFERENCES valorapesquisa.saas_customers(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ billing_email varchar(254) NOT NULL, billing_tax_id_normalized varchar(14) NOT NULL, currency char(3) NOT NULL DEFAULT 'BRL', payment_terms_days integer NOT NULL DEFAULT 10 CHECK(payment_terms_days >= 0),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(customer_id));
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_billing_invoices (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid NOT NULL REFERENCES valorapesquisa.saas_customers(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ invoice_number varchar(60) NOT NULL, status varchar(24) NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','open','paid','overdue','canceled')),
+ currency char(3) NOT NULL DEFAULT 'BRL', total_amount numeric(14,2) NOT NULL DEFAULT 0 CHECK(total_amount >= 0), issued_at timestamptz, due_at timestamptz NOT NULL, paid_at timestamptz,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(invoice_number));
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_billing_invoice_items (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), invoice_id uuid NOT NULL REFERENCES valorapesquisa.saas_billing_invoices(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ description varchar(300) NOT NULL, quantity numeric(12,2) NOT NULL CHECK(quantity > 0), unit_amount numeric(14,2) NOT NULL CHECK(unit_amount >= 0), total_amount numeric(14,2) NOT NULL CHECK(total_amount >= 0),
+ created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_payment_records (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), invoice_id uuid NOT NULL REFERENCES valorapesquisa.saas_billing_invoices(id), customer_id uuid NOT NULL REFERENCES valorapesquisa.saas_customers(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ amount numeric(14,2) NOT NULL CHECK(amount > 0), currency char(3) NOT NULL DEFAULT 'BRL', method varchar(40) NOT NULL, external_reference varchar(160), paid_at timestamptz NOT NULL,
+ recorded_by_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_access_blocks (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid REFERENCES valorapesquisa.saas_customers(id), customer_user_id uuid REFERENCES valorapesquisa.saas_customer_users(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ block_type varchar(40) NOT NULL, reason text NOT NULL, active boolean NOT NULL DEFAULT true, blocked_by_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), blocked_at timestamptz NOT NULL DEFAULT now(),
+ unblocked_by_user_id uuid REFERENCES valorapesquisa.users(id), unblocked_at timestamptz, CHECK(customer_id IS NOT NULL OR customer_user_id IS NOT NULL));
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_admin_actions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid REFERENCES valorapesquisa.saas_customers(id), organization_id uuid REFERENCES valorapesquisa.organizations(id),
+ actor_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), action varchar(100) NOT NULL, target_type varchar(60) NOT NULL, target_id uuid, reason text,
+ correlation_id varchar(100) NOT NULL, before_json jsonb, after_json jsonb, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_customer_audit_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_id uuid NOT NULL REFERENCES valorapesquisa.saas_customers(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ actor_user_id uuid REFERENCES valorapesquisa.users(id), event_type varchar(120) NOT NULL, entity_type varchar(60) NOT NULL, entity_id uuid, summary text NOT NULL,
+ correlation_id varchar(100) NOT NULL, metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_login_identifiers (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), customer_user_id uuid NOT NULL REFERENCES valorapesquisa.saas_customer_users(id), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ identifier_type varchar(16) NOT NULL CHECK(identifier_type IN ('email','cpf','cnpj')), normalized_value varchar(254) NOT NULL, verified_at timestamptz,
+ created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(identifier_type,normalized_value));
+
+CREATE INDEX IF NOT EXISTS ix_saas_customer_users_tenant ON valorapesquisa.saas_customer_users(organization_id,status);
+CREATE INDEX IF NOT EXISTS ix_saas_invoices_tenant_status ON valorapesquisa.saas_billing_invoices(organization_id,status,due_at);
+CREATE INDEX IF NOT EXISTS ix_saas_blocks_tenant_active ON valorapesquisa.saas_access_blocks(organization_id,active);
+CREATE INDEX IF NOT EXISTS ix_saas_audit_tenant_date ON valorapesquisa.saas_customer_audit_events(organization_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_saas_admin_actions_date ON valorapesquisa.saas_admin_actions(created_at DESC);
+
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+ ('saas_admin.view','Consultar administração SaaS','Consultar a visão global da plataforma.','operations'),
+ ('saas_admin.manage','Gerenciar administração SaaS','Gerenciar clientes da plataforma.','operations'),
+ ('saas_customers.view','Consultar clientes SaaS','Consultar clientes autorizados.','operations'),
+ ('saas_customers.manage','Gerenciar clientes SaaS','Cadastrar e atualizar clientes.','operations'),
+ ('saas_customers.block','Bloquear clientes SaaS','Aplicar bloqueios reversíveis e auditados.','operations'),
+ ('saas_users.manage','Gerenciar usuários SaaS','Gerenciar usuários de clientes.','identity'),
+ ('saas_users.block','Bloquear usuários SaaS','Aplicar bloqueios reversíveis a usuários.','identity'),
+ ('saas_modules.manage','Gerenciar módulos SaaS','Gerenciar módulos contratados.','operations'),
+ ('saas_billing.view','Consultar cobrança SaaS','Consultar faturas e pagamentos.','organization'),
+ ('saas_billing.manage','Gerenciar cobrança SaaS','Gerar faturas e registrar pagamentos.','organization'),
+ ('saas_impersonation.use','Usar contexto de suporte','Entrar no contexto de cliente com auditoria.','operations'),
+ ('organization_users.manage','Gerenciar usuários da organização','Gerenciar usuários apenas da própria organização.','identity'),
+ ('organization_profiles.manage','Gerenciar perfis da organização','Gerenciar perfis apenas da própria organização.','identity')
+ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,module_code=excluded.module_code,updated_at=now();
+
+
+
+-- Histórico consolidado de 2026_08_valora_methodology_studio.sql; fonte executável paralela aposentada.
+BEGIN;
+
+-- Valora Methodology Studio™: catálogo oficial versionado e governado.
+ALTER TABLE valorapesquisa.methodology_versions ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE valorapesquisa.methodology_versions ADD COLUMN IF NOT EXISTS version_number integer;
+ALTER TABLE valorapesquisa.methodology_versions ADD COLUMN IF NOT EXISTS is_official boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.methodology_versions ADD COLUMN IF NOT EXISTS published_by_user_id uuid;
+ALTER TABLE valorapesquisa.methodology_versions ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE valorapesquisa.methodology_versions ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE valorapesquisa.methodology_versions ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+ALTER TABLE valorapesquisa.methodology_versions DROP CONSTRAINT IF EXISTS methodology_versions_status_check;
+UPDATE valorapesquisa.methodology_versions SET version_number=COALESCE(version_number,version,1),status=CASE status WHEN 'active' THEN 'published' WHEN 'retired' THEN 'archived' ELSE status END;
+ALTER TABLE valorapesquisa.methodology_versions ALTER COLUMN version_number SET NOT NULL;
+ALTER TABLE valorapesquisa.methodology_versions ALTER COLUMN effective_from DROP NOT NULL;
+ALTER TABLE valorapesquisa.methodology_versions ADD CONSTRAINT methodology_versions_status_check CHECK(status IN('draft','published','archived')) NOT VALID;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_publications(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),publication_number integer NOT NULL,published_at timestamptz NOT NULL DEFAULT now(),published_by_user_id uuid,justification text NOT NULL,snapshot_json jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(methodology_version_id,publication_number));
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS description text NOT NULL DEFAULT '';
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS methodology_version_id uuid REFERENCES valorapesquisa.methodology_versions(id);
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS concept_type varchar(40) NOT NULL DEFAULT 'organizational';
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS parent_concept_id uuid REFERENCES valorapesquisa.methodology_concepts(id);
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS is_active boolean NOT NULL DEFAULT true;
+ALTER TABLE valorapesquisa.methodology_concepts ADD COLUMN IF NOT EXISTS metadata_json jsonb NOT NULL DEFAULT '{}';
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_concept_relationships(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),source_concept_id uuid NOT NULL REFERENCES valorapesquisa.methodology_concepts(id),target_concept_id uuid NOT NULL REFERENCES valorapesquisa.methodology_concepts(id),relationship_type varchar(50) NOT NULL,influence_weight numeric(6,4) NOT NULL DEFAULT 1 CHECK(influence_weight>0),rationale text NOT NULL,metadata_json jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz,UNIQUE(methodology_version_id,source_concept_id,target_concept_id,relationship_type));
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_dimensions(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),code varchar(80) NOT NULL,name varchar(160) NOT NULL,description text NOT NULL,default_weight numeric(8,4) NOT NULL DEFAULT 1 CHECK(default_weight>0),status varchar(20) NOT NULL DEFAULT 'active',metadata_json jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz,UNIQUE(methodology_version_id,code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_indices(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),code varchar(20) NOT NULL,name varchar(180) NOT NULL,description text NOT NULL,scale_min numeric(8,2) NOT NULL DEFAULT 0,scale_max numeric(8,2) NOT NULL DEFAULT 100,level_1_label varchar(60) NOT NULL,level_1_min numeric(8,2) NOT NULL,level_1_max numeric(8,2) NOT NULL,level_2_label varchar(60) NOT NULL,level_2_min numeric(8,2) NOT NULL,level_2_max numeric(8,2) NOT NULL,level_3_label varchar(60) NOT NULL,level_3_min numeric(8,2) NOT NULL,level_3_max numeric(8,2) NOT NULL,level_4_label varchar(60) NOT NULL,level_4_min numeric(8,2) NOT NULL,level_4_max numeric(8,2) NOT NULL,calculation_strategy varchar(80) NOT NULL,metadata_json jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz,UNIQUE(methodology_version_id,code),CHECK(scale_max>scale_min));
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_index_rules(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),methodology_index_id uuid NOT NULL REFERENCES valorapesquisa.methodology_indices(id),code varchar(80) NOT NULL,rule_type varchar(40) NOT NULL,rule_json jsonb NOT NULL,weight numeric(8,4) NOT NULL DEFAULT 1 CHECK(weight>0),purpose text NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz,UNIQUE(methodology_index_id,code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_question_bank(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),code varchar(100) NOT NULL,question_text text NOT NULL,description text NOT NULL DEFAULT '',question_type varchar(40) NOT NULL,answer_scale jsonb NOT NULL DEFAULT '{}',default_weight numeric(8,4) NOT NULL DEFAULT 1 CHECK(default_weight>0),is_required boolean NOT NULL DEFAULT true,is_official boolean NOT NULL DEFAULT true,status varchar(20) NOT NULL DEFAULT 'active',metadata_json jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz,UNIQUE(methodology_version_id,code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_question_mappings(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),question_id uuid NOT NULL REFERENCES valorapesquisa.methodology_question_bank(id),concept_id uuid REFERENCES valorapesquisa.methodology_concepts(id),dimension_id uuid REFERENCES valorapesquisa.methodology_dimensions(id),index_id uuid REFERENCES valorapesquisa.methodology_indices(id),weight numeric(8,4) NOT NULL DEFAULT 1 CHECK(weight>0),mapping_type varchar(30) NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz,CHECK(concept_id IS NOT NULL OR dimension_id IS NOT NULL OR index_id IS NOT NULL));
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_inference_rules(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),code varchar(100) NOT NULL,name varchar(160) NOT NULL,origin text NOT NULL,purpose text NOT NULL,condition_json jsonb NOT NULL,result_json jsonb NOT NULL,minimum_evidence integer NOT NULL DEFAULT 1 CHECK(minimum_evidence>0),status varchar(20) NOT NULL DEFAULT 'active',created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz,UNIQUE(methodology_version_id,code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_output_schemas(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),code varchar(100) NOT NULL,name varchar(160) NOT NULL,schema_json jsonb NOT NULL,status varchar(20) NOT NULL DEFAULT 'active',version_number integer NOT NULL DEFAULT 1,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz,UNIQUE(methodology_version_id,code,version_number));
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_guardrails(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),code varchar(100) NOT NULL,name varchar(160) NOT NULL,description text NOT NULL,severity varchar(20) NOT NULL DEFAULT 'blocking',rule_json jsonb NOT NULL DEFAULT '{}',is_active boolean NOT NULL DEFAULT true,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz,UNIQUE(methodology_version_id,code));
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_prompt_templates(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),code varchar(100) NOT NULL,name varchar(160) NOT NULL,purpose text NOT NULL,system_prompt text NOT NULL,user_prompt_template text NOT NULL,output_schema_code varchar(100) NOT NULL,guardrail_code varchar(100) NOT NULL,status varchar(20) NOT NULL DEFAULT 'active',version_number integer NOT NULL DEFAULT 1,metadata_json jsonb NOT NULL DEFAULT '{}',created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz,UNIQUE(methodology_version_id,code,version_number));
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_report_templates(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),code varchar(100) NOT NULL,name varchar(160) NOT NULL,purpose text NOT NULL,template text NOT NULL,output_schema_code varchar(100) NOT NULL,status varchar(20) NOT NULL DEFAULT 'active',version_number integer NOT NULL DEFAULT 1,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz,UNIQUE(methodology_version_id,code,version_number));
+CREATE TABLE IF NOT EXISTS valorapesquisa.methodology_change_log(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),entity_type varchar(80) NOT NULL,entity_id uuid,operation varchar(30) NOT NULL,before_json jsonb,after_json jsonb,justification text NOT NULL,changed_by_user_id uuid,created_at timestamptz NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS valorapesquisa.organization_methodology_settings(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),allowed_settings_json jsonb NOT NULL DEFAULT '{}',is_active boolean NOT NULL DEFAULT true,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),deleted_at timestamptz,UNIQUE(organization_id,methodology_version_id));
+DO $diagnostic_methodology$ BEGIN IF to_regclass('valorapesquisa.surveys') IS NOT NULL THEN ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS question_version integer NOT NULL DEFAULT 1; ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS scoring_strategy varchar(80) NOT NULL DEFAULT 'weighted_average_v1'; ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS prompt_template_version integer NOT NULL DEFAULT 1; END IF; END $diagnostic_methodology$;
+CREATE INDEX IF NOT EXISTS ix_methodology_versions_official ON valorapesquisa.methodology_versions(is_official,status) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_methodology_questions_version ON valorapesquisa.methodology_question_bank(methodology_version_id,status) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_methodology_mappings_question ON valorapesquisa.methodology_question_mappings(question_id) WHERE deleted_at IS NULL;
+
+CREATE OR REPLACE FUNCTION valorapesquisa.validate_methodology_version(p_version_id uuid) RETURNS TABLE(code text,severity text,entity text,message text) LANGUAGE sql STABLE AS $$
+ SELECT 'QUESTION_WITHOUT_CONCEPT','critical','question',q.code||' não possui conceito.' FROM valorapesquisa.methodology_question_bank q WHERE q.methodology_version_id=p_version_id AND q.is_official AND q.deleted_at IS NULL AND NOT EXISTS(SELECT 1 FROM valorapesquisa.methodology_question_mappings m WHERE m.question_id=q.id AND m.concept_id IS NOT NULL AND m.deleted_at IS NULL)
+ UNION ALL SELECT 'QUESTION_WITHOUT_INDEX_OR_DIMENSION','critical','question',q.code||' não possui índice ou dimensão.' FROM valorapesquisa.methodology_question_bank q WHERE q.methodology_version_id=p_version_id AND q.is_official AND q.deleted_at IS NULL AND NOT EXISTS(SELECT 1 FROM valorapesquisa.methodology_question_mappings m WHERE m.question_id=q.id AND (m.index_id IS NOT NULL OR m.dimension_id IS NOT NULL) AND m.deleted_at IS NULL)
+ UNION ALL SELECT 'INVALID_WEIGHT','critical','question',q.code||' possui peso inválido.' FROM valorapesquisa.methodology_question_bank q WHERE q.methodology_version_id=p_version_id AND q.deleted_at IS NULL AND q.default_weight<=0
+ UNION ALL SELECT 'INDEX_WITHOUT_LEVELS','critical','index',i.code||' possui faixas inválidas.' FROM valorapesquisa.methodology_indices i WHERE i.methodology_version_id=p_version_id AND i.deleted_at IS NULL AND NOT(i.level_1_min<=i.level_1_max AND i.level_2_min<=i.level_2_max AND i.level_3_min<=i.level_3_max AND i.level_4_min<=i.level_4_max)
+ UNION ALL SELECT 'PROMPT_WITHOUT_GUARDRAIL','critical','prompt',p.code||' não possui guardrail válido.' FROM valorapesquisa.methodology_prompt_templates p WHERE p.methodology_version_id=p_version_id AND p.deleted_at IS NULL AND NOT EXISTS(SELECT 1 FROM valorapesquisa.methodology_guardrails g WHERE g.methodology_version_id=p.methodology_version_id AND g.code=p.guardrail_code AND g.is_active AND g.deleted_at IS NULL)
+ UNION ALL SELECT 'PROMPT_WITHOUT_SCHEMA','critical','prompt',p.code||' não possui schema válido.' FROM valorapesquisa.methodology_prompt_templates p WHERE p.methodology_version_id=p_version_id AND p.deleted_at IS NULL AND NOT EXISTS(SELECT 1 FROM valorapesquisa.methodology_output_schemas s WHERE s.methodology_version_id=p.methodology_version_id AND s.code=p.output_schema_code AND s.deleted_at IS NULL)
+ UNION ALL SELECT 'INFERENCE_WITHOUT_PROVENANCE','critical','inference',r.code||' não informa origem e finalidade.' FROM valorapesquisa.methodology_inference_rules r WHERE r.methodology_version_id=p_version_id AND r.deleted_at IS NULL AND (btrim(r.origin)='' OR btrim(r.purpose)='') $$;
+CREATE OR REPLACE FUNCTION valorapesquisa.publish_methodology_version(p_version_id uuid,p_actor_id uuid,p_justification text) RETURNS void LANGUAGE plpgsql AS $$ BEGIN
+ IF EXISTS(SELECT 1 FROM valorapesquisa.validate_methodology_version(p_version_id) WHERE severity='critical') THEN RAISE EXCEPTION 'Versão metodológica inconsistente'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM valorapesquisa.methodology_versions WHERE id=p_version_id AND status='draft' AND deleted_at IS NULL) THEN RAISE EXCEPTION 'Somente versões draft podem ser publicadas'; END IF;
+ UPDATE valorapesquisa.methodology_versions SET status='archived',is_official=false,updated_at=now() WHERE is_official AND status='published' AND id<>p_version_id;
+ UPDATE valorapesquisa.methodology_versions SET status='published',is_official=true,published_at=now(),published_by_user_id=p_actor_id,updated_at=now() WHERE id=p_version_id;
+ INSERT INTO valorapesquisa.methodology_publications(methodology_version_id,publication_number,published_by_user_id,justification,snapshot_json) SELECT id,COALESCE((SELECT max(publication_number)+1 FROM valorapesquisa.methodology_publications WHERE methodology_version_id=p_version_id),1),p_actor_id,p_justification,metadata_json FROM valorapesquisa.methodology_versions WHERE id=p_version_id;
+ INSERT INTO valorapesquisa.methodology_change_log(methodology_version_id,entity_type,entity_id,operation,after_json,justification,changed_by_user_id) VALUES(p_version_id,'version',p_version_id,'publish',jsonb_build_object('status','published'),p_justification,p_actor_id); END $$;
+
+-- Base oficial inicial: índices, conceitos, perguntas mapeadas, guardrails, schemas e prompts.
+UPDATE valorapesquisa.methodology_versions SET is_official=true,status='published',description=COALESCE(description,'Metodologia oficial Valora Group.'),metadata_json=metadata_json||'{"owner":"Valora Group","immutable":true}'::jsonb WHERE code='VALORA-2026.1';
+WITH v AS(SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1'), x(code,name) AS(VALUES ('IMO','Índice de Maturidade Organizacional'),('ICS','Índice de Clareza Sistêmica'),('IIO','Índice de Inteligência Organizacional'),('IGO','Índice de Governança Organizacional'),('ICO','Índice de Cultura Organizacional'),('ILI','Índice de Liderança'),('IPO','Índice de Pessoas'),('IDO','Índice de Desenvolvimento Organizacional'),('IAC','Índice de Accountability'),('IAR','Índice de Autonomia Responsável'),('IIS','Índice de Integração Sistêmica'),('ISO','Índice de Sustentabilidade Organizacional')) INSERT INTO valorapesquisa.methodology_indices(methodology_version_id,code,name,description,level_1_label,level_1_min,level_1_max,level_2_label,level_2_min,level_2_max,level_3_label,level_3_min,level_3_max,level_4_label,level_4_min,level_4_max,calculation_strategy) SELECT v.id,x.code,x.name,'Índice oficial Valora™, calculado exclusivamente por evidências versionadas.','Inicial',0,25,'Estruturante',26,50,'Integrado',51,75,'Maduro',76,100,'weighted_evidence_v1' FROM v CROSS JOIN x ON CONFLICT(methodology_version_id,code) DO UPDATE SET name=excluded.name,updated_at=now();
+WITH v AS(SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1'), x(code,name) AS(VALUES ('clarity','Clareza'),('governance','Governança'),('leadership','Liderança'),('culture','Cultura'),('people','Pessoas'),('systems','Sistemas'),('organizational_intelligence','Inteligência organizacional'),('organizational_development','Desenvolvimento organizacional'),('sustainability','Sustentabilidade'),('accountability','Accountability'),('responsible_autonomy','Autonomia responsável'),('systemic_integration','Integração sistêmica'),('organizational_learning','Aprendizagem organizacional'),('decision_making','Tomada de decisão'),('key_person_dependency','Dependência de pessoas específicas'),('organizational_maturity','Maturidade organizacional')) INSERT INTO valorapesquisa.methodology_concepts(methodology_version_id,code,name,definition,description,pillar,strategic_purpose,evolution_guidance,methodology_version,status,version,display_order) SELECT v.id,x.code,x.name,'Conceito canônico da metodologia Valora™.','Conceito canônico da metodologia Valora™.','Metodologia Oficial','Orientar diagnóstico sistêmico baseado em evidências.','Evoluir por ciclos verificáveis.','VALORA-2026.1','active',1,row_number() over() FROM v CROSS JOIN x ON CONFLICT(code) DO UPDATE SET methodology_version_id=excluded.methodology_version_id,name=excluded.name,updated_at=now();
+WITH v AS(SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1'), x(code,name,description) AS(VALUES ('no_fabrication','Não inventar dados','Nunca completar lacunas com fatos inventados.'),('evidence_required','Não interpretar sem evidência','Toda interpretação deve apontar evidências.'),('comparison_basis','Não comparar sem base','Comparações exigem base compatível.'),('no_blame','Não culpar pessoas','Interpretar o sistema, não buscar culpados.'),('no_moral_judgment','Não emitir julgamento moral','Evitar julgamento moral ou individual.'),('human_decision','Não substituir decisão humana','Recomendações apoiam decisão humana.'),('insufficient_evidence','Indicar limitação','Declarar evidência insuficiente.'),('systemic_logic','Preservar lógica sistêmica','Manter contexto e relações sistêmicas.'),('privacy','Preservar privacidade','Não expor dados individuais indevidos.')) INSERT INTO valorapesquisa.methodology_guardrails(methodology_version_id,code,name,description,rule_json) SELECT v.id,x.code,x.name,x.description,jsonb_build_object('required',true) FROM v CROSS JOIN x ON CONFLICT(methodology_version_id,code) DO UPDATE SET description=excluded.description,updated_at=now();
+WITH v AS(SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1') INSERT INTO valorapesquisa.methodology_output_schemas(methodology_version_id,code,name,schema_json) SELECT id,'insight_v1','Insight Valora v1','{"type":"object","required":["evidence","limitations","recommendations"]}' FROM v ON CONFLICT(methodology_version_id,code,version_number) DO NOTHING;
+WITH v AS(SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1'), x(code,name,purpose) AS(VALUES ('diagnostic','Diagnóstico','Interpretar diagnóstico'),('evidence','Evidências','Consolidar evidence pack'),('insights','Insights','Gerar insights'),('executive_report','Relatório executivo','Gerar síntese executiva'),('action_plan','Plano de ação','Propor evolução'),('benchmark','Benchmark','Comparar bases compatíveis'),('heatmap','Heatmap','Explicar concentrações'),('one_on_one','One-on-One','Apoiar conversa humana')) INSERT INTO valorapesquisa.methodology_prompt_templates(methodology_version_id,code,name,purpose,system_prompt,user_prompt_template,output_schema_code,guardrail_code) SELECT v.id,x.code,x.name,x.purpose,'Você é a IA Valora. Use somente evidências fornecidas e preserve a lógica sistêmica.','Analise {{evidence_pack}} conforme {{methodology_version}}.','insight_v1','evidence_required' FROM v CROSS JOIN x ON CONFLICT(methodology_version_id,code,version_number) DO UPDATE SET system_prompt=excluded.system_prompt,updated_at=now();
+WITH v AS(SELECT id FROM valorapesquisa.methodology_versions WHERE code='VALORA-2026.1'), pairs(concept,index_code) AS(VALUES ('clarity','ICS'),('governance','IGO'),('leadership','ILI'),('culture','ICO'),('people','IPO'),('systems','IIS'),('organizational_intelligence','IIO'),('organizational_development','IDO'),('sustainability','ISO'),('accountability','IAC'),('responsible_autonomy','IAR'),('systemic_integration','IIS'),('organizational_learning','IIO'),('decision_making','IGO'),('key_person_dependency','IMO'),('organizational_maturity','IMO')), ins AS(INSERT INTO valorapesquisa.methodology_question_bank(methodology_version_id,code,question_text,description,question_type,answer_scale) SELECT v.id,'OFFICIAL_'||upper(p.concept),'Em que medida '||lower(c.name)||' é uma prática observável, recorrente e revisada com evidências?','Pergunta basal oficial vinculada ao mapa cognitivo.','scale_1_5','{"min":1,"max":5}' FROM v JOIN pairs p ON true JOIN valorapesquisa.methodology_concepts c ON c.code=p.concept ON CONFLICT(methodology_version_id,code) DO UPDATE SET question_text=excluded.question_text RETURNING id,methodology_version_id,code) INSERT INTO valorapesquisa.methodology_question_mappings(methodology_version_id,question_id,concept_id,index_id,weight,mapping_type) SELECT q.methodology_version_id,q.id,c.id,i.id,1,'primary' FROM ins q JOIN pairs p ON q.code='OFFICIAL_'||upper(p.concept) JOIN valorapesquisa.methodology_concepts c ON c.code=p.concept JOIN valorapesquisa.methodology_indices i ON i.methodology_version_id=q.methodology_version_id AND i.code=p.index_code WHERE NOT EXISTS(SELECT 1 FROM valorapesquisa.methodology_question_mappings m WHERE m.question_id=q.id AND m.concept_id=c.id AND m.index_id=i.id AND m.deleted_at IS NULL);
+
+INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
+('methodology.publish','Publicar metodologia','Publica versão validada e imutável.','organizational_intelligence'),('methodology.clone','Clonar metodologia','Cria draft a partir de versão rastreável.','organizational_intelligence'),('methodology.validate','Validar metodologia','Executa consistência pré-publicação.','organizational_intelligence'),('methodology.concepts.read','Consultar conceitos metodológicos','Consulta dicionário oficial.','organizational_intelligence'),('methodology.concepts.manage','Gerenciar conceitos metodológicos','Gerencia conceitos em draft.','organizational_intelligence'),('methodology.indexes.read','Consultar índices metodológicos','Consulta índices oficiais.','organizational_intelligence'),('methodology.indexes.manage','Gerenciar índices metodológicos','Gerencia índices em draft.','organizational_intelligence'),('methodology.questions.read','Consultar perguntas metodológicas','Consulta banco oficial.','forms'),('methodology.questions.manage','Gerenciar perguntas metodológicas','Gerencia perguntas em draft.','forms'),('methodology.prompts.read','Consultar prompts metodológicos','Consulta prompts versionados.','organizational_intelligence'),('methodology.prompts.manage','Gerenciar prompts metodológicos','Gerencia prompts em draft.','organizational_intelligence'),('methodology.guardrails.read','Consultar guardrails','Consulta proteção metodológica.','organizational_intelligence'),('methodology.guardrails.manage','Gerenciar guardrails','Gerencia guardrails em draft.','organizational_intelligence') ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,module_code=excluded.module_code,updated_at=now();
+INSERT INTO valorapesquisa.role_permissions(role_id,permission_id,created_at) SELECT r.id,p.id,now() FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p WHERE r.code='admin_valora' AND r.deleted_at IS NULL AND p.code LIKE 'methodology.%' ON CONFLICT(role_id,permission_id) DO NOTHING;
+
+COMMIT;
+
+
+
+-- Histórico consolidado de 2026_09_valora_metrics_command_center.sql; fonte executável paralela aposentada.
+-- Valora Metrics™ and Command Center™ canonical, additive and legacy-safe schema.
+CREATE SCHEMA IF NOT EXISTS valorapesquisa;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_metrics (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL,
+    code varchar(80) NOT NULL, name varchar(160) NOT NULL, description text NOT NULL,
+    formula text NOT NULL, category varchar(80) NOT NULL, valora_dimension varchar(80) NOT NULL,
+    interpretation text NOT NULL, trend_direction varchar(30) NOT NULL DEFAULT 'insufficient_data',
+    responsible_user_id uuid, periodicity varchar(30) NOT NULL, last_calculated_at timestamptz,
+    data_quality_status varchar(30) NOT NULL DEFAULT 'insufficient_data', status varchar(20) NOT NULL DEFAULT 'active',
+    created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT uq_valora_metrics_org_code UNIQUE (organization_id, code),
+    CONSTRAINT ck_valora_metrics_formula CHECK (length(trim(formula)) > 0)
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_metric_sources (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, metric_id uuid NOT NULL REFERENCES valorapesquisa.valora_metrics(id),
+    source_name varchar(160) NOT NULL, source_type varchar(40) NOT NULL, quality_status varchar(30) NOT NULL DEFAULT 'pending',
+    last_synchronized_at timestamptz, created_at timestamptz NOT NULL DEFAULT now(), CONSTRAINT uq_valora_metric_source UNIQUE(metric_id, source_name)
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_metric_values (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, metric_id uuid NOT NULL REFERENCES valorapesquisa.valora_metrics(id),
+    value numeric(18,4), measured_at timestamptz NOT NULL, sample_size integer NOT NULL DEFAULT 0,
+    quality_status varchar(30) NOT NULL DEFAULT 'insufficient_data', calculation_correlation_id varchar(128), created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT uq_valora_metric_value UNIQUE(metric_id, measured_at), CONSTRAINT ck_valora_metric_sample CHECK(sample_size >= 0)
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_metric_targets (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, metric_id uuid NOT NULL REFERENCES valorapesquisa.valora_metrics(id),
+    target_value numeric(18,4) NOT NULL, period_start date NOT NULL, period_end date NOT NULL, responsible_user_id uuid,
+    status varchar(20) NOT NULL DEFAULT 'active', created_at timestamptz NOT NULL DEFAULT now(), CONSTRAINT ck_valora_metric_target_period CHECK(period_end >= period_start)
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_metric_history (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, metric_id uuid NOT NULL REFERENCES valorapesquisa.valora_metrics(id),
+    event_type varchar(60) NOT NULL, previous_data jsonb, current_data jsonb NOT NULL DEFAULT '{}'::jsonb,
+    actor_user_id uuid, correlation_id varchar(128), occurred_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_metric_alerts (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, metric_id uuid REFERENCES valorapesquisa.valora_metrics(id),
+    severity varchar(20) NOT NULL, origin varchar(80) NOT NULL, message text NOT NULL, recommended_action text NOT NULL, resolution_url text NOT NULL,
+    status varchar(20) NOT NULL DEFAULT 'open', read_at timestamptz, read_by_user_id uuid, resolved_at timestamptz, resolved_by_user_id uuid,
+    resolution_note text, created_at timestamptz NOT NULL DEFAULT now(), CONSTRAINT ck_valora_alert_severity CHECK(severity IN ('low','medium','high','critical')),
+    CONSTRAINT ck_valora_alert_status CHECK(status IN ('open','read','resolved','archived'))
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_command_center_widgets (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code varchar(80) NOT NULL UNIQUE, name varchar(120) NOT NULL,
+    description text NOT NULL, module varchar(60) NOT NULL, default_position integer NOT NULL DEFAULT 0, active boolean NOT NULL DEFAULT true
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_dashboard_preferences (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, user_id uuid NOT NULL, widget_id uuid NOT NULL REFERENCES valorapesquisa.valora_command_center_widgets(id),
+    visible boolean NOT NULL DEFAULT true, display_order integer NOT NULL DEFAULT 0, settings jsonb NOT NULL DEFAULT '{}'::jsonb, updated_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT uq_valora_dashboard_preference UNIQUE(organization_id,user_id,widget_id)
+);
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_user_alert_preferences (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL, user_id uuid NOT NULL, origin varchar(80) NOT NULL,
+    minimum_severity varchar(20) NOT NULL DEFAULT 'medium', in_app boolean NOT NULL DEFAULT true, email boolean NOT NULL DEFAULT false,
+    updated_at timestamptz NOT NULL DEFAULT now(), CONSTRAINT uq_valora_alert_preference UNIQUE(organization_id,user_id,origin)
+);
+
+CREATE INDEX IF NOT EXISTS ix_valora_metrics_org_status ON valorapesquisa.valora_metrics(organization_id,status);
+CREATE INDEX IF NOT EXISTS ix_valora_metric_values_metric_date ON valorapesquisa.valora_metric_values(metric_id,measured_at DESC);
+CREATE INDEX IF NOT EXISTS ix_valora_metric_alerts_org_status_severity ON valorapesquisa.valora_metric_alerts(organization_id,status,severity);
+CREATE INDEX IF NOT EXISTS ix_valora_metric_history_metric_date ON valorapesquisa.valora_metric_history(metric_id,occurred_at DESC);
+
+INSERT INTO valorapesquisa.valora_command_center_widgets(code,name,description,module,default_position)
+VALUES ('executive_metrics','Indicadores executivos','Indicadores oficiais com qualidade e tendência.','metrics',10),
+       ('critical_alerts','Alertas críticos','Riscos que exigem resolução rastreável.','alerts',20),
+       ('next_actions','Próximas ações','Próximos passos baseados em sinais disponíveis.','actions',30),
+       ('evolution','Evolução','Histórico de ciclos comparáveis.','metrics',40)
+ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name,description=EXCLUDED.description,module=EXCLUDED.module,default_position=EXCLUDED.default_position;
+
+
+
+-- Histórico consolidado de 2026_09_modular_saas_foundation.sql; fonte executável paralela aposentada.
+-- Canonical modular SaaS foundation for Valora Insight.
+-- Additive, idempotent and compatible with the existing organization/access model.
+CREATE SCHEMA IF NOT EXISTS valorapesquisa;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_modules (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code varchar(80) NOT NULL UNIQUE,
+ commercial_name varchar(160) NOT NULL, description text NOT NULL, base_price numeric(14,2) NOT NULL DEFAULT 0 CHECK(base_price >= 0),
+ status varchar(20) NOT NULL DEFAULT 'active' CHECK(status IN ('active','inactive')),
+ icon varchar(60) NOT NULL, main_route varchar(200) NOT NULL, menu_category varchar(80) NOT NULL,
+ requires_contract boolean NOT NULL DEFAULT true, access_module_code varchar(80) NOT NULL,
+ display_order integer NOT NULL DEFAULT 100, created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_module_features (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), module_id uuid NOT NULL REFERENCES valorapesquisa.saas_modules(id),
+ code varchar(120) NOT NULL, name varchar(160) NOT NULL, description text,
+ permission_code varchar(160), status varchar(20) NOT NULL DEFAULT 'active' CHECK(status IN ('active','inactive')),
+ display_order integer NOT NULL DEFAULT 100, created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz, UNIQUE(module_id,code));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_module_prices (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), module_id uuid NOT NULL REFERENCES valorapesquisa.saas_modules(id),
+ currency char(3) NOT NULL DEFAULT 'BRL', billing_cycle varchar(20) NOT NULL DEFAULT 'monthly' CHECK(billing_cycle IN ('monthly','yearly')),
+ amount numeric(14,2) NOT NULL CHECK(amount >= 0), status varchar(20) NOT NULL DEFAULT 'active' CHECK(status IN ('active','inactive')),
+ effective_from timestamptz NOT NULL DEFAULT now(), effective_until timestamptz,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE(module_id,currency,billing_cycle,effective_from));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_plans (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), code varchar(60) NOT NULL UNIQUE, name varchar(120) NOT NULL,
+ description text NOT NULL, monthly_price numeric(14,2) NOT NULL DEFAULT 0 CHECK(monthly_price >= 0),
+ annual_price numeric(14,2) NOT NULL DEFAULT 0 CHECK(annual_price >= 0),
+ status varchar(20) NOT NULL DEFAULT 'active' CHECK(status IN ('active','inactive')),
+ is_public boolean NOT NULL DEFAULT true, display_order integer NOT NULL DEFAULT 100,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.saas_plan_modules (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), plan_id uuid NOT NULL REFERENCES valorapesquisa.saas_plans(id),
+ module_id uuid NOT NULL REFERENCES valorapesquisa.saas_modules(id), included boolean NOT NULL DEFAULT true,
+ access_mode varchar(20) NOT NULL DEFAULT 'full' CHECK(access_mode IN ('full','read_only')),
+ limits_jsonb jsonb NOT NULL DEFAULT '{}'::jsonb, created_at timestamptz NOT NULL DEFAULT now(),
+ updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(plan_id,module_id));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.client_subscriptions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), client_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ plan_id uuid NOT NULL REFERENCES valorapesquisa.saas_plans(id), status varchar(24) NOT NULL DEFAULT 'active'
+ CHECK(status IN ('trialing','active','suspended','expired','cancelled')),
+ billing_cycle varchar(20) NOT NULL DEFAULT 'monthly' CHECK(billing_cycle IN ('monthly','yearly')),
+ contracted_price numeric(14,2) NOT NULL DEFAULT 0 CHECK(contracted_price >= 0),
+ starts_at timestamptz NOT NULL DEFAULT now(), trial_ends_at timestamptz, ends_at timestamptz,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_client_subscriptions_active ON valorapesquisa.client_subscriptions(client_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.client_subscription_modules (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), subscription_id uuid NOT NULL REFERENCES valorapesquisa.client_subscriptions(id),
+ client_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id), module_id uuid NOT NULL REFERENCES valorapesquisa.saas_modules(id),
+ status varchar(24) NOT NULL DEFAULT 'active' CHECK(status IN ('active','read_only','suspended','expired','cancelled')),
+ source varchar(24) NOT NULL DEFAULT 'plan' CHECK(source IN ('plan','addon','trial','manual')),
+ contracted_at timestamptz NOT NULL DEFAULT now(), suspended_at timestamptz, cancelled_at timestamptz,
+ updated_at timestamptz NOT NULL DEFAULT now(), UNIQUE(subscription_id,module_id));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.client_module_usage (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), client_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ module_id uuid NOT NULL REFERENCES valorapesquisa.saas_modules(id), metric_code varchar(100) NOT NULL,
+ period_start date NOT NULL, period_end date NOT NULL, used_quantity bigint NOT NULL DEFAULT 0 CHECK(used_quantity >= 0),
+ limit_quantity bigint CHECK(limit_quantity IS NULL OR limit_quantity >= 0), metadata_jsonb jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE(client_id,module_id,metric_code,period_start), CHECK(period_end >= period_start));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.client_users (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), client_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), status varchar(24) NOT NULL DEFAULT 'active'
+ CHECK(status IN ('invited','active','inactive','blocked')),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ UNIQUE(client_id,user_id));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.client_profiles (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), client_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ code varchar(80) NOT NULL, name varchar(120) NOT NULL, description text, is_system boolean NOT NULL DEFAULT false,
+ status varchar(20) NOT NULL DEFAULT 'active' CHECK(status IN ('active','inactive')),
+ created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
+ UNIQUE(client_id,code));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.client_user_profiles (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), client_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ client_user_id uuid NOT NULL REFERENCES valorapesquisa.client_users(id), profile_id uuid NOT NULL REFERENCES valorapesquisa.client_profiles(id),
+ assigned_by_user_id uuid REFERENCES valorapesquisa.users(id), created_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE(client_user_id,profile_id));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.client_profile_permissions (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), client_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ profile_id uuid NOT NULL REFERENCES valorapesquisa.client_profiles(id), permission_code varchar(160) NOT NULL,
+ module_id uuid REFERENCES valorapesquisa.saas_modules(id), granted_by_user_id uuid REFERENCES valorapesquisa.users(id),
+ created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(profile_id,permission_code));
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.module_access_audit (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), client_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ module_id uuid NOT NULL REFERENCES valorapesquisa.saas_modules(id), actor_user_id uuid REFERENCES valorapesquisa.users(id),
+ action varchar(100) NOT NULL, previous_status varchar(24), new_status varchar(24), reason text,
+ correlation_id varchar(128) NOT NULL, metadata_jsonb jsonb NOT NULL DEFAULT '{}'::jsonb,
+ created_at timestamptz NOT NULL DEFAULT now());
+
+CREATE TABLE IF NOT EXISTS valorapesquisa.subscription_audit_events (
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), client_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ subscription_id uuid REFERENCES valorapesquisa.client_subscriptions(id), actor_user_id uuid REFERENCES valorapesquisa.users(id),
+ event_type varchar(120) NOT NULL, reason text, correlation_id varchar(128) NOT NULL,
+ before_jsonb jsonb, after_jsonb jsonb, created_at timestamptz NOT NULL DEFAULT now());
+
+CREATE INDEX IF NOT EXISTS ix_saas_modules_menu ON valorapesquisa.saas_modules(menu_category,display_order) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_client_subscription_modules_access ON valorapesquisa.client_subscription_modules(client_id,module_id,status);
+CREATE INDEX IF NOT EXISTS ix_client_module_usage_period ON valorapesquisa.client_module_usage(client_id,period_start,period_end);
+CREATE INDEX IF NOT EXISTS ix_client_users_status ON valorapesquisa.client_users(client_id,status) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS ix_module_access_audit_client ON valorapesquisa.module_access_audit(client_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS ix_subscription_audit_client ON valorapesquisa.subscription_audit_events(client_id,created_at DESC);
+
+INSERT INTO valorapesquisa.saas_modules(code,commercial_name,description,base_price,icon,main_route,menu_category,requires_contract,access_module_code,display_order) VALUES
+ ('diagnostics','Diagnósticos','Ciclos de diagnóstico organizacional com acompanhamento e recálculo.',149,'activity','/Diagnostics','Diagnóstico',true,'surveys',10),
+ ('forms','Formulários','Criação, versionamento, publicação, preview e arquivamento de formulários.',99,'file-text','/Forms','Diagnóstico',true,'forms',20),
+ ('surveys','Pesquisas','Convites, distribuição, respostas e progresso de campanhas.',129,'file-question','/Surveys','Diagnóstico',true,'surveys',30),
+ ('results','Resultados','Visão executiva, evidências e limitações metodológicas.',179,'chart-radar','/Results','Inteligência',true,'results',40),
+ ('reports','Relatórios','Geração, download e compartilhamento de entregáveis.',129,'file-text','/Reports','Inteligência',true,'results',50),
+ ('certificates','Certificados','Emissão, download, validação e auditoria de certificados.',79,'certificate','/Certificates','Inteligência',true,'certificates',60),
+ ('action_center','Action Center','Planos, responsáveis, prazos e execução rastreável.',149,'check-circle','/ActionCenter','Ações',true,'organizational_intelligence',70),
+ ('evolution','Evolution','Ciclos, snapshots e evolução histórica preservada.',149,'activity','/Evolution','Evolução',true,'organizational_intelligence',80),
+ ('journey','Journey','Linha do tempo e memória organizacional auditável.',119,'file-text','/Journey','Evolução',true,'organizational_intelligence',90),
+ ('indicators','Indicators','KPIs estratégicos, filtros e medições rastreáveis.',139,'chart-radar','/Indicators','Inteligência',true,'organizational_intelligence',100),
+ ('benchmarks','Benchmarks','Comparações anônimas por segmento e coorte.',199,'layers','/Benchmarks','Inteligência',true,'organizational_intelligence',110),
+ ('methodology_studio','Methodology Studio','Catálogos, dimensões, vínculos e versões oficiais.',249,'sparkles','/Methodology','Governança',true,'organizational_intelligence',120),
+ ('valora_ai','IA Valora','Insights explicáveis com evidência e revisão humana.',299,'brain','/Insights','Inteligência',true,'organizational_intelligence',130),
+ ('data_hub','Data Hub','Importações, qualidade, integrações e logs de processamento.',199,'layers','/DataHub','Dados',true,'operations',140),
+ ('governance','Governance','Decisões, responsáveis, reuniões e auditoria.',179,'shield','/Governance','Governança',true,'organizational_intelligence',150),
+ ('security_compliance','Security & Compliance','LGPD, controles, incidentes e revisões de acesso.',199,'shield','/SecurityCompliance','Governança',true,'identity',160),
+ ('administration','Administração','Usuários, perfis, estrutura e configurações do cliente.',0,'settings','/Admin','Administração do Cliente',false,'organization',170),
+ ('subscriptions','Planos e Assinaturas','Plano, módulos, limites, consumo e upgrade.',0,'credit-card','/Subscription','Planos e Assinaturas',false,'organization',180),
+ ('success_center','Suporte / Success Center','Onboarding, ajuda, chamados e saúde da conta.',0,'message-circle','/SuccessCenter','Suporte',false,'organization',190)
+ON CONFLICT(code) DO UPDATE SET commercial_name=excluded.commercial_name,description=excluded.description,base_price=excluded.base_price,
+ icon=excluded.icon,main_route=excluded.main_route,menu_category=excluded.menu_category,requires_contract=excluded.requires_contract,
+ access_module_code=excluded.access_module_code,display_order=excluded.display_order,updated_at=now();
+
+INSERT INTO valorapesquisa.saas_module_prices(module_id,currency,billing_cycle,amount,effective_from)
+SELECT id,'BRL','monthly',base_price,'2026-09-01'::timestamptz FROM valorapesquisa.saas_modules
+ON CONFLICT(module_id,currency,billing_cycle,effective_from) DO UPDATE SET amount=excluded.amount,status='active',updated_at=now();
+
+INSERT INTO valorapesquisa.saas_module_features(module_id,code,name,description,permission_code,display_order)
+SELECT id,code||'.access','Acesso ao módulo','Permissão funcional básica do módulo.',
+ CASE code WHEN 'forms' THEN 'forms.read' WHEN 'surveys' THEN 'surveys.read' WHEN 'results' THEN 'results.read'
+ WHEN 'reports' THEN 'reports.read' WHEN 'certificates' THEN 'certificates.read' WHEN 'action_center' THEN 'action.read'
+ WHEN 'evolution' THEN 'evolution.read' WHEN 'journey' THEN 'journey.read' WHEN 'indicators' THEN 'indicators.read'
+ WHEN 'benchmarks' THEN 'benchmarks.view' WHEN 'methodology_studio' THEN 'methodology.read' WHEN 'valora_ai' THEN 'insights.read'
+ WHEN 'governance' THEN 'governance.read' WHEN 'security_compliance' THEN 'security_compliance.read' ELSE NULL END,10
+FROM valorapesquisa.saas_modules
+ON CONFLICT(module_id,code) DO UPDATE SET name=excluded.name,description=excluded.description,permission_code=excluded.permission_code,updated_at=now();
+
+INSERT INTO valorapesquisa.saas_plans(code,name,description,monthly_price,annual_price,display_order) VALUES
+ ('free','Free','Essenciais para iniciar o primeiro diagnóstico.',0,0,10),
+ ('start','Start','Operação estruturada para equipes em evolução.',499,4990,20),
+ ('growth','Growth','Inteligência, governança e escala organizacional.',1199,11990,30),
+ ('enterprise','Enterprise','Plataforma completa, limites personalizados e suporte dedicado.',0,0,40)
+ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,monthly_price=excluded.monthly_price,
+ annual_price=excluded.annual_price,display_order=excluded.display_order,updated_at=now();
+
+INSERT INTO valorapesquisa.saas_plan_modules(plan_id,module_id,included,access_mode)
+SELECT p.id,m.id,true,'full' FROM valorapesquisa.saas_plans p JOIN valorapesquisa.saas_modules m ON
+ (p.code='free' AND m.code IN ('diagnostics','forms','surveys','results','administration','subscriptions','success_center')) OR
+ (p.code='start' AND m.code IN ('diagnostics','forms','surveys','results','reports','certificates','action_center','evolution','administration','subscriptions','success_center')) OR
+ (p.code='growth' AND m.code NOT IN ('methodology_studio')) OR p.code='enterprise'
+ON CONFLICT(plan_id,module_id) DO UPDATE SET included=true,access_mode=excluded.access_mode,updated_at=now();
+
+INSERT INTO valorapesquisa.client_subscriptions(client_id,plan_id,status,billing_cycle,contracted_price,starts_at,ends_at)
+SELECT DISTINCT ON (s.organization_id) s.organization_id,sp.id,
+ CASE WHEN s.status IN ('active','trialing','suspended','expired','cancelled') THEN s.status ELSE 'suspended' END,
+ 'monthly',sp.monthly_price,s.starts_at,s.ends_at
+FROM valorapesquisa.subscriptions s JOIN valorapesquisa.plans p ON p.id=s.plan_id
+JOIN valorapesquisa.saas_plans sp ON sp.code=CASE WHEN p.code='professional' THEN 'growth' ELSE p.code END
+WHERE s.deleted_at IS NULL ORDER BY s.organization_id,s.created_at DESC
+ON CONFLICT(client_id) WHERE deleted_at IS NULL DO UPDATE SET plan_id=excluded.plan_id,status=excluded.status,ends_at=excluded.ends_at,updated_at=now();
+
+INSERT INTO valorapesquisa.client_subscription_modules(subscription_id,client_id,module_id,status,source)
+SELECT cs.id,cs.client_id,spm.module_id,CASE WHEN cs.status IN ('active','trialing') THEN 'active' ELSE 'read_only' END,'plan'
+FROM valorapesquisa.client_subscriptions cs JOIN valorapesquisa.saas_plan_modules spm ON spm.plan_id=cs.plan_id AND spm.included
+WHERE cs.deleted_at IS NULL
+ON CONFLICT(subscription_id,module_id) DO NOTHING;
+
+INSERT INTO valorapesquisa.client_users(client_id,user_id,status)
+SELECT organization_id,id,CASE WHEN status IN ('active','inactive','blocked') THEN status ELSE 'inactive' END
+FROM valorapesquisa.users WHERE organization_id IS NOT NULL AND deleted_at IS NULL
+ON CONFLICT(client_id,user_id) DO UPDATE SET status=excluded.status,updated_at=now();
+
+INSERT INTO valorapesquisa.client_profiles(client_id,code,name,description,is_system)
+SELECT o.id,p.code,p.name,p.description,true FROM valorapesquisa.organizations o CROSS JOIN (VALUES
+ ('client_admin','Admin do Cliente','Administração completa do cliente.'),('manager','Gestor','Gestão de ciclos, resultados e ações.'),
+ ('analyst','Analista','Análise de evidências, resultados e relatórios.'),('consultant','Consultor','Operação consultiva com escopo autorizado.'),
+ ('respondent','Respondente','Participação em pesquisas autorizadas.'),('executive_viewer','Visualizador Executivo','Consulta executiva sem alterações.')) AS p(code,name,description)
+ON CONFLICT(client_id,code) DO UPDATE SET name=excluded.name,description=excluded.description,updated_at=now();

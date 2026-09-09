@@ -1,3 +1,6 @@
 namespace Valora.Application.DTOs;
 
-public sealed record ExportJobDto(Guid Id,Guid OrganizationId,Guid? RequestedBy,string Entity,string Format,string Status,string? ResultFileName,string? ResultMimeType,string? ResultPayload,DateTimeOffset CreatedAt,DateTimeOffset? CompletedAt,string? ErrorMessage);
+public sealed record ExportJobDto(Guid Id, Guid OrganizationId, Guid? RequestedBy, string Entity, string Format,
+    string Status, string? ResultFileName, string? ResultMimeType, string? ResultPayload,
+    DateTimeOffset CreatedAt, DateTimeOffset? CompletedAt, string? ErrorMessage,
+    string? ChecksumSha256 = null, DateTimeOffset? ExpiresAt = null);

@@ -1,8 +1,7 @@
 namespace Valora.Application.OrganizationalIntelligence;
 
-public static class IntelligenceProcessingStatus
-{
-    public const string Pending = "pending", Running = "running", Completed = "completed", Failed = "failed",
+public static class IntelligenceProcessingStatus {
+    public const string Pending = "pending", Running = "running", Completed = "completed", Failed = "failed", DeadLetter = "dead_letter",
         RetryScheduled = "retry_scheduled", Cancelled = "cancelled", Skipped = "skipped", InsufficientEvidence = "insufficient_evidence";
 }
 
@@ -20,11 +19,9 @@ public sealed record IntelligenceProcessingSummary(int Pending, int Running, int
     DateTime? LastResponseProcessedAt, DateTime? LastDiagnosisProcessedAt);
 public sealed record IntelligenceJobDetails(IntelligenceProcessingJob Job, IReadOnlyList<IntelligenceStageRun> Stages);
 
-public interface IIntelligenceProcessingJobRepository
-{
+public interface IIntelligenceProcessingJobRepository {
     Task<Guid> EnqueueAsync(IntelligenceProcessingContext context, int maxAttempts, string correlationId, CancellationToken ct);
-    Task<IReadOnlyList<IntelligenceProcessingJob>> GetPendingJobsAsync(int take, CancellationToken ct);
-    Task<bool> LockJobAsync(Guid jobId, string workerId, CancellationToken ct);
+    Task<IReadOnlyList<IntelligenceProcessingJob>> ClaimPendingJobsAsync(int take, string workerId, CancellationToken ct);
     Task MarkRunningAsync(Guid jobId, Guid runId, CancellationToken ct);
     Task MarkCompletedAsync(Guid jobId, string status, CancellationToken ct);
     Task MarkFailedAsync(Guid jobId, string code, string message, CancellationToken ct);
@@ -38,14 +35,13 @@ public interface IIntelligenceProcessingJobRepository
     Task LogStageAsync(Guid organizationId, Guid jobId, Guid runId, ProcessingStageResult stage, string status, DateTime startedAt, DateTime completedAt, CancellationToken ct);
 }
 
-public interface IIntelligenceProcessingJobService
-{
+public interface IIntelligenceProcessingJobService {
     Task<Guid> EnqueueResponseProcessingAsync(IntelligenceProcessingContext context, string correlationId, CancellationToken ct);
     Task<Guid> EnqueueDiagnosisClosedProcessingAsync(IntelligenceProcessingContext context, string correlationId, CancellationToken ct);
     Task<Guid> EnqueueActionProcessingAsync(IntelligenceProcessingContext context, string correlationId, CancellationToken ct);
     Task<Guid> EnqueueExecutiveReportProcessingAsync(IntelligenceProcessingContext context, string correlationId, CancellationToken ct);
     Task<Guid> EnqueueManualRecalculationAsync(IntelligenceProcessingContext context, string correlationId, CancellationToken ct);
-    Task<IReadOnlyList<IntelligenceProcessingJob>> GetPendingJobsAsync(int take, CancellationToken ct);
+    Task<IReadOnlyList<IntelligenceProcessingJob>> ClaimPendingJobsAsync(int take, string workerId, CancellationToken ct);
     Task<IReadOnlyList<IntelligenceProcessingJob>> ListJobsAsync(Guid organizationId, IntelligenceJobFilter filter, CancellationToken ct);
     Task<IntelligenceJobDetails?> GetJobDetailsAsync(Guid organizationId, Guid jobId, CancellationToken ct);
     Task<IReadOnlyList<IntelligenceStageRun>> ListStageRunsAsync(Guid organizationId, Guid jobId, CancellationToken ct);

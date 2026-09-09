@@ -10,8 +10,7 @@ public sealed record EvidenceItemDto(Guid Id, Guid? SurveyId, Guid? ResponseId, 
     int Polarity, string? RawValueMasked, string? TextExcerpt, string MappingStatus, string MetadataJson, DateTime CreatedAt);
 
 public sealed record DimensionHeatmapDto(Guid DimensionId, string Code, string Name, decimal Score, int EvidenceCount);
-public sealed record EvidenceSummaryDto(int Responses, int ScoredResults, int Surveys, int ActionPlans, IReadOnlyList<DimensionHeatmapDto> Dimensions)
-{
+public sealed record EvidenceSummaryDto(int Responses, int ScoredResults, int Surveys, int ActionPlans, IReadOnlyList<DimensionHeatmapDto> Dimensions) {
     public int Total => Responses + ScoredResults;
 }
 public sealed record OrganizationalInsightDto(Guid Id, Guid RunId, string Dimension, string Observation, string Evidence,
@@ -49,8 +48,7 @@ public sealed record ReplanValoraActionRequest(string Justification, string? Own
     DateTime? DueAt = null, string? Priority = null);
 public sealed record ValoraActionHistoryDto(Guid Id, Guid ActionId, string Status, string Notes, Guid? ChangedBy, DateTime ChangedAt);
 
-public interface IOrganizationalIntelligenceRepository
-{
+public interface IOrganizationalIntelligenceRepository {
     Task<EvidenceSummaryDto> GetEvidenceAsync(Guid organizationId, CancellationToken ct);
     Task<OrganizationalIntelligenceDashboardDto> GetDashboardAsync(Guid organizationId, CancellationToken ct);
     Task<IReadOnlyList<OrganizationalIntelligenceRunDto>> ListRunsAsync(Guid organizationId, CancellationToken ct);
@@ -68,8 +66,7 @@ public interface IOrganizationalIntelligenceRepository
     Task<IReadOnlyList<IntelligenceModuleRecordDto>> ListModuleRecordsAsync(Guid organizationId, string module, CancellationToken ct);
 }
 
-public interface IOrganizationalIntelligenceService
-{
+public interface IOrganizationalIntelligenceService {
     Task<OrganizationalIntelligenceDashboardDto> DashboardAsync(Guid organizationId, CancellationToken ct);
     Task<IReadOnlyList<OrganizationalIntelligenceRunDto>> RunsAsync(Guid organizationId, CancellationToken ct);
     Task<OrganizationalIntelligenceRunDto?> RunAsync(Guid organizationId, Guid id, CancellationToken ct);

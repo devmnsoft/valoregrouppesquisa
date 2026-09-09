@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record MigrationConflict
-{
+public sealed record MigrationConflict {
     public Guid Id { get; init; }
     public Guid BatchId { get; init; }
     public string LegacyCollection { get; init; } = string.Empty;

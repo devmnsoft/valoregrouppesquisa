@@ -8,11 +8,9 @@ namespace Valora.Api.Controllers;
 public sealed class MethodologyController(IMethodologyService methodology, ValoraInferenceEngine inference,
     MethodologyVersionService versions, CreateMethodologyVersionUseCase createVersion,
     CloneMethodologyVersionUseCase cloneVersion, ValidateMethodologyConsistencyUseCase validate,
-    PublishMethodologyVersionUseCase publish) : ControllerBase
-{
+    PublishMethodologyVersionUseCase publish) : ControllerBase {
     [HttpGet("studio")]
-    public async Task<IActionResult> Studio(CancellationToken ct)
-    {
+    public async Task<IActionResult> Studio(CancellationToken ct) {
         var items = await versions.ListAsync(ct);
         var active = items.FirstOrDefault(x => x.IsOfficial && x.Status == "published");
         IReadOnlyList<MethodologyValidationIssue> issues = active is null ? [] : await validate.ExecuteAsync(active.Id, ct);
@@ -34,14 +32,12 @@ public sealed class MethodologyController(IMethodologyService methodology, Valor
     public async Task<IActionResult> Validation(Guid id, CancellationToken ct) => Ok(await validate.ExecuteAsync(id, ct));
 
     [HttpPost("versions/{id:guid}/publish")]
-    public async Task<IActionResult> Publish(Guid id, [FromBody] PublishVersionRequest request, CancellationToken ct)
-    { await publish.ExecuteAsync(id, null, request.Justification, ct); return Ok(new { status = "published" }); }
+    public async Task<IActionResult> Publish(Guid id, [FromBody] PublishVersionRequest request, CancellationToken ct) { await publish.ExecuteAsync(id, null, request.Justification, ct); return Ok(new { status = "published" }); }
     [HttpGet("concepts")]
     public async Task<IActionResult> Concepts([FromQuery] string? search, [FromQuery] string? pillar, CancellationToken ct) => Ok(await methodology.ListConceptsAsync(search, pillar, ct));
 
     [HttpGet("concepts/{code}")]
-    public async Task<IActionResult> Concept(string code, CancellationToken ct)
-    {
+    public async Task<IActionResult> Concept(string code, CancellationToken ct) {
         var concept = await methodology.GetConceptAsync(code, ct);
         if (concept is null) return NotFound(new { code = "METHODOLOGY_CONCEPT_NOT_FOUND", message = "Conceito metodológico não encontrado." });
         return Ok(new { concept, relations = await methodology.ListRelationsAsync(code, ct), evidence = await methodology.ListEvidenceAsync(code, ct) });

@@ -1,7 +1,6 @@
 namespace Valora.Application.Access;
 
-public static class ValoraModules
-{
+public static class ValoraModules {
     public const string Identity = "identity"; public const string Organization = "organization";
     public const string Forms = "forms"; public const string Surveys = "surveys";
     public const string Distribution = "distribution"; public const string Responses = "responses";
@@ -14,24 +13,25 @@ public static class ValoraModules
 }
 
 /// <summary>Canonical access vocabulary shared by authentication and navigation.</summary>
-public static class ValoraAccessCatalog
-{
+public static class ValoraAccessCatalog {
     public const string PlatformRole = "admin_valora";
     public const string ContextVersion = "2";
 
     private static readonly IReadOnlyDictionary<string, string> ModuleAliases =
-        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["intelligence"] = "organizational_intelligence", ["inteligenciaorganizacional"] = "organizational_intelligence",
-            ["relatorios"] = "reports", ["diagnostics"] = "surveys", ["users"] = "identity", ["plans"] = "organization"
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+            ["intelligence"] = "organizational_intelligence",
+            ["inteligenciaorganizacional"] = "organizational_intelligence",
+            ["relatorios"] = "reports",
+            ["diagnostics"] = "surveys",
+            ["users"] = "identity",
+            ["plans"] = "organization"
         };
 
     public static readonly IReadOnlyList<string> PlatformModules = ValoraModules.All
         .Concat(["organizational_intelligence", "reports", "dashboard", "enterprise"])
         .Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
 
-    public static string NormalizeModule(string module)
-    {
+    public static string NormalizeModule(string module) {
         var normalized = module.Trim().ToLowerInvariant().Replace('-', '_');
         return ModuleAliases.TryGetValue(normalized, out var canonical) ? canonical : normalized;
     }
@@ -39,8 +39,7 @@ public static class ValoraAccessCatalog
     private static readonly IReadOnlyDictionary<string, string> PermissionCapabilities =
         BuildPermissionCapabilities();
 
-    private static IReadOnlyDictionary<string, string> BuildPermissionCapabilities()
-    {
+    private static IReadOnlyDictionary<string, string> BuildPermissionCapabilities() {
         var duplicate = ValoraPermissions.Definitions
             .GroupBy(definition => definition.Permission, StringComparer.OrdinalIgnoreCase)
             .FirstOrDefault(group => group.Count() > 1);
@@ -55,11 +54,9 @@ public static class ValoraAccessCatalog
     }
 
     /// <summary>Runtime-safe resolution. Unknown database values are denied and reported, never inferred.</summary>
-    public static IReadOnlyList<string> CapabilitiesFor(IEnumerable<string> permissions, Action<string>? reportUnknown = null)
-    {
+    public static IReadOnlyList<string> CapabilitiesFor(IEnumerable<string> permissions, Action<string>? reportUnknown = null) {
         var capabilities = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var permission in permissions.Where(value => !string.IsNullOrWhiteSpace(value)))
-        {
+        foreach (var permission in permissions.Where(value => !string.IsNullOrWhiteSpace(value))) {
             if (PermissionCapabilities.TryGetValue(permission, out var capability)) capabilities.Add(capability);
             else reportUnknown?.Invoke(permission);
         }
@@ -78,134 +75,134 @@ public static class ValoraAccessCatalog
     public static bool IsCanonicalPermission(string permission) => PermissionCapabilities.ContainsKey(permission);
 }
 
-public static class ValoraPermissions
-{
-    public static class Plans { public const string Read="plans.read", Manage="plans.manage"; }
-    public static class Subscriptions { public const string Read="subscriptions.read", Manage="subscriptions.manage", UpgradeRequest="subscriptions.upgrade_request"; }
-    public static class Billing { public const string Read="billing.read", Manage="billing.manage"; }
-    public static class Usage { public const string Read="usage.read", Manage="usage.manage"; }
-    public static class FeatureAccess { public const string Read="feature_access.read", Manage="feature_access.manage"; }
-    public static class Upgrades { public const string Manage="upgrades.manage"; }
-    public static class Organization { public const string Read="organization.read", Update="organization.update", BrandingRead="organization.branding.read", BrandingUpdate="organization.branding.update", SubscriptionRead="organization.subscription.read", UsageRead="organization.usage.read"; }
-    public static class OrganizationCurrent { public const string Read="organization.current.read", Update="organization.current.update"; }
-    public static class OrganizationOnboarding { public const string Read="organization.onboarding.read", Update="organization.onboarding.update"; }
-    public static class Units { public const string Read="units.read", Create="units.create", Update="units.update", Disable="units.disable", Delete="units.delete"; }
-    public static class Departments { public const string Read="departments.read", Create="departments.create", Update="departments.update", Disable="departments.disable", Delete="departments.delete"; }
-    public static class BusinessGroups { public const string Read="business_groups.read", Create="business_groups.create", Update="business_groups.update", Disable="business_groups.disable", Delete="business_groups.delete"; }
-    public static class LegalEntities { public const string Read="legal_entities.read", Create="legal_entities.create", Update="legal_entities.update", Disable="legal_entities.disable", Delete="legal_entities.delete"; }
-    public static class Invitations { public const string Read="invitations.read", Manage="invitations.manage", Create="invitations.create", Resend="invitations.resend", Cancel="invitations.cancel"; }
-    public static class Sessions { public const string Read="sessions.read", Revoke="sessions.revoke"; }
-    public static class Users { public const string Read="users.read", Create="users.create", Update="users.update", Disable="users.disable", AssignRoles="users.assign_roles", AssignScopes="users.assign_scopes"; }
-    public static class Roles { public const string Read="roles.read", Create="roles.create", Update="roles.update", Delete="roles.delete", AssignPermissions="roles.assign_permissions"; }
+public static class ValoraPermissions {
+    public static class Plans { public const string Read = "plans.read", Manage = "plans.manage"; }
+    public static class Subscriptions { public const string Read = "subscriptions.read", Manage = "subscriptions.manage", UpgradeRequest = "subscriptions.upgrade_request"; }
+    public static class Billing { public const string Read = "billing.read", Manage = "billing.manage"; }
+    public static class Usage { public const string Read = "usage.read", Manage = "usage.manage"; }
+    public static class FeatureAccess { public const string Read = "feature_access.read", Manage = "feature_access.manage"; }
+    public static class Upgrades { public const string Manage = "upgrades.manage"; }
+    public static class Commercial {
+        public const string LeadsRead = "leads.read", LeadsManage = "leads.manage",
+            TrialsRead = "trials.read", TrialsManage = "trials.manage",
+            Read = "commercial.read", Manage = "commercial.manage";
+    }
+    public static class Organization { public const string Read = "organization.read", Update = "organization.update", BrandingRead = "organization.branding.read", BrandingUpdate = "organization.branding.update", SubscriptionRead = "organization.subscription.read", UsageRead = "organization.usage.read"; }
+    public static class OrganizationCurrent { public const string Read = "organization.current.read", Update = "organization.current.update"; }
+    public static class OrganizationOnboarding { public const string Read = "organization.onboarding.read", Update = "organization.onboarding.update"; }
+    public static class Units { public const string Read = "units.read", Create = "units.create", Update = "units.update", Disable = "units.disable", Delete = "units.delete"; }
+    public static class Departments { public const string Read = "departments.read", Create = "departments.create", Update = "departments.update", Disable = "departments.disable", Delete = "departments.delete"; }
+    public static class BusinessGroups { public const string Read = "business_groups.read", Create = "business_groups.create", Update = "business_groups.update", Disable = "business_groups.disable", Delete = "business_groups.delete"; }
+    public static class LegalEntities { public const string Read = "legal_entities.read", Create = "legal_entities.create", Update = "legal_entities.update", Disable = "legal_entities.disable", Delete = "legal_entities.delete"; }
+    public static class Invitations { public const string Read = "invitations.read", Manage = "invitations.manage", Create = "invitations.create", Resend = "invitations.resend", Cancel = "invitations.cancel"; }
+    public static class Sessions { public const string Read = "sessions.read", Revoke = "sessions.revoke"; }
+    public static class Users { public const string Read = "users.read", Create = "users.create", Update = "users.update", Disable = "users.disable", AssignRoles = "users.assign_roles", AssignScopes = "users.assign_scopes"; }
+    public static class Roles { public const string Read = "roles.read", Create = "roles.create", Update = "roles.update", Delete = "roles.delete", AssignPermissions = "roles.assign_permissions"; }
     // Coarse-grained administration policies are intentionally explicit. They are
     // useful at MVC boundaries while the fine-grained permissions above continue
     // to protect individual commands.
-    public static class Admin { public const string Read="admin.read", Manage="admin.manage"; }
-    public static class SaasAdmin { public const string View="saas_admin.view", Manage="saas_admin.manage"; }
-    public static class SolutionPacks { public const string View="solution_packs.view", Manage="solution_packs.manage", Publish="solution_packs.publish", Install="solution_packs.install", Rollback="solution_packs.rollback", PrivateManage="solution_packs.private.manage", MarketplaceManage="solution_packs.marketplace.manage"; }
-    public static class SaasCustomers { public const string View="saas_customers.view", Manage="saas_customers.manage", Block="saas_customers.block"; }
-    public static class SaasUsers { public const string Manage="saas_users.manage", Block="saas_users.block"; }
-    public static class SaasModules { public const string Manage="saas_modules.manage"; }
-    public static class SaasBilling { public const string View="saas_billing.view", Manage="saas_billing.manage"; }
-    public static class SaasImpersonation { public const string Use="saas_impersonation.use"; }
-    public static class OrganizationUsers { public const string Manage="organization_users.manage"; }
-    public static class OrganizationProfiles { public const string Manage="organization_profiles.manage"; }
-    public static class Organizations { public const string Read="organizations.read", Manage="organizations.manage"; }
-    public static class UnitManagement { public const string Manage="units.manage"; }
-    public static class UserManagement { public const string Manage="users.manage"; }
-    public static class RoleManagement { public const string Manage="roles.manage"; }
-    public static class Permissions { public const string Read="permissions.read"; }
+    public static class Admin { public const string Read = "admin.read", Manage = "admin.manage"; }
+    public static class SaasAdmin { public const string View = "saas_admin.view", Manage = "saas_admin.manage"; }
+    public static class SolutionPacks { public const string View = "solution_packs.view", Manage = "solution_packs.manage", Publish = "solution_packs.publish", Install = "solution_packs.install", Rollback = "solution_packs.rollback", PrivateManage = "solution_packs.private.manage", MarketplaceManage = "solution_packs.marketplace.manage"; }
+    public static class SaasCustomers { public const string View = "saas_customers.view", Manage = "saas_customers.manage", Block = "saas_customers.block"; }
+    public static class SaasUsers { public const string Manage = "saas_users.manage", Block = "saas_users.block"; }
+    public static class SaasModules { public const string Manage = "saas_modules.manage"; }
+    public static class SaasBilling { public const string View = "saas_billing.view", Manage = "saas_billing.manage"; }
+    public static class SaasImpersonation { public const string Use = "saas_impersonation.use"; }
+    public static class OrganizationUsers { public const string Manage = "organization_users.manage"; }
+    public static class OrganizationProfiles { public const string Manage = "organization_profiles.manage"; }
+    public static class Organizations { public const string Read = "organizations.read", Manage = "organizations.manage"; }
+    public static class UnitManagement { public const string Manage = "units.manage"; }
+    public static class UserManagement { public const string Manage = "users.manage"; }
+    public static class RoleManagement { public const string Manage = "roles.manage"; }
+    public static class Permissions { public const string Read = "permissions.read"; }
     // Existing production seeds use these integration and methodology permissions.
     // Keeping them here makes the catalog—not the database—the single source of truth.
-    public static class GovernedLegacyFeatures
-    {
-        public const string ApiKeysRead="api_keys.read", ApiKeysManage="api_keys.manage", WebhooksRead="webhooks.read", WebhooksManage="webhooks.manage",
-            PowerBiRead="powerbi.read", PowerBiManage="powerbi.manage", IntegrationLogsRead="integration_logs.read",
-            ImportsRead="imports.read", ImportsManage="imports.manage", EmailTemplatesManage="email_templates.manage",
-            ConceptsManage="concepts.manage", CognitiveMapManage="cognitive_map.manage", DimensionsManage="dimensions.manage",
-            DiagnosisTemplatesManage="diagnosis_templates.manage", MaturityLevelsManage="maturity_levels.manage",
-            OfficialQuestionsManage="official_questions.manage", RecommendationsManage="recommendations.manage", ScoringRulesManage="scoring_rules.manage";
+    public static class GovernedLegacyFeatures {
+        public const string ApiKeysRead = "api_keys.read", ApiKeysManage = "api_keys.manage", WebhooksRead = "webhooks.read", WebhooksManage = "webhooks.manage",
+            PowerBiRead = "powerbi.read", PowerBiManage = "powerbi.manage", IntegrationLogsRead = "integration_logs.read",
+            ImportsRead = "imports.read", ImportsManage = "imports.manage", EmailTemplatesManage = "email_templates.manage",
+            ConceptsManage = "concepts.manage", CognitiveMapManage = "cognitive_map.manage", DimensionsManage = "dimensions.manage",
+            DiagnosisTemplatesManage = "diagnosis_templates.manage", MaturityLevelsManage = "maturity_levels.manage",
+            OfficialQuestionsManage = "official_questions.manage", RecommendationsManage = "recommendations.manage", ScoringRulesManage = "scoring_rules.manage";
     }
-    public static class Forms { public const string Read="forms.read", Manage="forms.manage", Create="forms.create", Update="forms.update", Publish="forms.publish", Archive="forms.archive", Restore="forms.restore"; }
-    public static class Surveys { public const string Read="surveys.read", Create="surveys.create", Update="surveys.update", Publish="surveys.publish", Distribute="surveys.distribute", Close="surveys.close"; }
-    public static class Responses { public const string Read="responses.read", Manage="responses.manage", Export="responses.export", Anonymize="responses.anonymize"; }
-    public static class Results { public const string Read="results.read", Export="results.export", Compare="results.compare"; }
-    public static class Diagnostics { public const string Read="diagnostics.read", Manage="diagnostics.manage", Close="diagnostics.close", Calculate="diagnostics.calculate"; }
-    public static class Questions { public const string Read="questions.read", Manage="questions.manage"; }
-    public static class Onboarding { public const string Read="onboarding.read", View="onboarding.view", Manage="onboarding.manage", Complete="onboarding.steps.complete"; }
-    public static class CustomerSuccess { public const string View="customer_success.view", Manage="customer_success.manage", Notes="customer_success.notes.manage", Tasks="customer_success.tasks.manage"; }
-    public static class CustomerHealthScore { public const string View="customer_health_score.view"; }
-    public static class SuccessCenter { public const string Read="success_center.read", Manage="success_center.manage"; }
-    public static class OrganizationHealth { public const string Read="organization_health.read", Manage="organization_health.manage"; }
-    public static class SupportTickets { public const string Read="support_tickets.read", Manage="support_tickets.manage"; }
-    public static class KnowledgeBase { public const string Read="knowledge_base.read", Manage="knowledge_base.manage"; }
-    public static class SuccessPlaybooks { public const string Read="success_playbooks.read", Manage="success_playbooks.manage"; }
-    public static class ProductUsage { public const string Read="product_usage.read"; }
-    public static class Campaigns { public const string Read="campaigns.read", Manage="campaigns.manage"; }
-    public static class Respondents { public const string Read="respondents.read", Manage="respondents.manage"; }
-    public static class Evidence { public const string Read="evidence.read", Manage="evidence.manage"; }
-    public static class Indexes { public const string Read="indexes.read"; }
-    public static class Priorities { public const string Read="priorities.read", Manage="priorities.manage"; }
-    public static class Leadership { public const string Read="leadership.read", Manage="leadership.manage"; }
-    public static class LeadershipDevelopmentAccess { public const string Read="leadership.development.read", Manage="leadership.development.manage"; }
-    public static class Branding { public const string Manage="branding.manage"; }
-    public static class WorkflowForms { public static readonly string Manage=Forms.Manage; }
-    public static class WorkflowResponses { public const string Submit="responses.submit"; }
-    public static class WorkflowResults { public const string Manage="results.manage"; }
-    public static class Intelligence { public const string Read="intelligence.read", Generate="intelligence.generate", Review="intelligence.review", Manage="intelligence.manage", Process="intelligence.process"; }
-    public static class Insights { public const string Read="insights.read", Manage="insights.manage", Approve="insights.approve", Reject="insights.reject", ConvertToAction="insights.convert_to_action", ConvertToDecision="insights.convert_to_decision"; }
-    public static class AiRuns { public const string Read="ai_runs.read", Manage="ai_runs.manage"; }
-    public static class Deliverables { public const string Read="deliverables.read", Manage="deliverables.manage"; }
-    public static class Reports { public const string Read="reports.read", Generate="reports.generate", Download="reports.download"; }
-    public static class Certificates { public const string Read="certificates.read", Generate="certificates.generate", Download="certificates.download", Revoke="certificates.revoke", Validate="certificates.validate"; }
-    public static class ShareLinks { public const string Read="share_links.read", Manage="share_links.manage"; }
-    public static class PublicResults { public const string Manage="public_results.manage"; }
-    public static class Communications { public const string Read="communications.read", Send="communications.send", Retry="communications.retry", Cancel="communications.cancel"; }
-    public static class NotificationCenter { public const string MarkRead="notifications.mark_read"; }
-    public static class CommunicationCenter
-    {
-        public const string Read="communication.read", Manage="communication.manage",
-            TemplatesRead="communication.templates.read", TemplatesManage="communication.templates.manage",
-            OutboxRead="communication.outbox.read", OutboxManage="communication.outbox.manage",
-            RemindersRead="communication.reminders.read", RemindersManage="communication.reminders.manage";
+    public static class Forms { public const string Read = "forms.read", Manage = "forms.manage", Create = "forms.create", Update = "forms.update", Publish = "forms.publish", Archive = "forms.archive", Restore = "forms.restore"; }
+    public static class Surveys { public const string Read = "surveys.read", Create = "surveys.create", Update = "surveys.update", Publish = "surveys.publish", Distribute = "surveys.distribute", Close = "surveys.close"; }
+    public static class Responses { public const string Read = "responses.read", Manage = "responses.manage", Export = "responses.export", Anonymize = "responses.anonymize"; }
+    public static class Results { public const string Read = "results.read", Export = "results.export", Compare = "results.compare"; }
+    public static class Diagnostics { public const string Read = "diagnostics.read", Manage = "diagnostics.manage", Close = "diagnostics.close", Calculate = "diagnostics.calculate"; }
+    public static class Questions { public const string Read = "questions.read", Manage = "questions.manage"; }
+    public static class Onboarding { public const string Read = "onboarding.read", View = "onboarding.view", Manage = "onboarding.manage", Complete = "onboarding.steps.complete"; }
+    public static class CustomerSuccess { public const string View = "customer_success.view", Manage = "customer_success.manage", Notes = "customer_success.notes.manage", Tasks = "customer_success.tasks.manage"; }
+    public static class CustomerHealthScore { public const string View = "customer_health_score.view"; }
+    public static class SuccessCenter { public const string Read = "success_center.read", Manage = "success_center.manage"; }
+    public static class OrganizationHealth { public const string Read = "organization_health.read", Manage = "organization_health.manage"; }
+    public static class SupportTickets { public const string Read = "support_tickets.read", Manage = "support_tickets.manage"; }
+    public static class KnowledgeBase { public const string Read = "knowledge_base.read", Manage = "knowledge_base.manage"; }
+    public static class SuccessPlaybooks { public const string Read = "success_playbooks.read", Manage = "success_playbooks.manage"; }
+    public static class ProductUsage { public const string Read = "product_usage.read"; }
+    public static class Campaigns { public const string Read = "campaigns.read", Manage = "campaigns.manage"; }
+    public static class Respondents { public const string Read = "respondents.read", Manage = "respondents.manage"; }
+    public static class Evidence { public const string Read = "evidence.read", Manage = "evidence.manage"; }
+    public static class Indexes { public const string Read = "indexes.read"; }
+    public static class Priorities { public const string Read = "priorities.read", Manage = "priorities.manage"; }
+    public static class Leadership { public const string Read = "leadership.read", Manage = "leadership.manage"; }
+    public static class LeadershipDevelopmentAccess { public const string Read = "leadership.development.read", Manage = "leadership.development.manage"; }
+    public static class Branding { public const string Manage = "branding.manage"; }
+    public static class WorkflowForms { public static readonly string Manage = Forms.Manage; }
+    public static class WorkflowResponses { public const string Submit = "responses.submit"; }
+    public static class WorkflowResults { public const string Manage = "results.manage"; }
+    public static class Intelligence { public const string Read = "intelligence.read", Generate = "intelligence.generate", Review = "intelligence.review", Manage = "intelligence.manage", Process = "intelligence.process"; }
+    public static class Insights { public const string Read = "insights.read", Manage = "insights.manage", Approve = "insights.approve", Reject = "insights.reject", ConvertToAction = "insights.convert_to_action", ConvertToDecision = "insights.convert_to_decision"; }
+    public static class AiRuns { public const string Read = "ai_runs.read", Manage = "ai_runs.manage"; }
+    public static class Deliverables { public const string Read = "deliverables.read", Manage = "deliverables.manage"; }
+    public static class Reports { public const string Read = "reports.read", Generate = "reports.generate", Download = "reports.download"; }
+    public static class Certificates { public const string Read = "certificates.read", Generate = "certificates.generate", Download = "certificates.download", Revoke = "certificates.revoke", Validate = "certificates.validate"; }
+    public static class ShareLinks { public const string Read = "share_links.read", Manage = "share_links.manage"; }
+    public static class PublicResults { public const string Manage = "public_results.manage"; }
+    public static class Communications { public const string Read = "communications.read", Send = "communications.send", Retry = "communications.retry", Cancel = "communications.cancel"; }
+    public static class NotificationCenter { public const string MarkRead = "notifications.mark_read"; }
+    public static class CommunicationCenter {
+        public const string Read = "communication.read", Manage = "communication.manage",
+            TemplatesRead = "communication.templates.read", TemplatesManage = "communication.templates.manage",
+            OutboxRead = "communication.outbox.read", OutboxManage = "communication.outbox.manage",
+            RemindersRead = "communication.reminders.read", RemindersManage = "communication.reminders.manage";
     }
-    public static class Audit { public const string Read="audit.read"; }
-    public static class SecurityCompliance { public const string Read="security_compliance.read", Manage="security_compliance.manage"; }
-    public static class Privacy { public const string Read="privacy.read", Manage="privacy.manage"; }
-    public static class DataSubjectRequests { public const string Read="data_subject_requests.read", Manage="data_subject_requests.manage"; }
-    public static class Retention { public const string Read="retention.read", Manage="retention.manage"; }
-    public static class ComplianceAudit { public const string Read="compliance_audit.read"; }
-    public static class SecurityIncidents { public const string Read="security_incidents.read", Manage="security_incidents.manage"; }
-    public static class AccessReviews { public const string Read="access_reviews.read", Manage="access_reviews.manage"; }
-    public static class SensitiveAccessLogs { public const string Read="sensitive_access_logs.read"; }
-    public static class Operations { public const string Read="operations.read", Execute="operations.execute"; }
-    public static class Settings { public const string Read="settings.read", Update="settings.update"; }
-    public static class SettingsManagement { public const string Manage="settings.manage"; }
-    public static class OrganizationalIntelligence { public const string Read="organizational_intelligence.read", Generate="organizational_intelligence.generate", JourneyCreate="organizational_intelligence.journey.create", ActionCreate="organizational_intelligence.action.create"; }
-    public static class Knowledge { public const string Read="knowledge.read", Create="knowledge.create", Review="knowledge.review", Publish="knowledge.publish", Manage="knowledge.manage"; }
-    public static class DecisionCenter { public const string Read="decision_center.read"; }
-    public static class Decisions { public const string Read="decisions.read", Manage="decisions.manage", Approve="decisions.approve"; }
-    public static class Alerts { public const string Read="alerts.read", Manage="alerts.manage", Resolve="alerts.resolve"; }
-    public static class Indicators { public const string Read="indicators.read", Manage="indicators.manage"; }
-    public static class Advisor { public const string Read="advisor.read", Use="advisor.use", Manage="advisor.manage"; }
-    public static class Processes
-    {
-        public const string View="processes.view", Manage="processes.manage", DefinitionsCreate="processes.definitions.create",
-            DefinitionsPublish="processes.definitions.publish", BuilderManage="processes.builder.manage",
-            InstancesView="processes.instances.view", InstancesManage="processes.instances.manage",
-            ApprovalsManage="processes.approvals.manage", SlaView="processes.sla.view",
-            InsightsView="processes.insights.view", TemplatesManage="processes.templates.manage",
-            AutomationManage="processes.automation.manage";
+    public static class Audit { public const string Read = "audit.read"; }
+    public static class SecurityCompliance { public const string Read = "security_compliance.read", Manage = "security_compliance.manage"; }
+    public static class Privacy { public const string Read = "privacy.read", Manage = "privacy.manage"; }
+    public static class DataSubjectRequests { public const string Read = "data_subject_requests.read", Manage = "data_subject_requests.manage"; }
+    public static class Retention { public const string Read = "retention.read", Manage = "retention.manage"; }
+    public static class ComplianceAudit { public const string Read = "compliance_audit.read"; }
+    public static class SecurityIncidents { public const string Read = "security_incidents.read", Manage = "security_incidents.manage"; }
+    public static class AccessReviews { public const string Read = "access_reviews.read", Manage = "access_reviews.manage"; }
+    public static class SensitiveAccessLogs { public const string Read = "sensitive_access_logs.read"; }
+    public static class Operations { public const string Read = "operations.read", Execute = "operations.execute"; }
+    public static class Settings { public const string Read = "settings.read", Update = "settings.update"; }
+    public static class SettingsManagement { public const string Manage = "settings.manage"; }
+    public static class OrganizationalIntelligence { public const string Read = "organizational_intelligence.read", Generate = "organizational_intelligence.generate", JourneyCreate = "organizational_intelligence.journey.create", ActionCreate = "organizational_intelligence.action.create"; }
+    public static class Knowledge { public const string Read = "knowledge.read", Create = "knowledge.create", Review = "knowledge.review", Publish = "knowledge.publish", Manage = "knowledge.manage"; }
+    public static class DecisionCenter { public const string Read = "decision_center.read"; }
+    public static class Decisions { public const string Read = "decisions.read", Manage = "decisions.manage", Approve = "decisions.approve"; }
+    public static class Alerts { public const string Read = "alerts.read", Manage = "alerts.manage", Resolve = "alerts.resolve"; }
+    public static class Indicators { public const string Read = "indicators.read", Manage = "indicators.manage"; }
+    public static class Advisor { public const string Read = "advisor.read", Use = "advisor.use", Manage = "advisor.manage"; }
+    public static class Processes {
+        public const string View = "processes.view", Manage = "processes.manage", DefinitionsCreate = "processes.definitions.create",
+            DefinitionsPublish = "processes.definitions.publish", BuilderManage = "processes.builder.manage",
+            InstancesView = "processes.instances.view", InstancesManage = "processes.instances.manage",
+            ApprovalsManage = "processes.approvals.manage", SlaView = "processes.sla.view",
+            InsightsView = "processes.insights.view", TemplatesManage = "processes.templates.manage",
+            AutomationManage = "processes.automation.manage";
     }
-    public static class Governance { public const string Read="governance.read", Manage="governance.manage", MeetingsRead="governance.meetings.read", MeetingsManage="governance.meetings.manage"; }
-    public static class Action { public const string Read="action.read", Manage="action.manage", Approve="action.approve", Complete="action.complete", CommentsManage="action.comments.manage"; }
-    public static class Evolution { public const string Read="evolution.read", Manage="evolution.manage", SnapshotsGenerate="evolution.snapshots.generate"; }
-    public static class Journey { public const string Read="journey.read", Manage="journey.manage", EventsCreate="journey.events.create", EventsManage="journey.events.manage"; }
-    public static class Heatmap { public const string Generate="heatmap.generate", Manage="heatmap.manage"; }
-    public static class IntelligentDeliverables
-    {
-        public const string DashboardRead="dashboard.read", RadarRead="radar.read", HeatmapRead="heatmap.read",
-            BenchmarkRead="benchmark.read";
+    public static class Governance { public const string Read = "governance.read", Manage = "governance.manage", MeetingsRead = "governance.meetings.read", MeetingsManage = "governance.meetings.manage"; }
+    public static class Action { public const string Read = "action.read", Manage = "action.manage", Approve = "action.approve", Complete = "action.complete", CommentsManage = "action.comments.manage"; }
+    public static class Evolution { public const string Read = "evolution.read", Manage = "evolution.manage", SnapshotsGenerate = "evolution.snapshots.generate"; }
+    public static class Journey { public const string Read = "journey.read", Manage = "journey.manage", EventsCreate = "journey.events.create", EventsManage = "journey.events.manage"; }
+    public static class Heatmap { public const string Generate = "heatmap.generate", Manage = "heatmap.manage"; }
+    public static class IntelligentDeliverables {
+        public const string DashboardRead = "dashboard.read", RadarRead = "radar.read", HeatmapRead = "heatmap.read",
+            BenchmarkRead = "benchmark.read";
 
         // Compatibility aliases point to the single canonical definitions above. Properties are
         // deliberately not reflected into All, so each permission code is registered only once.
@@ -216,65 +213,56 @@ public static class ValoraPermissions
         public static string JourneyRead => Journey.Read;
         public static string InsightsRead => Insights.Read;
     }
-    public static class Benchmark
-    {
-        public const string Generate="benchmark.generate", Compare="benchmark.compare",
-            Export="benchmark.export", Admin="benchmark.admin", Manage="benchmark.manage";
+    public static class Benchmark {
+        public const string Generate = "benchmark.generate", Compare = "benchmark.compare",
+            Export = "benchmark.export", Admin = "benchmark.admin", Manage = "benchmark.manage";
     }
-    public static class Benchmarks
-    {
-        public const string View="benchmarks.view", Manage="benchmarks.manage", CohortsManage="benchmarks.cohorts.manage",
-            Compare="benchmarks.compare", InsightsView="benchmarks.insights.view",
-            ExportsCreate="benchmarks.exports.create", PrivacyManage="benchmarks.privacy.manage";
+    public static class Benchmarks {
+        public const string View = "benchmarks.view", Manage = "benchmarks.manage", CohortsManage = "benchmarks.cohorts.manage",
+            Compare = "benchmarks.compare", InsightsView = "benchmarks.insights.view",
+            ExportsCreate = "benchmarks.exports.create", PrivacyManage = "benchmarks.privacy.manage";
     }
-    public static class OneOnOne
-    {
-        public const string Read="one_on_one.read", Manage="one_on_one.manage", SessionsRead="one_on_one.sessions.read",
-            SessionsManage="one_on_one.sessions.manage", PrivateNotesRead="one_on_one.private_notes.read", PrivateNotesManage="one_on_one.private_notes.manage",
-            Schedule="one_on_one.schedule", NotesManage="one_on_one.notes.manage", FeedbackManage="one_on_one.feedback.manage";
+    public static class OneOnOne {
+        public const string Read = "one_on_one.read", Manage = "one_on_one.manage", SessionsRead = "one_on_one.sessions.read",
+            SessionsManage = "one_on_one.sessions.manage", PrivateNotesRead = "one_on_one.private_notes.read", PrivateNotesManage = "one_on_one.private_notes.manage",
+            Schedule = "one_on_one.schedule", NotesManage = "one_on_one.notes.manage", FeedbackManage = "one_on_one.feedback.manage";
     }
-    public static class LeadershipDevelopment
-    {
-        public const string Read="leadership_development.read", Manage="leadership_development.manage";
+    public static class LeadershipDevelopment {
+        public const string Read = "leadership_development.read", Manage = "leadership_development.manage";
     }
-    public static class People
-    {
-        public const string View="people.view", Manage="people.manage", TeamsManage="people.teams.manage",
-            CultureView="people.culture.view", CultureManage="people.culture.manage", EngagementView="people.engagement.view",
-            CompetenciesManage="people.competencies.manage", DevelopmentPlansManage="people.development_plans.manage",
-            RisksView="people.risks.view", RisksReview="people.risks.review";
+    public static class People {
+        public const string View = "people.view", Manage = "people.manage", TeamsManage = "people.teams.manage",
+            CultureView = "people.culture.view", CultureManage = "people.culture.manage", EngagementView = "people.engagement.view",
+            CompetenciesManage = "people.competencies.manage", DevelopmentPlansManage = "people.development_plans.manage",
+            RisksView = "people.risks.view", RisksReview = "people.risks.review";
     }
-    public static class RiskCompliance
-    {
-        public const string View="risk_compliance.view", Manage="risk_compliance.manage", RisksManage="risks.manage",
-            ControlsManage="controls.manage", ComplianceManage="compliance.manage", NonConformitiesManage="non_conformities.manage",
-            MitigationPlansManage="mitigation_plans.manage", AuditsManage="audits.manage", HeatmapView="risk_heatmap.view";
+    public static class RiskCompliance {
+        public const string View = "risk_compliance.view", Manage = "risk_compliance.manage", RisksManage = "risks.manage",
+            ControlsManage = "controls.manage", ComplianceManage = "compliance.manage", NonConformitiesManage = "non_conformities.manage",
+            MitigationPlansManage = "mitigation_plans.manage", AuditsManage = "audits.manage", HeatmapView = "risk_heatmap.view";
     }
-    public static class Ai
-    {
-        public const string Read="ai.read", Manage="ai.manage", RunsRead="ai.runs.read", RunsManage="ai.runs.manage",
-            PromptsRead="ai.prompts.read", PromptsManage="ai.prompts.manage", InsightsRead="ai.insights.read",
-            InsightsReview="ai.insights.review", InsightsPublish="ai.insights.publish", Reprocess="ai.reprocess",
-            UsageRead="ai.usage.read";
+    public static class Ai {
+        public const string Read = "ai.read", Manage = "ai.manage", RunsRead = "ai.runs.read", RunsManage = "ai.runs.manage",
+            PromptsRead = "ai.prompts.read", PromptsManage = "ai.prompts.manage", InsightsRead = "ai.insights.read",
+            InsightsReview = "ai.insights.review", InsightsPublish = "ai.insights.publish", Reprocess = "ai.reprocess",
+            UsageRead = "ai.usage.read";
     }
-    public static class Administration
-    {
-        public const string Read="administration.read", Manage="administration.manage";
+    public static class Administration {
+        public const string Read = "administration.read", Manage = "administration.manage";
         public static string OrganizationsRead => Organizations.Read;
         public static string OrganizationsManage => Organizations.Manage;
-        public const string IntegrationsRead="integrations.read", IntegrationsManage="integrations.manage",
-            NotificationsRead="notifications.read", NotificationsManage="notifications.manage", JobsRead="jobs.read",
-            JobsManage="jobs.manage", LogsRead="logs.read", SupportRead="support.read", SupportManage="support.manage";
+        public const string IntegrationsRead = "integrations.read", IntegrationsManage = "integrations.manage",
+            NotificationsRead = "notifications.read", NotificationsManage = "notifications.manage", JobsRead = "jobs.read",
+            JobsManage = "jobs.manage", LogsRead = "logs.read", SupportRead = "support.read", SupportManage = "support.manage";
         public static string IntelligenceManage => Intelligence.Manage;
     }
-    public static class Methodology
-    {
-        public const string Read="methodology.read", Manage="methodology.manage", Publish="methodology.publish", Clone="methodology.clone", Validate="methodology.validate";
-        public const string ConceptsRead="methodology.concepts.read", ConceptsManage="methodology.concepts.manage";
-        public const string IndexesRead="methodology.indexes.read", IndexesManage="methodology.indexes.manage";
-        public const string QuestionsRead="methodology.questions.read", QuestionsManage="methodology.questions.manage";
-        public const string PromptsRead="methodology.prompts.read", PromptsManage="methodology.prompts.manage";
-        public const string GuardrailsRead="methodology.guardrails.read", GuardrailsManage="methodology.guardrails.manage";
+    public static class Methodology {
+        public const string Read = "methodology.read", Manage = "methodology.manage", Publish = "methodology.publish", Clone = "methodology.clone", Validate = "methodology.validate";
+        public const string ConceptsRead = "methodology.concepts.read", ConceptsManage = "methodology.concepts.manage";
+        public const string IndexesRead = "methodology.indexes.read", IndexesManage = "methodology.indexes.manage";
+        public const string QuestionsRead = "methodology.questions.read", QuestionsManage = "methodology.questions.manage";
+        public const string PromptsRead = "methodology.prompts.read", PromptsManage = "methodology.prompts.manage";
+        public const string GuardrailsRead = "methodology.guardrails.read", GuardrailsManage = "methodology.guardrails.manage";
     }
 
     public static readonly IReadOnlyList<string> All = typeof(ValoraPermissions).GetNestedTypes()
@@ -284,8 +272,7 @@ public static class ValoraPermissions
     internal static readonly IReadOnlyList<(string Permission, string Capability)> Definitions = All
         .Select(permission => (permission, CapabilityForCanonicalPermission(permission))).ToArray();
 
-    private static string CapabilityForCanonicalPermission(string permission) => permission.Split('.')[0] switch
-    {
+    private static string CapabilityForCanonicalPermission(string permission) => permission.Split('.')[0] switch {
         "users" or "roles" or "sessions" or "invitations" or "security_compliance" or "privacy" or
         "data_subject_requests" or "retention" or "compliance_audit" or "security_incidents" or
         "access_reviews" or "sensitive_access_logs" => ValoraModules.Identity,
@@ -301,6 +288,7 @@ public static class ValoraPermissions
         "organizations" => ValoraModules.Organization,
         "admin" or "administration" or "saas_admin" or "saas_customers" or "saas_users" or "saas_modules" or
         "saas_billing" or "saas_impersonation" or "integrations" or "notifications" or "communication" or "jobs" or "logs" or "support" => ValoraModules.Operations,
+        "leads" or "trials" or "commercial" => ValoraModules.Operations,
         "organization_users" or "organization_profiles" => ValoraModules.Identity,
         "permissions" => ValoraModules.Identity,
         "api_keys" or "webhooks" or "powerbi" or "integration_logs" or "imports" or "email_templates" => ValoraModules.Operations,

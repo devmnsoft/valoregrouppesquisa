@@ -2,15 +2,13 @@ using Valora.Application.Contracts;
 
 namespace Valora.Application.Services;
 
-public sealed class PasswordPolicy : IPasswordPolicy
-{
+public sealed class PasswordPolicy : IPasswordPolicy {
     private static readonly HashSet<string> CommonPasswords = new(StringComparer.OrdinalIgnoreCase)
     {
         "1234567890", "password123!", "senha12345!", "qwerty12345!", "admin12345!"
     };
 
-    public PasswordValidationResult Validate(string password, string? email = null, string? companyName = null)
-    {
+    public PasswordValidationResult Validate(string password, string? email = null, string? companyName = null) {
         var errors = new List<string>();
         if (string.IsNullOrEmpty(password) || password.Length < 10) errors.Add("A senha deve possuir ao menos 10 caracteres.");
         if (!password.Any(char.IsUpper)) errors.Add("A senha deve possuir letra maiúscula.");

@@ -10,10 +10,8 @@ namespace Valora.Application.Services;
 public sealed class MigrationReconciliationService(
     IMigrationRecordRepository records,
     IMigrationConflictRepository conflicts,
-    IAuditRepository audit) : IMigrationReconciliationService
-{
-    public async Task<MigrationReconciliationReportDto> ReconcileAsync(Guid batchId, CancellationToken ct = default)
-    {
+    IAuditRepository audit) : IMigrationReconciliationService {
+    public async Task<MigrationReconciliationReportDto> ReconcileAsync(Guid batchId, CancellationToken ct = default) {
         var r = await records.ListByBatchAsync(batchId, ct);
         var c = await conflicts.ListByBatchAsync(batchId, ct);
         await audit.AddAsync(new AuditEntry(

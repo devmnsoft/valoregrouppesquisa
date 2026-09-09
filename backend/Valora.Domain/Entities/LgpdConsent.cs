@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed class LgpdConsent
-{
+public sealed class LgpdConsent {
     public Guid Id { get; set; }
     public Guid? OrganizationId { get; set; }
     public Guid? SurveyId { get; set; }

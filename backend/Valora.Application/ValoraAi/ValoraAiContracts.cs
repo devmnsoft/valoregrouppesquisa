@@ -38,29 +38,25 @@ public sealed record ValoraAiExecutionResult(ValoraAiRun Run, string? Output, Va
     string Message);
 public sealed record AiUsageAllowance(bool Allowed, int Used, int Limit, decimal AlertThreshold = .8m);
 
-public interface IValoraAiProvider
-{
+public interface IValoraAiProvider {
     bool IsConfigured { get; }
     Task<ValoraAiProviderResult> CompleteAsync(ValoraAiRequest request, CancellationToken ct);
 }
 public interface IValoraPromptRenderer { ValoraRenderedPrompt Render(ValoraPromptTemplate template, ValoraEvidencePack pack); }
 public interface IValoraEvidencePackBuilder { ValoraEvidencePack Build(ValoraEvidenceSource source); }
 public interface IValoraAiGuardrailService { ValoraAiValidation Validate(string output, ValoraEvidencePack pack); }
-public interface IValoraAiRunRepository
-{
+public interface IValoraAiRunRepository {
     Task CreateAsync(ValoraAiRun run, ValoraEvidencePack input, CancellationToken ct);
     Task CompleteAsync(Guid runId, AiRunStatus status, string? output, ValoraAiValidation? validation,
         ValoraAiProviderResult? usage, string? error, CancellationToken ct);
     Task<AiUsageAllowance> CheckAllowanceAsync(Guid organizationId, CancellationToken ct);
     Task RecordReviewAsync(Guid runId, Guid reviewerId, AiRunStatus status, string? note, CancellationToken ct);
 }
-public interface IValoraAiOrchestrator
-{
+public interface IValoraAiOrchestrator {
     Task<ValoraAiExecutionResult> ExecuteAsync(Guid organizationId, Guid diagnosisId, ValoraPromptTemplate prompt,
         ValoraEvidenceSource evidence, string correlationId, CancellationToken ct);
 }
-public interface IValoraAiReviewService
-{
+public interface IValoraAiReviewService {
     Task ReviewAsync(Guid runId, Guid reviewerId, AiRunStatus current, AiRunStatus target, string? note, CancellationToken ct);
 }
 public interface IValoraInsightGenerator { Task<ValoraAiExecutionResult> GenerateAsync(Guid organizationId, Guid diagnosisId, ValoraEvidenceSource evidence, string correlationId, CancellationToken ct); }
@@ -81,13 +77,11 @@ public sealed record ReportSection(StructuredAiItem Value);
 public sealed record DimensionInterpretation(StructuredAiItem Value);
 public sealed record EvolutionInterpretation(StructuredAiItem Value);
 
-public static class ValoraConfidenceCalculator
-{
-    public static AiConfidence Calculate(int evidenceCount, int convergentSources) => (evidenceCount, convergentSources) switch
-    {
+public static class ValoraConfidenceCalculator {
+    public static AiConfidence Calculate(int evidenceCount, int convergentSources) => (evidenceCount, convergentSources) switch {
         (0, _) => AiConfidence.Insufficient,
-        (>= 3, >= 2) => AiConfidence.High,
-        (>= 2, _) => AiConfidence.Medium,
+        ( >= 3, >= 2) => AiConfidence.High,
+        ( >= 2, _) => AiConfidence.Medium,
         _ => AiConfidence.Low
     };
 }

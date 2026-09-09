@@ -4,10 +4,8 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Valora.Api.Configuration;
 
-public static class JwtConfiguration
-{
-    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
-    {
+public static class JwtConfiguration {
+    public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration) {
         var jwt = configuration.GetSection("Jwt");
         var signingKey = jwt["SigningKey"];
         // Espaços não aumentam artificialmente a entropia mínima exigida para a chave.
@@ -18,10 +16,8 @@ public static class JwtConfiguration
         var issuer = jwt["Issuer"];
         var audience = jwt["Audience"];
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
+            .AddJwtBearer(options => {
+                options.TokenValidationParameters = new TokenValidationParameters {
                     ValidateIssuer = !string.IsNullOrWhiteSpace(issuer),
                     ValidateAudience = !string.IsNullOrWhiteSpace(audience),
                     ValidateIssuerSigningKey = true,

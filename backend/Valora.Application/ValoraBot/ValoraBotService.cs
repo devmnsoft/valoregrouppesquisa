@@ -3,12 +3,10 @@ using System.Text;
 
 namespace Valora.Application.ValoraBot;
 
-public sealed class ValoraBotService(IValoraBotRepository repository) : IValoraBotService
-{
+public sealed class ValoraBotService(IValoraBotRepository repository) : IValoraBotService {
     private const string Fallback = "Ainda não encontrei uma orientação segura para essa pergunta. Posso ajudar com Valora Insight™, diagnóstico gratuito, resultado, certificado, LGPD, planos, acesso, Dashboard, Heatmap, Benchmark, Action, Evolution, Journey ou Executive Report. Se preferir, fale com a equipe oficial pelo WhatsApp +55 91 99254-5353.";
 
-    public async Task<ValoraBotAnswerDto> AskAsync(ValoraBotAskRequest request, CancellationToken ct = default)
-    {
+    public async Task<ValoraBotAnswerDto> AskAsync(ValoraBotAskRequest request, CancellationToken ct = default) {
         if (string.IsNullOrWhiteSpace(request.Question)) throw new ArgumentException("Digite uma pergunta para o ValoraBot.");
         var question = request.Question.Trim();
         if (question.Length > 1000) throw new ArgumentException("A pergunta deve ter no máximo 1.000 caracteres.");
@@ -34,8 +32,7 @@ public sealed class ValoraBotService(IValoraBotRepository repository) : IValoraB
     private static int Score(string question, string patterns) => patterns.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
         .Select(Normalize).Where(x => x.Length > 1).Count(question.Contains);
 
-    private static string Normalize(string value)
-    {
+    private static string Normalize(string value) {
         var text = value.ToLowerInvariant().Normalize(NormalizationForm.FormD);
         var builder = new StringBuilder(text.Length);
         foreach (var c in text) if (CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark) builder.Append(char.IsLetterOrDigit(c) ? c : ' ');

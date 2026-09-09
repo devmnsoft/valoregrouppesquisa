@@ -7,16 +7,13 @@ public sealed class EndpointNavigationRouteResolver(
     IActionDescriptorCollectionProvider actions,
     LinkGenerator links,
     IHttpContextAccessor accessor,
-    ILogger<EndpointNavigationRouteResolver> logger) : INavigationRouteResolver
-{
-    public string? Resolve(NavigationDestination destination)
-    {
+    ILogger<EndpointNavigationRouteResolver> logger) : INavigationRouteResolver {
+    public string? Resolve(NavigationDestination destination) {
         var exists = actions.ActionDescriptors.Items.Any(action =>
             string.Equals(action.RouteValues["controller"], destination.Controller, StringComparison.OrdinalIgnoreCase) &&
             string.Equals(action.RouteValues["action"], destination.Action, StringComparison.OrdinalIgnoreCase));
 
-        if (!exists)
-        {
+        if (!exists) {
             logger.LogWarning("Navigation destination {Controller}.{Action} has no MVC action.", destination.Controller, destination.Action);
             return null;
         }

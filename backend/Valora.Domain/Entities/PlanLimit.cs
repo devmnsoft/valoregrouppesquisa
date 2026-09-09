@@ -3,8 +3,7 @@ using Valora.Domain.Enums;
 
 namespace Valora.Domain.Entities;
 
-public sealed record PlanLimit : AuditableEntity
-{
+public sealed record PlanLimit : AuditableEntity {
     public Guid PlanId { get; init; }
     public string LimitKey { get; init; } = string.Empty;
     public int? LimitValue { get; init; }

@@ -10,26 +10,22 @@ public sealed record AdvisorTemplateDto(Guid Id, string Code, string Name, strin
 public sealed record AdvisorContextOptionDto(string SourceType, Guid SourceId, string Title, string Summary);
 public sealed record AdvisorSuggestionDto(Guid Id, string SuggestionType, string Title, string Description, string Status, bool RequiresConfirmation);
 
-public sealed class CreateAdvisorConversationRequest
-{
+public sealed class CreateAdvisorConversationRequest {
     [Required, StringLength(300, MinimumLength = 5)] public string Objective { get; init; } = "";
     public IReadOnlyList<AdvisorContextSelection> Context { get; init; } = [];
 }
 public sealed record AdvisorContextSelection([property: Required] string SourceType, Guid SourceId);
-public sealed class SendAdvisorMessageRequest
-{
+public sealed class SendAdvisorMessageRequest {
     [Required, StringLength(4000, MinimumLength = 3)] public string Content { get; init; } = "";
     [MinLength(1, ErrorMessage = "Selecione ao menos uma evidência para uma análise.")] public IReadOnlyList<AdvisorContextSelection> Context { get; init; } = [];
 }
-public sealed class CreateAdvisorTemplateRequest
-{
+public sealed class CreateAdvisorTemplateRequest {
     [Required, StringLength(80)] public string Code { get; init; } = "";
     [Required, StringLength(160)] public string Name { get; init; } = "";
     [Required, StringLength(80)] public string Area { get; init; } = "";
     [Required, StringLength(12000), MinLength(30)] public string Content { get; init; } = "";
 }
-public sealed class AdvisorFeedbackRequest
-{
+public sealed class AdvisorFeedbackRequest {
     public bool Useful { get; init; }
     [StringLength(500)] public string? Reason { get; init; }
     [StringLength(1000)] public string? Improvement { get; init; }
@@ -37,14 +33,12 @@ public sealed class AdvisorFeedbackRequest
 public sealed record AdvisorModelRequest(string SystemInstruction, string Question, IReadOnlyList<AdvisorContextOptionDto> Evidence);
 public sealed record AdvisorModelResult(bool ProviderUsed, string Content, string? Limitation);
 
-public interface IAdvisorConversationRepository
-{
+public interface IAdvisorConversationRepository {
     Task<IReadOnlyList<AdvisorConversationDto>> List(Guid organizationId, Guid userId, CancellationToken ct);
     Task<AdvisorConversationDetailDto?> Get(Guid organizationId, Guid userId, Guid id, CancellationToken ct);
     Task<Guid> Create(Guid organizationId, Guid userId, CreateAdvisorConversationRequest request, CancellationToken ct);
 }
-public interface IAdvisorMessageRepository
-{
+public interface IAdvisorMessageRepository {
     Task<Guid> AddUserMessage(Guid organizationId, Guid userId, Guid conversationId, string content, CancellationToken ct);
     Task<Guid> AddResponse(Guid organizationId, Guid userId, Guid conversationId, string content, string confidence, string[] limitations, IReadOnlyList<AdvisorContextOptionDto> evidence, CancellationToken ct);
 }

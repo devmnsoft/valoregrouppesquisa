@@ -1,18 +1,18 @@
 using System.Net;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Valora.Tests;
 
 [Trait("Category", "ApiIntegration")]
-public sealed class ApiHostIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
-{
+public sealed class ApiHostIntegrationTests : IClassFixture<WebApplicationFactory<Program>> {
     private readonly WebApplicationFactory<Program> _factory;
 
-    public ApiHostIntegrationTests(WebApplicationFactory<Program> factory) => _factory = factory;
+    public ApiHostIntegrationTests(WebApplicationFactory<Program> factory) =>
+        _factory = factory.WithWebHostBuilder(builder => builder.UseEnvironment("Testing"));
 
     [Fact]
-    public async Task RootEndpoint_IsServedByTheRealApiPipeline()
-    {
+    public async Task RootEndpoint_IsServedByTheRealApiPipeline() {
         using var client = _factory.CreateClient();
 
         using var response = await client.GetAsync("/");

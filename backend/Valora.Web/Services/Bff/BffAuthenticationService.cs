@@ -1,20 +1,18 @@
+using System.Collections.Concurrent;
+using System.Net;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using System.Net;
-using System.Collections.Concurrent;
 
 namespace Valora.Web.Services.Bff;
 
-public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffSessionStore sessions, ILogger<BffAuthenticationService> logger)
-{
+public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffSessionStore sessions, ILogger<BffAuthenticationService> logger) {
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> RefreshLocks = new(StringComparer.Ordinal);
     private static readonly TimeSpan RefreshWindow = TimeSpan.FromMinutes(2);
 
     public async Task<BffSafeSession> SignInAsync(HttpContext context, string endpoint, object request,
-        CancellationToken cancellationToken, bool isPersistent = false)
-    {
+        CancellationToken cancellationToken, bool isPersistent = false) {
         var result = await api.PostAuthenticationAsync(endpoint, request, CorrelationId(context), cancellationToken);
         var ticket = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
         var safe = new BffSafeSession(result.User, result.Organization, result.Plan, result.AccessContext);
@@ -42,24 +40,20 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
         return safe;
     }
 
-    public async Task<BffServerSession?> GetAsync(HttpContext context, CancellationToken cancellationToken = default)
-    {
+    public async Task<BffServerSession?> GetAsync(HttpContext context, CancellationToken cancellationToken = default) {
         var ticket = context.User.FindFirstValue("bff_ticket");
         if (ticket is null) return null;
         var session = await sessions.GetAsync(ticket, cancellationToken);
         if (session is null) return null;
         if (session.SessionVersion == BffServerSession.CurrentSessionVersion
             && session.SafeSession.PayloadVersion == BffSafeSession.CurrentPayloadVersion
-            && session.SafeSession.AccessContext.ContextVersion == BffAccessContext.CurrentContextVersion)
-        {
+            && session.SafeSession.AccessContext.ContextVersion == BffAccessContext.CurrentContextVersion) {
             if (session.AccessTokenExpiresAt > DateTimeOffset.UtcNow.Add(RefreshWindow)) return session;
-            try
-            {
+            try {
                 await RefreshCoreAsync(context, false, cancellationToken);
                 return await sessions.GetAsync(ticket, cancellationToken);
             }
-            catch (BffApiUnavailableException exception)
-            {
+            catch (BffApiUnavailableException exception) {
                 logger.LogWarning(exception, "API unavailable during proactive token renewal. SessionId={SessionId} UserId={UserId} OrganizationId={OrganizationId} CorrelationId={CorrelationId}",
                     session.SafeSession.AccessContext.AccessVersion, session.SafeSession.User.Id,
                     session.SafeSession.AccessContext.SelectedOrganizationId ?? session.SafeSession.AccessContext.OrganizationId,
@@ -72,25 +66,21 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
             session.SafeSession.User.Id, session.SafeSession.User.Role, session.SafeSession.AccessContext.OrganizationId,
             session.SafeSession.AccessContext.PlanCode, session.SafeSession.AccessContext.EnabledModules.Count,
             session.SafeSession.AccessContext.Permissions.Count, session.SafeSession.AccessContext.ContextVersion, CorrelationId(context));
-        try
-        {
+        try {
             await RefreshAsync(context, cancellationToken);
             return await sessions.GetAsync(ticket, cancellationToken);
         }
-        catch (BffApiUnavailableException exception)
-        {
+        catch (BffApiUnavailableException exception) {
             logger.LogWarning(exception, "API unavailable while rehydrating BFF session; preserving the authenticated session. UserId={UserId} CorrelationId={CorrelationId}",
                 session.SafeSession.User.Id, CorrelationId(context));
             return session;
         }
-        catch (BffApiException exception) when (exception.StatusCode is not HttpStatusCode.Unauthorized and not HttpStatusCode.Forbidden)
-        {
+        catch (BffApiException exception) when (exception.StatusCode is not HttpStatusCode.Unauthorized and not HttpStatusCode.Forbidden) {
             logger.LogWarning(exception, "API rejected access-context rehydration without invalidating credentials; preserving the session. Status={Status} UserId={UserId} CorrelationId={CorrelationId}",
                 (int)exception.StatusCode, session.SafeSession.User.Id, CorrelationId(context));
             return session;
         }
-        catch (BffApiException exception)
-        {
+        catch (BffApiException exception) {
             logger.LogWarning(exception, "Unable to rehydrate incompatible BFF session. UserId={UserId} CorrelationId={CorrelationId}", session.SafeSession.User.Id, CorrelationId(context));
             await sessions.RemoveAsync(ticket, cancellationToken);
             await context.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -101,14 +91,12 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
     public async Task<BffSafeSession?> RefreshAsync(HttpContext context, CancellationToken cancellationToken)
         => await RefreshCoreAsync(context, true, cancellationToken);
 
-    private async Task<BffSafeSession?> RefreshCoreAsync(HttpContext context, bool force, CancellationToken cancellationToken)
-    {
+    private async Task<BffSafeSession?> RefreshCoreAsync(HttpContext context, bool force, CancellationToken cancellationToken) {
         var ticket = context.User.FindFirstValue("bff_ticket");
         if (ticket is null) return null;
         var gate = RefreshLocks.GetOrAdd(ticket, _ => new SemaphoreSlim(1, 1));
         await gate.WaitAsync(cancellationToken);
-        try
-        {
+        try {
             var current = await sessions.GetAsync(ticket, cancellationToken);
             if (current is null) return null;
             if (!force && current.AccessTokenExpiresAt > DateTimeOffset.UtcNow.Add(RefreshWindow))
@@ -125,20 +113,17 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
                 CorrelationId(context));
             return safe;
         }
-        catch (BffApiException exception) when (exception.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
-        {
+        catch (BffApiException exception) when (exception.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden) {
             await InvalidateLocalSessionAsync(context, ticket, "refresh_rejected", cancellationToken);
             throw;
         }
-        finally
-        {
+        finally {
             gate.Release();
         }
     }
 
     public async Task<HttpResponseMessage?> SendAuthorizedAsync(HttpContext context, HttpMethod method, string path,
-        object? request, string correlationId, CancellationToken cancellationToken)
-    {
+        object? request, string correlationId, CancellationToken cancellationToken) {
         var session = await GetAsync(context, cancellationToken);
         if (session is null) return null;
 
@@ -155,8 +140,7 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
     }
 
     public async Task<BffSafeSession?> SelectOrganizationAsync(HttpContext context, Guid? organizationId,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         var ticket = context.User.FindFirstValue("bff_ticket");
         if (ticket is null) return null;
         var current = await sessions.GetAsync(ticket, cancellationToken);
@@ -171,23 +155,18 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
         return updatedSafe;
     }
 
-    public async Task SignOutAsync(HttpContext context, CancellationToken cancellationToken)
-    {
+    public async Task SignOutAsync(HttpContext context, CancellationToken cancellationToken) {
         var ticket = context.User.FindFirstValue("bff_ticket");
-        if (ticket is not null)
-        {
+        if (ticket is not null) {
             var session = await sessions.GetAsync(ticket, cancellationToken);
-            try
-            {
+            try {
                 if (session is not null)
                     await api.PostAsync("/api/v1/auth/logout", new { refreshToken = session.RefreshToken }, session.AccessToken, cancellationToken);
             }
-            catch (Exception exception) when (exception is BffApiException or BffApiUnavailableException)
-            {
+            catch (Exception exception) when (exception is BffApiException or BffApiUnavailableException) {
                 logger.LogWarning(exception, "Remote logout could not be completed; clearing the local BFF session. CorrelationId={CorrelationId}", CorrelationId(context));
             }
-            finally
-            {
+            finally {
                 await sessions.RemoveAsync(ticket, cancellationToken);
                 RefreshLocks.TryRemove(ticket, out _);
             }
@@ -196,8 +175,7 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
     }
 
     private async Task InvalidateLocalSessionAsync(HttpContext context, string ticket, string reason,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         var current = await sessions.GetAsync(ticket, cancellationToken);
         await sessions.RemoveAsync(ticket, cancellationToken);
         RefreshLocks.TryRemove(ticket, out _);
@@ -213,8 +191,7 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
             ? value.ToString()
             : context.TraceIdentifier;
 
-    private static async Task RenewCookieAsync(HttpContext context, string ticket, BffAuthenticationResult result, CancellationToken cancellationToken)
-    {
+    private static async Task RenewCookieAsync(HttpContext context, string ticket, BffAuthenticationResult result, CancellationToken cancellationToken) {
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, result.User.Id.ToString()), new(ClaimTypes.Name, result.User.Name),
@@ -235,8 +212,7 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
     }
 
     private static async Task RenewCookieAsync(HttpContext context, string ticket, BffServerSession session,
-        CancellationToken cancellationToken)
-    {
+        CancellationToken cancellationToken) {
         var claims = BuildClaims(ticket, session.SafeSession.User, session.SafeSession.AccessContext,
             context.User.FindFirstValue("session_id") ?? string.Empty);
         var authentication = await context.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -245,18 +221,15 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
             CookieProperties(session.RefreshTokenExpiresAt, authentication.Properties?.IsPersistent == true));
     }
 
-    private static AuthenticationProperties CookieProperties(DateTimeOffset expiresAt, bool isPersistent) => new()
-    {
+    private static AuthenticationProperties CookieProperties(DateTimeOffset expiresAt, bool isPersistent) => new() {
         IsPersistent = isPersistent,
         ExpiresUtc = expiresAt,
         AllowRefresh = true
     };
 
-    private static void AddContextClaims(ICollection<Claim> claims, BffAuthenticationResult result)
-    {
+    private static void AddContextClaims(ICollection<Claim> claims, BffAuthenticationResult result) {
         var organizationId = result.AccessContext.OrganizationId ?? result.Organization?.Id;
-        if (organizationId is { } id && id != Guid.Empty)
-        {
+        if (organizationId is { } id && id != Guid.Empty) {
             claims.Add(new Claim("organization_id", id.ToString()));
             claims.Add(new Claim("tenant_id", id.ToString()));
         }
@@ -266,8 +239,7 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
         claims.Add(new Claim("access_version", result.AccessContext.AccessVersion.ToString(System.Globalization.CultureInfo.InvariantCulture)));
     }
 
-    private static List<Claim> BuildClaims(string ticket, BffUser user, BffAccessContext access, string sessionId)
-    {
+    private static List<Claim> BuildClaims(string ticket, BffUser user, BffAccessContext access, string sessionId) {
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id.ToString()), new(ClaimTypes.Name, user.Name),

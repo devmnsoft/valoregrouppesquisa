@@ -3,11 +3,9 @@ using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
-public sealed class EmailControllerSafetyTests
-{
+public sealed class EmailControllerSafetyTests {
     [Fact]
-    public void EmailEndpointsDoNotParseAnUntrustedOrganizationClaim()
-    {
+    public void EmailEndpointsDoNotParseAnUntrustedOrganizationClaim() {
         var source = File.ReadAllText(RepositoryPaths.ApiFile("Controllers", "EmailController.cs"));
         Assert.Contains("Guid.TryParse", source);
         Assert.DoesNotContain("Guid.Parse", source);
@@ -15,16 +13,14 @@ public sealed class EmailControllerSafetyTests
     }
 
     [Fact]
-    public void TemplateOrganizationIsAlwaysTakenFromTheAuthenticatedContext()
-    {
+    public void TemplateOrganizationIsAlwaysTakenFromTheAuthenticatedContext() {
         var source = File.ReadAllText(RepositoryPaths.ApiFile("Controllers", "EmailController.cs"));
         Assert.Contains("request with { OrganizationId = organizationId }", source);
         Assert.DoesNotContain("dev@example.com", source);
     }
 
     [Fact]
-    public void TemplateContractHasServerSideValidationMetadata()
-    {
+    public void TemplateContractHasServerSideValidationMetadata() {
         var code = typeof(UpsertEmailTemplateRequest).GetProperty(nameof(UpsertEmailTemplateRequest.Code))!;
         var status = typeof(UpsertEmailTemplateRequest).GetProperty(nameof(UpsertEmailTemplateRequest.Status))!;
         Assert.NotEmpty(code.GetCustomAttributes(inherit: true));

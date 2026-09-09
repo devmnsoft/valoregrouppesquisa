@@ -1,7 +1,6 @@
 namespace Valora.Application.ModularSaas;
 
-public sealed record ModuleAccessDecision(bool Allowed, bool ReadOnly, string Code, string Message)
-{
+public sealed record ModuleAccessDecision(bool Allowed, bool ReadOnly, string Code, string Message) {
     public static ModuleAccessDecision Granted(bool readOnly = false) =>
         new(true, readOnly, readOnly ? "MODULE_READ_ONLY" : "MODULE_AVAILABLE",
             readOnly ? "Este módulo está disponível somente para consulta." : "Módulo disponível.");

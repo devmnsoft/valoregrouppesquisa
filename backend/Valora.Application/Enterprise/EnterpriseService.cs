@@ -8,31 +8,27 @@ using Valora.Domain.Operations;
 
 namespace Valora.Application.Enterprise;
 
-public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRepository audit)
-{
+public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRepository audit) {
     public Task<PortfolioSummary> SummaryAsync(CancellationToken ct) => repository.SummaryAsync(ct);
     public Task<EnterprisePage<PortfolioCompany>> CompaniesAsync(EnterpriseListQuery q, CancellationToken ct) => repository.CompaniesAsync(Normalize(q), ct);
     public Task<EnterprisePage<CrmLead>> LeadsAsync(EnterpriseListQuery q, CancellationToken ct) => repository.LeadsAsync(Normalize(q), ct);
     public Task<IReadOnlyList<EnterpriseItem>> ItemsAsync(Guid? organizationId, string kind, CancellationToken ct) => repository.ListItemsAsync(organizationId, ValidateKind(kind), ct);
 
-    public async Task<Guid> CreateLeadAsync(string name, string? company, string? email, string? phone, string? plan, string? owner, DateTime? nextAction, string? notes, Guid userId, CancellationToken ct)
-    {
+    public async Task<Guid> CreateLeadAsync(string name, string? company, string? email, string? phone, string? plan, string? owner, DateTime? nextAction, string? notes, Guid userId, CancellationToken ct) {
         if (string.IsNullOrWhiteSpace(name)) throw new ValidationAppException("Informe o nome do lead.");
         var id = await repository.CreateLeadAsync(new(Guid.NewGuid(), name.Trim(), company?.Trim(), email?.Trim(), phone?.Trim(), "new", plan, owner, nextAction, notes, DateTime.UtcNow), ct);
         await audit.AddAsync(new AuditEntry(null, userId, "crm.lead.created", "crm_lead", id.ToString(), "Lead comercial criado", "{}"));
         return id;
     }
 
-    public async Task ChangeCompanyStatusAsync(Guid id, string status, Guid userId, CancellationToken ct)
-    {
+    public async Task ChangeCompanyStatusAsync(Guid id, string status, Guid userId, CancellationToken ct) {
         string[] allowed = ["active", "onboarding", "at_risk", "blocked", "cancelled", "trial", "delinquent"];
         if (!allowed.Contains(status)) throw new ValidationAppException("Status da empresa inválido.");
         await repository.UpdateCompanyStatusAsync(id, status, ct);
         await audit.AddAsync(new AuditEntry(id, userId, "company.status.changed", "organization", id.ToString(), "Status da empresa alterado", JsonSerializer.Serialize(new { status })));
     }
 
-    public async Task<Guid> SaveItemAsync(Guid? organizationId, Guid? id, UpsertEnterpriseItemRequest request, Guid userId, CancellationToken ct)
-    {
+    public async Task<Guid> SaveItemAsync(Guid? organizationId, Guid? id, UpsertEnterpriseItemRequest request, Guid userId, CancellationToken ct) {
         var normalized = request with { Kind = ValidateKind(request.Kind), Name = request.Name.Trim(), Status = request.Status.Trim().ToLowerInvariant() };
         if (normalized.Name.Length is < 2 or > 160) throw new ValidationAppException("Informe um nome entre 2 e 160 caracteres.");
         ValidateOperationalItem(normalized);
@@ -41,8 +37,7 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
         return itemId;
     }
 
-    public async Task<ApiKeyIssued> CreateApiKeyAsync(Guid organizationId, string name, IReadOnlyList<string> scopes, DateTime? expiresAt, Guid userId, CancellationToken ct)
-    {
+    public async Task<ApiKeyIssued> CreateApiKeyAsync(Guid organizationId, string name, IReadOnlyList<string> scopes, DateTime? expiresAt, Guid userId, CancellationToken ct) {
         if (string.IsNullOrWhiteSpace(name) || name.Trim().Length is < 2 or > 120) throw new ValidationAppException("Informe um nome entre 2 e 120 caracteres.");
         if (expiresAt is not null && expiresAt <= DateTime.UtcNow) throw new ValidationAppException("A expiração precisa estar no futuro.");
         var allowed = new HashSet<string>(["organizations.read", "diagnostics.read", "diagnostics.write", "responses.read_aggregated", "intelligence.read", "reports.read", "certificates.validate", "benchmark.read", "evolution.read", "bi.read", "exports.create", "webhooks.manage", "powerbi.export"]);
@@ -60,14 +55,12 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
         await repository.GetApiKeyAsync(organizationId, id, ct) ?? throw new KeyNotFoundException("Chave de API não encontrada.");
     public Task<IReadOnlyList<ApiKeyUsage>> ApiKeyUsageAsync(Guid organizationId, Guid id, CancellationToken ct) => repository.ListApiKeyUsageAsync(organizationId, id, ct);
 
-    public async Task RevokeApiKeyAsync(Guid organizationId, Guid id, Guid userId, CancellationToken ct)
-    {
+    public async Task RevokeApiKeyAsync(Guid organizationId, Guid id, Guid userId, CancellationToken ct) {
         if (!await repository.RevokeApiKeyAsync(organizationId, id, ct)) throw new KeyNotFoundException("Chave de API não encontrada.");
         await audit.AddAsync(new AuditEntry(organizationId, userId, "api_key.revoked", "api_key", id.ToString(), "Chave de API revogada", "{}"));
     }
 
-    public CsvPreview PreviewCsv(string type, string csv)
-    {
+    public CsvPreview PreviewCsv(string type, string csv) {
         string[] types = ["companies", "users", "units", "departments", "surveys", "responses", "members", "respondents", "organization-structure"];
         if (!types.Contains(type)) throw new ValidationAppException("Tipo de importação inválido.");
         var lines = csv.Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -84,8 +77,7 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
         return new(type, rows, rows.Count(x => x.Errors.Count == 0), rows.Count(x => x.Errors.Count > 0), token);
     }
 
-    private static EnterpriseListQuery Normalize(EnterpriseListQuery q) => q with
-    {
+    private static EnterpriseListQuery Normalize(EnterpriseListQuery q) => q with {
         Search = Clean(q.Search),
         Status = Clean(q.Status)?.ToLowerInvariant(),
         Plan = Clean(q.Plan)?.ToLowerInvariant(),
@@ -95,10 +87,8 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
     };
 
     private static string? Clean(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
-    private static void ValidateOperationalItem(UpsertEnterpriseItemRequest item)
-    {
-        var statuses = item.Kind switch
-        {
+    private static void ValidateOperationalItem(UpsertEnterpriseItemRequest item) {
+        var statuses = item.Kind switch {
             "implementation" => new[] { "planned", "in_progress", "blocked", "homologation", "completed", "cancelled" },
             "production-checklist" => new[] { "pending", "in_progress", "completed", "blocked", "waived" },
             "backup" => new[] { "current", "delayed", "failed", "not_configured", "validating" },
@@ -106,8 +96,7 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
             _ => Array.Empty<string>()
         };
         if (statuses.Length > 0 && !statuses.Contains(item.Status)) throw new ValidationAppException("Status inválido para este módulo.");
-        if (item.Kind == "implementation")
-        {
+        if (item.Kind == "implementation") {
             string[] required = ["organizationId", "internalOwner", "clientOwner", "plan", "startDate", "targetDate", "steps"];
             if (required.Any(x => !item.Configuration.TryGetProperty(x, out _))) throw new ValidationAppException("Preencha empresa, responsáveis, plano, datas e etapas da implantação.");
             if (!item.Configuration.GetProperty("steps").EnumerateArray().Any()) throw new ValidationAppException("A implantação precisa conter etapas.");
@@ -117,8 +106,7 @@ public sealed class EnterpriseService(IEnterpriseRepository repository, IAuditRe
         if (item.Kind == "backup" && item.Configuration.TryGetProperty("providerSecret", out _))
             throw new ValidationAppException("Segredos de backup devem ser configurados no provedor de infraestrutura, nunca nesta tela.");
     }
-    private static string ValidateKind(string kind) => kind.Trim().ToLowerInvariant() switch
-    {
+    private static string ValidateKind(string kind) => kind.Trim().ToLowerInvariant() switch {
         "plan" or "subscription" or "integration" or "webhook" or "powerbi-dataset" or "one-on-one" or "benchmark-run" or "import-batch" or "template" or "alert" or "automation" or "branding"
         or "implementation" or "production-checklist" or "backup" or "release-note" or "data-quality"
         or "permission-governance" or "plan-governance" or "lgpd-request" => kind.Trim().ToLowerInvariant(),

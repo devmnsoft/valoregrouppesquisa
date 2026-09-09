@@ -5,11 +5,9 @@ using Xunit;
 namespace Valora.Tests;
 
 [Trait("Category", "Unit")]
-public sealed class ResultLifecycleServicesTests
-{
+public sealed class ResultLifecycleServicesTests {
     [Fact]
-    public void LowSampleProducesInsufficientResultWithoutInventingScore()
-    {
+    public void LowSampleProducesInsufficientResultWithoutInventingScore() {
         var result = CreateService().Calculate(Answers(), 2, 3, true, "valora-2.0", "test-correlation",
             DateTimeOffset.Parse("2026-09-03T12:00:00Z"));
 
@@ -21,8 +19,7 @@ public sealed class ResultLifecycleServicesTests
     }
 
     [Fact]
-    public void CalculationIsDeterministicAndKeepsTraceableSnapshot()
-    {
+    public void CalculationIsDeterministicAndKeepsTraceableSnapshot() {
         var service = CreateService();
         var at = DateTimeOffset.Parse("2026-09-03T12:00:00Z");
         var first = service.Calculate(Answers(), 3, 3, false, "valora-2.0", "c-1", at);
@@ -37,8 +34,7 @@ public sealed class ResultLifecycleServicesTests
     }
 
     [Fact]
-    public void PublishedResultRequiresANewVersionToRecalculate()
-    {
+    public void PublishedResultRequiresANewVersionToRecalculate() {
         var publication = new ResultPublicationService();
         var calculated = CreateService().Calculate(Answers(), 3, 3, false, "valora-2.0", "c-1");
         var published = publication.Publish(calculated);
@@ -50,8 +46,7 @@ public sealed class ResultLifecycleServicesTests
     }
 
     [Fact]
-    public void InsufficientResultCannotBePublished()
-    {
+    public void InsufficientResultCannotBePublished() {
         var result = CreateService().Calculate(Answers(), 0, 3, true, "valora-2.0", "c-1");
         Assert.Throws<InvalidOperationException>(() => new ResultPublicationService().Publish(result));
     }

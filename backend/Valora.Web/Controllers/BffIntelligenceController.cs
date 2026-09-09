@@ -7,12 +7,10 @@ namespace Valora.Web.Controllers;
 
 /// <summary>Typed same-origin gateway for every dedicated intelligence workspace.</summary>
 [Authorize, ApiController, AutoValidateAntiforgeryToken, Route("bff/intelligence")]
-public sealed class BffIntelligenceController(IBffApiClient api, BffAuthenticationService authentication) : ControllerBase
-{
+public sealed class BffIntelligenceController(IBffApiClient api, BffAuthenticationService authentication) : ControllerBase {
     [AcceptVerbs("GET", "POST", "PATCH", "DELETE")]
     [Route("{**resource}")]
-    public async Task<IActionResult> Forward(string? resource, CancellationToken ct)
-    {
+    public async Task<IActionResult> Forward(string? resource, CancellationToken ct) {
         var session = await authentication.GetAsync(HttpContext, ct);
         if (session is null) return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou. Entre novamente.", correlationId = HttpContext.TraceIdentifier });
 

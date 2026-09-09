@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record RolePermission
-{
+public sealed record RolePermission {
     public Guid Id { get; init; }
     public Guid RoleId { get; init; }
     public Guid PermissionId { get; init; }

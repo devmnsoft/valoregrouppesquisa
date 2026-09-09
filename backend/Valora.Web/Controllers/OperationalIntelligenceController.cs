@@ -4,8 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Valora.Web.Controllers;
 
 [Authorize]
-public sealed class OperationalIntelligenceController : Controller
-{
+public sealed class OperationalIntelligenceController : Controller {
     [HttpGet("Comparativos")]
     [HttpGet("OperationalIntelligence/Comparisons")]
     public IActionResult Comparisons() => View();

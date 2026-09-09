@@ -9,8 +9,7 @@ namespace Valora.Infrastructure.Repositories;
 
 public sealed class AuditRepository(
     IDbConnectionFactory connectionFactory,
-    ILogger<AuditRepository> logger) : IAuditRepository
-{
+    ILogger<AuditRepository> logger) : IAuditRepository {
     private const string InsertSql = """
         INSERT INTO valorapesquisa.audit_logs
             (organization_id, user_id, action, entity_type, entity_id, message,
@@ -23,21 +22,18 @@ public sealed class AuditRepository(
 
     public Task AddAsync(AuditEntry entry) => LogAsync(entry);
 
-    public async Task LogAsync(AuditEntry entry, IDbTransaction? transaction = null)
-    {
+    public async Task LogAsync(AuditEntry entry, IDbTransaction? transaction = null) {
         ArgumentNullException.ThrowIfNull(entry);
         ValidateMetadata(entry.MetadataJson);
 
-        try
-        {
+        try {
             var command = new CommandDefinition(
                 InsertSql,
                 entry,
                 transaction,
                 cancellationToken: CancellationToken.None);
 
-            if (transaction?.Connection is not null)
-            {
+            if (transaction?.Connection is not null) {
                 await transaction.Connection.ExecuteAsync(command);
                 return;
             }
@@ -45,8 +41,7 @@ public sealed class AuditRepository(
             using var connection = connectionFactory.Create();
             await connection.ExecuteAsync(command);
         }
-        catch (Exception exception)
-        {
+        catch (Exception exception) {
             logger.LogError(
                 exception,
                 "Failed to append business audit. Action={Action} EntityType={EntityType} EntityId={EntityId} CorrelationId={CorrelationId}",
@@ -58,8 +53,7 @@ public sealed class AuditRepository(
         }
     }
 
-    public async Task<IReadOnlyList<dynamic>> ListAdminAsync(Guid organizationId, int limit = 100)
-    {
+    public async Task<IReadOnlyList<dynamic>> ListAdminAsync(Guid organizationId, int limit = 100) {
         const string sql = """
             SELECT id,
                    organization_id AS OrganizationId,
@@ -82,8 +76,7 @@ public sealed class AuditRepository(
             """;
 
         var safeLimit = Math.Clamp(limit, 1, 500);
-        try
-        {
+        try {
             using var connection = connectionFactory.Create();
             var command = new CommandDefinition(
                 sql,
@@ -91,8 +84,7 @@ public sealed class AuditRepository(
                 cancellationToken: CancellationToken.None);
             return (await connection.QueryAsync(command)).AsList();
         }
-        catch (Exception exception)
-        {
+        catch (Exception exception) {
             logger.LogError(
                 exception,
                 "Failed to list append-only audit. OrganizationId={OrganizationId}",
@@ -101,11 +93,9 @@ public sealed class AuditRepository(
         }
     }
 
-    private static void ValidateMetadata(string metadataJson)
-    {
+    private static void ValidateMetadata(string metadataJson) {
         using var document = JsonDocument.Parse(metadataJson);
-        if (document.RootElement.ValueKind != JsonValueKind.Object)
-        {
+        if (document.RootElement.ValueKind != JsonValueKind.Object) {
             throw new ArgumentException("Audit metadata must be a JSON object.", nameof(metadataJson));
         }
     }

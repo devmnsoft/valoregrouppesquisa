@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed record ImportLog
-{
+public sealed record ImportLog {
     public Guid Id { get; init; } = Guid.NewGuid();
     public Guid MigrationBatchId { get; init; }
     public string EntityType { get; init; } = string.Empty;

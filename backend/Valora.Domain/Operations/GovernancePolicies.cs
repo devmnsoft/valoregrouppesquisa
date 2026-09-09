@@ -1,7 +1,6 @@
 namespace Valora.Domain.Operations;
 
-public static class GovernanceCatalog
-{
+public static class GovernanceCatalog {
     public static readonly string[] ImplementationSteps =
     [
         "Cadastro da empresa", "Validação de CNPJ e dados", "Configuração de plano",
@@ -22,18 +21,15 @@ public static class GovernanceCatalog
     ];
 }
 
-public static class AnonymityPolicy
-{
+public static class AnonymityPolicy {
     public const string InsufficientDataMessage = "Não há respostas suficientes para exibir este recorte sem comprometer o anonimato.";
     public static bool CanExposeSegment(bool anonymous, int responseCount, int minimumResponses = 5) =>
         !anonymous || responseCount >= Math.Max(3, minimumResponses);
     public static bool CanExposeIndividual(bool anonymous) => !anonymous;
 }
 
-public static class BackupFreshnessPolicy
-{
-    public static string Resolve(DateTime? lastSuccessfulAt, int maximumAgeHours, bool lastAttemptFailed, DateTime utcNow)
-    {
+public static class BackupFreshnessPolicy {
+    public static string Resolve(DateTime? lastSuccessfulAt, int maximumAgeHours, bool lastAttemptFailed, DateTime utcNow) {
         if (maximumAgeHours <= 0) return "not_configured";
         if (lastAttemptFailed) return "failed";
         if (lastSuccessfulAt is null) return "not_configured";
@@ -41,10 +37,8 @@ public static class BackupFreshnessPolicy
     }
 }
 
-public static class MigrationSafetyPolicy
-{
-    public static IReadOnlyList<string> Validate(string type, IReadOnlyDictionary<string, string> values)
-    {
+public static class MigrationSafetyPolicy {
+    public static IReadOnlyList<string> Validate(string type, IReadOnlyDictionary<string, string> values) {
         var errors = new List<string>();
         if (!values.TryGetValue("nome", out var name) || string.IsNullOrWhiteSpace(name)) errors.Add("Nome é obrigatório.");
         if (values.TryGetValue("email", out var email) && email.Length > 0 && (!email.Contains('@') || email.Length > 254)) errors.Add("E-mail inválido.");

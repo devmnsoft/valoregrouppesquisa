@@ -7,10 +7,8 @@ public sealed class NavigationService(
     NavigationCatalog catalog,
     BffAuthenticationService authentication,
     INavigationRouteResolver routes,
-    IWebHostEnvironment environment)
-{
-    public async Task<NavigationViewModel> BuildAsync(HttpContext httpContext, CancellationToken cancellationToken = default)
-    {
+    IWebHostEnvironment environment) {
+    public async Task<NavigationViewModel> BuildAsync(HttpContext httpContext, CancellationToken cancellationToken = default) {
         var session = await authentication.GetAsync(httpContext, cancellationToken);
         var roles = Set(session?.SafeSession.AccessContext.Roles, Claims(httpContext, ClaimTypes.Role));
         if (!string.IsNullOrWhiteSpace(session?.SafeSession.User.Role))
@@ -30,8 +28,7 @@ public sealed class NavigationService(
         var currentPath = NormalizePath(httpContext.Request.Path.Value);
         var visible = catalog.Sections
             .OrderBy(navigationSection => navigationSection.Order)
-            .Select(navigationSection => new
-            {
+            .Select(navigationSection => new {
                 Section = navigationSection,
                 Items = navigationSection.Items.OrderBy(item => item.Order)
                     .Select(item => (Item: item, Url: routes.Resolve(item.Destination)))
@@ -48,8 +45,7 @@ public sealed class NavigationService(
             .Select(resolved => resolved.Item.Code)
             .FirstOrDefault();
 
-        var sections = visible.Select(resolvedSection =>
-        {
+        var sections = visible.Select(resolvedSection => {
             var items = resolvedSection.Items.Select(resolved => new NavigationItemViewModel(
                 resolved.Item.Code, resolved.Item.Label, resolved.Item.Description, resolved.Url!, resolved.Item.Icon,
                 resolved.Item.Badge, resolved.Item.Code == activeCode)).ToArray();
@@ -62,23 +58,20 @@ public sealed class NavigationService(
             session is not null && context.OrganizationName is not null, correlationId, environment.IsDevelopment());
     }
 
-    public static bool Matches(string? requestPath, string destination)
-    {
+    public static bool Matches(string? requestPath, string destination) {
         var current = NormalizePath(requestPath);
         var target = NormalizePath(destination);
         return current.Equals(target, StringComparison.OrdinalIgnoreCase)
             || (target != "/" && current.StartsWith(target + "/", StringComparison.OrdinalIgnoreCase));
     }
 
-    private static string NormalizePath(string? value)
-    {
+    private static string NormalizePath(string? value) {
         if (string.IsNullOrWhiteSpace(value)) return "/";
         var path = value.Split('?', '#')[0].TrimEnd('/');
         return string.IsNullOrEmpty(path) ? "/" : path.StartsWith('/') ? path : "/" + path;
     }
 
-    private static bool IsVisible(NavigationItem item, NavigationContext context)
-    {
+    private static bool IsVisible(NavigationItem item, NavigationContext context) {
         if (!item.Roles.Overlaps(context.Roles)) return false;
         // A platform administrator owns the global catalog. It must remain possible
         // to enter an organization-scoped area and select its context there.

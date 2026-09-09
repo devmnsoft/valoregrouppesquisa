@@ -1,7 +1,6 @@
 namespace Valora.Api.Configuration;
 
-public sealed class FreeSurveySecurityOptions
-{
+public sealed class FreeSurveySecurityOptions {
     public bool Enabled { get; set; } = true;
     public int MaxSubmissionsPerIpPerHour { get; set; } = 20;
     public int MaxSubmissionsPerEmailPerDay { get; set; } = 3;

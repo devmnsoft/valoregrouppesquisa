@@ -2,8 +2,7 @@ using Valora.Application.Heatmap;
 
 namespace Valora.Tests;
 
-public sealed class HeatmapCalculationServiceTests
-{
+public sealed class HeatmapCalculationServiceTests {
     [Theory]
     [InlineData(90, "excelente")]
     [InlineData(70, "saudável")]
@@ -13,5 +12,5 @@ public sealed class HeatmapCalculationServiceTests
     public void Level_uses_official_visual_scale(decimal score, string expected) =>
         Assert.Equal(expected, HeatmapCalculationService.Level(score, HeatmapCalculationService.MinimumSample));
 
-  
+
 }

@@ -5,14 +5,12 @@ using Valora.Api.Configuration;
 namespace Valora.Tests.Auth;
 
 [Trait("Category", "Unit")]
-public sealed class JwtConfigurationTests
-{
+public sealed class JwtConfigurationTests {
     public static TheoryData<string?> InvalidKeys => new() { null, "", "   ", "fake-key-with-fewer-than-32" };
 
     [Theory]
     [MemberData(nameof(InvalidKeys))]
-    public void AddJwtAuthentication_WhenSigningKeyIsInvalid_ReturnsSanitizedConfigurationError(string? signingKey)
-    {
+    public void AddJwtAuthentication_WhenSigningKeyIsInvalid_ReturnsSanitizedConfigurationError(string? signingKey) {
         var configuration = Configuration(signingKey);
 
         var error = Assert.Throws<InvalidOperationException>(() =>
@@ -23,8 +21,7 @@ public sealed class JwtConfigurationTests
     }
 
     [Fact]
-    public void AddJwtAuthentication_WhenSigningKeyHas32Characters_RegistersAuthentication()
-    {
+    public void AddJwtAuthentication_WhenSigningKeyHas32Characters_RegistersAuthentication() {
         var services = new ServiceCollection();
 
         var returned = services.AddJwtAuthentication(Configuration(new string('x', 32)));
@@ -35,8 +32,7 @@ public sealed class JwtConfigurationTests
     }
 
     private static IConfiguration Configuration(string? signingKey) =>
-        new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
-        {
+        new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> {
             ["Jwt:SigningKey"] = signingKey,
             ["Jwt:Issuer"] = "Valora.Tests",
             ["Jwt:Audience"] = "Valora.Tests"

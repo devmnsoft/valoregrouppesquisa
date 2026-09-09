@@ -2,35 +2,29 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
-using Valora.Web.Models;
 using Valora.Application.Common;
+using Valora.Web.Models;
 
 namespace Valora.Web.Services.Bff;
 
-public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> options, ICurrentOrganizationProvider organizationProvider, ILogger<BffApiClient> logger) : IBffApiClient
-{
+public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> options, ICurrentOrganizationProvider organizationProvider, ILogger<BffApiClient> logger) : IBffApiClient {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public async Task CheckHealthAsync(CancellationToken cancellationToken)
-    {
-        try
-        {
+    public async Task CheckHealthAsync(CancellationToken cancellationToken) {
+        try {
             using var response = await httpClient.GetAsync("/health", cancellationToken);
             await EnsureSuccessAsync(response, cancellationToken);
         }
-        catch (Exception exception) when (IsConnectivityFailure(exception, cancellationToken))
-        {
+        catch (Exception exception) when (IsConnectivityFailure(exception, cancellationToken)) {
             throw new BffApiUnavailableException(options.Value.BaseUrl, exception);
         }
     }
 
-    public async Task<JsonElement> GetHealthAsync(string path, string correlationId, CancellationToken cancellationToken)
-    {
+    public async Task<JsonElement> GetHealthAsync(string path, string correlationId, CancellationToken cancellationToken) {
         if (!path.StartsWith("/health", StringComparison.Ordinal))
             throw new ArgumentException("Somente endpoints de saude podem ser consultados sem uma sessao.", nameof(path));
 
-        try
-        {
+        try {
             using var request = new HttpRequestMessage(HttpMethod.Get, path);
             request.Headers.TryAddWithoutValidation("X-Correlation-Id", correlationId);
             using var response = await httpClient.SendAsync(request, cancellationToken);
@@ -38,18 +32,14 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
             using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
             return document.RootElement.Clone();
         }
-        catch (Exception exception) when (IsConnectivityFailure(exception, cancellationToken))
-        {
+        catch (Exception exception) when (IsConnectivityFailure(exception, cancellationToken)) {
             throw new BffApiUnavailableException(options.Value.BaseUrl, exception);
         }
     }
 
-    public async Task<BffAuthenticationResult> PostAuthenticationAsync(string path, object request, string correlationId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            using var message = new HttpRequestMessage(HttpMethod.Post, path)
-            {
+    public async Task<BffAuthenticationResult> PostAuthenticationAsync(string path, object request, string correlationId, CancellationToken cancellationToken) {
+        try {
+            using var message = new HttpRequestMessage(HttpMethod.Post, path) {
                 Content = JsonContent.Create(request, options: JsonOptions)
             };
             message.Headers.TryAddWithoutValidation("X-Correlation-Id", correlationId);
@@ -58,8 +48,7 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
             return await response.Content.ReadFromJsonAsync<BffAuthenticationResult>(JsonOptions, cancellationToken)
                 ?? throw new HttpRequestException("A API retornou uma resposta de autenticação vazia.");
         }
-        catch (Exception exception) when (IsConnectivityFailure(exception, cancellationToken))
-        {
+        catch (Exception exception) when (IsConnectivityFailure(exception, cancellationToken)) {
             throw new BffApiUnavailableException(options.Value.BaseUrl, exception);
         }
     }
@@ -69,10 +58,8 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
         || exception is TimeoutException
         || exception is TaskCanceledException && !requestCancellation.IsCancellationRequested;
 
-    public async Task PostAsync(string path, object? request, string? bearer, CancellationToken cancellationToken)
-    {
-        using var message = new HttpRequestMessage(HttpMethod.Post, path)
-        {
+    public async Task PostAsync(string path, object? request, string? bearer, CancellationToken cancellationToken) {
+        using var message = new HttpRequestMessage(HttpMethod.Post, path) {
             Content = request is null ? null : JsonContent.Create(request, options: JsonOptions)
         };
         if (!string.IsNullOrWhiteSpace(bearer)) message.Headers.Authorization = new("Bearer", bearer);
@@ -80,10 +67,8 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
         await EnsureSuccessAsync(response, cancellationToken);
     }
 
-    public async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? request, string bearer, string correlationId, CancellationToken cancellationToken)
-    {
-        var message = new HttpRequestMessage(method, path)
-        {
+    public async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? request, string bearer, string correlationId, CancellationToken cancellationToken) {
+        var message = new HttpRequestMessage(method, path) {
             Content = request is null ? null : JsonContent.Create(request, options: JsonOptions)
         };
         if (!string.IsNullOrWhiteSpace(bearer)) message.Headers.Authorization = new("Bearer", bearer);
@@ -91,33 +76,28 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
         var organization = organizationProvider.GetCurrent();
         if (organization.IsResolved)
             message.Headers.TryAddWithoutValidation("X-Organization-Id", organization.RequireOrganizationId().ToString());
-        try
-        {
+        try {
             return await httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         }
-        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested)
-        {
+        catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested) {
             message.Dispose();
             logger.LogWarning(exception, "Timeout ao acessar a API pelo BFF. Method={Method} Path={Path} CorrelationId={CorrelationId}", method, path, correlationId);
             throw new BffApiUnavailableException(options.Value.BaseUrl, exception);
         }
-        catch (HttpRequestException exception) when (exception.StatusCode is null)
-        {
+        catch (HttpRequestException exception) when (exception.StatusCode is null) {
             message.Dispose();
             logger.LogWarning(exception, "API indisponível para o BFF. Method={Method} Path={Path} CorrelationId={CorrelationId}", method, path, correlationId);
             throw new BffApiUnavailableException(options.Value.BaseUrl, exception);
         }
     }
 
-    private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken)
-    {
+    private static async Task EnsureSuccessAsync(HttpResponseMessage response, CancellationToken cancellationToken) {
         if (response.IsSuccessStatusCode) return;
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
         var headerCorrelationId = response.Headers.TryGetValues("X-Correlation-Id", out var correlationValues)
             ? correlationValues.FirstOrDefault()
             : null;
-        try
-        {
+        try {
             using var document = JsonDocument.Parse(content);
             var root = document.RootElement;
             var code = ReadString(root, "code") ?? ReadString(root, "error");
@@ -129,14 +109,12 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
                 message ?? "Não foi possível concluir a solicitação.",
                 correlationId);
         }
-        catch (JsonException)
-        {
+        catch (JsonException) {
             throw new BffApiException(response.StatusCode, "API_ERROR", "Não foi possível concluir a solicitação.", headerCorrelationId);
         }
     }
 
-    private static string? ReadString(JsonElement root, string propertyName)
-    {
+    private static string? ReadString(JsonElement root, string propertyName) {
         if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty(propertyName, out var value)) return null;
         return value.ValueKind == JsonValueKind.String ? value.GetString() : null;
     }

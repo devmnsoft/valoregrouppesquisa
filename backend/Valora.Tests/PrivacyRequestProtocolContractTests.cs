@@ -1,16 +1,14 @@
-using Xunit;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Api.Controllers;
 using Valora.Application.DTOs;
+using Xunit;
 
 namespace Valora.Tests;
 
 [Trait("Category", "Unit")]
-public sealed class PrivacyRequestProtocolContractTests
-{
+public sealed class PrivacyRequestProtocolContractTests {
     [Fact]
-    public void Privacy_requests_use_public_protocol_not_raw_identifier()
-    {
+    public void Privacy_requests_use_public_protocol_not_raw_identifier() {
         var protocolProperty = typeof(PrivacyRequestDto).GetProperty(nameof(PrivacyRequestDto.Protocol));
         Assert.NotNull(protocolProperty);
         Assert.Equal(typeof(string), protocolProperty.PropertyType);

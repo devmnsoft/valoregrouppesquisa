@@ -1,12 +1,11 @@
 using System.Text.RegularExpressions;
-using Xunit;
 using Valora.Tests.Support;
+using Xunit;
 
 namespace Valora.Tests;
 
 [Trait("Category", "StaticContract")]
-public sealed class OfficialBackendConsolidationTests
-{
+public sealed class OfficialBackendConsolidationTests {
     private static string Root => RepositoryPaths.RepositoryRoot;
     private static string Read(string relative) => File.ReadAllText(Path.Combine(Root, relative));
     private static IEnumerable<string> Files(string relative, string pattern) => Directory.Exists(Path.Combine(Root, relative))
@@ -14,15 +13,13 @@ public sealed class OfficialBackendConsolidationTests
         : Enumerable.Empty<string>();
 
     [Fact]
-    public void OfficialSolutionIsBackendValoraSln()
-    {
+    public void OfficialSolutionIsBackendValoraSln() {
         Assert.True(File.Exists(Path.Combine(Root, "backend/Valora.sln")));
         Assert.True(File.Exists(RepositoryPaths.CanonicalDatabaseScript));
     }
 
     [Fact]
-    public void PackageHasOfficialValidatorAndDoesNotMoveOfficialBuildToBackendV2()
-    {
+    public void PackageHasOfficialValidatorAndDoesNotMoveOfficialBuildToBackendV2() {
         var packageJson = Read("package.json");
         Assert.Contains("repository:boundaries", packageJson);
         Assert.Contains("security:check", packageJson);
@@ -32,8 +29,7 @@ public sealed class OfficialBackendConsolidationTests
     }
 
     [Fact]
-    public void ApiAndWebDoNotExposeSensitiveHashNamesInContractsOrUi()
-    {
+    public void ApiAndWebDoNotExposeSensitiveHashNamesInContractsOrUi() {
         var files = Files("backend/Valora.Api", "*.cs")
             .Concat(Files("backend/Valora.Application/DTOs", "*.cs"))
             .Concat(Files("backend/Valora.Web", "*.cshtml"))
@@ -44,10 +40,8 @@ public sealed class OfficialBackendConsolidationTests
     }
 
     [Fact]
-    public void RequiredOfficialDomainEntitiesExist()
-    {
-        foreach (var entity in new[] { "OrganizationSettings", "OrganizationBranding", "UserProfile", "Role", "Permission", "RolePermission", "Module", "OrganizationModule", "SurveyInvite", "SurveyParticipant", "Response" })
-        {
+    public void RequiredOfficialDomainEntitiesExist() {
+        foreach (var entity in new[] { "OrganizationSettings", "OrganizationBranding", "UserProfile", "Role", "Permission", "RolePermission", "Module", "OrganizationModule", "SurveyInvite", "SurveyParticipant", "Response" }) {
             Assert.True(File.Exists(Path.Combine(Root, $"backend/Valora.Domain/Entities/{entity}.cs")), $"Missing {entity}");
         }
     }

@@ -11,21 +11,18 @@ public sealed record CreateSaasCustomerRequest(
     [property: Required, StringLength(60)] string PlanCode,
     Guid OrganizationId);
 
-public interface ISaasCustomerRepository
-{
+public interface ISaasCustomerRepository {
     Task<IReadOnlyList<SaasCustomerDto>> ListAsync(CancellationToken cancellationToken);
     Task<SaasCustomerDto?> GetAsync(Guid id, CancellationToken cancellationToken);
     Task<SaasCustomerDto> CreateAsync(Guid id, CreateSaasCustomerRequest request, string normalizedTaxId, CancellationToken cancellationToken);
     Task<bool> SetBlockedAsync(Guid id, bool blocked, Guid actorUserId, string reason, string correlationId, CancellationToken cancellationToken);
 }
 
-public sealed class SaasCustomerService(ISaasCustomerRepository repository, ILogger<SaasCustomerService> logger)
-{
+public sealed class SaasCustomerService(ISaasCustomerRepository repository, ILogger<SaasCustomerService> logger) {
     public Task<IReadOnlyList<SaasCustomerDto>> ListAsync(CancellationToken cancellationToken) => repository.ListAsync(cancellationToken);
     public Task<SaasCustomerDto?> GetAsync(Guid id, CancellationToken cancellationToken) => repository.GetAsync(RequiredId(id, nameof(id)), cancellationToken);
 
-    public async Task<SaasCustomerDto> CreateAsync(CreateSaasCustomerRequest request, CancellationToken cancellationToken)
-    {
+    public async Task<SaasCustomerDto> CreateAsync(CreateSaasCustomerRequest request, CancellationToken cancellationToken) {
         RequiredId(request.OrganizationId, nameof(request.OrganizationId));
         Validator.ValidateObject(request, new ValidationContext(request), true);
         var taxId = NormalizeTaxId(request.TaxId);
@@ -35,8 +32,7 @@ public sealed class SaasCustomerService(ISaasCustomerRepository repository, ILog
         return customer;
     }
 
-    public async Task<bool> SetBlockedAsync(Guid id, bool blocked, Guid actorUserId, string reason, string correlationId, CancellationToken cancellationToken)
-    {
+    public async Task<bool> SetBlockedAsync(Guid id, bool blocked, Guid actorUserId, string reason, string correlationId, CancellationToken cancellationToken) {
         RequiredId(id, nameof(id)); RequiredId(actorUserId, nameof(actorUserId));
         if (string.IsNullOrWhiteSpace(reason)) throw new ValidationException("Informe o motivo da alteração de acesso.");
         var changed = await repository.SetBlockedAsync(id, blocked, actorUserId, reason.Trim(), correlationId, cancellationToken);

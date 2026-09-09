@@ -14,12 +14,3 @@ $root = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSCommandPat
 $bootstrap = Join-Path $root "database/postgresql/script_completo.sql"
 & psql $ConnectionString -v ON_ERROR_STOP=1 -f $bootstrap
 if ($LASTEXITCODE -ne 0) { throw "Falha ao aplicar script_completo.sql." }
-
-if ($env:VALORA_SEED_DEMO -eq "true") {
-    if ($env:ASPNETCORE_ENVIRONMENT -ne "Development") {
-        throw "VALORA_SEED_DEMO só pode ser usado com ASPNETCORE_ENVIRONMENT=Development."
-    }
-    & psql $ConnectionString -v ON_ERROR_STOP=1 -f (Join-Path $root "database/postgresql/seeds/seed_demo.sql")
-    if ($LASTEXITCODE -ne 0) { throw "Falha ao aplicar seed_demo.sql." }
-    Write-Host "Massa demo local aplicada. Login: admin.demo@valora.local"
-}

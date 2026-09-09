@@ -2,8 +2,7 @@ using System.Text.Json;
 
 namespace Valora.Application.OrganizationalIntelligence;
 
-public static class BenchmarkLimits
-{
+public static class BenchmarkLimits {
     public const string ExternalUnavailable = "Benchmark externo indisponível por amostra insuficiente.";
 }
 
@@ -26,8 +25,7 @@ public sealed record GenerateBenchmarkRequest(Guid SurveyId, Guid? ResultId = nu
 public sealed record CompareBenchmarkRequest(Guid BaseSnapshotId, Guid? ComparedSnapshotId = null,
     string ComparisonType = "historical");
 
-public interface IBenchmarkRepository
-{
+public interface IBenchmarkRepository {
     Task<BenchmarkSettings> SettingsAsync(Guid organizationId, CancellationToken ct);
     Task<IReadOnlyList<BenchmarkSnapshotDto>> ListAsync(Guid organizationId, CancellationToken ct);
     Task<BenchmarkSnapshotDto?> GetAsync(Guid organizationId, Guid id, CancellationToken ct);
@@ -36,8 +34,7 @@ public interface IBenchmarkRepository
     Task SaveSettingsAsync(Guid organizationId, BenchmarkSettings settings, CancellationToken ct);
 }
 
-public interface IBenchmarkManagementService
-{
+public interface IBenchmarkManagementService {
     Task<BenchmarkDashboardDto> DashboardAsync(Guid organizationId, CancellationToken ct);
     Task<BenchmarkSnapshotDto?> GetAsync(Guid organizationId, Guid id, CancellationToken ct);
     Task<BenchmarkSnapshotDto> GenerateAsync(Guid organizationId, GenerateBenchmarkRequest request, CancellationToken ct);

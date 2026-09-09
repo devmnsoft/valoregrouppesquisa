@@ -1,7 +1,6 @@
 namespace Valora.Domain.Entities;
 
-public sealed class GeneratedReport
-{
+public sealed class GeneratedReport {
     public Guid Id { get; set; }
     public Guid OrganizationId { get; set; }
     public Guid? SurveyId { get; set; }

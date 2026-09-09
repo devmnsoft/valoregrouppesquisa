@@ -3,11 +3,9 @@ using System.Text.RegularExpressions;
 namespace Valora.Tests;
 
 [Trait("Category", "StaticContract")]
-public sealed partial class RawStringCompilationContractTests
-{
+public sealed partial class RawStringCompilationContractTests {
     [Fact]
-    public void InterpolatedMultilineRawStringsStartTheirContentOnTheNextLine()
-    {
+    public void InterpolatedMultilineRawStringsStartTheirContentOnTheNextLine() {
         var backend = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "../../../../../"));
         var violations = Directory
             .EnumerateFiles(backend, "*.cs", SearchOption.AllDirectories)

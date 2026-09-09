@@ -1,16 +1,16 @@
+using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Valora.Application.Contracts;
-using Valora.Application.Security;
-using Valora.Application.DTOs;
-using Valora.Domain.ValueObjects;
-using Valora.Application.CompanyRegistration;
-using Valora.Application.Exceptions;
 using Valora.Application.Access;
-using System.ComponentModel.DataAnnotations;
+using Valora.Application.CompanyRegistration;
+using Valora.Application.Contracts;
+using Valora.Application.DTOs;
+using Valora.Application.Exceptions;
+using Valora.Application.Security;
+using Valora.Domain.ValueObjects;
 
 namespace Valora.Application.Services;
 
@@ -26,10 +26,8 @@ public sealed class AuthService(
     IOptions<AuthenticationOptions> authenticationOptions,
     ILogger<AuthService> logger,
     RegisterCompanyHandler companyRegistration,
-    IAccessAdministrationService? accessAdministration = null)
-{
-    public async Task<AuthenticationResult> RegisterCompanyAsync(RegisterCompanyRequest request)
-    {
+    IAccessAdministrationService? accessAdministration = null) {
+    public async Task<AuthenticationResult> RegisterCompanyAsync(RegisterCompanyRequest request) {
         var passwordValidation = passwordPolicy.Validate(request.Password, request.AdministratorEmail, request.CompanyName);
         if (!passwordValidation.IsValid) throw new ArgumentException(string.Join(" ", passwordValidation.Errors));
 
@@ -48,15 +46,13 @@ public sealed class AuthService(
             await ResolveAccessContextAsync(registration.OrganizationId, registration.UserId, ["empresa_admin"], selectedPlanCode));
     }
 
-    public async Task<AuthenticationResult> LoginAsync(LoginRequest request)
-    {
+    public async Task<AuthenticationResult> LoginAsync(LoginRequest request) {
         var maskedIdentifier = request.Email?.Contains('@') == true
             ? LogSanitizer.MaskEmail(request.Email)
             : LogSanitizer.MaskDocument(request.Email);
         logger.LogInformation("Login started. Identifier={Identifier}", maskedIdentifier);
 
-        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password))
-        {
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Password)) {
             await RecordRejectedLoginAsync("invalid_request", null, null);
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
@@ -64,57 +60,49 @@ public sealed class AuthService(
         var (identifierType, normalizedIdentifier) = NormalizeLoginIdentifier(request.Email);
         var maskedEmail = LogSanitizer.MaskEmail(request.Email);
         var user = await users.GetByLoginAsync(identifierType, normalizedIdentifier);
-        if (user is null)
-        {
+        if (user is null) {
             logger.LogWarning("Login rejected: user not found. Email={Email}", maskedEmail);
             await RecordRejectedLoginAsync("invalid_credentials", null, null);
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
-        if (user.DeletedAt is not null)
-        {
+        if (user.DeletedAt is not null) {
             logger.LogWarning("Login rejected: user deleted. Email={Email}", maskedEmail);
             await RecordRejectedLoginAsync("invalid_credentials", user.OrganizationId, user.Id);
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
-        if (!string.Equals(user.Status, "active", StringComparison.OrdinalIgnoreCase))
-        {
+        if (!string.Equals(user.Status, "active", StringComparison.OrdinalIgnoreCase)) {
             logger.LogWarning("Login rejected: user inactive. Email={Email} Status={Status}", maskedEmail, user.Status);
             await RecordAuthenticationEventSafelyAsync(user.OrganizationId, user.Id, "auth.login_failed", "inactive_user");
             throw new InactiveUserException();
         }
 
-        if (string.IsNullOrWhiteSpace(user.PasswordHash) || !IsBcryptHash(user.PasswordHash))
-        {
+        if (string.IsNullOrWhiteSpace(user.PasswordHash) || !IsBcryptHash(user.PasswordHash)) {
             logger.LogWarning("Login rejected: password hash empty or incompatible. Email={Email}", maskedEmail);
             await RecordRejectedLoginAsync("invalid_credentials", user.OrganizationId, user.Id);
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
         var passwordMatches = VerifyPasswordSafely(request.Password, user.PasswordHash);
-        if (passwordMatches is null)
-        {
+        if (passwordMatches is null) {
             logger.LogWarning("Login rejected: password hash could not be verified. Email={Email}", maskedEmail);
             await RecordRejectedLoginAsync("invalid_credentials", user.OrganizationId, user.Id);
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
-        if (!passwordMatches.Value)
-        {
+        if (!passwordMatches.Value) {
             logger.LogWarning("Login rejected: invalid password. Email={Email}", maskedEmail);
             await RecordRejectedLoginAsync("invalid_credentials", user.OrganizationId, user.Id);
             throw new UnauthorizedAccessException("Credenciais inválidas.");
         }
 
-        if (user.RoleCodes.Count == 0)
-        {
+        if (user.RoleCodes.Count == 0) {
             logger.LogWarning("Login rejected: role missing. Email={Email}", maskedEmail);
             throw new OrganizationAccessNotConfiguredException();
         }
 
-        if (user.OrganizationId is null || user.OrganizationId == Guid.Empty)
-        {
+        if (user.OrganizationId is null || user.OrganizationId == Guid.Empty) {
             logger.LogWarning("Login rejected: organization missing. Email={Email}", maskedEmail);
             throw new OrganizationAccessNotConfiguredException();
         }
@@ -122,13 +110,11 @@ public sealed class AuthService(
         var organizationId = user.OrganizationId.Value;
 
         var organization = await organizations.GetAsync(organizationId);
-        if (organization is null)
-        {
+        if (organization is null) {
             logger.LogWarning("Login rejected: active organization missing. Email={Email} OrganizationId={OrganizationId}", maskedEmail, organizationId);
             throw new OrganizationAccessNotConfiguredException();
         }
-        if (!string.Equals(organization.Status, "active", StringComparison.OrdinalIgnoreCase))
-        {
+        if (!string.Equals(organization.Status, "active", StringComparison.OrdinalIgnoreCase)) {
             logger.LogWarning("Login rejected: organization inactive. OrganizationId={OrganizationId} Status={Status}", organizationId, organization.Status);
             await RecordAuthenticationEventSafelyAsync(organizationId, user.Id, "auth.login_failed", "inactive_organization");
             throw new InactiveOrganizationException();
@@ -139,8 +125,7 @@ public sealed class AuthService(
             logger.LogWarning("Login continuing with safe free fallback: active subscription missing. Email={Email} OrganizationId={OrganizationId}", maskedEmail, organizationId);
         planId ??= "free";
         var currentPlan = await plans.GetByIdAsync(planId);
-        if (currentPlan is null)
-        {
+        if (currentPlan is null) {
             logger.LogError("Login failed because the configured plan is unavailable. OrganizationId={OrganizationId} PlanCode={PlanCode}", organizationId, planId);
             throw new ApplicationConfigurationException($"Configured plan '{planId}' was not found or is inactive.");
         }
@@ -165,13 +150,11 @@ public sealed class AuthService(
             await ResolveAccessContextAsync(organizationId, user.Id, user.RoleCodes, planId));
     }
 
-    public async Task<AuthenticationResult> RefreshAsync(RefreshRequest request)
-    {
+    public async Task<AuthenticationResult> RefreshAsync(RefreshRequest request) {
         var tokens = await authenticationSessions.RefreshAsync(request.RefreshToken);
         var user = await users.GetAsync(tokens.UserId) ?? throw new UnauthorizedAccessException("Sessão inválida.");
         if (user.DeletedAt is not null || !string.Equals(user.Status, "active", StringComparison.OrdinalIgnoreCase)
-            || user.OrganizationId != tokens.OrganizationId)
-        {
+            || user.OrganizationId != tokens.OrganizationId) {
             await authenticationSessions.LogoutAllAsync(tokens.UserId);
             await RecordAuthenticationEventSafelyAsync(tokens.OrganizationId, tokens.UserId, "auth.session_revoked", "inactive_or_scope_changed");
             throw new UnauthorizedAccessException("Sessão inválida.");
@@ -190,15 +173,13 @@ public sealed class AuthService(
             await ResolveAccessContextAsync(tokens.OrganizationId, user.Id, user.RoleCodes, planId));
     }
 
-    public async Task LogoutAsync(Guid userId, LogoutRequest request)
-    {
+    public async Task LogoutAsync(Guid userId, LogoutRequest request) {
         await authenticationSessions.LogoutAsync(userId, request.RefreshToken);
         var user = await users.GetAsync(userId);
         await RecordAuthenticationEventSafelyAsync(user?.OrganizationId, userId, "auth.logout", "current_session");
     }
 
-    public async Task LogoutAllAsync(Guid userId)
-    {
+    public async Task LogoutAllAsync(Guid userId) {
         await authenticationSessions.LogoutAllAsync(userId);
         var user = await users.GetAsync(userId);
         await RecordAuthenticationEventSafelyAsync(user?.OrganizationId, userId, "auth.logout_all", "all_sessions");
@@ -207,14 +188,12 @@ public sealed class AuthService(
     public Task RevokeSessionAsync(Guid userId, Guid sessionId) => authenticationSessions.RevokeAsync(userId, sessionId);
 
 
-    public async Task ForgotPasswordAsync(ForgotPasswordRequest request, string? ipAddress = null, string? userAgent = null)
-    {
+    public async Task ForgotPasswordAsync(ForgotPasswordRequest request, string? ipAddress = null, string? userAgent = null) {
         var email = request.Email?.Trim() ?? string.Empty;
         logger.LogInformation("Password reset requested. Email={Email}", LogSanitizer.MaskEmail(email));
 
         var user = string.IsNullOrWhiteSpace(email) ? null : await users.GetByEmailAsync(email);
-        if (user is { DeletedAt: null } && string.Equals(user.Status, "active", StringComparison.OrdinalIgnoreCase))
-        {
+        if (user is { DeletedAt: null } && string.Equals(user.Status, "active", StringComparison.OrdinalIgnoreCase)) {
             var rawToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))
                 .Replace("+", "-").Replace("/", "_").TrimEnd('=');
             var tokenHash = HashToken(rawToken);
@@ -228,16 +207,13 @@ public sealed class AuthService(
         logger.LogInformation("Password reset request accepted. Email={Email}", LogSanitizer.MaskEmail(email));
     }
 
-    public async Task ResetPasswordAsync(ResetPasswordRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Token))
-        {
+    public async Task ResetPasswordAsync(ResetPasswordRequest request) {
+        if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Token)) {
             throw new ArgumentException("Solicitação de redefinição inválida.");
         }
 
         var passwordValidation = passwordPolicy.Validate(request.NewPassword, request.Email);
-        if (!passwordValidation.IsValid)
-        {
+        if (!passwordValidation.IsValid) {
             throw new ArgumentException(string.Join(" ", passwordValidation.Errors));
         }
 
@@ -247,8 +223,7 @@ public sealed class AuthService(
             throw new UnauthorizedAccessException("Token inválido ou expirado.");
         var token = await users.GetValidPasswordResetTokenAsync(HashToken(request.Token))
             ?? throw new UnauthorizedAccessException("Token inválido ou expirado.");
-        if (token.UserId != user.Id)
-        {
+        if (token.UserId != user.Id) {
             throw new UnauthorizedAccessException("Token inválido ou expirado.");
         }
 
@@ -259,8 +234,7 @@ public sealed class AuthService(
         logger.LogInformation("Password reset completed. UserId={UserId} Email={Email}", user.Id, LogSanitizer.MaskEmail(user.Email));
     }
 
-    private static void ValidateRegisterRequest(RegisterCompanyRequest request)
-    {
+    private static void ValidateRegisterRequest(RegisterCompanyRequest request) {
         if (!Cnpj.TryCreate(request.Cnpj, out _)
             || string.IsNullOrWhiteSpace(request.AdministratorEmail)
             || string.IsNullOrWhiteSpace(request.Password)
@@ -271,19 +245,16 @@ public sealed class AuthService(
             || string.IsNullOrWhiteSpace(request.TimeZone)
             || string.IsNullOrWhiteSpace(request.IdempotencyKey)
             || !request.AcceptedTerms
-            || !request.AcceptedPrivacyPolicy)
-        {
+            || !request.AcceptedPrivacyPolicy) {
             throw new ArgumentException("Dados de cadastro empresarial inválidos.");
         }
     }
 
     private static string HashToken(string token) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(token)));
 
-    private static (string Type, string Value) NormalizeLoginIdentifier(string value)
-    {
+    private static (string Type, string Value) NormalizeLoginIdentifier(string value) {
         var trimmed = value.Trim();
-        if (trimmed.Contains('@'))
-        {
+        if (trimmed.Contains('@')) {
             if (!new EmailAddressAttribute().IsValid(trimmed))
                 throw new ArgumentException("Informe um CPF, CNPJ ou e-mail válido.");
             return ("email", trimmed.ToLowerInvariant());
@@ -302,27 +273,22 @@ public sealed class AuthService(
             || hash.StartsWith("$2b$", StringComparison.Ordinal)
             || hash.StartsWith("$2y$", StringComparison.Ordinal));
 
-    private bool? VerifyPasswordSafely(string password, string hash)
-    {
+    private bool? VerifyPasswordSafely(string password, string hash) {
         try { return hasher.Verify(password, hash); }
         catch (ArgumentException) { return null; }
         catch (FormatException) { return null; }
     }
 
-    private Task RecordRejectedLoginAsync(string reason, Guid? organizationId, Guid? userId)
-    {
+    private Task RecordRejectedLoginAsync(string reason, Guid? organizationId, Guid? userId) {
         return RecordAuthenticationEventSafelyAsync(organizationId, userId, "auth.login_failed", reason);
     }
 
-    private async Task RecordAuthenticationEventSafelyAsync(Guid? organizationId, Guid? userId, string action, string reason)
-    {
-        try
-        {
+    private async Task RecordAuthenticationEventSafelyAsync(Guid? organizationId, Guid? userId, string action, string reason) {
+        try {
             await audit.LogAsync(new AuditEntry(organizationId, userId, action, "authentication", userId?.ToString(),
                 "Evento de autenticação.", JsonSerializer.Serialize(new { reason })));
         }
-        catch (Exception exception)
-        {
+        catch (Exception exception) {
             // Falha de auditoria nunca revela se a conta existe nem converte uma rejeição em erro 500.
             logger.LogError(exception, "Authentication audit unavailable. Action={Action}", action);
         }
@@ -333,8 +299,7 @@ public sealed class AuthService(
         AuthenticatedUserDto user,
         AuthenticatedOrganizationDto? organization,
         AuthenticatedPlanDto? plan,
-        AuthenticatedAccessContextDto accessContext)
-    {
+        AuthenticatedAccessContextDto accessContext) {
         return new AuthenticationResult(
             tokens.AccessToken,
             tokens.AccessTokenExpiresAt,
@@ -348,24 +313,20 @@ public sealed class AuthService(
     }
 
     private async Task<AuthenticatedAccessContextDto> ResolveAccessContextAsync(Guid organizationId, Guid userId,
-        IReadOnlyList<string> roles, string planCode)
-    {
+        IReadOnlyList<string> roles, string planCode) {
         // Platform administration is an explicit policy, not a general authorization bypass.
         // Tenant data still carries the selected organization in scopes and is audited normally.
-        if (roles.Contains(ValoraAccessCatalog.PlatformRole, StringComparer.OrdinalIgnoreCase))
-        {
+        if (roles.Contains(ValoraAccessCatalog.PlatformRole, StringComparer.OrdinalIgnoreCase)) {
             var permissions = ValoraPermissions.All;
             return new AuthenticatedAccessContextDto(roles.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), permissions,
                 ValoraAccessCatalog.PlatformModules, ResolveCapabilitiesSafely(permissions),
-                ["platform"], "platform", organizationId, planCode)
-            {
+                ["platform"], "platform", organizationId, planCode) {
                 IsGlobalAdministrator = true,
                 SelectedOrganizationId = null
             };
         }
 
-        if (accessAdministration is null)
-        {
+        if (accessAdministration is null) {
             logger.LogError("Authoritative access service is unavailable. OrganizationId={OrganizationId} UserId={UserId}", organizationId, userId);
             return new(roles, [], [], [], [], "missing", organizationId, planCode);
         }
@@ -377,8 +338,7 @@ public sealed class AuthService(
         var capabilities = ResolveCapabilitiesSafely(effective.GrantedPermissions);
         return new AuthenticatedAccessContextDto(roles.Distinct(StringComparer.OrdinalIgnoreCase).ToArray(), effective.GrantedPermissions,
             effective.AvailableModules.Select(ValoraAccessCatalog.NormalizeModule).Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
-            capabilities, scopes, "active", organizationId, planCode)
-        {
+            capabilities, scopes, "active", organizationId, planCode) {
             SelectedOrganizationId = organizationId,
             IsGlobalAdministrator = false
         };
@@ -388,8 +348,7 @@ public sealed class AuthService(
         ValoraAccessCatalog.CapabilitiesFor(permissions, permission =>
             logger.LogWarning("Unknown permission ignored while resolving login access. Permission={Permission}", permission));
 
-    private static string BuildSlug(string value)
-    {
+    private static string BuildSlug(string value) {
         var slug = new string(value
             .ToLowerInvariant()
             .Select(character => char.IsLetterOrDigit(character) ? character : '-')

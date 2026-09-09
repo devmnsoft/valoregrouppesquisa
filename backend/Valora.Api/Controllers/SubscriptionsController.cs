@@ -8,8 +8,7 @@ namespace Valora.Api.Controllers;
 
 [Authorize(Roles = "admin_valora,empresa_admin")]
 [ApiController, Route("api/v1/subscription")]
-public sealed class SubscriptionsController(ISubscriptionService subscriptions, IAuditRepository audit) : ControllerBase
-{
+public sealed class SubscriptionsController(ISubscriptionService subscriptions, IAuditRepository audit) : ControllerBase {
     private Guid OrganizationId => Guid.TryParse(User.FindFirstValue("organization_id"), out var id) ? id : Guid.Empty;
     private Guid? UserId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : null;
 
@@ -17,8 +16,7 @@ public sealed class SubscriptionsController(ISubscriptionService subscriptions, 
     public async Task<IActionResult> Get() => OrganizationId == Guid.Empty ? Unauthorized() : Ok(await subscriptions.GetAsync(OrganizationId));
 
     [HttpPut]
-    public async Task<IActionResult> Update(UpdateSubscriptionRequest request)
-    {
+    public async Task<IActionResult> Update(UpdateSubscriptionRequest request) {
         if (OrganizationId == Guid.Empty) return Unauthorized();
         await subscriptions.UpdateAsync(OrganizationId, request);
         await Log("subscription.updated", OrganizationId);
@@ -26,8 +24,7 @@ public sealed class SubscriptionsController(ISubscriptionService subscriptions, 
     }
 
     [HttpPatch("status/{status}")]
-    public async Task<IActionResult> Status(string status)
-    {
+    public async Task<IActionResult> Status(string status) {
         if (OrganizationId == Guid.Empty) return Unauthorized();
         await subscriptions.SetStatusAsync(OrganizationId, status);
         await Log($"subscription.{status}", OrganizationId);
@@ -38,8 +35,7 @@ public sealed class SubscriptionsController(ISubscriptionService subscriptions, 
     public async Task<IActionResult> Payments() => OrganizationId == Guid.Empty ? Unauthorized() : Ok(await subscriptions.ListPaymentsAsync(OrganizationId));
 
     [HttpPost("payments")]
-    public async Task<IActionResult> RegisterPayment(RegisterManualPaymentRequest request)
-    {
+    public async Task<IActionResult> RegisterPayment(RegisterManualPaymentRequest request) {
         if (OrganizationId == Guid.Empty) return Unauthorized();
         var payment = await subscriptions.RegisterPaymentAsync(OrganizationId, UserId, request);
         await Log("payment.manual_registered", payment.Id);

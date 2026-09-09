@@ -1,7 +1,6 @@
 namespace Valora.Application.Contracts;
 
-public interface ISaasAdministrationRepository
-{
+public interface ISaasAdministrationRepository {
     Task<IReadOnlyList<SaasGovernanceEvent>> ListGovernanceAsync(Guid organizationId, bool global, string? action, DateTimeOffset? from, DateTimeOffset? to, CancellationToken ct);
     Task<SaasGovernanceEvent?> GetGovernanceAsync(Guid organizationId, bool global, Guid id, CancellationToken ct);
     Task<IReadOnlyList<SaasNotification>> ListNotificationsAsync(Guid organizationId, Guid userId, string? type, bool? unread, CancellationToken ct);

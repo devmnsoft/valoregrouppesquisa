@@ -7,8 +7,7 @@ using Valora.Application.DTOs;
 
 namespace Valora.Application.Services;
 
-public sealed class LegacyMappingService : ILegacyMappingService
-{
+public sealed class LegacyMappingService : ILegacyMappingService {
     private static readonly Dictionary<string, string> Map = new(StringComparer.OrdinalIgnoreCase)
     {
         { "companies", "organizations" },

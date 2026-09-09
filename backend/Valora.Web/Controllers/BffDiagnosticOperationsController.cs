@@ -6,8 +6,10 @@ using Valora.Web.Services.Bff;
 namespace Valora.Web.Controllers;
 
 [Authorize, ApiController, AutoValidateAntiforgeryToken, Route("bff/diagnostics/{id:guid}")]
-public sealed class BffDiagnosticOperationsController(IBffApiClient api, BffAuthenticationService authentication) : ControllerBase
-{
+public sealed class BffDiagnosticOperationsController(IBffApiClient api, BffAuthenticationService authentication) : ControllerBase {
+    [HttpGet("/bff/diagnostic-campaigns")]
+    public Task<IActionResult> Campaigns(CancellationToken ct) => ForwardPath("/api/v1/diagnostic-campaigns", ct);
+
     [HttpGet("participation")]
     public Task<IActionResult> Participation(Guid id, CancellationToken ct) => Forward(id, "participation", ct);
 
@@ -20,7 +22,9 @@ public sealed class BffDiagnosticOperationsController(IBffApiClient api, BffAuth
         Forward(id, string.IsNullOrWhiteSpace(action) ? "executive-report" : $"executive-report/{action}", ct);
 
     private async Task<IActionResult> Forward(Guid id, string resource, CancellationToken ct)
-    {
+        => await ForwardPath($"/api/v1/diagnostics/{id}/{resource}{Request.QueryString}", ct);
+
+    private async Task<IActionResult> ForwardPath(string path, CancellationToken ct) {
         var session = await authentication.GetAsync(HttpContext, ct);
         if (session is null)
             return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou. Entre novamente.", correlationId = HttpContext.TraceIdentifier });
@@ -30,9 +34,7 @@ public sealed class BffDiagnosticOperationsController(IBffApiClient api, BffAuth
             body = await JsonSerializer.DeserializeAsync<JsonElement>(Request.Body, cancellationToken: ct);
 
         var correlation = Request.Headers["X-Correlation-Id"].FirstOrDefault() ?? HttpContext.TraceIdentifier;
-        using var response = await authentication.SendAuthorizedAsync(HttpContext, new HttpMethod(Request.Method),
-            $"/api/v1/diagnostics/{id}/{resource}{Request.QueryString}", body, correlation, ct);
-        if (response is null) return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou. Entre novamente.", correlationId = correlation });
+        using var response = await api.SendAsync(new HttpMethod(Request.Method), path, body, session.AccessToken, correlation, ct);
         var payload = await response.Content.ReadAsStringAsync(ct);
         Response.Headers["X-Correlation-Id"] = response.Headers.TryGetValues("X-Correlation-Id", out var values) ? values.First() : correlation;
         return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/json", Content = payload };

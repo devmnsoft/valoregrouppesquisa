@@ -4,8 +4,7 @@ namespace Valora.Domain.Methodology;
 /// Canonical identifiers for the organizational indices governed by the Valora methodology.
 /// Codes are stable integration keys; labels may be localized by presentation layers.
 /// </summary>
-public static class ValoraIndexCatalog
-{
+public static class ValoraIndexCatalog {
     public static IReadOnlyList<ValoraIndexDefinition> All { get; } =
     [
         new("IMO", "Índice de Maturidade Organizacional"),

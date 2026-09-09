@@ -4,8 +4,7 @@ using Valora.Application.DTOs;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class MigrationBatchRepository(IDbConnectionFactory connections) : IMigrationBatchRepository
-{
+public sealed class MigrationBatchRepository(IDbConnectionFactory connections) : IMigrationBatchRepository {
     private const int CommandTimeout = 30;
     private const string Projection = """
         id, source_type AS SourceType, source_name AS SourceName, mode, status,
@@ -16,8 +15,7 @@ public sealed class MigrationBatchRepository(IDbConnectionFactory connections) :
         error_records AS ErrorRecords, summary_json::text AS SummaryMaskedJson
         """;
 
-    public async Task<MigrationBatchDto> CreateAsync(string sourceType, string sourceName, string mode, string requestedBy, CancellationToken ct = default)
-    {
+    public async Task<MigrationBatchDto> CreateAsync(string sourceType, string sourceName, string mode, string requestedBy, CancellationToken ct = default) {
         const string sql = $"""
             INSERT INTO valorapesquisa.migration_batches
             (
@@ -43,21 +41,18 @@ public sealed class MigrationBatchRepository(IDbConnectionFactory connections) :
             cancellationToken: ct));
     }
 
-    public async Task<IReadOnlyList<MigrationBatchDto>> ListAsync(CancellationToken ct = default)
-    {
+    public async Task<IReadOnlyList<MigrationBatchDto>> ListAsync(CancellationToken ct = default) {
         using var connection = connections.Create();
         var rows = await connection.QueryAsync<MigrationBatchDto>(new CommandDefinition($"SELECT {Projection} FROM valorapesquisa.migration_batches ORDER BY started_at DESC", commandTimeout: CommandTimeout, cancellationToken: ct));
         return rows.AsList();
     }
 
-    public async Task<MigrationBatchDto?> GetAsync(Guid id, CancellationToken ct = default)
-    {
+    public async Task<MigrationBatchDto?> GetAsync(Guid id, CancellationToken ct = default) {
         using var connection = connections.Create();
         return await connection.QuerySingleOrDefaultAsync<MigrationBatchDto>(new CommandDefinition($"SELECT {Projection} FROM valorapesquisa.migration_batches WHERE id = @id", new { id }, commandTimeout: CommandTimeout, cancellationToken: ct));
     }
 
-    public async Task UpdateStatusAsync(Guid id, string status, string summaryMaskedJson, CancellationToken ct = default)
-    {
+    public async Task UpdateStatusAsync(Guid id, string status, string summaryMaskedJson, CancellationToken ct = default) {
         const string sql = """
             UPDATE valorapesquisa.migration_batches
             SET status = @Status,
@@ -76,8 +71,7 @@ public sealed class MigrationBatchRepository(IDbConnectionFactory connections) :
             commandTimeout: CommandTimeout,
             cancellationToken: ct));
 
-        if (affectedRows != 1)
-        {
+        if (affectedRows != 1) {
             throw new InvalidOperationException($"Expected to update one migration batch, but updated {affectedRows}.");
         }
     }

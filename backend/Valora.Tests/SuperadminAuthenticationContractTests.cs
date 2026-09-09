@@ -2,23 +2,18 @@ using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
-public sealed class SuperadminAuthenticationContractTests
-{
+public sealed class SuperadminAuthenticationContractTests {
     [Fact]
-    public void CanonicalBootstrapRepairsDevelopmentSuperadminWithBcryptAndEnterpriseAccess()
-    {
+    public void CanonicalBootstrapDoesNotShipDevelopmentAdministratorCredentials() {
         var sql = File.ReadAllText(RepositoryPaths.CanonicalDatabaseScript);
 
-        Assert.Contains("'e2e-admin@valoragroup.local','Super Administrador Valora'", sql);
-        Assert.Contains("public.crypt('Valora!12345',public.gen_salt('bf',12))", sql);
-        Assert.Contains("WHERE r.code='admin_valora' AND r.deleted_at IS NULL", sql);
-        Assert.Contains("JOIN valorapesquisa.plans p ON p.code='enterprise'", sql);
-        Assert.Contains("SET name='Administrador Valora',is_system=true,deleted_at=NULL", sql);
+        Assert.DoesNotContain("e2e-admin@valoragroup.local", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Valora!12345", sql, StringComparison.Ordinal);
+        Assert.Contains("'admin_valora'", sql);
     }
 
     [Fact]
-    public void DevelopmentDiagnosticsIsEnvironmentGatedAndDoesNotExposeSecrets()
-    {
+    public void DevelopmentDiagnosticsIsEnvironmentGatedAndDoesNotExposeSecrets() {
         var source = File.ReadAllText(RepositoryPaths.ApiFile("Controllers", "DevelopmentAuthDiagnosticsController.cs"));
 
         Assert.Contains("if (!environment.IsDevelopment()) return NotFound();", source);

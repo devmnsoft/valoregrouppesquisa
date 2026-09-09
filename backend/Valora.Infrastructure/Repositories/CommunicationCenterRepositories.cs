@@ -4,10 +4,8 @@ using Valora.Application.Contracts;
 
 namespace Valora.Infrastructure.Repositories;
 
-public sealed class NotificationRepository(IDbConnectionFactory factory) : INotificationRepository
-{
-    public async Task<Guid> CreateAsync(NotificationRequest request, CancellationToken cancellationToken = default)
-    {
+public sealed class NotificationRepository(IDbConnectionFactory factory) : INotificationRepository {
+    public async Task<Guid> CreateAsync(NotificationRequest request, CancellationToken cancellationToken = default) {
         using var connection = factory.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction();
@@ -24,8 +22,7 @@ public sealed class NotificationRepository(IDbConnectionFactory factory) : INoti
         return id;
     }
 
-    public async Task<IReadOnlyList<NotificationItem>> ListForUserAsync(Guid organizationId, Guid userId, string? type, string? status, string? severity, CancellationToken cancellationToken = default)
-    {
+    public async Task<IReadOnlyList<NotificationItem>> ListForUserAsync(Guid organizationId, Guid userId, string? type, string? status, string? severity, CancellationToken cancellationToken = default) {
         using var connection = factory.Create();
         var rows = await connection.QueryAsync<NotificationItem>(new CommandDefinition("""
             SELECT n.id,n.organization_id AS OrganizationId,n.title,n.message,n.notification_type AS Type,n.severity,
@@ -39,8 +36,7 @@ public sealed class NotificationRepository(IDbConnectionFactory factory) : INoti
         return rows.AsList();
     }
 
-    public async Task<bool> MarkReadAsync(Guid organizationId, Guid userId, Guid notificationId, CancellationToken cancellationToken = default)
-    {
+    public async Task<bool> MarkReadAsync(Guid organizationId, Guid userId, Guid notificationId, CancellationToken cancellationToken = default) {
         using var connection = factory.Create();
         return await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE valorapesquisa.notification_recipients SET status='read',read_at=COALESCE(read_at,now()),updated_at=now()
@@ -49,10 +45,8 @@ public sealed class NotificationRepository(IDbConnectionFactory factory) : INoti
     }
 }
 
-public sealed class CommunicationOutboxRepository(IDbConnectionFactory factory) : ICommunicationOutboxRepository
-{
-    public async Task<Guid> QueueAsync(OutboxRequest request, CancellationToken cancellationToken = default)
-    {
+public sealed class CommunicationOutboxRepository(IDbConnectionFactory factory) : ICommunicationOutboxRepository {
+    public async Task<Guid> QueueAsync(OutboxRequest request, CancellationToken cancellationToken = default) {
         using var connection = factory.Create();
         return await connection.ExecuteScalarAsync<Guid>(new CommandDefinition("""
             INSERT INTO valorapesquisa.communication_outbox(organization_id,recipient_user_id,recipient_email,subject,body_html,body_text,message_type,status,scheduled_at,metadata_json)
@@ -60,8 +54,7 @@ public sealed class CommunicationOutboxRepository(IDbConnectionFactory factory) 
             """, request, cancellationToken: cancellationToken));
     }
 
-    public async Task<IReadOnlyList<OutboxItem>> ClaimDueAsync(int batchSize, CancellationToken cancellationToken = default)
-    {
+    public async Task<IReadOnlyList<OutboxItem>> ClaimDueAsync(int batchSize, CancellationToken cancellationToken = default) {
         using var connection = factory.Create();
         var rows = await connection.QueryAsync<OutboxItem>(new CommandDefinition("""
             UPDATE valorapesquisa.communication_outbox SET status='processing',updated_at=now()
@@ -71,8 +64,7 @@ public sealed class CommunicationOutboxRepository(IDbConnectionFactory factory) 
         return rows.AsList();
     }
 
-    public async Task RecordAttemptAsync(Guid organizationId, Guid outboxId, bool delivered, string? provider, string? providerMessageId, string? error, CancellationToken cancellationToken = default)
-    {
+    public async Task RecordAttemptAsync(Guid organizationId, Guid outboxId, bool delivered, string? provider, string? providerMessageId, string? error, CancellationToken cancellationToken = default) {
         using var connection = factory.Create(); connection.Open(); using var tx = connection.BeginTransaction();
         var attempt = await connection.ExecuteScalarAsync<int>(new CommandDefinition("SELECT retry_count+1 FROM valorapesquisa.communication_outbox WHERE id=@outboxId AND organization_id=@organizationId FOR UPDATE", new { outboxId, organizationId }, tx, cancellationToken: cancellationToken));
         await connection.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.communication_delivery_attempts(outbox_id,organization_id,attempt_number,provider,status,provider_message_id,error_message,completed_at) VALUES (@outboxId,@organizationId,@attempt,@provider,@status,@providerMessageId,@error,now())", new { outboxId, organizationId, attempt, provider, status = delivered ? "delivered" : "failed", providerMessageId, error }, tx, cancellationToken: cancellationToken));
@@ -80,26 +72,21 @@ public sealed class CommunicationOutboxRepository(IDbConnectionFactory factory) 
         tx.Commit();
     }
 
-    public async Task<bool> RequeueAsync(Guid organizationId, Guid outboxId, CancellationToken cancellationToken = default)
-    {
+    public async Task<bool> RequeueAsync(Guid organizationId, Guid outboxId, CancellationToken cancellationToken = default) {
         using var connection = factory.Create();
         return await connection.ExecuteAsync(new CommandDefinition("UPDATE valorapesquisa.communication_outbox SET status='pending',scheduled_at=now(),error_message=NULL,updated_at=now() WHERE id=@outboxId AND organization_id=@organizationId AND status IN ('failed','awaiting_configuration') AND deleted_at IS NULL", new { organizationId, outboxId }, cancellationToken: cancellationToken)) == 1;
     }
 }
 
-public sealed class CommunicationAuditRepository(IDbConnectionFactory factory) : ICommunicationAuditRepository
-{
-    public async Task WriteAsync(Guid organizationId, string messageType, Guid? messageId, string action, Guid? actorUserId, string metadataJson, CancellationToken cancellationToken = default)
-    {
+public sealed class CommunicationAuditRepository(IDbConnectionFactory factory) : ICommunicationAuditRepository {
+    public async Task WriteAsync(Guid organizationId, string messageType, Guid? messageId, string action, Guid? actorUserId, string metadataJson, CancellationToken cancellationToken = default) {
         using var connection = factory.Create();
         await connection.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.message_audit_logs(organization_id,message_type,message_id,action,actor_user_id,metadata_json) VALUES (@organizationId,@messageType,@messageId,@action,@actorUserId,CAST(@metadataJson AS jsonb))", new { organizationId, messageType, messageId, action, actorUserId, metadataJson }, cancellationToken: cancellationToken));
     }
 }
 
-public sealed class NotificationTemplateRepository(IDbConnectionFactory factory) : INotificationTemplateRepository
-{
-    public async Task<Guid> SaveAsync(TemplateRequest request, CancellationToken cancellationToken = default)
-    {
+public sealed class NotificationTemplateRepository(IDbConnectionFactory factory) : INotificationTemplateRepository {
+    public async Task<Guid> SaveAsync(TemplateRequest request, CancellationToken cancellationToken = default) {
         using var connection = factory.Create();
         return await connection.ExecuteScalarAsync<Guid>(new CommandDefinition("""
             INSERT INTO valorapesquisa.notification_templates(organization_id,template_key,name,title_template,message_template,allowed_variables,created_by_user_id)
@@ -108,10 +95,8 @@ public sealed class NotificationTemplateRepository(IDbConnectionFactory factory)
     }
 }
 
-public sealed class ReminderRepository(IDbConnectionFactory factory) : IReminderRepository
-{
-    public async Task<Guid> CreateRuleAsync(ReminderRuleRequest request, CancellationToken cancellationToken = default)
-    {
+public sealed class ReminderRepository(IDbConnectionFactory factory) : IReminderRepository {
+    public async Task<Guid> CreateRuleAsync(ReminderRuleRequest request, CancellationToken cancellationToken = default) {
         using var connection = factory.Create();
         return await connection.ExecuteScalarAsync<Guid>(new CommandDefinition("""
             INSERT INTO valorapesquisa.reminder_rules(organization_id,name,reminder_type,delay_minutes,template_key,created_by_user_id)

@@ -4,8 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Valora.Web.Controllers;
 
 [Authorize]
-public sealed class IntegrationsController : Controller
-{
+public sealed class IntegrationsController : Controller {
     [HttpGet("Integrations"), HttpGet("Administration/Integrations")]
     public IActionResult Index() => View();
 

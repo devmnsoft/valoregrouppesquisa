@@ -1,7 +1,6 @@
 namespace Valora.Domain.Enums;
 
-public enum CommunicationChannel
-{
+public enum CommunicationChannel {
     Email,
     Whatsapp
 }

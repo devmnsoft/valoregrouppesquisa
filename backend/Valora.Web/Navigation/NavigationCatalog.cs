@@ -1,7 +1,6 @@
 namespace Valora.Web.Navigation;
 
-public sealed class NavigationCatalog
-{
+public sealed class NavigationCatalog {
     private static readonly IReadOnlySet<string> Administrators = Roles("admin_valora", "consultor_valora", "empresa_admin");
     private static readonly IReadOnlySet<string> Diagnostics = Roles("admin_valora", "consultor_valora", "empresa_admin", "gestor_pesquisa");
     private static readonly IReadOnlySet<string> Results = Roles("admin_valora", "consultor_valora", "empresa_admin", "gestor_pesquisa", "analista_resultados", "gestor_area");
@@ -130,8 +129,8 @@ public sealed class NavigationCatalog
             ItemAction("saas.billing", "Cobrança", "Faturas e pagamentos rastreáveis", "SaasAdmin", "Billing", "credit-card", "operations", 2, Roles("admin_valora")),
             ItemAction("saas.modules", "Módulos", "Módulos, flags e limites contratados", "SaasAdmin", "Modules", "layers", "operations", 3, Roles("admin_valora")),
             ItemAction("saas.audit", "Auditoria SaaS", "Ações administrativas críticas", "SaasAdmin", "Audit", "shield", "operations", 4, Roles("admin_valora")),
-            ItemAction("organization.users", "Organization Users", "Usuários da própria organização", "Organization", "Users", "users", "identity", 5, Administrators),
-            ItemAction("organization.profiles", "Organization Profiles", "Perfis e permissões internas", "Organization", "Profiles", "shield", "identity", 6, Administrators),
+            ItemAction("organization.users", "Organization Users", "Usuários da própria organização", "Users", "Index", "users", "identity", 5, Administrators),
+            ItemAction("organization.profiles", "Organization Profiles", "Perfis e permissões internas", "Users", "Roles", "shield", "identity", 6, Administrators),
             ItemAction("master.overview", "Visão Geral", "Central administrativa master", "Administration", "Index", "layout-dashboard", "dashboard", 1, Roles("admin_valora")),
             ItemAction("master.organizations", "Organizações", "Central administrativa master", "Administration", "Organizations", "building", "organization", 2, Roles("admin_valora")),
             ItemAction("master.users", "Usuários", "Central administrativa master", "Administration", "Users", "users", "identity", 3, Roles("admin_valora")),
@@ -173,7 +172,7 @@ public sealed class NavigationCatalog
             ItemAction("administration.users", "Usuários", "Contas, vínculos e situação de acesso", "Users", "Index", "users", "users", 2, Administrators),
             ItemAction("administration.roles", "Perfis e papéis", "Responsabilidades e conjuntos de acesso", "Users", "Roles", "shield", "users", 3, Administrators),
             ItemAction("administration.permissions", "Permissões e acessos", "Permissões efetivas por papel e escopo", "Users", "Permissions", "shield", "users", 4, Administrators),
-            ItemAction("administration.modules", "Módulos contratados", "Recursos habilitados para cada organização", "Administration", "Modules", "layers", "organization", 5, Administrators),
+            ItemAction("administration.modules", "Módulos contratados", "Recursos habilitados para cada organização", "Administration", "FeatureFlags", "layers", "organization", 5, Administrators),
             ItemAction("administration.benchmark", "Configuração de Benchmark", "Amostra mínima, referências e anonimização", "Intelligence", "BenchmarkAdministration", "activity", "organizational_intelligence", 6, Administrators)),
         Section("platform", "Plataforma", 50,
             ItemAction("operation.support", "Suporte", "Chamados, comentários e resoluções", "AssistedOperations", "Support", "message-circle", "organization", 1, Administrators),

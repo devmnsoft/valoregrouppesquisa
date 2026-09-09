@@ -1,15 +1,13 @@
 using System.Text.RegularExpressions;
-using Xunit;
 using Valora.Tests.Support;
+using Xunit;
 
 namespace Valora.Tests;
 
 [Trait("Category", "StaticContract")]
-public sealed class DomainEntityDuplicateTests
-{
+public sealed class DomainEntityDuplicateTests {
     [Fact]
-    public void Domain_entities_do_not_repeat_type_names_in_the_same_namespace()
-    {
+    public void Domain_entities_do_not_repeat_type_names_in_the_same_namespace() {
         var root = RepositoryPaths.DomainFile("Entities");
         var files = Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
             .Where(file => !file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
@@ -17,13 +15,11 @@ public sealed class DomainEntityDuplicateTests
                 && !file.EndsWith(".g.cs", StringComparison.OrdinalIgnoreCase)
                 && !file.EndsWith(".Designer.cs", StringComparison.OrdinalIgnoreCase));
 
-        var declarations = files.SelectMany(file =>
-        {
+        var declarations = files.SelectMany(file => {
             var text = File.ReadAllText(file);
             var namespaceName = Regex.Match(text, @"namespace\s+([A-Za-z0-9_.]+)").Groups[1].Value;
             return Regex.Matches(text, @"\b(class|record|struct|enum)\s+([A-Za-z_][A-Za-z0-9_]*)")
-                .Select(match => new
-                {
+                .Select(match => new {
                     Namespace = string.IsNullOrWhiteSpace(namespaceName) ? "<global>" : namespaceName,
                     Kind = match.Groups[1].Value,
                     Name = match.Groups[2].Value,

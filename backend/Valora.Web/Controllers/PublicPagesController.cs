@@ -1,16 +1,14 @@
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Valora.Web.Models;
 
 namespace Valora.Web.Controllers;
 
 [AllowAnonymous]
-public sealed class PublicPagesController(ILogger<PublicPagesController> logger) : Controller
-{
+public sealed class PublicPagesController(ILogger<PublicPagesController> logger) : Controller {
     [HttpGet("sitemap.xml")]
     [Produces("application/xml")]
-    public ContentResult Sitemap()
-    {
+    public ContentResult Sitemap() {
         var origin = $"{Request.Scheme}://{Request.Host}";
         var paths = new[] { "", "sobre", "metodologia", "planos", "demonstracao", "cadastro", "entrar", "privacy", "termos", "certificados/validar" };
         var urls = string.Concat(paths.Select(path => $"<url><loc>{System.Security.SecurityElement.Escape($"{origin}/{path}")}</loc></url>"));
@@ -50,11 +48,9 @@ public sealed class PublicPagesController(ILogger<PublicPagesController> logger)
     [HttpPost("contato")]
     [HttpPost("PublicPages/Contact")]
     [ValidateAntiForgeryToken]
-    public IActionResult Contact(ContactRequest model)
-    {
+    public IActionResult Contact(ContactRequest model) {
         ViewData["Title"] = "Contato";
-        if (!ModelState.IsValid)
-        {
+        if (!ModelState.IsValid) {
             return View("Contact", model);
         }
 
@@ -64,7 +60,6 @@ public sealed class PublicPagesController(ILogger<PublicPagesController> logger)
     }
 
     [HttpGet("privacy")]
-    [HttpGet("Privacy")]
     [HttpGet("lgpd")]
     [HttpGet("PublicPages/Privacy")]
     public IActionResult Privacy() => PublicView("Privacy", "Política de Privacidade");
@@ -75,8 +70,7 @@ public sealed class PublicPagesController(ILogger<PublicPagesController> logger)
     [Route("entrar")]
     public IActionResult LoginRedirect() => Redirect("/Account/Login");
 
-    private IActionResult PublicView(string viewName, string title)
-    {
+    private IActionResult PublicView(string viewName, string title) {
         try { ViewData["Title"] = title; return View(viewName); }
         catch (Exception ex) { logger.LogError(ex, "Falha ao renderizar página pública {ViewName}.", viewName); throw; }
     }

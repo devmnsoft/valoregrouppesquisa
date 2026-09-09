@@ -9,8 +9,7 @@ namespace Valora.Application.Services;
 
 public sealed class LocalStorageExportReader(
     ILegacyMappingService m,
-    ILegacyDataNormalizer n) : JsonLegacySourceReader(m, n), ILocalStorageExportReader
-{
+    ILegacyDataNormalizer n) : JsonLegacySourceReader(m, n), ILocalStorageExportReader {
     public override bool CanRead(string sourceType) =>
         sourceType.Equals("localStorage", StringComparison.OrdinalIgnoreCase)
         || sourceType.Equals("local", StringComparison.OrdinalIgnoreCase);

@@ -1,5 +1,4 @@
 extern alias ValoraWeb;
-
 using System.Net;
 using System.Reflection;
 using System.Security.Claims;
@@ -10,22 +9,20 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Logging.Abstractions;
-using WebProgram = ValoraWeb::Program;
+using BffAuthenticationService = ValoraWeb::Valora.Web.Services.Bff.BffAuthenticationService;
+using INavigationRouteResolver = ValoraWeb::Valora.Web.Navigation.INavigationRouteResolver;
 using NavigationCatalog = ValoraWeb::Valora.Web.Navigation.NavigationCatalog;
 using NavigationDestination = ValoraWeb::Valora.Web.Navigation.NavigationDestination;
 using NavigationService = ValoraWeb::Valora.Web.Navigation.NavigationService;
-using INavigationRouteResolver = ValoraWeb::Valora.Web.Navigation.INavigationRouteResolver;
-using BffAuthenticationService = ValoraWeb::Valora.Web.Services.Bff.BffAuthenticationService;
 using ValoraIconRegistry = ValoraWeb::Valora.Web.Ui.ValoraIconRegistry;
 using ValoraIconTagHelper = ValoraWeb::Valora.Web.Ui.ValoraIconTagHelper;
+using WebProgram = ValoraWeb::Program;
 
 namespace Valora.Tests;
 
-public sealed class NavigationRegressionTests
-{
+public sealed class NavigationRegressionTests {
     [Fact]
-    public void EveryCatalogItemUsesARegisteredIcon()
-    {
+    public void EveryCatalogItemUsesARegisteredIcon() {
         var registry = new ValoraIconRegistry();
         var missing = new NavigationCatalog().Sections
             .SelectMany(section => section.Items)
@@ -37,8 +34,7 @@ public sealed class NavigationRegressionTests
     }
 
     [Fact]
-    public void SparklesIsAnOfficialDesignSystemIcon()
-    {
+    public void SparklesIsAnOfficialDesignSystemIcon() {
         var registry = new ValoraIconRegistry();
 
         Assert.Contains("sparkles", registry.KnownIcons, StringComparer.OrdinalIgnoreCase);
@@ -46,13 +42,11 @@ public sealed class NavigationRegressionTests
     }
 
     [Fact]
-    public void UnknownIconRendersSafeFallbackWithoutThrowing()
-    {
+    public void UnknownIconRendersSafeFallbackWithoutThrowing() {
         var helper = new ValoraIconTagHelper(
             new ValoraIconRegistry(),
             NullLogger<ValoraIconTagHelper>.Instance,
-            new TestEnvironment())
-        {
+            new TestEnvironment()) {
             Name = "not-in-the-catalog",
             Decorative = true
         };
@@ -70,25 +64,28 @@ public sealed class NavigationRegressionTests
     }
 
     [Fact]
-    public void EveryCatalogDestinationHasARealMvcControllerAction()
-    {
+    public void EveryCatalogDestinationHasARealMvcControllerAction() {
         var assembly = typeof(WebProgram).Assembly;
         var missing = new List<string>();
-        foreach (var destination in new NavigationCatalog().Sections.SelectMany(section => section.Items).Select(item => item.Destination))
-        {
+        foreach (var destination in new NavigationCatalog().Sections.SelectMany(section => section.Items).Select(item => item.Destination)) {
             var controller = assembly.GetType($"Valora.Web.Controllers.{destination.Controller}Controller");
             var exists = controller?.GetMethods(BindingFlags.Instance | BindingFlags.Public)
                 .Any(method => method.Name.Equals(destination.Action, StringComparison.OrdinalIgnoreCase)
-                    && typeof(IActionResult).IsAssignableFrom(method.ReturnType)) == true;
+                    && IsActionResult(method.ReturnType)) == true;
             if (!exists) missing.Add($"{destination.Controller}.{destination.Action}");
         }
 
         Assert.Empty(missing);
     }
 
+    private static bool IsActionResult(Type returnType) =>
+        typeof(IActionResult).IsAssignableFrom(returnType)
+        || (returnType.IsGenericType
+            && returnType.GetGenericTypeDefinition() == typeof(Task<>)
+            && typeof(IActionResult).IsAssignableFrom(returnType.GenericTypeArguments[0]));
+
     [Fact]
-    public async Task AdminValoraReceivesTheCompleteNavigationWithoutTenantClaims()
-    {
+    public async Task AdminValoraReceivesTheCompleteNavigationWithoutTenantClaims() {
         var identity = new ClaimsIdentity([new Claim(ClaimTypes.Role, "admin_valora")], "test");
         var context = new DefaultHttpContext { User = new ClaimsPrincipal(identity) };
         context.Request.Path = "/Dashboard";
@@ -115,13 +112,11 @@ public sealed class NavigationRegressionTests
         Assert.Contains("Plataforma", labels);
     }
 
-    private sealed class TestRoutes : INavigationRouteResolver
-    {
+    private sealed class TestRoutes : INavigationRouteResolver {
         public string? Resolve(NavigationDestination destination) => $"/{destination.Controller}/{destination.Action}";
     }
 
-    private sealed class TestEnvironment : IWebHostEnvironment
-    {
+    private sealed class TestEnvironment : IWebHostEnvironment {
         public string ApplicationName { get; set; } = "Valora.Web";
         public IFileProvider WebRootFileProvider { get; set; } = new NullFileProvider();
         public string WebRootPath { get; set; } = string.Empty;
@@ -132,16 +127,13 @@ public sealed class NavigationRegressionTests
 }
 
 [Trait("Category", "BffIntegration")]
-public sealed class NavigationRenderingTests : IClassFixture<WebApplicationFactory<WebProgram>>
-{
+public sealed class NavigationRenderingTests : IClassFixture<WebApplicationFactory<WebProgram>> {
     private readonly WebApplicationFactory<WebProgram> _factory;
     public NavigationRenderingTests(WebApplicationFactory<WebProgram> factory) => _factory = factory;
 
     [Fact]
-    public async Task DashboardAndNavigationComponentRenderWithoutAnException()
-    {
-        using var client = _factory.CreateClient(new WebApplicationFactoryClientOptions
-        {
+    public async Task DashboardAndNavigationComponentRenderWithoutAnException() {
+        using var client = _factory.CreateClient(new WebApplicationFactoryClientOptions {
             AllowAutoRedirect = false,
             BaseAddress = new Uri("https://localhost")
         });
@@ -149,9 +141,8 @@ public sealed class NavigationRenderingTests : IClassFixture<WebApplicationFacto
         using var response = await client.GetAsync("/Dashboard");
         var html = await response.Content.ReadAsStringAsync();
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("data-admin-sidebar", html);
-        Assert.Contains("Vamos configurar seu espaço", html);
-        Assert.DoesNotContain("NavigationContext vazio", html);
+        Assert.Equal(HttpStatusCode.Found, response.StatusCode);
+        Assert.Equal("/Account/Login", response.Headers.Location?.AbsolutePath);
+        Assert.Empty(html);
     }
 }

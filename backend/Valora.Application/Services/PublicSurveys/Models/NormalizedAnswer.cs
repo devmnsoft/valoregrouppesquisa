@@ -1,2 +1,3 @@
 namespace Valora.Application.Services;
-public sealed record NormalizedAnswer(Guid QuestionId,string? AnswerText,string AnswerJson,decimal? NumericValue);
+
+public sealed record NormalizedAnswer(Guid QuestionId, string? AnswerText, string AnswerJson, decimal? NumericValue);

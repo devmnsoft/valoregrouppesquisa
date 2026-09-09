@@ -14,16 +14,14 @@ public sealed record InferenceRequest(string Symptom, string ProbableCause, stri
 public sealed record InferenceResultDto(bool IsConclusive, string Confidence, string Symptom, string? ProbableCause,
     string[] Systems, IReadOnlyList<EvidenceItem> Evidence, string Impact, string Priority, string NextStep, string MethodologyVersion, string DataHash);
 
-public interface IMethodologyRepository
-{
+public interface IMethodologyRepository {
     Task<IReadOnlyList<MethodologyConceptDto>> ListConceptsAsync(string? search, string? pillar, CancellationToken ct);
     Task<MethodologyConceptDto?> GetConceptAsync(string code, CancellationToken ct);
     Task<IReadOnlyList<MethodologyRelationDto>> ListRelationsAsync(string? conceptCode, CancellationToken ct);
     Task<IReadOnlyList<MethodologyEvidenceDto>> ListEvidenceAsync(string conceptCode, CancellationToken ct);
 }
 
-public interface IMethodologyService
-{
+public interface IMethodologyService {
     Task<IReadOnlyList<MethodologyConceptDto>> ListConceptsAsync(string? search, string? pillar, CancellationToken ct);
     Task<MethodologyConceptDto?> GetConceptAsync(string code, CancellationToken ct);
     Task<IReadOnlyList<MethodologyRelationDto>> ListRelationsAsync(string? conceptCode, CancellationToken ct);

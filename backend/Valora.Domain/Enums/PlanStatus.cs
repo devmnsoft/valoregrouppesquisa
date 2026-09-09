@@ -1,7 +1,6 @@
 namespace Valora.Domain.Enums;
 
-public enum PlanStatus
-{
+public enum PlanStatus {
     Active,
     Inactive
 }

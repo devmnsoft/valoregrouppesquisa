@@ -6,8 +6,7 @@ public enum IndicatorTrend { Improving, Stable, Worsening, InsufficientData }
 
 public sealed record IndicatorDto(Guid Id, string Name, string Category, string Unit, string? SourceName,
     Guid ResponsibleUserId, string Periodicity, string Status, bool IsCalculated, string? Formula,
-    DateTime CreatedAt, int MeasurementCount, decimal? LatestValue, DateTime? LatestMeasuredAt)
-{
+    DateTime CreatedAt, int MeasurementCount, decimal? LatestValue, DateTime? LatestMeasuredAt) {
     public bool HasReliableSource => !string.IsNullOrWhiteSpace(SourceName);
 }
 public sealed record IndicatorTargetDto(Guid Id, Guid IndicatorId, decimal TargetValue, DateTime PeriodStart,
@@ -21,8 +20,7 @@ public sealed record IndicatorDashboardDto(IReadOnlyList<IndicatorDto> Indicator
     IReadOnlyList<IndicatorTargetDto> Targets, IReadOnlyList<IndicatorAlertDto> Alerts,
     IReadOnlyDictionary<Guid, TrendResult> Trends);
 
-public sealed class CreateIndicatorRequest
-{
+public sealed class CreateIndicatorRequest {
     [Required, StringLength(160)] public string Name { get; set; } = "";
     [Required, StringLength(80)] public string Category { get; set; } = "";
     [Required, StringLength(30)] public string Unit { get; set; } = "";
@@ -32,16 +30,14 @@ public sealed class CreateIndicatorRequest
     public bool IsCalculated { get; set; }
     [StringLength(2000)] public string? Formula { get; set; }
 }
-public sealed class CreateTargetRequest
-{
+public sealed class CreateTargetRequest {
     [Required] public decimal? TargetValue { get; set; }
     [Required] public DateTime? PeriodStart { get; set; }
     [Required] public DateTime? PeriodEnd { get; set; }
     [Required, RegularExpression("higher_is_better|lower_is_better|ideal_range|exact")] public string ComparisonRule { get; set; } = "higher_is_better";
     [Required] public Guid ResponsibleUserId { get; set; }
 }
-public sealed class CreateMeasurementRequest
-{
+public sealed class CreateMeasurementRequest {
     [Required] public decimal? Value { get; set; }
     [Required] public DateTime? MeasuredAt { get; set; }
     [Required, StringLength(160)] public string SourceName { get; set; } = "";
@@ -49,8 +45,7 @@ public sealed class CreateMeasurementRequest
     [Required, StringLength(1000)] public string Justification { get; set; } = "";
     public Guid? DataHubImportId { get; set; }
 }
-public sealed class CreateScorecardRequest
-{
+public sealed class CreateScorecardRequest {
     [Required, StringLength(160)] public string Name { get; set; } = "";
     [Required, StringLength(500)] public string Objective { get; set; } = "";
     [Required] public DateTime? PeriodStart { get; set; }
@@ -60,8 +55,7 @@ public sealed class CreateScorecardRequest
 public sealed record ExecutiveScorecardDto(Guid Id, string Name, string Objective, DateTime PeriodStart, DateTime PeriodEnd, int ItemCount, DateTime CreatedAt);
 public sealed record AnalyticsSnapshotDto(Guid Id, string Name, DateTime CapturedAt, string Limitation, int ItemCount);
 
-public interface IIndicatorRepository
-{
+public interface IIndicatorRepository {
     Task<IReadOnlyList<IndicatorDto>> List(Guid organizationId, CancellationToken ct);
     Task<IndicatorDto?> Get(Guid organizationId, Guid id, CancellationToken ct);
     Task<Guid> Create(Guid organizationId, CreateIndicatorRequest request, CancellationToken ct);

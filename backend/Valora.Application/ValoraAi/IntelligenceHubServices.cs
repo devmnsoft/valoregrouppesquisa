@@ -1,19 +1,15 @@
 namespace Valora.Application.ValoraAi;
 
-public sealed class EvidencePackBuilderService(IValoraAiEvidenceRepository evidence) : IEvidencePackBuilderService
-{
+public sealed class EvidencePackBuilderService(IValoraAiEvidenceRepository evidence) : IEvidencePackBuilderService {
     public Task<AiEvidencePack> BuildAsync(AiRunContext context, CancellationToken ct) => evidence.BuildAsync(context, ct);
 }
 
-public sealed class AiGuardrailValidationService(IValoraAiGuardrailService guardrails) : IAiGuardrailValidationService
-{
+public sealed class AiGuardrailValidationService(IValoraAiGuardrailService guardrails) : IAiGuardrailValidationService {
     public ValoraAiValidation Validate(string output, ValoraEvidencePack evidence) => guardrails.Validate(output, evidence);
 }
 
-public sealed class InsightGenerationService(IValoraAiOrchestrator orchestrator) : IInsightGenerationService
-{
-    public Task<ValoraAiExecutionResult> GenerateAsync(AiRunContext context, AiEvidencePack evidence, CancellationToken ct)
-    {
+public sealed class InsightGenerationService(IValoraAiOrchestrator orchestrator) : IInsightGenerationService {
+    public Task<ValoraAiExecutionResult> GenerateAsync(AiRunContext context, AiEvidencePack evidence, CancellationToken ct) {
         var source = new ValoraEvidenceSource(context.OrganizationId, "Organização", context.DiagnosticId,
             "Valora", context.MethodologyVersionId?.ToString() ?? "vigente", true,
             evidence.Items.Select(x => new ValoraEvidence(x.Id.ToString(), x.Type, x.Summary, x.Dimension, x.IndexCode)).ToArray(),
@@ -24,24 +20,19 @@ public sealed class InsightGenerationService(IValoraAiOrchestrator orchestrator)
     }
 }
 
-public sealed class ValoraAiRunService(IValoraAiRunRepository runs)
-{
+public sealed class ValoraAiRunService(IValoraAiRunRepository runs) {
     public Task<AiUsageAllowance> CheckAllowanceAsync(Guid organizationId, CancellationToken ct) => runs.CheckAllowanceAsync(organizationId, ct);
 }
 
-public sealed class AiFeedbackService(IValoraAiFeedbackRepository feedback) : IAiFeedbackService
-{
-    public Task RecordRejectionAsync(AiReviewCommand command, Guid runId, CancellationToken ct)
-    {
+public sealed class AiFeedbackService(IValoraAiFeedbackRepository feedback) : IAiFeedbackService {
+    public Task RecordRejectionAsync(AiReviewCommand command, Guid runId, CancellationToken ct) {
         if (string.IsNullOrWhiteSpace(command.Reason)) throw new ArgumentException("O motivo da rejeição é obrigatório.", nameof(command));
         return feedback.RecordAsync(command.OrganizationId, command.InsightId, runId, command.ReviewerId, "rejection", command.Reason.Trim(), ct);
     }
 }
 
-public sealed class AiReviewService(IValoraAiInsightRepository insights, IValoraAiReviewRepository reviews, IAiFeedbackService feedback)
-{
-    public async Task ReviewAsync(AiReviewCommand command, CancellationToken ct)
-    {
+public sealed class AiReviewService(IValoraAiInsightRepository insights, IValoraAiReviewRepository reviews, IAiFeedbackService feedback) {
+    public async Task ReviewAsync(AiReviewCommand command, CancellationToken ct) {
         var insight = await insights.GetAsync(command.OrganizationId, command.InsightId, ct)
             ?? throw new KeyNotFoundException("Insight não encontrado.");
         if (insight.Status != AiInsightStatuses.PendingReview) throw new InvalidOperationException("Somente insights pendentes podem ser revisados.");
@@ -52,10 +43,8 @@ public sealed class AiReviewService(IValoraAiInsightRepository insights, IValora
     }
 }
 
-public sealed class ValoraAiOrchestratorService(IEvidencePackBuilderService packs, IInsightGenerationService generation, IValoraAiEvidenceRepository evidence)
-{
-    public async Task<ValoraAiExecutionResult> GenerateAsync(AiRunContext context, CancellationToken ct)
-    {
+public sealed class ValoraAiOrchestratorService(IEvidencePackBuilderService packs, IInsightGenerationService generation, IValoraAiEvidenceRepository evidence) {
+    public async Task<ValoraAiExecutionResult> GenerateAsync(AiRunContext context, CancellationToken ct) {
         var pack = await packs.BuildAsync(context, ct);
         if (pack.Items.Count == 0)
             return new(new ValoraAiRun(Guid.NewGuid(), context.OrganizationId, context.DiagnosticId, "insights", 1, "none", "none", AiRunStatus.Invalid, context.CorrelationId, DateTime.UtcNow, "insufficient_evidence"), null, null, AiInsufficientEvidence.Message);

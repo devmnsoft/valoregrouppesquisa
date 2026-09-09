@@ -1,3 +1,6 @@
 namespace Valora.Application.DTOs;
 
-public record SubmitResponseRequest(string? ParticipantName,string? ParticipantEmail,Dictionary<string,object>? Answers);
+public sealed record SubmitResponseRequest(
+    string? ParticipantName,
+    string? ParticipantEmail,
+    IReadOnlyList<PublicSurveyAnswerRequest> Answers);

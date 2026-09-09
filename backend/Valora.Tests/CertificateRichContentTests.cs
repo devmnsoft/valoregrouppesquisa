@@ -2,14 +2,12 @@ using Valora.Tests.Support;
 using Xunit;
 
 [Trait("Category", "Unit")]
-public sealed class CertificateRichContentTests
-{
+public sealed class CertificateRichContentTests {
     [Fact]
     public void Sprint46ContractIsDocumented() => Assert.True(File.Exists(RepositoryPaths.RootFile("SPRINT_46_FREE_DIAGNOSTIC_E2E_AUDIT.md")));
 
     [Fact]
-    public void PublicCertificateContainsIdentityResultAndValidationData()
-    {
+    public void PublicCertificateContainsIdentityResultAndValidationData() {
         var source = File.ReadAllText(RepositoryPaths.ApplicationFile("Certificates", "CertificateService.cs"));
 
         Assert.Contains("Valora Insight™", source);
@@ -22,8 +20,7 @@ public sealed class CertificateRichContentTests
     }
 
     [Fact]
-    public void CertificatePdfHasPremiumVisualCommandsAndAValidTrailer()
-    {
+    public void CertificatePdfHasPremiumVisualCommandsAndAValidTrailer() {
         var source = File.ReadAllText(RepositoryPaths.ApplicationFile("Certificates", "CertificateService.cs"));
 
         Assert.Contains("0.063 0.184 0.212 rg", source);

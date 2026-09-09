@@ -3,10 +3,8 @@ using System.Text;
 
 namespace Valora.Application.FormalDeliverables;
 
-public sealed class SecureShareLinkService(IShareLinkRepository repository, IExportAuditService audit) : ISecureShareLinkService
-{
-    public async Task<CreatedShareLink> CreateAsync(Guid organizationId, Guid diagnosisId, Guid? userId, TimeSpan lifetime, bool allowDownload, CancellationToken cancellationToken = default)
-    {
+public sealed class SecureShareLinkService(IShareLinkRepository repository, IExportAuditService audit) : ISecureShareLinkService {
+    public async Task<CreatedShareLink> CreateAsync(Guid organizationId, Guid diagnosisId, Guid? userId, TimeSpan lifetime, bool allowDownload, CancellationToken cancellationToken = default) {
         if (lifetime <= TimeSpan.Zero || lifetime > TimeSpan.FromDays(90))
             throw new ArgumentOutOfRangeException(nameof(lifetime), "A validade deve estar entre um instante e 90 dias.");
         var token = Base64Url(RandomNumberGenerator.GetBytes(32));
@@ -17,8 +15,7 @@ public sealed class SecureShareLinkService(IShareLinkRepository repository, IExp
         return new CreatedShareLink(link.Id, token, token, link.ExpiresAt, link.AllowDownload);
     }
 
-    public async Task<ShareLink?> ResolveAsync(string token, bool downloadRequested, CancellationToken cancellationToken = default)
-    {
+    public async Task<ShareLink?> ResolveAsync(string token, bool downloadRequested, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(token) || token.Length < 40) return null;
         var link = await repository.FindByHashAsync(Hash(token), cancellationToken);
         if (link is null || link.RevokedAt.HasValue || link.ExpiresAt <= DateTimeOffset.UtcNow ||
@@ -29,8 +26,7 @@ public sealed class SecureShareLinkService(IShareLinkRepository repository, IExp
         return link;
     }
 
-    public async Task<bool> RevokeAsync(Guid organizationId, Guid linkId, Guid? userId, CancellationToken cancellationToken = default)
-    {
+    public async Task<bool> RevokeAsync(Guid organizationId, Guid linkId, Guid? userId, CancellationToken cancellationToken = default) {
         var revoked = await repository.RevokeAsync(organizationId, linkId, cancellationToken);
         await audit.RecordAsync(organizationId, userId, "share_link.revoked", "share_link", linkId.ToString(), revoked, null, cancellationToken);
         return revoked;

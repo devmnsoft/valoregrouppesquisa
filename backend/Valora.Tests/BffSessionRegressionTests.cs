@@ -3,14 +3,15 @@ using Valora.Tests.Support;
 namespace Valora.Tests;
 
 [Trait("Category", "StaticContract")]
-public sealed class BffSessionRegressionTests
-{
+public sealed class BffSessionRegressionTests {
     [Fact]
-    public void AuthenticationCookieCarriesSafeOrganizationAndSessionContext()
-    {
+    public void AuthenticationCookieCarriesSafeOrganizationAndSessionContext() {
         var source = File.ReadAllText(RepositoryPaths.WebFile("Services", "Bff", "BffAuthenticationService.cs"));
 
-        Assert.Contains("Guid.TryParse", File.ReadAllText(RepositoryPaths.WebFile("Services", "CurrentOrganizationProvider.cs")));
+        var organizationProvider = File.ReadAllText(RepositoryPaths.WebFile("Services", "CurrentOrganizationProvider.cs"));
+        Assert.Contains("ICurrentRequestContext requestContext", organizationProvider);
+        Assert.Contains("current.EffectiveOrganizationId", organizationProvider);
+        Assert.DoesNotContain("FindFirstValue", organizationProvider);
         Assert.Contains("new Claim(\"organization_id\"", source);
         Assert.Contains("new Claim(\"tenant_id\"", source);
         Assert.Contains("new Claim(\"session_id\"", source);
@@ -18,8 +19,7 @@ public sealed class BffSessionRegressionTests
     }
 
     [Fact]
-    public void FeatureUnauthorizedResponseDoesNotAutomaticallyDestroySession()
-    {
+    public void FeatureUnauthorizedResponseDoesNotAutomaticallyDestroySession() {
         var source = File.ReadAllText(RepositoryPaths.WebFile("wwwroot", "js", "api", "ajax-client.js"));
 
         Assert.Contains("const isSessionFailure", source);
@@ -28,8 +28,7 @@ public sealed class BffSessionRegressionTests
     }
 
     [Fact]
-    public void RememberSessionChoiceReachesCookieAuthentication()
-    {
+    public void RememberSessionChoiceReachesCookieAuthentication() {
         var page = File.ReadAllText(RepositoryPaths.WebFile("wwwroot", "js", "pages", "login-page.js"));
         var controller = File.ReadAllText(RepositoryPaths.WebFile("Controllers", "BffAuthController.cs"));
 
@@ -39,8 +38,7 @@ public sealed class BffSessionRegressionTests
     }
 
     [Fact]
-    public void RefreshPreservesPrimaryRoleAndTransientApiFailuresPreserveSession()
-    {
+    public void RefreshPreservesPrimaryRoleAndTransientApiFailuresPreserveSession() {
         var source = File.ReadAllText(RepositoryPaths.WebFile("Services", "Bff", "BffAuthenticationService.cs"));
 
         Assert.Contains("new(ClaimTypes.Role, result.User.Role)", source);
@@ -49,8 +47,7 @@ public sealed class BffSessionRegressionTests
     }
 
     [Fact]
-    public void CookieKeysArePersistentAndBffChallengesReturnJson()
-    {
+    public void CookieKeysArePersistentAndBffChallengesReturnJson() {
         var program = File.ReadAllText(RepositoryPaths.WebFile("Program.cs"));
 
         Assert.Contains("PersistKeysToFileSystem", program);

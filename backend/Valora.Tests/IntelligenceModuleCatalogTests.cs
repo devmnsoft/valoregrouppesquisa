@@ -4,8 +4,7 @@ using IntelligenceModuleViewModel = ValoraWeb::Valora.Web.Models.ViewModels.Inte
 
 namespace Valora.Tests;
 
-public sealed class IntelligenceModuleCatalogTests
-{
+public sealed class IntelligenceModuleCatalogTests {
     [Theory]
     [InlineData("dashboard")]
     [InlineData("metrics")]
@@ -19,8 +18,7 @@ public sealed class IntelligenceModuleCatalogTests
     [InlineData("executive-report")]
     [InlineData("one-on-one")]
     [InlineData("power-bi")]
-    public void Find_ReturnsEveryProfessionalModule(string slug)
-    {
+    public void Find_ReturnsEveryProfessionalModule(string slug) {
         var module = IntelligenceModuleViewModel.Find(slug);
 
         Assert.NotNull(module);

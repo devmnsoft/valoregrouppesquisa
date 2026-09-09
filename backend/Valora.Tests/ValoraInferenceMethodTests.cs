@@ -2,8 +2,7 @@ using Valora.Application.Results;
 
 namespace Valora.Tests;
 
-public sealed class ValoraInferenceMethodTests
-{
+public sealed class ValoraInferenceMethodTests {
     [Theory]
     [InlineData(0, "baixa")]
     [InlineData(2, "baixa")]
@@ -14,8 +13,7 @@ public sealed class ValoraInferenceMethodTests
         => Assert.Equal(expected, EvidenceConfidence.Classify(count));
 
     [Fact]
-    public void Fewer_than_three_evidences_never_produce_a_conclusion()
-    {
+    public void Fewer_than_three_evidences_never_produce_a_conclusion() {
         var result = new ValoraInsightDevolutivaService().Analyze(
             "Processo observado", ["survey", "metric"], "Os sinais variam juntos",
             "Uma causa", "Um impacto", "alta", ["Executar ação"]);
@@ -27,8 +25,7 @@ public sealed class ValoraInferenceMethodTests
     }
 
     [Fact]
-    public void Three_distinct_evidences_allow_an_explicitly_limited_hypothesis()
-    {
+    public void Three_distinct_evidences_allow_an_explicitly_limited_hypothesis() {
         var result = new ValoraInsightDevolutivaService().Analyze(
             "Processo observado", ["survey", "metric", "document"], "Os sinais variam juntos",
             "Hipótese a validar", "Impacto provável", "moderada", ["Validar no próximo ciclo"]);

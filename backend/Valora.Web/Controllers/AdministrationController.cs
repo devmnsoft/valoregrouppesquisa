@@ -5,11 +5,9 @@ namespace Valora.Web.Controllers;
 
 /// <summary>Stable entry points for the platform administration console.</summary>
 [Authorize(Roles = "admin_valora")]
-public sealed class AdministrationController : Controller
-{
+public sealed class AdministrationController : Controller {
     private static readonly IReadOnlyDictionary<string, (string Title, string Subtitle, string Endpoint, string Permission)> Modules =
-        new Dictionary<string, (string, string, string, string)>(StringComparer.OrdinalIgnoreCase)
-        {
+        new Dictionary<string, (string, string, string, string)>(StringComparer.OrdinalIgnoreCase) {
             ["organizations"] = ("Organizações", "Clientes, planos, consumo e situação operacional.", "/bff/enterprise/organizations", "organizations.read"),
             ["users"] = ("Usuários", "Contas, vínculos, perfis e acessos efetivos.", "/bff/users", "users.read"),
             ["roles"] = ("Perfis e Permissões", "Papéis e permissões agrupadas pelo catálogo canônico.", "/bff/roles", "roles.read"),
@@ -38,15 +36,13 @@ public sealed class AdministrationController : Controller
 
     [HttpGet("Administration")]
     [HttpGet("Administration/Overview")]
-    public IActionResult Index()
-    {
+    public IActionResult Index() {
         ViewData["Modules"] = Modules;
         return View();
     }
 
     [HttpGet("Administration/{module}")]
-    public IActionResult Module(string module)
-    {
+    public IActionResult Module(string module) {
         if (!Modules.TryGetValue(module, out var definition)) return NotFound();
         ViewData["Title"] = definition.Title;
         ViewData["Subtitle"] = definition.Subtitle;
@@ -81,7 +77,7 @@ public sealed class AdministrationController : Controller
     public IActionResult Branding() => Module("branding");
     public IActionResult Support() => Module("support");
 
-    [HttpGet("Privacy")]
+    [HttpGet("Administration/Privacy")]
     public IActionResult Privacy() => RedirectToAction(nameof(Module), new { module = "settings" });
 
     [HttpGet("Notifications")]

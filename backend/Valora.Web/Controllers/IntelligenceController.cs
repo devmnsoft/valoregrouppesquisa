@@ -5,10 +5,8 @@ using Valora.Web.Models.ViewModels;
 namespace Valora.Web.Controllers;
 
 [Authorize]
-public sealed class IntelligenceController : Controller
-{
-    private static readonly Dictionary<string, IntelligenceWorkspaceViewModel> Workspaces = new(StringComparer.OrdinalIgnoreCase)
-    {
+public sealed class IntelligenceController : Controller {
+    private static readonly Dictionary<string, IntelligenceWorkspaceViewModel> Workspaces = new(StringComparer.OrdinalIgnoreCase) {
         ["evidence"] = W("evidence", "Evidências Organizacionais", "Rastreabilidade", "Consulte a origem verificável de cada leitura.", "evidence", "evidência", ["evidenceType", "mappingStatus", "conceptCode", "metricCode", "indexCode"], ["surveyId", "responseId", "questionId", "normalizedValue", "rawValueMasked", "weight", "polarity", "confidenceWeight", "mappingStatus", "metadataJson"], "Respostas qualitativas são preservadas sem interpretação automática."),
         ["causal-map"] = W("causal-map", "Mapa Causal", "Causas, não sintomas", "Explore relações sustentadas por convergência de evidências.", "inferences", "relação causal", ["confidenceLevel"], ["description", "probableCause", "impact", "evidenceIds", "confidenceLevel"], "Sem três evidências convergentes, causas e impactos permanecem inconclusivos."),
         ["recommendations"] = W("recommendations", "Recomendações Executivas", "Evidência em evolução", "Priorize ações vinculadas a hipóteses rastreáveis.", "insights", "recomendação", ["priority", "confidence"], ["evidenceSummary", "impact", "recommendation", "evidenceIds", "limitation"], "Nenhuma recomendação é apresentada sem evidências rastreáveis."),
@@ -37,8 +35,7 @@ public sealed class IntelligenceController : Controller
 
     [HttpPost("Intelligence/Generate")]
     [ValidateAntiForgeryToken]
-    public IActionResult Generate(GenerateIntelligenceViewModel model)
-    {
+    public IActionResult Generate(GenerateIntelligenceViewModel model) {
         if (!ModelState.IsValid) return View(model);
         TempData["IntelligenceMessage"] = "Solicitação validada e encaminhada para montagem do pacote de evidências.";
         return RedirectToAction(nameof(Review));
@@ -81,8 +78,7 @@ public sealed class IntelligenceController : Controller
     public IActionResult Integrations() => Workspace("integrations");
 
     [HttpGet("Intelligence/{module}")]
-    public IActionResult Module(string module)
-    {
+    public IActionResult Module(string module) {
         if (Workspaces.TryGetValue(module, out var workspace)) return View(ToViewName(module), workspace);
         var definition = IntelligenceModuleViewModel.Find(module);
         return definition is null ? NotFound() : View("Module", definition);

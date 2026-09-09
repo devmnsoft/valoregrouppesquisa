@@ -1,6 +1,5 @@
 namespace Valora.Web.Navigation;
 
-public interface INavigationRouteResolver
-{
+public interface INavigationRouteResolver {
     string? Resolve(NavigationDestination destination);
 }

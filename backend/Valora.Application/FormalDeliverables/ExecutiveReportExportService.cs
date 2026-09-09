@@ -7,15 +7,12 @@ using System.Xml;
 namespace Valora.Application.FormalDeliverables;
 
 /// <summary>Dependency-free renderers. PDF and XLSX bytes are complete documents, never placeholder payloads.</summary>
-public sealed class ExecutiveReportExportService : IExecutiveReportExportService
-{
-    public GeneratedDocument Render(DiagnosisDocumentSnapshot snapshot, DeliverableFormat format, DateTimeOffset generatedAt)
-    {
+public sealed class ExecutiveReportExportService : IExecutiveReportExportService {
+    public GeneratedDocument Render(DiagnosisDocumentSnapshot snapshot, DeliverableFormat format, DateTimeOffset generatedAt) {
         var id = Guid.NewGuid();
         var trace = $"VLR-{generatedAt:yyyyMMdd}-{Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{snapshot.OrganizationId}:{snapshot.DiagnosisId}:{id}")))[..12]}";
         var slug = Slug(snapshot.OrganizationName);
-        var (extension, mime, bytes) = format switch
-        {
+        var (extension, mime, bytes) = format switch {
             DeliverableFormat.Pdf or DeliverableFormat.CertificatePdf => ("pdf", "application/pdf", RenderPdf(snapshot, trace, generatedAt, format == DeliverableFormat.CertificatePdf)),
             DeliverableFormat.Xlsx => ("xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", RenderXlsx(snapshot, trace, generatedAt)),
             DeliverableFormat.Json => ("json", "application/json", RenderJson(snapshot, trace, generatedAt)),
@@ -26,27 +23,29 @@ public sealed class ExecutiveReportExportService : IExecutiveReportExportService
             $"valora-{(format == DeliverableFormat.CertificatePdf ? "certificado" : "relatorio")}-{slug}-{generatedAt:yyyyMMdd}.{extension}", mime, bytes, trace, generatedAt);
     }
 
-    private static byte[] RenderJson(DiagnosisDocumentSnapshot s, string trace, DateTimeOffset at) => JsonSerializer.SerializeToUtf8Bytes(new
-    {
+    private static byte[] RenderJson(DiagnosisDocumentSnapshot s, string trace, DateTimeOffset at) => JsonSerializer.SerializeToUtf8Bytes(new {
         organization = new { id = s.OrganizationId, name = s.OrganizationName },
         diagnosis = new { id = s.DiagnosisId, name = s.DiagnosisName, completedAt = s.CompletedAt },
         methodologyVersion = s.MethodologyVersion,
         scores = new { overall = s.OverallScore, maturityLevel = s.MaturityLevel },
-        dimensions = s.Dimensions, concepts = Array.Empty<object>(), evidenceItems = s.EvidenceItems,
-        risks = s.Risks, opportunities = s.Opportunities, recommendations = s.Recommendations,
+        dimensions = s.Dimensions,
+        concepts = Array.Empty<object>(),
+        evidenceItems = s.EvidenceItems,
+        risks = s.Risks,
+        opportunities = s.Opportunities,
+        recommendations = s.Recommendations,
         limitations = s.Limitations,
-        actionPlan = s.ActionPlan, generatedAt = at, traceCode = trace
+        actionPlan = s.ActionPlan,
+        generatedAt = at,
+        traceCode = trace
     }, new JsonSerializerOptions { WriteIndented = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
-    private static byte[] RenderPdf(DiagnosisDocumentSnapshot s, string trace, DateTimeOffset generatedAt, bool certificate)
-    {
+    private static byte[] RenderPdf(DiagnosisDocumentSnapshot s, string trace, DateTimeOffset generatedAt, bool certificate) {
         var lines = new List<string>();
-        if (certificate)
-        {
+        if (certificate) {
             lines.AddRange(["VALORA INSIGHT - CERTIFICADO", s.OrganizationName, s.DiagnosisName, $"Score geral: {s.OverallScore:0.0}", $"Maturidade: {s.MaturityLevel}", $"Metodologia: {s.MethodologyName} {s.MethodologyVersion}", $"Emitido em: {generatedAt:dd/MM/yyyy}", $"Validacao publica: /p/certificates/{trace}"]);
         }
-        else
-        {
+        else {
             lines.AddRange(["VALORA EXECUTIVE REPORT", s.OrganizationName, s.DiagnosisName, $"Score geral: {s.OverallScore:0.0} | {s.MaturityLevel}", "RESUMO EXECUTIVO", s.ExecutiveSummary, "LEITURA ESTRATEGICA", s.StrategicReading, "DIMENSOES"]);
             lines.AddRange(s.Dimensions.Select(x => $"{x.Name}: {x.Score:0.0} - {x.Interpretation}"));
             lines.Add("EVIDENCIAS"); lines.AddRange(s.EvidenceItems.Count > 0 ? s.EvidenceItems.Select(x => $"{x.Dimension}: {x.Description} ({x.Source})") : ["Nenhuma evidencia consolidada foi disponibilizada para esta emissao."]);
@@ -70,10 +69,8 @@ public sealed class ExecutiveReportExportService : IExecutiveReportExportService
         writer.WriteLine($"trailer << /Size {objects.Length + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF"); writer.Flush(); return output.ToArray();
     }
 
-    private static byte[] RenderXlsx(DiagnosisDocumentSnapshot s, string trace, DateTimeOffset at)
-    {
-        var sheets = new Dictionary<string, IEnumerable<string[]>>
-        {
+    private static byte[] RenderXlsx(DiagnosisDocumentSnapshot s, string trace, DateTimeOffset at) {
+        var sheets = new Dictionary<string, IEnumerable<string[]>> {
             ["Resumo"] = Rows(new[] { "Organização", s.OrganizationName }, new[] { "Diagnóstico", s.DiagnosisName }, new[] { "Score", s.OverallScore.ToString("0.0") }, new[] { "Maturidade", s.MaturityLevel }),
             ["Scores"] = Rows(new[] { "Indicador", "Valor" }, new[] { "Score geral", s.OverallScore.ToString("0.0") }),
             ["Dimensões"] = new[] { new[] { "Dimensão", "Score", "Interpretação" } }.Concat(s.Dimensions.Select(x => new[] { x.Name, x.Score.ToString("0.0"), x.Interpretation })),
@@ -85,12 +82,12 @@ public sealed class ExecutiveReportExportService : IExecutiveReportExportService
             ["Plano de ação"] = new[] { new[] { "Prioridade", "Ação", "Responsável", "Prazo" } }.Concat(s.ActionPlan.Select(x => new[] { x.Priority, x.Action, x.Owner, x.DueDate?.ToString("yyyy-MM-dd") ?? "" })),
             ["Auditoria"] = Rows(new[] { "Gerado em", "Rastreabilidade" }, new[] { at.ToString("O"), trace })
         };
-        using var output = new MemoryStream(); using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true))
-        {
+        using var output = new MemoryStream(); using (var zip = new ZipArchive(output, ZipArchiveMode.Create, true)) {
             Add(zip, "[Content_Types].xml", ContentTypes(sheets.Count)); Add(zip, "_rels/.rels", "<?xml version=\"1.0\"?><Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\"><Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"xl/workbook.xml\"/></Relationships>");
             Add(zip, "xl/workbook.xml", Workbook(sheets.Keys)); Add(zip, "xl/_rels/workbook.xml.rels", WorkbookRels(sheets.Count));
             var i = 1; foreach (var sheet in sheets) Add(zip, $"xl/worksheets/sheet{i++}.xml", Worksheet(sheet.Value));
-        } return output.ToArray();
+        }
+        return output.ToArray();
     }
 
     private static IEnumerable<string[]> Rows(params string[][] rows) => rows;

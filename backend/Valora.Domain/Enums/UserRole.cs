@@ -1,7 +1,6 @@
 namespace Valora.Domain.Enums;
 
-public enum UserRole
-{
+public enum UserRole {
     Admin,
     EmpresaAdmin,
     Manager,

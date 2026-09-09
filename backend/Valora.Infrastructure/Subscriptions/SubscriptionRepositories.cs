@@ -4,15 +4,13 @@ using Valora.Application.Subscriptions;
 
 namespace Valora.Infrastructure.Subscriptions;
 
-public sealed class SubscriptionPlanRepository(IDbConnectionFactory connections) : ISubscriptionPlanRepository
-{
+public sealed class SubscriptionPlanRepository(IDbConnectionFactory connections) : ISubscriptionPlanRepository {
     public Task<SubscriptionPlan?> GetByIdAsync(Guid id, CancellationToken ct = default) => GetAsync(id, null, ct);
 
     public async Task<SubscriptionPlan> GetFreeAsync(CancellationToken ct = default) =>
         await GetAsync(null, "free", ct) ?? throw new InvalidOperationException("O plano Free ativo não foi configurado.");
 
-    private async Task<SubscriptionPlan?> GetAsync(Guid? id, string? code, CancellationToken ct)
-    {
+    private async Task<SubscriptionPlan?> GetAsync(Guid? id, string? code, CancellationToken ct) {
         const string planSql = """
             SELECT id AS Id, code AS Code, name AS Name, status AS Status
             FROM valorapesquisa.subscription_plans
@@ -48,10 +46,8 @@ public sealed class SubscriptionPlanRepository(IDbConnectionFactory connections)
     private sealed record LimitRow(string Metric, int? LimitValue);
 }
 
-public sealed class OrganizationSubscriptionRepository(IDbConnectionFactory connections) : IOrganizationSubscriptionRepository
-{
-    public async Task<OrganizationSubscription?> GetCurrentAsync(Guid organizationId, CancellationToken ct = default)
-    {
+public sealed class OrganizationSubscriptionRepository(IDbConnectionFactory connections) : IOrganizationSubscriptionRepository {
+    public async Task<OrganizationSubscription?> GetCurrentAsync(Guid organizationId, CancellationToken ct = default) {
         const string sql = """
             SELECT id AS Id, organization_id AS OrganizationId, plan_id AS PlanId, status AS Status,
                    started_at AS StartedAt, expires_at AS ExpiresAt, trial_ends_at AS TrialEndsAt
@@ -64,8 +60,7 @@ public sealed class OrganizationSubscriptionRepository(IDbConnectionFactory conn
             new CommandDefinition(sql, new { OrganizationId = organizationId }, cancellationToken: ct));
     }
 
-    public async Task<OrganizationSubscription> CreateFreeAsync(Guid organizationId, Guid freePlanId, CancellationToken ct = default)
-    {
+    public async Task<OrganizationSubscription> CreateFreeAsync(Guid organizationId, Guid freePlanId, CancellationToken ct = default) {
         const string sql = """
             INSERT INTO valorapesquisa.organization_subscriptions (organization_id, plan_id, status)
             VALUES (@OrganizationId, @PlanId, 'active')
@@ -79,8 +74,7 @@ public sealed class OrganizationSubscriptionRepository(IDbConnectionFactory conn
             new CommandDefinition(sql, new { OrganizationId = organizationId, PlanId = freePlanId }, cancellationToken: ct));
     }
 
-    public async Task ChangePlanAsync(Guid organizationId, Guid planId, Guid changedBy, CancellationToken ct = default)
-    {
+    public async Task ChangePlanAsync(Guid organizationId, Guid planId, Guid changedBy, CancellationToken ct = default) {
         const string sql = """
             UPDATE valorapesquisa.organization_subscriptions
             SET plan_id = @PlanId, status = 'active', updated_at = now(),
@@ -93,16 +87,14 @@ public sealed class OrganizationSubscriptionRepository(IDbConnectionFactory conn
         if (affected == 0) throw new InvalidOperationException("A organização não possui assinatura ativa para alteração.");
     }
 
-    public async Task<IReadOnlyDictionary<string, int>> GetLimitOverridesAsync(Guid subscriptionId, CancellationToken ct = default)
-    {
+    public async Task<IReadOnlyDictionary<string, int>> GetLimitOverridesAsync(Guid subscriptionId, CancellationToken ct = default) {
         const string sql = "SELECT metric, limit_value FROM valorapesquisa.plan_limit_overrides WHERE subscription_id = @SubscriptionId AND deleted_at IS NULL;";
         using var connection = connections.Create();
         var rows = await connection.QueryAsync<OverrideRow>(new CommandDefinition(sql, new { SubscriptionId = subscriptionId }, cancellationToken: ct));
         return rows.ToDictionary(item => item.Metric, item => item.LimitValue, StringComparer.OrdinalIgnoreCase);
     }
 
-    public async Task ApplyLimitOverrideAsync(Guid subscriptionId, string metric, int value, Guid appliedBy, CancellationToken ct = default)
-    {
+    public async Task ApplyLimitOverrideAsync(Guid subscriptionId, string metric, int value, Guid appliedBy, CancellationToken ct = default) {
         const string sql = """
             INSERT INTO valorapesquisa.plan_limit_overrides (subscription_id, metric, limit_value, applied_by)
             VALUES (@SubscriptionId, @Metric, @Value, @AppliedBy)
@@ -117,10 +109,8 @@ public sealed class OrganizationSubscriptionRepository(IDbConnectionFactory conn
     private sealed record OverrideRow(string Metric, int LimitValue);
 }
 
-public sealed class UsageCounterRepository(IDbConnectionFactory connections) : IUsageCounterRepository
-{
-    public async Task<UsageSnapshot> GetCurrentAsync(Guid organizationId, Guid subscriptionId, CancellationToken ct = default)
-    {
+public sealed class UsageCounterRepository(IDbConnectionFactory connections) : IUsageCounterRepository {
+    public async Task<UsageSnapshot> GetCurrentAsync(Guid organizationId, Guid subscriptionId, CancellationToken ct = default) {
         const string sql = """
             SELECT subscription_id AS SubscriptionId, period_start AS PeriodStart, period_end AS PeriodEnd,
                    diagnostics_used AS Diagnostics, respondents_used AS Respondents, users_used AS Users,
@@ -137,26 +127,32 @@ public sealed class UsageCounterRepository(IDbConnectionFactory connections) : I
         var start = new DateOnly(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
         return row is null
             ? new UsageSnapshot(subscriptionId, start, start.AddMonths(1).AddDays(-1), EmptyCounters())
-            : new UsageSnapshot(row.SubscriptionId, row.PeriodStart, row.PeriodEnd, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
-            {
-                [SubscriptionMetrics.Diagnostics] = row.Diagnostics, [SubscriptionMetrics.Respondents] = row.Respondents,
-                [SubscriptionMetrics.Users] = row.Users, [SubscriptionMetrics.StorageMb] = row.StorageMb,
-                [SubscriptionMetrics.Reports] = row.Reports, [SubscriptionMetrics.Certificates] = row.Certificates,
-                [SubscriptionMetrics.ApiCalls] = row.ApiCalls, [SubscriptionMetrics.PublicLinks] = row.PublicLinks,
+            : new UsageSnapshot(row.SubscriptionId, row.PeriodStart, row.PeriodEnd, new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) {
+                [SubscriptionMetrics.Diagnostics] = row.Diagnostics,
+                [SubscriptionMetrics.Respondents] = row.Respondents,
+                [SubscriptionMetrics.Users] = row.Users,
+                [SubscriptionMetrics.StorageMb] = row.StorageMb,
+                [SubscriptionMetrics.Reports] = row.Reports,
+                [SubscriptionMetrics.Certificates] = row.Certificates,
+                [SubscriptionMetrics.ApiCalls] = row.ApiCalls,
+                [SubscriptionMetrics.PublicLinks] = row.PublicLinks,
                 [SubscriptionMetrics.Exports] = row.Exports
             });
     }
 
     public async Task RegisterAsync(Guid organizationId, Guid subscriptionId, string metric, int amount, bool blocked,
-        string? metadataJson, CancellationToken ct = default)
-    {
-        var column = metric.ToLowerInvariant() switch
-        {
-            SubscriptionMetrics.Diagnostics => "diagnostics_used", SubscriptionMetrics.Respondents => "respondents_used",
-            SubscriptionMetrics.Users => "users_used", SubscriptionMetrics.StorageMb => "storage_mb_used",
-            SubscriptionMetrics.Reports => "reports_generated", SubscriptionMetrics.Certificates => "certificates_generated",
-            SubscriptionMetrics.ApiCalls => "api_calls_used", SubscriptionMetrics.PublicLinks => "public_links_created",
-            SubscriptionMetrics.Exports => "exports_generated", _ => null
+        string? metadataJson, CancellationToken ct = default) {
+        var column = metric.ToLowerInvariant() switch {
+            SubscriptionMetrics.Diagnostics => "diagnostics_used",
+            SubscriptionMetrics.Respondents => "respondents_used",
+            SubscriptionMetrics.Users => "users_used",
+            SubscriptionMetrics.StorageMb => "storage_mb_used",
+            SubscriptionMetrics.Reports => "reports_generated",
+            SubscriptionMetrics.Certificates => "certificates_generated",
+            SubscriptionMetrics.ApiCalls => "api_calls_used",
+            SubscriptionMetrics.PublicLinks => "public_links_created",
+            SubscriptionMetrics.Exports => "exports_generated",
+            _ => null
         };
         using var connection = connections.Create();
         connection.Open();
@@ -168,8 +164,7 @@ public sealed class UsageCounterRepository(IDbConnectionFactory connections) : I
             """;
         await connection.ExecuteAsync(new CommandDefinition(eventSql,
             new { OrganizationId = organizationId, SubscriptionId = subscriptionId, Metric = metric, Amount = amount, Blocked = blocked, MetadataJson = metadataJson }, transaction, cancellationToken: ct));
-        if (!blocked && column is not null)
-        {
+        if (!blocked && column is not null) {
             var counterSql = $"""
                 INSERT INTO valorapesquisa.subscription_usage_counters
                     (organization_id, subscription_id, period_start, period_end, {column})
@@ -190,10 +185,8 @@ public sealed class UsageCounterRepository(IDbConnectionFactory connections) : I
         int Respondents, int Users, int StorageMb, int Reports, int Certificates, int ApiCalls, int PublicLinks, int Exports);
 }
 
-public sealed class UpgradeRequestRepository(IDbConnectionFactory connections) : IUpgradeRequestRepository
-{
-    public async Task<UpgradeRequest> CreateAsync(UpgradeRequest request, CancellationToken ct = default)
-    {
+public sealed class UpgradeRequestRepository(IDbConnectionFactory connections) : IUpgradeRequestRepository {
+    public async Task<UpgradeRequest> CreateAsync(UpgradeRequest request, CancellationToken ct = default) {
         const string sql = """
             INSERT INTO valorapesquisa.subscription_upgrade_requests
                 (id, organization_id, current_plan_id, requested_plan_id, requested_by, reason, billing_email, status, created_at)

@@ -3,13 +3,11 @@ using Valora.Domain.ValueObjects;
 namespace Valora.Tests;
 
 [Trait("Category", "Unit")]
-public sealed class CnpjTests
-{
+public sealed class CnpjTests {
     [Theory]
     [InlineData("11.222.333/0001-81")]
     [InlineData("11222333000181")]
-    public void Create_NormalizesAndValidates(string input)
-    {
+    public void Create_NormalizesAndValidates(string input) {
         var cnpj = Cnpj.Create(input);
         Assert.Equal("11222333000181", cnpj.Value);
         Assert.Equal("11222333", cnpj.Root);

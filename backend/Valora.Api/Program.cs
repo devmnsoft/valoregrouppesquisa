@@ -1,17 +1,21 @@
+using System.Security.Cryptography;
+using System.Threading.RateLimiting;
+using Dapper;
+using Microsoft.AspNetCore.RateLimiting;
 using Serilog;
-using Valora.Api.Configuration;
 using Valora.Api;
+using Valora.Api.Configuration;
 using Valora.Api.Middleware;
 using Valora.Application.DependencyInjection;
-using Valora.Infrastructure.DependencyInjection;
 using Valora.Infrastructure.Database;
-using System.Threading.RateLimiting;
-using Microsoft.AspNetCore.RateLimiting;
-using Dapper;
+using Valora.Infrastructure.DependencyInjection;
 
 DefaultTypeMap.MatchNamesWithUnderscores = true;
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (builder.Environment.IsEnvironment("Testing") && string.IsNullOrWhiteSpace(builder.Configuration["Jwt:SigningKey"]))
+    builder.Configuration["Jwt:SigningKey"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
 
 builder.Host.UseSerilog((context, logger) => logger
     .ReadFrom.Configuration(context.Configuration)
@@ -19,8 +23,7 @@ builder.Host.UseSerilog((context, logger) => logger
     .WriteTo.Console());
 
 builder.Services.AddMemoryCache();
-builder.Services.AddRateLimiter(options =>
-{
+builder.Services.AddRateLimiter(options => {
     options.AddPolicy("public-write", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
@@ -32,12 +35,12 @@ builder.Services.AddApplicationServices();
 builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.Configure<IntelligenceProcessingOptions>(builder.Configuration.GetSection("Valora:Processing"));
 builder.Services.AddHostedService<IntelligenceProcessingWorker>();
+builder.Services.AddHostedService<ExportProcessingWorker>();
 
 var app = builder.Build();
 
 var configurationValidation = app.Services.GetRequiredService<Valora.Api.Operations.IConfigurationValidationService>().Validate();
-if (app.Environment.IsProduction() && configurationValidation.Issues.Any(issue => issue.IsBlocking))
-{
+if (app.Environment.IsProduction() && configurationValidation.Issues.Any(issue => issue.IsBlocking)) {
     var blockingIssueCodes = string.Join(", ", configurationValidation.Issues
         .Where(issue => issue.IsBlocking)
         .Select(issue => $"{issue.Category}/{issue.Code}"));
@@ -45,21 +48,18 @@ if (app.Environment.IsProduction() && configurationValidation.Issues.Any(issue =
     throw new InvalidOperationException("Configuração insegura para produção. Consulte os registros de inicialização e o painel de Saúde do Sistema.");
 }
 
-if (app.Environment.IsDevelopment() && builder.Configuration.GetValue("Database:ValidateSchema", true))
-{
+if (app.Environment.IsDevelopment() && builder.Configuration.GetValue("Database:ValidateSchema", true)) {
     await using var scope = app.Services.CreateAsyncScope();
     await scope.ServiceProvider.GetRequiredService<SchemaContractValidator>().ValidateAsync();
 }
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseMiddleware<ErrorHandlingMiddleware>();
-if (app.Environment.IsProduction())
-{
+if (app.Environment.IsProduction()) {
     app.UseHsts();
     if (builder.Configuration.GetValue("Security:RequireHttps", true)) app.UseHttpsRedirection();
 }
-app.Use(async (context, next) =>
-{
+app.Use(async (context, next) => {
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     context.Response.Headers["X-Frame-Options"] = "DENY";
     context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
@@ -67,8 +67,7 @@ app.Use(async (context, next) =>
     context.Response.Headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'";
     await next();
 });
-if (app.Environment.IsDevelopment())
-{
+if (app.Environment.IsDevelopment()) {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
@@ -79,8 +78,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseMiddleware<MaintenanceModeMiddleware>();
 
-app.MapGet("/", () => Results.Json(new
-{
+app.MapGet("/", () => Results.Json(new {
     ok = true,
     service = "Valora.Api",
     message = "Valora API operacional.",

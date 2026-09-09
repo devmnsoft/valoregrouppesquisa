@@ -1,7 +1,6 @@
 namespace Valora.Application.ModularSaas;
 
-public interface ICommercialSaasRepository
-{
+public interface ICommercialSaasRepository {
     Task<IReadOnlyList<CommercialModule>> ListModulesAsync(Guid? clientId, CancellationToken cancellationToken);
     Task<IReadOnlyList<CommercialPlan>> ListPlansAsync(CancellationToken cancellationToken);
     Task<ModuleAccessDecision> EvaluateAccessAsync(Guid clientId, string moduleCode, bool writeOperation, CancellationToken cancellationToken);

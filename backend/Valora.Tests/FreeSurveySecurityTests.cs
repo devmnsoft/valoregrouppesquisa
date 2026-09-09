@@ -1,15 +1,14 @@
 using System.IO;
+using Valora.Tests.Support;
 using Xunit;
 
 namespace Valora.Tests;
 
 [Trait("Category", "StaticContract")]
-public sealed class FreeSurveySecurityTests
-{
+public sealed class FreeSurveySecurityTests {
     [Fact]
-    public void FreeSurveySecurityArtifactsContainRequiredControls()
-    {
-        var controller = File.ReadAllText("../../../Valora.Api/Controllers/PublicSurveysController.cs");
+    public void FreeSurveySecurityArtifactsContainRequiredControls() {
+        var controller = File.ReadAllText(RepositoryPaths.ApiFile("Controllers", "PublicSurveysController.cs"));
         Assert.Contains("ip-rate-limit", controller);
         Assert.Contains("email-rate-limit", controller);
         Assert.Contains("token-rate-limit", controller);

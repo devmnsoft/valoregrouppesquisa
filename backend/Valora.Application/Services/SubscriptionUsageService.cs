@@ -4,10 +4,8 @@ using Valora.Application.DTOs;
 namespace Valora.Application.Services;
 
 public sealed class SubscriptionUsageService(IUsageRepository usage, IPlanEntitlementService entitlements)
-    : ISubscriptionUsageService
-{
-    private static readonly IReadOnlyDictionary<string, string> Names = new Dictionary<string, string>
-    {
+    : ISubscriptionUsageService {
+    private static readonly IReadOnlyDictionary<string, string> Names = new Dictionary<string, string> {
         ["diagnosticsCreated"] = "Diagnósticos criados",
         ["diagnosticsPublished"] = "Diagnósticos publicados",
         ["responsesPerMonth"] = "Respostas recebidas no mês",
@@ -19,8 +17,7 @@ public sealed class SubscriptionUsageService(IUsageRepository usage, IPlanEntitl
         ["exports"] = "Exportações realizadas"
     };
 
-    public async Task<SubscriptionUsageDto> GetCurrentAsync(Guid organizationId, CancellationToken cancellationToken = default)
-    {
+    public async Task<SubscriptionUsageDto> GetCurrentAsync(Guid organizationId, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         var now = DateTime.UtcNow;
         await usage.RecalculateAsync(organizationId, now);
@@ -32,8 +29,7 @@ public sealed class SubscriptionUsageService(IUsageRepository usage, IPlanEntitl
     }
 
     public async Task<SubscriptionLimitDecision> CheckAsync(Guid organizationId, string metric, int amount = 1,
-        bool isValoraAdmin = false, CancellationToken cancellationToken = default)
-    {
+        bool isValoraAdmin = false, CancellationToken cancellationToken = default) {
         if (isValoraAdmin) return SubscriptionLimitDecision.Granted(metric);
         if (amount < 1) throw new ArgumentOutOfRangeException(nameof(amount));
         var snapshot = await GetCurrentAsync(organizationId, cancellationToken);

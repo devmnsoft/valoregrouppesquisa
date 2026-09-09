@@ -1,1 +1,2 @@
-using Microsoft.AspNetCore.Mvc; namespace Valora.Web.Controllers; public sealed class EmailController:Controller{ public IActionResult Templates()=>View(); public IActionResult Jobs()=>View(); public IActionResult Status()=>View(); }
+using Microsoft.AspNetCore.Mvc;
+namespace Valora.Web.Controllers; public sealed class EmailController : Controller { public IActionResult Templates() => View(); public IActionResult Jobs() => View(); public IActionResult Status() => View(); }

@@ -2,11 +2,9 @@ using Valora.Domain.Methodology;
 
 namespace Valora.Tests;
 
-public sealed class OfficialMethodologyCatalogTests
-{
+public sealed class OfficialMethodologyCatalogTests {
     [Fact]
-    public void Publishes_the_twelve_official_indices_without_duplicate_codes()
-    {
+    public void Publishes_the_twelve_official_indices_without_duplicate_codes() {
         Assert.Equal(12, ValoraIndexCatalog.All.Count);
         Assert.Equal(12, ValoraIndexCatalog.All.Select(index => index.Code).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.All(new[] { "IMO", "ICS", "IIO", "IGO", "ICO", "ILI", "IPO", "IDO", "IAC", "IAR", "IIS", "ISO" },

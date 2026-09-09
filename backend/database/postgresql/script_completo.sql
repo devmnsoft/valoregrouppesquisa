@@ -244,6 +244,7 @@ ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS published_at t
 ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS published_by_user_id uuid REFERENCES valorapesquisa.users(id);
 ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS updated_at timestamptz;
 ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+ALTER TABLE valorapesquisa.form_versions ADD COLUMN IF NOT EXISTS row_version bigint NOT NULL DEFAULT 1;
 
 CREATE TABLE IF NOT EXISTS valorapesquisa.form_section_versions (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

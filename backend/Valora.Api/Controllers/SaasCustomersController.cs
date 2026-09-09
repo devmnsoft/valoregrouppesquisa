@@ -4,13 +4,17 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Access;
 using Valora.Application.SaasAdministration;
+using Valora.Application.Common;
+using Valora.Application.DTOs;
+using Valora.Application.Services;
 
 namespace Valora.Api.Controllers;
 
 [Authorize(Roles = ValoraAccessCatalog.PlatformRole)]
 [ApiController]
 [Route("api/v1/saas/customers")]
-public sealed class SaasCustomersController(SaasCustomerService service) : ControllerBase
+public sealed class SaasCustomersController(SaasCustomerService service, AuditService audit,
+    ICurrentRequestContext currentRequest) : ControllerBase
 {
     [HttpGet]
     [Authorize(Policy = ValoraPermissions.SaasCustomers.View)]
@@ -32,6 +36,22 @@ public sealed class SaasCustomersController(SaasCustomerService service) : Contr
         return CreatedAtAction(nameof(Get), new { id = customer.Id }, customer);
     }
 
+    [HttpPost("{id:guid}/select-context")]
+    [Authorize(Policy = ValoraPermissions.SaasCustomers.View)]
+    public async Task<IActionResult> SelectContext(Guid id, [FromBody] SelectCustomerContextRequest request,
+        CancellationToken cancellationToken)
+    {
+        var customer = await service.GetAsync(id, cancellationToken);
+        if (customer is null) return NotFound(new { code = "ORGANIZATION_NOT_FOUND", message = "Cliente não encontrado." });
+
+        var current = currentRequest.GetCurrent();
+        await audit.LogAsync(new AuditEntry(id, current.RequireUserId(), "auth.organization_selected", "organization",
+            id.ToString(), "Organização selecionada explicitamente para operação pelo Super Admin.",
+            System.Text.Json.JsonSerializer.Serialize(new { reason = request.Reason?.Trim() }), HttpContext.TraceIdentifier,
+            module: "identity"));
+        return Ok(new { organizationId = id, name = customer.TradeName });
+    }
+
     [HttpPost("{id:guid}/block")]
     [Authorize(Policy = ValoraPermissions.SaasCustomers.Block)]
     public Task<IActionResult> Block(Guid id, [FromBody] AccessChangeRequest request, CancellationToken cancellationToken) => ChangeAccess(id, true, request, cancellationToken);
@@ -51,3 +71,4 @@ public sealed class SaasCustomersController(SaasCustomerService service) : Contr
 }
 
 public sealed record AccessChangeRequest([property: Required, StringLength(500, MinimumLength = 3)] string Reason);
+public sealed record SelectCustomerContextRequest([property: StringLength(500)] string? Reason);

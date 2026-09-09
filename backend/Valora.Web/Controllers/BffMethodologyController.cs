@@ -17,7 +17,9 @@ public sealed class BffMethodologyController(IBffApiClient api, BffAuthenticatio
         object? body = null;
         if (Request.ContentLength > 0) body = await JsonSerializer.DeserializeAsync<JsonElement>(Request.Body, cancellationToken: ct);
         var correlationId = Request.Headers["X-Correlation-Id"].FirstOrDefault() ?? HttpContext.TraceIdentifier;
-        using var response = await api.SendAsync(new HttpMethod(Request.Method), $"/api/v1/methodology/{resource}{Request.QueryString}", body, session.AccessToken, correlationId, ct);
+        using var response = await authentication.SendAuthorizedAsync(HttpContext, new HttpMethod(Request.Method),
+            $"/api/v1/methodology/{resource}{Request.QueryString}", body, correlationId, ct);
+        if (response is null) return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou. Entre novamente.", correlationId });
         var payload = await response.Content.ReadAsStringAsync(ct);
         return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/json", Content = payload };
     }

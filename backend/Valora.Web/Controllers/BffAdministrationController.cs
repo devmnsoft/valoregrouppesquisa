@@ -157,7 +157,14 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
         var correlationId = Request.Headers["X-Correlation-Id"].FirstOrDefault() ?? HttpContext.TraceIdentifier;
         try
         {
-            using var response = await api.SendAsync(new HttpMethod(Request.Method), path + query, body, session.AccessToken, correlationId, cancellationToken);
+            using var response = await authentication.SendAuthorizedAsync(HttpContext, new HttpMethod(Request.Method),
+                path + query, body, correlationId, cancellationToken);
+            if (response is null) return Unauthorized(new
+            {
+                code = "SESSION_EXPIRED",
+                message = "Sua sessão expirou. Entre novamente para continuar.",
+                correlationId
+            });
             var payload = await response.Content.ReadAsStringAsync(cancellationToken);
             Response.Headers["X-Correlation-Id"] = response.Headers.TryGetValues("X-Correlation-Id", out var values) ? values.First() : correlationId;
             return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/json", Content = payload };

@@ -17,9 +17,9 @@ public sealed class JwtTokenService(IConfiguration configuration) : IJwtTokenSer
             new(ClaimTypes.NameIdentifier, userId.ToString()),
             new(ClaimTypes.Email, email),
             new(ClaimTypes.Role, role),
-            new("organizationId", organizationId.ToString()),
-            new("sessionId", sessionId.ToString()),
-            new("role", role),
+            new("organization_id", organizationId.ToString()),
+            new("session_id", sessionId.ToString()),
+            new("access_version", DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture)),
             new("locale", locale)
         };
         var signingKey = options["SigningKey"]

@@ -15,6 +15,7 @@ public static class ApiServiceCollectionExtensions
     {
         services.AddControllers();
         services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentRequestContext, CurrentRequestContextProvider>();
         services.AddScoped<ICurrentOrganizationProvider, CurrentOrganizationProvider>();
         services.AddCors(options =>
         {

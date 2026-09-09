@@ -28,7 +28,30 @@ public sealed record DiagnosisDocumentSnapshot(
     IReadOnlyList<string> Recommendations,
     IReadOnlyList<ActionItem> ActionPlan,
     IReadOnlyList<string> Limitations,
-    bool IsAnonymous = false);
+    bool IsAnonymous = false) {
+    private Guid guid1;
+    private string v1;
+    private Guid guid2;
+    private string v2;
+    private DateTimeOffset dateTimeOffset;
+    private decimal v3;
+    private string v4;
+    private string v5;
+    private string v6;
+    private string v7;
+    private string v8;
+    private object value1;
+    private object value2;
+    private object value3;
+    private object value4;
+    private object value5;
+    private object value6;
+    private object value7;
+    private object value8;
+    private bool v9;
+
+    
+}
 
 public sealed record GeneratedDocument(
     Guid Id, Guid OrganizationId, Guid DiagnosisId, DeliverableFormat Format,

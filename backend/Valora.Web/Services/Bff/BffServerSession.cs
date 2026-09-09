@@ -9,6 +9,6 @@ namespace Valora.Web.Services.Bff;
 public sealed record BffServerSession(string AccessToken, DateTimeOffset AccessTokenExpiresAt,
     string RefreshToken, DateTimeOffset RefreshTokenExpiresAt, BffSafeSession SafeSession)
 {
-    public const int CurrentSessionVersion = 2;
+    public const int CurrentSessionVersion = 3;
     public int SessionVersion { get; init; } = CurrentSessionVersion;
 }

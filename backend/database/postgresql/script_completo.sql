@@ -4835,6 +4835,22 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.user_pinned_items (organization_id uui
 CREATE TABLE IF NOT EXISTS valorapesquisa.executive_priorities (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL,title varchar(180) NOT NULL,description text,status varchar(40) NOT NULL DEFAULT 'active',priority varchar(20) NOT NULL DEFAULT 'medium',owner_user_id uuid,due_at timestamptz,source_type varchar(80),source_id uuid,progress_percent integer NOT NULL DEFAULT 0,created_by uuid NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),CONSTRAINT executive_priority_progress_ck CHECK(progress_percent BETWEEN 0 AND 100),CONSTRAINT executive_priority_level_ck CHECK(priority IN ('critical','high','medium','low')));
 CREATE INDEX IF NOT EXISTS ix_executive_priorities_tenant ON valorapesquisa.executive_priorities(organization_id,status,priority,due_at);
 CREATE TABLE IF NOT EXISTS valorapesquisa.executive_priority_updates (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL,priority_id uuid NOT NULL REFERENCES valorapesquisa.executive_priorities(id) ON DELETE CASCADE,progress_percent integer NOT NULL,note text,created_by uuid NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),CONSTRAINT executive_priority_update_progress_ck CHECK(progress_percent BETWEEN 0 AND 100));
+ALTER TABLE valorapesquisa.executive_priority_updates ADD COLUMN IF NOT EXISTS event_type varchar(24) NOT NULL DEFAULT 'progress';
+ALTER TABLE valorapesquisa.executive_priority_updates ADD COLUMN IF NOT EXISTS command_id varchar(80);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_executive_priority_updates_command ON valorapesquisa.executive_priority_updates(organization_id,priority_id,command_id) WHERE command_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_executive_priority_updates_history ON valorapesquisa.executive_priority_updates(organization_id,priority_id,created_at,id);
+DO $priority_constraints$ BEGIN
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='executive_priority_status_ck' AND conrelid='valorapesquisa.executive_priorities'::regclass) THEN
+  ALTER TABLE valorapesquisa.executive_priorities ADD CONSTRAINT executive_priority_status_ck CHECK(status IN('active','completed','cancelled'));
+ END IF;
+ IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='executive_priority_completion_ck' AND conrelid='valorapesquisa.executive_priorities'::regclass) THEN
+  ALTER TABLE valorapesquisa.executive_priorities ADD CONSTRAINT executive_priority_completion_ck CHECK(status<>'completed' OR progress_percent=100);
+ END IF;
+END $priority_constraints$;
+INSERT INTO valorapesquisa.workspace_items(id,organization_id,item_type,title,summary,status,priority,due_at,owner_user_id,source_type,source_id,route,created_at)
+SELECT p.id,p.organization_id,'priority',p.title,p.description,p.status,p.priority,p.due_at,p.owner_user_id,p.source_type,p.source_id,'/Workspace/Priorities',p.created_at
+FROM valorapesquisa.executive_priorities p
+ON CONFLICT(id) DO NOTHING;
 CREATE TABLE IF NOT EXISTS valorapesquisa.command_palette_actions (code varchar(80) PRIMARY KEY,label varchar(120) NOT NULL,keywords text NOT NULL DEFAULT '',route varchar(500) NOT NULL,enabled boolean NOT NULL DEFAULT true,sort_order integer NOT NULL DEFAULT 0);
 INSERT INTO valorapesquisa.quick_actions(code,label,description,route,icon,sort_order) VALUES
  ('diagnostic.create','Criar diagnóstico','Inicie uma nova escuta organizacional.','/Surveys/Create','activity',10),('action.create','Criar ação','Transforme evidência em compromisso.','/ActionCenter/Items/Create','check-circle',20),('decision.create','Criar decisão','Registre uma decisão humana rastreável.','/Decisions/Create','shield',30),('report.generate','Gerar relatório','Consolide evidências para leitura executiva.','/Reports','file-text',40),('datahub.open','Abrir DataHub','Explore fontes e qualidade dos dados.','/DataHub','database',50),('intelligence.open','Abrir Intelligence','Analise sinais sustentados por evidências.','/Intelligence','brain',60),('notifications.open','Abrir notificações','Revise os sinais que pedem atenção.','/Notifications','bell',70),('approvals.open','Abrir aprovações','Preserve a decisão humana.','/DecisionCenter','check-square',80)

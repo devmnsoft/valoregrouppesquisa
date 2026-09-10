@@ -59,3 +59,25 @@ Atualizado em 2026-09-10. Este é o documento único de continuidade desta sprin
 5. **P2:** somente então concluir Workspace/formulários/responsividade e executar Playwright real com API, Web, PostgreSQL e Redis.
 
 Próximo passo concreto: instalar o SDK exigido, configurar um PostgreSQL descartável, aplicar `script_completo.sql` e executar o filtro `WorkspaceRepositoryPostgresTests`; falha nesse gate bloqueia o avanço da homologação.
+
+## Incremento operacional — prioridades (2026-09-10)
+
+### Matriz de estados implementada
+
+| Estado atual | Comando | Requisitos | Estado final | Histórico |
+|---|---|---|---|---|
+| `active` | editar/atribuir | `priorities.manage`, responsável ativo do mesmo cliente, origem visível, versão atual | `active` | `edited`, uma vez por edição |
+| `active` | progresso | responsável ou administrador, 0–99, observação e versão atuais, `commandId` inédito | `active` | `progress`, idempotente por comando |
+| `active` | concluir | responsável ou administrador, justificativa e versão atuais | `completed`, 100% | `complete`, idempotente por comando |
+| `active` | cancelar | responsável ou administrador, justificativa e versão atuais | `cancelled`, preserva progresso | `cancel`, idempotente por comando |
+| `completed`/`cancelled` | reabrir | responsável ou administrador, justificativa e versão atuais | `active` (conclusão reabre em 99%) | `reopen`, idempotente por comando |
+
+Qualquer outra combinação é rejeitada. Itens encerrados não aceitam edição ou progresso. `updated_at` é o token de concorrência, e atualização da prioridade, espelho no Workspace e histórico usam a mesma transação. A origem opcional somente é aceita quando corresponde a um item visível do mesmo cliente; o responsável precisa estar ativo no mesmo cliente.
+
+### Entregue e limites da verificação
+
+- **Implementado:** detalhes, edição, responsáveis pesquisáveis pelo seletor nativo, progresso, histórico, conclusão, cancelamento e reabertura; permissões `priorities.read/manage` nos endpoints; registro explícito de abertura em recentes; pin/unpin; feedback e confirmação; proteção de duplo envio; conflito; estados vazios por seção; “Ver todos”; layout responsivo.
+- **Implementado:** evolução idempotente do SQL para tipo de evento e chave de comando, índices de histórico/idempotência e constraints de estado/conclusão.
+- **Implementado:** banco do workflow renomeado para `valorapesquisa_test_ci`, TRX publicado e gate de descoberta diferente de zero.
+- **Não homologado neste container:** o SDK .NET 10, PostgreSQL e hosts oficiais não estão disponíveis. Assim, build, materialização Dapper e Playwright integrado permanecem gates obrigatórios de CI; não são declarados como aprovados.
+- **Próxima sequência concreta:** executar restore/build/test com SDK 10; aplicar o SQL duas vezes em PostgreSQL descartável; executar `DatabaseContract`; iniciar API/Web oficiais e executar o fluxo Playwright nas cinco viewports. Corrigir qualquer divergência de materialização antes de merge.

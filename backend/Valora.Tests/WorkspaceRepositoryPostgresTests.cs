@@ -18,13 +18,17 @@ public sealed class WorkspaceRepositoryPostgresTests {
         Assert.Contains("Context.EffectiveOrganizationId", controller, StringComparison.Ordinal);
         Assert.Contains("Context.IsGlobalAdministrator", controller, StringComparison.Ordinal);
         Assert.DoesNotContain("[FromQuery] bool wide", controller, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("RecordOpenAsync", repository, StringComparison.Ordinal);
+        Assert.Contains("command_id=@commandId", repository, StringComparison.Ordinal);
+        Assert.Contains("p.updated_at=@ExpectedUpdatedAt", repository, StringComparison.Ordinal);
+        Assert.Contains("ValoraPermissions.Priorities.Manage", controller, StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task Workspace_queries_enforce_visibility_tenant_and_idempotent_pins() {
         var connectionString = Environment.GetEnvironmentVariable("VALORA_TEST_POSTGRES_CONNECTION");
         if (string.IsNullOrWhiteSpace(connectionString))
-            throw new SkipException("VALORA_TEST_POSTGRES_CONNECTION não configurada; regressão PostgreSQL não executada.");
+            throw SkipException.ForSkip("VALORA_TEST_POSTGRES_CONNECTION não configurada; regressão PostgreSQL não executada.");
 
         var builder = new NpgsqlConnectionStringBuilder(connectionString);
         Assert.Matches("(?i)(test|teste|homolog|qa)", builder.Database ?? "");

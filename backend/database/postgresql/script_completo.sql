@@ -4837,9 +4837,21 @@ CREATE INDEX IF NOT EXISTS ix_executive_priorities_tenant ON valorapesquisa.exec
 CREATE TABLE IF NOT EXISTS valorapesquisa.executive_priority_updates (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL,priority_id uuid NOT NULL REFERENCES valorapesquisa.executive_priorities(id) ON DELETE CASCADE,progress_percent integer NOT NULL,note text,created_by uuid NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),CONSTRAINT executive_priority_update_progress_ck CHECK(progress_percent BETWEEN 0 AND 100));
 ALTER TABLE valorapesquisa.executive_priority_updates ADD COLUMN IF NOT EXISTS event_type varchar(24) NOT NULL DEFAULT 'progress';
 ALTER TABLE valorapesquisa.executive_priority_updates ADD COLUMN IF NOT EXISTS command_id varchar(80);
+ALTER TABLE valorapesquisa.executive_priority_updates ADD COLUMN IF NOT EXISTS operation varchar(24);
+ALTER TABLE valorapesquisa.executive_priority_updates ADD COLUMN IF NOT EXISTS payload_hash varchar(64);
+ALTER TABLE valorapesquisa.executive_priority_updates ADD COLUMN IF NOT EXISTS actor_id uuid;
+UPDATE valorapesquisa.executive_priority_updates SET operation=event_type WHERE command_id IS NOT NULL AND operation IS NULL;
+UPDATE valorapesquisa.executive_priority_updates SET actor_id=created_by WHERE command_id IS NOT NULL AND actor_id IS NULL;
+UPDATE valorapesquisa.executive_priority_updates SET payload_hash='legacy:'||id::text WHERE command_id IS NOT NULL AND payload_hash IS NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_executive_priority_updates_command ON valorapesquisa.executive_priority_updates(organization_id,priority_id,command_id) WHERE command_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS ix_executive_priority_updates_history ON valorapesquisa.executive_priority_updates(organization_id,priority_id,created_at,id);
-DO $priority_constraints$ BEGIN
+DO $priority_constraints$ DECLARE invalid_statuses text; invalid_completed bigint; BEGIN
+ SELECT string_agg(DISTINCT status, ', '), count(*) FILTER (WHERE status='completed' AND progress_percent<>100)
+ INTO invalid_statuses,invalid_completed FROM valorapesquisa.executive_priorities
+ WHERE status NOT IN('active','completed','cancelled') OR (status='completed' AND progress_percent<>100);
+ IF invalid_statuses IS NOT NULL OR invalid_completed>0 THEN
+  RAISE EXCEPTION 'Prioridades legadas incompatíveis: estados=%, concluídas sem 100%%=%. Corrija pela regra de negócio antes da atualização.',coalesce(invalid_statuses,'nenhum'),invalid_completed;
+ END IF;
  IF NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='executive_priority_status_ck' AND conrelid='valorapesquisa.executive_priorities'::regclass) THEN
   ALTER TABLE valorapesquisa.executive_priorities ADD CONSTRAINT executive_priority_status_ck CHECK(status IN('active','completed','cancelled'));
  END IF;
@@ -4847,10 +4859,16 @@ DO $priority_constraints$ BEGIN
   ALTER TABLE valorapesquisa.executive_priorities ADD CONSTRAINT executive_priority_completion_ck CHECK(status<>'completed' OR progress_percent=100);
  END IF;
 END $priority_constraints$;
-INSERT INTO valorapesquisa.workspace_items(id,organization_id,item_type,title,summary,status,priority,due_at,owner_user_id,source_type,source_id,route,created_at)
-SELECT p.id,p.organization_id,'priority',p.title,p.description,p.status,p.priority,p.due_at,p.owner_user_id,p.source_type,p.source_id,'/Workspace/Priorities',p.created_at
+DO $priority_projection$ BEGIN
+ IF EXISTS(SELECT 1 FROM valorapesquisa.executive_priorities p JOIN valorapesquisa.workspace_items w ON w.id=p.id WHERE w.organization_id<>p.organization_id OR w.item_type<>'priority') THEN
+  RAISE EXCEPTION 'Colisão de ID detectada no backfill de prioridades do Workspace.';
+ END IF;
+END $priority_projection$;
+INSERT INTO valorapesquisa.workspace_items(id,organization_id,item_type,title,summary,status,priority,due_at,owner_user_id,source_type,source_id,route,created_at,updated_at,completed_at)
+SELECT p.id,p.organization_id,'priority',p.title,p.description,p.status,p.priority,p.due_at,p.owner_user_id,p.source_type,p.source_id,'/Workspace/Priorities',p.created_at,p.updated_at,CASE WHEN p.status='completed' THEN p.updated_at END
 FROM valorapesquisa.executive_priorities p
-ON CONFLICT(id) DO NOTHING;
+ON CONFLICT(id) DO UPDATE SET title=EXCLUDED.title,summary=EXCLUDED.summary,status=EXCLUDED.status,priority=EXCLUDED.priority,due_at=EXCLUDED.due_at,owner_user_id=EXCLUDED.owner_user_id,source_type=EXCLUDED.source_type,source_id=EXCLUDED.source_id,route=EXCLUDED.route,updated_at=EXCLUDED.updated_at,completed_at=EXCLUDED.completed_at
+WHERE workspace_items.organization_id=EXCLUDED.organization_id AND workspace_items.item_type='priority';
 CREATE TABLE IF NOT EXISTS valorapesquisa.command_palette_actions (code varchar(80) PRIMARY KEY,label varchar(120) NOT NULL,keywords text NOT NULL DEFAULT '',route varchar(500) NOT NULL,enabled boolean NOT NULL DEFAULT true,sort_order integer NOT NULL DEFAULT 0);
 INSERT INTO valorapesquisa.quick_actions(code,label,description,route,icon,sort_order) VALUES
  ('diagnostic.create','Criar diagnóstico','Inicie uma nova escuta organizacional.','/Surveys/Create','activity',10),('action.create','Criar ação','Transforme evidência em compromisso.','/ActionCenter/Items/Create','check-circle',20),('decision.create','Criar decisão','Registre uma decisão humana rastreável.','/Decisions/Create','shield',30),('report.generate','Gerar relatório','Consolide evidências para leitura executiva.','/Reports','file-text',40),('datahub.open','Abrir DataHub','Explore fontes e qualidade dos dados.','/DataHub','database',50),('intelligence.open','Abrir Intelligence','Analise sinais sustentados por evidências.','/Intelligence','brain',60),('notifications.open','Abrir notificações','Revise os sinais que pedem atenção.','/Notifications','bell',70),('approvals.open','Abrir aprovações','Preserve a decisão humana.','/DecisionCenter','check-square',80)

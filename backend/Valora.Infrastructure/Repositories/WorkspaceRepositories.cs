@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using Dapper;
 using Valora.Application.Contracts;
 using Valora.Application.Exceptions;
@@ -29,14 +31,26 @@ public sealed class ExecutivePriorityRepository(IDbConnectionFactory connections
     private const string Projection = "p.id Id,p.title Title,p.description Description,p.status Status,p.priority Priority,p.owner_user_id OwnerUserId,u.name OwnerName,p.due_at DueAt,p.source_type SourceType,p.source_id SourceId,p.progress_percent ProgressPercent,p.updated_at UpdatedAt";
     private const string Visible = "(@wide OR p.owner_user_id=@user OR p.owner_user_id IS NULL)";
 
-    public async Task<IReadOnlyList<ExecutivePriorityDto>> ListAsync(Guid o, Guid user, bool wide, CancellationToken ct) { using var c = connections.Create(); var sql = $"SELECT {Projection} FROM valorapesquisa.executive_priorities p LEFT JOIN valorapesquisa.users u ON u.id=p.owner_user_id AND u.organization_id=p.organization_id WHERE p.organization_id=@o AND {Visible} ORDER BY CASE p.status WHEN 'active' THEN 0 WHEN 'completed' THEN 1 ELSE 2 END,CASE p.priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,p.due_at NULLS LAST,p.id"; return (await c.QueryAsync<ExecutivePriorityDto>(new CommandDefinition(sql, new { o, user, wide }, cancellationToken: ct))).AsList(); }
+    public async Task<IReadOnlyList<ExecutivePriorityDto>> ListAsync(Guid o, Guid user, bool wide, CancellationToken ct) =>
+        (await ListAsync(o, user, wide, new PriorityListQuery(1, 8, "active"), ct)).Items;
+
+    public async Task<PageResult<ExecutivePriorityDto>> ListAsync(Guid o, Guid user, bool wide, PriorityListQuery query, CancellationToken ct) {
+        using var c = connections.Create();
+        var page=query.ValidPage; var size=query.ValidPageSize; var offset=(page-1)*size;
+        var where=$"p.organization_id=@o AND {Visible} AND (@status IS NULL OR p.status=@status) AND (@priority IS NULL OR p.priority=@priority) AND (@owner IS NULL OR p.owner_user_id=@owner) AND (@due IS NULL OR (@due='overdue' AND p.due_at<CURRENT_TIMESTAMP AND p.status='active') OR (@due='today' AND p.due_at::date=CURRENT_DATE) OR (@due='none' AND p.due_at IS NULL))";
+        var parameters=new {o,user,wide,status=Clean(query.Status),priority=Clean(query.Priority),owner=query.OwnerUserId,due=Clean(query.Due),size,offset};
+        var total=await c.ExecuteScalarAsync<int>(new CommandDefinition($"SELECT count(*) FROM valorapesquisa.executive_priorities p WHERE {where}",parameters,cancellationToken:ct));
+        var sql=$"SELECT {Projection} FROM valorapesquisa.executive_priorities p LEFT JOIN valorapesquisa.users u ON u.id=p.owner_user_id AND u.organization_id=p.organization_id WHERE {where} ORDER BY CASE p.status WHEN 'active' THEN 0 WHEN 'completed' THEN 1 ELSE 2 END,CASE p.priority WHEN 'critical' THEN 0 WHEN 'high' THEN 1 WHEN 'medium' THEN 2 ELSE 3 END,p.due_at NULLS LAST,p.updated_at DESC,p.id LIMIT @size OFFSET @offset";
+        var rows=(await c.QueryAsync<ExecutivePriorityDto>(new CommandDefinition(sql,parameters,cancellationToken:ct))).AsList();
+        return new(rows,page,size,total);
+    }
 
     public async Task<PriorityDetailsDto?> GetAsync(Guid o, Guid user, Guid id, bool wide, bool canManage, CancellationToken ct) {
         using var c = connections.Create();
         var priority = await c.QuerySingleOrDefaultAsync<ExecutivePriorityDto>(new CommandDefinition($"SELECT {Projection} FROM valorapesquisa.executive_priorities p LEFT JOIN valorapesquisa.users u ON u.id=p.owner_user_id AND u.organization_id=p.organization_id WHERE p.organization_id=@o AND p.id=@id AND {Visible}", new { o, user, id, wide }, cancellationToken: ct));
         if (priority is null) return null;
         var history = (await c.QueryAsync<PriorityUpdateDto>(new CommandDefinition("SELECT x.id Id,x.progress_percent ProgressPercent,x.note Note,x.event_type EventType,x.created_by CreatedBy,coalesce(u.name,'Usuário indisponível') AuthorName,x.created_at CreatedAt FROM valorapesquisa.executive_priority_updates x LEFT JOIN valorapesquisa.users u ON u.id=x.created_by AND u.organization_id=x.organization_id WHERE x.organization_id=@o AND x.priority_id=@id ORDER BY x.created_at,x.id", new { o, id }, cancellationToken: ct))).AsList();
-        return Details(priority, history, canManage || priority.OwnerUserId == user);
+        return Details(priority, history, canManage);
     }
 
     public async Task<ExecutivePriorityDto> CreateAsync(Guid o, Guid user, CreatePriorityRequest r, CancellationToken ct) {
@@ -52,7 +66,7 @@ public sealed class ExecutivePriorityRepository(IDbConnectionFactory connections
         using var c = connections.Create(); c.Open(); using var tx = c.BeginTransaction(); await ValidateReferences(c, tx, o, user, r.OwnerUserId, r.SourceType, r.SourceId);
         var sql = $"UPDATE valorapesquisa.executive_priorities p SET title=@Title,description=@Description,priority=@Priority,owner_user_id=@OwnerUserId,due_at=@DueAt,source_type=@SourceType,source_id=@SourceId,updated_at=now() WHERE p.organization_id=@o AND p.id=@id AND p.status='active' AND p.updated_at=@ExpectedUpdatedAt RETURNING {Projection.Replace("u.name OwnerName", "NULL::text OwnerName")}";
         var result = await c.QuerySingleOrDefaultAsync<ExecutivePriorityDto>(new CommandDefinition(sql, new { o, id, Title=r.Title.Trim(), Description=Clean(r.Description), r.Priority, r.OwnerUserId, r.DueAt, SourceType=Clean(r.SourceType), r.SourceId, r.ExpectedUpdatedAt }, tx, cancellationToken: ct));
-        if (result is null) throw await Failure(c, tx, o, id, r.ExpectedUpdatedAt);
+        if (result is null) throw await Failure(c, tx, o, id, r.ExpectedUpdatedAt, ct);
         await c.ExecuteAsync(new CommandDefinition("UPDATE valorapesquisa.workspace_items SET title=@Title,summary=@Description,priority=@Priority,due_at=@DueAt,owner_user_id=@OwnerUserId,source_type=@SourceType,source_id=@SourceId WHERE organization_id=@o AND id=@id; INSERT INTO valorapesquisa.executive_priority_updates(organization_id,priority_id,progress_percent,note,event_type,created_by) VALUES(@o,@id,@progress,'Prioridade editada','edited',@user)", new { o,id,user,Title=r.Title.Trim(),Description=Clean(r.Description),r.Priority,r.OwnerUserId,r.DueAt,SourceType=Clean(r.SourceType),r.SourceId,progress=result.ProgressPercent }, tx, cancellationToken:ct)); tx.Commit(); return result;
     }
 
@@ -62,23 +76,48 @@ public sealed class ExecutivePriorityRepository(IDbConnectionFactory connections
         return Mutate(o,user,id,command,r.Justification,r.CommandId,r.ExpectedUpdatedAt,null,wide,canManage,ct);
     }
 
-    public async Task<IReadOnlyList<PriorityOptionDto>> OwnersAsync(Guid o, CancellationToken ct) { using var c=connections.Create(); return (await c.QueryAsync<PriorityOptionDto>(new CommandDefinition("SELECT id Id,name Label FROM valorapesquisa.users WHERE organization_id=@o AND status='active' AND deleted_at IS NULL ORDER BY name,id LIMIT 100",new{o},cancellationToken:ct))).AsList(); }
-    public async Task<IReadOnlyList<PrioritySourceOptionDto>> SourcesAsync(Guid o,Guid user,bool wide,CancellationToken ct) { using var c=connections.Create(); return (await c.QueryAsync<PrioritySourceOptionDto>(new CommandDefinition("SELECT id Id,item_type Type,title Label FROM valorapesquisa.workspace_items WHERE organization_id=@o AND item_type<>'priority' AND (owner_user_id IS NULL OR owner_user_id=@user) ORDER BY title,id LIMIT 100",new{o,user},cancellationToken:ct))).AsList(); }
+    public async Task<PageResult<PriorityOptionDto>> OwnersAsync(Guid o,OptionQuery query,CancellationToken ct) {
+        using var c=connections.Create(); var page=query.ValidPage; var size=query.ValidPageSize; var offset=(page-1)*size; var search=Clean(query.Search);
+        const string where="organization_id=@o AND status='active' AND deleted_at IS NULL AND (@search IS NULL OR name ILIKE '%'||@search||'%')";
+        var args=new{o,search,size,offset,include=query.IncludeId};
+        var total=await c.ExecuteScalarAsync<int>(new CommandDefinition($"SELECT count(*) FROM valorapesquisa.users WHERE {where}",args,cancellationToken:ct));
+        var rows=(await c.QueryAsync<PriorityOptionDto>(new CommandDefinition($"SELECT id Id,name Label FROM valorapesquisa.users WHERE ({where}) OR (organization_id=@o AND id=@include) ORDER BY (id=@include) DESC,name,id LIMIT @size OFFSET @offset",args,cancellationToken:ct))).AsList();
+        return new(rows,page,size,total);
+    }
+    public async Task<PageResult<PrioritySourceOptionDto>> SourcesAsync(Guid o,Guid user,bool wide,OptionQuery query,CancellationToken ct) {
+        using var c=connections.Create(); var page=query.ValidPage; var size=query.ValidPageSize; var offset=(page-1)*size; var search=Clean(query.Search);
+        var where=$"organization_id=@o AND item_type<>'priority' AND {Visible.Replace("p.", "").Replace("@user", "@user")} AND (@search IS NULL OR title ILIKE '%'||@search||'%')";
+        var args=new{o,user,wide,search,size,offset,include=query.IncludeId};
+        var total=await c.ExecuteScalarAsync<int>(new CommandDefinition($"SELECT count(*) FROM valorapesquisa.workspace_items WHERE {where}",args,cancellationToken:ct));
+        var rows=(await c.QueryAsync<PrioritySourceOptionDto>(new CommandDefinition($"SELECT id Id,item_type Type,title Label FROM valorapesquisa.workspace_items WHERE ({where}) OR (organization_id=@o AND id=@include AND item_type<>'priority' AND (@wide OR owner_user_id=@user OR owner_user_id IS NULL)) ORDER BY (id=@include) DESC,title,id LIMIT @size OFFSET @offset",args,cancellationToken:ct))).AsList();
+        return new(rows,page,size,total);
+    }
 
     private async Task<PriorityDetailsDto> Mutate(Guid o, Guid user, Guid id, string command, string note, string commandId, DateTimeOffset expected, int? requestedProgress, bool wide, bool canManage, CancellationToken ct) {
         using var c=connections.Create(); c.Open(); using var tx=c.BeginTransaction();
-        var existing=await c.QuerySingleOrDefaultAsync<(string Status,int ProgressPercent,Guid? OwnerUserId,DateTimeOffset UpdatedAt)>("SELECT status Status,progress_percent ProgressPercent,owner_user_id OwnerUserId,updated_at UpdatedAt FROM valorapesquisa.executive_priorities WHERE organization_id=@o AND id=@id FOR UPDATE",new{o,id},tx);
+        var existing=await c.QuerySingleOrDefaultAsync<(string Status,int ProgressPercent,Guid? OwnerUserId,DateTimeOffset UpdatedAt)>(new CommandDefinition("SELECT status Status,progress_percent ProgressPercent,owner_user_id OwnerUserId,updated_at UpdatedAt FROM valorapesquisa.executive_priorities WHERE organization_id=@o AND id=@id FOR UPDATE",new{o,id},tx,cancellationToken:ct));
         if (existing == default) throw new KeyNotFoundException("Prioridade não encontrada.");
         if (!wide && existing.OwnerUserId is { } owner && owner != user) throw new UnauthorizedAccessException();
-        if (!canManage && existing.OwnerUserId != user) throw new UnauthorizedAccessException();
-        var duplicate=await c.ExecuteScalarAsync<bool>("SELECT EXISTS(SELECT 1 FROM valorapesquisa.executive_priority_updates WHERE organization_id=@o AND priority_id=@id AND command_id=@commandId)",new{o,id,commandId},tx);
-        if (duplicate) { tx.Commit(); return (await GetAsync(o,user,id,wide,canManage,ct))!; }
+        if (!canManage) throw new UnauthorizedAccessException("Gerenciamento de prioridades não autorizado.");
+        var fingerprint=Fingerprint(command,note,requestedProgress,expected);
+        var duplicate=await c.QuerySingleOrDefaultAsync<(string Operation,string PayloadHash,Guid ActorId)>(new CommandDefinition("SELECT operation Operation,payload_hash PayloadHash,actor_id ActorId FROM valorapesquisa.executive_priority_updates WHERE organization_id=@o AND priority_id=@id AND command_id=@commandId",new{o,id,commandId},tx,cancellationToken:ct));
+        if (duplicate != default) {
+            if (duplicate.Operation!=command || duplicate.PayloadHash!=fingerprint || duplicate.ActorId!=user) throw new ConcurrencyConflictException("A chave de idempotência já foi usada para outro comando.");
+            tx.Commit(); return (await GetAsync(o,user,id,wide,canManage,ct))!;
+        }
         if (existing.UpdatedAt != expected) throw new ConcurrencyConflictException("Prioridade alterada por outra sessão.");
-        var (status,progress)=command switch { "progress" when existing.Status=="active" => ("active",requestedProgress!.Value), "complete" when existing.Status=="active" => ("completed",100), "cancel" when existing.Status=="active" => ("cancelled",existing.ProgressPercent), "reopen" when existing.Status is "completed" or "cancelled" => ("active",existing.Status=="completed" ? 99 : existing.ProgressPercent), _ => throw new BusinessRuleAppException("Transição incompatível com o estado atual.") };
-        await c.ExecuteAsync("UPDATE valorapesquisa.executive_priorities SET status=@status,progress_percent=@progress,updated_at=now() WHERE organization_id=@o AND id=@id; UPDATE valorapesquisa.workspace_items SET status=@status,summary=(SELECT description FROM valorapesquisa.executive_priorities WHERE id=@id),owner_user_id=(SELECT owner_user_id FROM valorapesquisa.executive_priorities WHERE id=@id) WHERE organization_id=@o AND id=@id; INSERT INTO valorapesquisa.executive_priority_updates(organization_id,priority_id,progress_percent,note,event_type,command_id,created_by) VALUES(@o,@id,@progress,@note,@command,@commandId,@user)",new{o,id,user,status,progress,note=note.Trim(),command,commandId},tx); tx.Commit();
+        var (status,progress)=command switch { "progress" when existing.Status=="active" => ("active",requestedProgress!.Value), "complete" when existing.Status=="active" => ("completed",100), "cancel" when existing.Status=="active" => ("cancelled",existing.ProgressPercent), "reopen" when existing.Status is "completed" or "cancelled" => ("active",existing.ProgressPercent), _ => throw new BusinessRuleAppException("Transição incompatível com o estado atual.") };
+        await c.ExecuteAsync(new CommandDefinition("UPDATE valorapesquisa.executive_priorities SET status=@status,progress_percent=@progress,updated_at=now() WHERE organization_id=@o AND id=@id; UPDATE valorapesquisa.workspace_items SET status=@status,summary=(SELECT description FROM valorapesquisa.executive_priorities WHERE id=@id),owner_user_id=(SELECT owner_user_id FROM valorapesquisa.executive_priorities WHERE id=@id),updated_at=now(),completed_at=CASE WHEN @status='completed' THEN now() ELSE NULL END WHERE organization_id=@o AND id=@id AND item_type='priority'; INSERT INTO valorapesquisa.executive_priority_updates(organization_id,priority_id,progress_percent,note,event_type,command_id,operation,payload_hash,actor_id,created_by) VALUES(@o,@id,@progress,@note,@command,@commandId,@command,@fingerprint,@user,@user)",new{o,id,user,status,progress,note=note.Trim(),command,commandId,fingerprint},tx,cancellationToken:ct));
+        var projectionValid=await c.ExecuteScalarAsync<bool>(new CommandDefinition("SELECT EXISTS(SELECT 1 FROM valorapesquisa.workspace_items WHERE organization_id=@o AND id=@id AND item_type='priority' AND status=@status AND owner_user_id IS NOT DISTINCT FROM (SELECT owner_user_id FROM valorapesquisa.executive_priorities WHERE organization_id=@o AND id=@id))",new{o,id,status},tx,cancellationToken:ct));
+        if(!projectionValid) throw new BusinessRuleAppException("A projeção da prioridade no Workspace está ausente ou inconsistente.");
+        tx.Commit();
         return (await GetAsync(o,user,id,wide,canManage,ct))!;
     }
 
+    private static string Fingerprint(string operation,string note,int? progress,DateTimeOffset expected) {
+        var value=$"{operation}\n{note.Trim()}\n{progress?.ToString() ?? "-"}\n{expected:O}";
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value))).ToLowerInvariant();
+    }
     private static PriorityDetailsDto Details(ExecutivePriorityDto p,IReadOnlyList<PriorityUpdateDto> h,bool manage) => new(p,h,new(manage&&p.Status=="active",manage&&p.Status=="active",manage&&p.Status=="active",manage&&p.Status=="active",manage&&p.Status=="active",manage&&p.Status is "completed" or "cancelled"));
     private static string? Clean(string? value)=>string.IsNullOrWhiteSpace(value)?null:value.Trim();
     private static async Task ValidateReferences(System.Data.IDbConnection c,System.Data.IDbTransaction tx,Guid o,Guid user,Guid? owner,string? sourceType,Guid? sourceId) {
@@ -86,5 +125,5 @@ public sealed class ExecutivePriorityRepository(IDbConnectionFactory connections
         if(sourceId.HasValue != !string.IsNullOrWhiteSpace(sourceType)) throw new ValidationAppException("Informe tipo e recurso de origem em conjunto.");
         if(sourceId.HasValue&&!await c.ExecuteScalarAsync<bool>("SELECT EXISTS(SELECT 1 FROM valorapesquisa.workspace_items WHERE organization_id=@o AND ((id=@sourceId AND item_type=@sourceType) OR (source_id=@sourceId AND source_type=@sourceType)) AND (owner_user_id IS NULL OR owner_user_id=@user))",new{o,user,sourceId,sourceType},tx)) throw new UnauthorizedAccessException("Origem indisponível.");
     }
-    private static async Task<Exception> Failure(System.Data.IDbConnection c,System.Data.IDbTransaction tx,Guid o,Guid id,DateTimeOffset expected) { var row=await c.QuerySingleOrDefaultAsync<(string Status,DateTimeOffset UpdatedAt)>("SELECT status Status,updated_at UpdatedAt FROM valorapesquisa.executive_priorities WHERE organization_id=@o AND id=@id",new{o,id},tx); return row==default?new KeyNotFoundException():row.Status!="active"?new BusinessRuleAppException("Prioridade encerrada não aceita edição."):new ConcurrencyConflictException("Prioridade alterada por outra sessão."); }
+    private static async Task<Exception> Failure(System.Data.IDbConnection c,System.Data.IDbTransaction tx,Guid o,Guid id,DateTimeOffset expected,CancellationToken ct) { var row=await c.QuerySingleOrDefaultAsync<(string Status,DateTimeOffset UpdatedAt)>(new CommandDefinition("SELECT status Status,updated_at UpdatedAt FROM valorapesquisa.executive_priorities WHERE organization_id=@o AND id=@id",new{o,id},tx,cancellationToken:ct)); return row==default?new KeyNotFoundException():row.Status!="active"?new BusinessRuleAppException("Prioridade encerrada não aceita edição."):new ConcurrencyConflictException("Prioridade alterada por outra sessão."); }
 }

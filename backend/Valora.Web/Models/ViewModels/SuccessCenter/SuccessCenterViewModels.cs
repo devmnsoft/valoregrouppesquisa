@@ -10,7 +10,7 @@ public sealed class CreateSupportTicketViewModel {
     [Required(ErrorMessage = "Selecione a categoria."), Display(Name = "Categoria")] public string Category { get; set; } = "";
     [Required(ErrorMessage = "Selecione a prioridade."), Display(Name = "Prioridade")] public string Priority { get; set; } = "normal";
 }
-public sealed record SupportTicketListViewModel(IReadOnlyList<SupportTicket> Tickets, string? Success, string? Error);
+public sealed record SupportTicketListViewModel(SupportTicketPage Page, SupportTicketQuery Query, string? Success, string? Error) { public IReadOnlyList<SupportTicket> Tickets=>Page.Items; }
 public sealed class TicketReplyViewModel { [Required, StringLength(4000, MinimumLength=2), Display(Name="Resposta")] public string Message { get; set; } = ""; }
 public sealed record TicketTimelineViewModel(string Kind, string Author, string Text, DateTimeOffset CreatedAt);
 public sealed record SupportTicketDetailsViewModel(Guid Id, string Subject, string Description, string Category, string Priority, string Status, IReadOnlyList<TicketTimelineViewModel> Timeline, TicketReplyViewModel Reply, string? Success, string? Error) {

@@ -148,3 +148,25 @@ Qualquer outra combinação é rejeitada. Itens encerrados não aceitam edição
 - **Executado:** validações estáticas Node/SQL e `git diff --check`, registradas no commit desta etapa.
 - **Não executado por ambiente:** SDK .NET 10 ausente, PostgreSQL descartável/Redis não configurados e hosts Web/API indisponíveis. Portanto build, testes xUnit, aplicação dupla do SQL, consultas PostgreSQL, Playwright e capturas nas cinco viewports seguem pendentes; não são tratados como aprovados.
 - **Não concluído:** prioridade → selecionar/criar plano → criar ação idempotente. Os domínios foram preservados e inventariados, mas a implementação existente não possui chave de comando nem vínculo dedicado suficiente para afirmar o critério. Nenhum ranking, sincronização silenciosa ou deduplicação por título foi inventado para mascarar essa lacuna.
+
+## Sprint — execução integrada e suporte consistente (2026-09-10)
+
+### Blocos A–C — prioridade para execução
+
+- **Baseline confirmada:** etapa iniciada em `0cb284e`, merge da PR #557, branch local `work`, árvore limpa e sem remoto configurado. Não havia commits posteriores disponíveis no checkout. SDK .NET, cliente PostgreSQL e cliente Redis não estão instalados no container.
+- **Implementado:** relação muitos-para-muitos `priority_action_links`, com organização, FKs, autor, data, exclusão lógica e unicidade apenas do vínculo ativo. Uma atividade pode atender mais de uma prioridade; ela não é recriada ao ser vinculada.
+- **Implementado:** comando transacional cria opcionalmente plano, cria atividade e vincula prioridade na mesma unidade de trabalho. A chave é serializada por advisory lock e persistida com hash da intenção: retry idêntico devolve o mesmo resultado e conteúdo divergente gera conflito. Plano, prioridade e atividade são validados no mesmo cliente e recursos cancelados são recusados.
+- **Implementado:** detalhes da prioridade distinguem seu progresso do progresso das atividades e exibem plano, situação, resultado esperado e evidência. O assistente tipado permite escolher atividade/plano por nome ou criar plano e atividade, sugere somente título/contexto editáveis, exige revisão e mantém a chave durante retry. Links abrem a atividade no Action Center; concluir a atividade não altera a prioridade.
+
+### Bloco D — suporte
+
+- **Implementado:** listagem paginada no PostgreSQL, ordenação estável, total coerente e filtros de situação, categoria, prioridade e período. Usuário comum enxerga somente chamados abertos por ele; administrador do cliente/equipe com `support_tickets.manage` enxerga a organização selecionada.
+- **Implementado:** detalhe, resposta e transições verificam o mesmo escopo. `includeInternal` é derivado exclusivamente da autorização no servidor; usuário comum nunca ativa notas internas. A resposta digitada é preservada em falha recuperável e mensagens técnicas deixam de ser apresentadas nas transições.
+- **Preservado:** criação transacional de chamado/evento inicial, isolamento por organização, rotas GET compatíveis e separação da fila global `/Platform/Support`.
+
+### Evidências, limites e próximo passo
+
+- **Executado:** validação sintática do JavaScript, validador de compatibilidade do SQL canônico e `git diff --check`.
+- **Executado com ressalva preexistente:** testes unitários do validador de fronteiras passaram; a verificação final acusa dois SQL oficiais porque `valora-cenarios-workspace-77f0520.sql`, já presente na baseline, também está na pasta canônica.
+- **Não executado por ambiente:** build/test .NET, PostgreSQL real (banco limpo, atualização e segunda aplicação), Redis, hosts Web/API e Playwright/capturas nas cinco viewports. Esses itens permanecem gates de CI/homologação e não são declarados aprovados.
+- **Próximo passo:** em CI com .NET 10 e PostgreSQL descartável, executar build Release, testes completos/DatabaseContract, aplicar o SQL duas vezes e exercitar concorrência e matriz de papéis; depois iniciar hosts oficiais e capturar as cinco viewports.

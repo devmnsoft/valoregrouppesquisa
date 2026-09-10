@@ -24,7 +24,7 @@ public sealed class WorkspaceRepositoryPostgresTests {
     public async Task Workspace_queries_enforce_visibility_tenant_and_idempotent_pins() {
         var connectionString = Environment.GetEnvironmentVariable("VALORA_TEST_POSTGRES_CONNECTION");
         if (string.IsNullOrWhiteSpace(connectionString))
-            throw new SkipException("VALORA_TEST_POSTGRES_CONNECTION não configurada; regressão PostgreSQL não executada.");
+            throw SkipException.ForSkip("VALORA_TEST_POSTGRES_CONNECTION não configurada; regressão PostgreSQL não executada.");
 
         var builder = new NpgsqlConnectionStringBuilder(connectionString);
         Assert.Matches("(?i)(test|teste|homolog|qa)", builder.Database ?? "");

@@ -164,7 +164,7 @@ public static class InfrastructureServiceCollectionExtensions {
         services.AddScoped<IIntegrationRepository, IntegrationRepository>();
         services.AddScoped<IOrganizationalIntelligenceRepository, OrganizationalIntelligenceRepository>();
         services.AddScoped<IDecisionCenterRepository, DecisionCenterRepository>();
-        services.AddScoped<IActionPlanRepository, ActionPlanRepository>(); services.AddScoped<IActionItemRepository, ActionItemRepository>(); services.AddScoped<IRecommendationRepository, RecommendationRepository>(); services.AddScoped<IEvolutionRepository, EvolutionRepository>(); services.AddScoped<IJourneyRepository, JourneyRepository>();
+        services.AddScoped<IActionPlanRepository, ActionPlanRepository>(); services.AddScoped<IActionItemRepository, ActionItemRepository>(); services.AddScoped<IPriorityActionRepository, PriorityActionRepository>(); services.AddScoped<IRecommendationRepository, RecommendationRepository>(); services.AddScoped<IEvolutionRepository, EvolutionRepository>(); services.AddScoped<IJourneyRepository, JourneyRepository>();
         services.AddScoped<IOneOnOneRepository, OneOnOneRepository>(); services.AddScoped<ILeadershipProfileRepository, LeadershipProfileRepository>(); services.AddScoped<ILeadershipDevelopmentRepository, LeadershipDevelopmentRepository>();
         services.AddScoped<IIntelligencePipelineRepository, IntelligencePipelineRepository>();
         services.AddScoped<IBenchmarkRepository, Valora.Infrastructure.Repositories.BenchmarkRepository>();

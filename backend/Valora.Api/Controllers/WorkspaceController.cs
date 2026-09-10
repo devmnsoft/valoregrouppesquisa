@@ -3,13 +3,14 @@ using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Common;
 using Valora.Application.Access;
 using Valora.Application.Workspace;
+using Valora.Application.ActionCenter;
 
 namespace Valora.Api.Controllers;
 
 [Authorize, ApiController, Route("api/v1")]
 public sealed class WorkspaceController(IExecutiveWorkspaceService workspace, IMyDayService day, IExecutivePriorityService priorities,
     IGlobalSearchService search, IWorkspaceItemService items, IRecentItemsService recent, IQuickActionService actions,
-    ICurrentRequestContext requestContext, ILogger<WorkspaceController> logger) : ControllerBase {
+    ICurrentRequestContext requestContext, PriorityActionService priorityActions, ActionPlanService actionPlans, ActionItemService actionItems, ILogger<WorkspaceController> logger) : ControllerBase {
     private CurrentRequestContext Context => requestContext.GetCurrent();
     private Guid OrganizationId => Context.EffectiveOrganizationId ?? Guid.Empty;
     private Guid UserId => Context.UserId ?? Guid.Empty;
@@ -20,6 +21,11 @@ public sealed class WorkspaceController(IExecutiveWorkspaceService workspace, IM
     [HttpGet("workspace/my-day")] public async Task<IActionResult> MyDay(CancellationToken ct) => InvalidContext() is { } error ? error : Ok(await day.GetAsync(OrganizationId, UserId, OrganizationWide, ct));
     [HttpGet("workspace/priorities"), Authorize(Policy=ValoraPermissions.Priorities.Read)] public async Task<IActionResult> Priorities([FromQuery] PriorityListQuery query,CancellationToken ct) => InvalidContext() is { } error ? error : Ok(await priorities.ListAsync(OrganizationId, UserId, OrganizationWide, query, ct));
     [HttpGet("workspace/priorities/{id:guid}"), Authorize(Policy=ValoraPermissions.Priorities.Read)] public async Task<IActionResult> Priority(Guid id,CancellationToken ct) { if(InvalidContext() is { } error)return error; var value=await priorities.GetAsync(OrganizationId,UserId,id,OrganizationWide,CanManage,ct); if(value is null)return NotFound(new{code="PRIORITY_NOT_FOUND",message="Prioridade não encontrada.",correlationId=HttpContext.TraceIdentifier}); try { await items.RecordOpenAsync(OrganizationId,UserId,id,OrganizationWide,ct); } catch(Exception ex) when(ex is not OperationCanceledException) { logger.LogWarning(ex,"Não foi possível registrar acesso recente à prioridade {PriorityId} na organização {OrganizationId}",id,OrganizationId); } return Ok(value); }
+    [HttpGet("workspace/priorities/{id:guid}/activities"), Authorize(Policy=ValoraPermissions.Priorities.Read)] public async Task<IActionResult> PriorityActivities(Guid id,CancellationToken ct)=>InvalidContext() is { } error?error:Ok(await priorityActions.List(OrganizationId,id,UserId,OrganizationWide,ct));
+    [HttpGet("workspace/action-plans"), Authorize(Policy="action.read")] public async Task<IActionResult> ActionPlans(CancellationToken ct)=>InvalidContext() is { } error?error:Ok(await actionPlans.List(OrganizationId,ct));
+    [HttpGet("workspace/action-items"), Authorize(Policy="action.read")] public async Task<IActionResult> ActionItems(CancellationToken ct)=>InvalidContext() is { } error?error:Ok(await actionItems.List(OrganizationId,null,ct));
+    [HttpPost("workspace/priorities/{id:guid}/activities/link"), Authorize(Policy="action.manage")] public async Task<IActionResult> LinkActivity(Guid id,[FromBody] LinkPriorityActionRequest request,CancellationToken ct){if(InvalidContext() is { } error)return error;if(!ModelState.IsValid)return ValidationProblem(ModelState);return Ok(new{id=await priorityActions.Link(OrganizationId,UserId,id,request,OrganizationWide,ct)});}
+    [HttpPost("workspace/priorities/{id:guid}/activities"), Authorize(Policy="action.manage")] public async Task<IActionResult> CreateActivity(Guid id,[FromBody] CreatePriorityActionRequest request,CancellationToken ct){if(InvalidContext() is { } error)return error;if(!ModelState.IsValid)return ValidationProblem(ModelState);return Ok(new{id=await priorityActions.Create(OrganizationId,UserId,id,request,OrganizationWide,ct)});}
     [HttpGet("workspace/priority-owners"), Authorize(Policy=ValoraPermissions.Priorities.Manage)] public async Task<IActionResult> PriorityOwners([FromQuery] OptionQuery query,CancellationToken ct) => InvalidContext() is { } error?error:Ok(await priorities.OwnersAsync(OrganizationId,query,ct));
     [HttpGet("workspace/priority-sources"), Authorize(Policy=ValoraPermissions.Priorities.Manage)] public async Task<IActionResult> PrioritySources([FromQuery] OptionQuery query,CancellationToken ct) => InvalidContext() is { } error?error:Ok(await priorities.SourcesAsync(OrganizationId,UserId,OrganizationWide,query,ct));
     [HttpPost("workspace/priorities"), Authorize(Policy=ValoraPermissions.Priorities.Manage)] public async Task<IActionResult> CreatePriority([FromBody] CreatePriorityRequest request, CancellationToken ct) { if (InvalidContext() is { } error) return error; if (!ModelState.IsValid) return ValidationProblem(ModelState); var created=await priorities.CreateAsync(OrganizationId, UserId, request, ct); return CreatedAtAction(nameof(Priority),new{id=created.Id},created); }

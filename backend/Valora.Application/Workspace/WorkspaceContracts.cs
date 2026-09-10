@@ -24,9 +24,9 @@ public sealed class PinItemRequest { [Required] public Guid ItemId { get; init; 
 
 public interface IWorkspaceRepository {
     Task<IReadOnlyList<WorkspaceItemDto>> MyDayAsync(Guid organizationId, Guid userId, bool organizationWide, CancellationToken ct);
-    Task<IReadOnlyList<WorkspaceItemDto>> RecentAsync(Guid organizationId, Guid userId, CancellationToken ct);
-    Task<IReadOnlyList<WorkspaceItemDto>> PinnedAsync(Guid organizationId, Guid userId, CancellationToken ct);
-    Task PinAsync(Guid organizationId, Guid userId, Guid itemId, CancellationToken ct);
+    Task<IReadOnlyList<WorkspaceItemDto>> RecentAsync(Guid organizationId, Guid userId, bool organizationWide, CancellationToken ct);
+    Task<IReadOnlyList<WorkspaceItemDto>> PinnedAsync(Guid organizationId, Guid userId, bool organizationWide, CancellationToken ct);
+    Task PinAsync(Guid organizationId, Guid userId, Guid itemId, bool organizationWide, CancellationToken ct);
     Task UnpinAsync(Guid organizationId, Guid userId, Guid itemId, CancellationToken ct);
 }
 public interface IGlobalSearchRepository { Task<IReadOnlyList<SearchResultDto>> SearchAsync(Guid organizationId, Guid userId, string term, bool organizationWide, CancellationToken ct); Task RecordAsync(Guid organizationId, Guid userId, string term, int count, CancellationToken ct); }
@@ -35,10 +35,10 @@ public interface IExecutivePriorityRepository { Task<IReadOnlyList<ExecutivePrio
 
 public interface IExecutiveWorkspaceService { Task<ExecutiveWorkspaceDto> GetAsync(Guid organizationId, Guid userId, bool organizationWide, CancellationToken ct); }
 public interface IMyDayService { Task<IReadOnlyList<WorkspaceItemDto>> GetAsync(Guid organizationId, Guid userId, bool organizationWide, CancellationToken ct); }
-public interface IWorkspaceItemService { Task PinAsync(Guid organizationId, Guid userId, Guid itemId, CancellationToken ct); Task UnpinAsync(Guid organizationId, Guid userId, Guid itemId, CancellationToken ct); }
+public interface IWorkspaceItemService { Task PinAsync(Guid organizationId, Guid userId, Guid itemId, bool organizationWide, CancellationToken ct); Task UnpinAsync(Guid organizationId, Guid userId, Guid itemId, CancellationToken ct); }
 public interface IGlobalSearchService { Task<IReadOnlyList<SearchResultDto>> SearchAsync(Guid organizationId, Guid userId, string term, bool organizationWide, CancellationToken ct); }
 public interface IQuickActionService { Task<IReadOnlyList<QuickActionDto>> ListAsync(Guid organizationId, CancellationToken ct); Task<QuickActionDto?> ExecuteAsync(Guid organizationId, Guid userId, string code, CancellationToken ct); }
-public interface IRecentItemsService { Task<IReadOnlyList<WorkspaceItemDto>> GetAsync(Guid organizationId, Guid userId, CancellationToken ct); }
-public interface IPinnedItemsService { Task<IReadOnlyList<WorkspaceItemDto>> GetAsync(Guid organizationId, Guid userId, CancellationToken ct); }
+public interface IRecentItemsService { Task<IReadOnlyList<WorkspaceItemDto>> GetAsync(Guid organizationId, Guid userId, bool organizationWide, CancellationToken ct); }
+public interface IPinnedItemsService { Task<IReadOnlyList<WorkspaceItemDto>> GetAsync(Guid organizationId, Guid userId, bool organizationWide, CancellationToken ct); }
 public interface IExecutivePriorityService { Task<IReadOnlyList<ExecutivePriorityDto>> ListAsync(Guid organizationId, Guid userId, bool organizationWide, CancellationToken ct); Task<ExecutivePriorityDto> CreateAsync(Guid organizationId, Guid userId, CreatePriorityRequest request, CancellationToken ct); }
 public interface ICommandPaletteService { Task<IReadOnlyList<QuickActionDto>> ListAsync(Guid organizationId, CancellationToken ct); }

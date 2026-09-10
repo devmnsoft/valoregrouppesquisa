@@ -17,8 +17,12 @@ jobs:
     env:
       PGPASSWORD: valora
       DATABASE_URL: postgresql://valora:valora@localhost:5432/valorapesquisa_ci
+      VALORA_TEST_POSTGRES_CONNECTION: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: backend/global.json
       - name: Create partial fixture without another SQL file
         if: inputs.scenario == 'partial'
         run: |
@@ -55,6 +59,11 @@ jobs:
         run: |
           test "$(psql "$DATABASE_URL" -Atc "select count(*) from pg_tables where schemaname='public'")" = 0
           test "$(psql "$DATABASE_URL" -Atc "select count(*) from pg_indexes where schemaname='valorapesquisa' and indexname='idx_privacy_requests_protocol'")" = 1
+      - name: Execute mandatory PostgreSQL repository tests
+        run: |
+          set -euo pipefail
+          test -n "${VALORA_TEST_POSTGRES_CONNECTION:-}"
+          dotnet test backend/Valora.Tests/Valora.Tests.csproj --configuration Release --filter Category=DatabaseContract
       - if: always()
         uses: actions/upload-artifact@v4
         with:

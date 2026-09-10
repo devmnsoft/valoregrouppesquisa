@@ -2,6 +2,7 @@ using System.Data;
 using Npgsql;
 using Valora.Application.Contracts;
 using Valora.Infrastructure.Repositories;
+using Xunit.Sdk;
 
 namespace Valora.Tests;
 
@@ -14,14 +15,16 @@ public sealed class WorkspaceRepositoryPostgresTests {
 
         Assert.Contains("new { o, u, wide }, ct", repository, StringComparison.Ordinal);
         Assert.Contains("Query(string sql, object parameters, CancellationToken ct)", repository, StringComparison.Ordinal);
-        Assert.Contains("User.IsInRole(\"admin_valora\") || User.IsInRole(\"admin_cliente\")", controller, StringComparison.Ordinal);
+        Assert.Contains("Context.EffectiveOrganizationId", controller, StringComparison.Ordinal);
+        Assert.Contains("Context.IsGlobalAdministrator", controller, StringComparison.Ordinal);
         Assert.DoesNotContain("[FromQuery] bool wide", controller, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
     public async Task Workspace_queries_enforce_visibility_tenant_and_idempotent_pins() {
         var connectionString = Environment.GetEnvironmentVariable("VALORA_TEST_POSTGRES_CONNECTION");
-        if (string.IsNullOrWhiteSpace(connectionString)) return;
+        if (string.IsNullOrWhiteSpace(connectionString))
+            throw new SkipException("VALORA_TEST_POSTGRES_CONNECTION não configurada; regressão PostgreSQL não executada.");
 
         var builder = new NpgsqlConnectionStringBuilder(connectionString);
         Assert.Matches("(?i)(test|teste|homolog|qa)", builder.Database ?? "");
@@ -73,13 +76,22 @@ public sealed class WorkspaceRepositoryPostgresTests {
             Assert.Equal(new[] { ownItem, sharedItem, thirdPartyItem }.Order(), wide.Select(item => item.Id).Order());
             Assert.DoesNotContain(wide, item => item.Id == otherTenantItem);
 
-            Assert.Single(await repository.RecentAsync(organization, user, CancellationToken.None));
-            await repository.PinAsync(organization, user, ownItem, CancellationToken.None);
-            await repository.PinAsync(organization, user, ownItem, CancellationToken.None);
-            Assert.Single(await repository.PinnedAsync(organization, user, CancellationToken.None));
+            Assert.Single(await repository.RecentAsync(organization, user, false, CancellationToken.None));
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => repository.PinAsync(organization, user, thirdPartyItem, false, CancellationToken.None));
+            await repository.PinAsync(organization, user, ownItem, false, CancellationToken.None);
+            await repository.PinAsync(organization, user, ownItem, false, CancellationToken.None);
+            Assert.Single(await repository.PinnedAsync(organization, user, false, CancellationToken.None));
+            await using (var revoke = new NpgsqlCommand("UPDATE valorapesquisa.workspace_items SET owner_user_id=@owner WHERE id=@own AND organization_id=@organization", setup)) {
+                revoke.Parameters.AddWithValue("owner", owner);
+                revoke.Parameters.AddWithValue("own", ownItem);
+                revoke.Parameters.AddWithValue("organization", organization);
+                await revoke.ExecuteNonQueryAsync();
+            }
+            Assert.Empty(await repository.PinnedAsync(organization, user, false, CancellationToken.None));
+            Assert.Empty(await repository.RecentAsync(organization, user, false, CancellationToken.None));
             await repository.UnpinAsync(organization, user, ownItem, CancellationToken.None);
             await repository.UnpinAsync(organization, user, ownItem, CancellationToken.None);
-            Assert.Empty(await repository.PinnedAsync(organization, user, CancellationToken.None));
+            Assert.Empty(await repository.PinnedAsync(organization, user, false, CancellationToken.None));
         }
         finally {
             await using var cleanup = new NpgsqlCommand("""

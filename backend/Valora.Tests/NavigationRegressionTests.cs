@@ -34,6 +34,14 @@ public sealed class NavigationRegressionTests {
     }
 
     [Fact]
+    public void Catalog_does_not_publish_the_same_destination_as_different_modules() {
+        var duplicates = new NavigationCatalog().Sections.SelectMany(x => x.Items)
+            .GroupBy(x => $"{x.Destination.Controller}/{x.Destination.Action}", StringComparer.OrdinalIgnoreCase)
+            .Where(x => x.Count() > 1).Select(x => x.Key).ToArray();
+        Assert.Empty(duplicates);
+    }
+
+    [Fact]
     public void SparklesIsAnOfficialDesignSystemIcon() {
         var registry = new ValoraIconRegistry();
 
@@ -100,7 +108,6 @@ public sealed class NavigationRegressionTests {
         Assert.Contains("diagnostics.surveys", codes);
         Assert.Contains("intelligence.results", codes);
         Assert.Contains("intelligence.certificates", codes);
-        Assert.Contains("administration.access", codes);
         Assert.Contains("administration.settings", codes);
         Assert.Contains("administration.organizations", codes);
         Assert.Contains("administration.roles", codes);

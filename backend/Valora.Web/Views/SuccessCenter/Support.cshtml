@@ -1,0 +1,11 @@
+@model Valora.Web.Models.ViewModels.SuccessCenter.SupportTicketListViewModel
+@{ViewData["Title"]="Chamados";Layout="_AdminLayout";}
+<main class="page-container success-center">
+ <nav class="breadcrumb"><a href="/SuccessCenter">Suporte</a><span>/</span><strong>Chamados</strong></nav>
+ <header class="page-header"><div><span class="eyebrow">ATENDIMENTO</span><h1>Chamados</h1><p>Consulte conversas, situação e a próxima ação dos chamados da sua organização.</p></div><a class="btn btn-primary" href="/SuccessCenter/Support/Create">Abrir chamado</a></header>
+ @if(Model.Success is not null){<div class="alert alert-success" role="status">@Model.Success</div>} @if(Model.Error is not null){<div class="alert alert-danger" role="alert">@Model.Error</div>}
+ <details class="surface-card mb-3"><summary><strong>Como usar</strong></summary><p>Abra um chamado com contexto suficiente e acompanhe as respostas nesta fila. Somente chamados da organização selecionada são exibidos.</p></details>
+ <section class="surface-card"><div class="table-responsive"><table class="table"><thead><tr><th>Assunto</th><th>Situação</th><th>Prioridade</th><th>Categoria</th><th>Aberto em</th></tr></thead><tbody>
+ @if(Model.Tickets.Count==0){<tr><td colspan="5">Nenhum chamado aberto nesta organização.</td></tr>}else foreach(var ticket in Model.Tickets){<tr><td><a href="/SuccessCenter/Support/Details/@ticket.Id"><strong>@ticket.Subject</strong></a></td><td>@ticket.Status</td><td>@ticket.Priority</td><td>@ticket.Category</td><td>@ticket.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td></tr>}
+ </tbody></table></div></section>
+</main>

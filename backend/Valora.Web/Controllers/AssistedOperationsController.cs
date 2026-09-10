@@ -5,7 +5,10 @@ namespace Valora.Web.Controllers;
 
 [Authorize]
 public sealed class AssistedOperationsController : Controller {
-    [Route("Support"), Route("Support/Tickets"), Route("Support/Tickets/{id:guid}"), Route("Platform/Support")] public IActionResult Support() => Page("support", "Central de Suporte", "Acompanhe chamados, prioridades, responsáveis e resoluções.");
+    [HttpGet("Support")] public IActionResult LegacySupport() => Redirect("/SuccessCenter/Support");
+    [HttpGet("Support/Tickets")] public IActionResult LegacyTickets() => Redirect("/SuccessCenter/Support");
+    [HttpGet("Support/Tickets/{id:guid}")] public IActionResult LegacyTicket(Guid id) => Redirect($"/SuccessCenter/Support/Details/{id}");
+    [HttpGet("Platform/Support")] public IActionResult Support() => Page("support", "Fila global de suporte", "Atenda chamados no contexto do cliente selecionado, preservando comentários internos e histórico.");
     [Route("Feedback"), Route("Platform/Feedback"), Route("CustomerSuccess/Feedback")] public IActionResult Feedback() => Page("feedback", "Feedback do Cliente", "Transforme a experiência real dos clientes em evolução priorizada.");
     [Route("CustomerSuccess"), Route("CustomerSuccess/Organizations/{id:guid}"), Route("Platform/CustomerSuccess")] public IActionResult CustomerSuccess() => Page("customer-success", "Customer Success", "Saúde explicável, riscos e próximos passos de cada organização.");
     [Route("UsageAnalytics"), Route("Platform/Usage"), Route("CustomerSuccess/Usage")] public IActionResult Usage() => Page("usage-analytics", "Métricas de Adoção", "Uso agregado e sinais de ativação do produto.");

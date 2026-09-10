@@ -12,7 +12,7 @@ public sealed class AdministrationController : Controller {
             ["users"] = ("Usuários", "Contas, vínculos, perfis e acessos efetivos.", "/bff/users", "users.read"),
             ["roles"] = ("Perfis e Permissões", "Papéis e permissões agrupadas pelo catálogo canônico.", "/bff/roles", "roles.read"),
             ["plans"] = ("Planos e Assinaturas", "Planos, limites, consumo e assinaturas das organizações.", "/bff/plans", "plans.read"),
-            ["feature-flags"] = ("Feature Flags", "Recursos habilitados por plano e organização.", "/bff/admin/feature-flags", "settings.read"),
+            ["feature-flags"] = ("Feature Flags", "Configuração técnica da plataforma; não concede contratação nem acesso.", "/bff/admin/feature-flags", "settings.read"),
             ["diagnostics"] = ("Diagnósticos", "Ciclos, publicação, metodologia e versionamento.", "/bff/surveys", "surveys.read"),
             ["questions"] = ("Questionários e Perguntas", "Templates oficiais, dimensões, conceitos e perguntas versionadas.", "/bff/methodology/questions", "questions.read"),
             ["responses"] = ("Respostas", "Participação, integridade, anonimização e exportações.", "/bff/responses", "responses.read"),

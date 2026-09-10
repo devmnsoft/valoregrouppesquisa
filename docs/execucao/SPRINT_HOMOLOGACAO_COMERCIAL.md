@@ -59,3 +59,58 @@ Atualizado em 2026-09-10. Este é o documento único de continuidade desta sprin
 5. **P2:** somente então concluir Workspace/formulários/responsividade e executar Playwright real com API, Web, PostgreSQL e Redis.
 
 Próximo passo concreto: instalar o SDK exigido, configurar um PostgreSQL descartável, aplicar `script_completo.sql` e executar o filtro `WorkspaceRepositoryPostgresTests`; falha nesse gate bloqueia o avanço da homologação.
+
+## Incremento operacional — prioridades (2026-09-10)
+
+### Matriz de estados implementada
+
+| Estado atual | Comando | Requisitos | Estado final | Histórico |
+|---|---|---|---|---|
+| `active` | editar/atribuir | `priorities.manage`, responsável ativo do mesmo cliente, origem visível, versão atual | `active` | `edited`, uma vez por edição |
+| `active` | progresso | `priorities.manage` e escopo autorizado, 0–99, observação e versão atuais, `commandId` inédito | `active` | `progress`, idempotente por comando |
+| `active` | concluir | `priorities.manage`, escopo autorizado, justificativa e versão atuais | `completed`, 100% | `complete`, idempotente por comando |
+| `active` | cancelar | `priorities.manage`, escopo autorizado, justificativa e versão atuais | `cancelled`, preserva progresso | `cancel`, idempotente por comando |
+| `completed`/`cancelled` | reabrir | `priorities.manage`, escopo autorizado, justificativa e versão atuais | `active`, preserva progresso | `reopen`, idempotente por comando |
+
+Qualquer outra combinação é rejeitada. Itens encerrados não aceitam edição ou progresso. `updated_at` é o token de concorrência, e atualização da prioridade, espelho no Workspace e histórico usam a mesma transação. A origem opcional somente é aceita quando corresponde a um item visível do mesmo cliente; o responsável precisa estar ativo no mesmo cliente.
+
+### Entregue e limites da verificação
+
+- **Implementado:** detalhes, edição, responsáveis pesquisáveis pelo seletor nativo, progresso, histórico, conclusão, cancelamento e reabertura; permissões `priorities.read/manage` nos endpoints; registro explícito de abertura em recentes; pin/unpin; feedback e confirmação; proteção de duplo envio; conflito; estados vazios por seção; “Ver todos”; layout responsivo.
+- **Implementado:** evolução idempotente do SQL para tipo de evento e chave de comando, índices de histórico/idempotência e constraints de estado/conclusão.
+- **Implementado:** banco do workflow renomeado para `valorapesquisa_test_ci`, TRX publicado e gate de descoberta diferente de zero.
+- **Não homologado neste container:** o SDK .NET 10, PostgreSQL e hosts oficiais não estão disponíveis. Assim, build, materialização Dapper e Playwright integrado permanecem gates obrigatórios de CI; não são declarados como aprovados.
+- **Próxima sequência concreta:** executar restore/build/test com SDK 10; aplicar o SQL duas vezes em PostgreSQL descartável; executar `DatabaseContract`; iniciar API/Web oficiais e executar o fluxo Playwright nas cinco viewports. Corrigir qualquer divergência de materialização antes de merge.
+
+## Consolidação do Workspace após a PR #555 (2026-09-10)
+
+### Baseline e achados confirmados
+
+- **Baseline confirmado:** esta etapa começou em `2a5bf03`, merge da PR #555, com árvore limpa e sem commits posteriores no checkout local. Não há remoto configurado; portanto `fetch`, `push`, abertura remota e integração posterior continuam indisponíveis.
+- **Confirmado no código:** a listagem específica entregava `ExecutivePriorityDto` sem discriminador, enquanto a UI inferia o tipo pelo título traduzido da seção; havia ainda `div` diretamente sob `ul`, comandos baseados em `prompt`/`confirm`, reabertura de concluída forçando 99%, opções truncadas em 100 e resposta completa sem paginação.
+- **Confirmado no código:** `allowedActions` concedia comandos ao proprietário sem permissão de gerenciamento, embora os endpoints exigissem `priorities.manage`; o agregado não declarava `priorities.read`; o registro de recente acontecia antes da leitura no navegador; e a idempotência considerava somente a existência de `command_id`.
+- **Confirmado no SQL:** o backfill ignorava qualquer colisão com `ON CONFLICT DO NOTHING` e os `CHECK` eram criados sem diagnóstico prévio de linhas legadas incompatíveis.
+
+### Correções e funcionalidades implementadas
+
+- O contrato de prioridade agora carrega `itemType=priority`; renderização usa discriminadores de contrato (`itemType`, `resultType` ou tipo conhecido do endpoint), não títulos. Listas usam `li` diretamente, e busca distingue ação, recurso e prioridade.
+- A listagem completa de prioridades ganhou página/tamanho validados, total autorizado, `hasMore`, ordenação determinística e filtros server-side por situação, nível, responsável e prazo. O resumo permanece separado e limitado a oito prioridades ativas. Seletores de responsável e origem ganharam busca paginada e inclusão autorizada da referência atual.
+- Os quatro comandos usam diálogo acessível, campos tipados, consequência contextual, validação, resumo/erro por campo, foco, loading, bloqueio de envio repetido e retorno de foco. Cancelar não cria nem envia comando. A chave permanece na mesma intenção para retry. Reabrir preserva o percentual (inclusive 100), separando estado e medição.
+- `allowedActions` passou a refletir estritamente `priorities.manage`; proprietário sem gerenciamento conserva leitura no escopo, mas não recebe comandos. O agregado declara a mesma política de leitura da listagem específica, os endpoints de opções continuam protegidos por gerenciamento e o botão de criação é renderizado somente após autorização pela política.
+- O detalhe é carregado antes de registrar o acesso recente. Falha não crítica do registro é escrita no log e não impede a resposta válida; cancelamento da requisição continua sendo propagado.
+- Idempotência de transições agora compara organização, prioridade, ator, operação e hash do conteúdo/versão. Repetição idêntica retorna o estado corrente sem novo efeito; reutilização divergente retorna conflito. A linha é bloqueada para serializar concorrentes e a projeção do Workspace é conferida antes do commit.
+- SQL canônico adiciona metadados de idempotência de forma repetível, diagnostica legado incompatível antes dos `CHECK`, falha explicitamente em colisão de ID e converge o espelho existente em vez de ignorá-lo. Conclusão/reabertura também convergem `completed_at`.
+- Validações essenciais foram duplicadas na camada Application para que regras de título, nível, origem, progresso, justificativa, versão e chave não dependam somente de DataAnnotations do controller. Consultas tocadas usam `CommandDefinition` com `CancellationToken`.
+
+### Testes e evidências
+
+- **Executado com sucesso:** `node --check backend/Valora.Web/wwwroot/js/executive-workspace.js`, `node tools/validate-scriptbd-completo-sql-compat.js`, `npm run repository:boundaries`, `npm run web:premium-layout` e `git diff --check`.
+- **Implementado, execução bloqueada pelo ambiente:** Playwright comportamental cobre listagem específica, Meu Dia, visão geral/fixados/recentes/ações e cancelamento sem requisição. O pacote está instalado, mas o Chromium não existe no cache; a tentativa de instalação foi recusada pelo CDN com HTTP 403. Por isso não há screenshot nem alegação de validação nas cinco viewports.
+- **Não executado por limitação do ambiente:** restore/build/test .NET (SDK `dotnet` ausente), materialização Dapper/Npgsql e regressões PostgreSQL (conexão descartável não configurada), hosts oficiais Web/API e repetição real do SQL.
+
+### Pendências e próximo passo
+
+1. Em CI com .NET 10 e PostgreSQL descartável, executar restore, build Release, testes completos e `DatabaseContract`; aplicar o SQL duas vezes sobre banco limpo e cópia legada, incluindo fixtures incompatíveis esperadas.
+2. Executar os testes Playwright contra Valora.Web/Valora.Api oficiais e capturar as cinco viewports. Confirmar via tráfego que troca rápida de filtro cancela resposta antiga e que retry reutiliza a chave.
+3. Completar, com infraestrutura real, cenários de duas organizações, matriz de papéis/capability, rollback, colisão/backfill, concorrência e materialização de `DateTimeOffset`. A implementação está pronta para esses gates, mas eles não são declarados homologados.
+4. Configurar remoto autorizado para fetch/rebase conforme política, push e PR. Não forçar merge nem inventar resultado de check externo.

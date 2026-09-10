@@ -18,6 +18,10 @@ public sealed class WorkspaceRepositoryPostgresTests {
         Assert.Contains("Context.EffectiveOrganizationId", controller, StringComparison.Ordinal);
         Assert.Contains("Context.IsGlobalAdministrator", controller, StringComparison.Ordinal);
         Assert.DoesNotContain("[FromQuery] bool wide", controller, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("RecordOpenAsync", repository, StringComparison.Ordinal);
+        Assert.Contains("command_id=@commandId", repository, StringComparison.Ordinal);
+        Assert.Contains("p.updated_at=@ExpectedUpdatedAt", repository, StringComparison.Ordinal);
+        Assert.Contains("ValoraPermissions.Priorities.Manage", controller, StringComparison.Ordinal);
     }
 
     [Fact]

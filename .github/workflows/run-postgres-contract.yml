@@ -11,13 +11,13 @@ jobs:
     services:
       postgres:
         image: postgres:${{ inputs.postgres-version }}
-        env: { POSTGRES_USER: valora, POSTGRES_PASSWORD: valora, POSTGRES_DB: valorapesquisa_ci }
+        env: { POSTGRES_USER: valora, POSTGRES_PASSWORD: valora, POSTGRES_DB: valorapesquisa_test_ci }
         ports: ['5432:5432']
-        options: --health-cmd "pg_isready -U valora -d valorapesquisa_ci" --health-interval 5s --health-timeout 5s --health-retries 10
+        options: --health-cmd "pg_isready -U valora -d valorapesquisa_test_ci" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       PGPASSWORD: valora
-      DATABASE_URL: postgresql://valora:valora@localhost:5432/valorapesquisa_ci
-      VALORA_TEST_POSTGRES_CONNECTION: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
+      DATABASE_URL: postgresql://valora:valora@localhost:5432/valorapesquisa_test_ci
+      VALORA_TEST_POSTGRES_CONNECTION: Host=localhost;Port=5432;Database=valorapesquisa_test_ci;Username=valora;Password=valora
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -63,10 +63,14 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${VALORA_TEST_POSTGRES_CONNECTION:-}"
-          dotnet test backend/Valora.Tests/Valora.Tests.csproj --configuration Release --filter Category=DatabaseContract
+          dotnet test backend/Valora.Tests/Valora.Tests.csproj --configuration Release --filter Category=DatabaseContract --logger "trx;LogFileName=postgres-contract.trx" --results-directory TestResults
+          test -f TestResults/postgres-contract.trx
+          grep -Eq 'total="[1-9][0-9]*"' TestResults/postgres-contract.trx
       - if: always()
         uses: actions/upload-artifact@v4
         with:
           name: postgres-${{ inputs.postgres-version }}-${{ inputs.scenario }}
-          path: postgres-${{ inputs.postgres-version }}-*.log
+          path: |
+            postgres-${{ inputs.postgres-version }}-*.log
+            TestResults/*.trx
           if-no-files-found: error

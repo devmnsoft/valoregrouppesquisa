@@ -34,6 +34,7 @@ public sealed class PriorityActionRepository(IDbConnectionFactory db, IDbTransac
               AND EXISTS(SELECT 1 FROM valorapesquisa.executive_priorities ep
                          WHERE ep.id=@priority AND ep.organization_id=@o
                            AND (ep.owner_user_id IS NULL OR ep.owner_user_id=@u OR @wide))
+              AND (@wide OR a.responsible_user_id IS NULL OR a.responsible_user_id=@u OR p.owner_user_id=@u)
             ORDER BY l.created_at,a.id
             """;
         return (await connection.QueryAsync<PriorityActionDto>(new CommandDefinition(sql, new { o, priority, u, wide }, cancellationToken: ct))).AsList();
@@ -49,20 +50,19 @@ public sealed class PriorityActionRepository(IDbConnectionFactory db, IDbTransac
                 FOR UPDATE OF i
                 """, new { o, request.ActionId }, unit.Transaction, cancellationToken: ct));
             EnsureAccessible(action, u, wide, "Atividade");
+            EnsureCanReceiveLink(action.Status, "Atividade");
             await InsertLink(unit, o, u, priority, request.ActionId, ct);
             return request.ActionId;
         }, ct);
 
-    public Task<Guid> Create(Guid o, Guid u, Guid priority, CreatePriorityActionRequest request, bool wide, CancellationToken ct) =>
-        Execute(o, u, priority, request.CommandId, "create", new {
-            request.PlanId, request.CreatePlan, PlanTitle=request.PlanTitle?.Trim(), Title=request.Title.Trim(),
-            Description=request.Description.Trim(), ExpectedOutcome=request.ExpectedOutcome.Trim(),
-            EvidenceSummary=request.EvidenceSummary.Trim(), Priority=request.Priority.Trim().ToLowerInvariant(),
-            request.ResponsibleUserId, request.DueAt
-        }, wide, async unit => {
-            await EnsureEligibleResponsible(unit, o, request.ResponsibleUserId, ct);
-            var plan = request.PlanId;
-            if (request.CreatePlan) {
+    public Task<Guid> Create(Guid o, Guid u, Guid priority, CreatePriorityActionRequest request, bool wide, CancellationToken ct) {
+        var normalized = new NormalizedCreate(request.PlanId, request.CreatePlan, request.PlanTitle?.Trim(),
+            request.Title?.Trim() ?? "", request.Description?.Trim() ?? "", request.ExpectedOutcome?.Trim() ?? "",
+            request.EvidenceSummary?.Trim() ?? "", request.Priority?.Trim().ToLowerInvariant() ?? "", request.ResponsibleUserId, request.DueAt);
+        return Execute(o, u, priority, request.CommandId, "create", normalized, wide, async unit => {
+            await EnsureEligibleResponsible(unit, o, normalized.ResponsibleUserId, ct);
+            var plan = normalized.PlanId;
+            if (normalized.CreatePlan) {
                 plan = Guid.NewGuid();
                 await unit.Connection.ExecuteAsync(new CommandDefinition("""
                     INSERT INTO valorapesquisa.action_plans
@@ -70,7 +70,7 @@ public sealed class PriorityActionRepository(IDbConnectionFactory db, IDbTransac
                          created_by_user_id,due_at,evidence_summary,expected_outcome)
                     VALUES (@plan,@o,@PlanTitle,@Description,'priority',@priority,'draft',@Priority,
                             @ResponsibleUserId,@u,@DueAt,@EvidenceSummary,@ExpectedOutcome)
-                    """, new { plan, o, u, priority, request.PlanTitle, request.Description, request.Priority, request.ResponsibleUserId, request.DueAt, request.EvidenceSummary, request.ExpectedOutcome }, unit.Transaction, cancellationToken: ct));
+                    """, new { plan, o, u, priority, normalized.PlanTitle, Description=normalized.Description, Priority=normalized.Priority, normalized.ResponsibleUserId, normalized.DueAt, normalized.EvidenceSummary, normalized.ExpectedOutcome }, unit.Transaction, cancellationToken: ct));
             }
             else {
                 var existingPlan = await unit.Connection.QuerySingleOrDefaultAsync<ResourceAccess>(new CommandDefinition("""
@@ -80,6 +80,7 @@ public sealed class PriorityActionRepository(IDbConnectionFactory db, IDbTransac
                     FOR UPDATE
                     """, new { o, plan }, unit.Transaction, cancellationToken: ct));
                 EnsureAccessible(existingPlan, u, wide, "Plano");
+                EnsureCanReceiveActivity(existingPlan.Status);
             }
 
             var action = Guid.NewGuid();
@@ -89,11 +90,12 @@ public sealed class PriorityActionRepository(IDbConnectionFactory db, IDbTransac
                      responsible_user_id,due_at,evidence_summary,expected_outcome)
                 VALUES (@action,@o,@plan,@Title,@Description,'priority',@priority,@Priority,'pending',
                         @ResponsibleUserId,@DueAt,@EvidenceSummary,@ExpectedOutcome)
-                """, new { action, o, plan, priority, request.Title, request.Description, request.Priority, request.ResponsibleUserId, request.DueAt, request.EvidenceSummary, request.ExpectedOutcome }, unit.Transaction, cancellationToken: ct));
+                """, new { action, o, plan, priority, normalized.Title, normalized.Description, normalized.Priority, normalized.ResponsibleUserId, normalized.DueAt, normalized.EvidenceSummary, normalized.ExpectedOutcome }, unit.Transaction, cancellationToken: ct));
             await InsertLink(unit, o, u, priority, action, ct);
-            await RecordJourney(unit, o, u, action, request.Title, request.EvidenceSummary, ct);
+            await RecordJourney(unit, o, u, action, normalized.Title, normalized.EvidenceSummary, ct);
             return action;
         }, ct);
+    }
 
     private async Task<Guid> Execute(Guid o, Guid u, Guid priority, string command, string operation, object payload, bool wide, Func<IUnitOfWork, Task<Guid>> work, CancellationToken ct) {
         ValidateContext(o, u, priority);
@@ -116,6 +118,12 @@ public sealed class PriorityActionRepository(IDbConnectionFactory db, IDbTransac
         if (previous is not null) {
             if (previous.PriorityId != priority || previous.ActorId != u || previous.Operation != operation || previous.Hash != hash)
                 throw new ConcurrencyConflictException("A chave da operação já foi usada em outro contexto.");
+            var currentResult = await unit.Connection.QuerySingleOrDefaultAsync<ResourceAccess>(new CommandDefinition("""
+                SELECT i.id Id,i.status Status,i.responsible_user_id ResponsibleUserId,p.owner_user_id PlanOwnerUserId
+                FROM valorapesquisa.action_items i JOIN valorapesquisa.action_plans p ON p.id=i.action_plan_id AND p.organization_id=i.organization_id AND p.deleted_at IS NULL
+                WHERE i.id=@result AND i.organization_id=@o AND i.deleted_at IS NULL
+                """, new { o, result=previous.ResultId }, unit.Transaction, cancellationToken:ct));
+            EnsureAccessible(currentResult,u,wide,"Resultado da operação");
             return previous.ResultId;
         }
 
@@ -145,6 +153,16 @@ public sealed class PriorityActionRepository(IDbConnectionFactory db, IDbTransac
             throw new KeyNotFoundException($"{name} não encontrado, cancelado ou sem acesso.");
     }
 
+    private static void EnsureCanReceiveLink(string status, string name) {
+        if (status is not ("pending" or "in_progress" or "blocked" or "overdue"))
+            throw new InvalidOperationException($"{name} no estado atual não pode receber um novo vínculo.");
+    }
+
+    private static void EnsureCanReceiveActivity(string status) {
+        if (status is not ("draft" or "proposed" or "approved" or "in_execution"))
+            throw new InvalidOperationException("O plano no estado atual não pode receber atividades.");
+    }
+
     private static async Task EnsureEligibleResponsible(IUnitOfWork unit, Guid organization, Guid? responsible, CancellationToken ct) {
         if (responsible is null) return;
         if (responsible == Guid.Empty) throw new ArgumentException("Responsável inválido.", nameof(responsible));
@@ -170,6 +188,7 @@ public sealed class PriorityActionRepository(IDbConnectionFactory db, IDbTransac
             VALUES(@o,'action_created',@title,'Atividade criada a partir de prioridade executiva.','action',@action,'medium',@evidence,now(),@u)
             """, new { o, u, action, title, evidence }, unit.Transaction, cancellationToken: ct));
 
+    private sealed record NormalizedCreate(Guid? PlanId,bool CreatePlan,string? PlanTitle,string Title,string Description,string ExpectedOutcome,string EvidenceSummary,string Priority,Guid? ResponsibleUserId,DateTime? DueAt);
     private sealed record PriorityAccess(Guid Id, Guid OrganizationId, string Status, Guid? OwnerUserId, Guid CreatedBy);
     private sealed record ResourceAccess(Guid Id, string Status, Guid? ResponsibleUserId, Guid? PlanOwnerUserId);
     private sealed record PreviousCommand(Guid? PriorityId, string Operation, string Hash, Guid ResultId, Guid ActorId);

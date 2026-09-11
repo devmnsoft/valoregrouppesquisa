@@ -72,9 +72,11 @@ function setPublicSurveyState(patch) {
   window.ValoraPublicSurveyState = { ...(window.ValoraPublicSurveyState || {}), ...patch, lastUpdatedAt: new Date().toISOString() };
 }
 function getPublicSurveyState() { return window.ValoraPublicSurveyState || {}; }
-function getPublicSurveyRouteParams() {
-  const params = new URLSearchParams(location.search);
-  return { surveyId: params.get('survey') || params.get('surveyId') || '', token: params.get('token') || '', org: params.get('org') || '' };
+function getPublicSurveyRouteParams(source = null) {
+  const params = source instanceof URLSearchParams ? source : (typeof source === 'string' ? new URLSearchParams(source) : null);
+  const value = (primary, alias = '') => String(params ? (params.get(primary) || (alias && params.get(alias)) || '') : (source && typeof source === 'object' ? (source[primary] || (alias && source[alias]) || '') : '')).trim();
+  if (params || (source && typeof source === 'object')) return { surveyId: value('survey', 'surveyId'), token: value('token'), org: value('org') };
+  return getPublicSurveyRouteParams(new URLSearchParams(location.search));
 }
 function hasPublicSurveyRouteParams(params) { return !!(params && params.surveyId && params.token); }
 function isDemoOrInvalidPublicRoute(params) {
@@ -85,10 +87,13 @@ function setPublicSurveyContext(context = {}) {
   if (!context?.surveyId || !context?.token || !context?.survey || !context?.form) {
     throw Object.assign(new Error('Contexto público incompleto.'), { code: 'public_survey_context_incomplete' });
   }
+  if (!context.survey.id || String(context.survey.id) !== String(context.surveyId)) {
+    throw Object.assign(new Error('A pesquisa validada não corresponde ao link informado.'), { code: 'public_survey_id_mismatch', details: { requestedSurveyId: context.surveyId, returnedSurveyId: context.survey.id || '' } });
+  }
   if (context.survey.formId !== context.form.id) {
     throw Object.assign(new Error('Formulário incompatível com a pesquisa.'), { code: 'survey_form_mismatch', details: { surveyId: context.surveyId, surveyFormId: context.survey.formId, formId: context.form.id } });
   }
-  if (!Array.isArray(context.form.questions) || context.form.questions.length === 0) {
+  if (!Array.isArray(context.form.questions) || context.form.questions.length === 0 || context.form.questions.some(question => !question || typeof question !== 'object' || !String(question.id || '').trim())) {
     throw Object.assign(new Error('O formulário público não possui perguntas.'), { code: 'public_form_questions_missing', details: { code: 'public_form_questions_missing', formId: context.form.id } });
   }
   const normalized = { surveyId: context.surveyId, token: context.token, org: context.org || '', survey: context.survey, form: context.form, company: context.company || null, lgpd: context.lgpd || null };
@@ -98,6 +103,9 @@ function setPublicSurveyContext(context = {}) {
   window.ValoraRuntimeDiagnostics.lastPublicSurveyContext = { surveyId: normalized.surveyId, hasToken: !!normalized.token, org: normalized.org, formId: normalized.form?.id || '', surveyFormId: normalized.survey?.formId || '', questionsCount: normalized.form?.questions?.length || 0, formMatchesSurvey: true };
   window.ValoraRuntimeDiagnostics.lastPublicSurveyLoad = {surveyId:normalized.surveyId,hasToken:true,org:normalized.org,provider:'cloud-functions',validationFunctionReached:true,surveyFound:true,formFound:true,formId:normalized.form.id,questionsCount:normalized.form.questions.length,companyFound:!!normalized.company,formMatchesSurvey:true,finalState:'ready',errorCode:'',correlationId:context.correlationId||'',frontendVersion:VERSION,frontendBuildHash:buildInfo.hash,functionsApiVersion:context.contractVersion||''};
 }
+let publicSurveyLoadSequence=0;
+function beginPublicSurveyLoad(route){publicSurveyLoadSequence+=1;window.ValoraPublicSurveyContext=null;setPublicSurveyState({status:'loading',route,context:null,error:null,loadId:publicSurveyLoadSequence});return publicSurveyLoadSequence;}
+function isCurrentPublicSurveyLoad(loadId){return !loadId||getPublicSurveyState().loadId===loadId;}
 function getPublicSurveyContext(formEl = null) {
   const state = getPublicSurveyState();
   const current = state.context || window.ValoraPublicSurveyContext || {};
@@ -1962,31 +1970,36 @@ function normalizePublicSubmitError(err) {
   return {code,rawCode,message:byCode[code]||details.friendlyMessage||err?.userMessage||err?.message||'Não conseguimos registrar sua resposta agora. Tente novamente em instantes.',details};
 }
 
-async function resolvePublicSurveyContext() {
-  const route = getPublicSurveyRouteParams();
-  setPublicSurveyState({ status: 'loading', route, error: null, context: null });
+async function resolvePublicSurveyContext(routeInput = null, loadId = null) {
+  const route = getPublicSurveyRouteParams(routeInput);
+  if (!loadId) loadId=beginPublicSurveyLoad(route);
   if (!hasPublicSurveyRouteParams(route)) {
     const error = { code: 'missing_public_survey_context', message: 'Link da pesquisa incompleto. Volte ao diagnóstico gratuito e abra a pesquisa novamente.' };
-    setPublicSurveyState({ status: 'invalid_link', error });
+    if(isCurrentPublicSurveyLoad(loadId))setPublicSurveyState({ status: 'invalid_link', error });
     return null;
   }
   if (isDemoOrInvalidPublicRoute(route)) {
     const error = { code: 'demo_or_invalid_public_link', message: 'Este link de pesquisa não está disponível em produção.' };
-    setPublicSurveyState({ status: 'invalid_link', error });
+    if(isCurrentPublicSurveyLoad(loadId))setPublicSurveyState({ status: 'invalid_link', error });
     return null;
   }
   try {
     const result = await validatePublicSurveyLink({ surveyId: route.surveyId, token: route.token, org: route.org });
+    if(!isCurrentPublicSurveyLoad(loadId))return null;
     if (!result || result.ok === false || !result.survey || !result.form) {
       throw Object.assign(new Error(result?.message || 'Não foi possível validar a pesquisa.'), { code: result?.errorCode || 'public_validation_failed', details: result });
+    }
+    if (!result.survey.id || String(result.survey.id) !== String(route.surveyId)) {
+      throw Object.assign(new Error('A pesquisa validada não corresponde ao link informado.'), { code: 'public_survey_id_mismatch', details: { requestedSurveyId: route.surveyId, returnedSurveyId: result.survey.id || '' } });
     }
     if (result.survey.formId !== result.form.id) {
       throw Object.assign(new Error('Formulário incompatível com a pesquisa.'), { code: 'survey_form_mismatch', details: { surveyId: result.survey.id, surveyFormId: result.survey.formId, formId: result.form.id } });
     }
-    const context = { surveyId: result.survey.id || route.surveyId, token: route.token, org: route.org, survey: result.survey, form: result.form, company: result.company || null, lgpd: result.lgpd || null, correlationId:result.correlationId||'',contractVersion:result.contractVersion||'' };
+    const context = { surveyId: route.surveyId, token: route.token, org: route.org, survey: result.survey, form: result.form, company: result.company || null, lgpd: result.lgpd || null, correlationId:result.correlationId||'',contractVersion:result.contractVersion||'' };
     setPublicSurveyContext(context);
     return context;
   } catch (err) {
+    if(!isCurrentPublicSurveyLoad(loadId))return null;
     const mapped = normalizePublicSubmitError(err);
     setPublicSurveyState({ status: 'error', error: mapped, context: null });
     window.ValoraRuntimeDiagnostics.lastPublicSurveyLoad={surveyId:route.surveyId,hasToken:!!route.token,org:route.org,provider:'cloud-functions',validationFunctionReached:!['functions_unavailable','public_validation_unavailable'].includes(mapped.code),surveyFound:mapped.code!=='survey_not_found',formFound:!['form_not_found','public_form_questions_missing'].includes(mapped.code),formId:'',questionsCount:0,companyFound:!['company_not_found','inactive_company'].includes(mapped.code),formMatchesSurvey:mapped.code!=='survey_form_mismatch',finalState:'error',errorCode:mapped.code,correlationId:mapped.details?.correlationId||'',frontendVersion:VERSION,frontendBuildHash:buildInfo.hash,functionsApiVersion:mapped.details?.contractVersion||''};
@@ -2092,27 +2105,23 @@ function logPublicSubmitResult(result){const safe={ok:result?.ok===true,response
 function loadPublicResultLocally(responseId,resultToken){const response=state.responses.find(x=>String(x.id)===String(responseId));if(!response)throw new Error('Resultado não encontrado.');if(response.resultToken&&response.resultToken!==resultToken)throw new Error('Token de resultado inválido.');const survey=state.surveys.find(x=>x.id===response.surveyId)||{};const company=companyById(response.companyId)||{};return {ok:true,response,survey,company,result:response,certificate:{responseId:response.id,resultToken}};}
 
 async function renderTakeSurvey(sid=null,token=null,orgSlug='',resolvedPayload=null){
-  const rp=getPublicSurveyRouteParams(), initialContract=publicSurveyRouteContract({survey:sid||rp.surveyId,token:token||rp.token,org:orgSlug||rp.org});
+  const rp=getPublicSurveyRouteParams(), route=getPublicSurveyRouteParams({surveyId:sid||rp.surveyId,token:token||rp.token,org:orgSlug||rp.org}), initialContract=publicSurveyRouteContract(route);
   if(!initialContract.ok)return renderIncompletePublicSurveyLink(initialContract);
   renderShell();
-  const route = { ...getPublicSurveyRouteParams() };
-  if (sid) route.surveyId = sid;
-  if (token) route.token = token;
-  if (orgSlug) route.org = orgSlug;
   history.replaceState(history.state||{},'',location.href);
-  setPublicSurveyState({status:'loading',route,error:null});
+  const loadId=beginPublicSurveyLoad(route);
   $('#app').innerHTML='<section class="section"><div class="container"><div class="card"><h1>Validando link seguro…</h1><p>Aguarde enquanto confirmamos a pesquisa.</p></div></div></section>';
   let context=null;
-  if (resolvedPayload?.survey && resolvedPayload?.form) {
-    if (resolvedPayload.survey.formId !== resolvedPayload.form.id) {
-      setPublicSurveyState({status:'error',error:{code:'survey_form_mismatch',message:'Formulário incompatível com a pesquisa.'},context:null});
-      return renderPublicSurveyUnavailable(getPublicSurveyState().error);
-    }
-    context={surveyId:resolvedPayload.survey.id||route.surveyId,token:resolvedPayload.token||route.token,org:resolvedPayload.org||route.org,survey:resolvedPayload.survey,form:resolvedPayload.form,company:resolvedPayload.company||null,lgpd:resolvedPayload.lgpd||null};
-    setPublicSurveyContext(context);
+  if (resolvedPayload) {
+    try{
+      if(!resolvedPayload.survey||!resolvedPayload.form)throw Object.assign(new Error('A validação pública não retornou pesquisa e formulário.'),{code:resolvedPayload.errorCode||'public_validation_failed'});
+      context={surveyId:route.surveyId,token:route.token,org:route.org,survey:resolvedPayload.survey,form:resolvedPayload.form,company:resolvedPayload.company||null,lgpd:resolvedPayload.lgpd||null};
+      if(isCurrentPublicSurveyLoad(loadId))setPublicSurveyContext(context);
+    }catch(err){if(!isCurrentPublicSurveyLoad(loadId))return null;const mapped=normalizePublicSubmitError(err);setPublicSurveyState({status:'error',error:mapped,context:null});return renderPublicSurveyUnavailable(mapped);}
   } else {
-    context = await resolvePublicSurveyContext();
+    context = await resolvePublicSurveyContext(route,loadId);
   }
+  if(!isCurrentPublicSurveyLoad(loadId))return null;
   const stateNow=getPublicSurveyState();
   const contextReady=stateNow.context;
   if (stateNow.status !== 'ready' || !contextReady || !contextReady.surveyId || !contextReady.token || !contextReady.survey || !contextReady.form || !Array.isArray(contextReady.form.questions) || !contextReady.form.questions.length || contextReady.survey.formId !== contextReady.form.id) {

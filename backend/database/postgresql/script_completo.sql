@@ -4839,6 +4839,11 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.priority_action_links(id uuid PRIMARY 
 CREATE UNIQUE INDEX IF NOT EXISTS ux_priority_action_links_active ON valorapesquisa.priority_action_links(organization_id,priority_id,action_item_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS ix_priority_action_links_priority ON valorapesquisa.priority_action_links(organization_id,priority_id,created_at);
 CREATE TABLE IF NOT EXISTS valorapesquisa.priority_action_commands(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),command_id varchar(80) NOT NULL,operation varchar(20) NOT NULL,request_hash char(64) NOT NULL,result_id uuid NOT NULL,created_by_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(organization_id,command_id));
+ALTER TABLE valorapesquisa.priority_action_commands ADD COLUMN IF NOT EXISTS priority_id uuid REFERENCES valorapesquisa.executive_priorities(id);
+UPDATE valorapesquisa.priority_action_commands c SET priority_id=l.priority_id FROM valorapesquisa.priority_action_links l WHERE c.priority_id IS NULL AND l.organization_id=c.organization_id AND l.action_item_id=c.result_id AND l.deleted_at IS NULL;
+-- Registros novos sempre recebem o contexto. A nulabilidade preserva comandos legados órfãos,
+-- que nunca são considerados equivalentes pelo repositório e não devem bloquear o upgrade.
+CREATE INDEX IF NOT EXISTS ix_priority_action_commands_context ON valorapesquisa.priority_action_commands(organization_id,priority_id,created_by_user_id,operation);
 CREATE TABLE IF NOT EXISTS valorapesquisa.executive_priority_updates (id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL,priority_id uuid NOT NULL REFERENCES valorapesquisa.executive_priorities(id) ON DELETE CASCADE,progress_percent integer NOT NULL,note text,created_by uuid NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),CONSTRAINT executive_priority_update_progress_ck CHECK(progress_percent BETWEEN 0 AND 100));
 ALTER TABLE valorapesquisa.executive_priority_updates ADD COLUMN IF NOT EXISTS event_type varchar(24) NOT NULL DEFAULT 'progress';
 ALTER TABLE valorapesquisa.executive_priority_updates ADD COLUMN IF NOT EXISTS command_id varchar(80);

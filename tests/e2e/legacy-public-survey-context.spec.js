@@ -12,7 +12,7 @@ test.beforeEach(async ({ page }) => {
   await page.waitForFunction(() => typeof window.renderTakeSurvey === 'function');
 });
 
-test('uses sid/token arguments even when location.search is empty and keeps them for submit', async ({ page }) => {
+test('@legacy-public-context uses sid/token/org arguments even when location.search is empty and keeps them for submit', async ({ page }) => {
   const state = await page.evaluate(async payload => {
     window.validatePublicSurveyLink = async input => ({ ...payload, received: input });
     await window.renderTakeSurvey('argument-survey', 'argument-token', 'argument-org');
@@ -22,24 +22,36 @@ test('uses sid/token arguments even when location.search is empty and keeps them
     form.querySelector('[name="accessPassword"]').value = 'segredo-teste';
     form.querySelector('[name="q_q1"]').value = 'Resposta';
     const submit = window.buildPublicSurveySubmitPayload(form);
-    return { publicState: window.ValoraPublicSurveyState, submit: { surveyId: submit.surveyId, token: submit.token, answers: submit.answers } };
+    return { publicState: window.ValoraPublicSurveyState, submit: { surveyId: submit.surveyId, token: submit.token, org: submit.org, answers: submit.answers } };
   }, surveyPayload('argument-survey'));
   expect(state.publicState.status).toBe('ready');
   expect(state.publicState.context.surveyId).toBe('argument-survey');
   expect(state.publicState.context.token).toBe('argument-token');
-  expect(state.submit).toEqual({ surveyId: 'argument-survey', token: 'argument-token', answers: { q1: 'Resposta' } });
+  expect(state.publicState.context.org).toBe('argument-org');
+  expect(state.submit).toEqual({ surveyId: 'argument-survey', token: 'argument-token', org: 'argument-org', answers: { q1: 'Resposta' } });
 });
 
-test('reload/direct URL validates aliases and incomplete or invalid contracts stay blocked', async ({ page }) => {
+test('@legacy-public-context reload/direct URL preserves the complete route context', async ({ page }) => {
   await page.goto('/?surveyId=direct-survey&token=direct-token&org=direct-org');
   await page.waitForFunction(() => typeof window.renderTakeSurvey === 'function');
   await page.evaluate(async payload => { window.validatePublicSurveyLink = async () => payload; await window.renderTakeSurvey(); }, surveyPayload('direct-survey'));
   await expect(page.locator('[data-public-survey-form]')).toHaveAttribute('data-survey-id', 'direct-survey');
-  await page.evaluate(async () => window.renderTakeSurvey('missing-token', '', 'org'));
-  await expect(page.locator('[data-public-survey-form]')).toHaveCount(0);
+  await expect(page.locator('[data-public-survey-form]')).toHaveAttribute('data-org', 'direct-org');
+  await expect(page.locator('[name="token"]')).toHaveValue('direct-token');
+  await expect(page.locator('[data-question-id="q1"]')).toBeVisible();
 });
 
-test('rejects missing, mismatched and empty forms with their specific error', async ({ page }) => {
+test('@legacy-no-form-without-context invalid token and invalid context never render or submit a form', async ({ page }) => {
+  const attempts = await page.evaluate(async () => {
+    let submitAttempts = 0;
+    window.submitPublicSurveyResponse = async () => { submitAttempts += 1; return {}; };
+    await window.renderTakeSurvey('missing-token', '', 'org');
+    await window.guardedPublicSurveySubmit(document.querySelector('[data-public-survey-form]'));
+    return submitAttempts;
+  });
+  expect(attempts).toBe(0);
+  await expect(page.locator('[data-public-survey-form]')).toHaveCount(0);
+
   for (const [payload, code] of [
     [{ ok: true, survey: { id: 's', formId: 'f' } }, 'public_validation_failed'],
     [surveyPayload('s', 'f'), 'survey_form_mismatch'],
@@ -58,6 +70,36 @@ test('rejects missing, mismatched and empty forms with their specific error', as
     return { code: window.ValoraPublicSurveyState.error?.code, forms: document.querySelectorAll('[data-public-survey-form]').length };
   });
   expect(invalidToken).toEqual({ code: 'invalid_public_token', forms: 0 });
+});
+
+test('@legacy-public-context home button opens the canonical link without losing surveyId, token or org', async ({ page }) => {
+  const canonical = '/?survey=home-survey&token=home-token&org=home-org';
+  await page.evaluate(url => {
+    window.ValoraRepository.resolveFeaturedHomeSurvey = async () => ({ url: new URL(url, location.origin).href });
+  }, canonical);
+  await page.locator('[data-action="startFreeDiagnostic"]').first().click();
+  await page.waitForURL(url => url.searchParams.get('survey') === 'home-survey');
+  expect(new URL(page.url()).searchParams.get('token')).toBe('home-token');
+  expect(new URL(page.url()).searchParams.get('org')).toBe('home-org');
+});
+
+test('@legacy-public-submit-flow public submission uses only Cloud Functions and preserves context', async ({ page }) => {
+  const result = await page.evaluate(async payload => {
+    const calls = { cloudFunctions: 0, firestore: 0, externalApi: 0 };
+    window.ValoraRepository.submitPublicSurveyResponse = async received => {
+      calls.cloudFunctions += 1;
+      return { responseId: 'response-real', resultToken: 'result-token', received };
+    };
+    window.submitPublicSurveyViaFirestoreFallback = async () => { calls.firestore += 1; throw new Error('provider antigo chamado'); };
+    window.submitPublicSurveyViaExternalApi = async () => { calls.externalApi += 1; throw new Error('provider antigo chamado'); };
+    const response = await window.submitPublicSurveyAuto(payload);
+    return { calls, response, diagnostics: window.ValoraRuntimeDiagnostics.lastPublicSubmit };
+  }, { surveyId: 'survey-cloud', token: 'public-token', org: 'org-cloud', participant: { name: 'Teste', email: 'teste@example.com' }, answers: { q1: 'ok' }, renderedQuestionIds: ['q1'], form: { id: 'f1', questions: [{ id: 'q1', required: true }] }, survey: { id: 'survey-cloud', formId: 'f1' } });
+
+  expect(result.calls).toEqual({ cloudFunctions: 1, firestore: 0, externalApi: 0 });
+  expect(result.response.received).toMatchObject({ surveyId: 'survey-cloud', token: 'public-token', org: 'org-cloud' });
+  expect(result.diagnostics.providersAttempted).toEqual(['cloud-functions']);
+  expect(result.diagnostics.finalProvider).toBe('cloud-functions');
 });
 
 test('an older validation cannot overwrite a newer navigation', async ({ page }) => {

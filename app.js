@@ -123,6 +123,10 @@ function getPublicSurveyContext(formEl = null) {
     renderedQuestionIds: state.renderedQuestionIds || []
   };
 }
+function isPublicSurveyContextReady(stateNow = getPublicSurveyState()) {
+  const context = stateNow?.context;
+  return stateNow?.status === 'ready' && !!context?.surveyId && !!context?.token && !!context?.survey && !!context?.form && Array.isArray(context.form.questions) && context.form.questions.length > 0 && context.survey.formId === context.form.id;
+}
 function clearPublicSurveyDomArtifacts(reason) {
   document.querySelectorAll('.public-survey-section, [data-public-survey-form], .survey-container').forEach(el => el.remove());
   window.ValoraRuntimeDiagnostics = window.ValoraRuntimeDiagnostics || {};
@@ -2129,7 +2133,7 @@ async function renderTakeSurvey(sid=null,token=null,orgSlug='',resolvedPayload=n
   if(!isCurrentPublicSurveyLoad(loadId))return null;
   const stateNow=getPublicSurveyState();
   const contextReady=stateNow.context;
-  if (stateNow.status !== 'ready' || !contextReady || !contextReady.surveyId || !contextReady.token || !contextReady.survey || !contextReady.form || !Array.isArray(contextReady.form.questions) || !contextReady.form.questions.length || contextReady.survey.formId !== contextReady.form.id) {
+  if (!isPublicSurveyContextReady(stateNow)) {
     clearPublicSurveyDomArtifacts('not_ready_before_render');
     const originalError=stateNow.error;
     return renderPublicSurveyUnavailable(originalError?.code?originalError:{code:'public_survey_context_incomplete',message:'O contexto da pesquisa não pôde ser montado.'});

@@ -4840,7 +4840,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_priority_action_links_active ON valorapesqu
 CREATE INDEX IF NOT EXISTS ix_priority_action_links_priority ON valorapesquisa.priority_action_links(organization_id,priority_id,created_at);
 CREATE TABLE IF NOT EXISTS valorapesquisa.priority_action_commands(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),command_id varchar(80) NOT NULL,operation varchar(20) NOT NULL,request_hash char(64) NOT NULL,result_id uuid NOT NULL,created_by_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id),created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(organization_id,command_id));
 ALTER TABLE valorapesquisa.priority_action_commands ADD COLUMN IF NOT EXISTS priority_id uuid REFERENCES valorapesquisa.executive_priorities(id);
-UPDATE valorapesquisa.priority_action_commands c SET priority_id=l.priority_id FROM valorapesquisa.priority_action_links l WHERE c.priority_id IS NULL AND l.organization_id=c.organization_id AND l.action_item_id=c.result_id AND l.deleted_at IS NULL;
+-- Comandos legados só recebem contexto quando existe exatamente uma prioridade demonstrável.
+-- Casos ambíguos permanecem nulos para análise; nenhuma equivalência é inventada.
+WITH unique_context AS (
+ SELECT organization_id,action_item_id,(array_agg(priority_id ORDER BY priority_id))[1] priority_id
+ FROM valorapesquisa.priority_action_links WHERE deleted_at IS NULL
+ GROUP BY organization_id,action_item_id HAVING count(DISTINCT priority_id)=1
+)
+UPDATE valorapesquisa.priority_action_commands c SET priority_id=u.priority_id
+FROM unique_context u WHERE c.priority_id IS NULL AND u.organization_id=c.organization_id AND u.action_item_id=c.result_id;
 -- Registros novos sempre recebem o contexto. A nulabilidade preserva comandos legados órfãos,
 -- que nunca são considerados equivalentes pelo repositório e não devem bloquear o upgrade.
 CREATE INDEX IF NOT EXISTS ix_priority_action_commands_context ON valorapesquisa.priority_action_commands(organization_id,priority_id,created_by_user_id,operation);

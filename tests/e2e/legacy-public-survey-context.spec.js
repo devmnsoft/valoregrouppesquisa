@@ -75,3 +75,22 @@ test('an older validation cannot overwrite a newer navigation', async ({ page })
   }, { first: surveyPayload('old'), second: surveyPayload('new') });
   expect(state).toEqual({ status: 'ready', surveyId: 'new', domSurveyId: 'new' });
 });
+
+test('an incomplete newer navigation invalidates a pending validation', async ({ page }) => {
+  const state = await page.evaluate(async payload => {
+    let release;
+    window.validatePublicSurveyLink = () => new Promise(resolve => { release = () => resolve(payload); });
+    const pending = window.renderTakeSurvey('old', 'old-token', 'org');
+    await new Promise(resolve => setTimeout(resolve, 0));
+    await window.renderTakeSurvey('new', '', 'org');
+    release();
+    await pending;
+    return {
+      status: window.ValoraPublicSurveyState.status,
+      code: window.ValoraPublicSurveyState.error?.code,
+      context: window.ValoraPublicSurveyState.context,
+      forms: document.querySelectorAll('[data-public-survey-form]').length
+    };
+  }, surveyPayload('old'));
+  expect(state).toEqual({ status: 'invalid_link', code: 'missing_public_token', context: null, forms: 0 });
+});

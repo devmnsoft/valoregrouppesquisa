@@ -115,3 +115,17 @@ A implementação não equivale à homologação. Build, PostgreSQL integrado, f
 - O SDK `dotnet` não está instalado neste contêiner; build e testes .NET não foram executados aqui.
 - `VALORA_TEST_POSTGRES_CONNECTION` não está configurada; a migração e os cenários concorrentes não foram executados contra PostgreSQL, portanto não há declaração de aprovação do banco.
 - Não havia ambiente autenticado do Web/API nem navegador conectado ao PostgreSQL para percorrer ou capturar os cinco viewports. A validação visual e o percurso completo permanecem tarefas de homologação, não aprovação implícita.
+
+## Sprint — correção Razor e resiliência do ActionCenter (2026-09-14)
+
+- Corrigida a colisão entre a variável local `page` e a diretiva Razor `@page` nas views MVC de atividades e detalhe do plano; ambas foram reformatadas sem convertê-las em Razor Pages.
+- A paginação passou a expor página atual, total de páginas e disponibilidade de anterior/próxima no contrato compartilhado. As três navegações do escopo não geram mais links quando o destino não existe e os filtros são preservados por Tag Helpers.
+- A listagem de atividades agora filtra, conta e pagina no PostgreSQL por texto, situação, prioridade, responsável e prazo, com parâmetros inválidos normalizados e ordenação estável.
+- O formulário de atividade restaura também a prioridade enviada após validação/conflito. Os diálogos continuam identificados por `data-action-dialog`, nomeados, protegidos contra descarte e submissão duplicada.
+- A criação autorizada/idempotente, política civil de prazo e seletor paginado de responsáveis permanecem na operação canônica introduzida no incremento anterior.
+
+### Limitações de verificação
+
+- O SDK `dotnet` não está instalado na imagem atual; restore, builds do Web/solução/testes e a confirmação executável do CS0006 não puderam ser realizados localmente.
+- `VALORA_TEST_POSTGRES_CONNECTION` não está configurada; cenários concorrentes e filtros SQL não foram declarados como aprovados.
+- Não existe ambiente autenticado com navegador e PostgreSQL nesta imagem para capturas dos cinco viewports.

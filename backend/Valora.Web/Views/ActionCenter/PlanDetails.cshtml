@@ -56,20 +56,20 @@
                 <label for="outcome">Resultado esperado <span aria-hidden="true">*</span></label><textarea id="outcome" name="ExpectedOutcome" minlength="3" maxlength="2000" required>@command?.ExpectedOutcome</textarea>
                 <label for="evidence">Evidência inicial <span aria-hidden="true">*</span></label><textarea id="evidence" name="EvidenceSummary" minlength="3" maxlength="2000" required>@command?.EvidenceSummary</textarea>
                 <div class="form-grid">
-                    <label for="responsible">Responsável
-                        <input id="responsible-search" type="search" placeholder="Buscar responsável" autocomplete="off" data-responsible-search data-target="responsible" />
-                        <select id="responsible" name="ResponsibleUserId" data-responsible-select><option value="">Sem responsável</option>@foreach (var owner in Model.ResponsibleOptions.Items) { <option value="@owner.Id" selected="@(command?.ResponsibleUserId == owner.Id)">@owner.Title</option> }</select>
-                        <span class="option-status" aria-live="polite" data-responsible-status></span>
+                    <div data-responsible-selector data-selected-responsible="@command?.ResponsibleUserId">
+                        <label for="responsible-search">Buscar responsável</label><input id="responsible-search" type="search" autocomplete="off" aria-describedby="responsible-status" data-responsible-search />
+                        <label for="responsible">Responsável</label><select id="responsible" name="ResponsibleUserId" aria-describedby="responsible-status" data-responsible-select data-empty-label="Sem responsável"><option value="">Sem responsável</option>@foreach (var owner in Model.ResponsibleOptions.Items) { <option value="@owner.Id" selected="@(command?.ResponsibleUserId == owner.Id)">@owner.Title</option> }</select>
+                        <span id="responsible-status" class="option-status" role="status" aria-live="polite" data-responsible-status></span>
                         <button type="button" class="valora-button valora-button--ghost" data-responsible-more>Carregar mais</button>
-                    </label>
+                    </div>
                     <label for="priority">Prioridade <span aria-hidden="true">*</span><select id="priority" name="Priority" required><option value="medium" selected="@(command?.Priority is null or "medium")">Média</option><option value="high" selected="@(command?.Priority == "high")">Alta</option><option value="critical" selected="@(command?.Priority == "critical")">Crítica</option><option value="low" selected="@(command?.Priority == "low")">Baixa</option></select></label>
                     <label for="due">Prazo<input id="due" name="DueAt" type="date" value="@command?.DueAt?.ToString("yyyy-MM-dd")" /></label>
                 </div>
-                <input type="hidden" name="ActionPlanId" value="@plan.Id" /><input type="hidden" name="OriginType" value="manual" /><input type="hidden" name="CommandId" value="@(command?.CommandId ?? Guid.NewGuid().ToString())" /><input type="hidden" name="returnUrl" value="@planCurrentUrl" />
+                <input type="hidden" name="ActionPlanId" value="@plan.Id" /><input type="hidden" name="OriginType" value="manual" /><input type="hidden" name="CommandId" value="@(command?.CommandId ?? Guid.NewGuid().ToString())" /><input type="hidden" name="returnUrl" value="@Model.ReturnUrl" /><input type="hidden" name="itemPage" value="@planActivitiesPage.CurrentPage" />
                 <div class="dialog-actions"><button type="button" data-dialog-close>Cancelar</button><button type="submit" class="valora-button valora-button--primary">Criar atividade</button></div>
             </form>
         </dialog>
     }
-    <script src="~/js/responsible-selector.js" asp-append-version="true" data-selected-responsible="@command?.ResponsibleUserId"></script>
+    <script src="~/js/responsible-selector.js" asp-append-version="true"></script>
     <script src="~/js/action-center.js" asp-append-version="true" data-open-dialog="@Model.OpenDialog"></script>
 </div>

@@ -17,7 +17,7 @@
         <div class="form-grid">
             <label asp-for="OriginType">Origem<select asp-for="OriginType"><option value="manual">Manual</option><option value="diagnostic">Diagnóstico</option><option value="result">Resultado</option><option value="ai_insight">Insight revisado</option></select><span asp-validation-for="OriginType"></span></label>
             <label asp-for="Priority">Prioridade<select asp-for="Priority"><option value="medium">Média</option><option value="critical">Crítica</option><option value="high">Alta</option><option value="low">Baixa</option></select><span asp-validation-for="Priority"></span></label>
-            <label asp-for="OwnerUserId">Responsável<input type="search" placeholder="Buscar responsável" autocomplete="off" data-responsible-search /><select asp-for="OwnerUserId" data-responsible-select data-empty-label="Sem responsável"><option value="">Sem responsável</option></select><span asp-validation-for="OwnerUserId"></span><span class="option-status" aria-live="polite" data-responsible-status></span><button type="button" class="valora-button valora-button--ghost" data-responsible-more>Carregar mais</button></label>
+            <div data-responsible-selector data-selected-responsible="@Model.OwnerUserId"><label for="OwnerSearch">Buscar responsável</label><input id="OwnerSearch" type="search" autocomplete="off" aria-describedby="OwnerStatus" data-responsible-search /><label asp-for="OwnerUserId">Responsável</label><select asp-for="OwnerUserId" aria-describedby="OwnerStatus" data-responsible-select data-empty-label="Sem responsável"><option value="">Sem responsável</option></select><span asp-validation-for="OwnerUserId"></span><span id="OwnerStatus" class="option-status" role="status" aria-live="polite" data-responsible-status></span><button type="button" class="valora-button valora-button--ghost" data-responsible-more>Carregar mais</button></div>
             <label asp-for="DueAt">Prazo<input asp-for="DueAt" type="date" /><span asp-validation-for="DueAt"></span></label>
         </div>
         <label asp-for="EvidenceSummary">Evidência que sustenta o plano <span aria-hidden="true">*</span><textarea asp-for="EvidenceSummary" required maxlength="2000"></textarea><span asp-validation-for="EvidenceSummary"></span></label>
@@ -25,5 +25,5 @@
         <partial name="_FormActions" model="@(new FormActionsViewModel("Salvar como rascunho", "Cancelar", "/ActionCenter/Plans"))" />
     </form>
 </main>
-<script src="~/js/responsible-selector.js" asp-append-version="true" data-selected-responsible="@Model.OwnerUserId"></script>
+<script src="~/js/responsible-selector.js" asp-append-version="true"></script>
 <script src="~/js/form-submit-state.js" asp-append-version="true"></script>

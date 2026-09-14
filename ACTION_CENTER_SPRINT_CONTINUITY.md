@@ -51,3 +51,26 @@ Linha de base confirmada no `HEAD` `4ca5fb7` (PR #569); seletores, navegação e
 ### Evidência e pendências desta execução
 
 - A validação JavaScript foi executada. O contêiner continua sem o SDK .NET 10.0.100, PostgreSQL e navegador autenticado; por isso build/Razor, integração transacional e capturas nos cinco viewports não foram declarados como validados.
+
+## Incremento — revisão, histórico visível e intenção preservada (2026-09-14)
+
+- O formulário dedicado de edição de plano agora usa um único prefixo tipado (`Command`) entre Tag Helpers, POST e ModelState; as quatro prioridades são vinculadas pelo valor real.
+- Os diálogos de edição, atribuição e prazo preservam `CommandId`, versão e valores submetidos ao reabrir após validação ou conflito. A ausência de responsável é mantida como uma escolha explícita, sem fallback para o valor persistido.
+- O detalhe do plano consulta `action_plan_change_history` com isolamento organizacional e de recurso, filtro de operação, paginação estável e autoria histórica. A interface traduz operações e diferenças de edição para linguagem de negócio sem apresentar JSON bruto.
+- Capacidades de edição, atribuição e reagendamento das atividades passaram a ser propriedades explícitas do contrato; a interface não as infere mais das transições de progresso.
+- A comparação de reagendamento lê o prazo como data civil no fuso da organização antes de decidir se existe mudança, evitando incrementos falsos de versão na virada UTC.
+
+### Mapa do fluxo revisado
+
+| Operação | Entrada | Autorização | Validação | Persistência/histórico | Retorno |
+|---|---|---|---|---|---|
+| Editar plano | Página dedicada tipada | `Action.Manage` + escopo do plano | DataAnnotations + serviço + versão | transação em `action_plans` e `action_plan_change_history` | URL local preservada |
+| Atribuir/reagendar plano | Diálogo de revisão | `Action.Manage` + escopo do plano | intenção, elegibilidade/data civil e versão | atualização e histórico atômicos/idempotentes | detalhe, filtro e página histórica preservados em erro |
+| Editar/atribuir/reagendar atividade | Diálogo acessível | capacidade explícita + endpoint `Action.Manage` + escopo | DataAnnotations + regras operacionais + versão | atualização e histórico atômicos/idempotentes | detalhe e página histórica preservados |
+| Consultar histórico do plano | seção Histórico | `Action.Read` + organização + acesso ao plano | filtro allowlist e página limitada | consulta somente leitura na estrutura existente | paginação/filtro/retorno preservados |
+
+### Validação e limitações
+
+- A verificação de sintaxe do JavaScript e `git diff --check` foram executados.
+- O SDK definido (`10.0.100`) não está instalado neste contêiner (`dotnet: command not found`); restore, build, Razor e testes .NET não puderam ser executados.
+- Não há PostgreSQL de teste, navegador autenticado ou fixture de credenciais disponíveis; migrations/consultas reais e homologação visual nos cinco viewports permanecem pendentes e não são declaradas concluídas.

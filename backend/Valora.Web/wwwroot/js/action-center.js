@@ -38,3 +38,18 @@
   const requested = script?.dataset.openDialog;
   if (requested) open(requested);
 })();
+
+// Renderiza históricos legados de edição sem expor JSON ou nomes internos.
+document.querySelectorAll('[data-history-diff]').forEach(host => {
+  const labels={Title:'Título',Summary:'Descrição',Description:'Descrição',Priority:'Prioridade',ExpectedOutcome:'Resultado esperado'};
+  const priorities={critical:'Crítica',high:'Alta',medium:'Média',low:'Baixa'};
+  try {
+    const before=JSON.parse(host.dataset.before||'{}'),after=JSON.parse(host.dataset.after||'{}');
+    const rows=Object.keys(after).filter(key=>before[key]!==after[key]).map(key=>{
+      const oldValue=priorities[before[key]]||before[key]||'—',newValue=priorities[after[key]]||after[key]||'—';
+      const row=document.createElement('div'),title=document.createElement('strong'),old=document.createElement('span'),next=document.createElement('span');
+      title.textContent=labels[key]||'Campo atualizado';old.textContent=`Antes: ${oldValue}`;next.textContent=`Depois: ${newValue}`;row.append(title,old,next);return row;
+    });
+    host.replaceChildren(...rows);
+  } catch { host.textContent='Detalhes deste registro legado não estão disponíveis.'; }
+});

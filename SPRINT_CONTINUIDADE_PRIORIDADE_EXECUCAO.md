@@ -129,3 +129,20 @@ A implementação não equivale à homologação. Build, PostgreSQL integrado, f
 - O SDK `dotnet` não está instalado na imagem atual; restore, builds do Web/solução/testes e a confirmação executável do CS0006 não puderam ser realizados localmente.
 - `VALORA_TEST_POSTGRES_CONNECTION` não está configurada; cenários concorrentes e filtros SQL não foram declarados como aprovados.
 - Não existe ambiente autenticado com navegador e PostgreSQL nesta imagem para capturas dos cinco viewports.
+
+## Incremento — navegação tipada e seletores completos do ActionCenter (2026-09-14)
+
+### Implementado
+
+- As três views MVC usam exclusivamente `planPage`, `activityPage` e `planActivitiesPage`; a view de planos deixou de declarar o identificador reservado `page`, que fazia o parser Razor interpretar usos subsequentes como diretiva e originava a cascata RZ3906/RZ2001/RZ2005/RZ1011. O CS0103 de `Context` era emitido na classe gerada após essa quebra e o acesso à requisição foi removido das views de lista.
+- O controller fornece URL atual e retorno nos ViewModels tipados. Retornos externos ou fora de Plans/Items são recusados, detalhes propagam o retorno, e paginação mantém filtros e retorno ao plano.
+- Situação e prioridade agora usam o catálogo compartilhado `ActionStatuses.Label`; ações de criação continuam condicionadas à permissão de gestão e as operações mantêm autorização nos endpoints.
+- Plans e Items expõem o filtro por responsável. O seletor compartilhado atende criação de plano, criação de atividade, filtros e assistente do Workspace, com busca, páginas adicionais, carregamento, vazio, repetição após falha, seleção preservada, cancelamento e descarte de respostas antigas.
+- A consulta PostgreSQL de responsáveis mantém organização, usuário ativo e exclusão lógica, pagina antes de materializar e inclui de modo separado uma seleção autorizada fora da página atual, sem retornar e-mail.
+- A criação de plano ganhou mensagens por campo, resumo acessível, restauração pelo model binding, bloqueio de envio duplicado e layout móvel usando os componentes e tokens existentes.
+
+### Verificações e pendências reais
+
+- O `global.json` exige SDK 10.0.100 com roll-forward para feature band mais recente. O executável `dotnet` continua ausente neste contêiner; restore, build Razor, build da solução e testes .NET não puderam ser executados localmente.
+- `VALORA_TEST_POSTGRES_CONNECTION` não está configurada; a consulta `UNION` e fixtures de isolamento/paginação não foram executadas contra PostgreSQL, portanto não há aprovação funcional do banco.
+- Não há remoto Git configurado nem ambiente autenticado/navegador conectado aos serviços. Capturas nos cinco viewports, push, checks, merge e atualização `pull --ff-only` da base permanecem dependentes do ambiente de homologação.

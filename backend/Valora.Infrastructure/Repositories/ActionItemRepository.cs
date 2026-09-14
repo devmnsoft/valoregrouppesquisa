@@ -42,7 +42,25 @@ public sealed class ActionItemRepository(IDbConnectionFactory db, IDbTransaction
         var total = await result.ReadSingleAsync<int>(); var rows = (await result.ReadAsync<ActionOptionDto>()).AsList(); return new(rows, page, size, total);
     }
 
-    public async Task<PageResult<ActionOptionDto>> ResponsibleOptions(Guid o,OptionQuery query,CancellationToken c){var page=query.ValidPage;var size=query.ValidPageSize;var offset=checked((page-1)*size);var search=string.IsNullOrWhiteSpace(query.Search)?null:query.Search.Trim();const string scope="organization_id=@o AND status='active' AND deleted_at IS NULL AND (@search IS NULL OR name ILIKE '%'||@search||'%')";using var x=db.Create();using var q=await x.QueryMultipleAsync(new CommandDefinition($"SELECT count(*)::int FROM valorapesquisa.users WHERE {scope}; SELECT id Id,name Title,'active' Status,'medium' Priority,NULL::text Context,id ResponsibleUserId,name ResponsibleName FROM valorapesquisa.users WHERE {scope} OR (id=@includeId AND organization_id=@o AND status='active' AND deleted_at IS NULL) ORDER BY name,id LIMIT @size OFFSET @offset",new{o,search,includeId=query.IncludeId,size,offset},cancellationToken:c));var total=await q.ReadSingleAsync<int>();return new((await q.ReadAsync<ActionOptionDto>()).DistinctBy(x=>x.Id).ToList(),page,size,total);}
+    public async Task<PageResult<ActionOptionDto>> ResponsibleOptions(Guid o,OptionQuery query,CancellationToken c){
+        var page=query.ValidPage;var size=query.ValidPageSize;var offset=checked((page-1)*size);
+        var search=string.IsNullOrWhiteSpace(query.Search)?null:query.Search.Trim();
+        const string scope="organization_id=@o AND status='active' AND deleted_at IS NULL AND (@search IS NULL OR name ILIKE '%'||@search||'%')";
+        var sql=$"""
+            SELECT count(*)::int FROM valorapesquisa.users WHERE {scope};
+            SELECT * FROM (
+                SELECT id Id,name Title,'active' Status,'medium' Priority,NULL::text Context,id ResponsibleUserId,name ResponsibleName
+                FROM valorapesquisa.users WHERE {scope} ORDER BY name,id LIMIT @size OFFSET @offset
+            ) page_rows
+            UNION
+            SELECT id Id,name Title,'active' Status,'medium' Priority,NULL::text Context,id ResponsibleUserId,name ResponsibleName
+            FROM valorapesquisa.users
+            WHERE id=@includeId AND organization_id=@o AND status='active' AND deleted_at IS NULL
+            ORDER BY Title,Id;
+            """;
+        using var x=db.Create();using var q=await x.QueryMultipleAsync(new CommandDefinition(sql,new{o,search,includeId=query.IncludeId,size,offset},cancellationToken:c));
+        var total=await q.ReadSingleAsync<int>();return new((await q.ReadAsync<ActionOptionDto>()).AsList(),page,size,total);
+    }
 
     public async Task<ActionItemDto?> Get(Guid o, Guid u, Guid id, bool wide, CancellationToken c) { using var x=db.Create();return await x.QuerySingleOrDefaultAsync<ActionItemDto>(new CommandDefinition(Projection+$" WHERE {Scope} AND i.id=@id",new{o,u,id,wide},cancellationToken:c)); }
 

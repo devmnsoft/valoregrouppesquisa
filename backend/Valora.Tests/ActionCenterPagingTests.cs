@@ -6,6 +6,16 @@ namespace Valora.Tests;
 public sealed class ActionCenterPagingTests
 {
     [Theory]
+    [InlineData("in_progress", "Em execução")]
+    [InlineData("blocked", "Bloqueada")]
+    [InlineData("completed", "Concluída")]
+    [InlineData("critical", "Crítica")]
+    public void Action_labels_are_shared_between_views(string code, string expected)
+    {
+        Assert.Equal(expected, ActionStatuses.Label(code));
+    }
+
+    [Theory]
     [InlineData(-4, 500, 1, 50)]
     [InlineData(2, 25, 2, 25)]
     public void Item_query_normalizes_invalid_page_parameters(int page, int size, int expectedPage, int expectedSize)

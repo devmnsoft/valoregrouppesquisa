@@ -41,3 +41,25 @@ public sealed class ActionCenterPagingTests
         Assert.Equal(next, result.HasNext);
     }
 }
+
+public sealed class ActionCenterFilterContractTests
+{
+    [Fact]
+    public void Dashboard_filters_are_typed_and_do_not_require_fake_identifiers()
+    {
+        var unassigned = new ActionItemListQuery(Assignment: ActionAssignmentFilter.Unassigned, Scope: ActionItemScopeFilter.Open);
+        var active = new ActionPlanListQuery(Scope: ActionPlanScopeFilter.Active);
+        Assert.Equal(ActionAssignmentFilter.Unassigned, unassigned.Assignment);
+        Assert.Null(unassigned.ResponsibleUserId);
+        Assert.Equal(ActionPlanScopeFilter.Active, active.Scope);
+    }
+
+    [Theory]
+    [InlineData("2026-09-13", "2026-09-14", true)]
+    [InlineData("2026-09-14", "2026-09-14", false)]
+    [InlineData("2026-09-15", "2026-09-14", false)]
+    public void Civil_due_date_only_becomes_overdue_after_its_local_day(string due, string today, bool overdue)
+    {
+        Assert.Equal(overdue, DateOnly.Parse(due) < DateOnly.Parse(today));
+    }
+}

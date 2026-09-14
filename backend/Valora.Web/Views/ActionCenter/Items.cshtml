@@ -5,7 +5,7 @@
     var activityPage = Model.Page;
     var query = Model.Query;
     var hasFilters = !string.IsNullOrWhiteSpace(query.Search) || !string.IsNullOrWhiteSpace(query.Status)
-        || !string.IsNullOrWhiteSpace(query.Priority) || !string.IsNullOrWhiteSpace(query.Due) || query.ResponsibleUserId is not null;
+        || !string.IsNullOrWhiteSpace(query.Priority) || !string.IsNullOrWhiteSpace(query.Due) || query.ResponsibleUserId is not null || query.Assignment is not null || query.Scope is not null;
 }
 <main class="valora-page">
     <partial name="_PageHeader" model="@(new PageHeaderViewModel("Atividades", "Acompanhe compromissos autorizados, prazos e responsáveis.", "Valora Action™", $"{activityPage.Total} atividade(s)", Array.Empty<PageHeaderAction>()))" />
@@ -15,6 +15,7 @@
         <h2 id="activity-filters-title">Filtros</h2>
         <form method="get" class="form-grid">
             <input type="hidden" name="Page" value="1" />
+            @if(query.Scope is not null){<input type="hidden" name="Scope" value="@query.Scope" />}
             <label for="Search">Buscar
                 <input id="Search" name="Search" value="@query.Search" placeholder="Atividade, descrição ou plano" />
             </label>
@@ -49,6 +50,7 @@
                 <span id="ResponsibleStatus" class="option-status" role="status" aria-live="polite" data-responsible-status></span>
                 <button type="button" class="valora-button valora-button--ghost" data-responsible-more>Carregar mais</button>
             </div>
+            <label for="Assignment">Atribuição<select id="Assignment" name="Assignment"><option value="">Todas</option><option value="Assigned" selected="@(query.Assignment == ActionAssignmentFilter.Assigned)">Com responsável</option><option value="Unassigned" selected="@(query.Assignment == ActionAssignmentFilter.Unassigned)">Sem responsável</option></select></label>
             <div class="form-actions">
                 <button class="valora-button valora-button--primary">Aplicar filtros</button>
                 <a class="valora-button valora-button--ghost" asp-action="Items">Limpar</a>
@@ -78,10 +80,10 @@
                 </table>
             </div>
             <nav class="pagination" aria-label="Páginas das atividades">
-                @if (activityPage.HasPrevious) { <a asp-action="Items" asp-all-route-data="@(new Dictionary<string,string> { ["Page"]=(activityPage.CurrentPage-1).ToString(), ["PageSize"]=activityPage.PageSize.ToString(), ["Search"]=query.Search ?? "", ["Status"]=query.Status ?? "", ["Priority"]=query.Priority ?? "", ["Due"]=query.Due ?? "", ["ResponsibleUserId"]=query.ResponsibleUserId?.ToString() ?? "" })">Anterior</a> }
+                @if (activityPage.HasPrevious) { <a asp-action="Items" asp-all-route-data="@(new Dictionary<string,string> { ["Page"]=(activityPage.CurrentPage-1).ToString(), ["PageSize"]=activityPage.PageSize.ToString(), ["Search"]=query.Search ?? "", ["Status"]=query.Status ?? "", ["Priority"]=query.Priority ?? "", ["Due"]=query.Due ?? "", ["ResponsibleUserId"]=query.ResponsibleUserId?.ToString() ?? "", ["Assignment"]=query.Assignment?.ToString() ?? "", ["Scope"]=query.Scope?.ToString() ?? "" })">Anterior</a> }
                 else { <span class="disabled" aria-disabled="true">Anterior</span> }
                 <span>Página @(activityPage.CurrentPage) de @(activityPage.TotalPages)</span>
-                @if (activityPage.HasNext) { <a asp-action="Items" asp-all-route-data="@(new Dictionary<string,string> { ["Page"]=(activityPage.CurrentPage+1).ToString(), ["PageSize"]=activityPage.PageSize.ToString(), ["Search"]=query.Search ?? "", ["Status"]=query.Status ?? "", ["Priority"]=query.Priority ?? "", ["Due"]=query.Due ?? "", ["ResponsibleUserId"]=query.ResponsibleUserId?.ToString() ?? "" })">Próxima</a> }
+                @if (activityPage.HasNext) { <a asp-action="Items" asp-all-route-data="@(new Dictionary<string,string> { ["Page"]=(activityPage.CurrentPage+1).ToString(), ["PageSize"]=activityPage.PageSize.ToString(), ["Search"]=query.Search ?? "", ["Status"]=query.Status ?? "", ["Priority"]=query.Priority ?? "", ["Due"]=query.Due ?? "", ["ResponsibleUserId"]=query.ResponsibleUserId?.ToString() ?? "", ["Assignment"]=query.Assignment?.ToString() ?? "", ["Scope"]=query.Scope?.ToString() ?? "" })">Próxima</a> }
                 else { <span class="disabled" aria-disabled="true">Próxima</span> }
             </nav>
         }

@@ -6863,3 +6863,12 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.action_item_create_commands(
  operation varchar(40) NOT NULL, request_hash char(64) NOT NULL, result_id uuid NOT NULL REFERENCES valorapesquisa.action_items(id),
  created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(organization_id,created_by_user_id,operation,command_id));
 CREATE INDEX IF NOT EXISTS ix_action_item_create_commands_result ON valorapesquisa.action_item_create_commands(organization_id,result_id);
+
+-- ActionCenter: idempotência forte da criação direta de planos.
+CREATE TABLE IF NOT EXISTS valorapesquisa.action_plan_create_commands(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ created_by_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), command_id varchar(80) NOT NULL,
+ operation varchar(40) NOT NULL, request_hash char(64) NOT NULL, result_id uuid NOT NULL REFERENCES valorapesquisa.action_plans(id),
+ created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(organization_id,created_by_user_id,operation,command_id));
+CREATE INDEX IF NOT EXISTS ix_action_plan_create_commands_result ON valorapesquisa.action_plan_create_commands(organization_id,result_id);
+INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_09_action_plan_idempotency','sha256:action-plan-idempotency-v1') ON CONFLICT(version) DO NOTHING;

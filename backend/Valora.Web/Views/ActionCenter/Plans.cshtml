@@ -1,15 +1,46 @@
 @model Valora.Web.Controllers.ActionPlanListViewModel
-@{ ViewData["Title"]="Planos de ação"; var page=Model.Page; var q=Model.Query; var pages=Math.Max(1,(page.Total+page.PageSize-1)/page.PageSize); string PageUrl(int number)=>$"/ActionCenter/Plans?page={number}&pageSize={page.PageSize}&Search={Uri.EscapeDataString(q.Search??"")}&Status={q.Status}&OwnerUserId={q.OwnerUserId}&Priority={q.Priority}&Due={q.Due}&Sort={q.Sort}"; }
+@using Valora.Application.ActionCenter
+@{
+    ViewData["Title"] = "Planos de ação";
+    var planPage = Model.Page;
+    var query = Model.Query;
+    var hasFilters = !string.IsNullOrWhiteSpace(query.Search)
+        || !string.IsNullOrWhiteSpace(query.Status)
+        || !string.IsNullOrWhiteSpace(query.Priority)
+        || !string.IsNullOrWhiteSpace(query.Due)
+        || query.OwnerUserId is not null;
+    Dictionary<string, string> PageRoute(int pageNumber) => new() {
+        ["Page"] = pageNumber.ToString(), ["PageSize"] = planPage.PageSize.ToString(),
+        ["Search"] = query.Search ?? "", ["Status"] = query.Status ?? "",
+        ["OwnerUserId"] = query.OwnerUserId?.ToString() ?? "", ["Priority"] = query.Priority ?? "",
+        ["Due"] = query.Due ?? "", ["Sort"] = query.Sort ?? ""
+    };
+}
 <main class="valora-page">
-  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Planos de ação", "Encontre e acompanhe compromissos no contexto da organização selecionada.", "Valora Action™", $"{page.Total} plano(s) autorizado(s)", new[] { new PageHeaderAction("Criar plano", "/ActionCenter/Plans/Create", Style:"primary", Icon:"plus") }))" />
-  <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar", "Combine filtros para localizar planos; os filtros permanecem na URL.", new[] { "Abra um plano para consultar atividades.", "Use prazo para priorizar a execução.", "Limpe os filtros para retornar à visão completa." }))" />
-  <section class="valora-card" aria-labelledby="plan-filters-title"><h2 id="plan-filters-title">Filtros</h2><form method="get" class="form-grid">
-    <label for="Search">Buscar<input id="Search" name="Search" value="@q.Search" placeholder="Título ou resumo" /></label>
-    <label for="Status">Situação<select id="Status" name="Status"><option value="">Todas</option>@foreach(var x in new[]{("draft","Rascunho"),("proposed","Proposto"),("approved","Aprovado"),("in_execution","Em execução"),("completed","Concluído"),("canceled","Cancelado")}){<option value="@x.Item1" selected="@(q.Status==x.Item1)">@x.Item2</option>}</select></label>
-    <label for="Priority">Prioridade<select id="Priority" name="Priority"><option value="">Todas</option>@foreach(var x in new[]{("critical","Crítica"),("high","Alta"),("medium","Média"),("low","Baixa")}){<option value="@x.Item1" selected="@(q.Priority==x.Item1)">@x.Item2</option>}</select></label>
-    <label for="Due">Prazo<select id="Due" name="Due"><option value="">Todos</option><option value="overdue" selected="@(q.Due=="overdue")">Atrasado</option><option value="today" selected="@(q.Due=="today")">Hoje</option><option value="upcoming" selected="@(q.Due=="upcoming")">Futuro</option><option value="none" selected="@(q.Due=="none")">Sem prazo</option></select></label>
-    <label for="Sort">Ordenar<select id="Sort" name="Sort"><option value="newest" selected="@(q.Sort is null or "newest")">Mais recentes</option><option value="due" selected="@(q.Sort=="due")">Prazo</option><option value="title" selected="@(q.Sort=="title")">Título</option></select></label>
-    <div class="form-actions"><button class="valora-button valora-button--primary">Aplicar filtros</button><a class="valora-button valora-button--ghost" href="/ActionCenter/Plans">Limpar</a></div>
-  </form></section>
-  <section class="valora-card" aria-live="polite">@if(page.Items.Count==0){<div class="valora-empty"><h2>Nenhum plano encontrado</h2><p>Ajuste os filtros ou crie o primeiro plano.</p></div>}else{<div class="table-responsive"><table class="valora-table"><thead><tr><th>Plano</th><th>Responsável</th><th>Situação</th><th>Prioridade</th><th>Progresso</th><th>Prazo</th></tr></thead><tbody>@foreach(var p in page.Items){<tr><td><a href="/ActionCenter/Plans/Details/@p.Id?returnUrl=@Uri.EscapeDataString(Context.Request.Path+Context.Request.QueryString)">@p.Title</a></td><td>@(p.OwnerName??"Não definido")</td><td>@p.Status</td><td>@p.Priority</td><td>@p.ProgressPercent%</td><td>@(p.DueAt?.ToString("dd/MM/yyyy")??"—")</td></tr>}</tbody></table></div><nav class="pagination" aria-label="Páginas dos planos">@if(page.HasPrevious){<a href="@PageUrl(page.CurrentPage-1)">Anterior</a>}else{<span class="disabled" aria-disabled="true">Anterior</span>}<span>Página @(page.CurrentPage) de @(page.TotalPages)</span>@if(page.HasNext){<a href="@PageUrl(page.CurrentPage+1)">Próxima</a>}else{<span class="disabled" aria-disabled="true">Próxima</span>}</nav>}</section>
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel("Planos de ação", "Encontre e acompanhe compromissos no contexto da organização selecionada.", "Valora Action™", $"{planPage.Total} plano(s) autorizado(s)", Model.CanCreate ? new[] { new PageHeaderAction("Criar plano", "/ActionCenter/Plans/Create", Style: "primary", Icon: "plus") } : Array.Empty<PageHeaderAction>()))" />
+    <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar", "Combine filtros para localizar planos; os filtros permanecem na URL.", new[] { "Abra um plano para consultar atividades.", "Use prazo para priorizar a execução.", "Limpe os filtros para retornar à visão completa." }))" />
+    <section class="valora-card" aria-labelledby="plan-filters-title">
+        <h2 id="plan-filters-title">Filtros</h2>
+        <form method="get" class="form-grid">
+            <input type="hidden" name="Page" value="1" />
+            <label for="Search">Buscar<input id="Search" name="Search" value="@query.Search" placeholder="Título ou resumo" /></label>
+            <label for="Status">Situação<select id="Status" name="Status"><option value="">Todas</option>@foreach (var option in new[] { ("draft", "Rascunho"), ("proposed", "Proposto"), ("approved", "Aprovado"), ("in_execution", "Em execução"), ("completed", "Concluído"), ("canceled", "Cancelado") }) { <option value="@option.Item1" selected="@(query.Status == option.Item1)">@option.Item2</option> }</select></label>
+            <label for="Priority">Prioridade<select id="Priority" name="Priority"><option value="">Todas</option>@foreach (var option in new[] { ("critical", "Crítica"), ("high", "Alta"), ("medium", "Média"), ("low", "Baixa") }) { <option value="@option.Item1" selected="@(query.Priority == option.Item1)">@option.Item2</option> }</select></label>
+            <label for="OwnerUserId">Responsável<input id="OwnerSearch" type="search" placeholder="Buscar responsável" data-responsible-search data-target="OwnerUserId" /><select id="OwnerUserId" name="OwnerUserId" data-responsible-select><option value="">Todos</option></select><span class="option-status" aria-live="polite" data-responsible-status></span><button type="button" class="valora-button valora-button--ghost" data-responsible-more>Carregar mais</button></label>
+            <label for="Due">Prazo<select id="Due" name="Due"><option value="">Todos</option><option value="overdue" selected="@(query.Due == "overdue")">Atrasado</option><option value="today" selected="@(query.Due == "today")">Hoje</option><option value="upcoming" selected="@(query.Due == "upcoming")">Futuro</option><option value="none" selected="@(query.Due == "none")">Sem prazo</option></select></label>
+            <label for="Sort">Ordenar<select id="Sort" name="Sort"><option value="newest" selected="@(query.Sort is null or "newest")">Mais recentes</option><option value="due" selected="@(query.Sort == "due")">Prazo</option><option value="title" selected="@(query.Sort == "title")">Título</option></select></label>
+            <div class="form-actions"><button class="valora-button valora-button--primary">Aplicar filtros</button><a class="valora-button valora-button--ghost" asp-action="Plans">Limpar</a></div>
+        </form>
+    </section>
+    <section class="valora-card" aria-live="polite" data-total="@(planPage.Total)">
+        @if (planPage.Items.Count == 0) {
+            <div class="valora-empty"><h2>@(hasFilters ? "Nenhum resultado para os filtros" : planPage.CurrentPage > 1 ? "Página sem resultados" : "Nenhum plano cadastrado")</h2><p>@(planPage.CurrentPage > 1 ? "Volte à primeira página ou ajuste os filtros." : hasFilters ? "Ajuste ou limpe os filtros para ampliar a busca." : "Crie o primeiro plano quando tiver permissão para gerenciar ações.")</p></div>
+        } else {
+            <div class="table-responsive"><table class="valora-table"><thead><tr><th>Plano</th><th>Responsável</th><th>Situação</th><th>Prioridade</th><th>Progresso</th><th>Prazo</th></tr></thead><tbody>
+            @foreach (var plan in planPage.Items) { <tr><td><a asp-action="PlanDetails" asp-route-id="@plan.Id" asp-route-returnUrl="@Model.CurrentUrl">@plan.Title</a></td><td>@(plan.OwnerName ?? "Não definido")</td><td>@ActionStatuses.Label(plan.Status)</td><td>@ActionStatuses.Label(plan.Priority)</td><td>@plan.ProgressPercent%</td><td>@(plan.DueAt?.ToString("dd/MM/yyyy") ?? "—")</td></tr> }
+            </tbody></table></div>
+            <nav class="pagination" aria-label="Páginas dos planos">@if (planPage.HasPrevious) { <a asp-action="Plans" asp-all-route-data="@PageRoute(planPage.CurrentPage - 1)">Anterior</a> } else { <span class="disabled" aria-disabled="true">Anterior</span> }<span>Página @(planPage.CurrentPage) de @(planPage.TotalPages)</span>@if (planPage.HasNext) { <a asp-action="Plans" asp-all-route-data="@PageRoute(planPage.CurrentPage + 1)">Próxima</a> } else { <span class="disabled" aria-disabled="true">Próxima</span> }</nav>
+        }
+    </section>
 </main>
+<script src="~/js/responsible-selector.js" asp-append-version="true" data-selected-responsible="@query.OwnerUserId"></script>

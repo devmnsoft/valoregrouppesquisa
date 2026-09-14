@@ -1,26 +1,23 @@
 @model Valora.Web.Controllers.ActionPlanDetailsViewModel
+@using Valora.Application.ActionCenter
 @{
     ViewData["Title"] = Model.Plan.Title;
     var plan = Model.Plan;
     var planActivitiesPage = Model.Activities;
     var command = Model.Command;
     var canCreate = Model.CanCreate && plan.Status is "draft" or "proposed" or "approved" or "in_execution";
-    string Label(string value) => value switch {
-        "draft" => "Rascunho", "proposed" => "Proposto", "approved" => "Aprovado", "in_execution" => "Em execução",
-        "completed" => "Concluído", "canceled" => "Cancelado", "pending" => "Pendente", "blocked" => "Bloqueada",
-        "overdue" => "Atrasada", "critical" => "Crítica", "high" => "Alta", "medium" => "Média", "low" => "Baixa", _ => value
-    };
+    var planCurrentUrl = Url.Action("PlanDetails", "ActionCenter", new { id = plan.Id, itemPage = planActivitiesPage.CurrentPage, returnUrl = Model.ReturnUrl })!;
 }
 <div data-action-center-module>
     <main class="valora-page action-detail">
-        <partial name="_PageHeader" model="@(new PageHeaderViewModel(plan.Title, plan.Summary, "Valora Action™", $"{Label(plan.Priority)} · {Label(plan.Status)}", new[] { new PageHeaderAction("Voltar aos planos", "/ActionCenter/Plans", Icon: "arrow-left") }))" />
+        <partial name="_PageHeader" model="@(new PageHeaderViewModel(plan.Title, plan.Summary, "Valora Action™", $"{ActionStatuses.Label(plan.Priority)} · {ActionStatuses.Label(plan.Status)}", new[] { new PageHeaderAction("Voltar aos planos", Model.ReturnUrl, Icon: "arrow-left") }))" />
         <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar", "Acompanhe o resultado pelas atividades autorizadas e registre entregas verificáveis.", new[] { "Revise prazo e responsável.", "Crie atividades com evidência.", "Acompanhe bloqueios antes do prazo." }))" />
         <div asp-validation-summary="All" class="alert alert-danger" role="alert" tabindex="-1" data-validation-summary></div>
         <section class="action-summary-grid">
             <article class="valora-card">
                 <h2>Resumo do plano</h2>
                 <dl class="action-facts">
-                    <div><dt>Situação</dt><dd>@Label(plan.Status)</dd></div>
+                    <div><dt>Situação</dt><dd>@ActionStatuses.Label(plan.Status)</dd></div>
                     <div><dt>Responsável</dt><dd>@(plan.OwnerName ?? "Sem responsável")</dd></div>
                     <div><dt>Prazo</dt><dd>@(plan.DueAt?.ToString("dd/MM/yyyy") ?? "A definir")</dd></div>
                     <div><dt>Progresso operacional</dt><dd><progress max="100" value="@plan.ProgressPercent"></progress> @plan.ProgressPercent%</dd></div>
@@ -34,16 +31,16 @@
                 @if (canCreate) { <button type="button" class="valora-button valora-button--primary" data-action-dialog-open="create-item-dialog">Nova atividade</button> }
             </div>
             @if (planActivitiesPage.Items.Count == 0) {
-                <div class="valora-empty"><h3>Nenhuma atividade cadastrada</h3><p>Crie a primeira atividade para acompanhar a execução deste plano.</p></div>
+                <div class="valora-empty"><h3>@(planActivitiesPage.CurrentPage > 1 ? "Página sem resultados" : "Nenhuma atividade cadastrada")</h3><p>@(planActivitiesPage.CurrentPage > 1 ? "Volte à primeira página para continuar a navegação." : "Crie a primeira atividade para acompanhar a execução deste plano.")</p></div>
             } else {
                 <div class="table-responsive"><table class="valora-table">
                     <thead><tr><th>Atividade</th><th>Situação</th><th>Prioridade</th><th>Responsável</th><th>Progresso</th><th>Prazo</th></tr></thead>
-                    <tbody>@foreach (var item in planActivitiesPage.Items) { <tr><td><a asp-action="ItemDetails" asp-route-id="@item.Id">@item.Title</a></td><td>@Label(item.Status)</td><td>@Label(item.Priority)</td><td>@(item.ResponsibleName ?? "Sem responsável")</td><td>@item.ProgressPercent%</td><td>@(item.DueAt?.ToString("dd/MM/yyyy") ?? "A definir")</td></tr> }</tbody>
+                    <tbody>@foreach (var item in planActivitiesPage.Items) { <tr><td><a asp-action="ItemDetails" asp-route-id="@item.Id" asp-route-returnUrl="@planCurrentUrl">@item.Title</a></td><td>@ActionStatuses.Label(item.Status)</td><td>@ActionStatuses.Label(item.Priority)</td><td>@(item.ResponsibleName ?? "Sem responsável")</td><td>@item.ProgressPercent%</td><td>@(item.DueAt?.ToString("dd/MM/yyyy") ?? "A definir")</td></tr> }</tbody>
                 </table></div>
                 <nav class="pagination" aria-label="Páginas das atividades">
-                    @if (planActivitiesPage.HasPrevious) { <a asp-action="PlanDetails" asp-route-id="@plan.Id" asp-route-itemPage="@(planActivitiesPage.CurrentPage - 1)">Anterior</a> } else { <span class="disabled" aria-disabled="true">Anterior</span> }
+                    @if (planActivitiesPage.HasPrevious) { <a asp-action="PlanDetails" asp-route-id="@plan.Id" asp-route-itemPage="@(planActivitiesPage.CurrentPage - 1)" asp-route-returnUrl="@Model.ReturnUrl">Anterior</a> } else { <span class="disabled" aria-disabled="true">Anterior</span> }
                     <span>Página @(planActivitiesPage.CurrentPage) de @(planActivitiesPage.TotalPages)</span>
-                    @if (planActivitiesPage.HasNext) { <a asp-action="PlanDetails" asp-route-id="@plan.Id" asp-route-itemPage="@(planActivitiesPage.CurrentPage + 1)">Próxima</a> } else { <span class="disabled" aria-disabled="true">Próxima</span> }
+                    @if (planActivitiesPage.HasNext) { <a asp-action="PlanDetails" asp-route-id="@plan.Id" asp-route-itemPage="@(planActivitiesPage.CurrentPage + 1)" asp-route-returnUrl="@Model.ReturnUrl">Próxima</a> } else { <span class="disabled" aria-disabled="true">Próxima</span> }
                 </nav>
             }
         </section>
@@ -59,14 +56,20 @@
                 <label for="outcome">Resultado esperado <span aria-hidden="true">*</span></label><textarea id="outcome" name="ExpectedOutcome" minlength="3" maxlength="2000" required>@command?.ExpectedOutcome</textarea>
                 <label for="evidence">Evidência inicial <span aria-hidden="true">*</span></label><textarea id="evidence" name="EvidenceSummary" minlength="3" maxlength="2000" required>@command?.EvidenceSummary</textarea>
                 <div class="form-grid">
-                    <label for="responsible">Responsável<select id="responsible" name="ResponsibleUserId"><option value="">Sem responsável</option>@foreach (var owner in Model.ResponsibleOptions.Items) { <option value="@owner.Id" selected="@(command?.ResponsibleUserId == owner.Id)">@owner.Title</option> }</select></label>
+                    <label for="responsible">Responsável
+                        <input id="responsible-search" type="search" placeholder="Buscar responsável" autocomplete="off" data-responsible-search data-target="responsible" />
+                        <select id="responsible" name="ResponsibleUserId" data-responsible-select><option value="">Sem responsável</option>@foreach (var owner in Model.ResponsibleOptions.Items) { <option value="@owner.Id" selected="@(command?.ResponsibleUserId == owner.Id)">@owner.Title</option> }</select>
+                        <span class="option-status" aria-live="polite" data-responsible-status></span>
+                        <button type="button" class="valora-button valora-button--ghost" data-responsible-more>Carregar mais</button>
+                    </label>
                     <label for="priority">Prioridade <span aria-hidden="true">*</span><select id="priority" name="Priority" required><option value="medium" selected="@(command?.Priority is null or "medium")">Média</option><option value="high" selected="@(command?.Priority == "high")">Alta</option><option value="critical" selected="@(command?.Priority == "critical")">Crítica</option><option value="low" selected="@(command?.Priority == "low")">Baixa</option></select></label>
                     <label for="due">Prazo<input id="due" name="DueAt" type="date" value="@command?.DueAt?.ToString("yyyy-MM-dd")" /></label>
                 </div>
-                <input type="hidden" name="ActionPlanId" value="@plan.Id" /><input type="hidden" name="OriginType" value="manual" /><input type="hidden" name="CommandId" value="@(command?.CommandId ?? Guid.NewGuid().ToString())" />
+                <input type="hidden" name="ActionPlanId" value="@plan.Id" /><input type="hidden" name="OriginType" value="manual" /><input type="hidden" name="CommandId" value="@(command?.CommandId ?? Guid.NewGuid().ToString())" /><input type="hidden" name="returnUrl" value="@planCurrentUrl" />
                 <div class="dialog-actions"><button type="button" data-dialog-close>Cancelar</button><button type="submit" class="valora-button valora-button--primary">Criar atividade</button></div>
             </form>
         </dialog>
     }
+    <script src="~/js/responsible-selector.js" asp-append-version="true" data-selected-responsible="@command?.ResponsibleUserId"></script>
     <script src="~/js/action-center.js" asp-append-version="true" data-open-dialog="@Model.OpenDialog"></script>
 </div>

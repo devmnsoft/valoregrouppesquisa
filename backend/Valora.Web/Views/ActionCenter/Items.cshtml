@@ -1,15 +1,11 @@
 @model Valora.Web.Controllers.ActionItemListViewModel
+@using Valora.Application.ActionCenter
 @{
     ViewData["Title"] = "Atividades";
     var activityPage = Model.Page;
     var query = Model.Query;
     var hasFilters = !string.IsNullOrWhiteSpace(query.Search) || !string.IsNullOrWhiteSpace(query.Status)
         || !string.IsNullOrWhiteSpace(query.Priority) || !string.IsNullOrWhiteSpace(query.Due) || query.ResponsibleUserId is not null;
-    string Label(string value) => value switch {
-        "pending" => "Pendente", "in_progress" => "Em execução", "blocked" => "Bloqueada",
-        "completed" => "Concluída", "canceled" => "Cancelada", "overdue" => "Atrasada",
-        "critical" => "Crítica", "high" => "Alta", "medium" => "Média", "low" => "Baixa", _ => value
-    };
 }
 <main class="valora-page">
     <partial name="_PageHeader" model="@(new PageHeaderViewModel("Atividades", "Acompanhe compromissos autorizados, prazos e responsáveis.", "Valora Action™", $"{activityPage.Total} atividade(s)", Array.Empty<PageHeaderAction>()))" />
@@ -18,6 +14,7 @@
     <section class="valora-card" aria-labelledby="activity-filters-title">
         <h2 id="activity-filters-title">Filtros</h2>
         <form method="get" class="form-grid">
+            <input type="hidden" name="Page" value="1" />
             <label for="Search">Buscar
                 <input id="Search" name="Search" value="@query.Search" placeholder="Atividade, descrição ou plano" />
             </label>
@@ -46,6 +43,12 @@
                     <option value="none" selected="@(query.Due == "none")">Sem prazo</option>
                 </select>
             </label>
+            <label for="ResponsibleUserId">Responsável
+                <input id="ResponsibleSearch" type="search" placeholder="Buscar responsável" data-responsible-search data-target="ResponsibleUserId" />
+                <select id="ResponsibleUserId" name="ResponsibleUserId" data-responsible-select><option value="">Todos</option></select>
+                <span class="option-status" aria-live="polite" data-responsible-status></span>
+                <button type="button" class="valora-button valora-button--ghost" data-responsible-more>Carregar mais</button>
+            </label>
             <div class="form-actions">
                 <button class="valora-button valora-button--primary">Aplicar filtros</button>
                 <a class="valora-button valora-button--ghost" asp-action="Items">Limpar</a>
@@ -56,8 +59,8 @@
     <section class="valora-card" aria-live="polite">
         @if (activityPage.Items.Count == 0) {
             <div class="valora-empty">
-                <h2>@(hasFilters ? "Nenhum resultado para os filtros" : "Nenhuma atividade cadastrada")</h2>
-                <p>@(hasFilters ? "Ajuste ou limpe os filtros para ampliar a busca." : "Crie uma atividade dentro de um plano para iniciar o acompanhamento.")</p>
+                <h2>@(activityPage.CurrentPage > 1 ? "Página sem resultados" : hasFilters ? "Nenhum resultado para os filtros" : "Nenhuma atividade cadastrada")</h2>
+                <p>@(activityPage.CurrentPage > 1 ? "Volte à primeira página ou ajuste os filtros." : hasFilters ? "Ajuste ou limpe os filtros para ampliar a busca." : "Crie uma atividade dentro de um plano para iniciar o acompanhamento.")</p>
             </div>
         } else {
             <div class="table-responsive">
@@ -66,8 +69,8 @@
                     <tbody>
                     @foreach (var item in activityPage.Items) {
                         <tr>
-                            <td><a asp-action="ItemDetails" asp-route-id="@item.Id" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">@item.Title</a></td>
-                            <td>@item.PlanTitle</td><td>@Label(item.Status)</td><td>@Label(item.Priority)</td><td>@item.ProgressPercent%</td>
+                            <td><a asp-action="ItemDetails" asp-route-id="@item.Id" asp-route-returnUrl="@Model.CurrentUrl">@item.Title</a></td>
+                            <td>@item.PlanTitle</td><td>@ActionStatuses.Label(item.Status)</td><td>@ActionStatuses.Label(item.Priority)</td><td>@item.ProgressPercent%</td>
                             <td>@(item.ResponsibleName ?? "Sem responsável")</td><td>@(item.DueAt?.ToString("dd/MM/yyyy") ?? "A definir")</td>
                         </tr>
                     }
@@ -84,3 +87,4 @@
         }
     </section>
 </main>
+<script src="~/js/responsible-selector.js" asp-append-version="true" data-selected-responsible="@query.ResponsibleUserId"></script>

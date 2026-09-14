@@ -6,6 +6,13 @@ public static class ActionStatuses {
     public static readonly IReadOnlySet<string> Plan = new HashSet<string>(["draft", "proposed", "approved", "in_execution", "completed", "canceled"]);
     public static readonly IReadOnlySet<string> Item = new HashSet<string>(["pending", "in_progress", "blocked", "completed", "canceled", "overdue"]);
     public static readonly IReadOnlySet<string> Priorities = new HashSet<string>(["critical", "high", "medium", "low"]);
+    public static string Label(string? value) => value switch {
+        "draft" => "Rascunho", "proposed" => "Proposto", "approved" => "Aprovado",
+        "in_execution" or "in_progress" => "Em execução", "pending" => "Pendente",
+        "blocked" => "Bloqueada", "overdue" => "Atrasada", "completed" => "Concluída",
+        "canceled" or "cancelled" => "Cancelada", "critical" => "Crítica", "high" => "Alta",
+        "medium" => "Média", "low" => "Baixa", null or "" => "Não informada", _ => value
+    };
 }
 public sealed record ActionPlanDto(Guid Id, string Title, string Summary, string OriginType, string Status, string Priority, Guid? OwnerUserId, DateTime? DueAt, string EvidenceSummary, string ExpectedOutcome, int ProgressPercent, DateTime CreatedAt, string? OwnerName = null, int ActiveItemCount = 0);
 public sealed record ActionItemDto(Guid Id, Guid ActionPlanId, string Title, string Description, string OriginType, Guid? OriginId, string? RelatedDimension, string? RelatedIndexCode, string Priority, string Status, Guid? ResponsibleUserId, DateTime? DueAt, DateTime? CompletedAt, int ProgressPercent, string EvidenceSummary, string ExpectedOutcome, string? CompletionEvidence, string? AiRecommendationSummary, DateTime CreatedAt, long Version = 1, string? ResponsibleName = null, string? PlanTitle = null, string? CompletionResult = null);

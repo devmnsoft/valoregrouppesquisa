@@ -62,6 +62,15 @@ public sealed class ActionItemRepository(IDbConnectionFactory db, IDbTransaction
         var total=await q.ReadSingleAsync<int>();return new((await q.ReadAsync<ActionOptionDto>()).AsList(),page,size,total);
     }
 
+    public async Task<PageResult<ActionOptionDto>> VisibleResponsibleOptions(Guid o,Guid u,bool wide,OptionQuery query,CancellationToken c){
+        var page=query.ValidPage;var size=query.ValidPageSize;var offset=checked((page-1)*size);
+        var search=string.IsNullOrWhiteSpace(query.Search)?null:query.Search.Trim();
+        const string access="usr.organization_id=@o AND usr.status='active' AND usr.deleted_at IS NULL AND EXISTS(SELECT 1 FROM valorapesquisa.action_items i JOIN valorapesquisa.action_plans p ON p.id=i.action_plan_id AND p.organization_id=i.organization_id WHERE i.organization_id=@o AND i.deleted_at IS NULL AND p.deleted_at IS NULL AND (i.responsible_user_id=usr.id OR p.owner_user_id=usr.id) AND (@wide OR i.responsible_user_id IS NULL OR i.responsible_user_id=@u OR p.owner_user_id=@u))";
+        var sql=$"SELECT count(*)::int FROM valorapesquisa.users usr WHERE {access} AND (@search IS NULL OR usr.name ILIKE '%'||@search||'%'); SELECT * FROM (SELECT usr.id Id,usr.name Title,'active' Status,'medium' Priority,NULL::text Context,usr.id ResponsibleUserId,usr.name ResponsibleName FROM valorapesquisa.users usr WHERE {access} AND (@search IS NULL OR usr.name ILIKE '%'||@search||'%') ORDER BY usr.name,usr.id LIMIT @size OFFSET @offset) page_rows UNION SELECT usr.id Id,usr.name Title,'active' Status,'medium' Priority,NULL::text Context,usr.id ResponsibleUserId,usr.name ResponsibleName FROM valorapesquisa.users usr WHERE {access} AND usr.id=@includeId ORDER BY Title,Id;";
+        using var x=db.Create();using var q=await x.QueryMultipleAsync(new CommandDefinition(sql,new{o,u,wide,search,includeId=query.IncludeId,size,offset},cancellationToken:c));
+        var total=await q.ReadSingleAsync<int>();return new((await q.ReadAsync<ActionOptionDto>()).AsList(),page,size,total);
+    }
+
     public async Task<ActionItemDto?> Get(Guid o, Guid u, Guid id, bool wide, CancellationToken c) { using var x=db.Create();return await x.QuerySingleOrDefaultAsync<ActionItemDto>(new CommandDefinition(Projection+$" WHERE {Scope} AND i.id=@id",new{o,u,id,wide},cancellationToken:c)); }
 
     public async Task<ActionItemDetailsDto?> Details(Guid o, Guid u, Guid id, bool wide, bool canManage, bool canComplete, int historyPage, CancellationToken c) {

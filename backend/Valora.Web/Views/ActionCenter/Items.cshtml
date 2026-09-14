@@ -43,12 +43,12 @@
                     <option value="none" selected="@(query.Due == "none")">Sem prazo</option>
                 </select>
             </label>
-            <label for="ResponsibleUserId">Responsável
-                <input id="ResponsibleSearch" type="search" placeholder="Buscar responsável" data-responsible-search data-target="ResponsibleUserId" />
-                <select id="ResponsibleUserId" name="ResponsibleUserId" data-responsible-select><option value="">Todos</option></select>
-                <span class="option-status" aria-live="polite" data-responsible-status></span>
+            <div data-responsible-selector data-responsible-endpoint="/ActionCenter/VisibleResponsibleOptions" data-selected-responsible="@query.ResponsibleUserId">
+                <label for="ResponsibleSearch">Buscar responsável</label><input id="ResponsibleSearch" type="search" autocomplete="off" aria-describedby="ResponsibleStatus" data-responsible-search />
+                <label for="ResponsibleUserId">Responsável</label><select id="ResponsibleUserId" name="ResponsibleUserId" aria-describedby="ResponsibleStatus" data-responsible-select><option value="">Todos</option></select>
+                <span id="ResponsibleStatus" class="option-status" role="status" aria-live="polite" data-responsible-status></span>
                 <button type="button" class="valora-button valora-button--ghost" data-responsible-more>Carregar mais</button>
-            </label>
+            </div>
             <div class="form-actions">
                 <button class="valora-button valora-button--primary">Aplicar filtros</button>
                 <a class="valora-button valora-button--ghost" asp-action="Items">Limpar</a>
@@ -87,4 +87,4 @@
         }
     </section>
 </main>
-<script src="~/js/responsible-selector.js" asp-append-version="true" data-selected-responsible="@query.ResponsibleUserId"></script>
+<script src="~/js/responsible-selector.js" asp-append-version="true"></script>

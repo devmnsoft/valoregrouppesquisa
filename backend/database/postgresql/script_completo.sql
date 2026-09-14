@@ -6839,3 +6839,12 @@ SELECT o.id,p.code,p.name,p.description,true FROM valorapesquisa.organizations o
  ('analyst','Analista','Análise de evidências, resultados e relatórios.'),('consultant','Consultor','Operação consultiva com escopo autorizado.'),
  ('respondent','Respondente','Participação em pesquisas autorizadas.'),('executive_viewer','Visualizador Executivo','Consulta executiva sem alterações.')) AS p(code,name,description)
 ON CONFLICT(client_id,code) DO UPDATE SET name=excluded.name,description=excluded.description,updated_at=now();
+
+-- 2026-09-14 · concorrência e idempotência da Central de Execução
+BEGIN;
+ALTER TABLE valorapesquisa.action_items ADD COLUMN IF NOT EXISTS version bigint NOT NULL DEFAULT 1;
+ALTER TABLE valorapesquisa.action_item_status_history ADD COLUMN IF NOT EXISTS command_id varchar(80);
+ALTER TABLE valorapesquisa.action_item_checkins ADD COLUMN IF NOT EXISTS command_id varchar(80);
+CREATE UNIQUE INDEX IF NOT EXISTS ux_action_item_history_command ON valorapesquisa.action_item_status_history(action_item_id,command_id) WHERE command_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_action_item_checkin_command ON valorapesquisa.action_item_checkins(action_item_id,command_id) WHERE command_id IS NOT NULL;
+COMMIT;

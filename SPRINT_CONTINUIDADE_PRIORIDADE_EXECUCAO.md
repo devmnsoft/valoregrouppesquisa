@@ -64,3 +64,20 @@
 - `backend/Valora.Api/Controllers/WorkspaceController.cs`: opções não expõem recursos de outro responsável a usuário restrito.
 - `backend/Valora.Web/Views/Workspace/Index.cshtml` e `wwwroot/js/executive-workspace.js`: somente campos do percurso ativo são enviados e sucesso abre a atividade.
 - `backend/Valora.Tests/PriorityActionContractTests.cs`: regressões estruturais permanecem cobertas.
+
+## Sprint — histórico confiável e detalhes operacionais (2026-09-14)
+
+### Implementação concluída
+
+- As raw strings dos seletores foram corrigidas e o cálculo de `OFFSET` agora detecta overflow.
+- Progresso, bloqueio e conclusão usam lock, versão otimista, transação única e registram o estado anterior real. Progresso comum aceita somente 0–99%; 100% é exclusivo da conclusão com resultado e evidência.
+- Chaves de comando tornam histórico, check-in e conclusão idempotentes. Recursos fora da organização e transições finais não geram escrita.
+- Indicadores são agregados sobre todo o escopo; o limite de 12 aplica-se somente à agenda. Canceladas e concluídas não entram nos indicadores operacionais; bloqueadas têm contador próprio.
+- O detalhe da atividade passou a usar modelo composto tipado, nome de responsável e plano, versão, resultado/evidências, histórico paginado e diálogos acessíveis condicionados ao estado.
+- O progresso do plano é operacional: média das atividades não canceladas; plano sem atividades aparece como 0%, não como maturidade metodológica.
+
+### Homologação pendente e verificável
+
+- Build .NET permanece pendente neste contêiner enquanto o SDK `dotnet` não estiver instalado.
+- Testes de repository e jornada autenticada permanecem pendentes sem `VALORA_TEST_POSTGRES_CONNECTION`, identidade/API e navegador configurados. Isso não constitui aprovação funcional do PostgreSQL.
+- Capturas autenticadas nos cinco viewports devem ser produzidas no ambiente de homologação após aplicar a migração aditiva de versão e idempotência.

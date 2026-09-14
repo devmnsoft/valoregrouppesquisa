@@ -1,7 +1,5 @@
-@model IReadOnlyList<Valora.Application.ActionCenter.ActionItemDto>
-
-@{
-    ViewData["Title"]="Ações";
-}
-
-<main class="valora-page"><header class="leadership-hero"><div><p class="eyebrow">Valora Action™</p><h1>Ações acompanháveis</h1></div></header><section class="valora-card"><div class="table-responsive"><table class="table"><thead><tr><th>Ação</th><th>Status</th><th>Prioridade</th><th>Progresso</th><th>Responsável</th></tr></thead><tbody>@foreach(var i in Model){<tr><td><a href="/ActionCenter/Items/Details/@i.Id">@i.Title</a></td><td>@i.Status</td><td>@i.Priority</td><td>@i.ProgressPercent%</td><td>@(i.ResponsibleUserId?.ToString()??"Não definido — risco")</td></tr>}</tbody></table></div></section></main>
+@model Valora.Web.Controllers.ActionItemListViewModel
+@{ ViewData["Title"]="Atividades"; var page=Model.Page; }
+<main class="valora-page"><partial name="_PageHeader" model="@(new PageHeaderViewModel("Atividades", "Acompanhe compromissos autorizados, prazos e responsáveis.", "Valora Action™", "Execução", Array.Empty<PageHeaderAction>()))" />
+<section class="valora-card"><form method="get" class="form-grid"><label for="status">Situação<select id="status" name="status"><option value="">Todas</option><option value="pending" selected="@(Model.Status=="pending")">Pendente</option><option value="in_progress" selected="@(Model.Status=="in_progress")">Em execução</option><option value="blocked" selected="@(Model.Status=="blocked")">Bloqueada</option><option value="completed" selected="@(Model.Status=="completed")">Concluída</option></select></label><button class="valora-button valora-button--primary">Filtrar</button></form></section>
+<section class="valora-card"><div class="table-responsive"><table class="valora-table"><thead><tr><th>Atividade</th><th>Plano</th><th>Status</th><th>Prioridade</th><th>Progresso</th><th>Responsável</th></tr></thead><tbody>@foreach(var i in page.Items){<tr><td><a href="/ActionCenter/Items/Details/@i.Id">@i.Title</a></td><td>@i.PlanTitle</td><td>@i.Status</td><td>@i.Priority</td><td>@i.ProgressPercent%</td><td>@(i.ResponsibleName??"Não definido — risco")</td></tr>}</tbody></table></div><nav class="pagination" aria-label="Páginas das atividades"><a aria-disabled="@(page.Page<=1)" href="?page=@(page.Page-1)&status=@Model.Status">Anterior</a><span>Página @page.Page de @Math.Max(1,((page.Total + page.PageSize - 1) / page.PageSize))</span><a aria-disabled="@(page.Page>=((page.Total + page.PageSize - 1) / page.PageSize))" href="?page=@(page.Page+1)&status=@Model.Status">Próxima</a></nav></section></main>

@@ -81,3 +81,19 @@
 - Build .NET permanece pendente neste contêiner enquanto o SDK `dotnet` não estiver instalado.
 - Testes de repository e jornada autenticada permanecem pendentes sem `VALORA_TEST_POSTGRES_CONNECTION`, identidade/API e navegador configurados. Isso não constitui aprovação funcional do PostgreSQL.
 - Capturas autenticadas nos cinco viewports devem ser produzidas no ambiente de homologação após aplicar a migração aditiva de versão e idempotência.
+
+## Sprint — consolidação comercial do ActionCenter (2026-09-14)
+
+### Implementado neste incremento
+
+- Materializações de plano, atividade, dashboard e detalhe agora projetam nomes, contagens, versão, título do plano e resultado de conclusão com tipos explícitos.
+- O Web usa `ICurrentRequestContext`, exige organização selecionada para administrador global e aplica `action.read`, `action.manage` e `action.complete` nas fronteiras MVC.
+- Listagens, indicadores, detalhes e histórico aplicam o mesmo escopo de recurso; atividades do plano e histórico possuem paginação estável.
+- A idempotência serializa por organização/atividade/chave, compara autor, operação, payload normalizado e versão original, e rejeita reutilização divergente.
+- Bloqueio possui retomada explícita para `in_progress`, preservando progresso, justificativa, autor, versão e chave.
+- Falhas de comandos e criação voltam à mesma tela sem TempData sensível, preservam valores/chave, reabrem o diálogo e mostram resumo de validação.
+- Scripts inline do módulo foram substituídos por `wwwroot/js/action-center.js`, com foco, retorno ao acionador e prevenção de duplo envio.
+
+### Limites de homologação
+
+A implementação não equivale à homologação. Build, PostgreSQL integrado, fluxo autenticado no navegador e capturas nos cinco viewports devem ser registrados abaixo somente quando executados no ambiente disponível.

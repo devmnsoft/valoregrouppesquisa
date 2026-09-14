@@ -74,3 +74,24 @@ Linha de base confirmada no `HEAD` `4ca5fb7` (PR #569); seletores, navegação e
 - A verificação de sintaxe do JavaScript e `git diff --check` foram executados.
 - O SDK definido (`10.0.100`) não está instalado neste contêiner (`dotnet: command not found`); restore, build, Razor e testes .NET não puderam ser executados.
 - Não há PostgreSQL de teste, navegador autenticado ou fixture de credenciais disponíveis; migrations/consultas reais e homologação visual nos cinco viewports permanecem pendentes e não são declaradas concluídas.
+
+## Incremento — ciclo de vida canônico dos planos (2026-09-14)
+
+### Matriz de transições
+
+| Estado atual | Ação | Próximo estado | Permissão | Pré-condições | Efeito nas atividades |
+|---|---|---|---|---|---|
+| `draft` | Submeter | `proposed` | `action.manage` | conteúdo, origem/evidência, responsável e datas válidos | nenhum |
+| `proposed` | Devolver | `draft` | `action.approve` | justificativa obrigatória | preserva todas |
+| `proposed` | Aprovar | `approved` | `action.approve` | versão atual | vincula aprovação à nova versão; nenhum início automático |
+| `approved` | Iniciar | `in_execution` | `action.manage` | aprovação atual e responsável elegível | habilita execução; não inicia atividades |
+| `in_execution` | Concluir | `completed` | `action.complete` | resultado/evidência e nenhuma atividade aberta; ao menos uma concluída quando houver apenas canceladas | preserva atividades e evidências |
+| qualquer não encerrado | Cancelar | `canceled` | `action.manage` | justificativa e nenhuma atividade aberta | não cancela em cascata |
+
+Atividades podem ser preparadas antes da execução, mas comandos de execução são serializados pelo lock do plano. Registros legados fora da sequência são preservados e aparecem como pendência de regularização. Alterações materiais (título, descrição, prioridade ou resultado esperado) em plano aprovado invalidam a aprovação e devolvem o plano à avaliação; durante a execução são bloqueadas. Alterações operacionais de responsável e prazo preservam a aprovação.
+
+### Validação e limitações deste incremento
+
+- Os testes JavaScript e as verificações estáticas locais foram executados.
+- O SDK .NET `10.0.100` continua ausente (`dotnet: command not found`), impedindo restore, build, Razor e testes .NET.
+- Não há PostgreSQL de teste nem aplicação autenticada executável; a migração, os cenários concorrentes reais e a validação visual nos cinco viewports permanecem pendentes. Nenhuma captura foi produzida porque o aplicativo não pôde ser iniciado.

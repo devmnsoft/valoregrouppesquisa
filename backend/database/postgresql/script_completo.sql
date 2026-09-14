@@ -6895,3 +6895,19 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.action_plan_change_history(
 CREATE INDEX IF NOT EXISTS ix_action_plan_change_history_order ON valorapesquisa.action_plan_change_history(action_plan_id,changed_at DESC,id DESC);
 INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_09_action_operational_management','sha256:action-operational-management-v1') ON CONFLICT(version) DO NOTHING;
 COMMIT;
+
+-- 2026-09-14 · ciclo de vida canônico dos planos de ação
+BEGIN;
+ALTER TABLE valorapesquisa.action_plans ADD COLUMN IF NOT EXISTS approved_at timestamptz;
+ALTER TABLE valorapesquisa.action_plans ADD COLUMN IF NOT EXISTS approved_version bigint;
+ALTER TABLE valorapesquisa.action_plans ADD COLUMN IF NOT EXISTS actual_started_at timestamptz;
+ALTER TABLE valorapesquisa.action_plans ADD COLUMN IF NOT EXISTS completion_result text;
+ALTER TABLE valorapesquisa.action_plans ADD COLUMN IF NOT EXISTS completion_evidence text;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname='ck_action_plans_lifecycle_status') THEN
+    ALTER TABLE valorapesquisa.action_plans ADD CONSTRAINT ck_action_plans_lifecycle_status CHECK(status IN('draft','proposed','approved','in_execution','completed','canceled')) NOT VALID;
+  END IF;
+END $$;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_action_plan_history_command ON valorapesquisa.action_plan_change_history(action_plan_id,command_id) WHERE command_id IS NOT NULL;
+INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_09_action_plan_lifecycle','sha256:action-plan-lifecycle-v1') ON CONFLICT(version) DO NOTHING;
+COMMIT;

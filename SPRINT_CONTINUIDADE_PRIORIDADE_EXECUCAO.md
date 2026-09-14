@@ -97,3 +97,21 @@
 ### Limites de homologação
 
 A implementação não equivale à homologação. Build, PostgreSQL integrado, fluxo autenticado no navegador e capturas nos cinco viewports devem ser registrados abaixo somente quando executados no ambiente disponível.
+
+## Sprint — execução consistente, criação segura e listagem comercial (2026-09-14)
+
+### Implementado neste incremento
+
+- O escopo explícito `data-action-center-module` passou a reunir conteúdo, acionadores e diálogos dos detalhes de plano e atividade. Todos os diálogos têm nome acessível, retorno de foco, validação dentro do modal, estado inicial para detecção real de alterações, confirmação antes de descarte e bloqueio de submissão dupla.
+- A criação direta de atividade deixou de usar título como identidade. A chave de comando é serializada por organização, autor, operação e payload normalizado; o lock transacional protege concorrência, replay equivalente devolve o ID original e replay divergente exige uma nova intenção.
+- A transação de criação revalida usuário ativo, módulo contratado, acesso de escrita ao plano, estado do plano, responsável, prazo segundo o fuso cadastrado da organização e referências de diagnóstico/resultado. O evento Journey e o comando idempotente pertencem à mesma transação.
+- A listagem de planos passou a paginar e contar no PostgreSQL com busca, situação, responsável, prioridade, prazo e ordenação estável. O dashboard busca somente os seis planos necessários e calcula a quantidade de planos ativos separadamente.
+- A consulta de responsáveis passou de um corte fixo em 200 para contrato paginado, pesquisável e autorizado, sem expor e-mail; `IncludeId` preserva uma seleção submetida fora da primeira página. O endpoint compartilhado do Workspace permite carregamento adicional pelo cliente.
+- A migração canônica ganhou a tabela e os índices aditivos dos comandos de criação; atividades com títulos iguais continuam permitidas.
+
+### Verificações e limites reais
+
+- `node --check backend/Valora.Web/wwwroot/js/action-center.js` e `git diff --check` foram executados com sucesso.
+- O SDK `dotnet` não está instalado neste contêiner; build e testes .NET não foram executados aqui.
+- `VALORA_TEST_POSTGRES_CONNECTION` não está configurada; a migração e os cenários concorrentes não foram executados contra PostgreSQL, portanto não há declaração de aprovação do banco.
+- Não havia ambiente autenticado do Web/API nem navegador conectado ao PostgreSQL para percorrer ou capturar os cinco viewports. A validação visual e o percurso completo permanecem tarefas de homologação, não aprovação implícita.

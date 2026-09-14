@@ -14,4 +14,15 @@ public sealed class ActionCenterExecutionContractTests {
     [Fact] public void Every_materialized_action_projection_contains_the_extended_contract() { foreach(var field in new[]{"Version","ResponsibleName","PlanTitle","CompletionResult"}) Assert.Contains(field,Items); foreach(var field in new[]{"OwnerName","ActiveItemCount"}) Assert.Contains(field,Plans); }
     [Fact] public void Dashboard_aggregates_before_limiting_recent_rows() { var aggregate=Plans.IndexOf("count(*) FILTER",StringComparison.Ordinal); var limit=Plans.IndexOf("LIMIT 12",StringComparison.Ordinal); Assert.True(aggregate>=0&&limit>aggregate); }
     [Fact] public void Plan_progress_excludes_canceled_activities() { Assert.Contains("i.status<>'canceled'",Plans); }
+    [Fact] public void Direct_creation_is_authorized_idempotent_and_does_not_use_title_as_identity() {
+        Assert.Contains("action_item_create_commands",Items); Assert.Contains("pg_advisory_xact_lock",Items);
+        Assert.Contains("p.owner_user_id IS NULL OR p.owner_user_id=@u",Items);
+        Assert.Contains("organization_modules",Items); Assert.Contains("CreateFingerprint",Items);
+        Assert.DoesNotContain("lower(btrim(existing.title))",Items);
+    }
+    [Fact] public void Plan_listing_is_counted_filtered_and_stably_paginated_in_postgresql() {
+        Assert.Contains("Task<PageResult<ActionPlanDto>> List",Plans); Assert.Contains("SELECT count(*)::int",Plans);
+        Assert.Contains("LIMIT @size OFFSET @offset",Plans); Assert.Contains("p.created_at DESC,p.id DESC",Plans);
+        Assert.Contains("AT TIME ZONE",Plans);
+    }
 }

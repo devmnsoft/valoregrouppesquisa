@@ -108,6 +108,8 @@ public sealed class PriorityActionRepository(IDbConnectionFactory db, IDbTransac
         var visible = await unit.Connection.QuerySingleOrDefaultAsync<PriorityAccess>(new CommandDefinition(VisiblePriority + " FOR UPDATE", new { o, u, priority, wide }, unit.Transaction, cancellationToken: ct));
         if (visible is null) throw new KeyNotFoundException("Prioridade não encontrada ou sem acesso.");
         if (!string.Equals(visible.Status, "active", StringComparison.Ordinal)) throw new InvalidOperationException("Somente prioridades ativas podem receber atividades.");
+        var activeContext=await unit.Connection.ExecuteScalarAsync<bool>(new CommandDefinition("SELECT EXISTS(SELECT 1 FROM valorapesquisa.users WHERE id=@u AND organization_id=@o AND status='active' AND deleted_at IS NULL) AND EXISTS(SELECT 1 FROM valorapesquisa.organization_modules WHERE organization_id=@o AND module_code='organizational_intelligence' AND enabled)",new{o,u},unit.Transaction,cancellationToken:ct));
+        if(!activeContext) throw new UnauthorizedAccessException("Usuário inativo ou módulo Valora Action™ não contratado.");
 
         var previous = await unit.Connection.QuerySingleOrDefaultAsync<PreviousCommand>(new CommandDefinition("""
             SELECT priority_id PriorityId,operation Operation,request_hash Hash,result_id ResultId,

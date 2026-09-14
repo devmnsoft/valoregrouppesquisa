@@ -6872,3 +6872,26 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.action_plan_create_commands(
  created_at timestamptz NOT NULL DEFAULT now(), UNIQUE(organization_id,created_by_user_id,operation,command_id));
 CREATE INDEX IF NOT EXISTS ix_action_plan_create_commands_result ON valorapesquisa.action_plan_create_commands(organization_id,result_id);
 INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_09_action_plan_idempotency','sha256:action-plan-idempotency-v1') ON CONFLICT(version) DO NOTHING;
+
+-- 2026-09-14 · gestão operacional controlada de planos e atividades
+BEGIN;
+ALTER TABLE valorapesquisa.action_plans ADD COLUMN IF NOT EXISTS version bigint NOT NULL DEFAULT 1;
+ALTER TABLE valorapesquisa.action_item_status_history ADD COLUMN IF NOT EXISTS from_value text;
+ALTER TABLE valorapesquisa.action_item_status_history ADD COLUMN IF NOT EXISTS to_value text;
+CREATE TABLE IF NOT EXISTS valorapesquisa.action_plan_change_history(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+ action_plan_id uuid NOT NULL REFERENCES valorapesquisa.action_plans(id),
+ operation varchar(24) NOT NULL,
+ from_value text,
+ to_value text,
+ reason text,
+ changed_by_user_id uuid REFERENCES valorapesquisa.users(id),
+ changed_at timestamptz NOT NULL DEFAULT now(),
+ command_id varchar(80) NOT NULL,
+ intent_hash char(64) NOT NULL,
+ intent_version bigint NOT NULL,
+ UNIQUE(action_plan_id,command_id)
+);
+CREATE INDEX IF NOT EXISTS ix_action_plan_change_history_order ON valorapesquisa.action_plan_change_history(action_plan_id,changed_at DESC,id DESC);
+INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_09_action_operational_management','sha256:action-operational-management-v1') ON CONFLICT(version) DO NOTHING;
+COMMIT;

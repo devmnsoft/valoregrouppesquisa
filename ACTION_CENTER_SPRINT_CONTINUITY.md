@@ -38,3 +38,16 @@ Linha de base confirmada no `HEAD` `4ca5fb7` (PR #569); seletores, navegação e
 - O SDK .NET `10.0.100` continua indisponível neste contêiner (`dotnet: command not found`), portanto restore, build, testes .NET e compilação Razor não puderam ser executados.
 - Não há `psql`, Docker ou instância PostgreSQL configurada; a migração e os cenários de integração SQL não puderam ser executados contra banco real.
 - Sem aplicação compilável, credenciais e navegador automatizado disponível, o percurso autenticado e as capturas dos cinco viewports permanecem pendentes; a responsividade foi tratada em CSS sem `zoom`, `scale` ou ocultação global.
+
+## Incremento — gestão operacional controlada (2026-09-14)
+
+- A navegação de retorno agora admite a Central de Ações em um único validador local, preservando consultas e páginas sem admitir destinos externos ou o próprio detalhe.
+- Edição, atribuição e reagendamento de atividades usam versão esperada, chave de comando, bloqueio transacional, detecção de intenção divergente e histórico antes/depois.
+- Responsável e prazo do plano possuem operações independentes; nenhuma delas propaga alterações silenciosas às atividades.
+- A criação de plano aceita o administrador global somente pelo contexto confiável do servidor, preserva o usuário real como autor e revalida acesso e contratação antes de responder a replay.
+- A consulta da agenda passou a aplicar explicitamente a mesma condição de módulo contratado usada pelos totais e listas.
+- A migration aditiva acrescenta versão aos planos, valores legíveis ao histórico de atividades e histórico de alterações de planos.
+
+### Evidência e pendências desta execução
+
+- A validação JavaScript foi executada. O contêiner continua sem o SDK .NET 10.0.100, PostgreSQL e navegador autenticado; por isso build/Razor, integração transacional e capturas nos cinco viewports não foram declarados como validados.

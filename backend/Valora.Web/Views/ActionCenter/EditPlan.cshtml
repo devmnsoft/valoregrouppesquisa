@@ -1,0 +1,16 @@
+@model Valora.Web.Controllers.ActionPlanEditPageViewModel
+@{ ViewData["Title"]="Editar plano"; }
+<main class="valora-page action-center-page">
+ <partial name="_PageHeader" model="@(new PageHeaderViewModel("Editar plano", "Atualize somente os campos operacionais permitidos.", "Valora Action™", Model.Plan.Title, Array.Empty<PageHeaderAction>()))" />
+ <form method="post" class="valora-card action-form" data-unsaved-form data-prevent-double-submit>
+  @Html.AntiForgeryToken()<input type="hidden" name="Version" value="@Model.Command.Version"><input type="hidden" name="CommandId" value="@Model.Command.CommandId"><input type="hidden" name="returnUrl" value="@Model.ReturnUrl">
+  <div asp-validation-summary="All" class="alert alert-danger" role="alert" tabindex="-1"></div>
+  <p>Origem, identidade, autoria, evidências e vínculos metodológicos serão preservados.</p>
+  <label>Título *<input name="Title" value="@Model.Command.Title" required minlength="3" maxlength="180"><span asp-validation-for="Command.Title"></span></label>
+  <label>Descrição *<textarea name="Summary" required minlength="3" maxlength="2000">@Model.Command.Summary</textarea></label>
+  <label>Prioridade *<select name="Priority"><option value="critical">Crítica</option><option value="high">Alta</option><option value="medium" selected="@(Model.Command.Priority=="medium")">Média</option><option value="low">Baixa</option></select></label>
+  <label>Resultado esperado *<textarea name="ExpectedOutcome" required minlength="3" maxlength="2000">@Model.Command.ExpectedOutcome</textarea></label>
+  <partial name="_FormActions" model="@(new FormActionsViewModel("Salvar alterações", "Cancelar", Model.ReturnUrl))" />
+ </form>
+</main>
+<script src="~/js/form-submit-state.js" asp-append-version="true"></script><script src="~/js/unsaved-form.js" asp-append-version="true"></script>

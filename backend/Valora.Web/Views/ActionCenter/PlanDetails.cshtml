@@ -4,7 +4,8 @@
     ViewData["Title"] = Model.Plan.Title;
     var plan = Model.Plan;
     var planActivitiesPage = Model.Activities;
-    var command = Model.Command;
+    var command = Model.Command as CreateActionItemRequest;
+    var assignCommand = Model.Command as AssignResponsibleRequest; var dueCommand = Model.Command as RescheduleActionRequest;
     var canCreate = Model.CanCreate && plan.Status is "draft" or "proposed" or "approved" or "in_execution";
     var planCurrentUrl = Url.Action("PlanDetails", "ActionCenter", new { id = plan.Id, itemPage = planActivitiesPage.CurrentPage, returnUrl = Model.ReturnUrl })!;
 }
@@ -12,6 +13,7 @@
     <main class="valora-page action-detail">
         <partial name="_PageHeader" model="@(new PageHeaderViewModel(plan.Title, plan.Summary, "Valora Action™", $"{ActionStatuses.Label(plan.Priority)} · {ActionStatuses.Label(plan.Status)}", new[] { new PageHeaderAction("Voltar aos planos", Model.ReturnUrl, Icon: "arrow-left") }))" />
         <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar", "Acompanhe o resultado pelas atividades autorizadas e registre entregas verificáveis.", new[] { "Revise prazo e responsável.", "Crie atividades com evidência.", "Acompanhe bloqueios antes do prazo." }))" />
+        @if(TempData["ActionSuccess"] is string ok){<div class="alert alert-success" role="status">@ok</div>}
         <div asp-validation-summary="All" class="alert alert-danger" role="alert" tabindex="-1" data-validation-summary></div>
         <section class="action-summary-grid">
             <article class="valora-card">
@@ -27,7 +29,7 @@
         </section>
         <section class="valora-card">
             <div class="section-heading">
-                <div><h2>Atividades</h2><p>@(planActivitiesPage.Total) compromisso(s) autorizado(s) neste plano.</p></div>
+                <div><h2>Atividades</h2><p>@(planActivitiesPage.Total) compromisso(s) autorizado(s) neste plano.</p></div><div class="action-buttons">@if(canCreate){<a class="valora-button valora-button--primary" asp-action="EditPlan" asp-route-id="@plan.Id" asp-route-returnUrl="@planCurrentUrl">Editar plano</a><button type="button" class="valora-button" data-action-dialog-open="assign-plan-dialog">@(plan.OwnerUserId is null?"Definir responsável do plano":"Alterar responsável do plano")</button><button type="button" class="valora-button" data-action-dialog-open="reschedule-plan-dialog">Alterar prazo do plano</button>}</div>
                 @if (canCreate) { <button type="button" class="valora-button valora-button--primary" data-action-dialog-open="create-item-dialog">Nova atividade</button> }
             </div>
             @if (planActivitiesPage.Items.Count == 0) {
@@ -45,6 +47,10 @@
             }
         </section>
     </main>
+    @if (canCreate) {
+      <dialog id="assign-plan-dialog" data-action-dialog aria-labelledby="assign-plan-title"><form method="post" action="/ActionCenter/Plans/@plan.Id/Assign">@Html.AntiForgeryToken()<input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl"><input type="hidden" name="Version" value="@plan.Version"><input type="hidden" name="CommandId" value="@Guid.NewGuid().ToString()"><h2 id="assign-plan-title">Responsável do plano</h2><p>Atual: <strong>@(plan.OwnerName??"Sem responsável")</strong>. Os responsáveis das atividades não serão modificados.</p><div data-responsible-selector data-selected-responsible="@(assignCommand?.ResponsibleUserId??plan.OwnerUserId)"><label>Buscar pessoa elegível<input type="search" data-responsible-search></label><label>Novo responsável<select name="ResponsibleUserId" data-responsible-select data-empty-label="Sem responsável"><option value="">Sem responsável</option></select></label><span data-responsible-status role="status"></span><button type="button" data-responsible-more>Carregar mais</button></div><label>Justificativa<textarea name="Reason" maxlength="1000">@assignCommand?.Reason</textarea></label><div class="dialog-actions"><button type="button" data-dialog-close>Cancelar</button><button class="valora-button valora-button--primary">Confirmar</button></div></form></dialog>
+      <dialog id="reschedule-plan-dialog" data-action-dialog aria-labelledby="reschedule-plan-title"><form method="post" action="/ActionCenter/Plans/@plan.Id/Reschedule">@Html.AntiForgeryToken()<input type="hidden" name="ReturnUrl" value="@Model.ReturnUrl"><input type="hidden" name="Version" value="@plan.Version"><input type="hidden" name="CommandId" value="@Guid.NewGuid().ToString()"><h2 id="reschedule-plan-title">Alterar prazo do plano</h2><p>Prazo atual: <strong>@(plan.DueAt?.ToString("dd/MM/yyyy")??"A definir")</strong>. Os prazos das atividades não serão modificados.</p><label>Novo prazo *<input type="date" name="DueAt" value="@(dueCommand?.DueAt?.ToString("yyyy-MM-dd")??plan.DueAt?.ToString("yyyy-MM-dd"))" required></label><label>Justificativa *<textarea name="Reason" minlength="3" maxlength="1000" required>@dueCommand?.Reason</textarea></label><div class="dialog-actions"><button type="button" data-dialog-close>Cancelar</button><button class="valora-button valora-button--primary">Confirmar novo prazo</button></div></form></dialog>
+    }
     @if (canCreate) {
         <dialog id="create-item-dialog" data-action-dialog class="action-detail" aria-labelledby="create-item-title">
             <form method="post" asp-action="CreateItem">

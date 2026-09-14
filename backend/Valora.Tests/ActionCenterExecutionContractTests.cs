@@ -29,4 +29,28 @@ public sealed class ActionCenterExecutionContractTests {
         Assert.Contains("LIMIT @size OFFSET @offset",Plans); Assert.Contains("p.created_at DESC,p.id DESC",Plans);
         Assert.Contains("AT TIME ZONE",Plans);
     }
+
+    [Fact] public void Edit_forms_preserve_every_priority_and_use_consistent_plan_binding() {
+        var plan=File.ReadAllText(Support.RepositoryPaths.WebFile("Views", "ActionCenter", "EditPlan.cshtml"));
+        var item=File.ReadAllText(Support.RepositoryPaths.WebFile("Views", "ActionCenter", "ItemDetails.cshtml"));
+        foreach(var priority in new[]{"critical","high","medium","low"}) { Assert.Contains($"value=\"{priority}\"",plan); Assert.Contains($"==\"{priority}\"",item); }
+        Assert.Contains("asp-for=\"Command.Title\"",plan); Assert.Contains("asp-validation-for=\"Command.Title\"",plan);
+        Assert.Contains("Bind(Prefix=\"Command\")",File.ReadAllText(Support.RepositoryPaths.WebFile("Controllers", "ActionPlansController.cs")));
+    }
+    [Fact] public void Failed_dialogs_preserve_original_intent_including_unassignment() {
+        var plan=File.ReadAllText(Support.RepositoryPaths.WebFile("Views", "ActionCenter", "PlanDetails.cshtml"));
+        var item=File.ReadAllText(Support.RepositoryPaths.WebFile("Views", "ActionCenter", "ItemDetails.cshtml"));
+        Assert.Contains("assignCommand is null?plan.OwnerUserId:assignCommand.ResponsibleUserId",plan);
+        Assert.Contains("assignCommand?.CommandId??Guid.NewGuid()",plan);
+        Assert.Contains("dueCommand?.Version??plan.Version",plan);
+        Assert.Contains("assignCommand is null?i.ResponsibleUserId:assignCommand.ResponsibleUserId",item);
+        Assert.True(plan.Split("asp-validation-summary=\"All\"").Length>=4);
+    }
+    [Fact] public void Plan_history_is_tenant_scoped_filtered_and_stably_paginated() {
+        Assert.Contains("Task<PageResult<ActionPlanHistoryDto>> History",Plans);
+        Assert.Contains("p.organization_id=@o",Plans); Assert.Contains("h.operation=@filter",Plans);
+        Assert.Contains("ORDER BY h.changed_at DESC,h.id DESC LIMIT @size OFFSET @offset",Plans);
+        Assert.Contains("AT TIME ZONE org.time_zone)::date DueAt",Plans);
+        Assert.Contains("AT TIME ZONE org.time_zone)::date DueAt",Items);
+    }
 }

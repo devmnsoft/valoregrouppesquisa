@@ -21,7 +21,11 @@ public sealed record SearchResultDto(Guid Id, string ResultType, string Title, s
 public sealed record ExecutiveWorkspaceDto(IReadOnlyList<WorkspaceItemDto> MyDay, IReadOnlyList<ExecutivePriorityDto> Priorities,
     IReadOnlyList<WorkspaceItemDto> Recent, IReadOnlyList<WorkspaceItemDto> Pinned, IReadOnlyList<QuickActionDto> QuickActions);
 public sealed record PageResult<T>(IReadOnlyList<T> Items, int Page, int PageSize, int Total) {
-    public bool HasMore => Page * PageSize < Total;
+    public int TotalPages => Math.Max(1, (Total + Math.Max(1, PageSize) - 1) / Math.Max(1, PageSize));
+    public int CurrentPage => Math.Clamp(Page, 1, TotalPages);
+    public bool HasPrevious => CurrentPage > 1;
+    public bool HasNext => CurrentPage < TotalPages;
+    public bool HasMore => HasNext;
 }
 public sealed record PriorityListQuery(int Page = 1, int PageSize = 20, string? Status = null, string? Priority = null,
     Guid? OwnerUserId = null, string? Due = null) {

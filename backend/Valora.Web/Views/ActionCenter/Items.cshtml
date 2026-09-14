@@ -1,5 +1,86 @@
 @model Valora.Web.Controllers.ActionItemListViewModel
-@{ ViewData["Title"]="Atividades"; var page=Model.Page; }
-<main class="valora-page"><partial name="_PageHeader" model="@(new PageHeaderViewModel("Atividades", "Acompanhe compromissos autorizados, prazos e responsáveis.", "Valora Action™", "Execução", Array.Empty<PageHeaderAction>()))" />
-<section class="valora-card"><form method="get" class="form-grid"><label for="status">Situação<select id="status" name="status"><option value="">Todas</option><option value="pending" selected="@(Model.Status=="pending")">Pendente</option><option value="in_progress" selected="@(Model.Status=="in_progress")">Em execução</option><option value="blocked" selected="@(Model.Status=="blocked")">Bloqueada</option><option value="completed" selected="@(Model.Status=="completed")">Concluída</option></select></label><button class="valora-button valora-button--primary">Filtrar</button></form></section>
-<section class="valora-card"><div class="table-responsive"><table class="valora-table"><thead><tr><th>Atividade</th><th>Plano</th><th>Status</th><th>Prioridade</th><th>Progresso</th><th>Responsável</th></tr></thead><tbody>@foreach(var i in page.Items){<tr><td><a href="/ActionCenter/Items/Details/@i.Id">@i.Title</a></td><td>@i.PlanTitle</td><td>@i.Status</td><td>@i.Priority</td><td>@i.ProgressPercent%</td><td>@(i.ResponsibleName??"Não definido — risco")</td></tr>}</tbody></table></div><nav class="pagination" aria-label="Páginas das atividades"><a aria-disabled="@(page.Page<=1)" href="?page=@(page.Page-1)&status=@Model.Status">Anterior</a><span>Página @page.Page de @Math.Max(1,((page.Total + page.PageSize - 1) / page.PageSize))</span><a aria-disabled="@(page.Page>=((page.Total + page.PageSize - 1) / page.PageSize))" href="?page=@(page.Page+1)&status=@Model.Status">Próxima</a></nav></section></main>
+@{
+    ViewData["Title"] = "Atividades";
+    var activityPage = Model.Page;
+    var query = Model.Query;
+    var hasFilters = !string.IsNullOrWhiteSpace(query.Search) || !string.IsNullOrWhiteSpace(query.Status)
+        || !string.IsNullOrWhiteSpace(query.Priority) || !string.IsNullOrWhiteSpace(query.Due) || query.ResponsibleUserId is not null;
+    string Label(string value) => value switch {
+        "pending" => "Pendente", "in_progress" => "Em execução", "blocked" => "Bloqueada",
+        "completed" => "Concluída", "canceled" => "Cancelada", "overdue" => "Atrasada",
+        "critical" => "Crítica", "high" => "Alta", "medium" => "Média", "low" => "Baixa", _ => value
+    };
+}
+<main class="valora-page">
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel("Atividades", "Acompanhe compromissos autorizados, prazos e responsáveis.", "Valora Action™", $"{activityPage.Total} atividade(s)", Array.Empty<PageHeaderAction>()))" />
+    <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar", "Combine os filtros para localizar compromissos e abra uma atividade para registrar sua evolução.", new[] { "Priorize bloqueios e atrasos.", "Confira responsável e prazo.", "Registre evidências no acompanhamento." }))" />
+
+    <section class="valora-card" aria-labelledby="activity-filters-title">
+        <h2 id="activity-filters-title">Filtros</h2>
+        <form method="get" class="form-grid">
+            <label for="Search">Buscar
+                <input id="Search" name="Search" value="@query.Search" placeholder="Atividade, descrição ou plano" />
+            </label>
+            <label for="Status">Situação
+                <select id="Status" name="Status">
+                    <option value="">Todas</option>
+                    @foreach (var option in new[] { ("pending", "Pendente"), ("in_progress", "Em execução"), ("blocked", "Bloqueada"), ("overdue", "Atrasada"), ("completed", "Concluída"), ("canceled", "Cancelada") }) {
+                        <option value="@option.Item1" selected="@(query.Status == option.Item1)">@option.Item2</option>
+                    }
+                </select>
+            </label>
+            <label for="Priority">Prioridade
+                <select id="Priority" name="Priority">
+                    <option value="">Todas</option>
+                    @foreach (var option in new[] { ("critical", "Crítica"), ("high", "Alta"), ("medium", "Média"), ("low", "Baixa") }) {
+                        <option value="@option.Item1" selected="@(query.Priority == option.Item1)">@option.Item2</option>
+                    }
+                </select>
+            </label>
+            <label for="Due">Prazo
+                <select id="Due" name="Due">
+                    <option value="">Todos</option>
+                    <option value="overdue" selected="@(query.Due == "overdue")">Atrasado</option>
+                    <option value="today" selected="@(query.Due == "today")">Hoje</option>
+                    <option value="upcoming" selected="@(query.Due == "upcoming")">Futuro</option>
+                    <option value="none" selected="@(query.Due == "none")">Sem prazo</option>
+                </select>
+            </label>
+            <div class="form-actions">
+                <button class="valora-button valora-button--primary">Aplicar filtros</button>
+                <a class="valora-button valora-button--ghost" asp-action="Items">Limpar</a>
+            </div>
+        </form>
+    </section>
+
+    <section class="valora-card" aria-live="polite">
+        @if (activityPage.Items.Count == 0) {
+            <div class="valora-empty">
+                <h2>@(hasFilters ? "Nenhum resultado para os filtros" : "Nenhuma atividade cadastrada")</h2>
+                <p>@(hasFilters ? "Ajuste ou limpe os filtros para ampliar a busca." : "Crie uma atividade dentro de um plano para iniciar o acompanhamento.")</p>
+            </div>
+        } else {
+            <div class="table-responsive">
+                <table class="valora-table">
+                    <thead><tr><th>Atividade</th><th>Plano</th><th>Situação</th><th>Prioridade</th><th>Progresso</th><th>Responsável</th><th>Prazo</th></tr></thead>
+                    <tbody>
+                    @foreach (var item in activityPage.Items) {
+                        <tr>
+                            <td><a asp-action="ItemDetails" asp-route-id="@item.Id" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">@item.Title</a></td>
+                            <td>@item.PlanTitle</td><td>@Label(item.Status)</td><td>@Label(item.Priority)</td><td>@item.ProgressPercent%</td>
+                            <td>@(item.ResponsibleName ?? "Sem responsável")</td><td>@(item.DueAt?.ToString("dd/MM/yyyy") ?? "A definir")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+            <nav class="pagination" aria-label="Páginas das atividades">
+                @if (activityPage.HasPrevious) { <a asp-action="Items" asp-all-route-data="@(new Dictionary<string,string> { ["Page"]=(activityPage.CurrentPage-1).ToString(), ["PageSize"]=activityPage.PageSize.ToString(), ["Search"]=query.Search ?? "", ["Status"]=query.Status ?? "", ["Priority"]=query.Priority ?? "", ["Due"]=query.Due ?? "", ["ResponsibleUserId"]=query.ResponsibleUserId?.ToString() ?? "" })">Anterior</a> }
+                else { <span class="disabled" aria-disabled="true">Anterior</span> }
+                <span>Página @(activityPage.CurrentPage) de @(activityPage.TotalPages)</span>
+                @if (activityPage.HasNext) { <a asp-action="Items" asp-all-route-data="@(new Dictionary<string,string> { ["Page"]=(activityPage.CurrentPage+1).ToString(), ["PageSize"]=activityPage.PageSize.ToString(), ["Search"]=query.Search ?? "", ["Status"]=query.Status ?? "", ["Priority"]=query.Priority ?? "", ["Due"]=query.Due ?? "", ["ResponsibleUserId"]=query.ResponsibleUserId?.ToString() ?? "" })">Próxima</a> }
+                else { <span class="disabled" aria-disabled="true">Próxima</span> }
+            </nav>
+        }
+    </section>
+</main>

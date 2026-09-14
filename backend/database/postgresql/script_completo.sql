@@ -6848,3 +6848,10 @@ ALTER TABLE valorapesquisa.action_item_checkins ADD COLUMN IF NOT EXISTS command
 CREATE UNIQUE INDEX IF NOT EXISTS ux_action_item_history_command ON valorapesquisa.action_item_status_history(action_item_id,command_id) WHERE command_id IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_action_item_checkin_command ON valorapesquisa.action_item_checkins(action_item_id,command_id) WHERE command_id IS NOT NULL;
 COMMIT;
+
+-- ActionCenter: contexto completo para replays idempotentes de transições.
+ALTER TABLE valorapesquisa.action_item_status_history ADD COLUMN IF NOT EXISTS operation varchar(24);
+ALTER TABLE valorapesquisa.action_item_status_history ADD COLUMN IF NOT EXISTS intent_hash char(64);
+ALTER TABLE valorapesquisa.action_item_status_history ADD COLUMN IF NOT EXISTS intent_version bigint;
+CREATE INDEX IF NOT EXISTS ix_action_item_history_intent ON valorapesquisa.action_item_status_history(action_item_id,command_id,operation) WHERE command_id IS NOT NULL;
+INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_09_action_item_intent','sha256:action-item-intent-v1') ON CONFLICT(version) DO NOTHING;

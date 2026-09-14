@@ -20,6 +20,8 @@ public sealed class ActionCenterExecutionContractTests {
         Assert.Contains("organization_modules",Items); Assert.Contains("CreateFingerprint",Items);
         Assert.DoesNotContain("lower(btrim(existing.title))",Items);
     }
+    [Fact] public void Plan_creation_is_tenant_validated_and_idempotent() { Assert.Contains("action_plan_create_commands",Plans); Assert.Contains("create-action-plan",Plans); Assert.Contains("organization_modules",Plans); Assert.Contains("organizational_governance_cycles",Plans); Assert.DoesNotContain("lower(btrim(existing.title))",Plans); Assert.Contains("action_plan_create_commands",Schema); }
+    [Fact] public void Dashboard_and_listing_share_organization_civil_day_semantics() { Assert.Contains("i.due_at AT TIME ZONE org.time_zone",Plans); Assert.Contains("i.due_at AT TIME ZONE org.time_zone",Items); Assert.DoesNotContain("i.due_at<now()",Plans); }
     [Fact] public void Plan_listing_is_counted_filtered_and_stably_paginated_in_postgresql() {
         Assert.Contains("Task<PageResult<ActionPlanDto>> List",Plans); Assert.Contains("SELECT count(*)::int",Plans);
         Assert.Contains("LIMIT @size OFFSET @offset",Plans); Assert.Contains("p.created_at DESC,p.id DESC",Plans);

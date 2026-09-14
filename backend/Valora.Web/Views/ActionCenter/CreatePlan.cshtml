@@ -1,29 +1,17 @@
 @model Valora.Application.ActionCenter.CreateActionPlanRequest
-@{
-    ViewData["Title"] = "Criar plano";
-}
-<main class="valora-page">
-    <partial name="_PageHeader" model="@(new PageHeaderViewModel("Novo plano de ação", "Registre origem, evidência e resultado esperado sem perder o contexto da execução.", "Valora Action™", null, Array.Empty<PageHeaderAction>()))" />
-    <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar", "Defina uma entrega objetiva e atribua somente pessoas ativas da organização.", new[] { "Explique a evidência de partida.", "Descreva o resultado esperado.", "Revise responsável e prazo antes de salvar." }))" />
-    <form method="post" class="valora-card" data-prevent-double-submit>
-        @Html.AntiForgeryToken()
-        <input asp-for="OriginId" type="hidden" />
-        <input asp-for="DiagnosticId" type="hidden" />
-        <input asp-for="ResultId" type="hidden" />
-        <input asp-for="GovernanceCycleId" type="hidden" />
-        <div asp-validation-summary="All" class="alert alert-danger" role="alert" tabindex="-1"></div>
-        <label asp-for="Title">Título <span aria-hidden="true">*</span><input asp-for="Title" required minlength="3" maxlength="180" /><span asp-validation-for="Title"></span></label>
-        <label asp-for="Summary">Resumo <span aria-hidden="true">*</span><textarea asp-for="Summary" required maxlength="2000"></textarea><span asp-validation-for="Summary"></span></label>
-        <div class="form-grid">
-            <label asp-for="OriginType">Origem<select asp-for="OriginType"><option value="manual">Manual</option><option value="diagnostic">Diagnóstico</option><option value="result">Resultado</option><option value="ai_insight">Insight revisado</option></select><span asp-validation-for="OriginType"></span></label>
-            <label asp-for="Priority">Prioridade<select asp-for="Priority"><option value="medium">Média</option><option value="critical">Crítica</option><option value="high">Alta</option><option value="low">Baixa</option></select><span asp-validation-for="Priority"></span></label>
-            <div data-responsible-selector data-selected-responsible="@Model.OwnerUserId"><label for="OwnerSearch">Buscar responsável</label><input id="OwnerSearch" type="search" autocomplete="off" aria-describedby="OwnerStatus" data-responsible-search /><label asp-for="OwnerUserId">Responsável</label><select asp-for="OwnerUserId" aria-describedby="OwnerStatus" data-responsible-select data-empty-label="Sem responsável"><option value="">Sem responsável</option></select><span asp-validation-for="OwnerUserId"></span><span id="OwnerStatus" class="option-status" role="status" aria-live="polite" data-responsible-status></span><button type="button" class="valora-button valora-button--ghost" data-responsible-more>Carregar mais</button></div>
-            <label asp-for="DueAt">Prazo<input asp-for="DueAt" type="date" /><span asp-validation-for="DueAt"></span></label>
-        </div>
-        <label asp-for="EvidenceSummary">Evidência que sustenta o plano <span aria-hidden="true">*</span><textarea asp-for="EvidenceSummary" required maxlength="2000"></textarea><span asp-validation-for="EvidenceSummary"></span></label>
-        <label asp-for="ExpectedOutcome">Resultado esperado <span aria-hidden="true">*</span><textarea asp-for="ExpectedOutcome" required maxlength="2000"></textarea><span asp-validation-for="ExpectedOutcome"></span></label>
-        <partial name="_FormActions" model="@(new FormActionsViewModel("Salvar como rascunho", "Cancelar", "/ActionCenter/Plans"))" />
-    </form>
+@{ ViewData["Title"] = "Criar plano"; }
+<main class="valora-page action-center-page">
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Novo plano de ação", "Registre um compromisso rastreável no contexto da organização selecionada.", "Valora Action™", "Campos obrigatórios marcados com *", Array.Empty<PageHeaderAction>()))" />
+  <form method="post" class="valora-card action-form" data-prevent-double-submit data-unsaved-form>
+    @Html.AntiForgeryToken()
+    <input asp-for="OriginId" type="hidden" /><input asp-for="DiagnosticId" type="hidden" /><input asp-for="ResultId" type="hidden" /><input asp-for="GovernanceCycleId" type="hidden" /><input asp-for="CommandId" type="hidden" />
+    @if(!ViewData.ModelState.IsValid){<p class="alert alert-danger" role="alert">Revise os campos destacados.</p>}<div asp-validation-summary="All" class="alert alert-danger" role="alert" tabindex="-1"></div>
+    <fieldset><legend>Identificação</legend><div class="action-form-grid"><label class="action-field--full" asp-for="Title">Título *<input asp-for="Title" required minlength="3" maxlength="180" autocomplete="off" /><small>Descreva a entrega de forma objetiva.</small><span asp-validation-for="Title"></span></label><label class="action-field--full" asp-for="Summary">Descrição *<textarea asp-for="Summary" required minlength="3" maxlength="2000" rows="4"></textarea><small>Explique o contexto e o que será executado.</small><span asp-validation-for="Summary"></span></label><label asp-for="Priority">Prioridade *<select asp-for="Priority" required><option value="critical">Crítica</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select><span asp-validation-for="Priority"></span></label></div></fieldset>
+    <fieldset><legend>Responsável e prazo</legend><div class="action-form-grid"><div data-responsible-selector data-selected-responsible="@Model.OwnerUserId"><label for="OwnerSearch">Buscar responsável</label><input id="OwnerSearch" type="search" autocomplete="off" aria-describedby="OwnerStatus" data-responsible-search /><small>Somente usuários ativos e elegíveis.</small><label asp-for="OwnerUserId">Responsável</label><select asp-for="OwnerUserId" aria-describedby="OwnerStatus" data-responsible-select data-empty-label="Sem responsável"><option value="">Sem responsável</option></select><span asp-validation-for="OwnerUserId"></span><span id="OwnerStatus" class="option-status" role="status" aria-live="polite" data-responsible-status></span><button type="button" class="valora-button valora-button--ghost" data-responsible-more>Carregar mais</button></div><label asp-for="StartsAt">Início<input asp-for="StartsAt" type="date" /><small>Data civil no fuso da organização.</small><span asp-validation-for="StartsAt"></span></label><label asp-for="DueAt">Prazo<input asp-for="DueAt" type="date" /><small>O dia inteiro é considerado; hoje não está atrasado.</small><span asp-validation-for="DueAt"></span></label></div></fieldset>
+    <fieldset><legend>Origem e evidências</legend><div class="action-form-grid"><label asp-for="OriginType">Origem *<select asp-for="OriginType" required><option value="manual">Registro manual</option>@if(Model.OriginType=="ai_insight"){<option value="ai_insight">Insight revisado</option>}</select><small>Referências vinculadas são validadas pelo servidor.</small><span asp-validation-for="OriginType"></span></label><label class="action-field--full" asp-for="EvidenceSummary">Evidência de origem *<textarea asp-for="EvidenceSummary" required minlength="3" maxlength="2000" rows="4"></textarea><small>Informe fatos ou registros que sustentam o plano.</small><span asp-validation-for="EvidenceSummary"></span></label></div></fieldset>
+    <fieldset><legend>Resultado esperado</legend><label asp-for="ExpectedOutcome">Resultado esperado *<textarea asp-for="ExpectedOutcome" required minlength="3" maxlength="2000" rows="4"></textarea><small>Defina o resultado verificável que orientará a conclusão.</small><span asp-validation-for="ExpectedOutcome"></span></label></fieldset>
+    <section class="action-review" aria-labelledby="review-title"><h2 id="review-title">Revisão e confirmação</h2><p>Ao confirmar, o plano será salvo como rascunho. Revise origem, responsável e datas.</p></section>
+    <partial name="_FormActions" model="@(new FormActionsViewModel("Confirmar e criar", "Cancelar", "/ActionCenter/Plans"))" />
+  </form>
 </main>
-<script src="~/js/responsible-selector.js" asp-append-version="true"></script>
-<script src="~/js/form-submit-state.js" asp-append-version="true"></script>
+<script src="~/js/responsible-selector.js" asp-append-version="true"></script><script src="~/js/form-submit-state.js" asp-append-version="true"></script><script src="~/js/unsaved-form.js" asp-append-version="true"></script>

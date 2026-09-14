@@ -20,3 +20,21 @@ Revisão realizada a partir do `HEAD` `0dc7419` (PR #568), preservando o increme
 - Não há cliente PostgreSQL nem instância de teste configurada no ambiente; a execução real das consultas permanece **não validada**.
 - Os testes comportamentais do seletor e as verificações de sintaxe JavaScript foram executados localmente com Node.js.
 - A validação visual autenticada nos cinco viewports permanece **não validada**, pois não há aplicação compilada/executável nem credenciais/fixture autenticada neste contêiner.
+
+## Incremento — dashboard comercial e criação confiável (2026-09-14)
+
+Linha de base confirmada no `HEAD` `4ca5fb7` (PR #569); seletores, navegação e proteção de envio existentes foram preservados.
+
+| Problema observado | Alteração necessária | Teste de aceitação |
+|---|---|---|
+| Cards não navegavam ou aproximavam a consulta (críticas podiam incluir encerradas e ausência de responsável não tinha representação própria) | Filtros tipados `Open`, `Active` e `Assigned/Unassigned`, usados nos links, contagens e SQL sem UUID sentinela | Abrir cada indicador e comparar o total da listagem com o card |
+| Dashboard calculava atraso por instante (`due_at < now()`), enquanto listas trabalhavam por dia | Comparar o dia civil no `time_zone` da organização e persistir prazo de formulário no fim do dia civil local | Ontem atrasa; hoje e amanhã não; nulo não atrasa; concluída/cancelada não entra no indicador |
+| Criação direta validava somente responsável e não era idempotente | Validar ator, módulo, organização, origem/referências, datas e responsável dentro da transação; registrar chave+hash+resultado por organização, autor e operação | Repetição equivalente retorna o plano original; payload divergente gera conflito e preserva o formulário |
+| Dashboard e formulário tinham baixa hierarquia operacional | Cabeçalho compacto, cinco KPIs acionáveis, consultas rápidas, agenda, acompanhamento e formulário em seções responsivas com revisão | Navegação por teclado e uso sem rolagem horizontal da página nos cinco viewports-alvo |
+
+### Validação deste incremento
+
+- JavaScript novo e scripts associados passaram em verificação de sintaxe; os testes comportamentais do seletor passaram.
+- O SDK .NET `10.0.100` continua indisponível neste contêiner (`dotnet: command not found`), portanto restore, build, testes .NET e compilação Razor não puderam ser executados.
+- Não há `psql`, Docker ou instância PostgreSQL configurada; a migração e os cenários de integração SQL não puderam ser executados contra banco real.
+- Sem aplicação compilável, credenciais e navegador automatizado disponível, o percurso autenticado e as capturas dos cinco viewports permanecem pendentes; a responsividade foi tratada em CSS sem `zoom`, `scale` ou ocultação global.

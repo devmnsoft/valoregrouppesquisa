@@ -14,21 +14,33 @@ public static class ActionStatuses {
         "medium" => "Média", "low" => "Baixa", null or "" => "Não informada", _ => value
     };
 }
+public enum ActionAssignmentFilter { Assigned, Unassigned }
+public enum ActionPlanScopeFilter { Active }
+public enum ActionItemScopeFilter { Open }
 public sealed record ActionPlanDto(Guid Id, string Title, string Summary, string OriginType, string Status, string Priority, Guid? OwnerUserId, DateTime? DueAt, string EvidenceSummary, string ExpectedOutcome, int ProgressPercent, DateTime CreatedAt, string? OwnerName = null, int ActiveItemCount = 0);
 public sealed record ActionItemDto(Guid Id, Guid ActionPlanId, string Title, string Description, string OriginType, Guid? OriginId, string? RelatedDimension, string? RelatedIndexCode, string Priority, string Status, Guid? ResponsibleUserId, DateTime? DueAt, DateTime? CompletedAt, int ProgressPercent, string EvidenceSummary, string ExpectedOutcome, string? CompletionEvidence, string? AiRecommendationSummary, DateTime CreatedAt, long Version = 1, string? ResponsibleName = null, string? PlanTitle = null, string? CompletionResult = null);
 public sealed record ActionHistoryDto(Guid Id, string? FromStatus, string ToStatus, int? ProgressPercent, string? Reason, string? AuthorName, DateTime ChangedAt);
 public sealed record ActionItemDetailsDto(ActionItemDto Item, IReadOnlyList<ActionHistoryDto> History, int HistoryPage, int HistoryPages, bool CanProgress, bool CanBlock, bool CanResume, bool CanComplete);
 public sealed record ActionDashboardDto(int Critical, int Overdue, int Unassigned, int ActivePlans, int Blocked, IReadOnlyList<ActionItemDto> Upcoming, IReadOnlyList<ActionPlanDto> Plans);
-public sealed record ActionPlanListQuery(int Page=1,int PageSize=20,string? Search=null,string? Status=null,Guid? OwnerUserId=null,string? Priority=null,string? Due=null,string? Sort=null) {
+public sealed record ActionPlanListQuery(int Page=1,int PageSize=20,string? Search=null,string? Status=null,Guid? OwnerUserId=null,string? Priority=null,string? Due=null,string? Sort=null,ActionPlanScopeFilter? Scope=null) {
     public int ValidPage=>Math.Max(1,Page); public int ValidPageSize=>Math.Clamp(PageSize,1,50);
 }
-public sealed record ActionItemListQuery(int Page=1,int PageSize=20,string? Search=null,string? Status=null,Guid? ResponsibleUserId=null,string? Priority=null,string? Due=null) {
+public sealed record ActionItemListQuery(int Page=1,int PageSize=20,string? Search=null,string? Status=null,Guid? ResponsibleUserId=null,string? Priority=null,string? Due=null,ActionAssignmentFilter? Assignment=null,ActionItemScopeFilter? Scope=null) {
     public int ValidPage=>Math.Max(1,Page); public int ValidPageSize=>Math.Clamp(PageSize,1,50);
 }
 public sealed class ProgressActionRequest { [System.ComponentModel.DataAnnotations.Range(0,99)] public int ProgressPercent { get; init; } [System.ComponentModel.DataAnnotations.StringLength(1000)] public string? Note { get; init; } [System.ComponentModel.DataAnnotations.Required] public long Version { get; init; } [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(80)] public string CommandId { get; init; } = ""; }
 public sealed class TransitionActionRequest { [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(1000,MinimumLength=3)] public string Reason { get; init; } = ""; [System.ComponentModel.DataAnnotations.Required] public long Version { get; init; } [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(80)] public string CommandId { get; init; } = ""; }
 public sealed class CompleteActionRequest { [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=10)] public string Result { get; init; } = ""; [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] public string Evidence { get; init; } = ""; [System.ComponentModel.DataAnnotations.Required] public long Version { get; init; } [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(80)] public string CommandId { get; init; } = ""; }
-public sealed record CreateActionPlanRequest(string Title, string Summary, string OriginType, Guid? OriginId, Guid? DiagnosticId, Guid? ResultId, Guid? GovernanceCycleId, string Priority, Guid? OwnerUserId, DateTime? StartsAt, DateTime? DueAt, string EvidenceSummary, string ExpectedOutcome);
+public sealed record CreateActionPlanRequest(
+    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(180,MinimumLength=3)] string Title,
+    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string Summary,
+    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.RegularExpression("manual|diagnostic|result|ai_insight|alert|decision")] string OriginType,
+    Guid? OriginId, Guid? DiagnosticId, Guid? ResultId, Guid? GovernanceCycleId,
+    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.RegularExpression("critical|high|medium|low")] string Priority,
+    Guid? OwnerUserId, DateTime? StartsAt, DateTime? DueAt,
+    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string EvidenceSummary,
+    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string ExpectedOutcome,
+    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(80)] string CommandId = "");
 public sealed record CreateActionItemRequest(
     [property:System.ComponentModel.DataAnnotations.Required] Guid ActionPlanId,
     [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(180,MinimumLength=3)] string Title,

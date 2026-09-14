@@ -8,12 +8,12 @@
         || !string.IsNullOrWhiteSpace(query.Status)
         || !string.IsNullOrWhiteSpace(query.Priority)
         || !string.IsNullOrWhiteSpace(query.Due)
-        || query.OwnerUserId is not null;
+        || query.OwnerUserId is not null || query.Scope is not null;
     Dictionary<string, string> PageRoute(int pageNumber) => new() {
         ["Page"] = pageNumber.ToString(), ["PageSize"] = planPage.PageSize.ToString(),
         ["Search"] = query.Search ?? "", ["Status"] = query.Status ?? "",
         ["OwnerUserId"] = query.OwnerUserId?.ToString() ?? "", ["Priority"] = query.Priority ?? "",
-        ["Due"] = query.Due ?? "", ["Sort"] = query.Sort ?? ""
+        ["Due"] = query.Due ?? "", ["Sort"] = query.Sort ?? "", ["Scope"] = query.Scope?.ToString() ?? ""
     };
 }
 <main class="valora-page">
@@ -23,6 +23,7 @@
         <h2 id="plan-filters-title">Filtros</h2>
         <form method="get" class="form-grid">
             <input type="hidden" name="Page" value="1" />
+            @if(query.Scope is not null){<input type="hidden" name="Scope" value="@query.Scope" />}
             <label for="Search">Buscar<input id="Search" name="Search" value="@query.Search" placeholder="Título ou resumo" /></label>
             <label for="Status">Situação<select id="Status" name="Status"><option value="">Todas</option>@foreach (var option in new[] { ("draft", "Rascunho"), ("proposed", "Proposto"), ("approved", "Aprovado"), ("in_execution", "Em execução"), ("completed", "Concluído"), ("canceled", "Cancelado") }) { <option value="@option.Item1" selected="@(query.Status == option.Item1)">@option.Item2</option> }</select></label>
             <label for="Priority">Prioridade<select id="Priority" name="Priority"><option value="">Todas</option>@foreach (var option in new[] { ("critical", "Crítica"), ("high", "Alta"), ("medium", "Média"), ("low", "Baixa") }) { <option value="@option.Item1" selected="@(query.Priority == option.Item1)">@option.Item2</option> }</select></label>

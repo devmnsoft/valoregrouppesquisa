@@ -53,4 +53,18 @@ public sealed class ActionCenterExecutionContractTests {
         Assert.Contains("AT TIME ZONE org.time_zone)::date DueAt",Plans);
         Assert.Contains("AT TIME ZONE org.time_zone)::date DueAt",Items);
     }
+
+    [Fact] public void Plan_lifecycle_is_explicit_versioned_and_atomic() {
+        foreach(var operation in new[]{"submit","return","approve","start","complete","cancel"}) Assert.Contains($"\"{operation}\"",Plans);
+        Assert.Contains("FOR UPDATE OF p",Plans); Assert.Contains("approved_version",Plans); Assert.Contains("actual_started_at",Plans);
+        Assert.Contains("Regularize {counts.Open}",Plans); Assert.Contains("ux_action_plan_history_command",Schema);
+    }
+    [Fact] public void Activity_and_plan_closure_share_parent_lock_order() {
+        Assert.Contains("FOR UPDATE OF p",Items); Assert.Contains("PlanStatus!=\"in_execution\"",Items);
+        Assert.Contains("status NOT IN('completed','canceled')",Plans);
+    }
+    [Fact] public void Material_edit_invalidates_approval_but_operational_edits_do_not() {
+        Assert.Contains("status=CASE WHEN status='approved' THEN 'proposed'",Plans);
+        Assert.Contains("Conteúdo material não pode ser alterado durante a execução",Plans);
+    }
 }

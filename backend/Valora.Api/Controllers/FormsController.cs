@@ -73,6 +73,26 @@ public sealed class FormsController(
         return version is null ? UnprocessableEntity(new ProblemDetails { Title = "O formulário ainda não pode ser publicado", Detail = "Revise seções, perguntas e a versão antes de tentar novamente.", Status = 422 }) : Ok(version);
     }
 
+    [HttpGet("{formId:guid}/publication-review")]
+    [Authorize(Policy = ValoraPermissions.Forms.Read)]
+    public async Task<ActionResult<FormPublicationReviewResponse>> ReviewPublication(Guid formId, CancellationToken cancellationToken) {
+        var organization = ResolveOrganization();
+        if (!organization.IsResolved) return OrganizationRequired();
+        var review = await forms.ReviewPublicationAsync(organization.RequireOrganizationId(), formId, cancellationToken);
+        return review is null ? NotFound(new ProblemDetails {
+            Title = "Rascunho não encontrado", Detail = "A revisão de publicação está disponível somente para a versão em rascunho.", Status = 404
+        }) : Ok(review);
+    }
+
+    [HttpGet("{formId:guid}/dimensions")]
+    [Authorize(Policy = ValoraPermissions.Forms.Read)]
+    public async Task<ActionResult<IReadOnlyList<FormDimensionCatalogItem>>> ListDimensions(Guid formId, CancellationToken cancellationToken) {
+        var organization = ResolveOrganization();
+        return organization.IsResolved
+            ? Ok(await forms.ListDimensionsAsync(organization.RequireOrganizationId(), formId, cancellationToken))
+            : OrganizationRequired();
+    }
+
     [HttpPost("{formId:guid}/reorder")]
     [Authorize(Policy = ValoraPermissions.Forms.Manage)]
     public async Task<ActionResult<ReorderFormItemResponse>> Reorder(Guid formId, ReorderFormItemRequest request, CancellationToken cancellationToken) {

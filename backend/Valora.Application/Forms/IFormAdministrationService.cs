@@ -3,6 +3,8 @@ namespace Valora.Application.Forms;
 public interface IFormAdministrationService {
     Task<FormListResponse> ListAsync(Guid organizationId, FormListQuery query, CancellationToken cancellationToken);
     Task<FormDetailResponse?> GetAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken);
+    Task<FormPublicationReviewResponse?> ReviewPublicationAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<FormDimensionCatalogItem>> ListDimensionsAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken);
     Task<FormDetailResponse> CreateAsync(Guid organizationId, Guid userId, CreateFormRequest request, CancellationToken cancellationToken);
     Task<FormDetailResponse?> UpdateAsync(Guid organizationId, Guid formId, UpdateFormRequest request, CancellationToken cancellationToken);
     Task<bool> ArchiveAsync(Guid organizationId, Guid formId, Guid userId, ArchiveFormRequest request, CancellationToken cancellationToken);

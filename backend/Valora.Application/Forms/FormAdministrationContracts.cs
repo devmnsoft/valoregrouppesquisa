@@ -5,7 +5,14 @@ public sealed record FormListItemResponse(Guid Id, string Name, string Descripti
 public sealed record FormLibraryMetrics(int Drafts, int Published, int Archived, int InCurrentUse);
 public sealed record FormListResponse(IReadOnlyList<FormListItemResponse> Items, long Total, int Page, int PageSize,
     int TotalPages, bool HasPreviousPage, bool HasNextPage, IReadOnlyList<string> Categories, FormLibraryMetrics Metrics);
-public sealed record FormDetailResponse(Guid Id, Guid OrganizationId, string Name, string? Description, string? Category, int EstimatedMinutes, string Status, Guid? CurrentDraftVersionId, Guid? LatestPublishedVersionId, long Version, long? DraftVersion, IReadOnlyList<FormSectionResponse> Sections);
+public sealed record FormDetailResponse(Guid Id, Guid OrganizationId, string Name, string? Description, string? Category, int EstimatedMinutes, string Status, Guid? CurrentDraftVersionId, Guid? LatestPublishedVersionId, int SelectedVersionNumber, long Version, long? DraftVersion, IReadOnlyList<FormSectionResponse> Sections);
+public sealed record PublicationReviewIssue(string Code, string Message, string? ElementType = null, Guid? ElementId = null);
+public sealed record FormPublicationReviewResponse(Guid FormId, Guid VersionId, int VersionNumber, int Sections,
+    int RespondableQuestions, int InformationalElements, int MethodologicalLinks,
+    IReadOnlyList<PublicationReviewIssue> Blockers, IReadOnlyList<PublicationReviewIssue> Warnings) {
+    public bool CanPublish => Blockers.Count == 0;
+}
+public sealed record FormDimensionCatalogItem(string Code, string Name, bool IsActive, bool IsLegacy);
 public sealed record CreateFormRequest(string Name, string? Description, string? Category, int EstimatedMinutes);
 public sealed record UpdateFormRequest(string Name, string? Description, string? Category, int EstimatedMinutes, long ExpectedVersion);
 public sealed record ArchiveFormRequest(long ExpectedVersion);

@@ -7,7 +7,7 @@
         <div>
             <a href="/Forms" class="eyebrow">Formulários</a>
             <h1 data-form-name>Carregando diagnóstico…</h1>
-            <p><span class="status-badge" data-form-status></span> <span data-save-state aria-live="polite"></span></p>
+            <p><span class="status-badge" data-form-status></span> <span data-form-version></span> <span data-save-state aria-live="polite"></span></p>
         </div>
         <div class="builder-actions">
             <button class="btn btn-outline-secondary" type="button" data-preview>Visualizar</button>
@@ -35,6 +35,11 @@
         <header><h2 id="preview-title">Visualização do diagnóstico</h2><button type="button" class="btn-close" data-close-preview aria-label="Fechar"></button></header>
         <div class="builder-preview-toolbar" role="group" aria-label="Tamanho da visualização"><button type="button" data-preview-size="desktop">Desktop</button><button type="button" data-preview-size="mobile">Celular</button></div>
         <div data-preview-content></div>
+    </dialog>
+    <dialog class="builder-preview builder-review" data-review-dialog aria-labelledby="review-title">
+        <header><div><p class="eyebrow">Revisão orientada</p><h2 id="review-title">Pronto para publicar?</h2></div><button type="button" class="btn-close" data-close-review aria-label="Fechar"></button></header>
+        <div data-review-content aria-live="polite"></div>
+        <footer class="builder-review-actions"><button type="button" class="btn btn-outline-secondary" data-close-review>Voltar à edição</button><button type="button" class="btn btn-primary" data-confirm-publish>Publicar versão</button></footer>
     </dialog>
 </main>
 

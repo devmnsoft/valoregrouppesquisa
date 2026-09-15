@@ -1,5 +1,6 @@
 using Valora.Application.ActionCenter;
 using Valora.Application.Workspace;
+using System.ComponentModel.DataAnnotations;
 
 namespace Valora.Tests;
 
@@ -39,6 +40,30 @@ public sealed class ActionCenterPagingTests
         Assert.Equal(pages, result.TotalPages);
         Assert.Equal(previous, result.HasPrevious);
         Assert.Equal(next, result.HasNext);
+    }
+}
+
+public sealed class ActionPlanClosurePolicyTests
+{
+    [Theory]
+    [InlineData("in_execution", 0, true)]
+    [InlineData("in_execution", 1, false)]
+    [InlineData("completed", 0, false)]
+    [InlineData("canceled", 0, false)]
+    [InlineData("approved", 0, false)]
+    public void Completion_requires_execution_state_and_no_pending_conditions(string status, int pending, bool expected)
+    {
+        Assert.Equal(expected, ActionPlanClosurePolicy.CanComplete(status, pending));
+    }
+
+    [Fact]
+    public void Typed_confirmation_is_enforced_by_server_validation()
+    {
+        var request = new CompleteActionPlanRequest { Result = "Resultado válido", Evidence = "Evidência", Version = 7, CommandId = "intent-1", Confirmed = false };
+        var errors = new List<ValidationResult>();
+
+        Assert.False(Validator.TryValidateObject(request, new ValidationContext(request), errors, true));
+        Assert.Contains(errors, error => error.ErrorMessage == "Confirme a revisão do resultado e das evidências.");
     }
 }
 

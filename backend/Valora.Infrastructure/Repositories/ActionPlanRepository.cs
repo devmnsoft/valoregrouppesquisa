@@ -38,21 +38,31 @@ public sealed class ActionPlanRepository(IDbConnectionFactory db, IDbTransaction
         var pending=new List<string>();
         var warnings=new List<string>();
         var destinations=new List<ActionPlanReadinessDestination>();
-        if(!row.OwnerEligible){pending.Add("Defina um responsável ativo e elegível desta organização.");destinations.Add(new("owner","Corrigir responsável","responsavel"));}
-        if(string.IsNullOrWhiteSpace(row.EvidenceSummary))pending.Add("Complete a evidência de origem do plano.");
-        if(row.DueAt is null)pending.Add("Defina um prazo para o plano.");
-        if(row.Status=="proposed")warnings.Add("A aprovação da versão em avaliação está pendente.");
-        if(row.Status!="in_execution")pending.Add("O plano precisa estar em execução para ser concluído.");
-        if(row.OpenActivities>0){pending.Add($"Regularize {row.OpenActivities} atividade(s) aberta(s).");destinations.Add(new("activities","Revisar atividades","atividades"));}
-        if(row.CompletedActivities==0){pending.Add("Conclua ao menos uma atividade antes de encerrar o plano; se não houver execução, cancele o plano com justificativa.");destinations.Add(new("activities","Cadastrar ou executar atividades","atividades"));}
-        if(row.BlockedActivities>0)warnings.Add($"Há {row.BlockedActivities} atividade(s) bloqueada(s) que precisam de decisão.");
+        if(row.Status=="draft"){
+            if(!row.OwnerEligible){pending.Add("Defina um responsável ativo e elegível desta organização.");destinations.Add(new("owner","Definir responsável","responsavel"));}
+            if(string.IsNullOrWhiteSpace(row.EvidenceSummary)){pending.Add("Complete a evidência de origem do plano.");destinations.Add(new("content","Revisar conteúdo","resumo"));}
+            if(row.DueAt is null){pending.Add("Defina um prazo para o plano.");destinations.Add(new("due","Definir prazo","prazo"));}
+        }else if(row.Status=="proposed"){
+            warnings.Add("A avaliação da versão submetida está pendente; aprovação ou devolução dependem de perfil autorizado.");
+            destinations.Add(new("evaluation","Acompanhar avaliação","etapa"));
+        }else if(row.Status=="approved"){
+            if(!row.OwnerEligible){pending.Add("O responsável aprovado não está mais elegível; corrija-o antes de iniciar.");destinations.Add(new("owner","Definir responsável","responsavel"));}
+            warnings.Add("A aprovação está válida para o conteúdo avaliado; alterações materiais exigem nova avaliação.");
+        }else if(row.Status=="in_execution"){
+            if(!row.OwnerEligible){pending.Add("Defina um responsável ativo e elegível antes de encerrar.");destinations.Add(new("owner","Definir responsável","responsavel"));}
+            if(string.IsNullOrWhiteSpace(row.EvidenceSummary)){pending.Add("Complete a evidência de origem antes de encerrar.");destinations.Add(new("content","Revisar conteúdo","resumo"));}
+            if(row.DueAt is null){pending.Add("Defina o prazo do plano antes de encerrar.");destinations.Add(new("due","Definir prazo","prazo"));}
+            if(row.OpenActivities>0){pending.Add($"Regularize {row.OpenActivities} atividade(s) aberta(s).");destinations.Add(new("activities","Consultar atividades abertas","atividades"));}
+            if(row.CompletedActivities==0){pending.Add("Conclua ao menos uma atividade; se não houve execução, cancele o plano com justificativa.");destinations.Add(new("activities","Consultar atividades","atividades"));}
+            if(row.BlockedActivities>0){warnings.Add($"Há {row.BlockedActivities} atividade(s) bloqueada(s) que precisam de decisão.");destinations.Add(new("blocked","Consultar bloqueios","atividades"));}
+        }
         var allowed=AllowedLifecycleActions(row.Status);
         return new(row.Status,allowed,pending,warnings,destinations,row.OpenActivities+row.CompletedActivities+row.CanceledActivities,row.OpenActivities,row.BlockedActivities,row.CompletedActivities,row.CanceledActivities,row.ExpectedOutcome,row.CompletionResult,row.CompletionEvidence,pending.Count==0);
     }
     public async Task<PageResult<ActionPlanHistoryDto>> History(Guid o,Guid u,Guid id,bool wide,int page,string? operation,CancellationToken c) {
         page=Math.Max(1,page);const int size=10;var offset=checked((page-1)*size);
         var filter=operation is "edit" or "assign" or "reschedule" or "submit" or "return" or "approve" or "start" or "complete" or "cancel" or "approval_invalidated"?operation:null;
-        const string access="p.organization_id=@o AND p.id=@id AND p.deleted_at IS NULL AND (@wide OR p.owner_user_id IS NULL OR p.owner_user_id=@u)";
+        const string access="p.organization_id=@o AND p.id=@id AND p.deleted_at IS NULL AND (@wide OR p.owner_user_id IS NULL OR p.owner_user_id=@u OR EXISTS(SELECT 1 FROM valorapesquisa.action_items ai WHERE ai.action_plan_id=p.id AND ai.organization_id=p.organization_id AND ai.deleted_at IS NULL AND ai.responsible_user_id=@u))";
         var sql=$"SELECT count(*)::int FROM valorapesquisa.action_plan_change_history h JOIN valorapesquisa.action_plans p ON p.id=h.action_plan_id WHERE {access} AND (@filter IS NULL OR h.operation=@filter); SELECT h.id,h.operation,h.from_value FromValue,h.to_value ToValue,h.reason,u2.name AuthorName,h.changed_at ChangedAt,h.intent_version IntentVersion FROM valorapesquisa.action_plan_change_history h JOIN valorapesquisa.action_plans p ON p.id=h.action_plan_id LEFT JOIN valorapesquisa.users u2 ON u2.id=h.changed_by_user_id AND u2.organization_id=p.organization_id WHERE {access} AND (@filter IS NULL OR h.operation=@filter) ORDER BY h.changed_at DESC,h.id DESC LIMIT @size OFFSET @offset";
         using var x=db.Create();using var q=await x.QueryMultipleAsync(new CommandDefinition(sql,new{o,u,id,wide,filter,size,offset},cancellationToken:c));
         var total=await q.ReadSingleAsync<int>();return new((await q.ReadAsync<ActionPlanHistoryDto>()).AsList(),page,size,total);
@@ -136,6 +146,10 @@ public sealed class ActionPlanRepository(IDbConnectionFactory db, IDbTransaction
         if(operation is "submit" or "start"){
             var ownerEligible=current.OwnerUserId.HasValue&&await z.Connection.ExecuteScalarAsync<bool>(new CommandDefinition("SELECT EXISTS(SELECT 1 FROM valorapesquisa.users owner WHERE owner.id=@owner AND owner.organization_id=@o AND owner.status='active' AND owner.deleted_at IS NULL)",new{o,owner=current.OwnerUserId},z.Transaction,cancellationToken:c));
             if(!ownerEligible)throw new ConflictAppException("O responsável está ausente, inativo ou não pertence à organização. Corrija a atribuição antes de continuar.");
+        }
+        if(operation=="complete"){
+            var ownerEligible=current.OwnerUserId.HasValue&&await z.Connection.ExecuteScalarAsync<bool>(new CommandDefinition("SELECT EXISTS(SELECT 1 FROM valorapesquisa.users owner WHERE owner.id=@owner AND owner.organization_id=@o AND owner.status='active' AND owner.deleted_at IS NULL)",new{o,owner=current.OwnerUserId},z.Transaction,cancellationToken:c));
+            if(!ownerEligible||string.IsNullOrWhiteSpace(current.EvidenceSummary)||current.DueAt is null)throw new ConflictAppException("Defina responsável elegível, evidência de origem e prazo antes de concluir o plano.");
         }
         // Alterações materiais mudam o estado para proposed e invalidam a aprovação;
         // alterações operacionais preservam o estado approved mesmo ao incrementar a versão.

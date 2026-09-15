@@ -97,7 +97,18 @@
   host.querySelector('[data-preview]').addEventListener('click', () => { host.querySelector('[data-preview-content]').innerHTML = `<h1>${escapeHtml(form.name)}</h1><p>${escapeHtml(form.description)}</p>${form.sections.map(section => `<section><h2>${escapeHtml(section.title)}</h2>${section.questions.map(questionMarkup).join('')}</section>`).join('')}`; host.querySelector('[data-preview-dialog]').showModal(); });
   host.querySelector('[data-close-preview]').addEventListener('click', () => host.querySelector('[data-preview-dialog]').close());
   host.querySelectorAll('[data-preview-size]').forEach(button => button.addEventListener('click', () => host.querySelector('[data-preview-content]').classList.toggle('is-mobile', button.dataset.previewSize === 'mobile')));
-  host.querySelector('[data-publish]').addEventListener('click', async event => { if (!form.currentDraftVersionId || isReadOnly() || !await window.ValoraUI.confirm('Publicar esta versão? Ela se tornará imutável.')) return; event.currentTarget.disabled = true; try { await FormsApi.publish(formId, { expectedVersion: form.draftVersion }); window.ValoraToast?.success?.('Formulário publicado. A versão foi protegida para preservar o histórico.'); await load(); } catch (problem) { fail(problem); } finally { event.currentTarget.disabled = false; } });
+  host.querySelector('[data-publish]').addEventListener('click', async event => {
+    const button = event.currentTarget;
+    if (button.disabled || !form.currentDraftVersionId || isReadOnly()) return;
+    button.disabled = true;
+    try {
+      if (!await window.ValoraUI.confirm('Publicar esta versão? Ela se tornará imutável.')) return;
+      await FormsApi.publish(formId, { expectedVersion: form.draftVersion });
+      window.ValoraToast?.success?.('Formulário publicado. A versão foi protegida para preservar o histórico.');
+      await load();
+    } catch (problem) { fail(problem); }
+    finally { button.disabled = false; }
+  });
   load().then(() => {
     if (form && new URLSearchParams(window.location.search).get('preview') === 'true') host.querySelector('[data-preview]').click();
   });

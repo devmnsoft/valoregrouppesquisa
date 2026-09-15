@@ -14,6 +14,16 @@
   let forms = [];
   let createDirty = false;
   let createSubmitting = false;
+  const filterStorageKey = `valora.forms.filters:${host.dataset.storageScope || 'unknown'}`;
+
+  function readStoredFilters() {
+    try { return JSON.parse(window.sessionStorage?.getItem(filterStorageKey) || '{}'); }
+    catch (_) { return {}; }
+  }
+  function storeFilters(value) {
+    try { window.sessionStorage?.setItem(filterStorageKey, JSON.stringify(value)); }
+    catch (_) { /* Storage can be unavailable in private/restricted browser contexts. */ }
+  }
 
   function escape(value) {
     const node = document.createElement('span');
@@ -27,7 +37,7 @@
     const term = search.value.trim().toLocaleLowerCase('pt-BR');
     const filtered = forms.filter(item => (!status.value || item.status === status.value) && (!category.value || (item.category || 'Diagnóstico') === category.value) && (!term || [item.name, item.description, item.category].some(value => String(value || '').toLocaleLowerCase('pt-BR').includes(term))));
     render(filtered);
-    sessionStorage.setItem('valora.forms.filters', JSON.stringify({ search: search.value, status: status.value, category: category.value }));
+    storeFilters({ search: search.value, status: status.value, category: category.value });
   }
   function render(items) {
     ['draft', 'published', 'archived'].forEach(status => {
@@ -70,23 +80,43 @@
   host.querySelector('[data-retry]').addEventListener('click', load);
   [search, status, category].forEach(control => control.addEventListener(control === search ? 'input' : 'change', applyFilters));
   host.querySelector('[data-clear-filters]').addEventListener('click', () => { search.value = ''; status.value = ''; category.value = ''; applyFilters(); search.focus(); });
-  try { const saved = JSON.parse(sessionStorage.getItem('valora.forms.filters') || '{}'); search.value = saved.search || ''; status.value = saved.status || ''; category.dataset.savedValue = saved.category || ''; } catch (_) { /* Preferências inválidas são ignoradas com segurança. */ }
+  const saved = readStoredFilters(); search.value = saved.search || ''; status.value = saved.status || ''; category.dataset.savedValue = saved.category || '';
   createForm.addEventListener('input', () => { createDirty = true; createError.classList.add('d-none'); });
   createForm.addEventListener('submit', async event => {
     event.preventDefault();
-    if (createSubmitting || !event.currentTarget.reportValidity()) return;
-    if (!await window.ValoraUI.confirm('Criar este formulário e abrir o construtor?')) return;
-    const submit = event.currentTarget.querySelector('[type="submit"]');
-    createSubmitting = true; submit.disabled = true; submit.textContent = 'Criando…';
-    const values = new FormData(event.currentTarget);
+    // SubmitEvent.currentTarget is cleared when event dispatch finishes. Keep every
+    // operation input stable before the first await so an asynchronous confirmation
+    // can never redirect the write to another form or lose its values.
+    const form = createForm;
+    if (createSubmitting || !form.reportValidity()) return;
+    const submit = form.querySelector('[type="submit"]');
+    const values = new FormData(form);
+    const request = {
+      name: values.get('name'),
+      description: values.get('description'),
+      category: values.get('category'),
+      estimatedMinutes: Number(values.get('estimatedMinutes'))
+    };
+
+    createSubmitting = true;
+    submit.disabled = true;
+    submit.textContent = 'Confirmando…';
     try {
-      const created = FormsApi.normalize(await FormsApi.create({ name: values.get('name'), description: values.get('description'), category: values.get('category'), estimatedMinutes: Number(values.get('estimatedMinutes')) }));
+      const confirmed = await window.ValoraUI.confirm('Criar este formulário e abrir o construtor?');
+      if (!confirmed) return;
+      submit.textContent = 'Criando…';
+      const created = FormsApi.normalize(await FormsApi.create(request));
       if (!created?.id) throw new Error('O servidor não confirmou o identificador do formulário criado.');
-      createDirty = false; window.location.assign(`/Forms/${encodeURIComponent(created.id)}/Builder`);
+      createDirty = false;
+      window.location.assign(`/Forms/${encodeURIComponent(created.id)}/Builder`);
     } catch (problem) {
       createError.textContent = problem.message || 'Não foi possível criar o formulário. Os dados foram preservados para nova tentativa.';
       createError.classList.remove('d-none');
-    } finally { createSubmitting = false; submit.disabled = false; submit.textContent = 'Criar formulário'; }
+    } finally {
+      createSubmitting = false;
+      submit.disabled = false;
+      submit.textContent = 'Criar formulário';
+    }
   });
   if (new URLSearchParams(window.location.search).get('intent') === 'create') dialog.showModal();
   load();

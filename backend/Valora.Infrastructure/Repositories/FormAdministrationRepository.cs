@@ -7,8 +7,16 @@ namespace Valora.Infrastructure.Repositories;
 
 public sealed class FormAdministrationRepository(IDbConnectionFactory connections, IDbTransactionFactory transactions,
     IAuditRepository audit) : IFormAdministrationRepository {
-    public async Task<IReadOnlyList<FormListItemResponse>> ListAsync(Guid organizationId, FormListQuery query, CancellationToken cancellationToken) {
+    public async Task<FormListResponse> ListAsync(Guid organizationId, FormListQuery query, CancellationToken cancellationToken) {
         const string sql = """
+            WITH authorized AS (
+                SELECT f.* FROM valorapesquisa.forms f
+                 WHERE f.organization_id=@organizationId AND f.deleted_at IS NULL
+            ), filtered AS (
+                SELECT * FROM authorized f
+                 WHERE (@search IS NULL OR f.name ILIKE '%' || @search || '%' OR COALESCE(f.description,'') ILIKE '%' || @search || '%' OR COALESCE(f.category,'') ILIKE '%' || @search || '%')
+                   AND (@status IS NULL OR f.status=@status) AND (@category IS NULL OR f.category=@category)
+            )
             SELECT f.id AS "Id",
                    COALESCE(f.name, '') AS "Name",
                    COALESCE(f.description, '') AS "Description",
@@ -20,8 +28,11 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
                    COALESCE(stats.questions, 0)::int AS "Questions",
                    COALESCE(stats.dimensions, 0)::int AS "Dimensions",
                    COALESCE(f.updated_at, f.created_at, now()) AS "UpdatedAt",
-                   COALESCE(f.version, 0)::bigint AS "Version"
-              FROM valorapesquisa.forms f
+                   COALESCE(f.version, 0)::bigint AS "Version",
+                   EXISTS(SELECT 1 FROM valorapesquisa.surveys su JOIN valorapesquisa.form_versions used ON used.id=su.form_version_id WHERE su.organization_id=@organizationId AND used.form_id=f.id AND su.deleted_at IS NULL AND su.status IN ('active','published','open')) AS "InCurrentUse",
+                   EXISTS(SELECT 1 FROM valorapesquisa.surveys su JOIN valorapesquisa.form_versions used ON used.id=su.form_version_id WHERE su.organization_id=@organizationId AND used.form_id=f.id) AS "HasHistoricalUse",
+                   EXISTS(SELECT 1 FROM valorapesquisa.responses r JOIN valorapesquisa.surveys su ON su.id=r.survey_id JOIN valorapesquisa.form_versions used ON used.id=su.form_version_id WHERE r.organization_id=@organizationId AND used.form_id=f.id) AS "HasResponses"
+              FROM filtered f
               LEFT JOIN valorapesquisa.form_versions fv ON fv.id = COALESCE(f.current_draft_version_id, f.latest_published_version_id)
               LEFT JOIN LATERAL (
                   SELECT COUNT(DISTINCT s.id)::int AS sections,
@@ -31,16 +42,33 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
                     LEFT JOIN valorapesquisa.question_versions q ON q.section_id = s.id AND q.deleted_at IS NULL
                    WHERE s.form_version_id = fv.id AND s.deleted_at IS NULL
               ) stats ON true
-             WHERE f.organization_id = @organizationId AND f.deleted_at IS NULL
-               AND (@search IS NULL OR f.name ILIKE '%' || @search || '%')
-               AND (@status IS NULL OR f.status = @status)
-               AND (@category IS NULL OR f.category = @category)
-             ORDER BY COALESCE(f.updated_at, f.created_at) DESC
-             OFFSET @offset ROWS FETCH NEXT @pageSize ROWS ONLY;
+             ORDER BY COALESCE(f.updated_at, f.created_at) DESC, f.id
+             LIMIT @pageSize OFFSET @offset;
+
+            WITH filtered AS (
+                SELECT f.* FROM valorapesquisa.forms f WHERE f.organization_id=@organizationId AND f.deleted_at IS NULL
+                  AND (@search IS NULL OR f.name ILIKE '%' || @search || '%' OR COALESCE(f.description,'') ILIKE '%' || @search || '%' OR COALESCE(f.category,'') ILIKE '%' || @search || '%')
+                  AND (@status IS NULL OR f.status=@status) AND (@category IS NULL OR f.category=@category)
+            )
+            SELECT COUNT(*)::bigint AS "Total",
+                   COUNT(*) FILTER(WHERE status='draft')::int AS "Drafts",
+                   COUNT(*) FILTER(WHERE status='published')::int AS "Published",
+                   COUNT(*) FILTER(WHERE status='archived')::int AS "Archived",
+                   COUNT(*) FILTER(WHERE EXISTS(SELECT 1 FROM valorapesquisa.surveys su JOIN valorapesquisa.form_versions fv ON fv.id=su.form_version_id WHERE su.organization_id=@organizationId AND fv.form_id=filtered.id AND su.deleted_at IS NULL AND su.status IN ('active','published','open')))::int AS "InCurrentUse"
+              FROM filtered;
+            SELECT DISTINCT COALESCE(NULLIF(BTRIM(category),''),'Diagnóstico') FROM valorapesquisa.forms
+             WHERE organization_id=@organizationId AND deleted_at IS NULL ORDER BY 1;
             """;
         using var connection = connections.Create();
-        var command = new CommandDefinition(sql, new { organizationId, search = NullIfEmpty(query.Search), status = NullIfEmpty(query.Status), category = NullIfEmpty(query.Category), offset = (query.Page - 1) * query.PageSize, query.PageSize }, cancellationToken: cancellationToken);
-        return (await connection.QueryAsync<FormListItemResponse>(command)).AsList();
+        var offset = checked(((long)query.Page - 1L) * query.PageSize);
+        var command = new CommandDefinition(sql, new { organizationId, search = NullIfEmpty(query.Search), status = NullIfEmpty(query.Status), category = NullIfEmpty(query.Category), offset, query.PageSize }, cancellationToken: cancellationToken);
+        using var results = await connection.QueryMultipleAsync(command);
+        var items = (await results.ReadAsync<FormListItemResponse>()).AsList();
+        var summary = await results.ReadSingleAsync<ListSummaryRow>();
+        var categories = (await results.ReadAsync<string>()).AsList();
+        var totalPages = summary.Total == 0 ? 0 : (int)Math.Ceiling(summary.Total / (double)query.PageSize);
+        return new(items, summary.Total, query.Page, query.PageSize, totalPages, query.Page > 1, query.Page < totalPages,
+            categories, new(summary.Drafts, summary.Published, summary.Archived, summary.InCurrentUse));
     }
 
     public async Task<FormDetailResponse?> GetAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken) {
@@ -108,10 +136,20 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         return affected == 1 ? await GetAsync(organizationId, formId, cancellationToken) : null;
     }
 
-    public async Task<bool> ArchiveAsync(Guid organizationId, Guid formId, ArchiveFormRequest request, CancellationToken cancellationToken) {
-        const string sql = "UPDATE valorapesquisa.forms SET status='archived', updated_at=now(), version=version+1 WHERE id=@formId AND organization_id=@organizationId AND deleted_at IS NULL AND status<>'archived' AND version=@expectedVersion;";
-        using var connection = connections.Create();
-        return await connection.ExecuteAsync(new CommandDefinition(sql, new { organizationId, formId, request.ExpectedVersion }, cancellationToken: cancellationToken)) == 1;
+    public async Task<bool> ArchiveAsync(Guid organizationId, Guid formId, Guid userId, ArchiveFormRequest request, CancellationToken cancellationToken) {
+        await using var unit = await transactions.BeginAsync(cancellationToken);
+        const string sql = """
+            UPDATE valorapesquisa.forms f SET status='archived',updated_at=now(),version=version+1
+             WHERE f.id=@formId AND f.organization_id=@organizationId AND f.deleted_at IS NULL
+               AND f.status<>'archived' AND f.version=@expectedVersion
+               AND NOT EXISTS(SELECT 1 FROM valorapesquisa.surveys s JOIN valorapesquisa.form_versions fv ON fv.id=s.form_version_id
+                   WHERE s.organization_id=@organizationId AND fv.form_id=f.id AND s.deleted_at IS NULL AND s.status IN ('active','published','open'));
+            """;
+        var changed = await unit.Connection.ExecuteAsync(new CommandDefinition(sql, new { organizationId, formId, request.ExpectedVersion }, unit.Transaction, cancellationToken: cancellationToken)) == 1;
+        if (!changed) return false;
+        await AuditAsync(unit, organizationId, userId, "form.archived", "form", formId, cancellationToken);
+        await unit.CommitAsync();
+        return true;
     }
 
     public async Task<FormVersionResponse?> PublishVersionAsync(Guid organizationId, Guid formId, Guid userId, PublishFormVersionRequest request, CancellationToken cancellationToken) {
@@ -126,11 +164,11 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
                AND fv.status='draft' AND fv.row_version=@expectedVersion
                AND NULLIF(BTRIM(f.name),'') IS NOT NULL AND NULLIF(BTRIM(f.category),'') IS NOT NULL
                AND EXISTS (SELECT 1 FROM valorapesquisa.form_section_versions s WHERE s.form_version_id=fv.id AND s.deleted_at IS NULL)
-               AND EXISTS (SELECT 1 FROM valorapesquisa.question_versions q JOIN valorapesquisa.form_section_versions s ON s.id=q.section_id WHERE s.form_version_id=fv.id AND q.deleted_at IS NULL AND NULLIF(BTRIM(q.title),'') IS NOT NULL)
+               AND EXISTS (SELECT 1 FROM valorapesquisa.question_versions q JOIN valorapesquisa.form_section_versions s ON s.id=q.section_id WHERE s.form_version_id=fv.id AND s.deleted_at IS NULL AND q.deleted_at IS NULL AND q.type NOT IN ('heading','description','separator') AND NULLIF(BTRIM(q.title),'') IS NOT NULL)
                AND NOT EXISTS (
                     SELECT 1 FROM valorapesquisa.question_versions q
                     JOIN valorapesquisa.form_section_versions s ON s.id=q.section_id
-                    WHERE s.form_version_id=fv.id AND q.deleted_at IS NULL
+                    WHERE s.form_version_id=fv.id AND s.deleted_at IS NULL AND q.deleted_at IS NULL
                       AND q.type IN ('single_choice','multiple_choice')
                       AND NOT EXISTS (SELECT 1 FROM valorapesquisa.question_option_versions o WHERE o.question_id=q.id AND o.deleted_at IS NULL AND NULLIF(BTRIM(o.label),'') IS NOT NULL)
                );
@@ -140,7 +178,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         const string publishSql = """
             UPDATE valorapesquisa.form_versions
                SET status='published', is_immutable=true, published_at=now(), published_by_user_id=@userId,
-                   maximum_score=(SELECT COALESCE(SUM(CASE WHEN q.type='likert_1_5' THEN 5*q.weight ELSE COALESCE(o.score,0) END),0)::int FROM valorapesquisa.question_versions q LEFT JOIN LATERAL (SELECT MAX(score) score FROM valorapesquisa.question_option_versions x WHERE x.question_id=q.id AND x.deleted_at IS NULL) o ON true JOIN valorapesquisa.form_section_versions s ON s.id=q.section_id WHERE s.form_version_id=@versionId AND q.deleted_at IS NULL),
+                   maximum_score=(SELECT COALESCE(SUM(CASE WHEN q.type='likert_1_5' THEN 5*q.weight ELSE COALESCE(o.score,0) END),0)::int FROM valorapesquisa.question_versions q LEFT JOIN LATERAL (SELECT MAX(score) score FROM valorapesquisa.question_option_versions x WHERE x.question_id=q.id AND x.deleted_at IS NULL) o ON true JOIN valorapesquisa.form_section_versions s ON s.id=q.section_id WHERE s.form_version_id=@versionId AND s.deleted_at IS NULL AND q.deleted_at IS NULL AND q.type NOT IN ('heading','description','separator')),
                    updated_at=now(), row_version=row_version+1
              WHERE id=@versionId;
             UPDATE valorapesquisa.forms SET status='published', latest_published_version_id=@versionId,
@@ -566,6 +604,14 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         public decimal? Score { get; init; }
         public int Position { get; init; }
         public long Version { get; init; }
+    }
+
+    private sealed class ListSummaryRow {
+        public long Total { get; init; }
+        public int Drafts { get; init; }
+        public int Published { get; init; }
+        public int Archived { get; init; }
+        public int InCurrentUse { get; init; }
     }
 
     private sealed record CloneSourceRow(Guid Id, string Name, string? Description, string? Category,

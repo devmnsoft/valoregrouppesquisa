@@ -3,8 +3,15 @@ namespace Valora.Application.Forms;
 public sealed class FormAdministrationService(IFormAdministrationRepository repository) : IFormAdministrationService {
     private static readonly HashSet<string> ItemTypes = ["section", "question", "option"];
 
-    public Task<IReadOnlyList<FormListItemResponse>> ListAsync(Guid organizationId, FormListQuery query, CancellationToken cancellationToken) =>
-        repository.ListAsync(RequireOrganization(organizationId), query with { Page = Math.Max(1, query.Page), PageSize = Math.Clamp(query.PageSize, 1, 100) }, cancellationToken);
+    public Task<FormListResponse> ListAsync(Guid organizationId, FormListQuery query, CancellationToken cancellationToken) {
+        var status = string.IsNullOrWhiteSpace(query.Status) ? null : query.Status.Trim().ToLowerInvariant();
+        if (status is not null && status is not ("draft" or "published" or "archived"))
+            throw new ArgumentException("Status de formulário inválido.", nameof(query));
+        return repository.ListAsync(RequireOrganization(organizationId), query with {
+            Search = NullIfWhiteSpace(query.Search), Category = NullIfWhiteSpace(query.Category), Status = status,
+            Page = Math.Max(1, query.Page), PageSize = Math.Clamp(query.PageSize, 1, 100)
+        }, cancellationToken);
+    }
 
     public Task<FormDetailResponse?> GetAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken) =>
         repository.GetAsync(RequireOrganization(organizationId), formId, cancellationToken);
@@ -28,8 +35,8 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
         }, cancellationToken);
     }
 
-    public Task<bool> ArchiveAsync(Guid organizationId, Guid formId, ArchiveFormRequest request, CancellationToken cancellationToken) =>
-        repository.ArchiveAsync(RequireOrganization(organizationId), formId, request, cancellationToken);
+    public Task<bool> ArchiveAsync(Guid organizationId, Guid formId, Guid userId, ArchiveFormRequest request, CancellationToken cancellationToken) =>
+        repository.ArchiveAsync(RequireOrganization(organizationId), formId, RequireUser(userId), request, cancellationToken);
 
     public Task<FormVersionResponse?> PublishAsync(Guid organizationId, Guid formId, Guid userId, PublishFormVersionRequest request, CancellationToken cancellationToken) =>
         repository.PublishVersionAsync(RequireOrganization(organizationId), formId, RequireUser(userId), request, cancellationToken);
@@ -136,6 +143,8 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
         if (description?.Length > 1000) throw new ArgumentException("A descrição deve ter no máximo 1000 caracteres.");
         if (category?.Length > 80) throw new ArgumentException("A categoria deve ter no máximo 80 caracteres.");
     }
+
+    private static string? NullIfWhiteSpace(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     private static Guid RequireOrganization(Guid organizationId) => organizationId != Guid.Empty
         ? organizationId

@@ -19,7 +19,7 @@ public sealed class FormsController(
 
     [HttpGet]
     [Authorize(Policy = ValoraPermissions.Forms.Read)]
-    public async Task<ActionResult<IReadOnlyList<FormListItemResponse>>> List([FromQuery] FormListQuery query, CancellationToken cancellationToken) {
+    public async Task<ActionResult<FormListResponse>> List([FromQuery] FormListQuery query, CancellationToken cancellationToken) {
         var organization = ResolveOrganization();
         return organization.IsResolved
             ? Ok(await forms.ListAsync(organization.RequireOrganizationId(), query, cancellationToken))
@@ -87,7 +87,9 @@ public sealed class FormsController(
     public async Task<IActionResult> Archive(Guid formId, [FromBody] ArchiveFormRequest request, CancellationToken cancellationToken) {
         var organization = ResolveOrganization();
         if (!organization.IsResolved) return OrganizationRequired();
-        return await forms.ArchiveAsync(organization.RequireOrganizationId(), formId, request, cancellationToken) ? NoContent() : Conflict(ConflictDetails());
+        return await forms.ArchiveAsync(organization.RequireOrganizationId(), formId, UserId, request, cancellationToken) ? NoContent() : Conflict(new ProblemDetails {
+            Title = "Não foi possível arquivar", Detail = "O formulário foi alterado, já está arquivado ou está vinculado a uma coleta em andamento.", Status = StatusCodes.Status409Conflict
+        });
     }
 
     [HttpGet("{formId:guid}/preview")]

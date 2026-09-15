@@ -7,6 +7,7 @@
     create: data => AjaxClient.post(base, data),
     update: (id, data) => AjaxClient.put(base + '/' + encodeURIComponent(id), data),
     archive: (id, data) => AjaxClient.delete(base + '/' + encodeURIComponent(id), data),
+    createVersion: (id, data) => AjaxClient.post(base + '/' + encodeURIComponent(id) + '/versions', data),
     publish: (id, data) => AjaxClient.post(base + '/' + encodeURIComponent(id) + '/publish', data),
     reorder: (id, data) => AjaxClient.post(base + '/' + encodeURIComponent(id) + '/reorder', data),
     createSection: (id, data) => AjaxClient.post(`${base}/${encodeURIComponent(id)}/sections`, data),

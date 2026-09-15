@@ -40,7 +40,7 @@ public sealed class PublicAnswerNormalizer {
     }
 
     public static string NormalizeType(string value) => value.Trim().ToLowerInvariant() switch {
-        "scale" or "escala" => "scale",
+        "scale" or "escala" or "scale_1_5" => "scale",
         "likert" or "likert_1_5" => "likert",
         "single_choice" or "unique_choice" or "unica_escolha" => "single_choice",
         "multiple_choice" or "multipla_escolha" => "multiple_choice",

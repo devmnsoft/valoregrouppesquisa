@@ -146,3 +146,18 @@ A implementação não equivale à homologação. Build, PostgreSQL integrado, f
 - O `global.json` exige SDK 10.0.100 com roll-forward para feature band mais recente. O executável `dotnet` continua ausente neste contêiner; restore, build Razor, build da solução e testes .NET não puderam ser executados localmente.
 - `VALORA_TEST_POSTGRES_CONNECTION` não está configurada; a consulta `UNION` e fixtures de isolamento/paginação não foram executadas contra PostgreSQL, portanto não há aprovação funcional do banco.
 - Não há remoto Git configurado nem ambiente autenticado/navegador conectado aos serviços. Capturas nos cinco viewports, push, checks, merge e atualização `pull --ff-only` da base permanecem dependentes do ambiente de homologação.
+
+## Sprint — versão única entre diagnóstico, coleta e resultado (2026-09-15)
+
+### Implementado
+
+- A API administrativa exige a versão publicada escolhida pelo seletor paginado e valida formulário, versão e organização na mesma instrução SQL; não seleciona silenciosamente a versão mais recente.
+- A coleta pública carrega formulário, dimensões, perguntas e opções exclusivamente pelo `form_version_id` imutável da pesquisa.
+- A conclusão revalida situação, prazo, organização, formulário e versão sob `FOR UPDATE`, antes de criar cabeçalho, respostas e resultado na transação já existente; o encerramento concorrente fica serializado.
+- Respostas novas registram também a versão. O backfill consolidado usa somente o vínculo da pesquisa de origem e preserva inconsistências sem inventar associação.
+- Resultados continuam rastreáveis depois do encerramento, mas a coleta ativa permanece obrigatória para uma nova submissão.
+
+### Verificado / bloqueado
+
+- `git diff --check` e verificações JavaScript existentes foram executadas localmente.
+- Build/testes .NET e PostgreSQL estão bloqueados pela ausência de SDK, cliente/conexão PostgreSQL e ambiente autenticado. Os cenários obrigatórios de banco e responsividade continuam não verificados, não aprovados implicitamente.

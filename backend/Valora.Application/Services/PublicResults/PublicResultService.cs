@@ -9,7 +9,7 @@ public sealed class PublicResultService(PublicResultValidator validator, ISurvey
         try {
             logger.LogInformation("Public result lookup started. ResponseId={ResponseId} HasToken={HasToken}", responseId, !string.IsNullOrWhiteSpace(request.ResultToken));
             var response = await validator.ValidateAsync(responseId, request);
-            var survey = await surveys.GetActivePublicSurveyAsync(response.SurveyId) ?? throw new InvalidOperationException("Pesquisa do resultado não encontrada.");
+            var survey = await surveys.GetResultSurveyAsync(response.SurveyId) ?? throw new InvalidOperationException("Pesquisa do resultado não encontrada.");
             var score = await results.GetByResponseAsync(responseId) ?? throw new InvalidOperationException("Pontuação não encontrada.");
             var dims = await results.GetDimensionsByResponseIdAsync(responseId);
             logger.LogInformation("Public result found. ResponseId={ResponseId} SurveyId={SurveyId} DimensionCount={DimensionCount}", responseId, response.SurveyId, dims.Count);

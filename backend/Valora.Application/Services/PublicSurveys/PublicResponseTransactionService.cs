@@ -10,13 +10,15 @@ using Valora.Application.Security;
 
 namespace Valora.Application.Services;
 
-public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IResponseRepository responses, IResultRepository results, ICertificateRepository certificates, ICommunicationRepository communications, IAuditRepository audit, ILgpdRepository lgpd, IResultTokenService tokens, IIntelligenceProcessingJobService processingJobs, ILogger<PublicResponseTransactionService> logger) {
+public sealed class PublicResponseTransactionService(IDbConnectionFactory db, ISurveyRepository surveyRepository, IResponseRepository responses, IResultRepository results, ICertificateRepository certificates, ICommunicationRepository communications, IAuditRepository audit, ILgpdRepository lgpd, IResultTokenService tokens, IIntelligenceProcessingJobService processingJobs, ILogger<PublicResponseTransactionService> logger) {
     public async Task<SubmitSurveyResponseResult> SaveAsync(SurveyPublicReadModel survey, SubmitSurveyResponseRequest request, IReadOnlyList<ScoredAnswer> scored, ValoraInsightResult calc, IReadOnlyList<DimensionScoreInput> dimensions) {
         using var connection = db.Create(); connection.Open(); using var transaction = connection.BeginTransaction();
         logger.LogInformation("Public response transaction started. SurveyId={SurveyId} OrganizationId={OrganizationId}", survey.Id, survey.OrganizationId);
         try {
+            var eligible = await surveyRepository.LockEligibleForCompletionAsync(survey, connection, transaction);
+            if (!eligible) throw new InvalidOperationException("A coleta foi encerrada ou a versão vinculada deixou de ser elegível.");
             var token = tokens.CreateToken(); var tokenHash = tokens.HashToken(token);
-            var responseId = await responses.CreateResponseAsync(survey.OrganizationId, survey.Id, survey.FormId, request.Participant.Name, request.Participant.Email, request.Participant.Phone, tokenHash, connection, transaction);
+            var responseId = await responses.CreateResponseAsync(survey.OrganizationId, survey.Id, survey.FormId, survey.FormVersionId, request.Participant.Name, request.Participant.Email, request.Participant.Phone, tokenHash, connection, transaction);
             logger.LogInformation("Public response created. SurveyId={SurveyId} OrganizationId={OrganizationId} ResponseId={ResponseId}", survey.Id, survey.OrganizationId, responseId);
             await SaveLgpdConsentAsync(survey, request, responseId, request.Participant.Email, connection, transaction);
             await responses.AddAnswersAsync(responseId, scored, connection, transaction);

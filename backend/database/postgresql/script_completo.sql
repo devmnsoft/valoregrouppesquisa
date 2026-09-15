@@ -1933,6 +1933,15 @@ ALTER TABLE valorapesquisa.one_on_one_commitments ADD COLUMN IF NOT EXISTS metad
 -- 41. PIPELINE VIVO DE INTELIGÊNCIA ORGANIZACIONAL (aditivo, rastreável e multiempresa)
 BEGIN;
 ALTER TABLE valorapesquisa.responses ADD COLUMN IF NOT EXISTS form_id uuid REFERENCES valorapesquisa.forms(id);
+ALTER TABLE valorapesquisa.responses ADD COLUMN IF NOT EXISTS form_version_id uuid REFERENCES valorapesquisa.form_versions(id);
+-- O vínculo é derivado somente da pesquisa que originou a resposta. Registros cuja
+-- pesquisa não possui versão determinística permanecem nulos para tratamento
+-- administrativo; nunca são associados à versão mais recente por suposição.
+UPDATE valorapesquisa.responses r
+SET form_version_id=s.form_version_id
+FROM valorapesquisa.surveys s
+WHERE s.id=r.survey_id AND r.form_version_id IS NULL AND s.form_version_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS ix_responses_form_version ON valorapesquisa.responses(form_version_id) WHERE is_deleted=false;
 ALTER TABLE valorapesquisa.response_answers ADD COLUMN IF NOT EXISTS answer_json jsonb NOT NULL DEFAULT '{}';
 ALTER TABLE valorapesquisa.response_answers ADD COLUMN IF NOT EXISTS answer_text text;
 ALTER TABLE valorapesquisa.response_answers ADD COLUMN IF NOT EXISTS score numeric(10,4);

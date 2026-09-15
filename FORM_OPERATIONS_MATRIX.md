@@ -70,3 +70,20 @@ Pendente para o próximo lote: consulta prévia dedicada de elegibilidade ao arq
 | `closed` | — | nenhuma reabertura oferecida | — | histórico e resultados permanecem consultáveis |
 
 A matriz descreve o comportamento requerido, mas a proteção direta da API antiga está marcada **pendente** até que o repository administrativo seja migrado integralmente do contrato compatível (`form_id`) para o esquema canônico (`form_version_id`). Não foi criada entidade paralela nem feita associação retroativa à versão mais recente por suposição.
+
+## Incremento — coleta vinculada à versão publicada (2026-09-15)
+
+| Ponto de continuidade | Classificação | Evidência / limite |
+|---|---|---|
+| Compatibilidade Surveys × Forms paginado | **verificado** | O cliente mantém o envelope paginado e envia `formId` + `formVersionId`; a API agora exige ambos. |
+| Seleção da versão publicada | **implementado** | Criação e edição validam no PostgreSQL o par formulário/versão, publicação e organização; não existe fallback para a versão mais recente. |
+| Cadastro e edição do diagnóstico | **implementado** | Período e versão são persistidos; somente rascunho pode ser editado e o servidor revalida o tenant. |
+| Publicação e encerramento | **implementado; integração bloqueada** | Transições são allowlist, não reabrem coleta, exigem versão publicada; conclusão bloqueia a linha da pesquisa e revalida elegibilidade na transação. Falta executar a corrida em PostgreSQL neste ambiente. |
+| Geração e cópia de links | **implementado** | O servidor somente gera link para coleta ativa/elegível; geração e cópia continuam ações distintas com fallback manual. |
+| Preview separado do Builder | **verificado** | Permanece o renderizador sem mutações registrado no incremento anterior. |
+
+A leitura pública, as perguntas, opções, dimensões, resposta persistida e resultado histórico usam agora o `form_version_id` da pesquisa. Respostas antigas recebem versão somente quando ela pode ser derivada diretamente da pesquisa de origem; inconsistências permanecem nulas e visíveis, sem associação automática à versão mais recente. O resultado pode consultar a pesquisa encerrada sem transformar o encerramento em perda de rastreabilidade.
+
+### Verificação ainda bloqueada
+
+O contêiner continua sem `dotnet`, `psql`, `VALORA_TEST_POSTGRES_CONNECTION`, identidade autenticada e navegador integrado. Assim, restore/build Razor, os 18 cenários PostgreSQL, concorrência real e os cinco viewports permanecem **não verificados**. Comandos reproduzíveis: `dotnet restore backend/Valora.sln && dotnet build backend/Valora.sln --no-restore && dotnet test backend/Valora.sln --no-build` e `VALORA_TEST_POSTGRES_CONNECTION='...' dotnet test backend/Valora.Tests/Valora.Tests.csproj --filter PostgreSql`.

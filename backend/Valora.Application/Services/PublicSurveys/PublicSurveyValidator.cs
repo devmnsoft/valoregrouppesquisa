@@ -9,8 +9,9 @@ public sealed class PublicSurveyValidator(ISurveyRepository surveys, IFormReposi
         if (string.IsNullOrWhiteSpace(request.Token)) throw new UnauthorizedAccessException("Token público obrigatório.");
         var survey = await surveys.GetActivePublicSurveyAsync(surveyId) ?? throw new InvalidOperationException("Pesquisa indisponível.");
         if (!await surveys.ValidatePublicTokenAsync(surveyId, request.Token)) throw new UnauthorizedAccessException("Token público inválido.");
-        var form = await forms.GetByIdAsync(survey.FormId) ?? throw new InvalidOperationException("Formulário não encontrado.");
-        return (survey, form, await forms.GetDimensionsAsync(survey.FormId), await forms.GetQuestionsAsync(survey.FormId), await forms.GetQuestionOptionsAsync(survey.FormId));
+        var form = await forms.GetPublishedVersionAsync(survey.FormId, survey.FormVersionId, survey.OrganizationId)
+            ?? throw new InvalidOperationException("A versão publicada vinculada ao diagnóstico está indisponível ou é inconsistente.");
+        return (survey, form, await forms.GetDimensionsAsync(survey.FormVersionId), await forms.GetQuestionsAsync(survey.FormVersionId), await forms.GetQuestionOptionsAsync(survey.FormVersionId));
     }
     public async Task ValidateForSubmitAsync(Guid organizationId, SubmitSurveyResponseRequest request, IReadOnlyList<QuestionPublicReadModel> questions, IReadOnlyList<QuestionOptionPublicReadModel> options) {
         if (!request.LgpdConsent) throw new InvalidOperationException("Consentimento LGPD obrigatório.");

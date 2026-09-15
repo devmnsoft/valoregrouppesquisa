@@ -51,9 +51,9 @@ public sealed class WebAdminModulesController(
     [HttpGet("/surveys/{surveyId:guid}")]
     public Task<IActionResult> Survey(Guid surveyId) => Safe(async () => new { ok = true, data = await surveys.GetAdminAsync(OrganizationId, surveyId), correlationId = CorrelationId }, "surveys.get");
     [HttpPost("/surveys")]
-    public Task<IActionResult> CreateSurvey([FromBody] JsonElement request) => Safe(async () => { var id = await surveys.CreateAdminAsync(OrganizationId, GuidValue(request, "formId"), Text(request, "title") ?? "Nova pesquisa", Text(request, "description"), Text(request, "status") ?? "draft"); await Audit("survey.created", "survey", id); return new { ok = true, id, status = "draft", correlationId = CorrelationId }; }, "surveys.create");
+    public Task<IActionResult> CreateSurvey([FromBody] JsonElement request) => Safe(async () => { var id = await surveys.CreateAdminAsync(OrganizationId, GuidValue(request, "formId"), GuidValue(request, "formVersionId"), Text(request, "title") ?? "Novo diagnóstico", Text(request, "description"), DateValue(request, "startsAt"), DateValue(request, "expiresAt")); await Audit("survey.created", "survey", id); return new { ok = true, id, status = "draft", correlationId = CorrelationId }; }, "surveys.create");
     [HttpPut("/surveys/{surveyId:guid}")]
-    public Task<IActionResult> UpdateSurvey(Guid surveyId, [FromBody] JsonElement request) => Safe(async () => { await surveys.UpdateAdminAsync(OrganizationId, surveyId, TryGuid(request, "formId"), Text(request, "title"), Text(request, "description"), Text(request, "status")); await Audit("survey.updated", "survey", surveyId); return new { ok = true, id = surveyId, correlationId = CorrelationId }; }, "surveys.update");
+    public Task<IActionResult> UpdateSurvey(Guid surveyId, [FromBody] JsonElement request) => Safe(async () => { await surveys.UpdateAdminAsync(OrganizationId, surveyId, GuidValue(request, "formId"), GuidValue(request, "formVersionId"), Text(request, "title"), Text(request, "description"), DateValue(request, "startsAt"), DateValue(request, "expiresAt")); await Audit("survey.updated", "survey", surveyId); return new { ok = true, id = surveyId, correlationId = CorrelationId }; }, "surveys.update");
     [HttpPatch("/surveys/{surveyId:guid}/status")]
     public Task<IActionResult> SurveyStatus(Guid surveyId, [FromBody] JsonElement request) => Safe(async () => { await surveys.UpdateStatusAdminAsync(OrganizationId, surveyId, Text(request, "status") ?? "draft"); await Audit("survey.status", "survey", surveyId); return new { ok = true, id = surveyId, correlationId = CorrelationId }; }, "surveys.status");
 
@@ -85,6 +85,7 @@ public sealed class WebAdminModulesController(
     private static string? Text(JsonElement e, string name) => e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var p) && p.ValueKind != JsonValueKind.Null ? p.ToString() : null;
     private static Guid? TryGuid(JsonElement e, string name) => Guid.TryParse(Text(e, name), out var g) ? g : null;
     private static Guid GuidValue(JsonElement e, string name) => TryGuid(e, name) ?? throw new ArgumentException($"{name} obrigatório");
+    private static DateTimeOffset? DateValue(JsonElement e, string name) => DateTimeOffset.TryParse(Text(e, name), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.AssumeUniversal, out var value) ? value : null;
     private static string CleanPublicUrl(string? value, Guid surveyId) {
         if (string.IsNullOrWhiteSpace(value)) return $"/public/surveys/{surveyId}";
         var path = value.Split('?', '#')[0];

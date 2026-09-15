@@ -109,3 +109,14 @@ Atividades podem ser preparadas antes da execução, mas comandos de execução 
 - Os testes JavaScript do ActionCenter e as verificações de sintaxe passaram.
 - O executável `dotnet` não está instalado e o download do SDK 10.0.100 foi bloqueado pelo proxy com HTTP 403; restore, build, Razor e testes .NET não puderam ser executados neste contêiner.
 - `VALORA_TEST_POSTGRES_CONNECTION` não está configurada e não há `psql`, Docker, aplicação autenticada ou navegador disponível. Assim, integração PostgreSQL, concorrência real e capturas nos cinco viewports continuam pendentes, sem declaração de homologação.
+
+## Incremento — revisão dedicada e resumo final (2026-09-15)
+
+- Prontidão passou a orientar a etapa atual: preparação, avaliação, início ou encerramento, sem apresentar uma nova conclusão a planos encerrados. Cada impedimento corrigível possui destino próprio e a interface só oferece comandos compatíveis com a capacidade do usuário.
+- A conclusão revalida sob o lock transacional o responsável elegível, a evidência de origem, o prazo e as contagens de atividades usadas pela consulta de prontidão.
+- Participantes de atividades usam o mesmo escopo de leitura no detalhe, prontidão e histórico; impressão e revisão reutilizam esse escopo no servidor.
+- O encerramento ganhou página dedicada, preservando versão, chave de intenção, resultado e evidência no fluxo canônico. Planos encerrados oferecem resumo HTML para impressão, sem inferência de evolução metodológica.
+
+### Validação e limitações
+
+- O ambiente continua sem o SDK .NET 10.0.100, PostgreSQL e navegador autenticado. Portanto build/Razor, concorrência contra banco e evidências nos cinco viewports não puderam ser executados; nenhuma homologação foi declarada.

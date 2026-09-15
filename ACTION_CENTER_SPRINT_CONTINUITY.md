@@ -143,3 +143,20 @@ Atividades podem ser preparadas antes da execução, mas comandos de execução 
 ### Validação e limitações
 
 - O ambiente continua sem o SDK .NET 10.0.100, PostgreSQL e navegador autenticado. Portanto build/Razor, concorrência contra banco e evidências nos cinco viewports não puderam ser executados; nenhuma homologação foi declarada.
+
+## Incremento — resultado → relatório → plano (2026-09-15)
+
+### Implementado
+
+- A consulta administrativa do resultado passou a ser um contrato tipado e tenant-scoped que reúne diagnóstico, organização, período, versão imutável do formulário, estado de processamento, valores efetivamente calculados, dimensões, relatórios emitidos e planos vinculados. Ausência de cálculo não é convertida em zero.
+- A transação de cálculo agora materializa também a identidade de `results` vinculada ao `result_score`, permitindo que relatórios e planos preservem a referência ao processamento específico.
+- A tela executiva distingue espera, processamento pendente, processamento, insuficiência, disponibilidade e falha; ações dependentes só aparecem com um resultado persistido e explicam o impedimento quando indisponíveis.
+- O relatório por resposta usa a mesma projeção persistida exibida na tela, preserva a versão e o resultado, reutiliza entregável válido da mesma origem/formato em repetição técnica e oferece download autenticado com tenant e permissão revalidados.
+- A criação no ActionCenter aceita origem `result`, preserva `result_id`/`origin_id`, oferece somente responsáveis autorizados pelo seletor existente, salva como rascunho e mantém o `CommandId` existente para recuperação idempotente. O retorno ao resultado é limitado a URL local permitida.
+- Planos vinculados voltam à página do resultado com responsável, prazo, estado e progresso calculado pela regra já usada nas atividades; a evidência de origem permanece separada da evidência de conclusão.
+
+### Verificação e limites reais
+
+- Verificados localmente: sintaxe dos scripts da página de resultado e relatórios, integridade do diff e contratos/SQL por inspeção.
+- Bloqueados neste contêiner: SDK .NET 10, `psql`, Docker, PostgreSQL de teste e sessão autenticada. Portanto restore, compilação Razor, testes .NET, persistência/reconsulta em conexão nova, autorização HTTP, download real e inspeção visual nos cinco viewports permanecem **não verificados**.
+- A geração disponível neste módulo permanece síncrona e nos formatos JSON executivo/CSV já suportados; não foi criada fila paralela nem foi declarado PDF inexistente. Reprocessamento analítico continua fora deste incremento: vínculos históricos são preservados, mas a política de solicitação/reexecução ainda requer o fluxo canônico de processamento.

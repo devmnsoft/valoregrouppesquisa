@@ -37,12 +37,15 @@ public sealed class ResultRepository(IDbConnectionFactory factory, ILogger<Resul
         string nextLevel, IDbTransaction transaction) {
         try {
             const string sql = """
-                INSERT INTO valorapesquisa.result_scores
+                WITH score AS (INSERT INTO valorapesquisa.result_scores
                     (organization_id, response_id, total_score, max_score, percentage, maturity_label,
                      radar_text, strategic_truth, risk_if_nothing_changes, next_level)
                 VALUES
                     (@organizationId, @responseId, @total, @max, @percentage, @maturityLabel,
                      @radarText, @strategicTruth, @risk, @nextLevel)
+                RETURNING id)
+                INSERT INTO valorapesquisa.results(organization_id,response_id,result_score_id)
+                SELECT @organizationId,@responseId,id FROM score
                 """;
             await transaction.Connection!.ExecuteAsync(sql,
                 new { organizationId, responseId, total, max, percentage, maturityLabel, radarText, strategicTruth, risk, nextLevel },

@@ -9,6 +9,23 @@ public sealed class ReportBuilderService(IResponseRepository responses, ISurveyR
     private const int MinimumExecutiveSample = 5;
 
     public async Task<string> BuildAsync(Guid organizationId, Guid? surveyId, Guid? responseId, string format) {
+        if (responseId.HasValue) {
+            var result = await responses.GetAdminAsync(organizationId, responseId.Value)
+                ?? throw new InvalidOperationException("Resultado não encontrado no escopo da organização.");
+            if (!string.Equals(result.ProcessingStatus, "available", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("O resultado ainda não está disponível para relatório.");
+            if (string.Equals(format, "csv", StringComparison.OrdinalIgnoreCase))
+                return $"diagnostico,versao,respostas_elegiveis,pontuacao,maximo,percentual,classificacao,processado_em\n\"{EscapeCsv(result.SurveyTitle)}\",{result.FormVersion},{result.EligibleResponseCount},{result.TotalScore?.ToString(System.Globalization.CultureInfo.InvariantCulture)},{result.MaxScore?.ToString(System.Globalization.CultureInfo.InvariantCulture)},{result.Percentage?.ToString(System.Globalization.CultureInfo.InvariantCulture)},\"{EscapeCsv(result.MaturityLabel ?? "Não determinada")}\",{result.ProcessedAt:O}";
+            return JsonSerializer.Serialize(new {
+                identification = new { result.ResponseId, result.ResultId, result.OrganizationName, diagnostic = result.SurveyTitle, result.PeriodStart, result.PeriodEnd, result.FormVersionId, result.FormVersion, result.ProcessedAt },
+                responseCount = result.EligibleResponseCount,
+                evidence = new { source = "Resultado processado e persistido", resultId = result.ResultId, completedResponses = result.EligibleResponseCount },
+                executive = new { sufficientData = result.TotalScore.HasValue, overallScore = result.TotalScore, maximumScore = result.MaxScore, percentage = result.Percentage, maturityLevel = result.MaturityLabel, summary = result.StrategicTruth, risk = result.RiskIfNothingChanges, nextLevel = result.NextLevel },
+                dimensions = result.Dimensions,
+                limitations = result.Dimensions.Count == 0 ? new[] { "A cobertura por dimensão não está disponível neste resultado." } : new[] { "Comparações exigem a mesma versão metodológica e bases compatíveis." },
+                generatedAt = DateTimeOffset.UtcNow
+            }, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+        }
         var organization = await orgs.GetAsync(organizationId);
         var allResponses = await responses.ListAdminAsync(organizationId);
         var selected = allResponses.Where(item => !surveyId.HasValue || ReadGuid(item, "survey_id") == surveyId).ToList();

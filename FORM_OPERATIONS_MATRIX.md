@@ -87,3 +87,13 @@ A leitura pública, as perguntas, opções, dimensões, resposta persistida e re
 ### Verificação ainda bloqueada
 
 O contêiner continua sem `dotnet`, `psql`, `VALORA_TEST_POSTGRES_CONNECTION`, identidade autenticada e navegador integrado. Assim, restore/build Razor, os 18 cenários PostgreSQL, concorrência real e os cinco viewports permanecem **não verificados**. Comandos reproduzíveis: `dotnet restore backend/Valora.sln && dotnet build backend/Valora.sln --no-restore && dotnet test backend/Valora.sln --no-build` e `VALORA_TEST_POSTGRES_CONNECTION='...' dotnet test backend/Valora.Tests/Valora.Tests.csproj --filter PostgreSql`.
+
+## Jornada pós-diagnóstico — incremento 2026-09-15
+
+| Operação | Estado | Evidência | Pendente/bloqueio |
+|---|---|---|---|
+| Consultar resultado executivo | **Implementado** | Contrato `AdminResultReadModel`; consulta parametrizada por organização/resposta; versão, score anulável, dimensões, relatórios e planos na mesma leitura. | Execução PostgreSQL e sessão autenticada bloqueadas no ambiente. |
+| Gerar/reabrir relatório por resultado | **Implementado** | Relatório deriva da mesma projeção; entregável válido é reutilizado por origem/formato; download BFF preserva tipo/nome e revalida `reports.download`. | PDF e fila assíncrona não existem neste mecanismo; não foram simulados. |
+| Criar plano desde resultado | **Implementado** | `origin_type=result`, `origin_id=result_id`, `CommandId`, validação tenant/módulo/referência/responsável transacional e retorno local. | Cenários SQL reais e auditoria em banco não verificados sem PostgreSQL. |
+| Acompanhar planos no resultado | **Implementado** | Lista vinculada ao `results.id`, com responsável, prazo, estado, progresso e retorno contextual. | Viewports/teclado aguardam aplicação autenticada executável. |
+| Reprocessar e comparar históricos | **Pendente** | Nenhum cálculo paralelo ou comparação artificial foi adicionado. | Exige política canônica de reprocessamento e compatibilidade metodológica. |

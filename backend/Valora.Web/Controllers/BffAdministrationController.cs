@@ -160,6 +160,12 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
                 message = "Sua sessão expirou. Entre novamente para continuar.",
                 correlationId
             });
+            if (path.Contains("/reports/generated/", StringComparison.OrdinalIgnoreCase) && path.EndsWith("/download", StringComparison.OrdinalIgnoreCase)) {
+                var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+                if (!response.IsSuccessStatusCode) return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/problem+json", Content = System.Text.Encoding.UTF8.GetString(bytes) };
+                var disposition = response.Content.Headers.ContentDisposition;
+                return File(bytes, response.Content.Headers.ContentType?.ToString() ?? "application/octet-stream", disposition?.FileNameStar ?? disposition?.FileName?.Trim('"') ?? "relatorio");
+            }
             var payload = await response.Content.ReadAsStringAsync(cancellationToken);
             Response.Headers["X-Correlation-Id"] = response.Headers.TryGetValues("X-Correlation-Id", out var values) ? values.First() : correlationId;
             return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/json", Content = payload };

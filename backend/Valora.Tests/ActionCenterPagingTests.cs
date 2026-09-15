@@ -1,6 +1,7 @@
 using Valora.Application.ActionCenter;
 using Valora.Application.Workspace;
 using System.ComponentModel.DataAnnotations;
+using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
@@ -64,6 +65,35 @@ public sealed class ActionPlanClosurePolicyTests
 
         Assert.False(Validator.TryValidateObject(request, new ValidationContext(request), errors, true));
         Assert.Contains(errors, error => error.ErrorMessage == "Confirme a revisão do resultado e das evidências.");
+    }
+}
+
+public sealed class ActionPlanClosureExperienceTests
+{
+    [Fact]
+    public void Review_view_avoids_page_directive_collision_and_preserves_navigation_context()
+    {
+        var view = File.ReadAllText(RepositoryPaths.WebFile("Views", "ActionCenter", "ReviewClosure.cshtml"));
+
+        Assert.Contains("var activitiesPage = Model.Activities", view);
+        Assert.DoesNotContain("var page = Model.Activities", view);
+        Assert.DoesNotContain("@page.", view);
+        Assert.Contains("name=\"activityPage\" value=\"@(activitiesPage.CurrentPage)\"", view);
+        Assert.Contains("asp-route-activityStatus=\"@Model.ActivityStatus\"", view);
+        Assert.Contains("asp-route-returnUrl=\"@Model.ReturnUrl\"", view);
+    }
+
+    [Fact]
+    public void Closure_script_isolates_drafts_and_never_persists_confirmation()
+    {
+        var script = File.ReadAllText(RepositoryPaths.WebFile("wwwroot", "js", "action-plan-closure.js"));
+
+        Assert.Contains("page.dataset.draftKey", script);
+        Assert.Contains("textarea[name=\"Command.Result\"]", script);
+        Assert.Contains("input[type=\"checkbox\"][name=\"Command.Confirmed\"]", script);
+        Assert.Contains("confirmation.checked = false", script);
+        Assert.DoesNotContain("Command.Confirmed':", script);
+        Assert.Contains("storage.remove(marker.dataset.closureClearKey)", script);
     }
 }
 

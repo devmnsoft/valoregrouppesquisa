@@ -1,5 +1,20 @@
 # Continuidade — ActionCenter operacional
 
+## Incremento — encerramento resiliente e correção Razor (2026-09-15)
+
+### Realizado
+
+- Eliminada a colisão da variável local `page` com a diretiva Razor, mantendo o parâmetro HTTP `activityPage`, filtros, paginação e retorno local.
+- Rascunhos de resultado/evidência são isolados por um escopo opaco derivado da organização e do usuário autenticados, além do plano; a confirmação nunca é restaurada.
+- O rascunho só é apagado pelo descarte explícito ou pelo marcador de sucesso emitido após a conclusão no servidor. Falhas de validação, rede ou armazenamento preservam o uso normal do formulário.
+- Conflitos mantêm textos e versão enviada, desmarcam a confirmação, distinguem a mensagem e oferecem consulta das alterações e início consciente de uma revisão atual.
+- O fluxo sem JavaScript mantém POST MVC, antiforgery, validação por campo, confirmação tipada e revalidação transacional/idempotente já existente.
+
+### Pendente e próximo passo
+
+- O SDK .NET 10.0.100, PostgreSQL de teste e uma sessão autenticada continuam indisponíveis neste contêiner. Assim, o próximo passo é executar restore/build/testes (incluindo Razor), os cenários concorrentes no banco e a inspeção visual autenticada nos cinco viewports antes de integrar.
+- Após as verificações obrigatórias do PR, o merge e a atualização `pull --ff-only` da base devem ser realizados por um operador com as credenciais e proteções do repositório disponíveis; nenhuma dessas etapas é antecipada aqui.
+
 Revisão realizada a partir do `HEAD` `0dc7419` (PR #568), preservando o incremento anterior.
 
 ## Matriz de implementação

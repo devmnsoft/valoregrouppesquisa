@@ -16,7 +16,7 @@
     <main class="valora-page action-detail">
         <partial name="_PageHeader" model="@(new PageHeaderViewModel(plan.Title, plan.Summary, "Valora Action™", $"{ActionStatuses.Label(plan.Priority)} · {ActionStatuses.Label(plan.Status)}", new[] { new PageHeaderAction("Voltar aos planos", Model.ReturnUrl, Icon: "arrow-left") }))" />
         <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar", "Acompanhe o resultado pelas atividades autorizadas e registre entregas verificáveis.", new[] { "Revise prazo e responsável.", "Crie atividades com evidência.", "Acompanhe bloqueios antes do prazo." }))" />
-        @if(TempData["ActionSuccess"] is string ok){<div class="alert alert-success" role="status">@ok</div>}
+        @if(TempData["ActionSuccess"] is string ok){<div class="alert alert-success" role="status">@ok</div>}@if(TempData["ClosureDraftKey"] is string closureDraftKey){<span hidden data-closure-clear-key="@closureDraftKey"></span>}
         <div asp-validation-summary="All" class="alert alert-danger" role="alert" tabindex="-1" data-validation-summary></div>
         <section class="valora-card lifecycle-card lifecycle-card--@plan.Status" aria-labelledby="lifecycle-title">
           <div class="section-heading"><div><h2 id="lifecycle-title">Etapas do plano</h2><p>Situação formal: <strong>@ActionStatuses.Label(plan.Status)</strong>. O progresso das atividades não altera esta situação automaticamente.</p></div>@if(plan.Status=="in_execution"&&capabilities.CanComplete){<a class="valora-button valora-button--primary" asp-action="ReviewClosure" asp-route-id="@plan.Id" asp-route-returnUrl="@planCurrentUrl">Revisar encerramento</a>}else if(primaryAction is not null){<button class="valora-button valora-button--primary" type="button" data-action-dialog-open="@primaryAction">@(plan.Status switch{"draft"=>"Submeter para avaliação","proposed"=>"Aprovar plano",_=>"Iniciar execução"})</button>}</div>
@@ -103,4 +103,5 @@
     }
     <script src="~/js/responsible-selector.js" asp-append-version="true"></script>
     <script src="~/js/action-center.js" asp-append-version="true" data-open-dialog="@Model.OpenDialog"></script>
+    <script src="~/js/action-plan-closure.js" asp-append-version="true" defer></script>
 </div>

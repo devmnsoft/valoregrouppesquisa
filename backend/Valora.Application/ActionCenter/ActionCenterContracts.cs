@@ -18,7 +18,22 @@ public enum ActionAssignmentFilter { Assigned, Unassigned }
 public enum ActionPlanScopeFilter { Active }
 public enum ActionItemScopeFilter { Open }
 public sealed record ActionPlanDto(Guid Id, string Title, string Summary, string OriginType, string Status, string Priority, Guid? OwnerUserId, DateTime? DueAt, string EvidenceSummary, string ExpectedOutcome, int ProgressPercent, DateTime CreatedAt, string? OwnerName = null, int ActiveItemCount = 0, long Version = 1, DateTime? ApprovedAt = null, long? ApprovedVersion = null, DateTime? ActualStartedAt = null, DateTime? CompletedAt = null, string? CompletionResult = null, string? CompletionEvidence = null);
-public sealed record ActionPlanClosureCheck(int OpenActivities,int BlockedActivities,int CompletedActivities,int CanceledActivities,string ExpectedOutcome,string? CompletionResult,string? CompletionEvidence,bool CanComplete,IReadOnlyList<string> Pending);
+public sealed record ActionPlanReadinessDestination(string Code,string Label,string UrlFragment);
+public sealed record ActionPlanClosureCheck(
+    string Stage,
+    IReadOnlyList<string> AllowedActions,
+    IReadOnlyList<string> Pending,
+    IReadOnlyList<string> Warnings,
+    IReadOnlyList<ActionPlanReadinessDestination> Destinations,
+    int TotalActivities,
+    int OpenActivities,
+    int BlockedActivities,
+    int CompletedActivities,
+    int CanceledActivities,
+    string ExpectedOutcome,
+    string? CompletionResult,
+    string? CompletionEvidence,
+    bool CanComplete);
 public sealed record ActionItemDto(Guid Id, Guid ActionPlanId, string Title, string Description, string OriginType, Guid? OriginId, string? RelatedDimension, string? RelatedIndexCode, string Priority, string Status, Guid? ResponsibleUserId, DateTime? DueAt, DateTime? CompletedAt, int ProgressPercent, string EvidenceSummary, string ExpectedOutcome, string? CompletionEvidence, string? AiRecommendationSummary, DateTime CreatedAt, long Version = 1, string? ResponsibleName = null, string? PlanTitle = null, string? CompletionResult = null);
 public sealed record ActionHistoryDto(Guid Id, string? FromStatus, string ToStatus, int? ProgressPercent, string? Reason, string? AuthorName, DateTime ChangedAt, string? Operation = null, string? FromValue = null, string? ToValue = null, long? IntentVersion = null);
 public sealed record ActionPlanHistoryDto(Guid Id, string Operation, string? FromValue, string? ToValue, string? Reason, string? AuthorName, DateTime ChangedAt, long? IntentVersion);

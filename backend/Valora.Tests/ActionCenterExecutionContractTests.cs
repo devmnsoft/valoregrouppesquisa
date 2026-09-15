@@ -59,6 +59,24 @@ public sealed class ActionCenterExecutionContractTests {
         Assert.Contains("FOR UPDATE OF p",Plans); Assert.Contains("approved_version",Plans); Assert.Contains("actual_started_at",Plans);
         Assert.Contains("Regularize {counts.Open}",Plans); Assert.Contains("ux_action_plan_history_command",Schema);
     }
+    [Fact] public void Unknown_operation_uses_a_direct_throw_expression_and_preserves_named_tuple() {
+        Assert.Contains("(string From, string To) rule = operation switch",Plans);
+        Assert.Contains("_ => throw new ArgumentException(",Plans);
+        Assert.DoesNotContain("_=>(throw new ArgumentException",Plans);
+    }
+    [Theory]
+    [InlineData("submit","draft","proposed")][InlineData("return","proposed","draft")]
+    [InlineData("approve","proposed","approved")][InlineData("start","approved","in_execution")]
+    [InlineData("complete","in_execution","completed")][InlineData("cancel","*","canceled")]
+    public void Every_valid_plan_transition_has_an_explicit_source_and_destination(string operation,string from,string to) {
+        Assert.Contains($"\"{operation}\" => (\"{from}\", \"{to}\")",Plans);
+    }
+    [Fact] public void Invalid_state_owner_and_empty_execution_are_revalidated_in_the_transaction() {
+        Assert.Contains("current.Status!=rule.From",Plans);
+        Assert.Contains("owner.status='active'",Plans);
+        Assert.Contains("operation==\"complete\"&&counts.Completed==0",Plans);
+        Assert.Contains("current.ApprovedVersion is null",Plans);
+    }
     [Fact] public void Activity_and_plan_closure_share_parent_lock_order() {
         Assert.Contains("FOR UPDATE OF p",Items); Assert.Contains("PlanStatus!=\"in_execution\"",Items);
         Assert.Contains("status NOT IN('completed','canceled')",Plans);

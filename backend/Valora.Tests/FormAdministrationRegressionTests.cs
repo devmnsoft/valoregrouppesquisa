@@ -49,6 +49,32 @@ public sealed class FormAdministrationRegressionTests {
         Assert.Contains("existing.question_id=q.id AND existing.deleted_at IS NULL", RepositorySource, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void LibraryPagination_IsTenantScopedDeterministicAndUsesTheSameFiltersForTotal() {
+        Assert.Contains("Task<FormListResponse> ListAsync", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("LIMIT @pageSize OFFSET @offset", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("ORDER BY COALESCE(f.updated_at, f.created_at) DESC, f.id", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("COUNT(*)::bigint AS \"Total\"", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("checked(((long)query.Page - 1L) * query.PageSize)", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("su.organization_id=@organizationId", RepositorySource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UsageAndArchive_AreBasedOnRealSurveyLinksAndPreserveHistory() {
+        Assert.Contains("AS \"InCurrentUse\"", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("AS \"HasHistoricalUse\"", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("AS \"HasResponses\"", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("s.status IN ('active','published','open')", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("form.archived", RepositorySource, StringComparison.Ordinal);
+        Assert.DoesNotContain("DELETE FROM valorapesquisa.forms", RepositorySource, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Publication_UsesOnlyEligibleNonArchivedRespondableStructure() {
+        Assert.Contains("s.deleted_at IS NULL AND q.deleted_at IS NULL", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("q.type NOT IN ('heading','description','separator')", RepositorySource, StringComparison.Ordinal);
+    }
+
     private static string Read(params string[] parts) =>
         File.ReadAllText(Path.Combine([RepositoryPaths.RepositoryRoot, "backend", .. parts]));
 }

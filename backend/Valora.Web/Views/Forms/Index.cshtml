@@ -7,7 +7,7 @@
     <article class="metric-card"><span>Rascunhos</span><strong data-metric="draft">0</strong></article>
     <article class="metric-card"><span>Publicados</span><strong data-metric="published">0</strong></article>
     <article class="metric-card"><span>Arquivados</span><strong data-metric="archived">0</strong></article>
-    <article class="metric-card"><span>Em uso</span><strong data-metric="inUse">0</strong></article>
+    <article class="metric-card"><span title="Vinculado a uma coleta ativa, publicada ou aberta">Em uso</span><strong data-metric="inUse">0</strong></article>
   </section>
   <section class="workspace-section" aria-labelledby="forms-list-title">
     <div class="workspace-toolbar"><div><p class="eyebrow">Biblioteca metodológica</p><h2 id="forms-list-title">Formulários e versões</h2><p>Versões publicadas permanecem imutáveis para preservar os resultados históricos.</p></div><button class="btn btn-outline-secondary" type="button" data-refresh aria-label="Atualizar biblioteca">Atualizar</button></div>
@@ -20,6 +20,7 @@
     <div class="valora-alert valora-alert--danger d-none mt-3" role="alert" data-error><strong>Não foi possível carregar a biblioteca.</strong><span data-error-message></span><button class="btn btn-sm btn-outline-danger" type="button" data-retry>Tentar novamente</button></div>
     <p class="table-caption" aria-live="polite" data-count>Preparando biblioteca…</p>
     <div class="table-responsive"><table class="table align-middle valora-table"><thead><tr><th scope="col">Formulário</th><th scope="col">Categoria</th><th scope="col">Versão</th><th scope="col">Estrutura</th><th scope="col">Tempo</th><th scope="col">Status</th><th scope="col">Atualização</th><th scope="col"><span class="visually-hidden">Ações</span></th></tr></thead><tbody data-items></tbody></table></div>
+    <nav class="forms-pagination d-flex align-items-center justify-content-end gap-2 mt-3" data-pagination aria-label="Paginação da biblioteca"></nav>
     <div class="empty-state empty-state--executive d-none" data-empty><div class="empty-state__icon" aria-hidden="true">&#9671;</div><h3 data-empty-title>Comece pelo primeiro formulário</h3><p data-empty-description>Estruture dimensões e perguntas para iniciar uma leitura organizacional baseada em evidências.</p><button class="valora-button valora-button--primary" type="button" data-new-form>Novo formulário</button></div>
   </section>
 </main>

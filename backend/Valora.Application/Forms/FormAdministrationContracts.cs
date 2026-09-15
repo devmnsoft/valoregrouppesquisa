@@ -1,7 +1,8 @@
 namespace Valora.Application.Forms;
 
 public sealed record FormListQuery(string? Search = null, string? Status = null, string? Category = null, int Page = 1, int PageSize = 20);
-public sealed record FormListItemResponse(Guid Id, string Name, string Description, string Category, int EstimatedMinutes, string Status, int VersionNumber, int Sections, int Questions, int Dimensions, DateTime UpdatedAt, long Version, bool InCurrentUse, bool HasHistoricalUse, bool HasResponses);
+public sealed record FormListItemResponse(Guid Id, string Name, string Description, string Category, int EstimatedMinutes, string Status, int VersionNumber, int Sections, int Questions, int Dimensions, DateTime UpdatedAt, long Version, bool InCurrentUse, bool HasHistoricalUse, bool HasResponses,
+    Guid? LatestPublishedVersionId, int? LatestPublishedVersionNumber, int PublishedQuestions);
 public sealed record FormLibraryMetrics(int Drafts, int Published, int Archived, int InCurrentUse);
 public sealed record FormListResponse(IReadOnlyList<FormListItemResponse> Items, long Total, int Page, int PageSize,
     int TotalPages, bool HasPreviousPage, bool HasNextPage, IReadOnlyList<string> Categories, FormLibraryMetrics Metrics);

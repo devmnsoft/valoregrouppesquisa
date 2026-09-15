@@ -33,6 +33,16 @@
     return `<article class="builder-question${selected('question', question.id)}" tabindex="0" role="button" data-select="question" data-id="${question.id}"><div><span>${escapeHtml(question.code)}</span><strong>${escapeHtml(question.title)}</strong></div><small>${escapeHtml(typeLabels[question.type] || question.type)}${question.required ? ' · obrigatória' : ''}</small>${sample}<div class="builder-inline-actions">${addOption}${movementButtons('question', question, index, questions.length)}<button type="button" data-delete="question" data-id="${question.id}">Excluir</button></div></article>`;
   }
 
+  function responseQuestionMarkup(question) {
+    if (question.type === 'heading') return `<h3>${escapeHtml(question.title)}</h3>`;
+    if (question.type === 'description') return `<p>${escapeHtml(question.description || question.title)}</p>`;
+    if (question.type === 'separator') return '<hr aria-hidden="true">';
+    const name = `preview-${question.id}`;
+    const choices = (question.options || []).map(option => `<label class="builder-preview-choice"><input name="${name}" type="${question.type === 'multiple_choice' ? 'checkbox' : 'radio'}" value="${escapeHtml(option.value)}"> <span>${escapeHtml(option.label)}</span></label>`).join('');
+    const input = question.type === 'long_text' ? `<textarea class="form-control" name="${name}" rows="4"></textarea>` : question.type === 'short_text' ? `<input class="form-control" name="${name}" type="text">` : choices;
+    return `<fieldset class="builder-preview-question"><legend>${escapeHtml(question.title)}${question.required ? ' <span aria-label="obrigatória">*</span>' : ''}</legend>${question.description ? `<p>${escapeHtml(question.description)}</p>` : ''}${input}</fieldset>`;
+  }
+
   function render() {
     host.querySelector('[data-loading]').classList.add('d-none');
     host.querySelector('[data-builder-content]').classList.remove('d-none');
@@ -148,7 +158,7 @@
     if (trigger.dataset.move) { const context = moveContext(trigger.dataset.move, trigger.dataset.id); const index = context.items.findIndex(item => item.id === trigger.dataset.id); const destination = trigger.dataset.direction === 'up' ? index - 1 : index + 1; if (destination < 0 || destination >= context.items.length) return; await runMutation(() => FormsApi.reorder(formId, { itemId: trigger.dataset.id, itemType: trigger.dataset.move, sourceContainerId: context.containerId, targetContainerId: context.containerId, previousPosition: index, newPosition: destination, expectedVersion: form.draftVersion })); }
   });
 
-  host.querySelector('[data-preview]').addEventListener('click', () => { host.querySelector('[data-preview-content]').innerHTML = `<h1>${escapeHtml(form.name)}</h1><p>${escapeHtml(form.description)}</p>${form.sections.map(section => `<section><h2>${escapeHtml(section.title)}</h2>${section.questions.map(questionMarkup).join('')}</section>`).join('')}`; host.querySelector('[data-preview-dialog]').showModal(); });
+  host.querySelector('[data-preview]').addEventListener('click', () => { host.querySelector('[data-preview-content]').innerHTML = `<p class="eyebrow">Pré-visualização · nenhuma resposta será salva</p><h1>${escapeHtml(form.name)}</h1><p>${escapeHtml(form.description)}</p>${form.sections.map(section => `<section><h2>${escapeHtml(section.title)}</h2>${section.description ? `<p>${escapeHtml(section.description)}</p>` : ''}${section.questions.map(responseQuestionMarkup).join('')}</section>`).join('')}`; host.querySelector('[data-preview-dialog]').showModal(); });
   host.querySelector('[data-close-preview]').addEventListener('click', () => host.querySelector('[data-preview-dialog]').close());
   host.querySelectorAll('[data-preview-size]').forEach(button => button.addEventListener('click', () => host.querySelector('[data-preview-content]').classList.toggle('is-mobile', button.dataset.previewSize === 'mobile')));
   host.querySelector('[data-publish]').addEventListener('click', async () => { if (await allowSelectionChange()) await showReview(); });

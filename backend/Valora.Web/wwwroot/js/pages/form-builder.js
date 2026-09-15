@@ -7,7 +7,7 @@
   const properties = host.querySelector('[data-properties-form]');
   let form;
   let selection = { type: 'form', item: null };
-  let saveTimer;
+  const optionTypes = new Set(['likert_1_5', 'single_choice', 'multiple_choice']);
 
   const isReadOnly = () => form?.status === 'published' || form?.status === 'archived' || !form?.currentDraftVersionId;
 
@@ -18,9 +18,10 @@
   const selected = (type, id) => selection.type === type && selection.item?.id === id ? ' is-selected' : '';
 
   function questionMarkup(question) {
-    const choices = (question.options || []).map(option => `<button type="button" class="builder-option${selected('option', option.id)}" data-select="option" data-id="${option.id}"><span>${escapeHtml(option.label)}</span><small>${escapeHtml(option.value)}${option.score == null ? '' : ` · ${option.score} ponto(s)`}</small></button>`).join('');
+    const choices = (question.options || []).map(option => `<div class="builder-option-row"><button type="button" class="builder-option${selected('option', option.id)}" data-select="option" data-id="${option.id}"><span>${escapeHtml(option.label)}</span><small>${escapeHtml(option.value)}${option.score == null ? '' : ` · ${option.score} ponto(s)`}</small></button><button type="button" class="builder-option-delete" data-delete="option" data-id="${option.id}" aria-label="Excluir opção ${escapeHtml(option.label)}">Excluir</button></div>`).join('');
     const sample = question.type === 'long_text' ? '<textarea disabled aria-label="Exemplo de resposta"></textarea>' : question.type === 'short_text' ? '<input disabled aria-label="Exemplo de resposta">' : choices;
-    return `<article class="builder-question${selected('question', question.id)}" tabindex="0" role="button" data-select="question" data-id="${question.id}"><div><span>${escapeHtml(question.code)}</span><strong>${escapeHtml(question.title)}</strong></div><small>${escapeHtml(question.type)}${question.required ? ' · obrigatória' : ''}</small>${sample}<div class="builder-inline-actions"><button type="button" data-add-option="${question.id}">Adicionar opção</button><button type="button" data-delete="question" data-id="${question.id}">Excluir</button></div></article>`;
+    const addOption = optionTypes.has(question.type) ? `<button type="button" data-add-option="${question.id}">Adicionar opção</button>` : '';
+    return `<article class="builder-question${selected('question', question.id)}" tabindex="0" role="button" data-select="question" data-id="${question.id}"><div><span>${escapeHtml(question.code)}</span><strong>${escapeHtml(question.title)}</strong></div><small>${escapeHtml(question.type)}${question.required ? ' · obrigatória' : ''}</small>${sample}<div class="builder-inline-actions">${addOption}<button type="button" data-delete="question" data-id="${question.id}">Excluir</button></div></article>`;
   }
 
   function render() {
@@ -47,7 +48,7 @@
     } else if (selection.type === 'section') {
       title.textContent = 'Propriedades da seção'; properties.innerHTML = field('Título', 'title', selection.item.title, 'text', 'required') + `<label class="form-label" for="property-description">Descrição</label><textarea class="form-control" id="property-description" name="description">${escapeHtml(selection.item.description)}</textarea>`;
     } else if (selection.type === 'question') {
-      title.textContent = 'Propriedades da pergunta'; properties.innerHTML = field('Código técnico', 'code', selection.item.code, 'text', 'required pattern="[A-Za-z0-9_-]+"') + field('Título', 'title', selection.item.title, 'text', 'required') + `<label class="form-label" for="property-type">Tipo</label><select class="form-select" id="property-type" name="type">${['likert_1_5','single_choice','multiple_choice','short_text','long_text','heading','explanatory_text','separator'].map(type => `<option ${type === selection.item.type ? 'selected' : ''}>${type}</option>`).join('')}</select>` + field('Dimensão', 'dimensionCode', selection.item.dimensionCode) + field('Peso', 'weight', selection.item.weight, 'number', 'min="0" step="0.1"') + `<label><input type="checkbox" name="required" ${selection.item.required ? 'checked' : ''}> Obrigatória</label>`;
+      title.textContent = 'Propriedades da pergunta'; properties.innerHTML = field('Código técnico', 'code', selection.item.code, 'text', 'required pattern="[A-Za-z0-9_-]+"') + field('Título', 'title', selection.item.title, 'text', 'required') + `<label class="form-label" for="property-type">Tipo</label><select class="form-select" id="property-type" name="type">${['likert_1_5','single_choice','multiple_choice','short_text','long_text','heading','description','separator'].map(type => `<option ${type === selection.item.type ? 'selected' : ''}>${type}</option>`).join('')}</select>` + field('Dimensão', 'dimensionCode', selection.item.dimensionCode) + field('Peso', 'weight', selection.item.weight, 'number', 'min="0" step="0.1"') + `<label><input type="checkbox" name="required" ${selection.item.required ? 'checked' : ''}> Obrigatória</label>`;
     } else {
       title.textContent = 'Propriedades da opção'; properties.innerHTML = field('Label', 'label', selection.item.label, 'text', 'required') + field('Valor', 'value', selection.item.value, 'text', 'required') + field('Score', 'score', selection.item.score, 'number', 'step="0.1"');
     }
@@ -55,9 +56,11 @@
     if (!isReadOnly()) properties.insertAdjacentHTML('beforeend', '<button class="btn btn-primary mt-3" type="submit">Salvar alterações</button>');
   }
 
-  async function load() { try { form = FormsApi.normalize(await FormsApi.get(formId)); render(); } catch (problem) { host.querySelector('[data-loading]').classList.add('d-none'); fail(problem); } }
+  function allItems() { return form.sections.flatMap(section => [section, ...(section.questions || []), ...(section.questions || []).flatMap(question => question.options || [])]); }
+  async function load() { try { form = FormsApi.normalize(await FormsApi.get(formId)); if (selection.item) selection.item = allItems().find(item => item.id === selection.item.id) || null; if (!selection.item) selection = { type: 'form', item: null }; render(); } catch (problem) { host.querySelector('[data-loading]').classList.add('d-none'); fail(problem); } }
   async function saveProperties() {
     if (isReadOnly()) return;
+    if (!properties.reportValidity() || !await window.ValoraUI.confirm('Salvar estas alterações?')) return;
     clearError(); const values = new FormData(properties); host.querySelector('[data-save-state]').textContent = 'Salvando…';
     let request;
     if (selection.type === 'form') request = FormsApi.update(formId, { name: values.get('name'), description: values.get('description'), category: values.get('category'), estimatedMinutes: Number(values.get('estimatedMinutes')), expectedVersion: form.version });
@@ -68,19 +71,20 @@
   }
 
   properties.addEventListener('submit', event => { event.preventDefault(); saveProperties(); });
-  properties.addEventListener('input', () => { clearTimeout(saveTimer); host.querySelector('[data-save-state]').textContent = 'Alterações pendentes'; saveTimer = setTimeout(saveProperties, 800); });
+  properties.addEventListener('input', () => { host.querySelector('[data-save-state]').textContent = 'Alterações pendentes'; });
   host.addEventListener('click', async event => {
     const trigger = event.target.closest('[data-select],button'); if (!trigger) return;
     const mutation = trigger.matches('[data-add-section],[data-add-question],[data-add-option],[data-delete],[data-move]');
     if (mutation && isReadOnly()) { window.ValoraToast?.warning?.('Versões publicadas ou arquivadas não podem ser alteradas.'); return; }
     if (trigger.matches('[data-add-section]')) { await FormsApi.createSection(formId, { title: 'Nova seção', description: '', position: form.sections.length, expectedVersion: form.draftVersion }); selection = { type: 'form', item: null }; await load(); return; }
-    if (trigger.dataset.select) { const item = form.sections.flatMap(section => [section, ...(section.questions || []), ...(section.questions || []).flatMap(question => question.options || [])]).find(candidate => candidate.id === trigger.dataset.id); selection = { type: trigger.dataset.select, item }; render(); return; }
+    if (trigger.dataset.select) { const item = allItems().find(candidate => candidate.id === trigger.dataset.id); selection = { type: trigger.dataset.select, item }; render(); return; }
     if (trigger.dataset.addQuestion) { const section = form.sections.find(item => item.id === trigger.dataset.addQuestion); await FormsApi.createQuestion(formId, { sectionId: section.id, code: `Q${Date.now().toString().slice(-6)}`, type: 'likert_1_5', title: 'Nova pergunta', required: false, weight: 1, position: section.questions.length, expectedVersion: form.draftVersion }); await load(); return; }
     if (trigger.dataset.addOption) { await FormsApi.createOption(formId, trigger.dataset.addOption, { label: 'Nova opção', value: `opcao_${Date.now().toString().slice(-5)}`, score: null, position: 999, expectedVersion: form.draftVersion }); await load(); return; }
     if (trigger.dataset.delete && await window.ValoraUI.confirm('Excluir este item do rascunho?')) {
-      const item = form.sections.flatMap(section => [section, ...(section.questions || []), ...(section.questions || []).flatMap(question => question.options || [])]).find(candidate => candidate.id === trigger.dataset.id);
+      const item = allItems().find(candidate => candidate.id === trigger.dataset.id);
       if (trigger.dataset.delete === 'section') await FormsApi.deleteSection(formId, item.id, { expectedVersion: item.version });
       if (trigger.dataset.delete === 'question') await FormsApi.deleteQuestion(formId, item.id, { expectedVersion: item.version });
+      if (trigger.dataset.delete === 'option') await FormsApi.deleteOption(formId, item.id, { expectedVersion: item.version });
       selection = { type: 'form', item: null }; await load(); return;
     }
     if (trigger.dataset.move === 'section') {

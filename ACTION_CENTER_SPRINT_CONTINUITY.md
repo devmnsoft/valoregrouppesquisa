@@ -1,5 +1,13 @@
 # Continuidade — ActionCenter operacional
 
+## Incremento — Forms/Builder confiável (2026-09-15)
+
+- O fluxo prioritário Forms/Builder foi rastreado em `FORM_OPERATIONS_MATRIX.md`, separado explicitamente do frontend Firebase legado.
+- A criação agora preserva o modal e os valores em falha, evita duplo envio, confirma a intenção e só navega ao construtor após receber o identificador persistido.
+- O Builder deixou de disparar autosave concorrente a cada digitação, reidrata a seleção após consultas e expõe o arquivamento lógico de opções.
+- Tipos de pergunta foram alinhados ao contrato (`description`) e o repository impede criar/editar opções em tipos incompatíveis, bem como trocar o tipo enquanto opções ativas existirem.
+- O SDK .NET 10.0.100, PostgreSQL e uma sessão autenticada continuam indisponíveis; testes reais de persistência, Razor e viewports permanecem explicitamente pendentes na matriz.
+
 ## Incremento — encerramento resiliente e correção Razor (2026-09-15)
 
 ### Realizado

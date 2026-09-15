@@ -12,12 +12,21 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
     public Task<FormDetailResponse> CreateAsync(Guid organizationId, Guid userId, CreateFormRequest request, CancellationToken cancellationToken) {
         RequireUser(userId);
         if (string.IsNullOrWhiteSpace(request.Name)) throw new ArgumentException("Informe o nome do formulário.", nameof(request));
+        ValidateTextLengths(request.Name, request.Description, request.Category);
         if (request.EstimatedMinutes is < 1 or > 480) throw new ArgumentException("O tempo estimado deve estar entre 1 e 480 minutos.", nameof(request));
-        return repository.CreateAsync(RequireOrganization(organizationId), userId, request with { Name = request.Name.Trim() }, cancellationToken);
+        return repository.CreateAsync(RequireOrganization(organizationId), userId, request with {
+            Name = request.Name.Trim(), Description = request.Description?.Trim(), Category = request.Category?.Trim()
+        }, cancellationToken);
     }
 
-    public Task<FormDetailResponse?> UpdateAsync(Guid organizationId, Guid formId, UpdateFormRequest request, CancellationToken cancellationToken) =>
-        repository.UpdateAsync(RequireOrganization(organizationId), formId, request, cancellationToken);
+    public Task<FormDetailResponse?> UpdateAsync(Guid organizationId, Guid formId, UpdateFormRequest request, CancellationToken cancellationToken) {
+        if (string.IsNullOrWhiteSpace(request.Name)) throw new ArgumentException("Informe o nome do formulário.", nameof(request));
+        ValidateTextLengths(request.Name, request.Description, request.Category);
+        if (request.EstimatedMinutes is < 1 or > 480) throw new ArgumentException("O tempo estimado deve estar entre 1 e 480 minutos.", nameof(request));
+        return repository.UpdateAsync(RequireOrganization(organizationId), formId, request with {
+            Name = request.Name.Trim(), Description = request.Description?.Trim(), Category = request.Category?.Trim()
+        }, cancellationToken);
+    }
 
     public Task<bool> ArchiveAsync(Guid organizationId, Guid formId, ArchiveFormRequest request, CancellationToken cancellationToken) =>
         repository.ArchiveAsync(RequireOrganization(organizationId), formId, request, cancellationToken);
@@ -119,6 +128,13 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
         if (string.IsNullOrWhiteSpace(label) || string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Rótulo e valor da opção são obrigatórios.");
         if (score is < 1 or > 5) throw new ArgumentException("A pontuação da opção deve estar entre 1 e 5.");
         if (position < 0) throw new ArgumentException("A posição deve ser positiva.");
+    }
+
+    private static void ValidateTextLengths(string name, string? description, string? category) {
+        if (name.Trim().Length < 3) throw new ArgumentException("O nome deve ter pelo menos 3 caracteres.");
+        if (name.Trim().Length > 160) throw new ArgumentException("O nome deve ter no máximo 160 caracteres.");
+        if (description?.Length > 1000) throw new ArgumentException("A descrição deve ter no máximo 1000 caracteres.");
+        if (category?.Length > 80) throw new ArgumentException("A categoria deve ter no máximo 80 caracteres.");
     }
 
     private static Guid RequireOrganization(Guid organizationId) => organizationId != Guid.Empty

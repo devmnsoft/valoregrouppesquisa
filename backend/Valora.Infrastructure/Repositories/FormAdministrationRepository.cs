@@ -82,6 +82,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
                    f.status AS "Status",
                    f.current_draft_version_id AS "CurrentDraftVersionId",
                    f.latest_published_version_id AS "LatestPublishedVersionId",
+                   COALESCE(fv.version_number, 0)::int AS "SelectedVersionNumber",
                    COALESCE(f.version, 0)::bigint AS "Version",
                    fv.row_version::bigint AS "DraftVersion"
               FROM valorapesquisa.forms f
@@ -98,7 +99,40 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         var sections = selectedVersionId is null
             ? []
             : await LoadSectionsAsync(connection, selectedVersionId.Value, cancellationToken);
-        return new(row.Id, row.OrganizationId, row.Name, row.Description, row.Category, row.EstimatedMinutes, row.Status, row.CurrentDraftVersionId, row.LatestPublishedVersionId, row.Version, row.DraftVersion, sections);
+        return new(row.Id, row.OrganizationId, row.Name, row.Description, row.Category, row.EstimatedMinutes, row.Status, row.CurrentDraftVersionId, row.LatestPublishedVersionId, row.SelectedVersionNumber, row.Version, row.DraftVersion, sections);
+    }
+
+    public async Task<IReadOnlyList<FormDimensionCatalogItem>> ListDimensionsAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken) {
+        const string sql = """
+            WITH scoped_form AS (
+                SELECT id FROM valorapesquisa.forms
+                 WHERE id=@formId AND organization_id=@organizationId AND deleted_at IS NULL
+            ), authorized AS (
+                SELECT d.code, d.name, true AS active
+                  FROM valorapesquisa.methodology_dimensions d
+                  JOIN valorapesquisa.methodology_versions mv ON mv.id=d.methodology_version_id
+                  CROSS JOIN scoped_form
+                 WHERE d.deleted_at IS NULL AND d.status='active' AND mv.deleted_at IS NULL AND mv.status='published'
+                   AND (mv.is_official OR EXISTS (
+                       SELECT 1 FROM valorapesquisa.organization_methodology_settings oms
+                        WHERE oms.organization_id=@organizationId AND oms.methodology_version_id=mv.id
+                          AND oms.is_active AND oms.deleted_at IS NULL))
+            ), referenced AS (
+                SELECT DISTINCT q.dimension_code AS code, q.dimension_code AS name, false AS active
+                  FROM scoped_form sf JOIN valorapesquisa.forms f ON f.id=sf.id
+                  JOIN valorapesquisa.form_versions fv ON fv.form_id=f.id
+                  JOIN valorapesquisa.form_section_versions s ON s.form_version_id=fv.id AND s.deleted_at IS NULL
+                  JOIN valorapesquisa.question_versions q ON q.section_id=s.id AND q.deleted_at IS NULL
+                 WHERE f.id=@formId AND f.organization_id=@organizationId AND f.deleted_at IS NULL
+                   AND NULLIF(BTRIM(q.dimension_code),'') IS NOT NULL
+            ), catalog AS (SELECT * FROM authorized UNION ALL SELECT * FROM referenced)
+            SELECT code AS "Code", COALESCE(MAX(name) FILTER(WHERE active),code) AS "Name", BOOL_OR(active) AS "IsActive",
+                   NOT BOOL_OR(active) AS "IsLegacy"
+              FROM catalog GROUP BY code ORDER BY NOT BOOL_OR(active), COALESCE(MAX(name) FILTER(WHERE active),code),code;
+            """;
+        using var connection = connections.Create();
+        return (await connection.QueryAsync<FormDimensionCatalogItem>(new CommandDefinition(sql,
+            new { organizationId, formId }, cancellationToken: cancellationToken))).AsList();
     }
 
     public async Task<FormDetailResponse> CreateAsync(Guid organizationId, Guid userId, CreateFormRequest request, CancellationToken cancellationToken) {
@@ -195,8 +229,8 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         var table = request.ItemType switch { "section" => "form_section_versions", "question" => "question_versions", "option" => "question_option_versions", _ => throw new ArgumentOutOfRangeException(nameof(request)) };
         var containerColumn = request.ItemType switch { "section" => "form_version_id", "question" => "section_id", _ => "question_id" };
         await using var unit = await transactions.BeginAsync(cancellationToken);
-        var ownershipSql = $"SELECT fv.id FROM valorapesquisa.{table} i JOIN valorapesquisa.form_versions fv ON fv.id={(request.ItemType == "section" ? "i.form_version_id" : request.ItemType == "question" ? "(SELECT s.form_version_id FROM valorapesquisa.form_section_versions s WHERE s.id=i.section_id)" : "(SELECT s.form_version_id FROM valorapesquisa.question_versions q JOIN valorapesquisa.form_section_versions s ON s.id=q.section_id WHERE q.id=i.question_id)")} JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE i.id=@itemId AND f.id=@formId AND f.organization_id=@organizationId AND f.current_draft_version_id=fv.id AND fv.status='draft' AND fv.row_version=@expectedVersion;";
-        var draftVersionId = await unit.Connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(ownershipSql, new { organizationId, formId, request.ItemId, request.ExpectedVersion }, unit.Transaction, cancellationToken: cancellationToken));
+        var ownershipSql = $"SELECT fv.id FROM valorapesquisa.{table} i JOIN valorapesquisa.form_versions fv ON fv.id={(request.ItemType == "section" ? "i.form_version_id" : request.ItemType == "question" ? "(SELECT s.form_version_id FROM valorapesquisa.form_section_versions s WHERE s.id=i.section_id)" : "(SELECT s.form_version_id FROM valorapesquisa.question_versions q JOIN valorapesquisa.form_section_versions s ON s.id=q.section_id WHERE q.id=i.question_id)")} JOIN valorapesquisa.forms f ON f.id=fv.form_id WHERE i.id=@itemId AND i.{containerColumn}=@sourceContainerId AND i.position=@previousPosition AND i.deleted_at IS NULL AND f.id=@formId AND f.organization_id=@organizationId AND f.current_draft_version_id=fv.id AND fv.status='draft' AND fv.row_version=@expectedVersion;";
+        var draftVersionId = await unit.Connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(ownershipSql, new { organizationId, formId, request.ItemId, request.SourceContainerId, request.PreviousPosition, request.ExpectedVersion }, unit.Transaction, cancellationToken: cancellationToken));
         if (draftVersionId is null) return null;
         var containerId = request.TargetContainerId ?? request.SourceContainerId;
         if (containerId is null) return null;
@@ -206,8 +240,22 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
             _ => await unit.Connection.ExecuteScalarAsync<bool>(new CommandDefinition("SELECT EXISTS(SELECT 1 FROM valorapesquisa.question_versions q JOIN valorapesquisa.form_section_versions s ON s.id=q.section_id WHERE q.id=@containerId AND s.form_version_id=@draftVersionId AND q.deleted_at IS NULL AND s.deleted_at IS NULL)", new { containerId, draftVersionId }, unit.Transaction, cancellationToken: cancellationToken))
         };
         if (!targetIsValid) return null;
-        var sql = $"UPDATE valorapesquisa.{table} SET position=position+1 WHERE {containerColumn}=@containerId AND deleted_at IS NULL AND position>=@newPosition AND id<>@itemId; UPDATE valorapesquisa.{table} SET {containerColumn}=@containerId,position=@newPosition,version=version+1,updated_at=now() WHERE id=@itemId; SELECT id FROM valorapesquisa.{table} WHERE {containerColumn}=@containerId AND deleted_at IS NULL ORDER BY position,id;";
-        var order = (await unit.Connection.QueryAsync<Guid>(new CommandDefinition(sql, new { request.ItemId, containerId, request.NewPosition }, unit.Transaction, cancellationToken: cancellationToken))).AsList();
+        var sql = $"""
+            UPDATE valorapesquisa.{table}
+               SET position = CASE
+                   WHEN @sourceContainerId=@containerId AND @newPosition>@previousPosition THEN position-1
+                   WHEN @sourceContainerId=@containerId THEN position+1
+                   WHEN {containerColumn}=@sourceContainerId THEN position-1
+                   ELSE position+1 END
+             WHERE deleted_at IS NULL AND id<>@itemId AND (
+                   (@sourceContainerId=@containerId AND @newPosition>@previousPosition AND {containerColumn}=@containerId AND position>@previousPosition AND position<=@newPosition)
+                OR (@sourceContainerId=@containerId AND @newPosition<@previousPosition AND {containerColumn}=@containerId AND position>=@newPosition AND position<@previousPosition)
+                OR (@sourceContainerId<>@containerId AND {containerColumn}=@sourceContainerId AND position>@previousPosition)
+                OR (@sourceContainerId<>@containerId AND {containerColumn}=@containerId AND position>=@newPosition));
+            UPDATE valorapesquisa.{table} SET {containerColumn}=@containerId,position=@newPosition,version=version+1,updated_at=now() WHERE id=@itemId;
+            SELECT id FROM valorapesquisa.{table} WHERE {containerColumn}=@containerId AND deleted_at IS NULL ORDER BY position,id;
+            """;
+        var order = (await unit.Connection.QueryAsync<Guid>(new CommandDefinition(sql, new { request.ItemId, request.SourceContainerId, request.PreviousPosition, containerId, request.NewPosition }, unit.Transaction, cancellationToken: cancellationToken))).AsList();
         await unit.Connection.ExecuteAsync(new CommandDefinition("UPDATE valorapesquisa.form_versions SET row_version=row_version+1,updated_at=now() WHERE id=@draftVersionId", new { draftVersionId }, unit.Transaction, cancellationToken: cancellationToken));
         await unit.CommitAsync();
         return new(request.ItemId, request.ItemType, containerId, request.NewPosition, request.ExpectedVersion + 1, order);
@@ -568,6 +616,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         public string Status { get; init; } = string.Empty;
         public Guid? CurrentDraftVersionId { get; init; }
         public Guid? LatestPublishedVersionId { get; init; }
+        public int SelectedVersionNumber { get; init; }
         public long Version { get; init; }
         public long? DraftVersion { get; init; }
     }

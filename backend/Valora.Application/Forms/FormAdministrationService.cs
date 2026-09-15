@@ -16,6 +16,31 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
     public Task<FormDetailResponse?> GetAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken) =>
         repository.GetAsync(RequireOrganization(organizationId), formId, cancellationToken);
 
+    public async Task<FormPublicationReviewResponse?> ReviewPublicationAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken) {
+        var detail = await repository.GetAsync(RequireOrganization(organizationId), formId, cancellationToken);
+        if (detail is null || detail.CurrentDraftVersionId is null) return null;
+        var questions = detail.Sections.SelectMany(section => section.Questions).ToList();
+        var respondable = questions.Where(question => !IsInformational(question.Type)).ToList();
+        var blockers = new List<PublicationReviewIssue>();
+        var warnings = new List<PublicationReviewIssue>();
+        if (string.IsNullOrWhiteSpace(detail.Name)) blockers.Add(new("FORM_NAME", "Informe o nome do formulário.", "form", detail.Id));
+        if (string.IsNullOrWhiteSpace(detail.Category)) blockers.Add(new("FORM_CATEGORY", "Selecione a categoria do formulário.", "form", detail.Id));
+        if (detail.Sections.Count == 0) blockers.Add(new("NO_SECTIONS", "Adicione ao menos uma seção ativa.", "form", detail.Id));
+        if (respondable.Count == 0) blockers.Add(new("NO_RESPONDABLE_QUESTIONS", "Adicione ao menos uma pergunta respondível em uma seção ativa.", "form", detail.Id));
+        foreach (var question in respondable) {
+            if (string.IsNullOrWhiteSpace(question.Title)) blockers.Add(new("QUESTION_TITLE", "Informe o título da pergunta.", "question", question.Id));
+            if (question.Type is "single_choice" or "multiple_choice" && question.Options.Count == 0)
+                blockers.Add(new("QUESTION_OPTIONS", "Adicione ao menos uma opção de resposta.", "question", question.Id));
+            if (string.IsNullOrWhiteSpace(question.DimensionCode)) warnings.Add(new("QUESTION_DIMENSION", "Vincule a pergunta a uma dimensão para incluí-la na leitura metodológica.", "question", question.Id));
+            if (question.Weight == 0) warnings.Add(new("QUESTION_WEIGHT", "Esta pergunta tem peso zero e não contribuirá para a pontuação.", "question", question.Id));
+        }
+        return new(detail.Id, detail.CurrentDraftVersionId.Value, detail.SelectedVersionNumber, detail.Sections.Count,
+            respondable.Count, questions.Count - respondable.Count, respondable.Count(question => !string.IsNullOrWhiteSpace(question.DimensionCode)), blockers, warnings);
+    }
+
+    public Task<IReadOnlyList<FormDimensionCatalogItem>> ListDimensionsAsync(Guid organizationId, Guid formId, CancellationToken cancellationToken) =>
+        repository.ListDimensionsAsync(RequireOrganization(organizationId), formId, cancellationToken);
+
     public Task<FormDetailResponse> CreateAsync(Guid organizationId, Guid userId, CreateFormRequest request, CancellationToken cancellationToken) {
         RequireUser(userId);
         if (string.IsNullOrWhiteSpace(request.Name)) throw new ArgumentException("Informe o nome do formulário.", nameof(request));
@@ -145,6 +170,7 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
     }
 
     private static string? NullIfWhiteSpace(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    private static bool IsInformational(string type) => type is "heading" or "description" or "separator";
 
     private static Guid RequireOrganization(Guid organizationId) => organizationId != Guid.Empty
         ? organizationId

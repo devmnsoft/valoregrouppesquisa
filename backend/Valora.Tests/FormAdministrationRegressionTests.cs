@@ -4,6 +4,7 @@ namespace Valora.Tests;
 
 public sealed class FormAdministrationRegressionTests {
     private static readonly string RepositorySource = Read("Valora.Infrastructure", "Repositories", "FormAdministrationRepository.cs");
+    private static readonly string ServiceSource = Read("Valora.Application", "Forms", "FormAdministrationService.cs");
 
     [Fact]
     public void GetQuery_UsesStableQuotedAliasesAndExplicitDatabaseTypes() {
@@ -73,6 +74,38 @@ public sealed class FormAdministrationRegressionTests {
     public void Publication_UsesOnlyEligibleNonArchivedRespondableStructure() {
         Assert.Contains("s.deleted_at IS NULL AND q.deleted_at IS NULL", RepositorySource, StringComparison.Ordinal);
         Assert.Contains("q.type NOT IN ('heading','description','separator')", RepositorySource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PublicationReview_DistinguishesBlockersWarningsAndInformationalElements() {
+        Assert.Contains("ReviewPublicationAsync", ServiceSource, StringComparison.Ordinal);
+        Assert.Contains("NO_RESPONDABLE_QUESTIONS", ServiceSource, StringComparison.Ordinal);
+        Assert.Contains("QUESTION_OPTIONS", ServiceSource, StringComparison.Ordinal);
+        Assert.Contains("QUESTION_DIMENSION", ServiceSource, StringComparison.Ordinal);
+        Assert.Contains("QUESTION_WEIGHT", ServiceSource, StringComparison.Ordinal);
+        Assert.Contains("type is \"heading\" or \"description\" or \"separator\"", ServiceSource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DetailContract_ExposesTheSelectedVersionWithoutConfusingConcurrencyTokens() {
+        Assert.Contains("fv.version_number, 0)::int AS \"SelectedVersionNumber\"", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("fv.row_version::bigint AS \"DraftVersion\"", RepositorySource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Reorder_ValidatesTheSnapshotAndShiftsBothDirectionsWithoutDuplicatePositions() {
+        Assert.Contains("i.position=@previousPosition", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("@newPosition>@previousPosition THEN position-1", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("@newPosition<@previousPosition", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("@sourceContainerId<>@containerId", RepositorySource, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DimensionCatalog_CombinesAuthorizedPublishedDimensionsWithLegacyLinksInsideTenantScope() {
+        Assert.Contains("organization_methodology_settings", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("mv.is_official OR EXISTS", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("f.organization_id=@organizationId", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("NOT BOOL_OR(active) AS \"IsLegacy\"", RepositorySource, StringComparison.Ordinal);
     }
 
     private static string Read(params string[] parts) =>

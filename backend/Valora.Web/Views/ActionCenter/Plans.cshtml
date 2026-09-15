@@ -19,6 +19,7 @@
 <main class="valora-page">
     <partial name="_PageHeader" model="@(new PageHeaderViewModel("Planos de ação", "Encontre e acompanhe compromissos no contexto da organização selecionada.", "Valora Action™", $"{planPage.Total} plano(s) autorizado(s)", Model.CanCreate ? new[] { new PageHeaderAction("Criar plano", "/ActionCenter/Plans/Create", Style: "primary", Icon: "plus") } : Array.Empty<PageHeaderAction>()))" />
     <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar", "Combine filtros para localizar planos; os filtros permanecem na URL.", new[] { "Abra um plano para consultar atividades.", "Use prazo para priorizar a execução.", "Limpe os filtros para retornar à visão completa." }))" />
+    @if(Model.CanEvaluate){<nav class="action-quick-filters" aria-label="Consultas rápidas"><a class="valora-button @(query.Status=="proposed"?"valora-button--primary":"valora-button--ghost")" asp-action="Plans" asp-route-Status="proposed">Aguardando avaliação</a></nav>}
     <section class="valora-card" aria-labelledby="plan-filters-title">
         <h2 id="plan-filters-title">Filtros</h2>
         <form method="get" class="form-grid">

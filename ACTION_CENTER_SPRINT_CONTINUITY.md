@@ -95,3 +95,17 @@ Atividades podem ser preparadas antes da execução, mas comandos de execução 
 - Os testes JavaScript e as verificações estáticas locais foram executados.
 - O SDK .NET `10.0.100` continua ausente (`dotnet: command not found`), impedindo restore, build, Razor e testes .NET.
 - Não há PostgreSQL de teste nem aplicação autenticada executável; a migração, os cenários concorrentes reais e a validação visual nos cinco viewports permanecem pendentes. Nenhuma captura foi produzida porque o aplicativo não pôde ser iniciado.
+
+## Incremento — prontidão, avaliação e encerramento coerentes (2026-09-15)
+
+- O braço desconhecido da expressão de transição agora usa diretamente `throw`, com a tupla explicitamente tipada como `(string From, string To)`, eliminando o CS8115 sem alterar a versão da linguagem.
+- Submissão e início revalidam, dentro da transação, que o responsável existe, está ativo e pertence à organização. O início também exige uma aprovação registrada; mudanças operacionais não invalidam a aprovação, enquanto edição material registra um evento explícito de invalidação e retorna o plano à avaliação.
+- A conclusão exige pelo menos uma atividade concluída inclusive quando o plano não possui atividades. Atividades abertas continuam impedindo tanto conclusão quanto cancelamento, sem cascata silenciosa.
+- A consulta de prontidão passou a expor etapa, ações do estado, impedimentos, avisos, contagens e destinos tipados. As capacidades da tela são explícitas por ação e a lista oferece a consulta rápida **Aguardando avaliação** somente ao perfil aprovador.
+- O detalhe apresenta avisos e impedimentos vindos da consulta do servidor, preserva a revisão de encerramento mesmo quando há bloqueios e traduz o evento de aprovação invalidada no histórico.
+
+### Validação e limitações desta execução
+
+- Os testes JavaScript do ActionCenter e as verificações de sintaxe passaram.
+- O executável `dotnet` não está instalado e o download do SDK 10.0.100 foi bloqueado pelo proxy com HTTP 403; restore, build, Razor e testes .NET não puderam ser executados neste contêiner.
+- `VALORA_TEST_POSTGRES_CONNECTION` não está configurada e não há `psql`, Docker, aplicação autenticada ou navegador disponível. Assim, integração PostgreSQL, concorrência real e capturas nos cinco viewports continuam pendentes, sem declaração de homologação.

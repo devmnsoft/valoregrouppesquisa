@@ -29,11 +29,15 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
                    COALESCE(stats.dimensions, 0)::int AS "Dimensions",
                    COALESCE(f.updated_at, f.created_at, now()) AS "UpdatedAt",
                    COALESCE(f.version, 0)::bigint AS "Version",
+                   f.latest_published_version_id AS "LatestPublishedVersionId",
+                   published.version_number::int AS "LatestPublishedVersionNumber",
+                   COALESCE(published_stats.questions, 0)::int AS "PublishedQuestions",
                    EXISTS(SELECT 1 FROM valorapesquisa.surveys su JOIN valorapesquisa.form_versions used ON used.id=su.form_version_id WHERE su.organization_id=@organizationId AND used.form_id=f.id AND su.deleted_at IS NULL AND su.status IN ('active','published','open')) AS "InCurrentUse",
                    EXISTS(SELECT 1 FROM valorapesquisa.surveys su JOIN valorapesquisa.form_versions used ON used.id=su.form_version_id WHERE su.organization_id=@organizationId AND used.form_id=f.id) AS "HasHistoricalUse",
                    EXISTS(SELECT 1 FROM valorapesquisa.responses r JOIN valorapesquisa.surveys su ON su.id=r.survey_id JOIN valorapesquisa.form_versions used ON used.id=su.form_version_id WHERE r.organization_id=@organizationId AND used.form_id=f.id) AS "HasResponses"
               FROM filtered f
               LEFT JOIN valorapesquisa.form_versions fv ON fv.id = COALESCE(f.current_draft_version_id, f.latest_published_version_id)
+              LEFT JOIN valorapesquisa.form_versions published ON published.id = f.latest_published_version_id AND published.status='published'
               LEFT JOIN LATERAL (
                   SELECT COUNT(DISTINCT s.id)::int AS sections,
                          COUNT(q.id)::int AS questions,
@@ -42,6 +46,12 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
                     LEFT JOIN valorapesquisa.question_versions q ON q.section_id = s.id AND q.deleted_at IS NULL
                    WHERE s.form_version_id = fv.id AND s.deleted_at IS NULL
               ) stats ON true
+              LEFT JOIN LATERAL (
+                  SELECT COUNT(q.id) FILTER (WHERE q.type NOT IN ('heading','description','separator'))::int AS questions
+                    FROM valorapesquisa.form_section_versions s
+                    JOIN valorapesquisa.question_versions q ON q.section_id=s.id AND q.deleted_at IS NULL
+                   WHERE s.form_version_id=published.id AND s.deleted_at IS NULL
+              ) published_stats ON true
              ORDER BY COALESCE(f.updated_at, f.created_at) DESC, f.id
              LIMIT @pageSize OFFSET @offset;
 

@@ -21,6 +21,7 @@
       <label class="visually-hidden" for="survey-status">Filtrar por status</label><select class="form-select" id="survey-status" data-status><option value="">Todos os status</option><option value="draft">Rascunho</option><option value="published">Publicado</option><option value="active">Ativo</option><option value="closed">Encerrado</option><option value="archived">Arquivado</option></select>
     </div>
     <div class="alert alert-danger d-none mt-3" role="alert" aria-live="assertive" data-error></div>
+    <div class="d-none mt-3" data-link-fallback-wrap><label class="form-label" for="survey-link-fallback">Link de participação para cópia manual</label><input class="form-control" id="survey-link-fallback" readonly data-link-fallback></div>
     <div class="survey-skeleton mt-3" data-loading aria-label="Carregando diagnósticos"><span></span><span></span><span></span></div>
     <div class="table-responsive mt-3 d-none" data-table><table class="table align-middle"><thead><tr><th>Diagnóstico</th><th>Formulário</th><th>Período</th><th>Status</th><th><span class="visually-hidden">Ações</span></th></tr></thead><tbody data-items></tbody></table></div>
     <div class="empty-state d-none" data-empty><h3>Nenhum diagnóstico encontrado</h3><p>Crie um ciclo de escuta a partir de um formulário válido.</p><button class="btn btn-primary" type="button" data-new-survey>Criar diagnóstico</button></div>
@@ -30,10 +31,14 @@
 <dialog class="valora-dialog" data-survey-dialog aria-labelledby="survey-dialog-title">
   <form method="dialog" data-survey-form><header><div><span class="eyebrow">Ciclo de escuta</span><h2 id="survey-dialog-title">Novo diagnóstico</h2></div><button type="button" class="btn-close" data-dialog-close aria-label="Fechar"></button></header>
     <input type="hidden" name="id">
+    <input type="hidden" name="formId"><input type="hidden" name="formVersionId">
+    <div class="alert alert-danger d-none" role="alert" aria-live="assertive" tabindex="-1" data-form-error></div>
     <label class="form-label" for="survey-title">Título</label><input class="form-control" id="survey-title" name="title" required maxlength="160">
     <label class="form-label mt-3" for="survey-description">Descrição</label><textarea class="form-control" id="survey-description" name="description" rows="3" maxlength="1000"></textarea>
-    <label class="form-label mt-3" for="survey-form">Formulário base</label><select class="form-select" id="survey-form" name="formId" required><option value="">Carregando formulários…</option></select>
-    <p class="form-text">Publique o formulário e confirme que ele possui perguntas antes de ativar o diagnóstico.</p>
+    <label class="form-label mt-3" for="survey-form-search">Formulário e versão publicada</label><input class="form-control" id="survey-form-search" type="search" placeholder="Buscar por nome ou categoria" autocomplete="off" data-form-search>
+    <p class="form-text" data-selected-form>Nenhum formulário selecionado. A versão escolhida será preservada durante a coleta.</p>
+    <div class="survey-form-results mt-2" role="listbox" aria-label="Versões publicadas encontradas" data-form-results></div><div class="survey-form-pagination" data-form-pagination></div>
+    <div class="row g-3 mt-1"><div class="col-md-6"><label class="form-label" for="survey-start">Início da coleta</label><input class="form-control" id="survey-start" name="startsAt" type="datetime-local"></div><div class="col-md-6"><label class="form-label" for="survey-end">Término da coleta</label><input class="form-control" id="survey-end" name="expiresAt" type="datetime-local"></div></div>
     <footer><button type="button" class="btn btn-outline-secondary" data-dialog-close>Cancelar</button><button type="submit" class="btn btn-primary" data-save>Salvar rascunho</button></footer>
   </form>
 </dialog>

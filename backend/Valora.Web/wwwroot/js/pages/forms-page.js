@@ -49,9 +49,8 @@
     const sequence = ++requestSequence;
     error.classList.add('d-none'); count.textContent = 'Preparando biblioteca…'; setMetrics(null); skeleton();
     try {
-      const result = FormsApi.normalize(await FormsApi.list(query()));
+      const result = FormsApi.normalizeList(await FormsApi.list(query()));
       if (sequence !== requestSequence) return;
-      if (!result || !Array.isArray(result.items)) throw new Error('Contrato paginado inválido.');
       page = result.page;
       const selected = category.value || category.dataset.savedValue || '';
       category.innerHTML = '<option value="">Todas as categorias</option>' + (result.categories || []).map(value => `<option value="${escape(value)}">${escape(value)}</option>`).join('');
@@ -87,7 +86,7 @@
       if (!await window.ValoraUI.confirm(`Arquivar “${snapshot.name}”? O histórico e as respostas serão preservados. Esta operação será bloqueada se houver coleta em andamento.`)) return;
       await FormsApi.archive(snapshot.id, { expectedVersion: snapshot.version });
       await load();
-      const current = FormsApi.normalize(await FormsApi.list(query()));
+      const current = FormsApi.normalizeList(await FormsApi.list(query()));
       if (page > 1 && Array.isArray(current?.items) && current.items.length === 0) { page -= 1; await load(); }
       window.ValoraUI.toast?.('Formulário arquivado. Histórico e respostas foram preservados.', 'success');
     } catch (problem) { error.querySelector('[data-error-message]').textContent = ` ${problem.message || 'A operação não foi concluída.'}`; error.classList.remove('d-none'); }

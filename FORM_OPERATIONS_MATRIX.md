@@ -47,3 +47,26 @@ Pendente para o próximo lote: consulta prévia dedicada de elegibilidade ao arq
 | `archived` | versão histórica preservada | não | não | não | não |
 
 `forms.version` protege operações no agregado (dados básicos, nova versão e arquivamento); `form_versions.row_version` protege edição/publicação da estrutura. Publicar não reatribui pesquisas antigas, criar rascunho gera novos identificadores em transação, e arquivar não exclui versões, pesquisas, respostas nem relatórios. Uso atual significa vínculo a pesquisa `active`, `published` ou `open`; uso histórico significa qualquer vínculo; respostas são informadas separadamente.
+
+## Incremento — integração Forms → Diagnósticos (2026-09-15)
+
+| Operação | Estado | Evidência | Limitação |
+|---|---|---|---|
+| Consumir listagem paginada de Forms | **Implementado e verificado localmente** | `FormsApi.normalizeList` valida `items`, total e paginação; biblioteca e seletor deixaram de tratar envelope como array. Teste carrega JSON camelCase equivalente à serialização ASP.NET e rejeita contrato antigo/malformado. | Integração HTTP autenticada permanece bloqueada sem aplicação compilável. |
+| Carregar diagnósticos e seletor | **Implementado e verificado estaticamente** | Requisições independentes; erro do catálogo não substitui diagnósticos já carregados. | Banco/API real indisponíveis. |
+| Buscar formulário fora da primeira página | **Implementado no cliente** | Busca com debounce, páginas de 10 itens e navegação Anterior/Próxima; nenhuma escolha arbitrária. Edição consulta o vínculo por id antes de pesquisar o catálogo. | O endpoint ainda precisa expor metadados explícitos da última publicação em todas as instalações para distinguir integralmente rascunho posterior. |
+| Cadastro/edição do diagnóstico | **Implementado no cliente; backend pendente** | Título, objetivo, versão, início e término; erro dentro do diálogo, valores preservados, bloqueio de duplo envio, estado de envio e aviso de alterações pendentes. | A API administrativa legada ainda não persiste `formVersionId`/período nem aplica a matriz transacional completa; não foi declarada pronta para produção. |
+| Revisar/abrir/encerrar | **Parcial** | Textos e confirmações distinguem revisão, abertura e consequência do encerramento; cliente não envia status no create/update. | Revalidação transacional, concorrência encerramento×resposta e autorização por transição permanecem pendentes no endpoint administrativo canônico. |
+| Gerar/copiar link | **Implementado no cliente** | Ação “Gerar link de participação” difere de “Copiar link”; URL obrigatória; fallback selecionável quando Clipboard falha; sucesso somente após `writeText`. | Revogação existe no SDK, mas ainda não ganhou ação nesta lista; persistência real não verificada. |
+| Preview do Builder | **Implementado e verificado por sintaxe** | Renderizador próprio de resposta, sem `data-select`, exclusão, reordenação ou inclusão; campos são experimentáveis e informam que nada será salvo. | Percurso visual autenticado bloqueado. |
+| Acompanhamento | **Parcial** | Estado, formulário/versão quando disponível, período, quantidade real quando fornecida e links de respostas/resultados; ausência de denominador não produz percentual. | API atual não fornece contagem/última atividade confiáveis em todas as instalações. |
+
+### Matriz de transições observada e alvo de proteção
+
+| Origem | Destino | Intenção na interface | Pré-condições | Efeito esperado |
+|---|---|---|---|---|
+| `draft` | `active` | Revisar e abrir | versão publicada respondível, período coerente, organização/permissão/módulo | aceita respostas e permite gerar link |
+| `active`/`open`/`published` | `closed` | Encerrar | vínculo/versionamento ainda válidos e confirmação | revoga/bloqueia participação nova; preserva respostas |
+| `closed` | — | nenhuma reabertura oferecida | — | histórico e resultados permanecem consultáveis |
+
+A matriz descreve o comportamento requerido, mas a proteção direta da API antiga está marcada **pendente** até que o repository administrativo seja migrado integralmente do contrato compatível (`form_id`) para o esquema canônico (`form_version_id`). Não foi criada entidade paralela nem feita associação retroativa à versão mais recente por suposição.

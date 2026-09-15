@@ -47,7 +47,7 @@ function harness(confirmResult = true) {
       location: { search: '', assigned: null, assign(value) { this.assigned = value; } }
     },
     FormsApi: {
-      list: async () => [], normalize: value => value,
+      list: async () => ({ items: [], total: 0, page: 1, pageSize: 20, totalPages: 0, hasPreviousPage: false, hasNextPage: false }), normalize: value => value, normalizeList: value => value,
       create: async request => { creates.push(request); return { id: 'form-1' }; }
     },
     sessionStorage: { getItem: () => null, setItem() {} }

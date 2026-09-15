@@ -1,7 +1,31 @@
 (function(){
   const base = '/bff/forms';
+  function normalizeList(response) {
+    const payload = response && Object.prototype.hasOwnProperty.call(response, 'data') ? response.data : response;
+    if (!payload || !Array.isArray(payload.items)) {
+      throw new TypeError('Contrato inválido da listagem de formulários: o envelope paginado não contém items.');
+    }
+    const integers = ['total', 'page', 'pageSize', 'totalPages'];
+    integers.forEach(name => {
+      if (!Number.isInteger(payload[name]) || payload[name] < 0) {
+        throw new TypeError(`Contrato inválido da listagem de formulários: ${name} não é um inteiro válido.`);
+      }
+    });
+    return {
+      items: payload.items,
+      total: payload.total,
+      page: payload.page,
+      pageSize: payload.pageSize,
+      totalPages: payload.totalPages,
+      hasPreviousPage: Boolean(payload.hasPreviousPage),
+      hasNextPage: Boolean(payload.hasNextPage),
+      categories: Array.isArray(payload.categories) ? payload.categories : [],
+      metrics: payload.metrics || null
+    };
+  }
   window.FormsApi = {
     normalize: response => response && response.data ? response.data : response,
+    normalizeList,
     list: query => AjaxClient.get(base + (query || '')),
     get: id => AjaxClient.get(base + '/' + encodeURIComponent(id)),
     create: data => AjaxClient.post(base, data),

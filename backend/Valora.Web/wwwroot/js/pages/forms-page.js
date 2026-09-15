@@ -9,7 +9,11 @@
   const search = host.querySelector('[data-filter-search]');
   const status = host.querySelector('[data-filter-status]');
   const category = host.querySelector('[data-filter-category]');
+  const createForm = dialog.querySelector('[data-form-create]');
+  const createError = createForm.querySelector('[data-create-error]');
   let forms = [];
+  let createDirty = false;
+  let createSubmitting = false;
 
   function escape(value) {
     const node = document.createElement('span');
@@ -55,24 +59,34 @@
   }
 
   host.querySelectorAll('[data-new-form], [data-action="new-form"]').forEach(button => button.addEventListener('click', () => dialog.showModal()));
-  document.querySelectorAll('[data-dialog-close]').forEach(button => button.addEventListener('click', () => dialog.close()));
+  async function closeCreateDialog() {
+    if (createSubmitting) return;
+    if (createDirty && !await window.ValoraUI.confirm('Descartar os dados ainda não salvos deste formulário?')) return;
+    createForm.reset(); createDirty = false; createError.classList.add('d-none'); dialog.close();
+  }
+  document.querySelectorAll('[data-dialog-close]').forEach(button => button.addEventListener('click', closeCreateDialog));
+  dialog.addEventListener('cancel', event => { event.preventDefault(); closeCreateDialog(); });
   host.querySelector('[data-refresh]').addEventListener('click', load);
   host.querySelector('[data-retry]').addEventListener('click', load);
   [search, status, category].forEach(control => control.addEventListener(control === search ? 'input' : 'change', applyFilters));
   host.querySelector('[data-clear-filters]').addEventListener('click', () => { search.value = ''; status.value = ''; category.value = ''; applyFilters(); search.focus(); });
   try { const saved = JSON.parse(sessionStorage.getItem('valora.forms.filters') || '{}'); search.value = saved.search || ''; status.value = saved.status || ''; category.dataset.savedValue = saved.category || ''; } catch (_) { /* Preferências inválidas são ignoradas com segurança. */ }
-  dialog.querySelector('form').addEventListener('submit', async event => {
+  createForm.addEventListener('input', () => { createDirty = true; createError.classList.add('d-none'); });
+  createForm.addEventListener('submit', async event => {
     event.preventDefault();
+    if (createSubmitting || !event.currentTarget.reportValidity()) return;
+    if (!await window.ValoraUI.confirm('Criar este formulário e abrir o construtor?')) return;
     const submit = event.currentTarget.querySelector('[type="submit"]');
-    submit.disabled = true;
+    createSubmitting = true; submit.disabled = true; submit.textContent = 'Criando…';
     const values = new FormData(event.currentTarget);
     try {
-      await FormsApi.create({ name: values.get('name'), description: values.get('description'), category: values.get('category'), estimatedMinutes: Number(values.get('estimatedMinutes')) });
-      dialog.close(); event.currentTarget.reset(); window.ValoraToast?.success?.('Formulário criado. Agora organize dimensões e perguntas.'); await load();
+      const created = FormsApi.normalize(await FormsApi.create({ name: values.get('name'), description: values.get('description'), category: values.get('category'), estimatedMinutes: Number(values.get('estimatedMinutes')) }));
+      if (!created?.id) throw new Error('O servidor não confirmou o identificador do formulário criado.');
+      createDirty = false; window.location.assign(`/Forms/${encodeURIComponent(created.id)}/Builder`);
     } catch (problem) {
-      error.querySelector('[data-error-message]').textContent = ' Revise os campos obrigatórios e tente novamente.';
-      error.classList.remove('d-none');
-    } finally { submit.disabled = false; }
+      createError.textContent = problem.message || 'Não foi possível criar o formulário. Os dados foram preservados para nova tentativa.';
+      createError.classList.remove('d-none');
+    } finally { createSubmitting = false; submit.disabled = false; submit.textContent = 'Criar formulário'; }
   });
   if (new URLSearchParams(window.location.search).get('intent') === 'create') dialog.showModal();
   load();

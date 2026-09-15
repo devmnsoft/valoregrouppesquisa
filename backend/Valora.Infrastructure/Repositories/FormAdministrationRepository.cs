@@ -276,6 +276,9 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
              WHERE q.id=@questionId AND q.section_id=s.id AND s.form_version_id=fv.id AND fv.form_id=f.id
                AND f.id=@formId AND f.organization_id=@organizationId AND f.current_draft_version_id=fv.id
                AND fv.status='draft' AND q.deleted_at IS NULL AND q.version=@expectedVersion
+               AND (@type IN ('likert_1_5','single_choice','multiple_choice') OR NOT EXISTS (
+                    SELECT 1 FROM valorapesquisa.question_option_versions existing
+                     WHERE existing.question_id=q.id AND existing.deleted_at IS NULL))
             RETURNING q.id AS "Id",q.section_id AS "SectionId",q.code AS "Code",q.type AS "Type",q.title AS "Title",q.description AS "Description",q.required AS "Required",q.dimension_code AS "DimensionCode",q.weight AS "Weight",q.position::int AS "Position",q.settings::text AS "Settings",q.version::bigint AS "Version";
             """;
         var row = await unit.Connection.QuerySingleOrDefaultAsync<QuestionRow>(new CommandDefinition(sql, new {
@@ -315,7 +318,8 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
                  FROM valorapesquisa.forms f,valorapesquisa.form_section_versions s,valorapesquisa.question_versions q
                  WHERE f.id=@formId AND f.organization_id=@organizationId AND f.current_draft_version_id=fv.id
                    AND q.id=@questionId AND q.section_id=s.id AND s.form_version_id=fv.id
-                   AND q.deleted_at IS NULL AND s.deleted_at IS NULL AND fv.status='draft' AND fv.row_version=@expectedVersion
+                   AND q.deleted_at IS NULL AND q.type IN ('likert_1_5','single_choice','multiple_choice')
+                   AND s.deleted_at IS NULL AND fv.status='draft' AND fv.row_version=@expectedVersion
                  RETURNING fv.id
             )
             INSERT INTO valorapesquisa.question_option_versions(id,organization_id,question_id,label,value,score,position,display_order,version)
@@ -340,7 +344,8 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
               FROM valorapesquisa.question_versions q,valorapesquisa.form_section_versions s,valorapesquisa.form_versions fv,valorapesquisa.forms f
              WHERE o.id=@optionId AND o.question_id=q.id AND q.section_id=s.id AND s.form_version_id=fv.id AND fv.form_id=f.id
                AND f.id=@formId AND f.organization_id=@organizationId AND f.current_draft_version_id=fv.id
-               AND fv.status='draft' AND o.deleted_at IS NULL AND o.version=@expectedVersion
+               AND fv.status='draft' AND q.type IN ('likert_1_5','single_choice','multiple_choice')
+               AND o.deleted_at IS NULL AND o.version=@expectedVersion
             RETURNING o.id AS "Id",o.question_id AS "QuestionId",o.label AS "Label",o.value AS "Value",o.score AS "Score",o.position::int AS "Position",o.version::bigint AS "Version";
             """;
         var row = await unit.Connection.QuerySingleOrDefaultAsync<OptionRow>(new CommandDefinition(sql,

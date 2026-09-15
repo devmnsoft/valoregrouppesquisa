@@ -42,6 +42,13 @@ public sealed class FormAdministrationRegressionTests {
         Assert.DoesNotContain("return forms.GetAsync(Guid.Empty", controller, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void OptionWrites_RequireACompatibleQuestionTypeInsideTheScopedSql() {
+        Assert.Contains("q.type IN ('likert_1_5','single_choice','multiple_choice')", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("NOT EXISTS (", RepositorySource, StringComparison.Ordinal);
+        Assert.Contains("existing.question_id=q.id AND existing.deleted_at IS NULL", RepositorySource, StringComparison.Ordinal);
+    }
+
     private static string Read(params string[] parts) =>
         File.ReadAllText(Path.Combine([RepositoryPaths.RepositoryRoot, "backend", .. parts]));
 }

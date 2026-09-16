@@ -9,6 +9,20 @@ namespace Valora.Tests;
 [Trait("Category", "DatabaseContract")]
 public sealed class WorkspaceRepositoryPostgresTests {
     [Fact]
+    public void Quick_actions_are_authorized_on_the_server_and_reject_unknown_catalog_rows() {
+        var controller = File.ReadAllText(Support.RepositoryPaths.ApiFile("Controllers", "WorkspaceController.cs"));
+        var script = File.ReadAllText(Support.RepositoryPaths.CanonicalDatabaseScript);
+
+        Assert.Contains("QuickActionAccess.TryGetValue", controller, StringComparison.Ordinal);
+        Assert.Contains("Context.Modules.Contains", controller, StringComparison.Ordinal);
+        Assert.Contains("Context.Permissions.Contains", controller, StringComparison.Ordinal);
+        Assert.Contains("AvailableQuickActions(await actions.ListAsync", controller, StringComparison.Ordinal);
+        Assert.Contains("'form.create'", script, StringComparison.Ordinal);
+        Assert.Contains("'results.open'", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("'/Surveys/Create'", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void My_day_binds_wide_and_controller_derives_scope_from_roles() {
         var repository = File.ReadAllText(Support.RepositoryPaths.InfrastructureFile("Repositories", "WorkspaceRepositories.cs"));
         var controller = File.ReadAllText(Support.RepositoryPaths.ApiFile("Controllers", "WorkspaceController.cs"));

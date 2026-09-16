@@ -28,3 +28,9 @@ public sealed class EvolutionCycleViewModel {
     [StringLength(2000)]
     public string EvidenceSummary { get; init; } = string.Empty;
 }
+
+public sealed class EvolutionSnapshotViewModel {
+    [Required(ErrorMessage="Descreva as evidências observadas."),StringLength(2000)] public string Evidence { get; init; }=string.Empty;
+    [Required(ErrorMessage="Registre uma interpretação humana."),StringLength(2000)] public string Interpretation { get; init; }=string.Empty;
+    [Required(ErrorMessage="Informe a recomendação ou o próximo passo."),StringLength(2000)] public string Recommendation { get; init; }=string.Empty;
+}

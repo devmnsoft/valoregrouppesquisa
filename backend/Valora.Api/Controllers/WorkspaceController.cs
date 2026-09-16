@@ -17,7 +17,11 @@ public sealed class WorkspaceController(IExecutiveWorkspaceService workspace, IM
     private bool OrganizationWide => Context.IsGlobalAdministrator || Context.Roles.Contains("admin_cliente", StringComparer.OrdinalIgnoreCase);
     private IActionResult MissingContext() => BadRequest(new { code = "ORGANIZATION_REQUIRED", message = "Selecione uma organização para abrir seu Workspace.", correlationId = HttpContext.TraceIdentifier });
     private IActionResult? InvalidContext() => OrganizationId == Guid.Empty ? MissingContext() : UserId == Guid.Empty ? Unauthorized(new { code = "USER_REQUIRED", message = "Sua sessão precisa ser renovada.", correlationId = HttpContext.TraceIdentifier }) : null;
-    [HttpGet("workspace"), Authorize(Policy=ValoraPermissions.Priorities.Read)] public async Task<IActionResult> Get(CancellationToken ct) => InvalidContext() is { } error ? error : Ok(await workspace.GetAsync(OrganizationId, UserId, OrganizationWide, ct));
+    [HttpGet("workspace"), Authorize(Policy=ValoraPermissions.Priorities.Read)] public async Task<IActionResult> Get(CancellationToken ct) {
+        if (InvalidContext() is { } error) return error;
+        var result = await workspace.GetAsync(OrganizationId, UserId, OrganizationWide, ct);
+        return Ok(result with { QuickActions = AvailableQuickActions(result.QuickActions) });
+    }
     [HttpGet("workspace/my-day")] public async Task<IActionResult> MyDay(CancellationToken ct) => InvalidContext() is { } error ? error : Ok(await day.GetAsync(OrganizationId, UserId, OrganizationWide, ct));
     [HttpGet("workspace/priorities"), Authorize(Policy=ValoraPermissions.Priorities.Read)] public async Task<IActionResult> Priorities([FromQuery] PriorityListQuery query,CancellationToken ct) => InvalidContext() is { } error ? error : Ok(await priorities.ListAsync(OrganizationId, UserId, OrganizationWide, query, ct));
     [HttpGet("workspace/priorities/{id:guid}"), Authorize(Policy=ValoraPermissions.Priorities.Read)] public async Task<IActionResult> Priority(Guid id,CancellationToken ct) { if(InvalidContext() is { } error)return error; var value=await priorities.GetAsync(OrganizationId,UserId,id,OrganizationWide,CanManage,ct); if(value is null)return NotFound(new{code="PRIORITY_NOT_FOUND",message="Prioridade não encontrada.",correlationId=HttpContext.TraceIdentifier}); try { await items.RecordOpenAsync(OrganizationId,UserId,id,OrganizationWide,ct); } catch(Exception ex) when(ex is not OperationCanceledException) { logger.LogWarning(ex,"Não foi possível registrar acesso recente à prioridade {PriorityId} na organização {OrganizationId}",id,OrganizationId); } return Ok(value); }
@@ -48,9 +52,35 @@ public sealed class WorkspaceController(IExecutiveWorkspaceService workspace, IM
     [HttpDelete("workspace/pins/{id:guid}")] public async Task<IActionResult> Unpin(Guid id, CancellationToken ct) { if (InvalidContext() is { } error) return error; if (id == Guid.Empty) return ValidationProblem("Informe um item válido."); await items.UnpinAsync(OrganizationId, UserId, id, ct); return NoContent(); }
     [HttpPost("workspace/items/{id:guid}/open")] public async Task<IActionResult> Open(Guid id,CancellationToken ct) { if(InvalidContext() is { } error)return error; await items.RecordOpenAsync(OrganizationId,UserId,id,OrganizationWide,ct); return NoContent(); }
     [HttpGet("workspace/recent")] public async Task<IActionResult> Recent(CancellationToken ct) => OrganizationId == Guid.Empty ? MissingContext() : UserId == Guid.Empty ? Unauthorized() : Ok(await recent.GetAsync(OrganizationId, UserId, OrganizationWide, ct));
-    [HttpGet("workspace/quick-actions")] public async Task<IActionResult> Actions(CancellationToken ct) => InvalidContext() is { } error ? error : Ok(await actions.ListAsync(OrganizationId, ct));
-    [HttpPost("workspace/quick-actions/{code}/execute")] public async Task<IActionResult> Execute(string code, CancellationToken ct) { if (InvalidContext() is { } error) return error; var action = await actions.ExecuteAsync(OrganizationId, UserId, code, ct); return action is null ? NotFound(new { message = "Atalho não disponível para este contexto." }) : Ok(action); }
+    [HttpGet("workspace/quick-actions")] public async Task<IActionResult> Actions(CancellationToken ct) => InvalidContext() is { } error ? error : Ok(AvailableQuickActions(await actions.ListAsync(OrganizationId, ct)));
+    [HttpPost("workspace/quick-actions/{code}/execute")] public async Task<IActionResult> Execute(string code, CancellationToken ct) {
+        if (InvalidContext() is { } error) return error;
+        var available = AvailableQuickActions(await actions.ListAsync(OrganizationId, ct));
+        if (!available.Any(action => action.Code.Equals(code, StringComparison.OrdinalIgnoreCase)))
+            return NotFound(new { message = "Atalho não disponível para suas permissões e módulos contratados." });
+        var action = await actions.ExecuteAsync(OrganizationId, UserId, code, ct);
+        return action is null ? NotFound(new { message = "Atalho não disponível para este contexto." }) : Ok(action);
+    }
     private bool CanManage => Context.IsGlobalAdministrator || Context.Permissions.Contains(ValoraPermissions.Priorities.Manage,StringComparer.OrdinalIgnoreCase);
     private bool CanManageAction => Context.IsGlobalAdministrator || Context.Permissions.Contains(ValoraPermissions.Action.Manage,StringComparer.OrdinalIgnoreCase);
     private bool CanCompleteAction => Context.IsGlobalAdministrator || Context.Permissions.Contains(ValoraPermissions.Action.Complete,StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<QuickActionDto> AvailableQuickActions(IReadOnlyList<QuickActionDto> candidates) => candidates
+        .Where(action => QuickActionAccess.TryGetValue(action.Code, out var access) && HasAccess(access.Module, access.Permission))
+        .ToArray();
+    private bool HasAccess(string module, string permission) => Context.IsGlobalAdministrator ||
+        (Context.Modules.Contains(module, StringComparer.OrdinalIgnoreCase) && Context.Permissions.Contains(permission, StringComparer.OrdinalIgnoreCase));
+    // Unknown database rows are denied by default. Client-side hiding is never authorization.
+    private static readonly IReadOnlyDictionary<string, (string Module, string Permission)> QuickActionAccess =
+        new Dictionary<string, (string, string)>(StringComparer.OrdinalIgnoreCase) {
+            ["form.create"] = (ValoraModules.Forms, ValoraPermissions.Forms.Create),
+            ["diagnostic.create"] = (ValoraModules.Surveys, ValoraPermissions.Surveys.Create),
+            ["results.open"] = (ValoraModules.Results, ValoraPermissions.Results.Read),
+            ["action.create"] = ("organizational_intelligence", ValoraPermissions.Action.Manage),
+            ["decision.create"] = ("organizational_intelligence", ValoraPermissions.Decisions.Manage),
+            ["report.generate"] = ("reports", ValoraPermissions.Reports.Generate),
+            ["datahub.open"] = (ValoraModules.Operations, ValoraPermissions.Operations.Read),
+            ["intelligence.open"] = ("organizational_intelligence", ValoraPermissions.OrganizationalIntelligence.Read),
+            ["notifications.open"] = (ValoraModules.Communications, ValoraPermissions.Communications.Read),
+            ["approvals.open"] = ("organizational_intelligence", ValoraPermissions.Decisions.Approve)
+        };
 }

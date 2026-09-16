@@ -1,5 +1,29 @@
 # Continuidade — ActionCenter operacional
 
+## Incremento — acompanhamento de evolução verificável (2026-09-16)
+
+### Inventário curto
+
+| Fluxo | Implementação encontrada | Lacuna | Ação deste incremento |
+|---|---|---|---|
+| Resultado → plano | Resultado administrativo vincula o plano à origem persistida; ActionCenter mantém ciclo de vida, revisão e histórico | Nenhuma regressão observada no caminho inspecionado | Preservado como fonte canônica, sem duplicar comandos no Evolution |
+| Plano → execução → revisão | Central, detalhe, registros e revisão dedicada já existem com escopo organizacional, versão e idempotência | Fora do recorte alterado, integração PostgreSQL ainda depende do ambiente de testes | Preservado; métricas operacionais continuam distintas de maturidade |
+| Ciclo → acompanhamento | Evolution já persistia ciclos e snapshots | Controller não exigia as permissões específicas; formulário perdia valores; snapshot aceitava ciclo encerrado e calculava variação com a mesma pontuação corrente, sem demonstrar comparabilidade | Políticas aplicadas, modelo tipado e limites adicionados, lock/estado revalidados e variação artificial removida |
+| Comparação entre avaliações | Não havia regra explícita reutilizável | Versão, dimensões, escala, cálculo, população e disponibilidade não eram verificadas em conjunto | Serviço determinístico só calcula variação absoluta quando todas as bases coincidem; testes cobrem cada incompatibilidade |
+
+### Decisões e evidências
+
+- Snapshots operacionais preservam ações concluídas, atrasos e alertas, mas deixam `delta` nulo e a tendência como amostra insuficiente enquanto não houver duas avaliações com metadados comparáveis.
+- A comparação devolve a limitação em vez de percentual artificial e declara que variação observada não prova causalidade.
+- Criação de ciclos e registro de acompanhamento preservam os textos após erro, incluem ajuda contextual e devolvem o foco ao gatilho ao fechar o diálogo.
+- O servidor exige `evolution.read`, `evolution.manage` e `evolution.snapshots.generate` nos respectivos caminhos, além do contexto de organização resolvido.
+
+### Pendências e próximo incremento
+
+- Ligar seletores pesquisáveis de diagnóstico, resultados e planos aos catálogos autorizados existentes e persistir os vínculos sem solicitar UUID manual.
+- Materializar a assinatura metodológica a partir das versões publicadas e resultados persistidos; então apresentar avaliações lado a lado e usar o serviço de comparabilidade antes de exibir a variação.
+- Executar build/Razor e testes .NET com o SDK 10.0.100, integração em PostgreSQL e percurso autenticado nos cinco viewports. Este contêiner não possui `dotnet`, `psql`, Docker nem credenciais de sessão; essas evidências não foram simuladas.
+
 ## Incremento — Forms/Builder confiável (2026-09-15)
 
 - O fluxo prioritário Forms/Builder foi rastreado em `FORM_OPERATIONS_MATRIX.md`, separado explicitamente do frontend Firebase legado.

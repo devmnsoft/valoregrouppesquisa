@@ -1,7 +1,44 @@
 @model Valora.Web.Controllers.EvolutionDetailsViewModel
-
+@using Valora.Web.Models.ViewModels
 @{
-    ViewData["Title"]=Model.Cycle.Title;
+    ViewData["Title"] = Model.Cycle.Title;
+    var command = ViewData["SnapshotCommand"] as EvolutionSnapshotViewModel ?? new EvolutionSnapshotViewModel();
+    var acceptsReadings = Model.Cycle.Status is not "closed" and not "archived";
 }
 
-<main class="valora-page"><header class="leadership-hero"><div><p class="eyebrow">@Model.Cycle.Status · @Model.Cycle.Trend</p><h1>@Model.Cycle.Title</h1><p>@Model.Cycle.EvidenceSummary</p></div></header><section class="valora-card"><h2>Snapshots preservados</h2>@if(Model.Snapshots.Count==0){<p>Amostra insuficiente: gere a primeira leitura quando houver evidências.</p>}@foreach(var s in Model.Snapshots){<article><strong>@s.CalculatedAt.ToString("dd/MM/yyyy HH:mm") · @s.Trend</strong><p>@s.Interpretation</p><small>@s.EvidenceSummary</small></article>}<form method="post" action="/Evolution/Cycles/@Model.Cycle.Id/Snapshot"><h3>Gerar snapshot</h3><textarea name="evidence" required placeholder="Evidências observadas"></textarea><textarea name="interpretation" required placeholder="Interpretação sem atribuir causalidade"></textarea><textarea name="recommendation" required placeholder="Recomendação para decisão humana"></textarea><button class="btn btn-primary">Preservar nova leitura</button></form></section></main>
+<main class="valora-page">
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel(Model.Cycle.Title, "Acompanhe execução e evidências sem confundir atividade concluída com mudança organizacional.", "Valora Evolution™", Actions: new[] { new PageHeaderAction("Voltar aos ciclos", "/Evolution/Cycles") }))" />
+  @if (TempData["EvolutionSuccess"] is string success) { <div class="valora-alert valora-alert--success" role="status">@success</div> }
+  <div asp-validation-summary="ModelOnly" class="validation-summary-errors" role="alert"></div>
+
+  <section class="valora-card" aria-labelledby="cycle-summary-title">
+    <div class="section-heading"><div><p class="eyebrow">Resumo</p><h2 id="cycle-summary-title">Período e referência</h2></div><partial name="_StatusBadge" model="@(new StatusBadgeViewModel(Model.Cycle.Status, acceptsReadings ? "success" : "neutral"))" /></div>
+    <dl class="summary-grid">
+      <div><dt>Objetivo</dt><dd>@Model.Cycle.Summary</dd></div>
+      <div><dt>Período</dt><dd>@Model.Cycle.PeriodStart.ToString("dd/MM/yyyy") — @(Model.Cycle.PeriodEnd?.ToString("dd/MM/yyyy") ?? "em aberto")</dd></div>
+      <div><dt>Baseline informado</dt><dd>@(Model.Cycle.BaselineScore?.ToString("0.0") ?? "Sem resultado vinculado")</dd></div>
+      <div><dt>Leitura metodológica</dt><dd>Não calculada sem duas avaliações comprovadamente comparáveis.</dd></div>
+    </dl>
+    <p class="form-help">Os totais operacionais mostram execução de ações. Eles não representam melhoria de maturidade nem comprovam que um plano causou mudança no diagnóstico.</p>
+  </section>
+
+  <section class="valora-card" aria-labelledby="snapshots-title">
+    <div class="section-heading"><div><p class="eyebrow">Acompanhamento</p><h2 id="snapshots-title">Leituras preservadas</h2></div></div>
+    @if (Model.Snapshots.Count == 0) { <partial name="_EmptyState" model="@(new EmptyStateViewModel("Nenhuma leitura registrada", "Registre evidências operacionais. Uma variação só será exibida quando houver avaliações comparáveis."))" /> }
+    else { <div class="timeline">@foreach (var snapshot in Model.Snapshots) { <article class="timeline-item"><strong>@snapshot.CalculatedAt.ToString("dd/MM/yyyy HH:mm")</strong><p>@snapshot.Interpretation</p><p class="form-help">@snapshot.EvidenceSummary</p><ul><li>@snapshot.CompletedActions ações concluídas</li><li>@snapshot.DelayedActions ações atrasadas</li><li>@snapshot.OpenAlerts alertas abertos</li></ul>@if(snapshot.Delta.HasValue){<p>Variação absoluta: @snapshot.Delta.Value.ToString("+0.0;-0.0;0.0")</p>}else{<p class="form-help">Variação não calculada: comparabilidade metodológica não demonstrada.</p>}</article> }</div> }
+  </section>
+
+  @if (acceptsReadings) {
+  <section class="valora-card" aria-labelledby="snapshot-form-title">
+    <h2 id="snapshot-form-title">Registrar acompanhamento</h2>
+    <details class="page-help"><summary>Como usar</summary><p>Descreva fatos verificáveis, registre a interpretação separadamente e indique o próximo passo. Ao salvar, a leitura e a autoria são preservadas no histórico. O registro não altera resultados de diagnóstico.</p></details>
+    <form method="post" action="/Evolution/Cycles/@Model.Cycle.Id/Snapshot" data-submit-once>
+      @Html.AntiForgeryToken()
+      <div class="valora-field"><label for="Evidence">Evidências observadas <span aria-hidden="true">*</span></label><textarea class="form-control" id="Evidence" name="Evidence" required maxlength="2000" rows="4">@command.Evidence</textarea>@Html.ValidationMessage("Evidence")<small class="form-help">Fatos, registros ou indicadores disponíveis.</small></div>
+      <div class="valora-field"><label for="Interpretation">Interpretação humana <span aria-hidden="true">*</span></label><textarea class="form-control" id="Interpretation" name="Interpretation" required maxlength="2000" rows="4">@command.Interpretation</textarea>@Html.ValidationMessage("Interpretation")<small class="form-help">Não atribua causalidade sem evidência apropriada.</small></div>
+      <div class="valora-field"><label for="Recommendation">Próximo passo <span aria-hidden="true">*</span></label><textarea class="form-control" id="Recommendation" name="Recommendation" required maxlength="2000" rows="4">@command.Recommendation</textarea>@Html.ValidationMessage("Recommendation")</div>
+      <partial name="_FormActions" model="@(new FormActionsViewModel("Preservar leitura", "Limpar"))" />
+    </form>
+  </section>
+  }
+</main>

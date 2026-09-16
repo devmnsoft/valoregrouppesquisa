@@ -1,8 +1,21 @@
-@model IReadOnlyList<Valora.Application.SaasAdministration.SaasCustomerDto>
-@{ ViewData["Title"] = "Clientes SaaS"; }
-<main class="saas-console"><partial name="_PageHeader" model="@(new PageHeaderViewModel("Clientes SaaS", "Situação contratual e acesso administrativo por cliente.", "Super Admin", null, new[] { new PageHeaderAction("Criar cliente", "/Admin/Clients/Create", null, "primary") }))" />
- <section class="saas-panel"><div class="saas-table-wrap"><table><thead><tr><th>Cliente</th><th>Documento</th><th>Plano</th><th>Status</th><th>Ações</th></tr></thead><tbody>
- @if (Model.Count == 0) { <tr><td colspan="5"><div class="admin-empty">Nenhum cliente cadastrado.</div></td></tr> }
- @foreach (var client in Model) { <tr><td><strong>@client.TradeName</strong><small>@client.LegalName</small></td><td>@client.TaxIdNormalized</td><td>@client.PlanCode</td><td><span class="badge">@client.Status</span></td><td><a class="valora-button" href="/Admin/Clients/@client.Id/Modules">Administrar</a></td></tr> }
- </tbody></table></div></section>
+@model Valora.Application.SaasAdministration.SaasCustomerPage
+@{ ViewData["Title"] = "Clientes SaaS"; var query = Context.Request.Query; }
+<main class="saas-console">
+ <partial name="_PageHeader" model="@(new PageHeaderViewModel("Clientes SaaS", "Situação contratual e acesso administrativo por cliente.", "Super Admin", null, new[] { new PageHeaderAction("Criar cliente", "/Admin/Clients/Create", null, "primary") }))" />
+ <details class="page-help"><summary>Como usar esta página</summary><p>Busque pelo nome ou documento, combine filtros e abra um cliente para administrar seus acessos. Módulo ativo indica contratação; última atividade indica evento auditado, não adoção.</p></details>
+ <section class="saas-panel">
+  <form method="get" class="saas-filters" aria-label="Filtros de clientes">
+   <label>Nome ou documento<input name="Search" value="@query["Search"]" /></label>
+   <label>Situação<select name="Status"><option value="">Todas</option><option value="active" selected="@(query["Status"] == "active")">Ativo</option><option value="blocked" selected="@(query["Status"] == "blocked")">Bloqueado</option><option value="inactive" selected="@(query["Status"] == "inactive")">Inativo</option></select></label>
+   <label>Módulo<input name="Module" value="@query["Module"]" placeholder="Código do módulo" /></label>
+   <label>Ordenar<select name="Sort"><option value="name">Nome</option><option value="created" selected="@(query["Sort"] == "created")">Cadastro</option><option value="activity" selected="@(query["Sort"] == "activity")">Última atividade</option></select></label>
+   <button class="valora-button valora-button--primary" type="submit">Aplicar filtros</button><a class="valora-button" href="/Admin/Clients">Limpar</a>
+  </form>
+  <p class="saas-result-summary"><strong>@Model.TotalCount</strong> cliente(s) no conjunto autorizado e filtrado.</p>
+  <div class="saas-table-wrap"><table><thead><tr><th>Cliente</th><th>Documento</th><th>Situação</th><th>Módulos ativos</th><th>Usuários ativos</th><th>Última atividade</th><th>Ação</th></tr></thead><tbody>
+  @if (Model.Items.Count == 0) { <tr><td colspan="7"><div class="admin-empty">Nenhum cliente encontrado para estes filtros.</div></td></tr> }
+  @foreach (var client in Model.Items) { <tr><td><strong>@client.TradeName</strong><small>@client.LegalName · @client.PlanCode</small></td><td>@client.TaxIdMasked</td><td><span class="badge">@client.Status</span></td><td>@(client.ActiveModules.Length == 0 ? "Nenhum" : string.Join(", ", client.ActiveModules))</td><td>@client.ActiveUserCount</td><td>@(client.LastActivityAt?.ToString("dd/MM/yyyy HH:mm") ?? "Utilização não disponível")</td><td><a class="valora-button" href="/Admin/Clients/@client.Id/Modules">Abrir cliente</a></td></tr> }
+  </tbody></table></div>
+  @if (Model.TotalPages > 1) { <nav class="saas-pagination" aria-label="Paginação"><span>Página @Model.Page de @Model.TotalPages</span>@if(Model.Page > 1){<a class="valora-button" href="?Search=@query["Search"]&Status=@query["Status"]&Module=@query["Module"]&Sort=@query["Sort"]&Page=@(Model.Page-1)">Anterior</a>}@if(Model.Page < Model.TotalPages){<a class="valora-button" href="?Search=@query["Search"]&Status=@query["Status"]&Module=@query["Module"]&Sort=@query["Sort"]&Page=@(Model.Page+1)">Próxima</a>}</nav>}
+ </section>
 </main>

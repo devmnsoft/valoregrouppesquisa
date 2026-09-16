@@ -22,8 +22,8 @@ public sealed class SaasAdminController(
         await saas.ListPlansAsync(cancellationToken)));
 
     [HttpGet("Clients")]
-    public async Task<IActionResult> Customers(CancellationToken cancellationToken) =>
-        View(await customers.ListAsync(cancellationToken));
+    public async Task<IActionResult> Customers([FromQuery] SaasCustomerListQuery query, CancellationToken cancellationToken) =>
+        View(await customers.ListPageAsync(query, cancellationToken));
 
     [HttpGet("Clients/Create")]
     public IActionResult CreateClient() => RedirectToAction("CreateOrganization", "AdminHub");

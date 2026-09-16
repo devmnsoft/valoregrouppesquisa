@@ -17,7 +17,7 @@ public sealed class SaasCustomersController(SaasCustomerService service, AuditSe
     ICurrentRequestContext currentRequest) : ControllerBase {
     [HttpGet]
     [Authorize(Policy = ValoraPermissions.SaasCustomers.View)]
-    public async Task<IActionResult> List(CancellationToken cancellationToken) => Ok(await service.ListAsync(cancellationToken));
+    public async Task<IActionResult> List([FromQuery] SaasCustomerListQuery query, CancellationToken cancellationToken) => Ok(await service.ListPageAsync(query, cancellationToken));
 
     [HttpGet("{id:guid}")]
     [Authorize(Policy = ValoraPermissions.SaasCustomers.View)]

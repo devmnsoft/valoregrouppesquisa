@@ -4,14 +4,23 @@ using System.Text;
 namespace Valora.Application.FormalDeliverables;
 
 public sealed class SecureShareLinkService(IShareLinkRepository repository, IExportAuditService audit) : ISecureShareLinkService {
-    public async Task<CreatedShareLink> CreateAsync(Guid organizationId, Guid diagnosisId, Guid? userId, TimeSpan lifetime, bool allowDownload, CancellationToken cancellationToken = default) {
+    public Task<CreatedShareLink> CreateAsync(Guid organizationId, Guid diagnosisId, Guid? userId, TimeSpan lifetime, bool allowDownload, CancellationToken cancellationToken = default) =>
+        CreateCoreAsync(organizationId, diagnosisId, null, diagnosisId, userId, lifetime, allowDownload, cancellationToken);
+
+    public Task<CreatedShareLink> CreateForDeliverableAsync(Guid organizationId, Guid deliverableId, Guid resultId, Guid? userId, TimeSpan lifetime, bool allowDownload, CancellationToken cancellationToken = default) =>
+        CreateCoreAsync(organizationId, resultId, deliverableId, resultId, userId, lifetime, allowDownload, cancellationToken);
+
+    private async Task<CreatedShareLink> CreateCoreAsync(Guid organizationId, Guid diagnosisId, Guid? deliverableId, Guid? resultId, Guid? userId, TimeSpan lifetime, bool allowDownload, CancellationToken cancellationToken) {
         if (lifetime <= TimeSpan.Zero || lifetime > TimeSpan.FromDays(90))
             throw new ArgumentOutOfRangeException(nameof(lifetime), "A validade deve estar entre um instante e 90 dias.");
         var token = Base64Url(RandomNumberGenerator.GetBytes(32));
-        // The opaque route segment is the token itself. Only its SHA-256 digest is persisted.
-        var link = new ShareLink(Guid.NewGuid(), organizationId, diagnosisId, Hash(token), token, DateTimeOffset.UtcNow.Add(lifetime), allowDownload);
+        var id = Guid.NewGuid();
+        // Opaque route segment is the token; only its SHA-256 digest and public_slug=id are persisted.
+        var link = new ShareLink(id, organizationId, diagnosisId, Hash(token), id.ToString("N"), DateTimeOffset.UtcNow.Add(lifetime), allowDownload,
+            DeliverableId: deliverableId, ResultId: resultId);
         await repository.SaveAsync(link, userId, cancellationToken);
-        await audit.RecordAsync(organizationId, userId, "share_link.created", "diagnosis", diagnosisId.ToString(), true, null, cancellationToken);
+        await audit.RecordAsync(organizationId, userId, "share_link.created", deliverableId.HasValue ? "formal_deliverable" : "diagnosis",
+            (deliverableId ?? diagnosisId).ToString(), true, null, cancellationToken);
         return new CreatedShareLink(link.Id, token, token, link.ExpiresAt, link.AllowDownload);
     }
 

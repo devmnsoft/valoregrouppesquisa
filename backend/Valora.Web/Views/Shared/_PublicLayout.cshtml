@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="~/css/valora-public.css" asp-append-version="true">
   <link rel="stylesheet" href="~/css/valora-commercial.css" asp-append-version="true">
   <link rel="stylesheet" href="~/css/valora-print.css" media="print" asp-append-version="true">
+  @await RenderSectionAsync("Styles", required: false)
 </head>
 <body class="public-body">
   <a class="skip-link" href="#app">Ir para o conteúdo principal</a>

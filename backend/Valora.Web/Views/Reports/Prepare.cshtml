@@ -1,0 +1,255 @@
+@model Valora.Web.Controllers.DeliverablePreparePageViewModel
+@using Valora.Application.FormalDeliverables
+@{
+    ViewData["Title"] = "Preparar relatório";
+    var command = Model.Command;
+    var selectedSections = new HashSet<string>(command.Sections ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+    var sectionOptions = new (string Code, string Label)[] {
+        ("objective", "Objetivo"),
+        ("period", "Período"),
+        ("participation", "Participação"),
+        ("results", "Resultados"),
+        ("dimensions", "Dimensões"),
+        ("evidence", "Evidências"),
+        ("limitations", "Limitações"),
+        ("recommendations", "Recomendações"),
+        ("action_plans", "Planos de ação")
+    };
+    var returnUrl = ViewData["ReturnUrl"]?.ToString() ?? "/Reports";
+}
+@section Styles {
+  <link rel="stylesheet" href="~/css/executive-deliverables.css" asp-append-version="true" />
+}
+<main class="valora-page executive-deliverables" data-deliverable-prepare>
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+      "Preparar relatório executivo",
+      "Selecione um resultado concluído, o modelo e as seções que compõem o entregável.",
+      "Central de Entregas",
+      "Campos obrigatórios marcados com *",
+      Array.Empty<PageHeaderAction>()))" />
+  <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel(
+      "Como preparar",
+      "Busque o diagnóstico/resultado pelo nome. Não é necessário informar UUIDs manualmente.",
+      new[] {
+          "Escolha um resultado elegível com score consolidado.",
+          "Revise título, seções e notas executivas.",
+          "Opcionalmente indique um revisor antes de salvar o rascunho."
+      }))" />
+
+  <form method="post" class="valora-card action-form" data-prevent-double-submit data-unsaved-form asp-action="Prepare">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="returnUrl" value="@returnUrl" />
+    <input type="hidden" name="CommandId" value="@command.CommandId" />
+    <input type="hidden" name="DiagnosticId" id="DiagnosticId" value="@(command.DiagnosticId == Guid.Empty ? "" : command.DiagnosticId.ToString())" />
+    <input type="hidden" name="ResultId" id="ResultId" value="@(command.ResultId == Guid.Empty ? "" : command.ResultId.ToString())" />
+    <input type="hidden" name="resultDisplayName" id="resultDisplayName" value="@Model.ResultDisplayName" />
+    <input type="hidden" name="diagnosticDisplayName" id="diagnosticDisplayName" value="@Model.DiagnosticDisplayName" />
+    <input type="hidden" name="reviewerDisplayName" id="reviewerDisplayName" value="@Model.ReviewerDisplayName" />
+
+    @if (!ViewData.ModelState.IsValid) {
+      <p class="alert alert-danger" role="alert">Revise os campos destacados.</p>
+    }
+    <div asp-validation-summary="All" class="alert alert-danger" role="alert" tabindex="-1"></div>
+
+    <fieldset>
+      <legend>Origem do entregável</legend>
+      <div class="form-grid">
+        <div class="action-field--full" data-result-selector>
+          <label for="ResultSearch">Buscar diagnóstico / resultado *</label>
+          <input id="ResultSearch" type="search" autocomplete="off" placeholder="Digite o nome do diagnóstico ou resultado" aria-describedby="ResultStatus" data-result-search />
+          <label for="ResultSelect">Resultado selecionado *</label>
+          <select id="ResultSelect" aria-describedby="ResultStatus" data-result-select required>
+            @if (command.ResultId != Guid.Empty) {
+              <option value="@command.ResultId" selected>@(Model.ResultDisplayName ?? command.ResultId.ToString())</option>
+            } else {
+              <option value="">Selecione um resultado elegível</option>
+            }
+          </select>
+          <span id="ResultStatus" class="option-status" role="status" aria-live="polite" data-result-status></span>
+          <small>Somente resultados concluídos com score consolidado aparecem na busca.</small>
+          @if (!string.IsNullOrWhiteSpace(Model.DiagnosticDisplayName)) {
+            <p class="selected-diagnostic">Diagnóstico: <strong data-diagnostic-label>@Model.DiagnosticDisplayName</strong></p>
+          } else {
+            <p class="selected-diagnostic" hidden>Diagnóstico: <strong data-diagnostic-label></strong></p>
+          }
+        </div>
+        <label for="TemplateCode">Modelo *
+          <select id="TemplateCode" name="TemplateCode" data-template-select required>
+            <option value="@command.TemplateCode" selected>@(string.IsNullOrWhiteSpace(command.TemplateCode) ? "Carregando modelos…" : command.TemplateCode)</option>
+          </select>
+          <span asp-validation-for="Command.TemplateCode"></span>
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Conteúdo</legend>
+      <div class="form-grid">
+        <label class="action-field--full" for="Title">Título *
+          <input id="Title" name="Title" value="@command.Title" required minlength="3" maxlength="240" autocomplete="off" />
+          <small>Use um título objetivo para o público executivo.</small>
+        </label>
+        <div class="action-field--full">
+          <p class="eyebrow">Seções incluídas</p>
+          <div class="section-checkboxes" role="group" aria-label="Seções do entregável">
+            @foreach (var option in sectionOptions) {
+              <label class="section-check">
+                @if (selectedSections.Contains(option.Code)) {
+                  <input type="checkbox" name="Sections" value="@option.Code" checked="checked" />
+                } else {
+                  <input type="checkbox" name="Sections" value="@option.Code" />
+                }
+                <span>@option.Label</span>
+              </label>
+            }
+          </div>
+        </div>
+        <label class="action-field--full" for="ExecutiveNotes">Notas executivas
+          <textarea id="ExecutiveNotes" name="ExecutiveNotes" maxlength="4000" rows="4">@command.ExecutiveNotes</textarea>
+          <small>Observações internas de preparação; não substituem evidências do resultado.</small>
+        </label>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Revisão (opcional)</legend>
+      <div class="form-grid" data-reviewer-selector>
+        <div class="action-field--full">
+          <label for="ReviewerSearch">Buscar revisor</label>
+          <input id="ReviewerSearch" type="search" autocomplete="off" aria-describedby="ReviewerStatus" data-reviewer-search />
+          <label for="ReviewerUserId">Revisor designado</label>
+          <select id="ReviewerUserId" name="ReviewerUserId" aria-describedby="ReviewerStatus" data-reviewer-select>
+            <option value="">Sem revisor designado</option>
+            @if (command.ReviewerUserId is Guid reviewerId) {
+              <option value="@reviewerId" selected>@(Model.ReviewerDisplayName ?? reviewerId.ToString())</option>
+            }
+          </select>
+          <span id="ReviewerStatus" class="option-status" role="status" aria-live="polite" data-reviewer-status></span>
+        </div>
+      </div>
+    </fieldset>
+
+    <partial name="_FormActions" model="@(new FormActionsViewModel("Salvar rascunho", "Cancelar", returnUrl))" />
+  </form>
+</main>
+@section Scripts {
+<script src="~/js/form-submit-state.js" asp-append-version="true"></script>
+<script src="~/js/unsaved-form.js" asp-append-version="true"></script>
+<script>
+(() => {
+  const root = document.querySelector('[data-deliverable-prepare]');
+  if (!root) return;
+  const resultSearch = root.querySelector('[data-result-search]');
+  const resultSelect = root.querySelector('[data-result-select]');
+  const resultStatus = root.querySelector('[data-result-status]');
+  const resultId = root.querySelector('#ResultId');
+  const diagnosticId = root.querySelector('#DiagnosticId');
+  const diagnosticLabel = root.querySelector('[data-diagnostic-label]');
+  const diagnosticWrap = root.querySelector('.selected-diagnostic');
+  const resultDisplay = root.querySelector('#resultDisplayName');
+  const diagnosticDisplay = root.querySelector('#diagnosticDisplayName');
+  const reviewerSearch = root.querySelector('[data-reviewer-search]');
+  const reviewerSelect = root.querySelector('[data-reviewer-select]');
+  const reviewerStatus = root.querySelector('[data-reviewer-status]');
+  const reviewerDisplay = root.querySelector('#reviewerDisplayName');
+  const templateSelect = root.querySelector('[data-template-select]');
+  let resultTimer, reviewerTimer;
+
+  async function fetchJson(url) {
+    const response = await fetch(url, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' });
+    if (!response.ok) throw new Error('Falha ao carregar opções.');
+    return response.json();
+  }
+
+  function option(value, label, selected) {
+    const el = document.createElement('option');
+    el.value = value;
+    el.textContent = label;
+    if (selected) el.selected = true;
+    return el;
+  }
+
+  async function loadResults(term) {
+    resultStatus.textContent = 'Buscando…';
+    try {
+      const items = await fetchJson('/Reports/ResultOptions?search=' + encodeURIComponent(term || ''));
+      const current = resultSelect.value;
+      resultSelect.innerHTML = '';
+      resultSelect.appendChild(option('', 'Selecione um resultado elegível', !current));
+      (items || []).forEach(item => {
+        const label = `${item.name || item.diagnosticName} · ${item.diagnosticName} · ${Number(item.overallScore).toFixed(1)}`;
+        const opt = option(item.id, label, item.id === current);
+        opt.dataset.diagnosticId = item.diagnosticId;
+        opt.dataset.diagnosticName = item.diagnosticName || '';
+        opt.dataset.name = item.name || item.diagnosticName || '';
+        resultSelect.appendChild(opt);
+      });
+      resultStatus.textContent = (items && items.length) ? `${items.length} resultado(s)` : 'Nenhum resultado elegível';
+    } catch (e) {
+      resultStatus.textContent = 'Não foi possível carregar resultados.';
+    }
+  }
+
+  async function loadReviewers(term) {
+    reviewerStatus.textContent = 'Buscando…';
+    try {
+      const items = await fetchJson('/Reports/ReviewerOptions?search=' + encodeURIComponent(term || ''));
+      const current = reviewerSelect.value;
+      reviewerSelect.innerHTML = '';
+      reviewerSelect.appendChild(option('', 'Sem revisor designado', !current));
+      (items || []).forEach(item => {
+        const label = item.email ? `${item.name} <${item.email}>` : item.name;
+        reviewerSelect.appendChild(option(item.id, label, item.id === current));
+      });
+      reviewerStatus.textContent = (items && items.length) ? `${items.length} revisor(es)` : 'Nenhum revisor encontrado';
+    } catch (e) {
+      reviewerStatus.textContent = 'Não foi possível carregar revisores.';
+    }
+  }
+
+  async function loadTemplates() {
+    try {
+      const items = await fetchJson('/Reports/TemplateOptions?type=executive_report');
+      const current = templateSelect.value || 'executive_valora';
+      templateSelect.innerHTML = '';
+      (items || []).forEach(item => {
+        templateSelect.appendChild(option(item.code, item.name || item.code, item.code === current));
+      });
+      if (!templateSelect.value && items && items[0]) templateSelect.value = items[0].code;
+    } catch (e) {
+      if (!templateSelect.value) templateSelect.appendChild(option('executive_valora', 'Relatório executivo Valora', true));
+    }
+  }
+
+  resultSelect.addEventListener('change', () => {
+    const selected = resultSelect.selectedOptions[0];
+    resultId.value = resultSelect.value || '';
+    diagnosticId.value = selected?.dataset.diagnosticId || '';
+    const name = selected?.dataset.name || selected?.textContent || '';
+    const diag = selected?.dataset.diagnosticName || '';
+    resultDisplay.value = name;
+    diagnosticDisplay.value = diag;
+    if (diagnosticLabel) diagnosticLabel.textContent = diag;
+    if (diagnosticWrap) diagnosticWrap.hidden = !diag;
+  });
+
+  reviewerSelect.addEventListener('change', () => {
+    const selected = reviewerSelect.selectedOptions[0];
+    reviewerDisplay.value = selected && selected.value ? selected.textContent : '';
+  });
+
+  resultSearch.addEventListener('input', () => {
+    clearTimeout(resultTimer);
+    resultTimer = setTimeout(() => loadResults(resultSearch.value.trim()), 280);
+  });
+  reviewerSearch.addEventListener('input', () => {
+    clearTimeout(reviewerTimer);
+    reviewerTimer = setTimeout(() => loadReviewers(reviewerSearch.value.trim()), 280);
+  });
+
+  loadResults(resultSearch.value.trim());
+  loadReviewers('');
+  loadTemplates();
+})();
+</script>
+}

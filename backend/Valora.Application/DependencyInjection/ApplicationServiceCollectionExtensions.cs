@@ -331,6 +331,7 @@ public static class ApplicationServiceCollectionExtensions {
         services.AddSingleton<IExecutiveReportExportService, ExecutiveReportExportService>();
         services.AddScoped<IValoraDocumentService, ValoraDocumentService>();
         services.AddScoped<ISecureShareLinkService, SecureShareLinkService>();
+        services.AddScoped<IExecutiveDeliveryService, ExecutiveDeliveryService>();
         services.AddScoped<ExecutiveReportGenerationService>();
         services.AddScoped<CertificateGenerationService>();
         services.AddScoped<Valora.Application.FormalDeliverables.PublicResultPortalService>();

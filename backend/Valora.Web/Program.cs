@@ -53,10 +53,12 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Events.OnRedirectToAccessDenied = context => WriteBffAuthenticationFailure(context, StatusCodes.Status403Forbidden,
             "ACCESS_DENIED", "Você não tem permissão para executar esta ação.");
     });
+builder.Services.AddValoraPermissionHandler();
 builder.Services.AddAuthorization(options => {
     // Internal MVC pages are private by default. Public controllers/actions must make
     // that decision explicit with [AllowAnonymous], preventing newly added screens
     // from accidentally exposing the authenticated shell or organization data.
+    options.RegisterValoraPermissionPolicies();
     options.FallbackPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();

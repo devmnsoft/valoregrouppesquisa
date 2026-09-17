@@ -66,18 +66,20 @@ public interface IValoraDocumentService {
 
 public sealed record ShareLink(Guid Id, Guid OrganizationId, Guid DiagnosisId, string TokenHash,
     string PublicSlug, DateTimeOffset ExpiresAt, bool AllowDownload, int? MaxAccessCount = null,
-    int AccessCount = 0, DateTimeOffset? RevokedAt = null);
+    int AccessCount = 0, DateTimeOffset? RevokedAt = null, Guid? DeliverableId = null, Guid? ResultId = null);
 public sealed record CreatedShareLink(Guid Id, string Token, string PublicSlug, DateTimeOffset ExpiresAt, bool AllowDownload);
 
 public interface IShareLinkRepository {
     Task SaveAsync(ShareLink link, Guid? createdBy, CancellationToken cancellationToken = default);
     Task<ShareLink?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default);
+    Task<ShareLink?> FindAnyByHashAsync(string tokenHash, CancellationToken cancellationToken = default);
     Task RegisterAccessAsync(Guid linkId, bool downloadRequested, CancellationToken cancellationToken = default);
     Task<bool> RevokeAsync(Guid organizationId, Guid linkId, CancellationToken cancellationToken = default);
 }
 
 public interface ISecureShareLinkService {
     Task<CreatedShareLink> CreateAsync(Guid organizationId, Guid diagnosisId, Guid? userId, TimeSpan lifetime, bool allowDownload, CancellationToken cancellationToken = default);
+    Task<CreatedShareLink> CreateForDeliverableAsync(Guid organizationId, Guid deliverableId, Guid resultId, Guid? userId, TimeSpan lifetime, bool allowDownload, CancellationToken cancellationToken = default);
     Task<ShareLink?> ResolveAsync(string token, bool downloadRequested, CancellationToken cancellationToken = default);
     Task<bool> RevokeAsync(Guid organizationId, Guid linkId, Guid? userId, CancellationToken cancellationToken = default);
 }

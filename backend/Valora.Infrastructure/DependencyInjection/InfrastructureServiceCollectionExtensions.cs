@@ -213,6 +213,7 @@ public static class InfrastructureServiceCollectionExtensions {
         services.AddScoped<IValoraAiFeedbackRepository, ValoraAiFeedbackRepository>();
         services.AddScoped<IDiagnosisDocumentSnapshotProvider, DiagnosisDocumentSnapshotProvider>();
         services.AddScoped<IShareLinkRepository, ShareLinkRepository>();
+        services.AddScoped<IFormalDeliverableRepository, FormalDeliverableCatalogRepository>();
         return services;
     }
 

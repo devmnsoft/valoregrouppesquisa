@@ -1,0 +1,193 @@
+@model Valora.Web.Controllers.PublicDeliverablePageViewModel
+@using Valora.Application.FormalDeliverables
+@using Valora.Web.Controllers
+@{
+    Layout = "_PublicLayout";
+    var unavailable = Model.State != PublicDeliverableState.Available;
+    var title = Model.Deliverable?.Title
+        ?? Model.Snapshot?.DiagnosisName
+        ?? "Entrega Valora Insight™";
+    ViewData["Title"] = unavailable ? "Link indisponível" : title;
+    var organization = Model.Snapshot?.OrganizationName;
+    var diagnosis = Model.Deliverable?.DiagnosticName ?? Model.Snapshot?.DiagnosisName;
+    var period = Model.Snapshot?.CompletedAt.ToLocalTime().ToString("dd/MM/yyyy");
+    var summary = Model.Snapshot?.ExecutiveSummary;
+    var limitations = Model.Deliverable?.Limitations?.Count > 0
+        ? Model.Deliverable.Limitations
+        : Model.Snapshot?.Limitations ?? Array.Empty<string>();
+    var sections = Model.Deliverable?.Sections ?? Array.Empty<string>();
+    string StateMessage() => Model.State switch {
+        PublicDeliverableState.Invalid => "Este link é inválido ou não existe.",
+        PublicDeliverableState.Expired => "Este link expirou e não pode mais ser utilizado.",
+        PublicDeliverableState.Revoked => "Este link foi revogado e não pode mais ser utilizado.",
+        PublicDeliverableState.TemporaryFailure => "Não foi possível abrir a entrega neste momento. Tente novamente em instantes.",
+        _ => "Esta entrega não está disponível para visualização."
+    };
+}
+@section Styles {
+  <link rel="stylesheet" href="~/css/executive-deliverables.css" asp-append-version="true" />
+}
+<section class="deliverable-public section" data-page="public-deliverable">
+  <div class="container-public deliverable-public__container">
+    <header class="deliverable-public__brand brand-page-header">
+      <span class="brand-picture" aria-hidden="true">◆</span>
+      <div>
+        <p class="eyebrow">Valora Insight™</p>
+        <h1>@(unavailable ? "Link indisponível" : title)</h1>
+        @if (!unavailable && !string.IsNullOrWhiteSpace(organization)) {
+          <p class="lead">@organization</p>
+        }
+      </div>
+    </header>
+
+    @if (unavailable) {
+      <article class="valora-card deliverable-public__state" role="status">
+        <h2>Não foi possível exibir o conteúdo</h2>
+        <p>@StateMessage()</p>
+        <p class="text-muted">Por segurança, detalhes adicionais não são divulgados.</p>
+      </article>
+    } else {
+      <article class="valora-card deliverable-public__meta">
+        <dl class="action-facts">
+          @if (!string.IsNullOrWhiteSpace(diagnosis)) {
+            <div><dt>Diagnóstico</dt><dd>@diagnosis</dd></div>
+          }
+          @if (!string.IsNullOrWhiteSpace(period)) {
+            <div><dt>Período / conclusão</dt><dd>@period</dd></div>
+          }
+          @if (Model.Deliverable is not null) {
+            <div><dt>Versão</dt><dd>v@Model.Deliverable.VersionNumber</dd></div>
+            <div><dt>Tipo</dt><dd>@DeliverableStatusLabels.Type(Model.Deliverable.Type)</dd></div>
+          }
+          @if (Model.Snapshot is not null) {
+            <div><dt>Metodologia</dt><dd>@Model.Snapshot.MethodologyName @Model.Snapshot.MethodologyVersion</dd></div>
+          }
+        </dl>
+        @if (Model.CanDownload && Model.Deliverable is not null) {
+          <div class="deliverable-public__actions no-print">
+            <a class="btn-public primary" href="@($"{Context.Request.Path.Value?.TrimEnd('/')}/download")">Baixar arquivo</a>
+          </div>
+        }
+      </article>
+
+      @if (!string.IsNullOrWhiteSpace(summary)) {
+        <article class="valora-card">
+          <h2>Resumo executivo</h2>
+          <p>@summary</p>
+        </article>
+      }
+
+      @if (sections.Count > 0 && Model.Snapshot is not null) {
+        <article class="valora-card">
+          <h2>Conteúdo autorizado</h2>
+          @foreach (var section in sections) {
+            <section class="deliverable-public__section">
+              <h3>@DeliverableStatusLabels.Section(section)</h3>
+              @switch (section) {
+                case "objective":
+                  <p>@(Model.Snapshot.StrategicReading)</p>
+                  break;
+                case "results":
+                  <p>Pontuação geral: <strong>@Model.Snapshot.OverallScore.ToString("0.0")</strong> · Maturidade observada: @Model.Snapshot.MaturityLevel</p>
+                  break;
+                case "dimensions":
+                  @if (Model.Snapshot.Dimensions.Count == 0) {
+                    <p>Sem dimensões disponíveis neste compartilhamento.</p>
+                  } else {
+                    <ul>
+                      @foreach (var dim in Model.Snapshot.Dimensions) {
+                        <li><strong>@dim.Name</strong>: @dim.Score.ToString("0.0") — @dim.Interpretation</li>
+                      }
+                    </ul>
+                  }
+                  break;
+                case "evidence":
+                  @if (Model.Snapshot.EvidenceItems.Count == 0) {
+                    <p>Sem evidências listadas.</p>
+                  } else {
+                    <ul>
+                      @foreach (var evidence in Model.Snapshot.EvidenceItems.Take(12)) {
+                        <li><strong>@evidence.Dimension</strong>: @evidence.Description</li>
+                      }
+                    </ul>
+                  }
+                  break;
+                case "recommendations":
+                  @if (Model.Snapshot.Recommendations.Count == 0) {
+                    <p>Sem recomendações listadas.</p>
+                  } else {
+                    <ul>
+                      @foreach (var item in Model.Snapshot.Recommendations.Take(10)) {
+                        <li>@item</li>
+                      }
+                    </ul>
+                  }
+                  break;
+                case "action_plans":
+                  @if (Model.Snapshot.ActionPlan.Count == 0) {
+                    <p>Sem planos de ação listados.</p>
+                  } else {
+                    <ul>
+                      @foreach (var item in Model.Snapshot.ActionPlan.Take(10)) {
+                        <li><strong>@item.Priority</strong>: @item.Action (@(item.Owner))</li>
+                      }
+                    </ul>
+                  }
+                  break;
+                case "limitations":
+                  @if (limitations.Count == 0) {
+                    <p>Sem limitações adicionais registradas.</p>
+                  } else {
+                    <ul>
+                      @foreach (var item in limitations) {
+                        <li>@item</li>
+                      }
+                    </ul>
+                  }
+                  break;
+                case "period":
+                  <p>Concluído em @(period ?? "data não informada").</p>
+                  break;
+                case "participation":
+                  <p>Leitura baseada na participação registrada no diagnóstico compartilhado.</p>
+                  break;
+                default:
+                  <p>Seção autorizada sem conteúdo adicional neste preview.</p>
+                  break;
+              }
+            </section>
+          }
+        </article>
+      } else if (Model.Snapshot is not null) {
+        <article class="valora-card">
+          <h2>Leitura compartilhada</h2>
+          <p>@Model.Snapshot.StrategicReading</p>
+          @if (Model.Snapshot.Recommendations.Count > 0) {
+            <h3>Recomendações</h3>
+            <ul>
+              @foreach (var item in Model.Snapshot.Recommendations.Take(5)) {
+                <li>@item</li>
+              }
+            </ul>
+          }
+        </article>
+      }
+
+      @if (limitations.Count > 0 && (sections.Count == 0 || !sections.Any(s => string.Equals(s, "limitations", StringComparison.OrdinalIgnoreCase)))) {
+        <article class="valora-card">
+          <h2>Limitações</h2>
+          <ul>
+            @foreach (var item in limitations) {
+              <li>@item</li>
+            }
+          </ul>
+        </article>
+      }
+
+      <footer class="deliverable-public__footer">
+        <p><strong>Valora Group</strong> · Inteligência organizacional baseada em evidências</p>
+        <p class="text-muted">Conteúdo autorizado por link seguro. Não redistribua sem autorização.</p>
+      </footer>
+    }
+  </div>
+</section>

@@ -1,0 +1,181 @@
+.executive-deliverables .deliverable-filters__form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.executive-deliverables .deliverable-filters__form .form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.executive-deliverables .deliverable-table-shell {
+  overflow-x: auto;
+}
+
+.executive-deliverables .deliverable-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.executive-deliverables .section-checkboxes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.65rem;
+}
+
+.executive-deliverables .section-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.executive-deliverables .section-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+}
+
+.executive-deliverables .section-list li {
+  background: #e8f2ee;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.executive-deliverables .share-token-once input {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  margin-bottom: 0.75rem;
+}
+
+.executive-deliverables .inline-form {
+  display: inline;
+}
+
+.deliverable-dialog {
+  border: 1px solid #d5e3de;
+  border-radius: 16px;
+  padding: 0;
+  max-width: min(520px, 94vw);
+  width: 100%;
+}
+
+.deliverable-dialog form {
+  padding: 1.25rem 1.35rem 1.4rem;
+  display: grid;
+  gap: 0.85rem;
+}
+
+.deliverable-dialog header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 1rem;
+}
+
+.deliverable-dialog .dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.deliverable-public {
+  padding: 1.5rem 0 3rem;
+}
+
+.deliverable-public__container {
+  max-width: 880px;
+  margin: 0 auto;
+  display: grid;
+  gap: 1rem;
+}
+
+.deliverable-public__brand {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.deliverable-public__section + .deliverable-public__section {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e3ece8;
+}
+
+.deliverable-public__actions {
+  margin-top: 1rem;
+}
+
+.deliverable-public__footer {
+  margin-top: 0.5rem;
+  color: #5d716b;
+}
+
+.certificates-eligibility-callout {
+  margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+  .executive-deliverables .deliverable-filters__form,
+  .executive-deliverables .action-summary-grid,
+  .executive-deliverables .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .executive-deliverables .deliverable-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .deliverable-public__brand {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+@media print {
+  .app-sidebar,
+  .topbar,
+  .app-footer,
+  .organization-context,
+  .valora-skip-link,
+  .page-help,
+  .no-print,
+  .deliverable-actions,
+  .deliverable-dialog,
+  .public-topbar,
+  .public-footer,
+  .skip-link,
+  [data-public-floating],
+  [data-public-bot] {
+    display: none !important;
+  }
+
+  .deliverable-public,
+  .executive-deliverables {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .deliverable-public__container,
+  .content-wrapper {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .valora-card {
+    box-shadow: none !important;
+    border: 0 !important;
+    break-inside: avoid;
+  }
+}

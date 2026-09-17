@@ -73,7 +73,7 @@ public sealed class NavigationCatalog {
             ItemAction("intelligence.historical", "Evolução Histórica", "Variações reais entre diagnósticos", "Intelligence", "Evolution", "activity", "organizational_intelligence", 29, Results),
             ItemAction("intelligence.recommendations", "Recomendações", "Prioridades orientadas por evidências", "OperationalIntelligence", "Recommendations", "sparkles", "results", 30, Results),
             Item("intelligence.actions", "Plano de Ação", "Kanban de melhoria contínua", "ActionPlans", "layers", "organizational_intelligence.read", "organizational_intelligence", "organizational_intelligence", "organization", 40, Results),
-            Item("intelligence.reports", "Relatórios", "Central de geração e downloads", "Reports", "file-text", null, null, "reports", "organization", 50, Results),
+            Item("intelligence.reports", "Relatórios", "Central de entregas executivas", "Reports", "file-text", null, null, "reports", "organization", 50, Results),
             Item("intelligence.certificates", "Certificados", "Emissão e reimpressão", "Certificates", "certificate", null, "certificates", "certificates", "organization", 60, Results)),
         Section("execution-evolution", "Execução e evolução", 34,
             ItemAction("benchmarks.overview", "Benchmarks", "Inteligência comparativa anônima e auditável", "Benchmarks", "Index", "chart-radar", "organizational_intelligence", 0, Results),

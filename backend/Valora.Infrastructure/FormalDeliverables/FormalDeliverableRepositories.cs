@@ -10,12 +10,14 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
         using var connection = connections.Create();
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO valorapesquisa.secure_share_links
-              (id,organization_id,diagnostic_id,token_hash,public_slug,title,status,expires_at,allow_download,created_by_user_id)
-            VALUES (@Id,@OrganizationId,@DiagnosisId,@TokenHash,@DatabaseSlug,'Resultado Valora Insight','active',@ExpiresAt,@AllowDownload,@CreatedBy)
+              (id,organization_id,diagnostic_id,result_id,deliverable_id,token_hash,public_slug,title,status,expires_at,allow_download,created_by_user_id)
+            VALUES (@Id,@OrganizationId,@DiagnosisId,@ResultId,@DeliverableId,@TokenHash,@DatabaseSlug,'Resultado Valora Insight','active',@ExpiresAt,@AllowDownload,@CreatedBy)
             """, new {
             link.Id,
             link.OrganizationId,
             link.DiagnosisId,
+            ResultId = link.ResultId ?? link.DiagnosisId,
+            link.DeliverableId,
             link.TokenHash,
             DatabaseSlug = link.Id.ToString("N"),
             link.ExpiresAt,
@@ -24,15 +26,24 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
         }, cancellationToken: cancellationToken));
     }
 
-    public async Task<ShareLink?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default) {
+    public Task<ShareLink?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default) =>
+        FindCoreAsync(tokenHash, activeOnly: true, cancellationToken);
+
+    public Task<ShareLink?> FindAnyByHashAsync(string tokenHash, CancellationToken cancellationToken = default) =>
+        FindCoreAsync(tokenHash, activeOnly: false, cancellationToken);
+
+    private async Task<ShareLink?> FindCoreAsync(string tokenHash, bool activeOnly, CancellationToken cancellationToken) {
         using var connection = connections.Create();
-        return await connection.QuerySingleOrDefaultAsync<ShareLink>(new CommandDefinition("""
+        var sql = """
             SELECT id, organization_id AS OrganizationId, diagnostic_id AS DiagnosisId, token_hash AS TokenHash,
                    public_slug AS PublicSlug, expires_at AS ExpiresAt, allow_download AS AllowDownload,
-                   max_access_count AS MaxAccessCount, access_count AS AccessCount, revoked_at AS RevokedAt
+                   max_access_count AS MaxAccessCount, access_count AS AccessCount, revoked_at AS RevokedAt,
+                   deliverable_id AS DeliverableId, result_id AS ResultId
             FROM valorapesquisa.secure_share_links
-            WHERE token_hash=@TokenHash AND status='active' AND deleted_at IS NULL
-            """, new { TokenHash = tokenHash }, cancellationToken: cancellationToken));
+            WHERE token_hash=@TokenHash AND deleted_at IS NULL
+            """ + (activeOnly ? " AND status='active'" : "");
+        return await connection.QuerySingleOrDefaultAsync<ShareLink>(new CommandDefinition(
+            sql, new { TokenHash = tokenHash }, cancellationToken: cancellationToken));
     }
 
     public async Task<bool> RevokeAsync(Guid organizationId, Guid linkId, CancellationToken cancellationToken = default) {

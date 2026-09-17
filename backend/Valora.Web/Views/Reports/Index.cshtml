@@ -1,22 +1,184 @@
-@{ ViewData["Title"] = "Relatórios executivos"; }
-<main class="valora-page reports-page" data-reports-page>
-  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Valora Executive Report™", "Transforme respostas reais em uma leitura executiva rastreável, sem conclusões artificiais.", "Relatórios executivos", "Inteligência", new[] { new PageHeaderAction("Gerar consolidado", DataAction: "generate-organization", Style: "primary", Icon: "file-text") }))" />
-  <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como gerar relatórios", "Selecione um diagnóstico com dados suficientes, escolha o formato e revise o preview antes de baixar ou compartilhar."))" />
-  <partial name="_PageProgressChecklist" model="@(new PageProgressChecklistViewModel("Relatório e certificado", "Use somente resultados válidos e revise a saída antes de compartilhar.", new[] { new GuidedStepCardViewModel("Selecionar resultado", "Escolha um diagnóstico elegível.", "current"), new GuidedStepCardViewModel("Gerar e revisar", "Confira limitações no preview."), new GuidedStepCardViewModel("Baixar relatório", "Registre a saída autorizada."), new GuidedStepCardViewModel("Emitir certificado", "Emita somente quando elegível.", Href: "/Certificates", ActionLabel: "Ver certificados"), new GuidedStepCardViewModel("Compartilhar", "Copie apenas o link seguro.") }))" />
-  <div class="valora-alert valora-alert--danger" data-error role="alert" aria-live="assertive" hidden></div>
-  <section class="report-toolbar valora-card" aria-label="Gerar relatório">
-    <div><p class="eyebrow">Nova análise</p><h2>Relatório por diagnóstico</h2><p>Selecione um diagnóstico. A plataforma declara explicitamente quando a amostra não sustenta uma conclusão.</p></div>
-    <form data-generate-form novalidate>
-      @Html.AntiForgeryToken()
-      <label for="reportSurvey">Diagnóstico</label>
-      <select id="reportSurvey" name="surveyId" class="form-select" required aria-describedby="reportSurveyValidation"><option value="">Carregando diagnósticos…</option></select>
-      <span id="reportSurveyValidation" class="field-validation-error" data-survey-validation role="alert" hidden>Selecione um diagnóstico para continuar.</span>
-      <label for="reportFormat">Formato</label>
-      <select id="reportFormat" name="format" class="form-select" required><option value="html">Preview executivo</option><option value="csv">CSV tabular</option></select>
-      <button class="valora-button valora-button--primary" type="submit" data-submit><span data-submit-label>Gerar relatório</span><span data-submit-progress hidden>Gerando…</span></button>
+@model Valora.Web.Controllers.DeliverableListPageViewModel
+@using Valora.Application.FormalDeliverables
+@{
+    ViewData["Title"] = "Central de Entregas";
+    var listPage = Model.Page;
+    var query = Model.Query;
+    var hasFilters = !string.IsNullOrWhiteSpace(query.Search)
+        || !string.IsNullOrWhiteSpace(query.DiagnosticId)
+        || !string.IsNullOrWhiteSpace(query.Type)
+        || !string.IsNullOrWhiteSpace(query.EditorialStatus)
+        || !string.IsNullOrWhiteSpace(query.ProcessingStatus)
+        || query.From is not null
+        || query.To is not null;
+    Dictionary<string, string> PageRoute(int pageNumber) => new() {
+        ["Page"] = pageNumber.ToString(),
+        ["PageSize"] = listPage.PageSize.ToString(),
+        ["Search"] = query.Search ?? "",
+        ["DiagnosticId"] = query.DiagnosticId ?? "",
+        ["Type"] = query.Type ?? "",
+        ["EditorialStatus"] = query.EditorialStatus ?? "",
+        ["ProcessingStatus"] = query.ProcessingStatus ?? "",
+        ["From"] = query.From?.ToString("yyyy-MM-dd") ?? "",
+        ["To"] = query.To?.ToString("yyyy-MM-dd") ?? "",
+        ["Sort"] = query.Sort ?? ""
+    };
+}
+@section Styles {
+  <link rel="stylesheet" href="~/css/executive-deliverables.css" asp-append-version="true" />
+}
+<main class="valora-page executive-deliverables" data-executive-deliverables>
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+      "Central de Entregas",
+      "Prepare, revise, publique e compartilhe entregáveis executivos com rastreabilidade.",
+      "Valora Insight™",
+      $"{listPage.Total} entregável(is)",
+      Model.CanPrepare
+          ? new[] { new PageHeaderAction("Preparar relatório", "/Reports/Prepare", Style: "primary", Icon: "file-text") }
+          : Array.Empty<PageHeaderAction>()))" />
+  <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel(
+      "Como usar a central",
+      "Filtre por situação editorial e processamento. Abra um entregável para revisar, publicar, baixar ou compartilhar.",
+      new[] {
+          "Prepare a partir de um resultado concluído.",
+          "Envie para revisão e publique somente após confirmação.",
+          "Compartilhe apenas com link seguro e validade definida."
+      }))" />
+
+  @if (TempData["DeliverableSuccess"] is string ok) {
+    <div class="alert alert-success" role="status">@ok</div>
+  }
+  @if (TempData["DeliverableError"] is string err) {
+    <div class="alert alert-danger" role="alert">@err</div>
+  }
+
+  <section class="valora-card deliverable-filters" aria-labelledby="deliverable-filters-title">
+    <h2 id="deliverable-filters-title">Filtros</h2>
+    <form method="get" class="form-grid deliverable-filters__form">
+      <input type="hidden" name="Page" value="1" />
+      <label for="Search">Busca
+        <input id="Search" name="Search" value="@query.Search" placeholder="Título ou diagnóstico" autocomplete="off" />
+      </label>
+      <label for="Type">Tipo
+        <select id="Type" name="Type">
+          <option value="">Todos</option>
+          <option value="@DeliverableTypes.ExecutiveReport" selected="@(query.Type == DeliverableTypes.ExecutiveReport)">@DeliverableStatusLabels.Type(DeliverableTypes.ExecutiveReport)</option>
+          <option value="@DeliverableTypes.Certificate" selected="@(query.Type == DeliverableTypes.Certificate)">@DeliverableStatusLabels.Type(DeliverableTypes.Certificate)</option>
+        </select>
+      </label>
+      <label for="EditorialStatus">Situação editorial
+        <select id="EditorialStatus" name="EditorialStatus">
+          <option value="">Todas</option>
+          @foreach (var status in new[] { DeliverableEditorialStatuses.Draft, DeliverableEditorialStatuses.InReview, DeliverableEditorialStatuses.Published, DeliverableEditorialStatuses.Superseded }) {
+            <option value="@status" selected="@(query.EditorialStatus == status)">@DeliverableStatusLabels.Editorial(status)</option>
+          }
+        </select>
+      </label>
+      <label for="ProcessingStatus">Processamento
+        <select id="ProcessingStatus" name="ProcessingStatus">
+          <option value="">Todos</option>
+          @foreach (var status in new[] { DeliverableProcessingStatuses.AwaitingGeneration, DeliverableProcessingStatuses.Processing, DeliverableProcessingStatuses.Available, DeliverableProcessingStatuses.Failed }) {
+            <option value="@status" selected="@(query.ProcessingStatus == status)">@DeliverableStatusLabels.Processing(status)</option>
+          }
+        </select>
+      </label>
+      <label for="From">De
+        <input id="From" name="From" type="date" value="@(query.From?.ToString("yyyy-MM-dd"))" />
+      </label>
+      <label for="To">Até
+        <input id="To" name="To" type="date" value="@(query.To?.ToString("yyyy-MM-dd"))" />
+      </label>
+      <label for="Sort">Ordenar
+        <select id="Sort" name="Sort">
+          <option value="newest" selected="@(query.Sort is null or "newest")">Mais recentes</option>
+          <option value="title" selected="@(query.Sort == "title")">Título</option>
+          <option value="updated" selected="@(query.Sort == "updated")">Atualização</option>
+        </select>
+      </label>
+      <div class="form-actions">
+        <button class="valora-button valora-button--primary" type="submit">Aplicar filtros</button>
+        <a class="valora-button valora-button--ghost" asp-action="Index">Limpar</a>
+      </div>
     </form>
   </section>
-  <section aria-labelledby="availableReports"><div class="reports-heading"><div><p class="eyebrow">Biblioteca segura</p><h2 id="availableReports">Relatórios disponíveis</h2></div><button class="valora-button" type="button" data-refresh>Atualizar</button></div><div class="report-list" data-report-list aria-live="polite"><div class="report-skeleton">Carregando relatórios…</div></div></section>
-  <dialog class="report-preview" data-preview-dialog aria-labelledby="reportPreviewTitle"><div class="report-preview__frame"><header><div><p class="eyebrow">Preview antes do download</p><h2 id="reportPreviewTitle" data-preview-title>Relatório executivo</h2></div><button class="icon-button" type="button" data-close-preview aria-label="Fechar preview">×</button></header><div data-preview-body></div><footer><button class="valora-button" type="button" data-close-preview>Voltar</button><button class="valora-button valora-button--primary" type="button" data-download>Baixar arquivo</button></footer></div></dialog>
+
+  <section class="valora-card" aria-live="polite" data-total="@listPage.Total">
+    @if (listPage.Items.Count == 0) {
+      <partial name="_EmptyState" model="@(new EmptyStateViewModel(
+          hasFilters ? "Nenhum resultado para os filtros" : listPage.CurrentPage > 1 ? "Página sem resultados" : "Nenhum entregável preparado",
+          listPage.CurrentPage > 1
+              ? "Volte à primeira página ou ajuste os filtros."
+              : hasFilters
+                  ? "Ajuste ou limpe os filtros para ampliar a busca."
+                  : "Prepare o primeiro relatório executivo a partir de um resultado concluído.",
+          Model.CanPrepare && !hasFilters ? "Preparar relatório" : null,
+          Model.CanPrepare && !hasFilters ? "/Reports/Prepare" : null))" />
+    } else {
+      <div class="table-responsive deliverable-table-shell">
+        <table class="valora-table deliverable-table">
+          <thead>
+            <tr>
+              <th>Título</th>
+              <th>Diagnóstico</th>
+              <th>Tipo</th>
+              <th>Versão</th>
+              <th>Situação editorial</th>
+              <th>Processamento</th>
+              <th>Data</th>
+              <th>Responsável</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+          @foreach (var item in listPage.Items) {
+            <tr>
+              <td>
+                <a asp-action="Details" asp-route-id="@item.Id" asp-route-returnUrl="@Model.CurrentUrl"><strong>@item.Title</strong></a>
+                @if (!string.IsNullOrWhiteSpace(item.TraceCode)) {
+                  <small class="d-block text-muted">@item.TraceCode</small>
+                }
+              </td>
+              <td>@(item.DiagnosticName ?? "—")</td>
+              <td>@DeliverableStatusLabels.Type(item.Type)</td>
+              <td>v@(item.VersionNumber)</td>
+              <td>
+                <partial name="_StatusBadge" model="@(new StatusBadgeViewModel(DeliverableStatusLabels.Editorial(item.EditorialStatus), DeliverableStatusLabels.EditorialTone(item.EditorialStatus)))" />
+              </td>
+              <td>
+                <partial name="_StatusBadge" model="@(new StatusBadgeViewModel(DeliverableStatusLabels.Processing(item.ProcessingStatus), DeliverableStatusLabels.ProcessingTone(item.ProcessingStatus)))" />
+              </td>
+              <td>@item.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+              <td>@(item.ResponsibleName ?? "—")</td>
+              <td class="deliverable-actions">
+                <a class="valora-button valora-button--ghost" asp-action="Details" asp-route-id="@item.Id" asp-route-returnUrl="@Model.CurrentUrl">Abrir</a>
+                @if (item.CanReview && Model.CanPrepare) {
+                  <a class="valora-button valora-button--ghost" asp-action="Details" asp-route-id="@item.Id" asp-route-returnUrl="@Model.CurrentUrl" asp-route-openDialog="submit-review-dialog">Revisar</a>
+                }
+                @if (item.CanDownload && item.FileAvailable) {
+                  <a class="valora-button valora-button--ghost" asp-action="Download" asp-route-id="@item.Id">Baixar</a>
+                }
+                @if (item.CanShare) {
+                  <a class="valora-button valora-button--ghost" asp-action="Details" asp-route-id="@item.Id" asp-route-returnUrl="@Model.CurrentUrl" asp-route-openDialog="share-dialog">Compartilhar</a>
+                }
+              </td>
+            </tr>
+          }
+          </tbody>
+        </table>
+      </div>
+      <nav class="pagination" aria-label="Páginas dos entregáveis">
+        @if (listPage.HasPrevious) {
+          <a asp-action="Index" asp-all-route-data="@PageRoute(listPage.CurrentPage - 1)">Anterior</a>
+        } else {
+          <span class="disabled" aria-disabled="true">Anterior</span>
+        }
+        <span>Página @listPage.CurrentPage de @listPage.TotalPages</span>
+        @if (listPage.HasNext) {
+          <a asp-action="Index" asp-all-route-data="@PageRoute(listPage.CurrentPage + 1)">Próxima</a>
+        } else {
+          <span class="disabled" aria-disabled="true">Próxima</span>
+        }
+      </nav>
+    }
+  </section>
 </main>
-@section Scripts { <script src="/js/api/reports-api.js" asp-append-version="true"></script><script src="/js/pages/reports-page.js" asp-append-version="true"></script> }

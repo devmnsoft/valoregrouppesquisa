@@ -1,0 +1,345 @@
+@model Valora.Web.Controllers.DeliverableDetailsPageViewModel
+@using Valora.Application.FormalDeliverables
+@{
+    ViewData["Title"] = Model.Deliverable.Title;
+    var d = Model.Deliverable;
+    var caps = Model.Capabilities;
+    var reviewCommand = Model.Command as SubmitReviewRequest;
+    var publishCommand = Model.Command as PublishDeliverableRequest;
+    var shareCommand = Model.Command as CreateDeliverableShareRequest;
+}
+@section Styles {
+  <link rel="stylesheet" href="~/css/executive-deliverables.css" asp-append-version="true" />
+}
+<main class="valora-page executive-deliverables deliverable-details" data-deliverable-details data-open-dialog="@Model.OpenDialog">
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+      d.Title,
+      $"{DeliverableStatusLabels.Type(d.Type)} · versão {d.VersionNumber}",
+      "Central de Entregas",
+      $"{DeliverableStatusLabels.Editorial(d.EditorialStatus)} · {DeliverableStatusLabels.Processing(d.ProcessingStatus)}",
+      new[] { new PageHeaderAction("Voltar à lista", Model.ReturnUrl, Icon: "arrow-left") }))" />
+  <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel(
+      "Ciclo do entregável",
+      "Rascunho → revisão → publicação com arquivo → compartilhamento seguro.",
+      new[] {
+          "Revise seções, limitações e alertas de dados faltantes.",
+          "Publique somente após confirmação explícita.",
+          "O token do link seguro é exibido uma única vez."
+      }))" />
+
+  @if (TempData["DeliverableSuccess"] is string ok) {
+    <div class="alert alert-success" role="status">@ok</div>
+  }
+  @if (TempData["DeliverableError"] is string err) {
+    <div class="alert alert-danger" role="alert">@err</div>
+  }
+  <div asp-validation-summary="All" class="alert alert-danger" role="alert" tabindex="-1"></div>
+
+  @if (!string.IsNullOrWhiteSpace(Model.ShareToken)) {
+    <section class="valora-card share-token-once" aria-labelledby="share-token-title">
+      <h2 id="share-token-title">Token do link seguro</h2>
+      <p class="valora-alert valora-alert--warning" role="status">
+        <strong>Copie agora.</strong> Este token não poderá ser recuperado depois. Quem possuir o link poderá acessar o conteúdo autorizado até a expiração.
+      </p>
+      <label for="share-token-value">Token</label>
+      <input id="share-token-value" class="form-control" readonly value="@Model.ShareToken" onclick="this.select()" />
+      @if (!string.IsNullOrWhiteSpace(Model.SharePublicUrl)) {
+        <label for="share-url-value">URL pública</label>
+        <input id="share-url-value" class="form-control" readonly value="@Model.SharePublicUrl" onclick="this.select()" />
+      }
+    </section>
+  }
+
+  <section class="action-summary-grid">
+    <article class="valora-card">
+      <h2>Resumo</h2>
+      <dl class="action-facts">
+        <div><dt>Situação editorial</dt><dd><partial name="_StatusBadge" model="@(new StatusBadgeViewModel(DeliverableStatusLabels.Editorial(d.EditorialStatus), DeliverableStatusLabels.EditorialTone(d.EditorialStatus)))" /></dd></div>
+        <div><dt>Processamento</dt><dd><partial name="_StatusBadge" model="@(new StatusBadgeViewModel(DeliverableStatusLabels.Processing(d.ProcessingStatus), DeliverableStatusLabels.ProcessingTone(d.ProcessingStatus)))" /></dd></div>
+        <div><dt>Diagnóstico</dt><dd>@(d.DiagnosticName ?? "—")</dd></div>
+        <div><dt>Resultado de origem</dt><dd>@(d.DiagnosticName is not null && d.ResultId is Guid rid ? $"{d.DiagnosticName} ({rid.ToString()[..8]}…)" : d.ResultId?.ToString() ?? "—")</dd></div>
+        <div><dt>Responsável</dt><dd>@(d.ResponsibleName ?? "—")</dd></div>
+        <div><dt>Revisor</dt><dd>@(d.ReviewerName ?? "Não designado")</dd></div>
+        <div><dt>Publicado em</dt><dd>@(d.PublishedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</dd></div>
+        <div><dt>Publicado por</dt><dd>@(d.PublishedByName ?? "—")</dd></div>
+        <div><dt>Metodologia</dt><dd>@(string.IsNullOrWhiteSpace(d.MethodologyName) ? "—" : $"{d.MethodologyName} {d.MethodologyVersion}")</dd></div>
+        <div><dt>Rastreio</dt><dd>@(d.TraceCode ?? "—")</dd></div>
+      </dl>
+      <div class="action-buttons deliverable-actions">
+        @if (caps.CanReview) {
+          <button type="button" class="valora-button" data-dialog-target="#submit-review-dialog">Enviar para revisão</button>
+        }
+        @if (caps.CanPublish) {
+          <button type="button" class="valora-button valora-button--primary" data-dialog-target="#publish-dialog">Publicar</button>
+        }
+        @if (caps.CanDownload) {
+          <a class="valora-button" asp-action="Download" asp-route-id="@d.Id">Baixar arquivo</a>
+        }
+        @if (caps.CanShare) {
+          <button type="button" class="valora-button" data-dialog-target="#share-dialog">Compartilhar</button>
+        }
+        @if (caps.CanNewVersion) {
+          <button type="button" class="valora-button" data-dialog-target="#new-version-dialog">Nova versão</button>
+        }
+      </div>
+    </article>
+
+    <article class="valora-card">
+      <h2>Seções e notas</h2>
+      @if (d.Sections.Count == 0) {
+        <p>Nenhuma seção configurada.</p>
+      } else {
+        <ul class="section-list">
+          @foreach (var section in d.Sections) {
+            <li>@DeliverableStatusLabels.Section(section)</li>
+          }
+        </ul>
+      }
+      <h3>Notas executivas</h3>
+      <p>@(string.IsNullOrWhiteSpace(d.ExecutiveNotes) ? "Sem notas executivas." : d.ExecutiveNotes)</p>
+    </article>
+  </section>
+
+  @if (d.MissingDataAlerts.Count > 0) {
+    <section class="valora-card" aria-labelledby="missing-data-title">
+      <h2 id="missing-data-title">Alertas de dados faltantes</h2>
+      <ul class="valora-alert valora-alert--warning">
+        @foreach (var alert in d.MissingDataAlerts) {
+          <li>@alert</li>
+        }
+      </ul>
+    </section>
+  }
+
+  @if (d.Limitations.Count > 0) {
+    <section class="valora-card" aria-labelledby="limitations-title">
+      <h2 id="limitations-title">Limitações</h2>
+      <ul>
+        @foreach (var limitation in d.Limitations) {
+          <li>@limitation</li>
+        }
+      </ul>
+    </section>
+  }
+
+  <section class="valora-card" aria-labelledby="share-links-title">
+    <div class="section-heading">
+      <div>
+        <h2 id="share-links-title">Links de compartilhamento</h2>
+        <p>Links ativos concedem acesso ao conteúdo autorizado até expiração ou revogação.</p>
+      </div>
+    </div>
+    @if (d.ShareLinks.Count == 0) {
+      <partial name="_EmptyState" model="@(new EmptyStateViewModel("Nenhum link criado", "Crie um link seguro após a publicação com arquivo disponível."))" />
+    } else {
+      <div class="table-responsive">
+        <table class="valora-table">
+          <thead>
+            <tr>
+              <th>Rótulo</th>
+              <th>Expira em</th>
+              <th>Download</th>
+              <th>Status</th>
+              <th>Acessos</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+          @foreach (var link in d.ShareLinks) {
+            <tr>
+              <td>@(link.InternalLabel ?? "—")</td>
+              <td>@link.ExpiresAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+              <td>@(link.AllowDownload ? "Sim" : "Não")</td>
+              <td>@DeliverableStatusLabels.ShareStatus(link.Status)</td>
+              <td>@link.AccessCount</td>
+              <td>
+                @if (caps.CanShare && string.Equals(link.Status, "active", StringComparison.OrdinalIgnoreCase) && link.RevokedAt is null) {
+                  <form method="post" asp-action="RevokeShare" asp-route-linkId="@link.Id" class="inline-form" onsubmit="return confirm('Revogar este link? O acesso público será encerrado.');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="deliverableId" value="@d.Id" />
+                    <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+                    <button type="submit" class="valora-button valora-button--danger">Revogar</button>
+                  </form>
+                }
+              </td>
+            </tr>
+          }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+
+  <section class="valora-card" aria-labelledby="access-history-title">
+    <h2 id="access-history-title">Histórico de acessos</h2>
+    @if (d.AccessHistory.Count == 0) {
+      <partial name="_EmptyState" model="@(new EmptyStateViewModel("Sem acessos registrados", "Os acessos pelos links públicos aparecerão aqui."))" />
+    } else {
+      <div class="table-responsive">
+        <table class="valora-table">
+          <thead>
+            <tr>
+              <th>Quando</th>
+              <th>Tipo</th>
+              <th>Permitido</th>
+              <th>Link</th>
+            </tr>
+          </thead>
+          <tbody>
+          @foreach (var access in d.AccessHistory) {
+            <tr>
+              <td>@access.AccessedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+              <td>@access.AccessType</td>
+              <td>@(access.WasAllowed ? "Sim" : "Não")</td>
+              <td><code>@access.ShareLinkId.ToString()[..8]…</code></td>
+            </tr>
+          }
+          </tbody>
+        </table>
+      </div>
+    }
+  </section>
+</main>
+
+@if (caps.CanReview) {
+  <dialog id="submit-review-dialog" class="valora-dialog deliverable-dialog" aria-labelledby="submit-review-title">
+    <form method="post" asp-action="SubmitReview" asp-route-id="@d.Id">
+      @Html.AntiForgeryToken()
+      <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+      <input type="hidden" name="CommandId" value="@(reviewCommand?.CommandId ?? Guid.NewGuid().ToString("N"))" />
+      <header>
+        <div>
+          <p class="eyebrow">Revisão</p>
+          <h2 id="submit-review-title">Enviar para revisão</h2>
+        </div>
+        <button type="button" class="btn-close" data-dialog-close aria-label="Fechar"></button>
+      </header>
+      <p>O entregável <strong>@d.Title</strong> sairá de rascunho e ficará disponível para publicação autorizada.</p>
+      <label for="review-notes">Observações
+        <textarea id="review-notes" name="Notes" maxlength="2000" rows="3">@reviewCommand?.Notes</textarea>
+      </label>
+      <div class="dialog-actions">
+        <button type="button" data-dialog-close>Cancelar</button>
+        <button type="submit" class="valora-button valora-button--primary">Confirmar envio</button>
+      </div>
+    </form>
+  </dialog>
+}
+
+@if (caps.CanPublish) {
+  <dialog id="publish-dialog" class="valora-dialog deliverable-dialog" aria-labelledby="publish-title">
+    <form method="post" asp-action="Publish" asp-route-id="@d.Id">
+      @Html.AntiForgeryToken()
+      <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+      <input type="hidden" name="CommandId" value="@(publishCommand?.CommandId ?? Guid.NewGuid().ToString("N"))" />
+      <input type="hidden" name="VersionNumber" value="@d.VersionNumber" />
+      <header>
+        <div>
+          <p class="eyebrow">Publicação</p>
+          <h2 id="publish-title">Publicar entregável</h2>
+        </div>
+        <button type="button" class="btn-close" data-dialog-close aria-label="Fechar"></button>
+      </header>
+      <p>A publicação gera o arquivo formal a partir do resultado de origem. Confirme somente após revisar limitações e alertas.</p>
+      <label for="publish-notes">Observações
+        <textarea id="publish-notes" name="Notes" maxlength="2000" rows="3">@publishCommand?.Notes</textarea>
+      </label>
+      <label class="section-check">
+        @if (publishCommand?.Confirmed == true) {
+          <input type="checkbox" name="Confirmed" value="true" required checked="checked" />
+        } else {
+          <input type="checkbox" name="Confirmed" value="true" required />
+        }
+        <span>Confirmo a publicação deste entregável.</span>
+      </label>
+      <div class="dialog-actions">
+        <button type="button" data-dialog-close>Cancelar</button>
+        <button type="submit" class="valora-button valora-button--primary">Publicar</button>
+      </div>
+    </form>
+  </dialog>
+}
+
+@if (caps.CanShare) {
+  <dialog id="share-dialog" class="valora-dialog deliverable-dialog" aria-labelledby="share-title">
+    <form method="post" asp-action="Share" asp-route-id="@d.Id">
+      @Html.AntiForgeryToken()
+      <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+      <input type="hidden" name="CommandId" value="@(shareCommand?.CommandId ?? Guid.NewGuid().ToString("N"))" />
+      <header>
+        <div>
+          <p class="eyebrow">Compartilhamento seguro</p>
+          <h2 id="share-title">Criar link público</h2>
+        </div>
+        <button type="button" class="btn-close" data-dialog-close aria-label="Fechar"></button>
+      </header>
+      <p class="valora-alert valora-alert--warning" role="note">
+        Quem possuir este link poderá acessar o conteúdo autorizado até sua expiração.
+      </p>
+      <label for="ValidForHours">Validade (horas)
+        <input id="ValidForHours" name="ValidForHours" type="number" min="1" max="2160" value="@(shareCommand?.ValidForHours ?? 72)" required />
+      </label>
+      <label for="InternalLabel">Rótulo interno
+        <input id="InternalLabel" name="InternalLabel" maxlength="120" value="@shareCommand?.InternalLabel" />
+      </label>
+      <label class="section-check">
+        @if (shareCommand?.AllowDownload == true) {
+          <input type="checkbox" name="AllowDownload" value="true" checked="checked" />
+        } else {
+          <input type="checkbox" name="AllowDownload" value="true" />
+        }
+        <span>Permitir download do arquivo</span>
+      </label>
+      <label class="section-check">
+        @if (shareCommand?.Confirmed == true) {
+          <input type="checkbox" name="Confirmed" value="true" required checked="checked" />
+        } else {
+          <input type="checkbox" name="Confirmed" value="true" required />
+        }
+        <span>Confirmo a criação do link seguro.</span>
+      </label>
+      <div class="dialog-actions">
+        <button type="button" data-dialog-close>Cancelar</button>
+        <button type="submit" class="valora-button valora-button--primary">Criar link</button>
+      </div>
+    </form>
+  </dialog>
+}
+
+@if (caps.CanNewVersion) {
+  <dialog id="new-version-dialog" class="valora-dialog deliverable-dialog" aria-labelledby="new-version-title">
+    <form method="post" asp-action="NewVersion" asp-route-id="@d.Id">
+      @Html.AntiForgeryToken()
+      <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+      <input type="hidden" name="commandId" value="@Guid.NewGuid().ToString("N")" />
+      <header>
+        <div>
+          <p class="eyebrow">Versionamento</p>
+          <h2 id="new-version-title">Criar nova versão</h2>
+        </div>
+        <button type="button" class="btn-close" data-dialog-close aria-label="Fechar"></button>
+      </header>
+      <p>Será criado um novo rascunho (versão @(d.VersionNumber + 1)) a partir deste entregável publicado. A versão atual permanecerá disponível até ser substituída na publicação.</p>
+      <div class="dialog-actions">
+        <button type="button" data-dialog-close>Cancelar</button>
+        <button type="submit" class="valora-button valora-button--primary">Confirmar nova versão</button>
+      </div>
+    </form>
+  </dialog>
+}
+
+@section Scripts {
+<script>
+(() => {
+  const root = document.querySelector('[data-deliverable-details]');
+  document.querySelectorAll('.deliverable-dialog [data-dialog-close], .deliverable-dialog .btn-close').forEach(button => {
+    button.addEventListener('click', () => button.closest('dialog')?.close());
+  });
+  const open = root?.dataset.openDialog;
+  if (open) {
+    const dialog = document.getElementById(open);
+    if (dialog && typeof dialog.showModal === 'function') dialog.showModal();
+  }
+})();
+</script>
+}

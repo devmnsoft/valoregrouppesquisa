@@ -21,6 +21,7 @@ public sealed class InfrastructureDependencyInjectionTests {
         AssertScoped<IValoraAiRunRepository, ValoraAiRunRepository>(services);
         AssertScoped<IDiagnosisDocumentSnapshotProvider, DiagnosisDocumentSnapshotProvider>(services);
         AssertScoped<IShareLinkRepository, ShareLinkRepository>(services);
+        AssertScoped<IFormalDeliverableRepository, FormalDeliverableCatalogRepository>(services);
         AssertScoped<ISubscriptionPlanRepository, SubscriptionPlanRepository>(services);
         AssertScoped<IOrganizationSubscriptionRepository, OrganizationSubscriptionRepository>(services);
         AssertScoped<IUsageCounterRepository, UsageCounterRepository>(services);

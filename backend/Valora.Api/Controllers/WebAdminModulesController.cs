@@ -67,7 +67,7 @@ public sealed class WebAdminModulesController(
     [HttpGet("/responses")]
     public Task<IActionResult> Responses() => Safe(async () => new { ok = true, data = await responses.ListAdminAsync(OrganizationId), correlationId = CorrelationId }, "responses.list");
     [HttpGet("/responses/{responseId:guid}")]
-    public new Task<IActionResult> Response(Guid responseId) => Safe(async () => new { ok = true, data = await responses.GetAdminAsync(OrganizationId, responseId), correlationId = CorrelationId }, "responses.get");
+    public new Task<IActionResult> Response(Guid responseId) => Safe(async () => new { ok = true, data = await responses.GetAdminAsync(OrganizationId, responseId, UserId, CanReadActionPlans, OrganizationWide), correlationId = CorrelationId }, "responses.get");
 
     [ApiExplorerSettings(IgnoreApi = true)]
     [HttpGet("/legacy/responses/{responseId:guid}/result")]
@@ -82,6 +82,8 @@ public sealed class WebAdminModulesController(
     public Task<IActionResult> PutSettings([FromBody] Dictionary<string, object?> request) => Safe(async () => { await organizations.UpsertSettingsAsync(OrganizationId, request); await Audit("settings.updated", "settings", OrganizationId); return new { ok = true, correlationId = CorrelationId }; }, "settings.put");
 
     private async Task Audit(string action, string entityType, Guid entityId) => await audit.AddAsync(new AuditEntry(OrganizationId, UserId, action, entityType, entityId.ToString(), "Ação administrativa via Valora.Web", "{}"));
+    private bool CanReadActionPlans => Context.IsGlobalAdministrator || Context.Permissions.Contains(ValoraPermissions.Action.Read, StringComparer.OrdinalIgnoreCase);
+    private bool OrganizationWide => Context.IsGlobalAdministrator || Context.Roles.Contains("admin_cliente", StringComparer.OrdinalIgnoreCase);
     private static string? Text(JsonElement e, string name) => e.ValueKind == JsonValueKind.Object && e.TryGetProperty(name, out var p) && p.ValueKind != JsonValueKind.Null ? p.ToString() : null;
     private static Guid? TryGuid(JsonElement e, string name) => Guid.TryParse(Text(e, name), out var g) ? g : null;
     private static Guid GuidValue(JsonElement e, string name) => TryGuid(e, name) ?? throw new ArgumentException($"{name} obrigatório");

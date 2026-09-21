@@ -46,6 +46,7 @@ public sealed class ResultRepository(IDbConnectionFactory factory, ILogger<Resul
                 RETURNING id)
                 INSERT INTO valorapesquisa.results(organization_id,response_id,result_score_id)
                 SELECT @organizationId,@responseId,id FROM score
+                ON CONFLICT (response_id) DO UPDATE SET result_score_id=excluded.result_score_id,updated_at=now()
                 """;
             await transaction.Connection!.ExecuteAsync(sql,
                 new { organizationId, responseId, total, max, percentage, maturityLabel, radarText, strategicTruth, risk, nextLevel },

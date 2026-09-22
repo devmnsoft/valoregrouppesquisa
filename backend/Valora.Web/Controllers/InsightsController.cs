@@ -35,7 +35,7 @@ public sealed class InsightsController(
     [HttpPost("Details/{id:guid}/Approve")]
     [Authorize(Policy = ValoraPermissions.Insights.Approve)]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Approve(Guid id, string commandKey, long expectedVersion, CancellationToken ct) {
+    public async Task<IActionResult> Approve(Guid id, string commandKey, long expectedVersion, string? returnUrl, CancellationToken ct) {
         if (!TryGetOperationContext(out var organizationId, out var userId)) return OrganizationRequired();
 
         try {
@@ -59,13 +59,13 @@ public sealed class InsightsController(
             TempData["Error"] = "Não foi possível concluir a operação. Tente novamente.";
         }
 
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Details), new { id, returnUrl = SafeInsightsReturn(returnUrl) });
     }
 
     [HttpPost("Details/{id:guid}/Reject")]
     [Authorize(Policy = ValoraPermissions.Insights.Reject)]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Reject(Guid id, RejectAiInsightViewModel model, CancellationToken ct) {
+    public async Task<IActionResult> Reject(Guid id, RejectAiInsightViewModel model, string? returnUrl, CancellationToken ct) {
         if (!TryGetOperationContext(out var organizationId, out var userId)) return OrganizationRequired();
         model.InsightId = id;
         model.Reason = model.Reason?.Trim() ?? string.Empty;
@@ -75,7 +75,7 @@ public sealed class InsightsController(
             ViewData["OpenRejectDialog"] = true;
             ViewData["RejectionReason"] = model.Reason;
             var context=requestContext.GetCurrent();var detail=await insights.DetailsAsync(organizationId,userId,id,context.IsGlobalAdministrator||context.Roles.Contains("admin_cliente",StringComparer.OrdinalIgnoreCase),ct);
-            return detail is null?NotFound():View("Details",new InsightDetailsPageViewModel(detail,"/Insights"));
+            return detail is null?NotFound():View("Details",new InsightDetailsPageViewModel(detail,SafeInsightsReturn(returnUrl)));
         }
 
         try {
@@ -102,7 +102,13 @@ public sealed class InsightsController(
             TempData["OpenRejectDialog"] = true;
         }
 
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Details), new { id, returnUrl = SafeInsightsReturn(returnUrl) });
+    }
+
+    private string SafeInsightsReturn(string? value) {
+        if (string.IsNullOrWhiteSpace(value) || !Url.IsLocalUrl(value)) return "/Insights";
+        var path = value.Split('?', 2)[0];
+        return path.Equals("/Insights", StringComparison.OrdinalIgnoreCase) ? value : "/Insights";
     }
 
     private bool TryGetOrganizationId(out Guid organizationId) =>

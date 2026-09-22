@@ -7011,3 +7011,18 @@ INSERT INTO valorapesquisa.schema_migrations(version,checksum)
 VALUES('2026_09_insight_action_traceability','sha256:insight-action-traceability-v1')
 ON CONFLICT(version) DO NOTHING;
 COMMIT;
+
+-- Confiabilidade dos vínculos canônicos de evidência (reaplicável).
+BEGIN;
+ALTER TABLE valorapesquisa.valora_ai_insight_evidence_links
+  ADD COLUMN IF NOT EXISTS link_source varchar(40) NOT NULL DEFAULT 'legacy_unknown';
+ALTER TABLE valorapesquisa.valora_ai_insight_evidence_links
+  ADD COLUMN IF NOT EXISTS reconstructed_at timestamptz;
+CREATE INDEX IF NOT EXISTS ix_valora_ai_insight_evidence_org
+  ON valorapesquisa.valora_ai_insight_evidence_links(insight_id,evidence_item_id,link_source);
+-- Não é feito backfill por texto: somente produtores transacionais podem declarar
+-- `generation`; vínculos anteriores permanecem explicitamente como legado incerto.
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_09_insight_evidence_reliability','sha256:insight-evidence-reliability-v1')
+ON CONFLICT(version) DO NOTHING;
+COMMIT;

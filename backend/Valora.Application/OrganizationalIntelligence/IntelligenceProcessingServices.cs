@@ -21,17 +21,23 @@ public sealed class IntelligenceStageLogger(IIntelligenceProcessingJobRepository
 public sealed class IntelligenceProcessingOrchestrator(IOrganizationalIntelligencePipeline pipeline,
     IIntelligenceProcessingJobRepository repository, IIntelligenceStageLogger stageLogger) : IIntelligenceProcessingOrchestrator {
     public async Task ProcessAsync(IntelligenceProcessingJob job, CancellationToken ct) {
-        var runId = Guid.NewGuid(); await repository.MarkRunningAsync(job.Id, runId, ct); var started = DateTime.UtcNow;
+        var attemptId = Guid.NewGuid(); await repository.MarkRunningAsync(job.Id, attemptId, ct); var started = DateTime.UtcNow;
         try {
-            var context = new IntelligenceProcessingContext(job.OrganizationId, job.SurveyId, job.ResponseId, job.FormId, SourceEntityId: job.SourceEntityId, Trigger: job.Trigger);
+            var context = new IntelligenceProcessingContext(job.OrganizationId, job.SurveyId, job.ResponseId, job.FormId,
+                SourceEntityId: job.SourceEntityId, Trigger: job.Trigger, PipelineRunId: job.Id);
             var result = job.Trigger switch {
                 "diagnosis_closed" => await pipeline.ProcessDiagnosisClosedAsync(context, ct),
                 "executive_report" => await pipeline.ProcessExecutiveReportAsync(context, ct),
                 "action_changed" => await pipeline.ProcessActionAsync(context, false, ct),
                 _ => await pipeline.ProcessResponseAsync(context, ct)
             };
-            foreach (var stage in result.Stages) { var status = stage.Records == 0 ? IntelligenceProcessingStatus.Skipped : stage.SufficientEvidence ? IntelligenceProcessingStatus.Completed : IntelligenceProcessingStatus.InsufficientEvidence; await stageLogger.LogAsync(job.OrganizationId, job.Id, runId, stage, status, started, DateTime.UtcNow, ct); }
+            foreach (var stage in result.Stages) { var status = stage.Records == 0 ? IntelligenceProcessingStatus.Skipped : stage.SufficientEvidence ? IntelligenceProcessingStatus.Completed : IntelligenceProcessingStatus.InsufficientEvidence; await stageLogger.LogAsync(job.OrganizationId, job.Id, attemptId, stage, status, started, DateTime.UtcNow, ct); }
             await repository.MarkCompletedAsync(job.Id, result.HasSufficientEvidence ? IntelligenceProcessingStatus.Completed : IntelligenceProcessingStatus.InsufficientEvidence, ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) {
+            // Cancellation is cooperative. It must not consume retry budget or be
+            // represented as a processing defect; the worker lease can be reclaimed.
+            throw;
         }
         catch (Exception ex) {
             var message = "Não foi possível concluir esta etapa. A resposta original permanece preservada.";

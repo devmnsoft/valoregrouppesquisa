@@ -22,7 +22,7 @@
     setText('[data-kpi="activeSurveys"]', number(activeSurveys));
     setText('[data-kpi="completionRate"]', responses.length ? `${completionRate}%` : '—');
     const run = intelligence.latestRun;
-    setText('[data-kpi="averageLevel"]', run?.maturityIndex == null ? '—' : `${number(run.maturityIndex)}%`);
+    setText('[data-kpi="averageLevel"]', run?.maturityIndex == null ? 'Não avaliado' : `${number(run.maturityIndex)} pontos`);
     setText('[data-kpi="evidence"]', intelligence.evidence?.total == null ? '—' : number(intelligence.evidence.total));
     setText('[data-kpi="actions"]', number(actions.filter(item => !['completed', 'cancelled', 'reviewed'].includes(String(item.status).toLowerCase())).length));
     root.querySelector('[data-metric-empty]').hidden = responses.length > 0;
@@ -42,8 +42,8 @@
     root.querySelector('[data-summary-cards]').hidden = !enoughEvidence;
     if (!enoughEvidence) return;
     const score = Number(run.maturityIndex);
-    const level = score >= 85 ? 'Maduro' : score >= 70 ? 'Estruturado' : score >= 55 ? 'Em desenvolvimento' : score >= 35 ? 'Atenção' : 'Crítico';
-    setText('[data-score]', `${number(score)}%`);
+    const level = run.maturityClassification || 'Não avaliado';
+    setText('[data-score]', `${number(score)} pontos`);
     setText('[data-level]', level);
     setText('[data-maturity-score]', number(score));
     setText('[data-maturity-level]', level);

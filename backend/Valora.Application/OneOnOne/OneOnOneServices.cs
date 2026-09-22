@@ -14,8 +14,8 @@ public sealed record OneOnOneDetailsDto(OneOnOneSessionDto Session, IReadOnlyLis
 
 public interface IOneOnOneRepository {
     Task<OneOnOneDashboardDto> Dashboard(Guid organizationId, Guid viewerId, bool canReadAllPrivateNotes, CancellationToken ct);
-    Task<IReadOnlyList<OneOnOneSessionDto>> List(Guid organizationId, CancellationToken ct);
-    Task<OneOnOneDetailsDto?> Get(Guid organizationId, Guid id, Guid viewerId, bool canReadAllPrivateNotes, CancellationToken ct);
+    Task<IReadOnlyList<OneOnOneSessionDto>> List(Guid organizationId, Guid viewerId, bool canReadAll, CancellationToken ct);
+    Task<OneOnOneDetailsDto?> Get(Guid organizationId, Guid id, Guid viewerId, bool canReadAll, bool canReadPrivateNotes, CancellationToken ct);
     Task<Guid> Create(Guid organizationId, Guid userId, CreateOneOnOneSessionRequest request, CancellationToken ct);
     Task Schedule(Guid organizationId, Guid id, DateTime scheduledAt, CancellationToken ct);
     Task Complete(Guid organizationId, Guid id, Guid userId, CompleteOneOnOneSessionRequest request, CancellationToken ct);
@@ -29,8 +29,8 @@ public interface ILeadershipDevelopmentRepository { Task<Guid> Snapshot(Guid org
 
 public sealed class OneOnOneSessionService(IOneOnOneRepository repository) {
     public Task<OneOnOneDashboardDto> Dashboard(Guid o, Guid u, bool privateAccess, CancellationToken c) => repository.Dashboard(o, u, privateAccess, c);
-    public Task<IReadOnlyList<OneOnOneSessionDto>> List(Guid o, CancellationToken c) => repository.List(o, c);
-    public Task<OneOnOneDetailsDto?> Get(Guid o, Guid id, Guid u, bool privateAccess, CancellationToken c) => repository.Get(o, id, u, privateAccess, c);
+    public Task<IReadOnlyList<OneOnOneSessionDto>> List(Guid o, Guid viewer, bool canReadAll, CancellationToken c) => repository.List(o, viewer, canReadAll, c);
+    public Task<OneOnOneDetailsDto?> Get(Guid o, Guid id, Guid u, bool canReadAll, bool privateAccess, CancellationToken c) => repository.Get(o, id, u, canReadAll, privateAccess, c);
     public Task<Guid> Create(Guid o, Guid u, CreateOneOnOneSessionRequest r, CancellationToken c) { if (r.LeaderUserId == Guid.Empty || r.ParticipantUserId == Guid.Empty) throw new ArgumentException("Líder e participante são obrigatórios."); if (string.IsNullOrWhiteSpace(r.Title)) throw new ArgumentException("O objetivo da sessão é obrigatório."); return repository.Create(o, u, r with { Title = r.Title.Trim() }, c); }
     public Task Schedule(Guid o, Guid id, DateTime at, CancellationToken c) { if (at == default) throw new ArgumentException("Informe a data da reunião."); return repository.Schedule(o, id, at, c); }
     public Task Complete(Guid o, Guid id, Guid u, CompleteOneOnOneSessionRequest r, CancellationToken c) { if (string.IsNullOrWhiteSpace(r.Summary) || r.Summary.Trim().Length < 20) throw new ArgumentException("A sessão concluída exige um resumo com pelo menos 20 caracteres."); if (string.IsNullOrWhiteSpace(r.EvidenceSummary)) throw new ArgumentException("Registre a evidência que sustenta o resumo."); return repository.Complete(o, id, u, r, c); }

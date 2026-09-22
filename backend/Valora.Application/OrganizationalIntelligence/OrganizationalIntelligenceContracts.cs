@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Valora.Domain.Methodology;
 
 namespace Valora.Application.OrganizationalIntelligence;
 
@@ -9,7 +10,13 @@ public sealed record EvidenceItemDto(Guid Id, Guid? SurveyId, Guid? ResponseId, 
     string EvidenceType, string SourceType, decimal? NormalizedValue, decimal Weight, decimal ConfidenceWeight,
     int Polarity, string? RawValueMasked, string? TextExcerpt, string MappingStatus, string MetadataJson, DateTime CreatedAt);
 
-public sealed record DimensionHeatmapDto(Guid DimensionId, string Code, string Name, decimal Score, int EvidenceCount);
+public sealed record DimensionHeatmapDto(Guid DimensionId, string Code, string Name, decimal Score, int EvidenceCount) {
+    // The professional methodology is classified once, on the server. Clients
+    // may choose presentation colours, but must never infer different bands.
+    public string Classification => OrganizationalMaturity.Label(Score);
+    public string ClassificationCode => OrganizationalMaturity.Code(Score);
+    public string MethodologyCode => "professional";
+}
 public sealed record EvidenceSummaryDto(int Responses, int ScoredResults, int Surveys, int ActionPlans, IReadOnlyList<DimensionHeatmapDto> Dimensions) {
     public int Total => Responses + ScoredResults;
 }
@@ -18,7 +25,11 @@ public sealed record OrganizationalInsightDto(Guid Id, Guid RunId, string Dimens
 public sealed record OrganizationalIntelligenceRunDto(Guid Id, Guid OrganizationId, decimal? MaturityIndex,
     decimal? CultureTrustIndex, decimal? GovernanceExecutionIndex, decimal StructuralGap, string StrongestDimension,
     string WeakestDimension, int EvidenceCount, string ConfidenceLevel, string? Warning,
-    IReadOnlyList<DimensionHeatmapDto> Heatmap, IReadOnlyList<OrganizationalInsightDto> Insights, DateTime CreatedAt);
+    IReadOnlyList<DimensionHeatmapDto> Heatmap, IReadOnlyList<OrganizationalInsightDto> Insights, DateTime CreatedAt) {
+    public string? MaturityClassification => MaturityIndex is decimal score ? OrganizationalMaturity.Label(score) : null;
+    public string? MaturityClassificationCode => MaturityIndex is decimal score ? OrganizationalMaturity.Code(score) : null;
+    public string MethodologyCode => "professional";
+}
 public sealed record OrganizationalJourneyEventDto(Guid Id, Guid OrganizationId, string Title, string Description,
     string EventType, DateTime OccurredAt, Guid? CreatedBy, DateTime CreatedAt);
 public sealed record ValoraIndicatorDefinitionDto(Guid Id, string Code, string Name, string Description,

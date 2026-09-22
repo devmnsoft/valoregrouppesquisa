@@ -29,6 +29,22 @@ public sealed class OrganizationalIntelligenceSemanticsTests {
         Assert.Null(result.GovernanceExecutionIndex);
     }
 
+    [Theory]
+    [InlineData(0, "Inicial", "initial")]
+    [InlineData(25, "Inicial", "initial")]
+    [InlineData(25.01, "Estruturante", "structuring")]
+    [InlineData(50, "Estruturante", "structuring")]
+    [InlineData(50.01, "Integrado", "integrated")]
+    [InlineData(75, "Integrado", "integrated")]
+    [InlineData(75.01, "Maduro", "mature")]
+    public void Heatmap_exposes_the_canonical_server_classification(decimal score, string label, string code) {
+        var item = new DimensionHeatmapDto(Guid.NewGuid(), "dimension", "Dimensão", score, 3);
+
+        Assert.Equal("professional", item.MethodologyCode);
+        Assert.Equal(label, item.Classification);
+        Assert.Equal(code, item.ClassificationCode);
+    }
+
     private sealed class StubRepository(EvidenceSummaryDto evidence) : IOrganizationalIntelligenceRepository {
         public OrganizationalIntelligenceRunDto? Saved { get; private set; }
         public Task<EvidenceSummaryDto> GetEvidenceAsync(Guid organizationId, CancellationToken ct) => Task.FromResult(evidence);

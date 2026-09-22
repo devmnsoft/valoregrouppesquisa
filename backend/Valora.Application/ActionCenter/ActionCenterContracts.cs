@@ -67,7 +67,9 @@ public sealed record CreateActionPlanRequest(
     Guid? OwnerUserId, DateTime? StartsAt, DateTime? DueAt,
     [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string EvidenceSummary,
     [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string ExpectedOutcome,
-    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(80)] string CommandId = "");
+    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(80)] string CommandId = "",
+    long? ExpectedOriginVersion = null,
+    [property:System.ComponentModel.DataAnnotations.StringLength(1000,MinimumLength=10)] string? AdditionalInitiativeReason = null);
 public sealed record CreateActionItemRequest(
     [property:System.ComponentModel.DataAnnotations.Required] Guid ActionPlanId,
     [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(180,MinimumLength=3)] string Title,

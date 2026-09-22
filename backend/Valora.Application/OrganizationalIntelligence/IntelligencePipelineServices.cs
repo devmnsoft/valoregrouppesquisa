@@ -38,7 +38,9 @@ public sealed class OrganizationalIntelligencePipeline(IEvidenceExtractionServic
     public Task<IntelligencePipelineResult> ProcessExecutiveReportAsync(IntelligenceProcessingContext c, CancellationToken ct) => Run(c with { Trigger = "executive_report_generated" }, true, ct);
 
     private async Task<IntelligencePipelineResult> Run(IntelligenceProcessingContext c, bool includeReport, CancellationToken ct) {
-        var run = Guid.NewGuid(); var stages = new List<ProcessingStageResult>();
+        var run = Guid.NewGuid();
+        c = c with { PipelineRunId = run };
+        var stages = new List<ProcessingStageResult>();
         var extracted = await evidence.ExtractAsync(c, ct); stages.Add(extracted); var ids = extracted.EvidenceIds;
         if (ids.Count > 0) {
             stages.Add(await metrics.CalculateAsync(c, ids, ct));

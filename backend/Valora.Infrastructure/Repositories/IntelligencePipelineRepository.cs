@@ -56,6 +56,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             INSERT INTO valorapesquisa.metric_values(organization_id,code,status,data,methodology_version,version)
             SELECT @organizationId,code,CASE WHEN evidence_count>=3 THEN 'calculated' ELSE 'insufficient_evidence' END,
               jsonb_build_object('value',round(value,2),'trend','baseline','confidence',round(confidence,2),'evidenceCount',evidence_count,
+                'evidenceIds',@evidenceTexts,'pipelineRunId',@pipelineRunId,'surveyId',@surveyId,
                 'limitations',CASE WHEN evidence_count<3 THEN 'Dados insuficientes para interpretação isolada.' ELSE 'Interpretar em conjunto com índices e histórico.' END),1,1 FROM source
             RETURNING id
             """;
@@ -73,6 +74,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             INSERT INTO valorapesquisa.index_values(organization_id,code,status,data,methodology_version,version)
             SELECT @organizationId,code,CASE WHEN evidence_count>=3 THEN 'calculated' ELSE 'insufficient_evidence' END,
               jsonb_build_object('score',round(score,2),'classification',CASE WHEN score<=25 THEN 'Inicial' WHEN score<=50 THEN 'Estruturante' WHEN score<=75 THEN 'Integrado' ELSE 'Maduro' END,
+                'evidenceIds',@evidenceTexts,'pipelineRunId',@pipelineRunId,'surveyId',@surveyId,
                 'trend','baseline','confidence',round(confidence,2),'evidenceCount',evidence_count,'calculation','weighted_convergent_evidence'),1,1 FROM source RETURNING id
             """;
         return await ExecuteStage(c, evidenceIds, "indices", sql, ct);
@@ -87,11 +89,13 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
                 AND normalized_value IS NOT NULL AND mapping_status='mapped' AND can_be_used_for_inference
                 AND concept_code IS NOT NULL AND metric_code IS NOT NULL AND index_code IS NOT NULL GROUP BY concept_code),
             run AS (INSERT INTO valorapesquisa.inference_runs(organization_id,code,status,data) VALUES
-              (@organizationId,@runCode,'completed',jsonb_build_object('source','evidence_pipeline','minimumEvidence',3)) RETURNING id)
+              (@organizationId,@runCode,'completed',jsonb_build_object('source','evidence_pipeline','minimumEvidence',3,
+                'pipelineRunId',@pipelineRunId,'surveyId',@surveyId)) RETURNING id)
             INSERT INTO valorapesquisa.inference_results(organization_id,code,status,data)
             SELECT @organizationId,concept_code,CASE WHEN evidence_count>=3 THEN 'moderate_confidence' ELSE 'insufficient_evidence' END,
               jsonb_build_object('runId',(SELECT id FROM run),'symptom','Padrão observado nas respostas agregadas','probableCause','Hipótese sistêmica a validar, não conclusão causal',
               'concept',concept_code,'evidenceIds',evidence,'evidenceCount',evidence_count,'score',score,
+              'pipelineRunId',@pipelineRunId,'surveyId',@surveyId,
               'confidence',CASE WHEN evidence_count>=7 THEN 'very_high' WHEN evidence_count>=4 THEN 'high' WHEN evidence_count=3 THEN 'moderate' ELSE 'low' END,
               'limitation',CASE WHEN evidence_count<3 THEN 'Dados insuficientes para conclusão.' ELSE 'Inferência requer validação no contexto organizacional.' END,
               'rule','convergent-evidence-v1') FROM source RETURNING id
@@ -101,14 +105,17 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
 
     public async Task<ProcessingStageResult> GenerateInsightsAsync(IntelligenceProcessingContext c, IReadOnlyList<Guid> evidenceIds, CancellationToken ct) {
         const string sql = """
-            WITH valid AS (SELECT code,data FROM valorapesquisa.inference_results WHERE organization_id=@organizationId
-              AND status<>'insufficient_evidence' AND data->'evidenceIds' ?| @evidenceTexts ORDER BY created_at DESC),
+            WITH valid AS (SELECT DISTINCT ON(code) code,data FROM valorapesquisa.inference_results WHERE organization_id=@organizationId
+              AND status<>'insufficient_evidence' AND data->>'pipelineRunId'=@pipelineRunId
+              ORDER BY code,created_at DESC),
             run AS (INSERT INTO valorapesquisa.insight_runs(organization_id,code,status,data) VALUES
-              (@organizationId,@runCode,'completed',jsonb_build_object('source','inference_engine','evidenceHash',md5(@evidenceHash))) RETURNING id)
+              (@organizationId,@runCode,'completed',jsonb_build_object('source','inference_engine','evidenceHash',md5(@evidenceHash),
+                'pipelineRunId',@pipelineRunId,'surveyId',@surveyId)) RETURNING id)
             INSERT INTO valorapesquisa.insights(organization_id,code,status,data)
             SELECT @organizationId,code,'active',jsonb_build_object('runId',(SELECT id FROM run),'title','Prioridade sistêmica baseada em evidências: '||code,
               'executiveSummary','Inferência sustentada por evidências convergentes; validar o contexto antes de agir.',
               'type','systemic','priority','moderate','confidence',data->>'confidence','evidenceIds',data->'evidenceIds',
+              'pipelineRunId',@pipelineRunId,'surveyId',@surveyId,
               'probableCause',data->>'probableCause','recommendation','Validar a causa provável e converter em ação mensurável.','validUntil',now()+interval '90 days')
             FROM valid RETURNING id
             """;
@@ -116,6 +123,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
     }
 
     public async Task<ProcessingStageResult> RefreshProjectionAsync(IntelligenceProcessingContext c, string module, IReadOnlyList<Guid> evidenceIds, CancellationToken ct) {
+        var pipelineRunId = RequirePipelineRun(c);
         var table = module switch { "action" => "action_items", "evolution" => "evolution_cycles", "heatmap" => "heatmap_snapshots", "radar" => "radar_snapshots", "benchmark" => "benchmark_runs", "executive_report" => "executive_reports", _ => throw new ArgumentOutOfRangeException(nameof(module)) };
         var status = evidenceIds.Count >= 3 ? "ready" : "insufficient_evidence";
         using var db = connections.Create();
@@ -123,17 +131,24 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             SELECT
               coalesce((SELECT jsonb_agg(jsonb_build_object('code',code,'status',status,'value',data) ORDER BY created_at DESC)
                 FROM (SELECT DISTINCT ON(code) code,status,data,created_at FROM valorapesquisa.metric_values
-                  WHERE organization_id=@organizationId AND deleted_at IS NULL ORDER BY code,created_at DESC) m),'[]'::jsonb)::text Metrics,
+                  WHERE organization_id=@organizationId AND deleted_at IS NULL AND data->>'pipelineRunId'=@pipelineRunId
+                  ORDER BY code,created_at DESC) m),'[]'::jsonb)::text Metrics,
               coalesce((SELECT jsonb_agg(jsonb_build_object('code',code,'status',status,'value',data) ORDER BY created_at DESC)
                 FROM (SELECT DISTINCT ON(code) code,status,data,created_at FROM valorapesquisa.index_values
-                  WHERE organization_id=@organizationId AND deleted_at IS NULL ORDER BY code,created_at DESC) i),'[]'::jsonb)::text Indices,
+                  WHERE organization_id=@organizationId AND deleted_at IS NULL AND data->>'pipelineRunId'=@pipelineRunId
+                  ORDER BY code,created_at DESC) i),'[]'::jsonb)::text Indices,
               coalesce((SELECT jsonb_agg(jsonb_build_object('code',code,'status',status,'value',data) ORDER BY created_at DESC)
                 FROM (SELECT code,status,data,created_at FROM valorapesquisa.insights
-                  WHERE organization_id=@organizationId AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 20) s),'[]'::jsonb)::text Insights
+                  WHERE organization_id=@organizationId AND deleted_at IS NULL AND data->>'pipelineRunId'=@pipelineRunId
+                  ORDER BY created_at DESC LIMIT 20) s),'[]'::jsonb)::text Insights
             """;
-        var source = await db.QuerySingleAsync<ProjectionSource>(new CommandDefinition(sourceSql, new { organizationId = c.OrganizationId }, cancellationToken: ct));
+        var source = await db.QuerySingleAsync<ProjectionSource>(new CommandDefinition(sourceSql, new {
+            organizationId = c.OrganizationId,
+            pipelineRunId = pipelineRunId.ToString()
+        }, cancellationToken: ct));
         var data = JsonSerializer.Serialize(new {
             trigger = c.Trigger,
+            pipelineRunId = c.PipelineRunId,
             surveyId = c.SurveyId,
             evidenceIds,
             evidenceCount = evidenceIds.Count,
@@ -161,12 +176,34 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
     }
 
     private async Task<ProcessingStageResult> ExecuteStage(IntelligenceProcessingContext c, IReadOnlyList<Guid> evidenceIds, string stage, string sql, CancellationToken ct) {
+        var pipelineRunId = RequirePipelineRun(c);
         using var db = connections.Create();
-        var ids = (await db.QueryAsync<Guid>(new CommandDefinition(sql, new { organizationId = c.OrganizationId, evidenceIds = evidenceIds.ToArray(), evidenceTexts = evidenceIds.Select(x => x.ToString()).ToArray(), evidenceHash = string.Join('|', evidenceIds), runCode = $"{stage}-{Guid.NewGuid():N}" }, cancellationToken: ct))).ToList();
-        return new(stage, ids.Count, evidenceIds.Count >= 3, ids.Count == 0 ? "Nenhum resultado elegível foi produzido; a insuficiência foi preservada." : "Resultado calculado e versionado a partir de evidências rastreáveis.", evidenceIds);
+        var ids = (await db.QueryAsync<Guid>(new CommandDefinition(sql, new {
+            organizationId = c.OrganizationId,
+            surveyId = c.SurveyId,
+            pipelineRunId = pipelineRunId.ToString(),
+            evidenceIds = evidenceIds.ToArray(),
+            evidenceTexts = evidenceIds.Select(x => x.ToString()).ToArray(),
+            evidenceHash = string.Join('|', evidenceIds.Order()),
+            runCode = $"{stage}-{pipelineRunId:N}"
+        }, cancellationToken: ct))).ToList();
+        // Sufficient evidence is a property of an eligible grouped result. The
+        // SQL intentionally emits no insight for an insufficient inference.
+        var groupedStage = stage is "metrics" or "indices" or "inference";
+        var sufficient = ids.Count > 0 && (!groupedStage || await HasEligibleResult(db, c, stage, ct));
+        return new(stage, ids.Count, sufficient, ids.Count == 0 ? "Nenhum resultado elegível foi produzido; a insuficiência foi preservada." : "Resultado calculado e versionado a partir de evidências rastreáveis.", evidenceIds);
     }
+
+    private static async Task<bool> HasEligibleResult(System.Data.IDbConnection db, IntelligenceProcessingContext c, string stage, CancellationToken ct) {
+        var table = stage switch { "metrics" => "metric_values", "indices" => "index_values", "inference" => "inference_results", _ => throw new ArgumentOutOfRangeException(nameof(stage)) };
+        var sql = $"SELECT EXISTS(SELECT 1 FROM valorapesquisa.{table} WHERE organization_id=@organizationId AND data->>'pipelineRunId'=@pipelineRunId AND status NOT IN ('insufficient_evidence'))";
+        return await db.QuerySingleAsync<bool>(new CommandDefinition(sql, new { organizationId = c.OrganizationId, pipelineRunId = RequirePipelineRun(c).ToString() }, cancellationToken: ct));
+    }
+
+    private static Guid RequirePipelineRun(IntelligenceProcessingContext context) => context.PipelineRunId
+        ?? throw new InvalidOperationException("O identificador da execução é obrigatório para persistir resultados de inteligência.");
     private async Task<IReadOnlyList<Guid>> ExistingEvidence(IntelligenceProcessingContext c, CancellationToken ct) {
         using var db = connections.Create();
-        return (await db.QueryAsync<Guid>(new CommandDefinition("SELECT id FROM valorapesquisa.evidence_items WHERE organization_id=@OrganizationId AND (@SurveyId IS NULL OR survey_id=@SurveyId) AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 500", new { c.OrganizationId, c.SurveyId }, cancellationToken: ct))).ToList();
+        return (await db.QueryAsync<Guid>(new CommandDefinition("SELECT id FROM valorapesquisa.evidence_items WHERE organization_id=@OrganizationId AND (@SurveyId IS NULL OR survey_id=@SurveyId) AND deleted_at IS NULL ORDER BY created_at,id", new { c.OrganizationId, c.SurveyId }, cancellationToken: ct))).ToList();
     }
 }

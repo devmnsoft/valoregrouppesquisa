@@ -40,13 +40,19 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
     }
 
     public async Task<IReadOnlyList<EvolutionPointDto>> EvolutionAsync(Guid organizationId, CancellationToken ct) {
-        var runs = (await repository.ListRunsAsync(organizationId, ct)).OrderBy(x => x.CreatedAt).ToList();
+        // Runs without an evaluated maturity are audit records, not temporal
+        // measurements.  They must not become a zero-valued cycle.
+        var runs = (await repository.ListRunsAsync(organizationId, ct))
+            .Where(x => x.MaturityIndex.HasValue)
+            .OrderBy(x => x.CreatedAt)
+            .ToList();
         return runs.Select((run, index) => {
-            var change = index == 0 ? 0 : Math.Round(run.MaturityIndex - runs[index - 1].MaturityIndex, 2);
+            var maturity = run.MaturityIndex!.Value;
+            var change = index == 0 ? 0 : Math.Round(maturity - runs[index - 1].MaturityIndex!.Value, 2);
             var classification = index == 0 ? "baseline" : change >= 2 ? "evolution" : change <= -2 ? "regression" : Math.Abs(change) < .5m ? "stagnation" : "stable";
-            var sufficient = index >= 2;
-            decimal? estimate = sufficient ? Math.Clamp(Math.Round(run.MaturityIndex + (run.MaturityIndex - runs[index - 2].MaturityIndex) / 2, 2), 0, 100) : null;
-            return new EvolutionPointDto(run.CreatedAt, run.MaturityIndex, change, classification, sufficient, estimate);
+            // Compatibility of methodology, population and independent cycles is
+            // not represented by this legacy run. Do not manufacture a forecast.
+            return new EvolutionPointDto(run.CreatedAt, maturity, change, classification, false, null);
         }).ToList();
     }
 
@@ -105,13 +111,11 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
     public async Task<OrganizationalIntelligenceRunDto> GenerateAsync(Guid organizationId, CancellationToken ct) {
         var evidence = await repository.GetEvidenceAsync(organizationId, ct);
         var ordered = evidence.Dimensions.OrderByDescending(x => x.Score).ToList();
-        var maturity = ordered.Count == 0 ? 0 : Math.Round(ordered.Average(x => x.Score), 2);
+        decimal? maturity = ordered.Count == 0 ? null : Math.Round(ordered.Average(x => x.Score), 2);
         var culture = AverageMatching(ordered, "cultur", "confian", "pessoas", "lider");
         var governance = AverageMatching(ordered, "governan", "execu", "process", "estrat");
-        if (culture == 0) culture = maturity;
-        if (governance == 0) governance = maturity;
         var gap = ordered.Count < 2 ? 0 : Math.Round(ordered.First().Score - ordered.Last().Score, 2);
-        var confidence = EvidenceConfidence.Classify(evidence.Total) switch {
+        var confidence = evidence.Total < 3 ? "insufficient_evidence" : EvidenceConfidence.Classify(evidence.Total) switch {
             "muito alta" => "very_high",
             "alta" => "high",
             "moderada" => "moderate",
@@ -151,8 +155,8 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
         return repository.CreateJourneyEventAsync(item, ct);
     }
 
-    private static decimal AverageMatching(IEnumerable<DimensionHeatmapDto> values, params string[] terms) {
+    private static decimal? AverageMatching(IEnumerable<DimensionHeatmapDto> values, params string[] terms) {
         var selected = values.Where(x => terms.Any(t => (x.Code + " " + x.Name).Contains(t, StringComparison.OrdinalIgnoreCase))).ToList();
-        return selected.Count == 0 ? 0 : Math.Round(selected.Average(x => x.Score), 2);
+        return selected.Count == 0 ? null : Math.Round(selected.Average(x => x.Score), 2);
     }
 }

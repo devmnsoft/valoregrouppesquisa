@@ -22,7 +22,7 @@
     setText('[data-kpi="activeSurveys"]', number(activeSurveys));
     setText('[data-kpi="completionRate"]', responses.length ? `${completionRate}%` : '—');
     const run = intelligence.latestRun;
-    setText('[data-kpi="averageLevel"]', run ? `${number(run.maturityIndex)}%` : '—');
+    setText('[data-kpi="averageLevel"]', run?.maturityIndex == null ? '—' : `${number(run.maturityIndex)}%`);
     setText('[data-kpi="evidence"]', intelligence.evidence?.total == null ? '—' : number(intelligence.evidence.total));
     setText('[data-kpi="actions"]', number(actions.filter(item => !['completed', 'cancelled', 'reviewed'].includes(String(item.status).toLowerCase())).length));
     root.querySelector('[data-metric-empty]').hidden = responses.length > 0;
@@ -35,7 +35,7 @@
     const panel = root.querySelector('[data-strategic-reading]');
     if (!panel) return;
     const run = intelligence.latestRun;
-    const enoughEvidence = Boolean(run && !run.warning && Number(run.evidenceCount) >= 3);
+    const enoughEvidence = Boolean(run && run.maturityIndex != null && !run.warning && Number(run.evidenceCount) >= 3);
     panel.hidden = !enoughEvidence;
     root.querySelector('[data-score-panel]').hidden = !enoughEvidence;
     root.querySelector('[data-empty-score]').hidden = enoughEvidence;

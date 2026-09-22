@@ -1641,6 +1641,11 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.organizational_intelligence_runs(
  confidence_level text NOT NULL CHECK(confidence_level IN('very_high','high','moderate','low')), warning text, heatmap jsonb NOT NULL DEFAULT '[]',
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now());
 CREATE INDEX IF NOT EXISTS ix_oi_runs_tenant_date ON valorapesquisa.organizational_intelligence_runs(organization_id,created_at DESC);
+-- NULL means not evaluated. A measured zero remains zero and must never be
+-- replaced by another organizational index.
+ALTER TABLE valorapesquisa.organizational_intelligence_runs ALTER COLUMN maturity_index DROP NOT NULL;
+ALTER TABLE valorapesquisa.organizational_intelligence_runs ALTER COLUMN culture_trust_index DROP NOT NULL;
+ALTER TABLE valorapesquisa.organizational_intelligence_runs ALTER COLUMN governance_execution_index DROP NOT NULL;
 ALTER TABLE valorapesquisa.organizational_intelligence_runs DROP CONSTRAINT IF EXISTS organizational_intelligence_runs_confidence_level_check;
 ALTER TABLE valorapesquisa.organizational_intelligence_runs ADD CONSTRAINT organizational_intelligence_runs_confidence_level_check CHECK(confidence_level IN('high','medium','low','insufficient_evidence','very_high','moderate'));
 CREATE TABLE IF NOT EXISTS valorapesquisa.organizational_intelligence_insights(

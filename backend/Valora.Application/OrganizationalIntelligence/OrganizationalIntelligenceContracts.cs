@@ -15,8 +15,8 @@ public sealed record EvidenceSummaryDto(int Responses, int ScoredResults, int Su
 }
 public sealed record OrganizationalInsightDto(Guid Id, Guid RunId, string Dimension, string Observation, string Evidence,
     string Correlation, string ProbableCause, string Impact, string Priority, string EvolutionPlan, DateTime CreatedAt);
-public sealed record OrganizationalIntelligenceRunDto(Guid Id, Guid OrganizationId, decimal MaturityIndex,
-    decimal CultureTrustIndex, decimal GovernanceExecutionIndex, decimal StructuralGap, string StrongestDimension,
+public sealed record OrganizationalIntelligenceRunDto(Guid Id, Guid OrganizationId, decimal? MaturityIndex,
+    decimal? CultureTrustIndex, decimal? GovernanceExecutionIndex, decimal StructuralGap, string StrongestDimension,
     string WeakestDimension, int EvidenceCount, string ConfidenceLevel, string? Warning,
     IReadOnlyList<DimensionHeatmapDto> Heatmap, IReadOnlyList<OrganizationalInsightDto> Insights, DateTime CreatedAt);
 public sealed record OrganizationalJourneyEventDto(Guid Id, Guid OrganizationId, string Title, string Description,

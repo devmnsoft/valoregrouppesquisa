@@ -1,7 +1,8 @@
 namespace Valora.Application.OrganizationalIntelligence;
 
 public sealed record IntelligenceProcessingContext(Guid OrganizationId, Guid? SurveyId = null, Guid? ResponseId = null,
-    Guid? FormId = null, Guid? UserId = null, Guid? SourceEntityId = null, string Trigger = "response_received");
+    Guid? FormId = null, Guid? UserId = null, Guid? SourceEntityId = null, string Trigger = "response_received",
+    Guid? PipelineRunId = null);
 public sealed record ProcessingStageResult(string Stage, int Records, bool SufficientEvidence, string Message,
     IReadOnlyList<Guid> EvidenceIds);
 public sealed record IntelligencePipelineResult(Guid RunId, string Trigger, IReadOnlyList<ProcessingStageResult> Stages,

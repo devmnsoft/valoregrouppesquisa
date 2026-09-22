@@ -28,8 +28,8 @@ A solution `Valora.sln` segue Clean Architecture com separação entre API, apli
 - Schema oficial: `valorapesquisa`.
 - Bootstrap canônico: `backend/database/postgresql/script_completo.sql`.
 - Atualizações: reaplique o mesmo `backend/database/postgresql/script_completo.sql`; não há migrations incrementais ativas.
-- Seeds: `backend/database/postgresql/seeds/`.
-- Validações SQL: `backend/database/postgresql/validation/`.
+- O seed e as validações convergentes estão incorporados ao script canônico. O
+  diretório `compat-tests/` documenta verificações de compatibilidade.
 
 ## Homologação local no Windows
 
@@ -40,7 +40,10 @@ A solution `Valora.sln` segue Clean Architecture com separação entre API, apli
 
    ```powershell
    $env:ASPNETCORE_ENVIRONMENT = "Development"
+   # Npgsql (API/Web)
    $env:ConnectionStrings__DefaultConnection = "Host=localhost;Port=5434;Database=valoradb;Username=valora;Password=valora_dev_123;Search Path=valorapesquisa,public"
+   # URI/libpq (somente para o cliente psql; não use a sintaxe Npgsql aqui)
+   $env:VALORA_PSQL_CONNECTION = "postgresql://valora:valora_dev_123@localhost:5434/valoradb"
    ```
 
 5. Aplique o bootstrap idempotente com `./database/postgresql/apply-local.ps1`. O script pode ser executado novamente e interrompe no primeiro erro SQL.
@@ -48,7 +51,7 @@ A solution `Valora.sln` segue Clean Architecture com separação entre API, apli
 7. Execute `./run-local.bat`. A API abre em `http://localhost:5080` e o Web em `http://localhost:5088`; acesse `/Account/Login`.
 8. No Dashboard, abra a jornada guiada, revise Organização, Diagnósticos e o diagnóstico oficial. Publique, copie o link na área de links públicos e valide-o em uma janela anônima, incluindo consentimento LGPD, envio e tela final.
 
-No Linux/macOS, use as mesmas variáveis, `./database/postgresql/apply-local.sh` e `./run-local.sh`.
+No Linux/macOS, use as mesmas variáveis, `./database/postgresql/apply-local.sh` e `./run-local.sh`. Os wrappers não exibem a conexão e passam a URI diretamente ao `psql`; evite incluir credenciais reais em histórico de shell ou arquivos versionados.
 
 ## Configuração e produção
 

@@ -16,7 +16,7 @@ public sealed class GenerateIntelligenceViewModel {
 
 public sealed class RejectAiInsightViewModel {
     [Required] public Guid InsightId { get; set; }
-    [Required] public string CommandKey { get; set; } = "";
-    public long ExpectedVersion { get; set; }
+    [Required, StringLength(160)] public string CommandKey { get; set; } = "";
+    [Range(0, long.MaxValue)] public long ExpectedVersion { get; set; }
     [Required(ErrorMessage = "Informe o motivo da rejeição.")][MinLength(10)][MaxLength(1000)] public string Reason { get; set; } = "";
 }

@@ -43,4 +43,30 @@ public sealed class InsightReviewExperienceTests {
         Assert.Contains("organization_id,user_id,related_entity_id,type", sql);
         Assert.DoesNotContain("DELETE FROM valorapesquisa.notifications", sql, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void Review_endpoints_use_distinct_canonical_permissions_and_tab_scoped_drafts() {
+        var controller = File.ReadAllText(RepositoryPaths.WebFile("Controllers", "InsightsController.cs"));
+        var view = File.ReadAllText(RepositoryPaths.WebFile("Views", "Insights", "Details.cshtml"));
+
+        Assert.Contains("Policy = ValoraPermissions.Insights.Read", controller);
+        Assert.Contains("Policy = ValoraPermissions.Insights.Approve", controller);
+        Assert.Contains("Policy = ValoraPermissions.Insights.Reject", controller);
+        Assert.Contains("sessionStorage", view);
+        Assert.Contains("Model.OrganizationId", view);
+        Assert.Contains("Model.ReviewVersion", view);
+        Assert.DoesNotContain("PendingRejectionReason", controller);
+    }
+
+    [Fact]
+    public void Plan_creation_links_the_reviewed_insight_in_the_same_transaction() {
+        var repository = File.ReadAllText(RepositoryPaths.BackendFile("Valora.Infrastructure", "Repositories", "ActionPlanRepository.cs"));
+        var insightRepository = File.ReadAllText(RepositoryPaths.BackendFile("Valora.Infrastructure", "Repositories", "ValoraAiHubRepositories.cs"));
+
+        Assert.Contains("action_plan_create_commands", repository);
+        Assert.Contains("status='converted_to_action'", repository);
+        Assert.Contains("LinkedPlanId", insightRepository);
+        Assert.Contains("pg_advisory_xact_lock", insightRepository);
+        Assert.DoesNotContain("SetStatusAsync", insightRepository);
+    }
 }

@@ -2,11 +2,12 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.ValoraAi;
+using Valora.Application.Access;
 using Valora.Web.Models.ViewModels;
 
 namespace Valora.Web.Controllers;
 
-[Authorize]
+[Authorize(Policy = ValoraPermissions.Insights.Read)]
 [Route("Insights")]
 public sealed class InsightsController(
     IValoraAiInsightRepository insights,
@@ -27,6 +28,7 @@ public sealed class InsightsController(
     }
 
     [HttpPost("Details/{id:guid}/Approve")]
+    [Authorize(Policy = ValoraPermissions.Insights.Approve)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Approve(Guid id, string commandKey, long expectedVersion, CancellationToken ct) {
         if (!TryGetOperationContext(out var organizationId, out var userId)) return OrganizationRequired();
@@ -56,13 +58,18 @@ public sealed class InsightsController(
     }
 
     [HttpPost("Details/{id:guid}/Reject")]
+    [Authorize(Policy = ValoraPermissions.Insights.Reject)]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Reject(Guid id, RejectAiInsightViewModel model, CancellationToken ct) {
         if (!TryGetOperationContext(out var organizationId, out var userId)) return OrganizationRequired();
         model.InsightId = id;
+        model.Reason = model.Reason?.Trim() ?? string.Empty;
         if (!ModelState.IsValid) {
-            TempData["Warning"] = "Revise o motivo da rejeição antes de continuar.";
-            return RedirectToAction(nameof(Details), new { id });
+            var insight = await insights.GetAsync(organizationId, id, ct);
+            if (insight is null) return NotFound();
+            ViewData["OpenRejectDialog"] = true;
+            ViewData["RejectionReason"] = model.Reason;
+            return View("Details", insight);
         }
 
         try {
@@ -71,7 +78,7 @@ public sealed class InsightsController(
         }
         catch (Valora.Application.Exceptions.ConcurrencyConflictException exception) {
             logger.LogWarning(exception, "Conflito ao rejeitar insight {InsightId}. CorrelationId={CorrelationId}", id, HttpContext.TraceIdentifier);
-            TempData["PendingRejectionReason"] = model.Reason;
+            TempData["OpenRejectDialog"] = true;
             TempData["Warning"] = "Outra pessoa alterou este insight. Atualize os dados; sua justificativa foi preservada.";
         }
         catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException or ArgumentException) {
@@ -85,6 +92,7 @@ public sealed class InsightsController(
                 "Falha ao rejeitar insight. InsightId={InsightId} OrganizationId={OrganizationId} UserId={UserId} CorrelationId={CorrelationId}",
                 id, organizationId, userId, HttpContext.TraceIdentifier);
             TempData["Error"] = "Não foi possível concluir a operação. Tente novamente.";
+            TempData["OpenRejectDialog"] = true;
         }
 
         return RedirectToAction(nameof(Details), new { id });

@@ -11,6 +11,8 @@
    {
     <form method="post" asp-action="Approve" asp-route-id="@Model.Id">
      @Html.AntiForgeryToken()
+     <input type="hidden" name="commandKey" value="@Guid.NewGuid().ToString("N")" />
+     <input type="hidden" name="expectedVersion" value="@Model.ReviewVersion" />
      <button class="valora-button valora-button--primary" type="submit" data-confirm="A aprovação registra sua revisão humana e altera o status deste insight. Deseja continuar?" data-confirm-title="Aprovar insight?" data-loading-text="Aprovando…">Aprovar</button>
     </form>
     <button class="valora-button" type="button" data-dialog-target="#rejectInsightDialog">Rejeitar</button>
@@ -32,7 +34,9 @@
     @Html.AntiForgeryToken()
     <header><span class="confirmation-modal__icon" aria-hidden="true">!</span><div><p class="eyebrow">Revisão humana</p><h2 id="rejectInsightTitle">Rejeitar insight</h2></div></header>
     <input type="hidden" name="InsightId" value="@Model.Id" />
-    <div class="valora-field"><label for="rejectInsightReason">Motivo da rejeição</label><textarea class="form-control" id="rejectInsightReason" name="Reason" required minlength="10" maxlength="1000" rows="4" aria-describedby="rejectInsightHint"></textarea><small id="rejectInsightHint">Explique o que precisa ser revisto. O motivo será preservado para auditoria.</small></div>
+    <input type="hidden" name="CommandKey" value="@Guid.NewGuid().ToString("N")" />
+    <input type="hidden" name="ExpectedVersion" value="@Model.ReviewVersion" />
+    <div class="valora-field"><label for="rejectInsightReason">Motivo da rejeição</label><textarea class="form-control" id="rejectInsightReason" name="Reason" required minlength="10" maxlength="1000" rows="4" aria-describedby="rejectInsightHint">@TempData.Peek("PendingRejectionReason")</textarea><small id="rejectInsightHint">Explique o que precisa ser revisto. O motivo será preservado para auditoria.</small></div>
     <footer><button class="valora-button valora-button--ghost" type="button" data-dialog-close>Cancelar</button><button class="valora-button valora-button--danger" type="submit" data-confirm="A rejeição e o motivo ficarão registrados no histórico. Deseja continuar?" data-confirm-title="Confirmar rejeição?" data-loading-text="Rejeitando…">Rejeitar insight</button></footer>
    </form>
   </dialog>

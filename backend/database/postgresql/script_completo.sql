@@ -6951,9 +6951,39 @@ END $pipeline_identity$;
 
 -- Eventos e notificações usam a mesma chave natural empregada pelo repositório.
 -- Assim, duas transações concorrentes não atravessam juntas um WHERE NOT EXISTS.
-CREATE UNIQUE INDEX IF NOT EXISTS ux_notifications_intelligence_event
- ON valorapesquisa.notifications(organization_id,related_entity_id,type)
+-- A entrega é individual: o mesmo evento organizacional pode e deve gerar uma
+-- notificação por destinatário. Antes de trocar o contrato, ocorrências
+-- repetidas para o mesmo usuário são preservadas como legado auditável, fora
+-- da chave ativa; nenhuma linha ou referência é removida.
+DROP INDEX IF EXISTS valorapesquisa.ux_notifications_intelligence_event;
+WITH duplicates AS (
+ SELECT id,row_number() OVER(PARTITION BY organization_id,user_id,related_entity_id,type ORDER BY created_at,id) occurrence
+ FROM valorapesquisa.notifications
+ WHERE deleted_at IS NULL AND related_module='organizational_intelligence' AND related_entity_id IS NOT NULL
+), reconciled AS (
+ UPDATE valorapesquisa.notifications n SET related_module='organizational_intelligence_legacy_duplicate'
+ FROM duplicates d WHERE d.id=n.id AND d.occurrence>1 RETURNING n.id,n.organization_id,n.related_entity_id
+)
+INSERT INTO valorapesquisa.constraint_convergence_audit(table_name,canonical_key,preserved_row_id,resolution)
+SELECT 'notifications',organization_id::text||':'||related_entity_id::text,id::text,
+ 'entrega duplicada preservada e retirada da chave ativa' FROM reconciled;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_notifications_intelligence_recipient_event_v2
+ ON valorapesquisa.notifications(organization_id,user_id,related_entity_id,type)
  WHERE deleted_at IS NULL AND related_module='organizational_intelligence' AND related_entity_id IS NOT NULL;
+ALTER TABLE valorapesquisa.notifications ADD COLUMN IF NOT EXISTS resolved_at timestamptz;
+
+-- Revisão humana é estado independente do processamento técnico. A versão
+-- otimista e o ledger idempotente impedem sobrescrita silenciosa e permitem
+-- repetir o mesmo comando com segurança.
+ALTER TABLE valorapesquisa.valora_ai_insights ADD COLUMN IF NOT EXISTS review_version bigint NOT NULL DEFAULT 0;
+ALTER TABLE valorapesquisa.valora_ai_review_queue ADD COLUMN IF NOT EXISTS decision_reason text;
+CREATE TABLE IF NOT EXISTS valorapesquisa.valora_ai_review_commands(
+ id uuid PRIMARY KEY DEFAULT gen_random_uuid(), organization_id uuid NOT NULL REFERENCES valorapesquisa.organizations(id),
+ insight_id uuid NOT NULL REFERENCES valorapesquisa.valora_ai_insights(id), command_key varchar(160) NOT NULL,
+ command_hash varchar(64) NOT NULL, result_status varchar(40) NOT NULL,
+ created_by_user_id uuid NOT NULL REFERENCES valorapesquisa.users(id), created_at timestamptz NOT NULL DEFAULT now(),
+ UNIQUE(organization_id,command_key));
+CREATE INDEX IF NOT EXISTS ix_valora_ai_review_commands_insight ON valorapesquisa.valora_ai_review_commands(organization_id,insight_id,created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS ux_journey_events_pipeline_event
  ON valorapesquisa.journey_events(organization_id,code,((data->>'runId')))
  WHERE deleted_at IS NULL AND data ? 'runId';

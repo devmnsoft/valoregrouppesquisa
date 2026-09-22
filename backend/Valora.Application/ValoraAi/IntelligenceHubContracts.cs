@@ -15,11 +15,14 @@ public sealed record AiEvidencePack(Guid Id, AiRunContext Context, IReadOnlyList
 public sealed record AiInsight(Guid Id, Guid OrganizationId, Guid DiagnosticId, Guid? ResultId, Guid AiRunId,
     string InsightType, string Title, string Summary, string EvidenceSummary, string? RelatedDimension,
     string? RelatedIndexCode, string Severity, string Priority, string ConfidenceLevel, string? Limitation,
-    string Recommendation, string Status, DateTime CreatedAt);
+    string Recommendation, string Status, DateTime CreatedAt, DateTime UpdatedAt, long ReviewVersion = 0,
+    Guid? ReviewedByUserId = null, DateTime? ReviewedAt = null);
 public sealed record AiInsightDraft(string InsightType, string Title, string Summary, IReadOnlyList<Guid> EvidenceIds,
     string? RelatedDimension, string? RelatedIndexCode, string Severity, string Priority, string ConfidenceLevel,
     string? Limitation, string Recommendation);
-public sealed record AiReviewCommand(Guid OrganizationId, Guid InsightId, Guid ReviewerId, string Decision, string? Reason);
+public sealed record AiReviewCommand(Guid OrganizationId, Guid InsightId, Guid ReviewerId, string Decision, string? Reason,
+    string? CommandKey = null, long ExpectedVersion = 0);
+public enum AiReviewResult { Applied, Replayed, NotFound, Conflict }
 
 public interface IValoraAiEvidenceRepository {
     Task<AiEvidencePack> BuildAsync(AiRunContext context, CancellationToken ct);
@@ -31,7 +34,7 @@ public interface IValoraAiInsightRepository {
     Task<Guid> CreateAsync(AiRunContext context, Guid runId, AiInsightDraft insight, CancellationToken ct);
     Task SetStatusAsync(Guid organizationId, Guid id, string status, Guid userId, CancellationToken ct);
 }
-public interface IValoraAiReviewRepository { Task RecordAsync(AiReviewCommand command, CancellationToken ct); }
+public interface IValoraAiReviewRepository { Task<AiReviewResult> ApplyAsync(AiReviewCommand command, CancellationToken ct); }
 public interface IValoraAiFeedbackRepository { Task RecordAsync(Guid organizationId, Guid insightId, Guid runId, Guid userId, string type, string reason, CancellationToken ct); }
 
 public interface IAiGuardrailValidationService { ValoraAiValidation Validate(string output, ValoraEvidencePack evidence); }

@@ -23,14 +23,16 @@ public sealed record AiInsight(Guid Id, Guid OrganizationId, Guid DiagnosticId, 
 public sealed record AiInsightListQuery(int Page = 1, int PageSize = 20, string? Search = null,
     string? Status = null, string? Priority = null, string? Dimension = null, Guid? DiagnosticId = null,
     bool? HasPlan = null, string? Sort = null) {
-    public int ValidPage => Math.Max(1, Page);
+    public int ValidPage => Math.Clamp(Page, 1, 1000000);
     public int ValidPageSize => Math.Clamp(PageSize, 1, 50);
 }
 public sealed record AiInsightIndicators(int PendingReview, int ApprovedWithoutPlan, int WithPlansInExecution,
     int WithAllPlansClosed);
 public sealed record AiInsightListItem(AiInsight Insight, string? DiagnosticName, int PlanCount,
     int ActivePlanCount, int ClosedPlanCount);
-public sealed record AiInsightListResult(PageResult<AiInsightListItem> Page, AiInsightIndicators Indicators);
+public sealed record AiDiagnosticOption(Guid Id, string Name);
+public sealed record AiInsightListResult(PageResult<AiInsightListItem> Page, AiInsightIndicators Indicators,
+    int AuthorizedTotal = 0, IReadOnlyList<AiDiagnosticOption>? Diagnostics = null);
 public sealed record AiInsightEvidence(Guid Id, string Type, string SourceType, Guid? SourceId, string Summary,
     string? Dimension, string? IndexCode, DateTime CreatedAt, bool IsAvailable, bool IsRestricted = false);
 public sealed record AiInsightDetails(AiInsight Insight, IReadOnlyList<AiInsightEvidence> Evidence,

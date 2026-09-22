@@ -6925,3 +6925,42 @@ END $$;
 CREATE UNIQUE INDEX IF NOT EXISTS ux_action_plan_history_command ON valorapesquisa.action_plan_change_history(action_plan_id,command_id) WHERE command_id IS NOT NULL;
 INSERT INTO valorapesquisa.schema_migrations(version,checksum) VALUES('2026_09_action_plan_lifecycle','sha256:action-plan-lifecycle-v1') ON CONFLICT(version) DO NOTHING;
 COMMIT;
+
+-- 2026-09-22 · checkpoints não destrutivos do pipeline de inteligência.
+-- A identidade funcional pertence à operação (run_id + code), não à tentativa.
+-- O índice parcial permite UPSERT atômico e mantém IDs já referenciados.
+BEGIN;
+DO $pipeline_identity$
+DECLARE table_name text;
+BEGIN
+ FOREACH table_name IN ARRAY ARRAY[
+  'metric_values','index_values','inference_runs','inference_results','insight_runs','insights',
+  'action_items','evolution_cycles','heatmap_snapshots','radar_snapshots','benchmark_runs','executive_reports'
+ ] LOOP
+  IF to_regclass('valorapesquisa.'||table_name) IS NOT NULL THEN
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS run_id uuid',table_name);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS survey_id uuid',table_name);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS source_hash text',table_name);
+   EXECUTE format('ALTER TABLE valorapesquisa.%I ADD COLUMN IF NOT EXISTS idempotency_key text',table_name);
+   EXECUTE format(
+    'CREATE UNIQUE INDEX IF NOT EXISTS %I ON valorapesquisa.%I(organization_id,run_id,code) WHERE deleted_at IS NULL AND run_id IS NOT NULL',
+    'ux_'||table_name||'_operation_code',table_name);
+  END IF;
+ END LOOP;
+END $pipeline_identity$;
+
+-- Eventos e notificações usam a mesma chave natural empregada pelo repositório.
+-- Assim, duas transações concorrentes não atravessam juntas um WHERE NOT EXISTS.
+CREATE UNIQUE INDEX IF NOT EXISTS ux_notifications_intelligence_event
+ ON valorapesquisa.notifications(organization_id,related_entity_id,type)
+ WHERE deleted_at IS NULL AND related_module='organizational_intelligence' AND related_entity_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_journey_events_pipeline_event
+ ON valorapesquisa.journey_events(organization_id,code,((data->>'runId')))
+ WHERE deleted_at IS NULL AND data ? 'runId';
+CREATE UNIQUE INDEX IF NOT EXISTS ux_governance_events_pipeline_event
+ ON valorapesquisa.platform_governance_events(organization_id,code,((data->>'runId')))
+ WHERE deleted_at IS NULL AND data ? 'runId';
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_09_intelligence_pipeline_identity','sha256:intelligence-pipeline-identity-v1')
+ON CONFLICT(version) DO NOTHING;
+COMMIT;

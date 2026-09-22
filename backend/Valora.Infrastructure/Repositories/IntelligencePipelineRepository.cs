@@ -29,13 +29,16 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             JOIN valorapesquisa.response_answers ra ON ra.response_id=r.id
             LEFT JOIN LATERAL (SELECT x.* FROM valorapesquisa.question_concept_mappings x
               WHERE x.question_id=ra.question_id AND x.deleted_at IS NULL AND (x.organization_id=r.organization_id OR x.organization_id IS NULL)
-              ORDER BY (x.organization_id=r.organization_id) DESC,x.updated_at DESC,x.id LIMIT 1) qcm ON true
+              ORDER BY CASE WHEN x.organization_id=r.organization_id THEN 0 ELSE 1 END,
+                x.is_official DESC,x.updated_at DESC,x.id LIMIT 1) qcm ON true
             LEFT JOIN LATERAL (SELECT x.* FROM valorapesquisa.question_metric_mappings x
               WHERE x.question_id=ra.question_id AND x.deleted_at IS NULL AND (x.organization_id=r.organization_id OR x.organization_id IS NULL)
-              ORDER BY (x.organization_id=r.organization_id) DESC,x.updated_at DESC,x.id LIMIT 1) qmm ON true
+              ORDER BY CASE WHEN x.organization_id=r.organization_id THEN 0 ELSE 1 END,
+                x.is_official DESC,x.updated_at DESC,x.id LIMIT 1) qmm ON true
             LEFT JOIN LATERAL (SELECT x.* FROM valorapesquisa.question_index_mappings x
               WHERE x.question_id=ra.question_id AND x.deleted_at IS NULL AND (x.organization_id=r.organization_id OR x.organization_id IS NULL)
-              ORDER BY (x.organization_id=r.organization_id) DESC,x.updated_at DESC,x.id LIMIT 1) qim ON true
+              ORDER BY CASE WHEN x.organization_id=r.organization_id THEN 0 ELSE 1 END,
+                x.is_official DESC,x.updated_at DESC,x.id LIMIT 1) qim ON true
             WHERE r.id=@responseId AND r.organization_id=@organizationId
             ON CONFLICT(response_id,question_id,concept_code) WHERE deleted_at IS NULL DO UPDATE SET
               normalized_value=EXCLUDED.normalized_value,raw_value=EXCLUDED.raw_value,weight=EXCLUDED.weight,
@@ -54,14 +57,16 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
               SELECT metric_code code,
                 sum((CASE WHEN polarity=-1 THEN 100-normalized_value ELSE normalized_value END)*weight*confidence_weight)/nullif(sum(weight*confidence_weight),0) value,
                 count(*)::int evidence_count,avg(confidence_weight) confidence,jsonb_agg(id::text ORDER BY id) evidence_ids,
-                md5(string_agg(concat_ws(':',id,updated_at,normalized_value,weight,confidence_weight,polarity,metric_code), '|' ORDER BY id)) input_hash
+                md5(string_agg(concat_ws(':',concept_code,metric_code,index_code,normalized_value,weight,confidence_weight,polarity), '|' ORDER BY concept_code,metric_code,index_code,normalized_value,weight,confidence_weight,polarity)) input_hash
               FROM valorapesquisa.evidence_items WHERE organization_id=@organizationId AND id=ANY(@evidenceIds)
                 AND normalized_value IS NOT NULL AND mapping_status='mapped' AND metric_code IS NOT NULL GROUP BY 1)
-            INSERT INTO valorapesquisa.metric_values(organization_id,code,status,data,methodology_version,version)
+            INSERT INTO valorapesquisa.metric_values(organization_id,code,status,data,methodology_version,version,run_id,survey_id,source_hash)
             SELECT @organizationId,code,CASE WHEN evidence_count>=3 THEN 'calculated' ELSE 'insufficient_evidence' END,
               jsonb_build_object('value',round(value,2),'trend','baseline','confidence',round(confidence,2),'evidenceCount',evidence_count,
                 'evidenceIds',evidence_ids,'inputHash',input_hash,'pipelineRunId',@pipelineRunId,'surveyId',@surveyId,
-                'limitations',CASE WHEN evidence_count<3 THEN 'Dados insuficientes para interpretação isolada.' ELSE 'Interpretar em conjunto com índices e histórico.' END),1,1 FROM source
+                'limitations',CASE WHEN evidence_count<3 THEN 'Dados insuficientes para interpretação isolada.' ELSE 'Interpretar em conjunto com índices e histórico.' END),1,1,@pipelineRunId::uuid,@surveyId,input_hash FROM source
+            ON CONFLICT (organization_id,run_id,code) WHERE deleted_at IS NULL AND run_id IS NOT NULL DO UPDATE SET
+              status=EXCLUDED.status,data=EXCLUDED.data,source_hash=EXCLUDED.source_hash,updated_at=now()
             RETURNING id
             """;
         return await ExecuteStage(c, evidenceIds, "metrics", sql, ct);
@@ -73,14 +78,17 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
               SELECT index_code code,
                sum((CASE WHEN polarity=-1 THEN 100-normalized_value ELSE normalized_value END)*weight*confidence_weight)/nullif(sum(weight*confidence_weight),0) score,
                count(*)::int evidence_count,avg(confidence_weight) confidence,jsonb_agg(id::text ORDER BY id) evidence_ids,
-               md5(string_agg(concat_ws(':',id,updated_at,normalized_value,weight,confidence_weight,polarity,index_code), '|' ORDER BY id)) input_hash
+               md5(string_agg(concat_ws(':',concept_code,metric_code,index_code,normalized_value,weight,confidence_weight,polarity), '|' ORDER BY concept_code,metric_code,index_code,normalized_value,weight,confidence_weight,polarity)) input_hash
               FROM valorapesquisa.evidence_items WHERE organization_id=@organizationId AND id=ANY(@evidenceIds)
                 AND normalized_value IS NOT NULL AND mapping_status='mapped' AND index_code IS NOT NULL GROUP BY 1)
-            INSERT INTO valorapesquisa.index_values(organization_id,code,status,data,methodology_version,version)
+            INSERT INTO valorapesquisa.index_values(organization_id,code,status,data,methodology_version,version,run_id,survey_id,source_hash)
             SELECT @organizationId,code,CASE WHEN evidence_count>=3 THEN 'calculated' ELSE 'insufficient_evidence' END,
               jsonb_build_object('score',round(score,2),'classification',CASE WHEN score<=25 THEN 'Inicial' WHEN score<=50 THEN 'Estruturante' WHEN score<=75 THEN 'Integrado' ELSE 'Maduro' END,
                 'evidenceIds',evidence_ids,'inputHash',input_hash,'pipelineRunId',@pipelineRunId,'surveyId',@surveyId,
-                'trend','baseline','confidence',round(confidence,2),'evidenceCount',evidence_count,'calculation','weighted_convergent_evidence'),1,1 FROM source RETURNING id
+                'trend','baseline','confidence',round(confidence,2),'evidenceCount',evidence_count,'calculation','weighted_convergent_evidence'),1,1,@pipelineRunId::uuid,@surveyId,input_hash FROM source
+            ON CONFLICT (organization_id,run_id,code) WHERE deleted_at IS NULL AND run_id IS NOT NULL DO UPDATE SET
+              status=EXCLUDED.status,data=EXCLUDED.data,source_hash=EXCLUDED.source_hash,updated_at=now()
+            RETURNING id
             """;
         return await ExecuteStage(c, evidenceIds, "indices", sql, ct);
     }
@@ -93,17 +101,23 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
               FROM valorapesquisa.evidence_items WHERE organization_id=@organizationId AND id=ANY(@evidenceIds)
                 AND normalized_value IS NOT NULL AND mapping_status='mapped' AND can_be_used_for_inference
                 AND concept_code IS NOT NULL AND metric_code IS NOT NULL AND index_code IS NOT NULL GROUP BY concept_code),
-            run AS (INSERT INTO valorapesquisa.inference_runs(organization_id,code,status,data) VALUES
+            run AS (INSERT INTO valorapesquisa.inference_runs(organization_id,code,status,data,run_id,survey_id) VALUES
               (@organizationId,@runCode,'completed',jsonb_build_object('source','evidence_pipeline','minimumEvidence',3,
-                'pipelineRunId',@pipelineRunId,'surveyId',@surveyId)) RETURNING id)
-            INSERT INTO valorapesquisa.inference_results(organization_id,code,status,data)
+                'pipelineRunId',@pipelineRunId,'surveyId',@surveyId),@pipelineRunId::uuid,@surveyId)
+              ON CONFLICT (organization_id,run_id,code) WHERE deleted_at IS NULL AND run_id IS NOT NULL DO UPDATE SET
+                status=EXCLUDED.status,data=EXCLUDED.data,updated_at=now() RETURNING id)
+            INSERT INTO valorapesquisa.inference_results(organization_id,code,status,data,run_id,survey_id,source_hash)
             SELECT @organizationId,concept_code,CASE WHEN evidence_count>=3 THEN 'moderate_confidence' ELSE 'insufficient_evidence' END,
               jsonb_build_object('runId',(SELECT id FROM run),'symptom','Padrão observado nas respostas agregadas','probableCause','Hipótese sistêmica a validar, não conclusão causal',
               'concept',concept_code,'evidenceIds',evidence,'evidenceCount',evidence_count,'score',score,
               'pipelineRunId',@pipelineRunId,'surveyId',@surveyId,
               'confidence',CASE WHEN evidence_count>=7 THEN 'very_high' WHEN evidence_count>=4 THEN 'high' WHEN evidence_count=3 THEN 'moderate' ELSE 'low' END,
               'limitation',CASE WHEN evidence_count<3 THEN 'Dados insuficientes para conclusão.' ELSE 'Inferência requer validação no contexto organizacional.' END,
-              'rule','convergent-evidence-v1') FROM source RETURNING id
+              'rule','convergent-evidence-v1'),@pipelineRunId::uuid,@surveyId,
+              md5(concat_ws(':',concept_code,score,evidence_count,array_to_string(evidence,','))) FROM source
+            ON CONFLICT (organization_id,run_id,code) WHERE deleted_at IS NULL AND run_id IS NOT NULL DO UPDATE SET
+              status=EXCLUDED.status,data=EXCLUDED.data,source_hash=EXCLUDED.source_hash,updated_at=now()
+            RETURNING id
             """;
         return await ExecuteStage(c, evidenceIds, "inference", sql, ct);
     }
@@ -113,16 +127,22 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             WITH valid AS (SELECT DISTINCT ON(code) code,data FROM valorapesquisa.inference_results WHERE organization_id=@organizationId
               AND status<>'insufficient_evidence' AND data->>'pipelineRunId'=@pipelineRunId
               ORDER BY code,created_at DESC),
-            run AS (INSERT INTO valorapesquisa.insight_runs(organization_id,code,status,data) VALUES
+            run AS (INSERT INTO valorapesquisa.insight_runs(organization_id,code,status,data,run_id,survey_id) VALUES
               (@organizationId,@runCode,'completed',jsonb_build_object('source','inference_engine','evidenceHash',md5(@evidenceHash),
-                'pipelineRunId',@pipelineRunId,'surveyId',@surveyId)) RETURNING id)
-            INSERT INTO valorapesquisa.insights(organization_id,code,status,data)
+                'pipelineRunId',@pipelineRunId,'surveyId',@surveyId),@pipelineRunId::uuid,@surveyId)
+              ON CONFLICT (organization_id,run_id,code) WHERE deleted_at IS NULL AND run_id IS NOT NULL DO UPDATE SET
+                status=EXCLUDED.status,data=EXCLUDED.data,updated_at=now() RETURNING id)
+            INSERT INTO valorapesquisa.insights(organization_id,code,status,data,run_id,survey_id,source_hash,idempotency_key)
             SELECT @organizationId,code,'active',jsonb_build_object('runId',(SELECT id FROM run),'title','Prioridade sistêmica baseada em evidências: '||code,
               'executiveSummary','Inferência sustentada por evidências convergentes; validar o contexto antes de agir.',
               'type','systemic','priority','moderate','confidence',data->>'confidence','evidenceIds',data->'evidenceIds',
               'pipelineRunId',@pipelineRunId,'surveyId',@surveyId,
-              'probableCause',data->>'probableCause','recommendation','Validar a causa provável e converter em ação mensurável.','validUntil',now()+interval '90 days')
-            FROM valid RETURNING id
+              'probableCause',data->>'probableCause','recommendation','Validar a causa provável e converter em ação mensurável.','validUntil',now()+interval '90 days'),
+              @pipelineRunId::uuid,@surveyId,md5(data::text),concat(@pipelineRunId,':',code)
+            FROM valid
+            ON CONFLICT (organization_id,run_id,code) WHERE deleted_at IS NULL AND run_id IS NOT NULL DO UPDATE SET
+              status=EXCLUDED.status,data=EXCLUDED.data,source_hash=EXCLUDED.source_hash,updated_at=now()
+            RETURNING id
             """;
         return await ExecuteStage(c, evidenceIds, "insights", sql, ct);
     }
@@ -168,7 +188,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             limitation = evidenceIds.Count < 3 ? "Dados insuficientes para uma leitura confiável." : "Não utilizar esta leitura agregada para avaliar pessoas."
         });
         var code = $"{module}-{pipelineRunId:N}";
-        var id = await db.QuerySingleAsync<Guid>(new CommandDefinition($"DELETE FROM valorapesquisa.{table} WHERE organization_id=@organizationId AND code=@code AND status<>'published'; INSERT INTO valorapesquisa.{table}(organization_id,code,status,data) VALUES(@organizationId,@code,@status,CAST(@data AS jsonb)) RETURNING id", new { organizationId = c.OrganizationId, code, status, data }, cancellationToken: ct));
+        var id = await db.QuerySingleAsync<Guid>(new CommandDefinition($"INSERT INTO valorapesquisa.{table}(organization_id,code,status,data,run_id,survey_id,idempotency_key) VALUES(@organizationId,@code,@status,CAST(@data AS jsonb),@pipelineRunId,@surveyId,@code) ON CONFLICT (organization_id,run_id,code) WHERE deleted_at IS NULL AND run_id IS NOT NULL DO UPDATE SET status=CASE WHEN valorapesquisa.{table}.status='published' THEN valorapesquisa.{table}.status ELSE EXCLUDED.status END,data=CASE WHEN valorapesquisa.{table}.status='published' THEN valorapesquisa.{table}.data ELSE EXCLUDED.data END,updated_at=CASE WHEN valorapesquisa.{table}.status='published' THEN valorapesquisa.{table}.updated_at ELSE now() END RETURNING id", new { organizationId = c.OrganizationId, code, status, data, pipelineRunId, c.SurveyId }, cancellationToken: ct));
         return new(module, 1, eligibleResults > 0, status == "ready" ? "Snapshot histórico criado com resultados elegíveis vinculados." : "Snapshot preservado como dados insuficientes.", evidenceIds);
     }
 
@@ -183,28 +203,18 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
     public async Task RecordEventAsync(IntelligenceProcessingContext c, Guid runId, string eventType, string title, string description, CancellationToken ct) {
         using var db = connections.Create();
         if (eventType.StartsWith("notification:"))
-            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.notifications(organization_id,user_id,type,title,message,related_module,related_entity_id) SELECT @OrganizationId,@UserId,@type,@title,@description,'organizational_intelligence',@runId WHERE NOT EXISTS (SELECT 1 FROM valorapesquisa.notifications WHERE organization_id=@OrganizationId AND related_module='organizational_intelligence' AND related_entity_id=@runId AND type=@type)", new { c.OrganizationId, c.UserId, type = eventType[13..], title, description, runId }, cancellationToken: ct));
+            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.notifications(organization_id,user_id,type,title,message,related_module,related_entity_id) VALUES (@OrganizationId,@UserId,@type,@title,@description,'organizational_intelligence',@runId) ON CONFLICT DO NOTHING", new { c.OrganizationId, c.UserId, type = eventType[13..], title, description, runId }, cancellationToken: ct));
         else if (eventType.StartsWith("governance:"))
-            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.platform_governance_events(organization_id,code,status,data,created_by) SELECT @OrganizationId,@type,'recorded',jsonb_build_object('description',@description,'runId',@runId),@UserId WHERE NOT EXISTS (SELECT 1 FROM valorapesquisa.platform_governance_events WHERE organization_id=@OrganizationId AND code=@type AND data->>'runId'=@runId::text)", new { c.OrganizationId, c.UserId, type = eventType[11..], description, runId }, cancellationToken: ct));
+            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.platform_governance_events(organization_id,code,status,data,created_by) VALUES (@OrganizationId,@type,'recorded',jsonb_build_object('description',@description,'runId',@runId),@UserId) ON CONFLICT DO NOTHING", new { c.OrganizationId, c.UserId, type = eventType[11..], description, runId }, cancellationToken: ct));
         else
-            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.journey_events(organization_id,code,status,data,created_by) SELECT @OrganizationId,@eventType,'recorded',jsonb_build_object('title',@title,'description',@description,'trigger',@Trigger,'runId',@runId,'confidentiality','organizational'),@UserId WHERE NOT EXISTS (SELECT 1 FROM valorapesquisa.journey_events WHERE organization_id=@OrganizationId AND code=@eventType AND data->>'runId'=@runId::text)", new { c.OrganizationId, c.UserId, c.Trigger, eventType, title, description, runId }, cancellationToken: ct));
+            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.journey_events(organization_id,code,status,data,created_by) VALUES (@OrganizationId,@eventType,'recorded',jsonb_build_object('title',@title,'description',@description,'trigger',@Trigger,'runId',@runId,'confidentiality','organizational'),@UserId) ON CONFLICT DO NOTHING", new { c.OrganizationId, c.UserId, c.Trigger, eventType, title, description, runId }, cancellationToken: ct));
     }
 
     private async Task<ProcessingStageResult> ExecuteStage(IntelligenceProcessingContext c, IReadOnlyList<Guid> evidenceIds, string stage, string sql, CancellationToken ct) {
         var pipelineRunId = RequirePipelineRun(c);
         using var db = connections.Create();
-        // Stage output is a replaceable checkpoint for this logical operation.
-        // A retry therefore resumes the same version instead of appending a
-        // second set of effects after a failure between stages.
-        var outputTable = stage switch {
-            "metrics" => "metric_values",
-            "indices" => "index_values",
-            "inference" => "inference_results",
-            "insights" => "insights",
-            _ => null
-        };
-        if (outputTable is not null)
-            await db.ExecuteAsync(new CommandDefinition($"DELETE FROM valorapesquisa.{outputTable} WHERE organization_id=@organizationId AND data->>'pipelineRunId'=@pipelineRunId", new { organizationId = c.OrganizationId, pipelineRunId = pipelineRunId.ToString() }, cancellationToken: ct));
+        db.Open();
+        using var transaction = db.BeginTransaction();
         var ids = (await db.QueryAsync<Guid>(new CommandDefinition(sql, new {
             organizationId = c.OrganizationId,
             surveyId = c.SurveyId,
@@ -213,18 +223,19 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             evidenceTexts = evidenceIds.Select(x => x.ToString()).ToArray(),
             evidenceHash = string.Join('|', evidenceIds.Order()),
             runCode = $"{stage}-{pipelineRunId:N}"
-        }, cancellationToken: ct))).ToList();
+        }, transaction: transaction, cancellationToken: ct))).ToList();
         // Sufficient evidence is a property of an eligible grouped result. The
         // SQL intentionally emits no insight for an insufficient inference.
         var groupedStage = stage is "metrics" or "indices" or "inference";
-        var sufficient = ids.Count > 0 && (!groupedStage || await HasEligibleResult(db, c, stage, ct));
+        var sufficient = ids.Count > 0 && (!groupedStage || await HasEligibleResult(db, transaction, c, stage, ct));
+        transaction.Commit();
         return new(stage, ids.Count, sufficient, ids.Count == 0 ? "Nenhum resultado elegível foi produzido; a insuficiência foi preservada." : "Resultado calculado e versionado a partir de evidências rastreáveis.", evidenceIds);
     }
 
-    private static async Task<bool> HasEligibleResult(System.Data.IDbConnection db, IntelligenceProcessingContext c, string stage, CancellationToken ct) {
+    private static async Task<bool> HasEligibleResult(System.Data.IDbConnection db, System.Data.IDbTransaction transaction, IntelligenceProcessingContext c, string stage, CancellationToken ct) {
         var table = stage switch { "metrics" => "metric_values", "indices" => "index_values", "inference" => "inference_results", _ => throw new ArgumentOutOfRangeException(nameof(stage)) };
         var sql = $"SELECT EXISTS(SELECT 1 FROM valorapesquisa.{table} WHERE organization_id=@organizationId AND data->>'pipelineRunId'=@pipelineRunId AND status NOT IN ('insufficient_evidence'))";
-        return await db.QuerySingleAsync<bool>(new CommandDefinition(sql, new { organizationId = c.OrganizationId, pipelineRunId = RequirePipelineRun(c).ToString() }, cancellationToken: ct));
+        return await db.QuerySingleAsync<bool>(new CommandDefinition(sql, new { organizationId = c.OrganizationId, pipelineRunId = RequirePipelineRun(c).ToString() }, transaction: transaction, cancellationToken: ct));
     }
 
     private static Guid RequirePipelineRun(IntelligenceProcessingContext context) => context.PipelineRunId

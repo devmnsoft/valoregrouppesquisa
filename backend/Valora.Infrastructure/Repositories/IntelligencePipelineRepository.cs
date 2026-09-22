@@ -27,12 +27,15 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
                 'missingMappings',array_remove(ARRAY[CASE WHEN qcm.id IS NULL THEN 'concept' END,CASE WHEN qmm.id IS NULL THEN 'metric' END,CASE WHEN qim.id IS NULL THEN 'index' END],NULL))
             FROM valorapesquisa.responses r
             JOIN valorapesquisa.response_answers ra ON ra.response_id=r.id
-            LEFT JOIN valorapesquisa.question_concept_mappings qcm ON qcm.question_id=ra.question_id AND qcm.deleted_at IS NULL
-              AND (qcm.organization_id IS NULL OR qcm.organization_id=r.organization_id)
-            LEFT JOIN valorapesquisa.question_metric_mappings qmm ON qmm.question_id=ra.question_id AND qmm.deleted_at IS NULL
-              AND (qmm.organization_id IS NULL OR qmm.organization_id=r.organization_id)
-            LEFT JOIN valorapesquisa.question_index_mappings qim ON qim.question_id=ra.question_id AND qim.deleted_at IS NULL
-              AND (qim.organization_id IS NULL OR qim.organization_id=r.organization_id)
+            LEFT JOIN LATERAL (SELECT x.* FROM valorapesquisa.question_concept_mappings x
+              WHERE x.question_id=ra.question_id AND x.deleted_at IS NULL AND (x.organization_id=r.organization_id OR x.organization_id IS NULL)
+              ORDER BY (x.organization_id=r.organization_id) DESC,x.updated_at DESC,x.id LIMIT 1) qcm ON true
+            LEFT JOIN LATERAL (SELECT x.* FROM valorapesquisa.question_metric_mappings x
+              WHERE x.question_id=ra.question_id AND x.deleted_at IS NULL AND (x.organization_id=r.organization_id OR x.organization_id IS NULL)
+              ORDER BY (x.organization_id=r.organization_id) DESC,x.updated_at DESC,x.id LIMIT 1) qmm ON true
+            LEFT JOIN LATERAL (SELECT x.* FROM valorapesquisa.question_index_mappings x
+              WHERE x.question_id=ra.question_id AND x.deleted_at IS NULL AND (x.organization_id=r.organization_id OR x.organization_id IS NULL)
+              ORDER BY (x.organization_id=r.organization_id) DESC,x.updated_at DESC,x.id LIMIT 1) qim ON true
             WHERE r.id=@responseId AND r.organization_id=@organizationId
             ON CONFLICT(response_id,question_id,concept_code) WHERE deleted_at IS NULL DO UPDATE SET
               normalized_value=EXCLUDED.normalized_value,raw_value=EXCLUDED.raw_value,weight=EXCLUDED.weight,
@@ -50,13 +53,14 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             WITH source AS (
               SELECT metric_code code,
                 sum((CASE WHEN polarity=-1 THEN 100-normalized_value ELSE normalized_value END)*weight*confidence_weight)/nullif(sum(weight*confidence_weight),0) value,
-                count(*)::int evidence_count,avg(confidence_weight) confidence
+                count(*)::int evidence_count,avg(confidence_weight) confidence,jsonb_agg(id::text ORDER BY id) evidence_ids,
+                md5(string_agg(concat_ws(':',id,updated_at,normalized_value,weight,confidence_weight,polarity,metric_code), '|' ORDER BY id)) input_hash
               FROM valorapesquisa.evidence_items WHERE organization_id=@organizationId AND id=ANY(@evidenceIds)
                 AND normalized_value IS NOT NULL AND mapping_status='mapped' AND metric_code IS NOT NULL GROUP BY 1)
             INSERT INTO valorapesquisa.metric_values(organization_id,code,status,data,methodology_version,version)
             SELECT @organizationId,code,CASE WHEN evidence_count>=3 THEN 'calculated' ELSE 'insufficient_evidence' END,
               jsonb_build_object('value',round(value,2),'trend','baseline','confidence',round(confidence,2),'evidenceCount',evidence_count,
-                'evidenceIds',@evidenceTexts,'pipelineRunId',@pipelineRunId,'surveyId',@surveyId,
+                'evidenceIds',evidence_ids,'inputHash',input_hash,'pipelineRunId',@pipelineRunId,'surveyId',@surveyId,
                 'limitations',CASE WHEN evidence_count<3 THEN 'Dados insuficientes para interpretação isolada.' ELSE 'Interpretar em conjunto com índices e histórico.' END),1,1 FROM source
             RETURNING id
             """;
@@ -68,13 +72,14 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             WITH source AS (
               SELECT index_code code,
                sum((CASE WHEN polarity=-1 THEN 100-normalized_value ELSE normalized_value END)*weight*confidence_weight)/nullif(sum(weight*confidence_weight),0) score,
-               count(*)::int evidence_count,avg(confidence_weight) confidence
+               count(*)::int evidence_count,avg(confidence_weight) confidence,jsonb_agg(id::text ORDER BY id) evidence_ids,
+               md5(string_agg(concat_ws(':',id,updated_at,normalized_value,weight,confidence_weight,polarity,index_code), '|' ORDER BY id)) input_hash
               FROM valorapesquisa.evidence_items WHERE organization_id=@organizationId AND id=ANY(@evidenceIds)
                 AND normalized_value IS NOT NULL AND mapping_status='mapped' AND index_code IS NOT NULL GROUP BY 1)
             INSERT INTO valorapesquisa.index_values(organization_id,code,status,data,methodology_version,version)
             SELECT @organizationId,code,CASE WHEN evidence_count>=3 THEN 'calculated' ELSE 'insufficient_evidence' END,
               jsonb_build_object('score',round(score,2),'classification',CASE WHEN score<=25 THEN 'Inicial' WHEN score<=50 THEN 'Estruturante' WHEN score<=75 THEN 'Integrado' ELSE 'Maduro' END,
-                'evidenceIds',@evidenceTexts,'pipelineRunId',@pipelineRunId,'surveyId',@surveyId,
+                'evidenceIds',evidence_ids,'inputHash',input_hash,'pipelineRunId',@pipelineRunId,'surveyId',@surveyId,
                 'trend','baseline','confidence',round(confidence,2),'evidenceCount',evidence_count,'calculation','weighted_convergent_evidence'),1,1 FROM source RETURNING id
             """;
         return await ExecuteStage(c, evidenceIds, "indices", sql, ct);
@@ -125,7 +130,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
     public async Task<ProcessingStageResult> RefreshProjectionAsync(IntelligenceProcessingContext c, string module, IReadOnlyList<Guid> evidenceIds, CancellationToken ct) {
         var pipelineRunId = RequirePipelineRun(c);
         var table = module switch { "action" => "action_items", "evolution" => "evolution_cycles", "heatmap" => "heatmap_snapshots", "radar" => "radar_snapshots", "benchmark" => "benchmark_runs", "executive_report" => "executive_reports", _ => throw new ArgumentOutOfRangeException(nameof(module)) };
-        var status = evidenceIds.Count >= 3 ? "ready" : "insufficient_evidence";
+        // Readiness is derived from eligible grouped results, never raw batch size.
         using var db = connections.Create();
         const string sourceSql = """
             SELECT
@@ -146,12 +151,15 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             organizationId = c.OrganizationId,
             pipelineRunId = pipelineRunId.ToString()
         }, cancellationToken: ct));
+        var eligibleResults = CountEligibleResults(source);
+        var status = eligibleResults > 0 ? "ready" : "insufficient_evidence";
         var data = JsonSerializer.Serialize(new {
             trigger = c.Trigger,
             pipelineRunId = c.PipelineRunId,
             surveyId = c.SurveyId,
             evidenceIds,
             evidenceCount = evidenceIds.Count,
+            eligibleResultCount = eligibleResults,
             firstCycle = module == "evolution",
             metrics = JsonSerializer.Deserialize<JsonElement>(source.Metrics),
             indices = JsonSerializer.Deserialize<JsonElement>(source.Indices),
@@ -159,25 +167,44 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             interpretation = evidenceIds.Count < 3 ? "Leitura não conclusiva: ampliar a coleta antes de priorizar." : "Snapshot agregado do diagnóstico; validar hipóteses no contexto organizacional.",
             limitation = evidenceIds.Count < 3 ? "Dados insuficientes para uma leitura confiável." : "Não utilizar esta leitura agregada para avaliar pessoas."
         });
-        var id = await db.QuerySingleAsync<Guid>(new CommandDefinition($"INSERT INTO valorapesquisa.{table}(organization_id,code,status,data) VALUES(@organizationId,@code,@status,CAST(@data AS jsonb)) RETURNING id", new { organizationId = c.OrganizationId, code = $"{module}-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}", status, data }, cancellationToken: ct));
-        return new(module, 1, evidenceIds.Count >= 3, status == "ready" ? "Snapshot histórico criado com evidências vinculadas." : "Snapshot preservado como dados insuficientes.", evidenceIds);
+        var code = $"{module}-{pipelineRunId:N}";
+        var id = await db.QuerySingleAsync<Guid>(new CommandDefinition($"DELETE FROM valorapesquisa.{table} WHERE organization_id=@organizationId AND code=@code AND status<>'published'; INSERT INTO valorapesquisa.{table}(organization_id,code,status,data) VALUES(@organizationId,@code,@status,CAST(@data AS jsonb)) RETURNING id", new { organizationId = c.OrganizationId, code, status, data }, cancellationToken: ct));
+        return new(module, 1, eligibleResults > 0, status == "ready" ? "Snapshot histórico criado com resultados elegíveis vinculados." : "Snapshot preservado como dados insuficientes.", evidenceIds);
     }
 
     private sealed record ProjectionSource(string Metrics, string Indices, string Insights);
 
+    private static int CountEligibleResults(ProjectionSource source) {
+        static int Count(string json) => JsonSerializer.Deserialize<JsonElement>(json).EnumerateArray()
+            .Count(item => item.TryGetProperty("status", out var status) && status.GetString() is not "insufficient_evidence");
+        return Count(source.Metrics) + Count(source.Indices);
+    }
+
     public async Task RecordEventAsync(IntelligenceProcessingContext c, Guid runId, string eventType, string title, string description, CancellationToken ct) {
         using var db = connections.Create();
         if (eventType.StartsWith("notification:"))
-            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.notifications(organization_id,user_id,type,title,message,related_module,related_entity_id) VALUES(@OrganizationId,@UserId,@type,@title,@description,'organizational_intelligence',@runId)", new { c.OrganizationId, c.UserId, type = eventType[13..], title, description, runId }, cancellationToken: ct));
+            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.notifications(organization_id,user_id,type,title,message,related_module,related_entity_id) SELECT @OrganizationId,@UserId,@type,@title,@description,'organizational_intelligence',@runId WHERE NOT EXISTS (SELECT 1 FROM valorapesquisa.notifications WHERE organization_id=@OrganizationId AND related_module='organizational_intelligence' AND related_entity_id=@runId AND type=@type)", new { c.OrganizationId, c.UserId, type = eventType[13..], title, description, runId }, cancellationToken: ct));
         else if (eventType.StartsWith("governance:"))
-            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.platform_governance_events(organization_id,code,status,data,created_by) VALUES(@OrganizationId,@type,'recorded',jsonb_build_object('description',@description,'runId',@runId),@UserId)", new { c.OrganizationId, c.UserId, type = eventType[11..], description, runId }, cancellationToken: ct));
+            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.platform_governance_events(organization_id,code,status,data,created_by) SELECT @OrganizationId,@type,'recorded',jsonb_build_object('description',@description,'runId',@runId),@UserId WHERE NOT EXISTS (SELECT 1 FROM valorapesquisa.platform_governance_events WHERE organization_id=@OrganizationId AND code=@type AND data->>'runId'=@runId::text)", new { c.OrganizationId, c.UserId, type = eventType[11..], description, runId }, cancellationToken: ct));
         else
-            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.journey_events(organization_id,code,status,data,created_by) VALUES(@OrganizationId,@eventType,'recorded',jsonb_build_object('title',@title,'description',@description,'trigger',@Trigger,'runId',@runId,'confidentiality','organizational'),@UserId)", new { c.OrganizationId, c.UserId, c.Trigger, eventType, title, description, runId }, cancellationToken: ct));
+            await db.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.journey_events(organization_id,code,status,data,created_by) SELECT @OrganizationId,@eventType,'recorded',jsonb_build_object('title',@title,'description',@description,'trigger',@Trigger,'runId',@runId,'confidentiality','organizational'),@UserId WHERE NOT EXISTS (SELECT 1 FROM valorapesquisa.journey_events WHERE organization_id=@OrganizationId AND code=@eventType AND data->>'runId'=@runId::text)", new { c.OrganizationId, c.UserId, c.Trigger, eventType, title, description, runId }, cancellationToken: ct));
     }
 
     private async Task<ProcessingStageResult> ExecuteStage(IntelligenceProcessingContext c, IReadOnlyList<Guid> evidenceIds, string stage, string sql, CancellationToken ct) {
         var pipelineRunId = RequirePipelineRun(c);
         using var db = connections.Create();
+        // Stage output is a replaceable checkpoint for this logical operation.
+        // A retry therefore resumes the same version instead of appending a
+        // second set of effects after a failure between stages.
+        var outputTable = stage switch {
+            "metrics" => "metric_values",
+            "indices" => "index_values",
+            "inference" => "inference_results",
+            "insights" => "insights",
+            _ => null
+        };
+        if (outputTable is not null)
+            await db.ExecuteAsync(new CommandDefinition($"DELETE FROM valorapesquisa.{outputTable} WHERE organization_id=@organizationId AND data->>'pipelineRunId'=@pipelineRunId", new { organizationId = c.OrganizationId, pipelineRunId = pipelineRunId.ToString() }, cancellationToken: ct));
         var ids = (await db.QueryAsync<Guid>(new CommandDefinition(sql, new {
             organizationId = c.OrganizationId,
             surveyId = c.SurveyId,

@@ -38,7 +38,10 @@ public sealed class OrganizationalIntelligencePipeline(IEvidenceExtractionServic
     public Task<IntelligencePipelineResult> ProcessExecutiveReportAsync(IntelligenceProcessingContext c, CancellationToken ct) => Run(c with { Trigger = "executive_report_generated" }, true, ct);
 
     private async Task<IntelligencePipelineResult> Run(IntelligenceProcessingContext c, bool includeReport, CancellationToken ct) {
-        var run = Guid.NewGuid();
+        // A queued job supplies its stable logical-operation id. Keeping it on a
+        // retry makes every persisted stage replace/resume the same result version.
+        // Direct, intentional executions still receive a fresh result version.
+        var run = c.PipelineRunId ?? Guid.NewGuid();
         c = c with { PipelineRunId = run };
         var stages = new List<ProcessingStageResult>();
         var extracted = await evidence.ExtractAsync(c, ct); stages.Add(extracted); var ids = extracted.EvidenceIds;

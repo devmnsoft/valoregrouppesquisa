@@ -18,6 +18,8 @@ public sealed class InsightReviewExperienceTests {
         Assert.Contains("asp-action=\"Reject\"", view);
         Assert.Contains("data-confirm=", view);
         Assert.Contains("data-dialog-target=\"#rejectInsightDialog\"", view);
+        Assert.Contains("expectedVersion", view);
+        Assert.Contains("commandKey", view);
     }
 
     [Fact]
@@ -30,5 +32,15 @@ public sealed class InsightReviewExperienceTests {
         Assert.Contains("href=\"/Reports\"", view);
         Assert.Contains("value=\"ai_insight\"", actionPlan);
         Assert.Contains("AntiForgeryToken", actionPlan);
+    }
+
+    [Fact]
+    public void Database_contract_keeps_review_and_recipient_delivery_independent() {
+        var sql = File.ReadAllText(RepositoryPaths.BackendFile("database", "postgresql", "script_completo.sql"));
+
+        Assert.Contains("review_version bigint NOT NULL DEFAULT 0", sql);
+        Assert.Contains("valora_ai_review_commands", sql);
+        Assert.Contains("organization_id,user_id,related_entity_id,type", sql);
+        Assert.DoesNotContain("DELETE FROM valorapesquisa.notifications", sql, StringComparison.OrdinalIgnoreCase);
     }
 }

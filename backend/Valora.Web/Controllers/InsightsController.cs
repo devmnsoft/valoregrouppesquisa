@@ -28,12 +28,16 @@ public sealed class InsightsController(
 
     [HttpPost("Details/{id:guid}/Approve")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Approve(Guid id, CancellationToken ct) {
+    public async Task<IActionResult> Approve(Guid id, string commandKey, long expectedVersion, CancellationToken ct) {
         if (!TryGetOperationContext(out var organizationId, out var userId)) return OrganizationRequired();
 
         try {
-            await approveInsight.ExecuteAsync(organizationId, id, userId, ct);
+            await approveInsight.ExecuteAsync(organizationId, id, userId, commandKey, expectedVersion, ct);
             TempData["Success"] = "Insight aprovado com sucesso. A revisão humana foi registrada.";
+        }
+        catch (Valora.Application.Exceptions.ConcurrencyConflictException exception) {
+            logger.LogWarning(exception, "Conflito ao aprovar insight {InsightId}. CorrelationId={CorrelationId}", id, HttpContext.TraceIdentifier);
+            TempData["Warning"] = "Outra pessoa alterou este insight. Atualize a página antes de decidir novamente.";
         }
         catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException or ArgumentException) {
             logger.LogWarning(exception,
@@ -62,8 +66,13 @@ public sealed class InsightsController(
         }
 
         try {
-            await rejectInsight.ExecuteAsync(organizationId, id, userId, model.Reason, ct);
+            await rejectInsight.ExecuteAsync(organizationId, id, userId, model.Reason, model.CommandKey, model.ExpectedVersion, ct);
             TempData["Success"] = "Insight rejeitado. O motivo e a revisão humana foram registrados.";
+        }
+        catch (Valora.Application.Exceptions.ConcurrencyConflictException exception) {
+            logger.LogWarning(exception, "Conflito ao rejeitar insight {InsightId}. CorrelationId={CorrelationId}", id, HttpContext.TraceIdentifier);
+            TempData["PendingRejectionReason"] = model.Reason;
+            TempData["Warning"] = "Outra pessoa alterou este insight. Atualize os dados; sua justificativa foi preservada.";
         }
         catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException or ArgumentException) {
             logger.LogWarning(exception,

@@ -95,7 +95,17 @@ public sealed class ValoraAiInsightRepository(IDbConnectionFactory connections) 
             SELECT d.id,coalesce(nullif(trim(d.title),''),'Diagnóstico sem nome') Name FROM valorapesquisa.diagnostics d WHERE d.organization_id=@organizationId AND d.deleted_at IS NULL AND EXISTS(SELECT 1 FROM valorapesquisa.valora_ai_insights vi WHERE vi.organization_id=d.organization_id AND vi.diagnostic_id=d.id AND vi.deleted_at IS NULL) ORDER BY Name,d.id;
             """;
         using var db=connections.Create();using var multi=await db.QueryMultipleAsync(new CommandDefinition(sql,args,cancellationToken:ct));
-        var total=await multi.ReadSingleAsync<int>();var rows=(await multi.ReadAsync<AiInsight,QueueCounts,AiInsightListItem>((i,x)=>new(i,x.DiagnosticName,x.PlanCount,x.ActivePlanCount,x.ClosedPlanCount),splitOn:"DiagnosticName")).AsList();
+        var total=await multi.ReadSingleAsync<int>();
+        var queueRows=await multi.ReadAsync<InsightQueueRow>();
+        List<AiInsightListItem> rows=queueRows.Select(row => {
+            var insight=new AiInsight(row.Id,row.OrganizationId,row.DiagnosticId,row.ResultId,row.AiRunId,
+                row.InsightType,row.Title,row.Summary,row.EvidenceSummary,row.RelatedDimension,
+                row.RelatedIndexCode,row.Severity,row.Priority,row.ConfidenceLevel,row.Limitation,
+                row.Recommendation,row.Status,row.CreatedAt,row.UpdatedAt,row.ReviewVersion,
+                row.ReviewedByUserId,row.ReviewedAt,row.LinkedPlanId);
+            return new AiInsightListItem(insight,row.DiagnosticName ?? "Diagnóstico sem nome disponível",
+                row.PlanCount,row.ActivePlanCount,row.ClosedPlanCount);
+        }).ToList();
         var indicators=await multi.ReadSingleAsync<AiInsightIndicators>();var authorizedTotal=await multi.ReadSingleAsync<int>();var diagnostics=(await multi.ReadAsync<AiDiagnosticOption>()).AsList();return new(new(rows,page,size,total),indicators,authorizedTotal,diagnostics);
     }
     public async Task<AiInsightDetails?> DetailsAsync(Guid organizationId, Guid userId, Guid id, bool organizationWide, CancellationToken ct) {
@@ -116,7 +126,35 @@ public sealed class ValoraAiInsightRepository(IDbConnectionFactory connections) 
         if(evidence.Length>0) await db.ExecuteAsync(new CommandDefinition("""INSERT INTO valorapesquisa.valora_ai_insight_evidence_links(insight_id,evidence_item_id,link_source) SELECT @id,unnest(@evidenceIds::uuid[]),'generation' ON CONFLICT(insight_id,evidence_item_id) DO NOTHING""",new{id,evidenceIds},tx,cancellationToken:ct));
         tx.Commit(); return id;
     }
-    private sealed record QueueCounts(string? DiagnosticName,int PlanCount,int ActivePlanCount,int ClosedPlanCount);
+    private sealed class InsightQueueRow {
+        public Guid Id { get; set; }
+        public Guid OrganizationId { get; set; }
+        public Guid DiagnosticId { get; set; }
+        public Guid? ResultId { get; set; }
+        public Guid AiRunId { get; set; }
+        public string InsightType { get; set; } = null!;
+        public string Title { get; set; } = null!;
+        public string Summary { get; set; } = null!;
+        public string EvidenceSummary { get; set; } = null!;
+        public string? RelatedDimension { get; set; }
+        public string? RelatedIndexCode { get; set; }
+        public string Severity { get; set; } = null!;
+        public string Priority { get; set; } = null!;
+        public string ConfidenceLevel { get; set; } = null!;
+        public string? Limitation { get; set; }
+        public string Recommendation { get; set; } = null!;
+        public string Status { get; set; } = null!;
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public long ReviewVersion { get; set; }
+        public Guid? ReviewedByUserId { get; set; }
+        public DateTime? ReviewedAt { get; set; }
+        public Guid? LinkedPlanId { get; set; }
+        public string? DiagnosticName { get; set; }
+        public int PlanCount { get; set; }
+        public int ActivePlanCount { get; set; }
+        public int ClosedPlanCount { get; set; }
+    }
     private sealed record EvidenceLinkProjection(Guid Id,string Summary);
 }
 

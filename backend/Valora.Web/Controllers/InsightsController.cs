@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Valora.Application.ValoraAi;
 using Valora.Application.Access;
 using Valora.Web.Models.ViewModels;
+using Valora.Application.Common;
 
 namespace Valora.Web.Controllers;
 
@@ -13,18 +14,22 @@ public sealed class InsightsController(
     IValoraAiInsightRepository insights,
     ApproveAiInsightUseCase approveInsight,
     RejectAiInsightUseCase rejectInsight,
+    ICurrentRequestContext requestContext,
     ILogger<InsightsController> logger) : Controller {
     [HttpGet("")]
-    public async Task<IActionResult> Index(CancellationToken ct) {
-        if (!TryGetOrganizationId(out var organizationId)) return OrganizationRequired();
-        return View(await insights.ListAsync(organizationId, null, ct));
+    public async Task<IActionResult> Index([FromQuery] AiInsightListQuery query, CancellationToken ct) {
+        if (!TryGetOperationContext(out var organizationId,out var userId)) return OrganizationRequired();
+        var context=requestContext.GetCurrent();
+        return View(new InsightListPageViewModel(await insights.ListAsync(organizationId,userId,context.IsGlobalAdministrator||context.Roles.Contains("admin_cliente",StringComparer.OrdinalIgnoreCase),query,ct),query,Request.Path+Request.QueryString));
     }
 
     [HttpGet("Details/{id:guid}")]
-    public async Task<IActionResult> Details(Guid id, CancellationToken ct) {
-        if (!TryGetOrganizationId(out var organizationId)) return OrganizationRequired();
-        var insight = await insights.GetAsync(organizationId, id, ct);
-        return insight is null ? NotFound() : View(insight);
+    public async Task<IActionResult> Details(Guid id,string? returnUrl,CancellationToken ct) {
+        if (!TryGetOperationContext(out var organizationId,out var userId)) return OrganizationRequired();
+        var context=requestContext.GetCurrent();var detail=await insights.DetailsAsync(organizationId,userId,id,context.IsGlobalAdministrator||context.Roles.Contains("admin_cliente",StringComparer.OrdinalIgnoreCase),ct);
+        if(detail is null)return NotFound();
+        var back=!string.IsNullOrWhiteSpace(returnUrl)&&Url.IsLocalUrl(returnUrl)&&returnUrl.StartsWith("/Insights",StringComparison.OrdinalIgnoreCase)?returnUrl:"/Insights";
+        return View(new InsightDetailsPageViewModel(detail,back));
     }
 
     [HttpPost("Details/{id:guid}/Approve")]
@@ -69,12 +74,14 @@ public sealed class InsightsController(
             if (insight is null) return NotFound();
             ViewData["OpenRejectDialog"] = true;
             ViewData["RejectionReason"] = model.Reason;
-            return View("Details", insight);
+            var context=requestContext.GetCurrent();var detail=await insights.DetailsAsync(organizationId,userId,id,context.IsGlobalAdministrator||context.Roles.Contains("admin_cliente",StringComparer.OrdinalIgnoreCase),ct);
+            return detail is null?NotFound():View("Details",new InsightDetailsPageViewModel(detail,"/Insights"));
         }
 
         try {
             await rejectInsight.ExecuteAsync(organizationId, id, userId, model.Reason, model.CommandKey, model.ExpectedVersion, ct);
             TempData["Success"] = "Insight rejeitado. O motivo e a revisão humana foram registrados.";
+            TempData["RejectionDraftSent"] = id.ToString("N");
         }
         catch (Valora.Application.Exceptions.ConcurrencyConflictException exception) {
             logger.LogWarning(exception, "Conflito ao rejeitar insight {InsightId}. CorrelationId={CorrelationId}", id, HttpContext.TraceIdentifier);
@@ -114,3 +121,5 @@ public sealed class InsightsController(
         return RedirectToAction("Index", "Organization");
     }
 }
+public sealed record InsightListPageViewModel(AiInsightListResult Result,AiInsightListQuery Query,string CurrentUrl);
+public sealed record InsightDetailsPageViewModel(AiInsightDetails Details,string ReturnUrl);

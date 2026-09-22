@@ -1,58 +1,17 @@
-@model Valora.Application.ValoraAi.AiInsight
+@model Valora.Web.Controllers.InsightDetailsPageViewModel
 @using Valora.Application.ValoraAi
+@using Valora.Application.ActionCenter
 @using Valora.Application.Access
 @using Microsoft.AspNetCore.Authorization
 @inject IAuthorizationService Authorization
-@{ ViewData["Title"] = Model.Title;
-   var canApprove = (await Authorization.AuthorizeAsync(User, ValoraPermissions.Insights.Approve)).Succeeded;
-   var canReject = (await Authorization.AuthorizeAsync(User, ValoraPermissions.Insights.Reject)).Succeeded;
-   var canCreatePlan = (await Authorization.AuthorizeAsync(User, ValoraPermissions.Action.Manage)).Succeeded;
-   var draftKey = $"valora:insight-rejection:{Model.OrganizationId:N}:{User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value}:{Model.Id:N}:{Model.ReviewVersion}";
-}
+@{var x=Model.Details.Insight;ViewData["Title"]=x.Title;var canApprove=(await Authorization.AuthorizeAsync(User,ValoraPermissions.Insights.Approve)).Succeeded;var canReject=(await Authorization.AuthorizeAsync(User,ValoraPermissions.Insights.Reject)).Succeeded;var canCreate=(await Authorization.AuthorizeAsync(User,ValoraPermissions.Action.Manage)).Succeeded;var user=User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value??"anonymous";var scope=Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"{x.OrganizationId:N}:{user}"))).ToLowerInvariant()[..24];var draftKey=$"valora:insight-rejection:{scope}:{x.Id:N}";var pending=x.Status==AiInsightStatuses.PendingReview;}
 <main class="valora-page v9-page">
- <partial name="_PageHeader" model="@(new PageHeaderViewModel(Model.Title, Model.Summary, "Insight baseado em evidências", Model.Status, new[] { new PageHeaderAction("Voltar aos insights", "/Insights") }))" />
- <div class="v9-executive-grid"><section class="valora-card"><p class="eyebrow">Contexto</p><h2>Interpretação</h2><p>@Model.Summary</p><dl><dt>Dimensão</dt><dd>@(Model.RelatedDimension ?? "Não vinculada")</dd><dt>Índice</dt><dd>@(Model.RelatedIndexCode ?? "Não vinculado")</dd><dt>Confiança</dt><dd><span class="badge">@Model.ConfidenceLevel</span></dd></dl></section><section class="valora-card"><p class="eyebrow">Rastreabilidade</p><h2>Evidências utilizadas</h2><p>@Model.EvidenceSummary</p><p><strong>Limitação:</strong> @(Model.Limitation ?? "Nenhuma limitação adicional registrada.")</p></section></div>
- <section class="valora-card">
-  <p class="eyebrow">Plano de evolução</p><h2>Recomendação prática</h2><p>@Model.Recommendation</p>
-  <div class="d-flex flex-wrap gap-2" role="group" aria-label="Ações do insight">
-   @if (Model.Status == AiInsightStatuses.PendingReview && (canApprove || canReject))
-   {
-    @if (canApprove) {
-    <form method="post" asp-action="Approve" asp-route-id="@Model.Id">
-     @Html.AntiForgeryToken()
-     <input type="hidden" name="commandKey" value="@Guid.NewGuid().ToString("N")" />
-     <input type="hidden" name="expectedVersion" value="@Model.ReviewVersion" />
-     <button class="valora-button valora-button--primary" type="submit" data-confirm="A aprovação registra sua revisão humana e altera o status deste insight. Deseja continuar?" data-confirm-title="Aprovar insight?" data-loading-text="Aprovando…">Aprovar</button>
-    </form>
-    }
-    @if (canReject) {
-    <button class="valora-button" type="button" data-dialog-target="#rejectInsightDialog">Rejeitar</button>
-    }
-   }
-   else
-   {
-    <span class="valora-alert valora-alert--info" role="status">Este insight já foi revisado e não possui ações de aprovação pendentes.</span>
-   }
-   @if (Model.LinkedPlanId.HasValue) { <a class="valora-button valora-button--primary" asp-controller="ActionCenter" asp-action="PlanDetails" asp-route-id="@Model.LinkedPlanId">Abrir plano vinculado</a> }
-   else if (canCreatePlan && Model.Status == AiInsightStatuses.Approved) { <a class="valora-button" href="/ActionCenter/Plans/Create?originType=ai_insight&amp;originId=@Model.Id&amp;returnUrl=/Insights/Details/@Model.Id">Criar plano de ação</a> }
-   <a class="valora-button" href="/Decisions">Abrir decisões</a>
-   <a class="valora-button" href="/Reports">Usar em relatório</a>
-  </div>
-  <small>A decisão final permanece sempre sob responsabilidade humana.</small>
- </section>
- @if (Model.Status == AiInsightStatuses.PendingReview && canReject)
- {
-  <dialog class="confirmation-modal" id="rejectInsightDialog" aria-labelledby="rejectInsightTitle">
-   <form method="post" asp-action="Reject" asp-route-id="@Model.Id">
-    @Html.AntiForgeryToken()
-    <header><span class="confirmation-modal__icon" aria-hidden="true">!</span><div><p class="eyebrow">Revisão humana</p><h2 id="rejectInsightTitle">Rejeitar insight</h2></div></header>
-    <input type="hidden" name="InsightId" value="@Model.Id" />
-    <input type="hidden" name="CommandKey" value="@Guid.NewGuid().ToString("N")" />
-    <input type="hidden" name="ExpectedVersion" value="@Model.ReviewVersion" />
-    <div class="valora-field"><label for="rejectInsightReason">Motivo da rejeição</label><textarea class="form-control" id="rejectInsightReason" name="Reason" required minlength="10" maxlength="1000" rows="4" aria-describedby="rejectInsightHint">@ViewData["RejectionReason"]</textarea><div asp-validation-summary="All" class="text-danger" role="alert"></div><small id="rejectInsightHint">Explique o que precisa ser revisto. O rascunho fica somente nesta aba até a gravação.</small></div>
-    <footer><button class="valora-button valora-button--ghost" type="button" data-dialog-close>Cancelar</button><button class="valora-button valora-button--danger" type="submit" data-confirm="A rejeição e o motivo ficarão registrados no histórico. Deseja continuar?" data-confirm-title="Confirmar rejeição?" data-loading-text="Rejeitando…">Rejeitar insight</button></footer>
-   </form>
-  </dialog>
- }
+ <partial name="_PageHeader" model="@(new PageHeaderViewModel(x.Title,x.Summary,"Insight baseado em evidências",x.Status,new[]{new PageHeaderAction("Voltar à fila",Model.ReturnUrl)}))" />
+ <section class="valora-card"><p class="eyebrow">Síntese e contexto</p><h2>Leitura organizacional</h2><p>@x.Summary</p><dl><dt>Diagnóstico</dt><dd>@x.DiagnosticId</dd><dt>Dimensão</dt><dd>@(x.RelatedDimension??"Não vinculada")</dd><dt>Prioridade</dt><dd>@x.Priority</dd><dt>Confiança informada pela origem</dt><dd>@x.ConfidenceLevel</dd></dl><p class="valora-alert valora-alert--info">A unidade de análise é o sistema organizacional. Esta leitura não deve ser usada para culpabilização individual ou diagnóstico psicológico.</p></section>
+ <section class="valora-card"><p class="eyebrow">Evidências e limitações</p><h2>Evidências utilizadas</h2>@if(Model.Details.Evidence.Count==0){<p>Não foi possível resolver vínculos canônicos de evidência para este registro legado. O resumo histórico é preservado abaixo, mas não é tratado como vínculo garantido.</p><blockquote>@x.EvidenceSummary</blockquote>}else{<div class="v9-executive-grid">@foreach(var e in Model.Details.Evidence){<article class="valora-card"><h3>@e.Summary</h3><dl><dt>Tipo</dt><dd>@e.Type</dd><dt>Origem</dt><dd>@e.SourceType</dd><dt>Data</dt><dd>@e.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd><dt>Contexto</dt><dd>@(e.Dimension??e.IndexCode??"Agregado organizacional")</dd></dl></article>}</div>}<p><strong>Limitação:</strong> @(x.Limitation??"Nenhuma limitação adicional foi registrada pela origem.")</p></section>
+ <section class="valora-card"><p class="eyebrow">Revisão humana</p><h2>Situação editorial</h2>@if(pending){<p><span class="badge">Pendente de revisão</span></p>@if(!canApprove&&!canReject){<div class="valora-alert valora-alert--info">Este insight continua pendente, mas seu perfil não possui permissão para revisar.</div>}else{<div class="d-flex gap-2">@if(canApprove){<form method="post" asp-action="Approve" asp-route-id="@x.Id">@Html.AntiForgeryToken()<input type="hidden" name="commandKey" value="@Guid.NewGuid().ToString("N")"/><input type="hidden" name="expectedVersion" value="@x.ReviewVersion"/><button class="valora-button valora-button--primary" type="submit" data-confirm="A aprovação registra revisão editorial, mas não comprova causalidade. Continuar?">Aprovar</button></form>}@if(canReject){<button class="valora-button valora-button--danger" type="button" data-dialog-target="#rejectInsightDialog">Rejeitar</button>}</div>}}else{<p><span class="badge">@(x.Status switch{AiInsightStatuses.Approved=>"Aprovado",AiInsightStatuses.Rejected=>"Rejeitado",AiInsightStatuses.ConvertedToAction=>"Encaminhado para execução",_=>x.Status})</span></p><p>Revisado em @(x.ReviewedAt?.ToString("dd/MM/yyyy HH:mm")??"data não disponível"), versão @x.ReviewVersion.</p><div id="recoveredDraftNotice" class="valora-alert valora-alert--info" hidden>Há uma justificativa não enviada recuperável neste navegador. A revisão já não está disponível; copie o texto se precisar preservá-lo fora desta tela. <button type="button" class="valora-button valora-button--ghost" id="discardRecoveredDraft">Descartar rascunho</button><pre id="recoveredDraftText"></pre></div>}</section>
+ <section class="valora-card"><p class="eyebrow">Planos vinculados</p><h2>Execução rastreável</h2>@if(Model.Details.Plans.Count==0){<p>Nenhum plano foi criado para este insight.</p>}else{<div class="v9-executive-grid">@foreach(var p in Model.Details.Plans){<article class="valora-card"><h3>@p.Title</h3><p><span class="badge">@ActionStatuses.Label(p.Status)</span> · @p.ProgressPercent%</p><dl><dt>Responsável</dt><dd>@(p.OwnerName??"Não definido")</dd><dt>Prazo</dt><dd>@(p.DueAt?.ToString("dd/MM/yyyy")??"Não definido")</dd></dl><a class="valora-button" asp-controller="ActionCenter" asp-action="PlanDetails" asp-route-id="@p.Id" asp-route-returnUrl="@($"/Insights/Details/{x.Id}?returnUrl={Uri.EscapeDataString(Model.ReturnUrl)}")">Abrir plano</a></article>}</div><p><small>Conclusão da execução não comprova, por si só, impacto organizacional nem resolução da hipótese.</small></p>}@if(canCreate&&x.Status is AiInsightStatuses.Approved or AiInsightStatuses.ConvertedToAction){<a class="valora-button valora-button--primary" asp-controller="ActionCenter" asp-action="CreatePlan" asp-route-originType="ai_insight" asp-route-originId="@x.Id" asp-route-returnUrl="@($"/Insights/Details/{x.Id}?returnUrl={Uri.EscapeDataString(Model.ReturnUrl)}")">@(Model.Details.Plans.Count==0?"Criar plano":"Criar outro plano")</a>}</section>
+ <section class="valora-card"><p class="eyebrow">Histórico</p><h2>Rastreabilidade</h2><p>Criado em @x.CreatedAt.ToString("dd/MM/yyyy HH:mm"). Revisão editorial versão @x.ReviewVersion. Execução de IA @x.AiRunId.</p></section>
+ @if(pending&&canReject){<dialog class="confirmation-modal" id="rejectInsightDialog" aria-labelledby="rejectInsightTitle"><form method="post" asp-action="Reject" asp-route-id="@x.Id">@Html.AntiForgeryToken()<header><h2 id="rejectInsightTitle">Rejeitar insight</h2></header><input type="hidden" name="InsightId" value="@x.Id"/><input type="hidden" name="CommandKey" value="@Guid.NewGuid().ToString("N")"/><input type="hidden" name="ExpectedVersion" value="@x.ReviewVersion"/><label for="rejectInsightReason">Justificativa<textarea id="rejectInsightReason" name="Reason" required minlength="10" maxlength="1000" rows="5">@ViewData["RejectionReason"]</textarea><small>Entre 10 e 1.000 caracteres após remover espaços externos.</small></label><div asp-validation-summary="All" role="alert"></div><footer><button type="button" class="valora-button valora-button--ghost" data-dialog-close>Cancelar</button><button type="button" class="valora-button valora-button--ghost" id="discardRejectDraft">Descartar rascunho</button><button class="valora-button valora-button--danger" type="submit">Confirmar rejeição</button></footer></form></dialog>}
 </main>
-<script nonce="@Context.Items["CspNonce"]">(()=>{const key=@Html.Raw(System.Text.Json.JsonSerializer.Serialize(draftKey)),field=document.getElementById('rejectInsightReason'),dialog=document.getElementById('rejectInsightDialog');if(!field)return;if(!field.value)field.value=sessionStorage.getItem(key)||'';field.addEventListener('input',()=>sessionStorage.setItem(key,field.value));@if (TempData["Success"] is not null) { <text>sessionStorage.removeItem(key);</text> }@if ((ViewData["OpenRejectDialog"] as bool? == true) || TempData["OpenRejectDialog"] is not null) { <text>dialog?.showModal();field.focus();</text> }})();</script>
+<script nonce="@Context.Items["CspNonce"]">(()=>{const key=@Html.Raw(System.Text.Json.JsonSerializer.Serialize(draftKey)),version=@x.ReviewVersion,field=document.getElementById('rejectInsightReason'),notice=document.getElementById('recoveredDraftNotice'),text=document.getElementById('recoveredDraftText');let read=()=>null,write=()=>{},remove=()=>{};try{read=()=>JSON.parse(sessionStorage.getItem(key)||'null');write=v=>sessionStorage.setItem(key,JSON.stringify(v));remove=()=>sessionStorage.removeItem(key)}catch{}@if(TempData["RejectionDraftSent"]?.ToString()==x.Id.ToString("N")){<text>try{remove()}catch{}</text>}const draft=read();if(field){if(!field.value&&draft?.text)field.value=draft.text;field.addEventListener('input',()=>{try{write({text:field.value,version,updatedAt:new Date().toISOString()})}catch{}});document.getElementById('discardRejectDraft')?.addEventListener('click',()=>{try{remove()}catch{}field.value=''});if(@((ViewData["OpenRejectDialog"] as bool?==true||TempData["OpenRejectDialog"] is not null).ToString().ToLowerInvariant())){document.getElementById('rejectInsightDialog')?.showModal();field.focus()}}else if(draft?.text&&notice&&text){notice.hidden=false;text.textContent=draft.text;document.getElementById('discardRecoveredDraft')?.addEventListener('click',()=>{try{remove()}catch{}notice.hidden=true})}})();</script>

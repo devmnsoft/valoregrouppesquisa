@@ -6994,3 +6994,20 @@ INSERT INTO valorapesquisa.schema_migrations(version,checksum)
 VALUES('2026_09_intelligence_pipeline_identity','sha256:intelligence-pipeline-identity-v1')
 ON CONFLICT(version) DO NOTHING;
 COMMIT;
+
+-- Um insight pode sustentar iniciativas distintas. Cada plano preserva a revisão e
+-- a execução de IA efetivamente consultadas; valores nulos identificam vínculos legados.
+BEGIN;
+ALTER TABLE valorapesquisa.action_plans ADD COLUMN IF NOT EXISTS origin_review_version bigint;
+ALTER TABLE valorapesquisa.action_plans ADD COLUMN IF NOT EXISTS origin_ai_run_id uuid;
+ALTER TABLE valorapesquisa.action_plans ADD COLUMN IF NOT EXISTS origin_snapshot_json jsonb;
+CREATE INDEX IF NOT EXISTS ix_action_plans_insight_origin
+ ON valorapesquisa.action_plans(organization_id,origin_id,created_at,id)
+ WHERE deleted_at IS NULL AND origin_type='ai_insight';
+CREATE INDEX IF NOT EXISTS ix_valora_ai_insights_operational_queue
+ ON valorapesquisa.valora_ai_insights(organization_id,created_at DESC,id DESC)
+ WHERE deleted_at IS NULL;
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_09_insight_action_traceability','sha256:insight-action-traceability-v1')
+ON CONFLICT(version) DO NOTHING;
+COMMIT;

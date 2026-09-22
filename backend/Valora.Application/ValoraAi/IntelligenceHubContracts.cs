@@ -1,3 +1,6 @@
+using Valora.Application.ActionCenter;
+using Valora.Application.Workspace;
+
 namespace Valora.Application.ValoraAi;
 
 public static class AiInsightStatuses {
@@ -17,6 +20,21 @@ public sealed record AiInsight(Guid Id, Guid OrganizationId, Guid DiagnosticId, 
     string? RelatedIndexCode, string Severity, string Priority, string ConfidenceLevel, string? Limitation,
     string Recommendation, string Status, DateTime CreatedAt, DateTime UpdatedAt, long ReviewVersion = 0,
     Guid? ReviewedByUserId = null, DateTime? ReviewedAt = null, Guid? LinkedPlanId = null);
+public sealed record AiInsightListQuery(int Page = 1, int PageSize = 20, string? Search = null,
+    string? Status = null, string? Priority = null, string? Dimension = null, Guid? DiagnosticId = null,
+    bool? HasPlan = null, string? Sort = null) {
+    public int ValidPage => Math.Max(1, Page);
+    public int ValidPageSize => Math.Clamp(PageSize, 1, 50);
+}
+public sealed record AiInsightIndicators(int PendingReview, int ApprovedWithoutPlan, int WithPlansInExecution,
+    int WithAllPlansClosed);
+public sealed record AiInsightListItem(AiInsight Insight, string? DiagnosticName, int PlanCount,
+    int ActivePlanCount, int ClosedPlanCount);
+public sealed record AiInsightListResult(PageResult<AiInsightListItem> Page, AiInsightIndicators Indicators);
+public sealed record AiInsightEvidence(Guid Id, string Type, string SourceType, Guid? SourceId, string Summary,
+    string? Dimension, string? IndexCode, DateTime CreatedAt, bool IsAvailable, bool IsRestricted = false);
+public sealed record AiInsightDetails(AiInsight Insight, IReadOnlyList<AiInsightEvidence> Evidence,
+    IReadOnlyList<ActionPlanDto> Plans);
 public sealed record AiInsightDraft(string InsightType, string Title, string Summary, IReadOnlyList<Guid> EvidenceIds,
     string? RelatedDimension, string? RelatedIndexCode, string Severity, string Priority, string ConfidenceLevel,
     string? Limitation, string Recommendation);
@@ -31,6 +49,8 @@ public interface IValoraAiEvidenceRepository {
 public interface IValoraAiInsightRepository {
     Task<AiInsight?> GetAsync(Guid organizationId, Guid id, CancellationToken ct);
     Task<IReadOnlyList<AiInsight>> ListAsync(Guid organizationId, string? status, CancellationToken ct);
+    Task<AiInsightListResult> ListAsync(Guid organizationId, Guid userId, bool organizationWide, AiInsightListQuery query, CancellationToken ct);
+    Task<AiInsightDetails?> DetailsAsync(Guid organizationId, Guid userId, Guid id, bool organizationWide, CancellationToken ct);
     Task<Guid> CreateAsync(AiRunContext context, Guid runId, AiInsightDraft insight, CancellationToken ct);
 }
 public interface IValoraAiReviewRepository { Task<AiReviewResult> ApplyAsync(AiReviewCommand command, CancellationToken ct); }

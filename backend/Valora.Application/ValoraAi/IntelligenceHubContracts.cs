@@ -16,7 +16,7 @@ public sealed record AiInsight(Guid Id, Guid OrganizationId, Guid DiagnosticId, 
     string InsightType, string Title, string Summary, string EvidenceSummary, string? RelatedDimension,
     string? RelatedIndexCode, string Severity, string Priority, string ConfidenceLevel, string? Limitation,
     string Recommendation, string Status, DateTime CreatedAt, DateTime UpdatedAt, long ReviewVersion = 0,
-    Guid? ReviewedByUserId = null, DateTime? ReviewedAt = null);
+    Guid? ReviewedByUserId = null, DateTime? ReviewedAt = null, Guid? LinkedPlanId = null);
 public sealed record AiInsightDraft(string InsightType, string Title, string Summary, IReadOnlyList<Guid> EvidenceIds,
     string? RelatedDimension, string? RelatedIndexCode, string Severity, string Priority, string ConfidenceLevel,
     string? Limitation, string Recommendation);
@@ -32,7 +32,6 @@ public interface IValoraAiInsightRepository {
     Task<AiInsight?> GetAsync(Guid organizationId, Guid id, CancellationToken ct);
     Task<IReadOnlyList<AiInsight>> ListAsync(Guid organizationId, string? status, CancellationToken ct);
     Task<Guid> CreateAsync(AiRunContext context, Guid runId, AiInsightDraft insight, CancellationToken ct);
-    Task SetStatusAsync(Guid organizationId, Guid id, string status, Guid userId, CancellationToken ct);
 }
 public interface IValoraAiReviewRepository { Task<AiReviewResult> ApplyAsync(AiReviewCommand command, CancellationToken ct); }
 public interface IValoraAiFeedbackRepository { Task RecordAsync(Guid organizationId, Guid insightId, Guid runId, Guid userId, string type, string reason, CancellationToken ct); }

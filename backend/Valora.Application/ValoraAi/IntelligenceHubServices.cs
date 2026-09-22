@@ -36,9 +36,11 @@ public sealed class AiReviewService(IValoraAiReviewRepository reviews) {
         if (command.Decision is not (AiInsightStatuses.Approved or AiInsightStatuses.Rejected)) throw new ArgumentException("Decisão de revisão inválida.");
         if (string.IsNullOrWhiteSpace(command.CommandKey) || command.CommandKey.Length > 160)
             throw new ArgumentException("A chave idempotente da revisão é obrigatória e deve ter até 160 caracteres.");
-        if (command.Decision == AiInsightStatuses.Rejected && string.IsNullOrWhiteSpace(command.Reason))
-            throw new ArgumentException("O motivo da rejeição é obrigatório.");
-        var result = await reviews.ApplyAsync(command with { CommandKey = command.CommandKey ?? Guid.NewGuid().ToString("N") }, ct);
+        if (command.ExpectedVersion < 0) throw new ArgumentException("A versão esperada da revisão é inválida.");
+        var reason = command.Reason?.Trim();
+        if (command.Decision == AiInsightStatuses.Rejected && (string.IsNullOrWhiteSpace(reason) || reason.Length is < 10 or > 1000))
+            throw new ArgumentException("O motivo da rejeição deve ter entre 10 e 1000 caracteres.");
+        var result = await reviews.ApplyAsync(command with { CommandKey = command.CommandKey.Trim(), Reason = reason }, ct);
         if (result == AiReviewResult.NotFound) throw new KeyNotFoundException("Insight não encontrado.");
         if (result == AiReviewResult.Conflict)
             throw new Valora.Application.Exceptions.ConcurrencyConflictException("O insight foi alterado por outra pessoa ou esta chave já foi usada com outro conteúdo. Atualize os dados; sua justificativa pode ser reenviada.");
@@ -61,6 +63,4 @@ public sealed class BuildEvidencePackUseCase(IEvidencePackBuilderService packs) 
 public sealed class ReviewAiInsightUseCase(AiReviewService reviews) { public Task ExecuteAsync(AiReviewCommand command, CancellationToken ct) => reviews.ReviewAsync(command, ct); }
 public sealed class ApproveAiInsightUseCase(AiReviewService reviews) { public Task ExecuteAsync(Guid o, Guid i, Guid u, string commandKey, long expectedVersion, CancellationToken ct) => reviews.ReviewAsync(new(o, i, u, AiInsightStatuses.Approved, null, commandKey, expectedVersion), ct); }
 public sealed class RejectAiInsightUseCase(AiReviewService reviews) { public Task ExecuteAsync(Guid o, Guid i, Guid u, string reason, string commandKey, long expectedVersion, CancellationToken ct) => reviews.ReviewAsync(new(o, i, u, AiInsightStatuses.Rejected, reason, commandKey, expectedVersion), ct); }
-public sealed class ConvertInsightToActionUseCase(IValoraAiInsightRepository insights) { public Task ExecuteAsync(Guid o, Guid i, Guid u, CancellationToken ct) => insights.SetStatusAsync(o, i, AiInsightStatuses.ConvertedToAction, u, ct); }
-public sealed class ConvertInsightToDecisionUseCase(IValoraAiInsightRepository insights) { public Task ExecuteAsync(Guid o, Guid i, Guid u, CancellationToken ct) => insights.SetStatusAsync(o, i, AiInsightStatuses.ConvertedToDecision, u, ct); }
 public sealed class GenerateAiExecutiveSummaryUseCase(IValoraAiOrchestrator orchestrator) { public Task<ValoraAiExecutionResult> ExecuteAsync(Guid o, Guid d, ValoraEvidenceSource e, string c, CancellationToken ct) => orchestrator.ExecuteAsync(o, d, ValoraOfficialPrompts.All.Single(x => x.Code == "executive_reading"), e, c, ct); }

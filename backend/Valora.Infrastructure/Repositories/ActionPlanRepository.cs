@@ -102,11 +102,15 @@ public sealed class ActionPlanRepository(IDbConnectionFactory db, IDbTransaction
           AND ((@OriginType='manual' AND @OriginId IS NULL)
             OR (@OriginType='diagnostic' AND @OriginId=@DiagnosticId)
             OR (@OriginType='result' AND @OriginId=@ResultId)
-            OR (@OriginType='ai_insight' AND EXISTS(SELECT 1 FROM valorapesquisa.valora_ai_insights vi WHERE vi.id=@OriginId AND vi.organization_id=@o AND vi.deleted_at IS NULL AND vi.status IN('reviewed','approved')))
+            OR (@OriginType='ai_insight' AND EXISTS(SELECT 1 FROM valorapesquisa.valora_ai_insights vi WHERE vi.id=@OriginId AND vi.organization_id=@o AND vi.deleted_at IS NULL AND vi.status IN('approved','converted_to_action')))
             OR (@OriginType='alert' AND EXISTS(SELECT 1 FROM valorapesquisa.intelligent_alerts al WHERE al.id=@OriginId AND al.organization_id=@o AND al.deleted_at IS NULL AND al.status IN('open','acknowledged','in_progress')))
             OR (@OriginType='decision' AND EXISTS(SELECT 1 FROM valorapesquisa.organizational_decisions od WHERE od.id=@OriginId AND od.organization_id=@o AND od.deleted_at IS NULL AND od.status IN('approved','in_execution','completed'))))
         """,new{id,o,u,globalAdministrator,normalized.Title,normalized.Summary,normalized.OriginType,normalized.OriginId,normalized.DiagnosticId,normalized.ResultId,normalized.GovernanceCycleId,normalized.Priority,normalized.OwnerUserId,normalized.StartsAt,normalized.DueAt,normalized.EvidenceSummary,normalized.ExpectedOutcome},z.Transaction,cancellationToken:c));
         if(affected!=1)throw new ConflictAppException("Não foi possível criar o plano. Confira organização, módulo contratado, responsável, referências e prazo.");
+        if(normalized.OriginType=="ai_insight"){
+            var linked=await z.Connection.ExecuteAsync(new CommandDefinition("UPDATE valorapesquisa.valora_ai_insights SET status='converted_to_action',updated_at=now() WHERE id=@OriginId AND organization_id=@o AND deleted_at IS NULL AND status IN('approved','converted_to_action')",new{o,normalized.OriginId},z.Transaction,cancellationToken:c));
+            if(linked!=1)throw new ConflictAppException("O insight deixou de estar elegível antes da criação do plano.");
+        }
         await z.Connection.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.action_plan_create_commands(organization_id,created_by_user_id,command_id,operation,request_hash,result_id) VALUES(@o,@u,@command,'create-action-plan',@fingerprint,@id)",new{o,u,command,fingerprint,id},z.Transaction,cancellationToken:c));
         await z.CommitAsync();return id;
     }

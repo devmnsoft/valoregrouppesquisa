@@ -307,8 +307,6 @@ public static class ApplicationServiceCollectionExtensions {
         services.AddScoped<ReviewAiInsightUseCase>();
         services.AddScoped<ApproveAiInsightUseCase>();
         services.AddScoped<RejectAiInsightUseCase>();
-        services.AddScoped<ConvertInsightToActionUseCase>();
-        services.AddScoped<ConvertInsightToDecisionUseCase>();
         services.AddScoped<GenerateAiExecutiveSummaryUseCase>();
 
         services.AddScoped<Valora.Application.Contracts.ILegacyDataNormalizer, LegacyDataNormalizer>();

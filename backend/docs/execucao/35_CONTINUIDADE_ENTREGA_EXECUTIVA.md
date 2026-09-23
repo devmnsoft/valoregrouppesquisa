@@ -37,9 +37,9 @@ dotnet build Valora.sln
 dotnet test --filter "FullyQualifiedName~FormalDeliverables|FullyQualifiedName~ExecutiveDelivery"
 ```
 
-Migration aditiva:
+Contrato de banco:
 - consolidada no final de `database/postgresql/script_completo.sql`;
-- também disponível em `database/postgresql/2026_09_16_executive_delivery_lifecycle.sql` para aplicação incremental.
+- o recorte anterior permanece em `docs/historico/sql/2026_09_16_executive_delivery_lifecycle.sql` somente como referência histórica; não deve ser aplicado como migration paralela.
 
 ## Superfície entregue
 

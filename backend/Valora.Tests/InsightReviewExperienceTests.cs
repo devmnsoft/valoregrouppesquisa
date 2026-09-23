@@ -27,7 +27,10 @@ public sealed class InsightReviewExperienceTests {
         var view = File.ReadAllText(RepositoryPaths.WebFile("Views", "Insights", "Details.cshtml"));
         var actionPlan = File.ReadAllText(RepositoryPaths.WebFile("Views", "ActionCenter", "CreatePlan.cshtml"));
 
-        Assert.Contains("/ActionCenter/Plans/Create?originType=ai_insight", view);
+        Assert.Contains("asp-controller=\"ActionCenter\"", view);
+        Assert.Contains("asp-action=\"CreatePlan\"", view);
+        Assert.Contains("asp-route-originType=\"ai_insight\"", view);
+        Assert.Contains("asp-route-originId=\"@x.Id\"", view);
         Assert.Contains("href=\"/Decisions\"", view);
         Assert.Contains("href=\"/Reports\"", view);
         Assert.Contains("value=\"ai_insight\"", actionPlan);
@@ -53,7 +56,8 @@ public sealed class InsightReviewExperienceTests {
         Assert.Contains("Policy = ValoraPermissions.Insights.Approve", controller);
         Assert.Contains("Policy = ValoraPermissions.Insights.Reject", controller);
         Assert.Contains("sessionStorage", view);
-        Assert.Contains("Model.OrganizationId", view);
+        Assert.Contains("x.OrganizationId", view);
+        Assert.Contains("var scope=Convert.ToHexString", view);
         Assert.Contains("Model.ReviewVersion", view);
         Assert.DoesNotContain("PendingRejectionReason", controller);
     }

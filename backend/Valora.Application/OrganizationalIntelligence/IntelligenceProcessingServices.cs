@@ -3,6 +3,8 @@ namespace Valora.Application.OrganizationalIntelligence;
 public sealed class IntelligenceProcessingJobService(IIntelligenceProcessingJobRepository repository) : IIntelligenceProcessingJobService, IIntelligenceReprocessService {
     private Task<Guid> Enqueue(IntelligenceProcessingContext c, string trigger, string correlationId, CancellationToken ct) => repository.EnqueueAsync(c with { Trigger = trigger }, 3, correlationId, ct);
     public Task<Guid> EnqueueResponseProcessingAsync(IntelligenceProcessingContext c, string id, CancellationToken ct) => Enqueue(c, "response_received", id, ct);
+    public Task<Guid> EnqueueResponseProcessingAsync(IntelligenceProcessingContext c, string id, System.Data.IDbConnection connection, System.Data.IDbTransaction transaction, CancellationToken ct) =>
+        repository.EnqueueAsync(c with { Trigger = "response_received" }, 3, id, connection, transaction, ct);
     public Task<Guid> EnqueueDiagnosisClosedProcessingAsync(IntelligenceProcessingContext c, string id, CancellationToken ct) => Enqueue(c, "diagnosis_closed", id, ct);
     public Task<Guid> EnqueueActionProcessingAsync(IntelligenceProcessingContext c, string id, CancellationToken ct) => Enqueue(c, "action_changed", id, ct);
     public Task<Guid> EnqueueExecutiveReportProcessingAsync(IntelligenceProcessingContext c, string id, CancellationToken ct) => Enqueue(c, "executive_report", id, ct);

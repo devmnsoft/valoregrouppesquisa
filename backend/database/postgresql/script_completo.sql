@@ -1939,6 +1939,11 @@ ALTER TABLE valorapesquisa.one_on_one_commitments ADD COLUMN IF NOT EXISTS metad
 BEGIN;
 ALTER TABLE valorapesquisa.responses ADD COLUMN IF NOT EXISTS form_id uuid REFERENCES valorapesquisa.forms(id);
 ALTER TABLE valorapesquisa.responses ADD COLUMN IF NOT EXISTS form_version_id uuid REFERENCES valorapesquisa.form_versions(id);
+-- Respostas seguem o contrato de exclusao logica usado pelos repositorios. A
+-- coluna precisa convergir antes do primeiro indice parcial (bases vazias nao a
+-- recebem do CREATE TABLE historico acima). DEFAULT false preserva todas as
+-- respostas existentes e nao tenta inferir exclusoes legadas.
+ALTER TABLE valorapesquisa.responses ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false;
 -- O vínculo é derivado somente da pesquisa que originou a resposta. Registros cuja
 -- pesquisa não possui versão determinística permanecem nulos para tratamento
 -- administrativo; nunca são associados à versão mais recente por suposição.

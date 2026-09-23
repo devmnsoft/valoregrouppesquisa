@@ -2,8 +2,8 @@ namespace Valora.Application.Heatmap;
 
 public sealed class HeatmapCalculationService {
     public const int MinimumSample = 5;
-    public static string Level(decimal? score, int sample) => sample < MinimumSample ? "amostra insuficiente" : score switch { >= 80 => "excelente", >= 65 => "saudável", >= 50 => "em atenção", >= 35 => "crítico", _ => "muito crítico" };
-    public static string Risk(decimal? score, int sample) => sample < MinimumSample ? "indeterminado" : score switch { >= 80 => "baixo", >= 65 => "moderado", >= 50 => "atenção", >= 35 => "alto", _ => "muito alto" };
+    public static string Level(decimal? score, int sample) => sample < MinimumSample || score is null ? "amostra insuficiente" : score switch { >= 80 => "excelente", >= 65 => "saudável", >= 50 => "em atenção", >= 35 => "crítico", _ => "muito crítico" };
+    public static string Risk(decimal? score, int sample) => sample < MinimumSample || score is null ? "indeterminado" : score switch { >= 80 => "baixo", >= 65 => "moderado", >= 50 => "atenção", >= 35 => "alto", _ => "muito alto" };
 }
 
 public sealed class HeatmapAiInterpretationService {

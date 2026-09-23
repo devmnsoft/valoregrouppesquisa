@@ -1,27 +1,33 @@
 using Xunit;
+using Xunit.Sdk;
+using Npgsql;
 
 namespace Valora.Tests.Integration;
 
 [Trait("Category", "Integration")]
 public sealed class PostgresHomologationFlowTests {
     [Fact]
-    public void HomologationFlowContractDocumentsRequiredScenarios() {
+    public async Task HomologationDatabaseHasDurableResponseProcessingContract() {
         var connection = Environment.GetEnvironmentVariable("VALORA_TEST_POSTGRES_CONNECTION");
-        if (string.IsNullOrWhiteSpace(connection)) {
-            Assert.True(true, "Set VALORA_TEST_POSTGRES_CONNECTION to run the real PostgreSQL integrated homologation flow; never point it to production.");
-            return;
-        }
+        if (string.IsNullOrWhiteSpace(connection))
+            throw SkipException.ForSkip("VALORA_TEST_POSTGRES_CONNECTION não configurada; homologação PostgreSQL real bloqueada.");
 
-        var scenarios = new[]
-        {
-            "create organization", "create admin user", "create plan subscription", "create form", "create survey",
-            "create public link", "submit response", "generate result", "generate certificate", "generate report",
-            "export data", "register lgpd consent", "queue email", "create migration batch", "run dry-run",
-            "detect conflict", "block apply with conflict", "apply valid batch", "run reconciliation", "run rollback",
-            "generate cutover readiness"
-        };
-
-        Assert.Equal(21, scenarios.Length);
-
+        await using var database = new NpgsqlConnection(connection);
+        await database.OpenAsync();
+        await using var command = database.CreateCommand();
+        command.CommandText = """
+            SELECT
+              to_regclass('valorapesquisa.responses') IS NOT NULL
+              AND to_regclass('valorapesquisa.intelligence_processing_jobs') IS NOT NULL
+              AND EXISTS (
+                SELECT 1 FROM information_schema.columns
+                WHERE table_schema='valorapesquisa' AND table_name='responses' AND column_name='is_deleted'
+              )
+              AND EXISTS (
+                SELECT 1 FROM pg_indexes
+                WHERE schemaname='valorapesquisa' AND indexname='ux_intelligence_processing_active_key'
+              );
+            """;
+        Assert.True((bool)(await command.ExecuteScalarAsync())!, "O bootstrap aplicado não oferece o contrato durável resposta → processamento.");
     }
 }

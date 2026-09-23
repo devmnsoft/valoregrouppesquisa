@@ -34,18 +34,10 @@ public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IS
             logger.LogInformation("Public response email job {EmailStatus}. SurveyId={SurveyId} ResponseId={ResponseId} Email={Email}", emailStatus, survey.Id, responseId, LogSanitizer.MaskEmail(email));
             await audit.LogAsync(new AuditEntry(survey.OrganizationId, null, "public_survey.submit", "response", responseId.ToString(), "Resposta pública real recebida e calculada pela API PostgreSQL."), transaction);
             logger.LogInformation("Public response audit_log created. SurveyId={SurveyId} ResponseId={ResponseId}", survey.Id, responseId);
+            var jobId = await processingJobs.EnqueueResponseProcessingAsync(new(survey.OrganizationId, survey.Id, responseId, survey.FormId), $"public-response-{responseId:N}", connection, transaction, CancellationToken.None);
+            logger.LogInformation("Organizational intelligence processing job {JobId} persisted with response. SurveyId={SurveyId} ResponseId={ResponseId}", jobId, survey.Id, responseId);
             transaction.Commit();
             logger.LogInformation("Public response transaction committed. SurveyId={SurveyId} OrganizationId={OrganizationId} ResponseId={ResponseId}", survey.Id, survey.OrganizationId, responseId);
-            try {
-                var jobId = await processingJobs.EnqueueResponseProcessingAsync(new(survey.OrganizationId, survey.Id, responseId, survey.FormId), $"public-response-{responseId:N}", CancellationToken.None);
-                logger.LogInformation("Organizational intelligence processing job {JobId} queued. SurveyId={SurveyId} ResponseId={ResponseId}", jobId, survey.Id, responseId);
-            }
-            catch (Exception pipelineError) {
-                // The response is already durably committed. Preserve it and expose the
-                // processing failure through operations instead of asking the respondent
-                // to submit the same evidence twice.
-                logger.LogError(pipelineError, "Organizational intelligence pipeline failed after response commit. SurveyId={SurveyId} ResponseId={ResponseId}", survey.Id, responseId);
-            }
             return new(true, responseId, token, emailStatus, new CertificateMetadataDto(responseId, code, "metadata-ready", name, "Valora Group", survey.Title, DateTime.UtcNow), MapResult(calc, dimensions));
         }
         catch (Exception ex) {

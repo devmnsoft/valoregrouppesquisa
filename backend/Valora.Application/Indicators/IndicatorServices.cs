@@ -31,7 +31,11 @@ public sealed class IndicatorTargetService(IIndicatorRepository repository) {
 public sealed class IndicatorMeasurementService(IIndicatorRepository repository, IndicatorTrendService trends) {
     public Task<IReadOnlyList<IndicatorMeasurementDto>> List(Guid o, Guid id, CancellationToken ct) => repository.Measurements(IndicatorService.RequireOrganization(o), id, ct);
     public Task<Guid> Create(Guid o, Guid id, CreateMeasurementRequest r, CancellationToken ct) => repository.CreateMeasurement(IndicatorService.RequireOrganization(o), id, r, ct);
-    public async Task<TrendResult> Trend(Guid o, Guid id, CancellationToken ct) => trends.Calculate(await List(o, id, ct));
+    public async Task<TrendResult> Trend(Guid o, Guid id, CancellationToken ct) {
+        var targets = await repository.Targets(IndicatorService.RequireOrganization(o), id, ct);
+        var rule = targets.OrderByDescending(x => x.PeriodEnd).FirstOrDefault()?.ComparisonRule ?? "higher_is_better";
+        return trends.Calculate(await List(o, id, ct), rule);
+    }
 }
 public sealed class IndicatorAlertService(IIndicatorRepository repository) {
     public Task<IReadOnlyList<IndicatorAlertDto>> List(Guid o, CancellationToken ct) => repository.Alerts(IndicatorService.RequireOrganization(o), ct);

@@ -6,6 +6,7 @@ using Valora.Application.OrganizationalIntelligence;
 namespace Valora.Infrastructure.Repositories;
 
 public sealed class IntelligenceProcessingJobRepository(IDbConnectionFactory connections) : IIntelligenceProcessingJobRepository {
+    private const string EnqueueSql = """INSERT INTO valorapesquisa.intelligence_processing_jobs(organization_id,survey_id,response_id,form_id,source_entity_id,trigger,status,max_attempts,correlation_id,idempotency_key,metadata_json) VALUES(@OrganizationId,@SurveyId,@ResponseId,@FormId,@SourceEntityId,@Trigger,'pending',@maxAttempts,@correlationId,md5(@OrganizationId::text||':'||coalesce(@ResponseId::text,@SurveyId::text,@SourceEntityId::text,'all')||':'||@Trigger),jsonb_build_object('source','valora_pipeline')) ON CONFLICT (organization_id,idempotency_key) WHERE deleted_at IS NULL AND status IN ('pending','running','retry_scheduled') DO UPDATE SET updated_at=now() RETURNING id""";
     private const string JobProjection = """
         id AS "Id", organization_id AS "OrganizationId", survey_id AS "SurveyId",
         response_id AS "ResponseId", form_id AS "FormId", source_entity_id AS "SourceEntityId",
@@ -28,9 +29,12 @@ public sealed class IntelligenceProcessingJobRepository(IDbConnectionFactory con
         created_at AS "CreatedAt"
         """;
     public async Task<Guid> EnqueueAsync(IntelligenceProcessingContext c, int maxAttempts, string correlationId, CancellationToken ct) {
-        const string sql = """INSERT INTO valorapesquisa.intelligence_processing_jobs(organization_id,survey_id,response_id,form_id,source_entity_id,trigger,status,max_attempts,correlation_id,idempotency_key,metadata_json) VALUES(@OrganizationId,@SurveyId,@ResponseId,@FormId,@SourceEntityId,@Trigger,'pending',@maxAttempts,@correlationId,md5(@OrganizationId::text||':'||coalesce(@ResponseId::text,@SurveyId::text,@SourceEntityId::text,'all')||':'||@Trigger),jsonb_build_object('source','valora_pipeline')) ON CONFLICT (organization_id,idempotency_key) WHERE deleted_at IS NULL AND status IN ('pending','running','retry_scheduled') DO UPDATE SET updated_at=now() RETURNING id""";
-        using var db = connections.Create(); return await db.ExecuteScalarAsync<Guid>(new CommandDefinition(sql, new { c.OrganizationId, c.SurveyId, c.ResponseId, c.FormId, c.SourceEntityId, c.Trigger, maxAttempts, correlationId }, cancellationToken: ct));
+        using var db = connections.Create();
+        return await db.ExecuteScalarAsync<Guid>(new CommandDefinition(EnqueueSql, new { c.OrganizationId, c.SurveyId, c.ResponseId, c.FormId, c.SourceEntityId, c.Trigger, maxAttempts, correlationId }, cancellationToken: ct));
     }
+    public Task<Guid> EnqueueAsync(IntelligenceProcessingContext c, int maxAttempts, string correlationId, System.Data.IDbConnection connection, System.Data.IDbTransaction transaction, CancellationToken ct) =>
+        connection.ExecuteScalarAsync<Guid>(new CommandDefinition(EnqueueSql, new { c.OrganizationId, c.SurveyId, c.ResponseId, c.FormId, c.SourceEntityId, c.Trigger, maxAttempts, correlationId }, transaction, cancellationToken: ct));
+
     public async Task<IReadOnlyList<IntelligenceProcessingJob>> ClaimPendingJobsAsync(int take, string workerId, CancellationToken ct) {
         var sql = $"""
             WITH candidates AS (

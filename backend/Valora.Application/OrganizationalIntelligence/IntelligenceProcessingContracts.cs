@@ -21,6 +21,7 @@ public sealed record IntelligenceJobDetails(IntelligenceProcessingJob Job, IRead
 
 public interface IIntelligenceProcessingJobRepository {
     Task<Guid> EnqueueAsync(IntelligenceProcessingContext context, int maxAttempts, string correlationId, CancellationToken ct);
+    Task<Guid> EnqueueAsync(IntelligenceProcessingContext context, int maxAttempts, string correlationId, System.Data.IDbConnection connection, System.Data.IDbTransaction transaction, CancellationToken ct);
     Task<IReadOnlyList<IntelligenceProcessingJob>> ClaimPendingJobsAsync(int take, string workerId, CancellationToken ct);
     Task MarkRunningAsync(Guid jobId, Guid runId, CancellationToken ct);
     Task MarkCompletedAsync(Guid jobId, string status, CancellationToken ct);
@@ -37,6 +38,7 @@ public interface IIntelligenceProcessingJobRepository {
 
 public interface IIntelligenceProcessingJobService {
     Task<Guid> EnqueueResponseProcessingAsync(IntelligenceProcessingContext context, string correlationId, CancellationToken ct);
+    Task<Guid> EnqueueResponseProcessingAsync(IntelligenceProcessingContext context, string correlationId, System.Data.IDbConnection connection, System.Data.IDbTransaction transaction, CancellationToken ct);
     Task<Guid> EnqueueDiagnosisClosedProcessingAsync(IntelligenceProcessingContext context, string correlationId, CancellationToken ct);
     Task<Guid> EnqueueActionProcessingAsync(IntelligenceProcessingContext context, string correlationId, CancellationToken ct);
     Task<Guid> EnqueueExecutiveReportProcessingAsync(IntelligenceProcessingContext context, string correlationId, CancellationToken ct);

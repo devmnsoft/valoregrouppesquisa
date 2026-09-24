@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Valora.Application.Indicators;
 
-public enum IndicatorTrend { Improving, Stable, Worsening, InsufficientData }
+public enum IndicatorTrend { Improving, Stable, Worsening, InsufficientData, ComparisonUnavailable }
 
 public sealed record IndicatorDto(Guid Id, string Name, string Category, string Unit, string? SourceName,
     Guid ResponsibleUserId, string Periodicity, string Status, bool IsCalculated, string? Formula,

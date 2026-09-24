@@ -23,4 +23,17 @@ public sealed class IndicatorTrendServiceTests {
         Assert.Equal(2, result.SampleSize);
         Assert.Contains("não demonstra causalidade", result.Limitation);
     }
+
+    [Theory]
+    [InlineData("ideal_range")]
+    [InlineData("exact")]
+    [InlineData("unexpected")]
+    public void Rules_without_sufficient_parameters_are_explicitly_unavailable(string rule) {
+        var result = new IndicatorTrendService().Calculate([Measurement(10, 1), Measurement(12, 2)], rule);
+
+        Assert.Equal(IndicatorTrend.ComparisonUnavailable, result.Trend);
+        Assert.Equal(2, result.SampleSize);
+        Assert.Equal(2, result.Delta);
+        Assert.Contains("parâmetros metodológicos", result.Limitation);
+    }
 }

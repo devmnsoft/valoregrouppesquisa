@@ -16,7 +16,35 @@ public sealed class WorkspaceRepository(IDbConnectionFactory connections) : IWor
     public async Task PinAsync(Guid o, Guid u, Guid id, bool wide, CancellationToken ct) { using var c = connections.Create(); var changed = await c.ExecuteAsync(new CommandDefinition($"INSERT INTO valorapesquisa.user_pinned_items(organization_id,user_id,workspace_item_id) SELECT @o,@u,w.id FROM valorapesquisa.workspace_items w WHERE w.id=@id AND w.organization_id=@o AND {Visible} ON CONFLICT(organization_id,user_id,workspace_item_id) DO UPDATE SET workspace_item_id=EXCLUDED.workspace_item_id", new { o, u, id, wide }, cancellationToken: ct)); if (changed == 0) throw new UnauthorizedAccessException("Item indisponível no contexto autorizado."); }
     public async Task UnpinAsync(Guid o, Guid u, Guid id, CancellationToken ct) { using var c = connections.Create(); await c.ExecuteAsync(new CommandDefinition("DELETE FROM valorapesquisa.user_pinned_items WHERE organization_id=@o AND user_id=@u AND workspace_item_id=@id", new { o, u, id }, cancellationToken: ct)); }
     public async Task RecordOpenAsync(Guid o, Guid u, Guid id, bool wide, CancellationToken ct) { using var c = connections.Create(); var changed = await c.ExecuteAsync(new CommandDefinition($"INSERT INTO valorapesquisa.user_recent_items(organization_id,user_id,workspace_item_id,opened_at) SELECT @o,@u,w.id,now() FROM valorapesquisa.workspace_items w WHERE w.organization_id=@o AND w.id=@id AND {Visible} ON CONFLICT(organization_id,user_id,workspace_item_id) DO UPDATE SET opened_at=EXCLUDED.opened_at", new { o, u, id, wide }, cancellationToken: ct)); if (changed == 0) throw new UnauthorizedAccessException("Item indisponível no contexto autorizado."); }
-    private async Task<IReadOnlyList<WorkspaceItemDto>> Query(string sql, object parameters, CancellationToken ct) { using var c = connections.Create(); return (await c.QueryAsync<WorkspaceItemDto>(new CommandDefinition(sql, parameters, cancellationToken: ct))).AsList(); }
+    private async Task<IReadOnlyList<WorkspaceItemDto>> Query(string sql, object parameters, CancellationToken ct) {
+        using var c = connections.Create();
+        var rows = await c.QueryAsync<WorkspaceItemRow>(new CommandDefinition(sql, parameters, cancellationToken: ct));
+        return rows.Select(x => new WorkspaceItemDto(x.Id, x.ItemType, x.Title, x.Summary, x.Status, x.Priority,
+            ToOffset(x.DueAt), x.OwnerUserId, x.SourceType, x.SourceId, x.Route, ToOffset(x.CreatedAt)!.Value,
+            x.IsPinned)).ToList();
+    }
+
+    // Npgsql materializes PostgreSQL timestamptz as UTC DateTime. Keep that persistence concern out of the
+    // application DTO instead of relying on Dapper's positional-constructor type matching.
+    private static DateTimeOffset? ToOffset(DateTime? value) => value is null
+        ? null
+        : new DateTimeOffset(DateTime.SpecifyKind(value.Value, DateTimeKind.Utc));
+
+    private sealed class WorkspaceItemRow {
+        public Guid Id { get; init; }
+        public string ItemType { get; init; } = "";
+        public string Title { get; init; } = "";
+        public string? Summary { get; init; }
+        public string Status { get; init; } = "";
+        public string Priority { get; init; } = "";
+        public DateTime? DueAt { get; init; }
+        public Guid? OwnerUserId { get; init; }
+        public string? SourceType { get; init; }
+        public Guid? SourceId { get; init; }
+        public string? Route { get; init; }
+        public DateTime CreatedAt { get; init; }
+        public bool IsPinned { get; init; }
+    }
 }
 
 public sealed class GlobalSearchRepository(IDbConnectionFactory connections) : IGlobalSearchRepository {

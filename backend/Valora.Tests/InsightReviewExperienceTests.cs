@@ -31,8 +31,8 @@ public sealed class InsightReviewExperienceTests {
         Assert.Contains("asp-action=\"CreatePlan\"", view);
         Assert.Contains("asp-route-originType=\"ai_insight\"", view);
         Assert.Contains("asp-route-originId=\"@x.Id\"", view);
-        Assert.Contains("href=\"/Decisions\"", view);
-        Assert.Contains("href=\"/Reports\"", view);
+        Assert.Contains("asp-controller=\"Decisions\"", view);
+        Assert.Contains("asp-controller=\"Reports\"", view);
         Assert.Contains("value=\"ai_insight\"", actionPlan);
         Assert.Contains("AntiForgeryToken", actionPlan);
     }
@@ -58,7 +58,8 @@ public sealed class InsightReviewExperienceTests {
         Assert.Contains("sessionStorage", view);
         Assert.Contains("x.OrganizationId", view);
         Assert.Contains("var scope=Convert.ToHexString", view);
-        Assert.Contains("Model.ReviewVersion", view);
+        Assert.Contains("name=\"expectedVersion\" value=\"@x.ReviewVersion\"", view);
+        Assert.Contains("name=\"ExpectedVersion\" value=\"@x.ReviewVersion\"", view);
         Assert.DoesNotContain("PendingRejectionReason", controller);
     }
 

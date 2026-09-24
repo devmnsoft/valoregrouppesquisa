@@ -5,6 +5,9 @@ public sealed class IndicatorTrendService {
         if (measurements.Count < 2) return new(IndicatorTrend.InsufficientData, measurements.Count, null, "Dados insuficientes: são necessárias ao menos duas medições verificáveis.");
         var ordered = measurements.OrderBy(x => x.MeasuredAt).ToArray();
         var delta = ordered[^1].Value - ordered[^2].Value;
+        if (comparisonRule is not ("higher_is_better" or "lower_is_better"))
+            return new(IndicatorTrend.ComparisonUnavailable, ordered.Length, delta,
+                $"Comparação indisponível: a regra '{comparisonRule}' exige parâmetros metodológicos que não foram definidos.");
         var adjusted = comparisonRule == "lower_is_better" ? -delta : delta;
         return new(adjusted > 0 ? IndicatorTrend.Improving : adjusted < 0 ? IndicatorTrend.Worsening : IndicatorTrend.Stable,
             ordered.Length, delta, "Tendência descritiva; não demonstra causalidade nem substitui decisão humana.");
@@ -32,9 +35,18 @@ public sealed class IndicatorMeasurementService(IIndicatorRepository repository,
     public Task<IReadOnlyList<IndicatorMeasurementDto>> List(Guid o, Guid id, CancellationToken ct) => repository.Measurements(IndicatorService.RequireOrganization(o), id, ct);
     public Task<Guid> Create(Guid o, Guid id, CreateMeasurementRequest r, CancellationToken ct) => repository.CreateMeasurement(IndicatorService.RequireOrganization(o), id, r, ct);
     public async Task<TrendResult> Trend(Guid o, Guid id, CancellationToken ct) {
-        var targets = await repository.Targets(IndicatorService.RequireOrganization(o), id, ct);
-        var rule = targets.OrderByDescending(x => x.PeriodEnd).FirstOrDefault()?.ComparisonRule ?? "higher_is_better";
-        return trends.Calculate(await List(o, id, ct), rule);
+        var measurements = await List(o, id, ct);
+        if (measurements.Count < 2) return trends.Calculate(measurements);
+        var period = measurements.Max(x => x.MeasuredAt);
+        var applicable = (await repository.Targets(IndicatorService.RequireOrganization(o), id, ct))
+            .Where(x => x.Status == "active" && x.PeriodStart <= period && x.PeriodEnd >= period)
+            .ToArray();
+        if (applicable.Length != 1)
+            return new(IndicatorTrend.ComparisonUnavailable, measurements.Count, null,
+                applicable.Length == 0
+                    ? "Comparação indisponível: não existe meta ativa vigente na data da medição analisada."
+                    : "Comparação indisponível: há mais de uma meta ativa aplicável ao período analisado.");
+        return trends.Calculate(measurements, applicable[0].ComparisonRule);
     }
 }
 public sealed class IndicatorAlertService(IIndicatorRepository repository) {

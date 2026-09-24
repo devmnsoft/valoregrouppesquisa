@@ -64,7 +64,7 @@ public sealed class WorkspaceRepositoryPostgresTests {
                     (id, organization_id, item_type, title, status, priority, due_at, owner_user_id)
                 VALUES
                     (@own, @organization, 'approval', 'Own', 'pending', 'high', now(), @user),
-                    (@shared, @organization, 'approval', 'Shared', 'pending', 'high', now(), NULL),
+                    (@shared, @organization, 'approval', 'Shared', 'pending', 'critical', NULL, NULL),
                     (@thirdParty, @organization, 'approval', 'Third party', 'pending', 'high', now(), @owner),
                     (@otherTenant, @otherOrganization, 'approval', 'Other tenant', 'pending', 'critical', now(), @owner)
                 """, setup)) {
@@ -89,6 +89,9 @@ public sealed class WorkspaceRepositoryPostgresTests {
             var repository = new WorkspaceRepository(new TestConnectionFactory(connectionString));
             var restricted = await repository.MyDayAsync(organization, user, false, CancellationToken.None);
             Assert.Equal(new[] { ownItem, sharedItem }.Order(), restricted.Select(item => item.Id).Order());
+            Assert.NotNull(restricted.Single(item => item.Id == ownItem).DueAt);
+            Assert.Null(restricted.Single(item => item.Id == sharedItem).DueAt);
+            Assert.Null(restricted.Single(item => item.Id == sharedItem).OwnerUserId);
 
             var wide = await repository.MyDayAsync(organization, user, true, CancellationToken.None);
             Assert.Equal(new[] { ownItem, sharedItem, thirdPartyItem }.Order(), wide.Select(item => item.Id).Order());

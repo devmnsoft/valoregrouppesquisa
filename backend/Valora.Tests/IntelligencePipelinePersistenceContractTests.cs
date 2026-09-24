@@ -27,9 +27,14 @@ public sealed class IntelligencePipelinePersistenceContractTests
     }
 
     [Fact]
-    public void Mapping_precedence_and_input_identity_are_explicit_and_deterministic()
+    public void Processing_uses_the_immutable_diagnosis_methodology_snapshot()
     {
-        Assert.Equal(3, Count("CASE WHEN x.organization_id=r.organization_id THEN 0 ELSE 1 END"));
+        Assert.Contains("survey_methodology_question_snapshots", Repository);
+        Assert.DoesNotContain("LEFT JOIN LATERAL (SELECT x.* FROM valorapesquisa.question_", Repository);
+        Assert.Contains("capture_survey_methodology_snapshot", Schema);
+        Assert.Contains("methodology_snapshot_hash", Schema);
+        Assert.Contains("selected_count<>1", Schema);
+        Assert.Contains("Legacy diagnoses without a snapshot intentionally remain pending", Repository);
         Assert.DoesNotContain("id,updated_at,normalized_value", Repository);
         Assert.Contains("ORDER BY concept_code,metric_code,index_code,normalized_value", Repository);
     }
@@ -41,14 +46,6 @@ public sealed class IntelligencePipelinePersistenceContractTests
         Assert.Contains("ux_journey_events_pipeline_event", Schema);
         Assert.Contains("ux_governance_events_pipeline_event", Schema);
         Assert.Contains("ON CONFLICT DO NOTHING", Repository);
-    }
-
-    private static int Count(string value)
-    {
-        var count = 0;
-        for (var offset = 0; (offset = Repository.IndexOf(value, offset, StringComparison.Ordinal)) >= 0; offset += value.Length)
-            count++;
-        return count;
     }
 
     private static string FindRoot()

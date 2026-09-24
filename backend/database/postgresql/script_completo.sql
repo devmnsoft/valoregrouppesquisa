@@ -7031,3 +7031,91 @@ INSERT INTO valorapesquisa.schema_migrations(version,checksum)
 VALUES('2026_09_insight_evidence_reliability','sha256:insight-evidence-reliability-v1')
 ON CONFLICT(version) DO NOTHING;
 COMMIT;
+
+-- Snapshot metodológico do diagnóstico. O catálogo é consultado somente na
+-- ativação; processamento e retry leem exclusivamente esta cópia imutável.
+BEGIN;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS methodology_snapshot_hash varchar(64);
+CREATE TABLE IF NOT EXISTS valorapesquisa.survey_methodology_question_snapshots(
+ survey_id uuid NOT NULL REFERENCES valorapesquisa.surveys(id) ON DELETE RESTRICT,
+ question_id uuid NOT NULL,
+ methodology_version_id uuid NOT NULL REFERENCES valorapesquisa.methodology_versions(id),
+ concept_code varchar(80), capability_code varchar(80), dimension_code varchar(80),
+ metric_code varchar(80), index_code varchar(20), evidence_type varchar(40),
+ weight numeric(8,4) NOT NULL CHECK(weight>0), polarity smallint NOT NULL CHECK(polarity IN(-1,1)),
+ calculation_rule jsonb NOT NULL, snapshot_hash varchar(64) NOT NULL,
+ captured_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(survey_id,question_id));
+CREATE INDEX IF NOT EXISTS ix_survey_methodology_snapshot_version
+ ON valorapesquisa.survey_methodology_question_snapshots(methodology_version_id,survey_id);
+
+CREATE OR REPLACE FUNCTION valorapesquisa.capture_survey_methodology_snapshot() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+ selected_version uuid;
+ selected_count integer;
+ snapshot jsonb;
+ v_snapshot_hash text;
+BEGIN
+ IF NEW.status<>'active' OR OLD.status<>'draft' THEN RETURN NEW; END IF;
+ SELECT count(*),(array_agg(id ORDER BY id))[1] INTO selected_count,selected_version FROM (
+   SELECT mv.id FROM valorapesquisa.methodology_versions mv
+   WHERE mv.status='published' AND mv.deleted_at IS NULL AND
+    (EXISTS(SELECT 1 FROM valorapesquisa.organization_methodology_settings oms
+      WHERE oms.organization_id=NEW.organization_id AND oms.methodology_version_id=mv.id
+        AND oms.is_active AND oms.deleted_at IS NULL)
+     OR (mv.is_official AND NOT EXISTS(SELECT 1 FROM valorapesquisa.organization_methodology_settings oms
+      WHERE oms.organization_id=NEW.organization_id AND oms.is_active AND oms.deleted_at IS NULL)))
+ ) authorized;
+ IF selected_count<>1 THEN
+   RAISE EXCEPTION 'O diagnóstico exige exatamente uma metodologia publicada e autorizada; encontradas %.',selected_count;
+ END IF;
+ SELECT jsonb_build_object(
+   'methodology',jsonb_build_object('id',mv.id,'code',mv.code,'version',mv.version_number,'name',mv.name),
+   'formVersionId',NEW.form_version_id,
+   'questions',coalesce((SELECT jsonb_agg(jsonb_build_object('id',q.id,'text',q.title,'type',q.type,
+      'weight',q.weight,'dimension',q.dimension_code,'scale',q.settings,
+      'options',coalesce((SELECT jsonb_agg(jsonb_build_object('id',o.id,'label',o.label,'value',o.value,'score',o.score)
+        ORDER BY o.position,o.id) FROM valorapesquisa.question_option_versions o
+        WHERE o.question_id=q.id AND o.deleted_at IS NULL),'[]'::jsonb)) ORDER BY s.position,q.position,q.id)
+     FROM valorapesquisa.form_section_versions s JOIN valorapesquisa.question_versions q ON q.section_id=s.id
+     WHERE s.form_version_id=NEW.form_version_id AND s.deleted_at IS NULL AND q.deleted_at IS NULL),'[]'::jsonb),
+   'dimensions',coalesce((SELECT jsonb_agg(to_jsonb(d) ORDER BY d.code) FROM valorapesquisa.methodology_dimensions d
+     WHERE d.methodology_version_id=mv.id AND d.deleted_at IS NULL),'[]'::jsonb),
+   'indices',coalesce((SELECT jsonb_agg(to_jsonb(i) ORDER BY i.code) FROM valorapesquisa.methodology_indices i
+     WHERE i.methodology_version_id=mv.id AND i.deleted_at IS NULL),'[]'::jsonb),
+   'concepts',coalesce((SELECT jsonb_agg(to_jsonb(c) ORDER BY c.code) FROM valorapesquisa.methodology_concepts c
+     WHERE c.methodology_version_id=mv.id AND c.deleted_at IS NULL),'[]'::jsonb),
+   'scoringRules',coalesce((SELECT jsonb_agg(to_jsonb(sr) ORDER BY sr.code) FROM valorapesquisa.methodology_scoring_rules sr
+     WHERE sr.methodology_version_id=mv.id AND sr.deleted_at IS NULL),'[]'::jsonb),
+   'rules',coalesce((SELECT jsonb_agg(to_jsonb(r) ORDER BY r.code) FROM valorapesquisa.methodology_inference_rules r
+     WHERE r.methodology_version_id=mv.id AND r.deleted_at IS NULL),'[]'::jsonb))
+ INTO snapshot FROM valorapesquisa.methodology_versions mv WHERE mv.id=selected_version;
+ v_snapshot_hash:=encode(digest(snapshot::text,'sha256'),'hex');
+ NEW.methodology_version_id:=selected_version;
+ NEW.methodology_snapshot_json:=snapshot;
+ NEW.methodology_snapshot_hash:=v_snapshot_hash;
+ INSERT INTO valorapesquisa.survey_methodology_question_snapshots
+  (survey_id,question_id,methodology_version_id,concept_code,capability_code,dimension_code,metric_code,index_code,
+   evidence_type,weight,polarity,calculation_rule,snapshot_hash)
+ SELECT DISTINCT ON(qcm.question_id) NEW.id,qcm.question_id,selected_version,qcm.concept_code,qcm.capability_code,
+   qcm.dimension_code,qmm.metric_code,qim.index_code,qcm.evidence_type,qcm.weight,qcm.polarity,
+   qcm.calculation_rule,v_snapshot_hash
+ FROM valorapesquisa.question_concept_mappings qcm
+ LEFT JOIN valorapesquisa.question_metric_mappings qmm ON qmm.question_id=qcm.question_id AND qmm.deleted_at IS NULL
+ LEFT JOIN valorapesquisa.question_index_mappings qim ON qim.question_id=qcm.question_id AND qim.deleted_at IS NULL
+ WHERE qcm.form_id=(SELECT form_id FROM valorapesquisa.form_versions WHERE id=NEW.form_version_id)
+   AND qcm.deleted_at IS NULL AND (qcm.organization_id=NEW.organization_id OR qcm.organization_id IS NULL)
+ ORDER BY qcm.question_id,CASE WHEN qcm.organization_id=NEW.organization_id THEN 0 ELSE 1 END,qcm.is_official DESC,qcm.updated_at DESC;
+ RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS trg_capture_survey_methodology_snapshot ON valorapesquisa.surveys;
+CREATE TRIGGER trg_capture_survey_methodology_snapshot BEFORE UPDATE OF status ON valorapesquisa.surveys
+ FOR EACH ROW EXECUTE FUNCTION valorapesquisa.capture_survey_methodology_snapshot();
+CREATE OR REPLACE FUNCTION valorapesquisa.reject_survey_methodology_snapshot_mutation() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN RAISE EXCEPTION 'O snapshot metodológico publicado é imutável.'; END $$;
+DROP TRIGGER IF EXISTS trg_immutable_survey_methodology_snapshot ON valorapesquisa.survey_methodology_question_snapshots;
+CREATE TRIGGER trg_immutable_survey_methodology_snapshot BEFORE UPDATE OR DELETE ON valorapesquisa.survey_methodology_question_snapshots
+ FOR EACH ROW EXECUTE FUNCTION valorapesquisa.reject_survey_methodology_snapshot_mutation();
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_09_diagnosis_methodology_snapshot','sha256:diagnosis-methodology-snapshot-v1')
+ON CONFLICT(version) DO NOTHING;
+COMMIT;

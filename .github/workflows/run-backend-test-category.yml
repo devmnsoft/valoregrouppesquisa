@@ -11,19 +11,28 @@ jobs:
     services:
       postgres:
         image: postgres:16
-        env: { POSTGRES_USER: valora, POSTGRES_PASSWORD: valora, POSTGRES_DB: valorapesquisa_ci }
+        env: { POSTGRES_USER: valora_ci_admin, POSTGRES_PASSWORD: valora_ci_bootstrap_only, POSTGRES_DB: valorapesquisa_test_ci }
         ports: ['5432:5432']
-        options: --health-cmd "pg_isready -U valora -d valorapesquisa_ci" --health-interval 5s --health-timeout 5s --health-retries 10
+        options: --health-cmd "pg_isready -U valora_ci_admin -d valorapesquisa_test_ci" --health-interval 5s --health-timeout 5s --health-retries 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with: { global-json-file: backend/global.json }
       - if: inputs.postgres
-        env: { PGPASSWORD: valora }
-        run: psql -h localhost -U valora -d valorapesquisa_ci -v ON_ERROR_STOP=1 -f backend/database/postgresql/script_completo.sql
+        env: { PGPASSWORD: valora_ci_bootstrap_only }
+        run: |
+          psql -h localhost -U valora_ci_admin -d valorapesquisa_test_ci -v ON_ERROR_STOP=1 -f backend/database/postgresql/script_completo.sql
+          psql -h localhost -U valora_ci_admin -d valorapesquisa_test_ci -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE valora_test_runner LOGIN PASSWORD 'valora_test_only' NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+          GRANT CONNECT ON DATABASE valorapesquisa_test_ci TO valora_test_runner;
+          GRANT USAGE ON SCHEMA valorapesquisa TO valora_test_runner;
+          GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA valorapesquisa TO valora_test_runner;
+          GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA valorapesquisa TO valora_test_runner;
+          GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA valorapesquisa TO valora_test_runner;
+          SQL
       - env:
-          VALORA_TEST_POSTGRES_CONNECTION: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
-          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=valorapesquisa_ci;Username=valora;Password=valora
+          VALORA_TEST_POSTGRES_CONNECTION: Host=localhost;Port=5432;Database=valorapesquisa_test_ci;Username=valora_test_runner;Password=valora_test_only
+          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=valorapesquisa_test_ci;Username=valora_test_runner;Password=valora_test_only
         run: ../tools/ci/run-filtered-tests.sh '${{ inputs.category }}' '${{ inputs.artifact }}.trx'
         working-directory: backend
       - if: always()

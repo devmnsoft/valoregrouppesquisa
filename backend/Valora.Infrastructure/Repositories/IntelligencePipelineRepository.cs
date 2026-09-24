@@ -15,30 +15,23 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
                mapping_status,can_be_used_for_inference,text_excerpt,metadata_json)
             SELECT r.organization_id,r.survey_id,r.id,r.form_id,ra.question_id,coalesce(qcm.concept_code,'unmapped'),
               coalesce(qcm.capability_code,'unmapped'),coalesce(qcm.dimension_code,'unmapped'),
-              qmm.metric_code,qim.index_code,coalesce(qcm.evidence_type,CASE WHEN ra.score IS NULL THEN 'qualitative_response' ELSE 'quantitative_response' END),'response',ra.id,
+              qcm.metric_code,qcm.index_code,coalesce(qcm.evidence_type,CASE WHEN ra.score IS NULL THEN 'qualitative_response' ELSE 'quantitative_response' END),'response',ra.id,
               ra.id::text,CASE WHEN ra.max_score>0 THEN round((ra.score/ra.max_score*100)::numeric,4) END,
               coalesce(ra.answer_text,ra.answer_json::text),ra.score,coalesce(qcm.weight,1),coalesce(qcm.polarity,1),
               CASE WHEN ra.score IS NULL THEN .60 ELSE 1 END,
-              CASE WHEN qcm.id IS NULL OR qmm.id IS NULL OR qim.id IS NULL THEN 'pending_mapping' ELSE 'mapped' END,
-              (ra.score IS NOT NULL AND qcm.id IS NOT NULL AND qmm.id IS NOT NULL AND qim.id IS NOT NULL),
+              CASE WHEN qcm.question_id IS NULL OR qcm.metric_code IS NULL OR qcm.index_code IS NULL THEN 'pending_mapping' ELSE 'mapped' END,
+              (ra.score IS NOT NULL AND qcm.question_id IS NOT NULL AND qcm.metric_code IS NOT NULL AND qcm.index_code IS NOT NULL),
               CASE WHEN ra.answer_text IS NULL THEN NULL ELSE left(ra.answer_text,500) END,
-              jsonb_build_object('metricCode',qmm.metric_code,'indexCode',qim.index_code,'polarity',coalesce(qcm.polarity,1),
-                'mappingStatus',CASE WHEN qcm.id IS NULL OR qmm.id IS NULL OR qim.id IS NULL THEN 'pending_mapping' ELSE 'mapped' END,
-                'missingMappings',array_remove(ARRAY[CASE WHEN qcm.id IS NULL THEN 'concept' END,CASE WHEN qmm.id IS NULL THEN 'metric' END,CASE WHEN qim.id IS NULL THEN 'index' END],NULL))
+              jsonb_build_object('metricCode',qcm.metric_code,'indexCode',qcm.index_code,'polarity',coalesce(qcm.polarity,1),
+                'methodologyVersionId',qcm.methodology_version_id,'methodologySnapshotHash',qcm.snapshot_hash,
+                'mappingStatus',CASE WHEN qcm.question_id IS NULL OR qcm.metric_code IS NULL OR qcm.index_code IS NULL THEN 'pending_mapping' ELSE 'mapped' END,
+                'missingMappings',array_remove(ARRAY[CASE WHEN qcm.question_id IS NULL THEN 'concept' END,CASE WHEN qcm.metric_code IS NULL THEN 'metric' END,CASE WHEN qcm.index_code IS NULL THEN 'index' END],NULL))
             FROM valorapesquisa.responses r
             JOIN valorapesquisa.response_answers ra ON ra.response_id=r.id
-            LEFT JOIN LATERAL (SELECT x.* FROM valorapesquisa.question_concept_mappings x
-              WHERE x.question_id=ra.question_id AND x.deleted_at IS NULL AND (x.organization_id=r.organization_id OR x.organization_id IS NULL)
-              ORDER BY CASE WHEN x.organization_id=r.organization_id THEN 0 ELSE 1 END,
-                x.is_official DESC,x.updated_at DESC,x.id LIMIT 1) qcm ON true
-            LEFT JOIN LATERAL (SELECT x.* FROM valorapesquisa.question_metric_mappings x
-              WHERE x.question_id=ra.question_id AND x.deleted_at IS NULL AND (x.organization_id=r.organization_id OR x.organization_id IS NULL)
-              ORDER BY CASE WHEN x.organization_id=r.organization_id THEN 0 ELSE 1 END,
-                x.is_official DESC,x.updated_at DESC,x.id LIMIT 1) qmm ON true
-            LEFT JOIN LATERAL (SELECT x.* FROM valorapesquisa.question_index_mappings x
-              WHERE x.question_id=ra.question_id AND x.deleted_at IS NULL AND (x.organization_id=r.organization_id OR x.organization_id IS NULL)
-              ORDER BY CASE WHEN x.organization_id=r.organization_id THEN 0 ELSE 1 END,
-                x.is_official DESC,x.updated_at DESC,x.id LIMIT 1) qim ON true
+            -- Never consult mutable catalog mappings while processing a response.
+            -- Legacy diagnoses without a snapshot intentionally remain pending.
+            LEFT JOIN valorapesquisa.survey_methodology_question_snapshots qcm
+              ON qcm.survey_id=r.survey_id AND qcm.question_id=ra.question_id
             WHERE r.id=@responseId AND r.organization_id=@organizationId
             ON CONFLICT(response_id,question_id,concept_code) WHERE deleted_at IS NULL DO UPDATE SET
               normalized_value=EXCLUDED.normalized_value,raw_value=EXCLUDED.raw_value,weight=EXCLUDED.weight,

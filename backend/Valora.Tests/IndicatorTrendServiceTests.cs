@@ -36,4 +36,14 @@ public sealed class IndicatorTrendServiceTests {
         Assert.Equal(2, result.Delta);
         Assert.Contains("parâmetros metodológicos", result.Limitation);
     }
+
+    [Fact]
+    public void Measurements_across_incompatible_rule_periods_are_explicitly_unavailable() {
+        var result = new IndicatorTrendService().Calculate(
+            [Measurement(10, 1), Measurement(12, 2)], "higher_is_better", "lower_is_better");
+
+        Assert.Equal(IndicatorTrend.ComparisonUnavailable, result.Trend);
+        Assert.Equal(2, result.Delta);
+        Assert.Contains("regras metodológicas diferentes", result.Limitation);
+    }
 }

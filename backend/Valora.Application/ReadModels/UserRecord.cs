@@ -8,9 +8,9 @@ public sealed record UserRecord(
     string Status,
     string? Phone,
     bool PasswordResetRequired,
-    DateTimeOffset? LastLoginAt,
-    DateTimeOffset CreatedAt,
-    DateTimeOffset? UpdatedAt,
+    DateTime? LastLoginAt,
+    DateTime CreatedAt,
+    DateTime? UpdatedAt,
     string[] RoleCodes) {
     public object? DeletedAt { get; internal set; }
 }

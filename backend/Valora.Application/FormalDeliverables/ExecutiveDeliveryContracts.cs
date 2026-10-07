@@ -65,15 +65,15 @@ public sealed record DeliverableAccessEventDto(
     Guid ShareLinkId,
     string AccessType,
     bool WasAllowed,
-    DateTimeOffset AccessedAt);
+    DateTime AccessedAt);
 
 public sealed record DeliverableShareLinkSummaryDto(
     Guid Id,
-    DateTimeOffset ExpiresAt,
+    DateTime ExpiresAt,
     bool AllowDownload,
     string Status,
     int AccessCount,
-    DateTimeOffset? RevokedAt,
+    DateTime? RevokedAt,
     string? InternalLabel);
 
 public sealed record DeliverableDetailsDto(
@@ -152,7 +152,8 @@ public sealed record CertificateEligibilityResult(
     string? PendingRuleCode,
     string Message);
 
-public sealed record ResultOptionDto(Guid Id, string Name, Guid DiagnosticId, string DiagnosticName, DateTimeOffset CompletedAt, decimal OverallScore);
+// Datas em DateTime: materializado diretamente pelo Dapper/Npgsql (timestamptz→DateTime).
+public sealed record ResultOptionDto(Guid Id, string Name, Guid DiagnosticId, string DiagnosticName, DateTime CompletedAt, decimal OverallScore);
 public sealed record TemplateOptionDto(string Code, string Name, string Type, string? CertificateType);
 public sealed record ReviewerOptionDto(Guid Id, string Name, string? Email);
 
@@ -189,11 +190,11 @@ public sealed record EligibleResultInfo(
     Guid ResultId,
     Guid DiagnosticId,
     string DiagnosticName,
-    DateTimeOffset SubmittedAt,
+    DateTime SubmittedAt,
     decimal TotalScore,
     decimal MaxScore,
     decimal Percentage,
-    DateTimeOffset? ScoreUpdatedAt,
+    DateTime? ScoreUpdatedAt,
     string MethodologyName,
     string MethodologyVersion);
 

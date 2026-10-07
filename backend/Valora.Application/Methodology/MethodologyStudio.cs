@@ -3,40 +3,79 @@ using System.ComponentModel.DataAnnotations;
 namespace Valora.Application.Methodology;
 
 public sealed record CreateMethodologyVersionRequest(
-    [property: Required, StringLength(80)] string Code,
-    [property: Required, StringLength(160)] string Name,
-    [property: StringLength(2000)] string? Description);
+    [Required, StringLength(80)] string Code,
+    [Required, StringLength(160)] string Name,
+    [StringLength(2000)] string? Description);
 
-public sealed record UpdateMethodologyDimensionRequest(
-    [property: Required, StringLength(80)] string Code,
-    [property: Required, StringLength(160)] string Name,
-    [property: Required, StringLength(2000)] string Description,
-    [property: Range(typeof(decimal), "0.0001", "100")] decimal Weight);
+// Classes (não records): em .NET, records somente honram metadados de validação declarados nos
+// parâmetros do construtor primário, invisíveis ao runtime Validator usado em EnsureAnnotations.
+public sealed class UpdateMethodologyDimensionRequest
+{
+    [Required, StringLength(80)] public string Code { get; set; } = "";
+    [Required, StringLength(160)] public string Name { get; set; } = "";
+    [Required, StringLength(2000)] public string Description { get; set; } = "";
+    [Range(typeof(decimal), "0.0001", "100")] public decimal Weight { get; set; }
+}
 
-public sealed record CreateConceptRequest(
-    [property: Required, StringLength(80)] string Code,
-    [property: Required, StringLength(160)] string Name,
-    [property: Required] IReadOnlyCollection<Guid> DimensionIds,
-    [property: Required] string EvidenceCriteria);
+public sealed class CreateConceptRequest
+{
+    [Required, StringLength(80)] public string Code { get; set; } = "";
+    [Required, StringLength(160)] public string Name { get; set; } = "";
+    [Required] public IReadOnlyCollection<Guid> DimensionIds { get; set; } = new Guid[0];
+    [Required] public string EvidenceCriteria { get; set; } = "";
+
+    public CreateConceptRequest() { }
+
+    public CreateConceptRequest(string code, string name, IReadOnlyCollection<Guid> dimensionIds, string evidenceCriteria)
+    {
+        Code = code; Name = name; DimensionIds = dimensionIds; EvidenceCriteria = evidenceCriteria;
+    }
+}
 
 public sealed record CreateMaturityLevelRequest(
-    [property: Required] string Name, int MaturityLevel, decimal ScoreMin, decimal ScoreMax,
-    [property: Required] string VerifiableCriteria);
+    [Required] string Name, int MaturityLevel, decimal ScoreMin, decimal ScoreMax,
+    [Required] string VerifiableCriteria);
 public sealed record CreateEvidenceCriteriaRequest(
-    [property: Required] Guid ConceptId, [property: Required] string Name,
-    [property: Required] string ExpectedSource, [property: Range(1, 5)] int EvidenceStrength);
-public sealed record CreateQuestionBankItemRequest(
-    [property: Required] string Code, [property: Required] string QuestionText,
-    [property: Required] string ResponseType, decimal Weight,
-    IReadOnlyCollection<Guid> DimensionIds, IReadOnlyCollection<Guid> ConceptIds, bool IsEvaluative = true);
-public sealed record CreateDiagnosticTemplateRequest(
-    [property: Required] string Code, [property: Required] string Name,
-    [property: Required] IReadOnlyCollection<Guid> SectionIds, Guid? ScoringRuleId);
+    [Required] Guid ConceptId, [Required] string Name,
+    [Required] string ExpectedSource, [Range(1, 5)] int EvidenceStrength);
+public sealed class CreateQuestionBankItemRequest
+{
+    [Required] public string Code { get; set; } = "";
+    [Required] public string QuestionText { get; set; } = "";
+    [Required] public string ResponseType { get; set; } = "";
+    public decimal Weight { get; set; }
+    public IReadOnlyCollection<Guid> DimensionIds { get; set; } = new Guid[0];
+    public IReadOnlyCollection<Guid> ConceptIds { get; set; } = new Guid[0];
+    public bool IsEvaluative { get; set; } = true;
+
+    public CreateQuestionBankItemRequest() { }
+
+    public CreateQuestionBankItemRequest(string code, string questionText, string responseType, decimal weight,
+        IReadOnlyCollection<Guid> dimensionIds, IReadOnlyCollection<Guid> conceptIds, bool isEvaluative = true)
+    {
+        Code = code; QuestionText = questionText; ResponseType = responseType; Weight = weight;
+        DimensionIds = dimensionIds; ConceptIds = conceptIds; IsEvaluative = isEvaluative;
+    }
+}
+public sealed class CreateDiagnosticTemplateRequest
+{
+    [Required] public string Code { get; set; } = "";
+    [Required] public string Name { get; set; } = "";
+    [Required] public IReadOnlyCollection<Guid> SectionIds { get; set; } = new Guid[0];
+    public Guid? ScoringRuleId { get; set; }
+
+    public CreateDiagnosticTemplateRequest() { }
+
+    public CreateDiagnosticTemplateRequest(string code, string name, IReadOnlyCollection<Guid> sectionIds, Guid? scoringRuleId)
+    {
+        Code = code; Name = name; SectionIds = sectionIds; ScoringRuleId = scoringRuleId;
+    }
+}
 public sealed record PublishDiagnosticTemplateRequest(
-    [property: Required] Guid TemplateId, [property: Required, StringLength(1000)] string Justification);
+    [Required] Guid TemplateId, [Required, StringLength(1000)] string Justification);
 
 public sealed record MethodologyVersionSummary(Guid Id, string Code, string Name, string Status, int VersionNumber,
-    bool IsOfficial, DateTimeOffset? PublishedAt, int Concepts, int Indexes, int Questions, int Prompts);
+    bool IsOfficial, DateTime? PublishedAt, int Concepts, int Indexes, int Questions, int Prompts);
 public sealed record MethodologyValidationIssue(string Code, string Severity, string Entity, string Message);
 public sealed record MethodologyStudioDashboard(MethodologyVersionSummary? ActiveVersion, int CriticalIssues,
     IReadOnlyList<MethodologyValidationIssue> Issues, IReadOnlyList<MethodologyVersionSummary> Versions);

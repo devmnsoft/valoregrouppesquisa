@@ -15,7 +15,7 @@ public sealed class EmailControllerSafetyTests {
     [Fact]
     public void TemplateOrganizationIsAlwaysTakenFromTheAuthenticatedContext() {
         var source = File.ReadAllText(RepositoryPaths.ApiFile("Controllers", "EmailController.cs"));
-        Assert.Contains("request with { OrganizationId = organizationId }", source);
+        Assert.Contains("request.OrganizationId = organizationId", source);
         Assert.DoesNotContain("dev@example.com", source);
     }
 

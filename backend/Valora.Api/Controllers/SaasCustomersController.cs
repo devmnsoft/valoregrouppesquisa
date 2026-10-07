@@ -41,11 +41,11 @@ public sealed class SaasCustomersController(SaasCustomerService service, AuditSe
         if (customer is null) return NotFound(new { code = "ORGANIZATION_NOT_FOUND", message = "Cliente não encontrado." });
 
         var current = currentRequest.GetCurrent();
-        await audit.LogAsync(new AuditEntry(id, current.RequireUserId(), "auth.organization_selected", "organization",
-            id.ToString(), "Organização selecionada explicitamente para operação pelo Super Admin.",
+        await audit.LogAsync(new AuditEntry(customer.OrganizationId, current.RequireUserId(), "auth.organization_selected", "organization",
+            customer.OrganizationId.ToString(), "Organização selecionada explicitamente para operação pelo Super Admin.",
             System.Text.Json.JsonSerializer.Serialize(new { reason = request.Reason?.Trim() }), HttpContext.TraceIdentifier,
             module: "identity"));
-        return Ok(new { organizationId = id, name = customer.TradeName });
+        return Ok(new { organizationId = customer.OrganizationId, name = customer.TradeName });
     }
 
     [HttpPost("{id:guid}/block")]
@@ -65,5 +65,5 @@ public sealed class SaasCustomersController(SaasCustomerService service, AuditSe
     }
 }
 
-public sealed record AccessChangeRequest([property: Required, StringLength(500, MinimumLength = 3)] string Reason);
-public sealed record SelectCustomerContextRequest([property: StringLength(500)] string? Reason);
+public sealed record AccessChangeRequest([Required, StringLength(500, MinimumLength = 3)] string Reason);
+public sealed record SelectCustomerContextRequest([StringLength(500)] string? Reason);

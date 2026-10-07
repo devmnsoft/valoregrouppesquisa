@@ -13,7 +13,9 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
                 SELECT f.* FROM valorapesquisa.forms f
                  WHERE f.organization_id=@organizationId AND f.deleted_at IS NULL
             ), filtered AS (
-                SELECT * FROM authorized f
+                SELECT f.id, f.name, f.description, f.category, f.estimated_minutes, f.status,
+                       f.current_draft_version_id, f.latest_published_version_id, f.version, f.created_at, f.updated_at
+                  FROM authorized f
                  WHERE (@search IS NULL OR f.name ILIKE '%' || @search || '%' OR COALESCE(f.description,'') ILIKE '%' || @search || '%' OR COALESCE(f.category,'') ILIKE '%' || @search || '%')
                    AND (@status IS NULL OR f.status=@status) AND (@category IS NULL OR f.category=@category)
             )
@@ -135,7 +137,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
                   JOIN valorapesquisa.question_versions q ON q.section_id=s.id AND q.deleted_at IS NULL
                  WHERE f.id=@formId AND f.organization_id=@organizationId AND f.deleted_at IS NULL
                    AND NULLIF(BTRIM(q.dimension_code),'') IS NOT NULL
-            ), catalog AS (SELECT * FROM authorized UNION ALL SELECT * FROM referenced)
+            ), catalog AS (SELECT code,name,active FROM authorized UNION ALL SELECT code,name,active FROM referenced)
             SELECT code AS "Code", COALESCE(MAX(name) FILTER(WHERE active),code) AS "Name", BOOL_OR(active) AS "IsActive",
                    NOT BOOL_OR(active) AS "IsLegacy"
               FROM catalog GROUP BY code ORDER BY NOT BOOL_OR(active), COALESCE(MAX(name) FILTER(WHERE active),code),code;

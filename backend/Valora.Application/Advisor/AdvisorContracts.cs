@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Valora.Application.Advisor;
 
-public sealed record AdvisorConversationDto(Guid Id, string Objective, string Status, DateTimeOffset CreatedAt, DateTimeOffset UpdatedAt);
+public sealed record AdvisorConversationDto(Guid Id, string Objective, string Status, DateTime CreatedAt, DateTime UpdatedAt);
 public sealed record AdvisorMessageDto(Guid Id, Guid ConversationId, string Role, string Content, string Confidence, string[] Limitations, DateTimeOffset CreatedAt, IReadOnlyList<AdvisorEvidenceDto> Evidence);
 public sealed record AdvisorEvidenceDto(Guid Id, string SourceType, Guid SourceId, string Title, string Excerpt, string Strength);
 public sealed record AdvisorConversationDetailDto(AdvisorConversationDto Conversation, IReadOnlyList<AdvisorMessageDto> Messages);
@@ -14,7 +14,7 @@ public sealed class CreateAdvisorConversationRequest {
     [Required, StringLength(300, MinimumLength = 5)] public string Objective { get; init; } = "";
     public IReadOnlyList<AdvisorContextSelection> Context { get; init; } = [];
 }
-public sealed record AdvisorContextSelection([property: Required] string SourceType, Guid SourceId);
+public sealed record AdvisorContextSelection([Required] string SourceType, Guid SourceId);
 public sealed class SendAdvisorMessageRequest {
     [Required, StringLength(4000, MinimumLength = 3)] public string Content { get; init; } = "";
     [MinLength(1, ErrorMessage = "Selecione ao menos uma evidência para uma análise.")] public IReadOnlyList<AdvisorContextSelection> Context { get; init; } = [];

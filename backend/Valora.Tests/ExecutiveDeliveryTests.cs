@@ -130,8 +130,8 @@ public sealed class ExecutiveDeliveryTests {
     }
 
     private static EligibleResultInfo Eligible(Guid resultId, Guid diagnosticId, decimal total, decimal max) =>
-        new(resultId, diagnosticId, "Diagnóstico", DateTimeOffset.UtcNow, total, max,
-            max == 0 ? 0 : total / max * 100, DateTimeOffset.UtcNow, "Valora", "1.0");
+        new(resultId, diagnosticId, "Diagnóstico", DateTime.UtcNow, total, max,
+            max == 0 ? 0 : total / max * 100, DateTime.UtcNow, "Valora", "1.0");
 
     private static FormalDeliverableEntity Entity(Guid org, Guid id, Guid resultId, Guid diagnosticId, string hash,
         string editorial, string processing, Guid user) =>

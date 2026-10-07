@@ -3,18 +3,22 @@ using Microsoft.Extensions.Logging;
 
 namespace Valora.Application.SaasAdministration;
 
-public sealed record SaasCustomerDto(Guid Id, Guid OrganizationId, string LegalName, string TradeName, string TaxIdNormalized, string PlanCode, string Status, DateTimeOffset CreatedAt);
-public sealed record SaasCustomerListItem(Guid Id, Guid OrganizationId, string LegalName, string TradeName, string TaxIdMasked, string PlanCode, string Status, DateTimeOffset CreatedAt, int ActiveUserCount, string[] ActiveModules, DateTimeOffset? LastActivityAt);
+public sealed record SaasCustomerDto(Guid Id, Guid OrganizationId, string LegalName, string TradeName, string TaxIdNormalized, string PlanCode, string Status, DateTime CreatedAt);
+public sealed record SaasCustomerListItem(Guid Id, Guid OrganizationId, string LegalName, string TradeName, string TaxIdMasked, string PlanCode, string Status, DateTime CreatedAt, int ActiveUserCount, string[] ActiveModules, DateTime? LastActivityAt);
 public sealed record SaasCustomerListQuery(string? Search = null, string? Status = null, string? Module = null, int Page = 1, int PageSize = 20, string Sort = "name", bool Descending = false);
 public sealed record SaasCustomerPage(IReadOnlyList<SaasCustomerListItem> Items, int TotalCount, int Page, int PageSize) {
     public int TotalPages => TotalCount == 0 ? 0 : (int)Math.Ceiling(TotalCount / (double)PageSize);
 }
-public sealed record CreateSaasCustomerRequest(
-    [property: Required, StringLength(200)] string LegalName,
-    [property: Required, StringLength(160)] string TradeName,
-    [property: Required] string TaxId,
-    [property: Required, StringLength(60)] string PlanCode,
-    Guid OrganizationId);
+// Classe (não record): em .NET, records somente honram metadados de validação declarados nos
+// parâmetros do construtor primário, invisíveis ao runtime Validator usado em CreateAsync.
+public sealed class CreateSaasCustomerRequest
+{
+    [Required, StringLength(200)] public string LegalName { get; set; } = "";
+    [Required, StringLength(160)] public string TradeName { get; set; } = "";
+    [Required] public string TaxId { get; set; } = "";
+    [Required, StringLength(60)] public string PlanCode { get; set; } = "";
+    public Guid OrganizationId { get; set; }
+}
 
 public interface ISaasCustomerRepository {
     Task<IReadOnlyList<SaasCustomerDto>> ListAsync(CancellationToken cancellationToken);

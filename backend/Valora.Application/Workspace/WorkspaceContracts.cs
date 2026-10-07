@@ -6,10 +6,10 @@ public sealed record WorkspaceItemDto(Guid Id, string ItemType, string Title, st
     string Priority, DateTimeOffset? DueAt, Guid? OwnerUserId, string? SourceType, Guid? SourceId, string? Route,
     DateTimeOffset CreatedAt, bool IsPinned = false);
 public sealed record ExecutivePriorityDto(Guid Id, string Title, string? Description, string Status, string Priority,
-    Guid? OwnerUserId, string? OwnerName, DateTimeOffset? DueAt, string? SourceType, Guid? SourceId,
-    int ProgressPercent, DateTimeOffset UpdatedAt, string ItemType = "priority");
+    Guid? OwnerUserId, string? OwnerName, DateTime? DueAt, string? SourceType, Guid? SourceId,
+    int ProgressPercent, DateTime UpdatedAt, string ItemType = "priority");
 public sealed record PriorityUpdateDto(Guid Id, int ProgressPercent, string? Note, string EventType,
-    Guid CreatedBy, string AuthorName, DateTimeOffset CreatedAt);
+    Guid CreatedBy, string AuthorName, DateTime CreatedAt);
 public sealed record PriorityPermissionsDto(bool CanEdit, bool CanAssign, bool CanUpdateProgress, bool CanComplete,
     bool CanCancel, bool CanReopen);
 public sealed record PriorityDetailsDto(ExecutivePriorityDto Priority, IReadOnlyList<PriorityUpdateDto> History,
@@ -17,7 +17,7 @@ public sealed record PriorityDetailsDto(ExecutivePriorityDto Priority, IReadOnly
 public sealed record PriorityOptionDto(Guid Id, string Label);
 public sealed record PrioritySourceOptionDto(Guid Id, string Type, string Label);
 public sealed record QuickActionDto(string Code, string Label, string Description, string Route, string Icon, int SortOrder);
-public sealed record SearchResultDto(Guid Id, string ResultType, string Title, string? Description, string? Route, DateTimeOffset UpdatedAt);
+public sealed record SearchResultDto(Guid Id, string ResultType, string Title, string? Description, string? Route, DateTime UpdatedAt);
 public sealed record ExecutiveWorkspaceDto(IReadOnlyList<WorkspaceItemDto> MyDay, IReadOnlyList<ExecutivePriorityDto> Priorities,
     IReadOnlyList<WorkspaceItemDto> Recent, IReadOnlyList<WorkspaceItemDto> Pinned, IReadOnlyList<QuickActionDto> QuickActions);
 public sealed record PageResult<T>(IReadOnlyList<T> Items, int Page, int PageSize, int Total) {

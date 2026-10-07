@@ -42,6 +42,16 @@ public sealed class NavigationRegressionTests {
     }
 
     [Fact]
+    public void Catalog_publishes_the_ActionCenter_plans_destination_exactly_once_and_never_alias_controllers() {
+        var items = new NavigationCatalog().Sections.SelectMany(x => x.Items).ToArray();
+        var aliases = items.Where(x => x.Destination.Controller is "ActionPlans" or "ValoraAction").Select(x => x.Code).ToArray();
+
+        Assert.Empty(aliases);
+        Assert.Single(items, x => x.Destination.Controller.Equals("ActionCenter", StringComparison.OrdinalIgnoreCase)
+            && x.Destination.Action.Equals("Plans", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void SparklesIsAnOfficialDesignSystemIcon() {
         var registry = new ValoraIconRegistry();
 
@@ -112,7 +122,7 @@ public sealed class NavigationRegressionTests {
         Assert.Contains("administration.organizations", codes);
         Assert.Contains("administration.roles", codes);
         Assert.Contains("administration.permissions", codes);
-        Assert.Contains("administration.modules", codes);
+        Assert.Contains("saas.modules", codes);
 
         var labels = model.Sections.Select(section => section.Label).ToArray();
         Assert.Contains("Administração", labels);

@@ -337,12 +337,13 @@ public sealed class DiagnosticCampaignRepository(
     }
 
     private sealed record SurveyRow(Guid Id, string? PublicUrl, string Status);
+    // timestamptz chega como DateTime no Npgsql/Dapper; o contrato público (DateTimeOffset) recebe a conversão implícita no mapeamento.
     private sealed record TransitionRow(Guid Id, string Status, string Channel, string? PublicUrl,
-        DateTimeOffset? StartsAt, long Version);
+        DateTime? StartsAt, long Version);
     private sealed record CampaignRow(Guid Id, Guid SurveyId, string Name, string Status, string Channel,
         string? Subject, string? PublicUrl, string Message, string? Audience, Guid? UnitId, Guid? DepartmentId,
-        DateTimeOffset? StartsAt, DateTimeOffset? EndsAt, decimal? TargetParticipationRate, int RecipientCount,
+        DateTime? StartsAt, DateTime? EndsAt, decimal? TargetParticipationRate, int RecipientCount,
         int QueuedCount, int SentCount, int OpenedCount, int StartedCount, int CompletedCount, int ExpiredCount,
         int ResponseCount, int FailedCount,
-        DateTimeOffset CreatedAt, long Version);
+        DateTime CreatedAt, long Version);
 }

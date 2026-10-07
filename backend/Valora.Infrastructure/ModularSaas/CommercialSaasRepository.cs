@@ -70,7 +70,7 @@ public sealed class CommercialSaasRepository(IDbConnectionFactory connections) :
         if (!row.RequiresContract) return ModuleAccessDecision.Granted();
         if (row.ContractStatus is not ("active" or "read_only" or "suspended" or "expired"))
             return ModuleAccessDecision.Denied("MODULE_NOT_CONTRACTED", "Este módulo não faz parte do plano contratado.");
-        if (row.SubscriptionStatus is not ("active" or "trialing") || row.SubscriptionEndsAt is { } end && end <= DateTimeOffset.UtcNow)
+        if (row.SubscriptionStatus is not ("active" or "trialing") || row.SubscriptionEndsAt is { } end && end <= DateTime.UtcNow)
             return writeOperation
                 ? ModuleAccessDecision.Denied("SUBSCRIPTION_INACTIVE", "Sua assinatura permite consultar dados anteriores, mas novas ações estão temporariamente bloqueadas.")
                 : ModuleAccessDecision.Granted(true);
@@ -161,8 +161,9 @@ public sealed class CommercialSaasRepository(IDbConnectionFactory connections) :
         if (affected != 1) throw new InvalidOperationException("Não foi possível localizar a assinatura ativa deste cliente.");
     }
 
+    // timestamptz chega como DateTime no Npgsql/Dapper; a comparação de validade também usa DateTime (Utc).
     private sealed record ModuleAccessRow(bool RequiresContract, string ModuleStatus, string? SubscriptionStatus,
-        DateTimeOffset? SubscriptionEndsAt, string? ContractStatus);
+        DateTime? SubscriptionEndsAt, string? ContractStatus);
 
     private sealed record ModuleMutationRow(Guid SubscriptionId, Guid ModuleId, string AccessModuleCode, string? PreviousStatus);
 }

@@ -18,13 +18,35 @@ public sealed class UserRepository(IDbConnectionFactory factory, ILogger<UserRep
         public string? RoleCodesCsv { get; set; }
     }
 
+    // Dapper's positional record deserializer matches ctor parameter types against the reader
+    // field types with no conversion: Npgsql reports a text[] column as System.Array, which never
+    // equals string[]. We therefore materialize into this row class (property binding) and split the
+    // comma-separated role codes by hand, mirroring AuthUserRow above.
+    private sealed class UserRowData {
+        public Guid Id { get; set; }
+        public Guid OrganizationId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public bool PasswordResetRequired { get; set; }
+        public DateTime? LastLoginAt { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public string RoleCodes { get; set; } = string.Empty;
+    }
+
     private const string UserProjection = """
         u.id AS Id, u.organization_id AS OrganizationId, u.name AS Name, u.email AS Email,
         u.status AS Status, u.phone AS Phone, u.password_reset_required AS PasswordResetRequired,
         u.last_login_at AS LastLoginAt, u.created_at AS CreatedAt, u.updated_at AS UpdatedAt,
-        COALESCE((SELECT array_agg(r.code ORDER BY r.code) FROM valorapesquisa.user_roles ur
-          JOIN valorapesquisa.roles r ON r.id=ur.role_id WHERE ur.user_id=u.id), ARRAY[]::text[]) AS RoleCodes
+        COALESCE((SELECT string_agg(r.code, ',' ORDER BY r.code) FROM valorapesquisa.user_roles ur
+          JOIN valorapesquisa.roles r ON r.id=ur.role_id WHERE ur.user_id=u.id), '') AS RoleCodes
         """;
+
+    private static UserRecord ToRecord(UserRowData x) => new(x.Id, x.OrganizationId, x.Name, x.Email, x.Status,
+        x.Phone, x.PasswordResetRequired, x.LastLoginAt, x.CreatedAt, x.UpdatedAt,
+        x.RoleCodes.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
     public async Task<UserAuthenticationRecord?> GetByEmailAsync(string email) {
         try {
@@ -89,13 +111,14 @@ public sealed class UserRepository(IDbConnectionFactory factory, ILogger<UserRep
 
     public async Task<UserRecord?> GetAsync(Guid id) {
         using var connection = factory.Create();
-        return await connection.QuerySingleOrDefaultAsync<UserRecord>($"SELECT {UserProjection} FROM valorapesquisa.users u WHERE u.id=@id AND u.deleted_at IS NULL", new { id });
+        var row = await connection.QuerySingleOrDefaultAsync<UserRowData>($"SELECT {UserProjection} FROM valorapesquisa.users u WHERE u.id=@id AND u.deleted_at IS NULL", new { id });
+        return row is null ? null : ToRecord(row);
     }
 
     public async Task<IReadOnlyList<UserRecord>> ListByOrganizationAsync(Guid organizationId, bool includeGlobal = false) {
         using var connection = factory.Create();
-        var rows = await connection.QueryAsync<UserRecord>($"SELECT {UserProjection} FROM valorapesquisa.users u WHERE u.deleted_at IS NULL AND (u.organization_id=@organizationId OR @includeGlobal) ORDER BY u.created_at DESC", new { organizationId, includeGlobal });
-        return rows.AsList();
+        var rows = await connection.QueryAsync<UserRowData>($"SELECT {UserProjection} FROM valorapesquisa.users u WHERE u.deleted_at IS NULL AND (u.organization_id=@organizationId OR @includeGlobal) ORDER BY u.created_at DESC", new { organizationId, includeGlobal });
+        return rows.Select(ToRecord).ToList();
     }
 
     public async Task<Guid> CreateAsync(Guid organizationId, string name, string email, string passwordHash, string role) {

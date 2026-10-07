@@ -3,17 +3,54 @@ using Microsoft.Extensions.Logging;
 
 namespace Valora.Application.SolutionPacks;
 
-public sealed record SolutionPackSummary(Guid Id, Guid? OrganizationId, string Name, string Description, string Category, string Segment, string Status, bool IsOfficial, string? CurrentVersion, DateTimeOffset UpdatedAt);
+public sealed record SolutionPackSummary(Guid Id, Guid? OrganizationId, string Name, string Description, string Category, string Segment, string Status, bool IsOfficial, string? CurrentVersion, DateTime UpdatedAt);
 public sealed record SolutionPackDetails(Guid Id, Guid? OrganizationId, string Name, string Description, string Category, string Segment, string Status, bool IsOfficial, string? CurrentVersion, string? Evidence, IReadOnlyList<SolutionPackItemDto> Items, IReadOnlyList<SolutionPackDependencyDto> Dependencies);
 public sealed record SolutionPackItemDto(Guid Id, string ItemType, string Name, string SourceModule, Guid? SourceTemplateId, string MetadataJson);
 public sealed record SolutionPackDependencyDto(Guid Id, string DependencyType, string? RequiredModule, string? RequiredPermission, string? MinimumVersion);
-public sealed record InstallationDto(Guid Id, Guid OrganizationId, Guid SolutionPackId, string PackName, string VersionNumber, string Status, bool CanRollback, DateTimeOffset InstalledAt);
+public sealed record InstallationDto(Guid Id, Guid OrganizationId, Guid SolutionPackId, string PackName, string VersionNumber, string Status, bool CanRollback, DateTime InstalledAt);
 public sealed record UpdateDto(Guid InstallationId, Guid SolutionPackId, string PackName, string InstalledVersion, string AvailableVersion);
 public sealed record InstallationPreview(Guid PackId, string VersionNumber, IReadOnlyList<SolutionPackItemDto> Items, IReadOnlyList<SolutionPackDependencyDto> MissingDependencies, bool RequiresOverwriteConfirmation, bool CanInstall);
-public sealed record CreateSolutionPackRequest([property: Required, StringLength(160, MinimumLength = 3)] string Name, [property: Required, StringLength(2000)] string Description, [property: Required, StringLength(80)] string Category, [property: Required, StringLength(80)] string Segment, bool IsOfficial, string? Evidence);
-public sealed record NewVersionRequest([property: Required, StringLength(32)] string VersionNumber, IReadOnlyList<SolutionPackItemInput> Items, IReadOnlyList<SolutionPackDependencyInput> Dependencies, string? ReleaseNotes);
-public sealed record SolutionPackItemInput([property: Required] string ItemType, [property: Required] string Name, [property: Required] string SourceModule, Guid? SourceTemplateId, string? MetadataJson);
-public sealed record SolutionPackDependencyInput([property: Required] string DependencyType, string? RequiredModule, string? RequiredPermission, string? MinimumVersion);
+// Classes (não records): em .NET, records somente honram metadados de validação declarados nos
+// parâmetros do construtor primário, invisíveis ao runtime Validator. Como classes, o metadata
+// fica visível tanto ao MVC quanto às chamadas Validator.ValidateObject abaixo.
+public sealed class CreateSolutionPackRequest
+{
+    [Required, StringLength(160, MinimumLength = 3)] public string Name { get; set; } = "";
+    [Required, StringLength(2000)] public string Description { get; set; } = "";
+    [Required, StringLength(80)] public string Category { get; set; } = "";
+    [Required, StringLength(80)] public string Segment { get; set; } = "";
+    public bool IsOfficial { get; set; }
+    public string? Evidence { get; set; }
+
+    public CreateSolutionPackRequest() { }
+
+    public CreateSolutionPackRequest(string name, string description, string category, string segment, bool isOfficial, string? evidence)
+    {
+        Name = name; Description = description; Category = category; Segment = segment; IsOfficial = isOfficial; Evidence = evidence;
+    }
+}
+public sealed class NewVersionRequest
+{
+    [Required, StringLength(32)] public string VersionNumber { get; set; } = "";
+    public IReadOnlyList<SolutionPackItemInput> Items { get; set; } = new List<SolutionPackItemInput>();
+    public IReadOnlyList<SolutionPackDependencyInput> Dependencies { get; set; } = new List<SolutionPackDependencyInput>();
+    public string? ReleaseNotes { get; set; }
+}
+public sealed class SolutionPackItemInput
+{
+    [Required] public string ItemType { get; set; } = "";
+    [Required] public string Name { get; set; } = "";
+    [Required] public string SourceModule { get; set; } = "";
+    public Guid? SourceTemplateId { get; set; }
+    public string? MetadataJson { get; set; }
+}
+public sealed class SolutionPackDependencyInput
+{
+    [Required] public string DependencyType { get; set; } = "";
+    public string? RequiredModule { get; set; }
+    public string? RequiredPermission { get; set; }
+    public string? MinimumVersion { get; set; }
+}
 public sealed record InstallSolutionPackRequest(Guid VersionId, bool ConfirmOverwrite);
 
 public interface ISolutionPackRepository {

@@ -69,8 +69,9 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
 }
 
 public sealed class DiagnosisDocumentSnapshotProvider(IDbConnectionFactory connections) : IDiagnosisDocumentSnapshotProvider {
+    // submitted_at chega como DateTime no Npgsql/Dapper; o snapshot público mantém DateTimeOffset (conversão implícita).
     private sealed record Header(Guid OrganizationId, string OrganizationName, Guid DiagnosisId, string DiagnosisName,
-        DateTimeOffset CompletedAt, decimal OverallScore, string MaturityLevel, string MethodologyName, string MethodologyVersion);
+        DateTime CompletedAt, decimal OverallScore, string MaturityLevel, string MethodologyName, string MethodologyVersion);
 
     public async Task<DiagnosisDocumentSnapshot?> LoadAsync(Guid organizationId, Guid diagnosisId, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();

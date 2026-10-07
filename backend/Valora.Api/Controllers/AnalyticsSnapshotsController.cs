@@ -21,4 +21,4 @@ public sealed class AnalyticsSnapshotsController(AnalyticsSnapshotService servic
         Ok(new { id = await service.Create(OrganizationId, UserId, request.Name, cancellationToken), eventName = "analytics.snapshot.created" });
 }
 
-public sealed record CreateSnapshotRequest([property: Required, StringLength(160)] string Name);
+public sealed record CreateSnapshotRequest([Required, StringLength(160)] string Name);

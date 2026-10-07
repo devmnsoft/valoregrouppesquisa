@@ -3921,6 +3921,7 @@ ALTER TABLE valorapesquisa.journey_events ADD COLUMN IF NOT EXISTS diagnostic_id
 UPDATE valorapesquisa.journey_events SET event_type='manual_note' WHERE event_type NOT IN('diagnostic_created','result_calculated','insight_generated','alert_generated','decision_created','action_created','action_completed','evolution_snapshot','report_generated','governance_meeting','cycle_closed','manual_note','one_on_one_completed'); UPDATE valorapesquisa.journey_events SET impact_level='medium' WHERE impact_level NOT IN('critical','high','medium','low');
 CREATE TABLE IF NOT EXISTS valorapesquisa.journey_event_links(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),journey_event_id uuid NOT NULL REFERENCES valorapesquisa.journey_events(id),link_type varchar(40) NOT NULL,linked_id uuid NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(journey_event_id,link_type,linked_id));
 CREATE TABLE IF NOT EXISTS valorapesquisa.journey_event_evidence_links(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),journey_event_id uuid NOT NULL REFERENCES valorapesquisa.journey_events(id),evidence_id uuid NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(journey_event_id,evidence_id));
+-- Reservada (A4): sem leitura ou escrita em código hoje; mantida por compatibilidade histórica.
 CREATE TABLE IF NOT EXISTS valorapesquisa.journey_event_action_links(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),journey_event_id uuid NOT NULL REFERENCES valorapesquisa.journey_events(id),action_item_id uuid NOT NULL REFERENCES valorapesquisa.action_items(id),created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(journey_event_id,action_item_id));
 CREATE TABLE IF NOT EXISTS valorapesquisa.journey_event_decision_links(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),journey_event_id uuid NOT NULL REFERENCES valorapesquisa.journey_events(id),decision_id uuid NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(journey_event_id,decision_id));
 CREATE TABLE IF NOT EXISTS valorapesquisa.journey_event_alert_links(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),journey_event_id uuid NOT NULL REFERENCES valorapesquisa.journey_events(id),alert_id uuid NOT NULL,created_at timestamptz NOT NULL DEFAULT now(),UNIQUE(journey_event_id,alert_id));
@@ -3929,7 +3930,7 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.recommendation_queue(id uuid PRIMARY K
 CREATE INDEX IF NOT EXISTS ix_action_plans_org_status ON valorapesquisa.action_plans(organization_id,status,due_at) WHERE deleted_at IS NULL; CREATE INDEX IF NOT EXISTS ix_action_items_org_status ON valorapesquisa.action_items(organization_id,status,due_at) WHERE deleted_at IS NULL; CREATE INDEX IF NOT EXISTS ix_action_items_plan ON valorapesquisa.action_items(action_plan_id,created_at) WHERE deleted_at IS NULL; CREATE INDEX IF NOT EXISTS ix_evolution_cycles_org ON valorapesquisa.evolution_cycles(organization_id,status,period_start DESC) WHERE deleted_at IS NULL; CREATE INDEX IF NOT EXISTS ix_evolution_snapshots_cycle ON valorapesquisa.evolution_snapshots(evolution_cycle_id,calculated_at DESC) WHERE deleted_at IS NULL; CREATE INDEX IF NOT EXISTS ix_journey_timeline ON valorapesquisa.journey_events(organization_id,occurred_at DESC) WHERE deleted_at IS NULL; CREATE INDEX IF NOT EXISTS ix_recommendation_queue_org ON valorapesquisa.recommendation_queue(organization_id,status,created_at DESC) WHERE deleted_at IS NULL;
 
 INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
-('action.read','Consultar Action','Consultar planos e ações','organizational_intelligence'),('action.manage','Gerenciar Action','Criar e acompanhar ações','organizational_intelligence'),('action.approve','Aprovar Action','Aprovar planos de ação','organizational_intelligence'),('action.complete','Concluir Action','Concluir ação com evidência','organizational_intelligence'),('action.comments.manage','Gerenciar comentários de Action','Registrar comentários e check-ins','organizational_intelligence'),('evolution.read','Consultar Evolution','Consultar ciclos e snapshots','organizational_intelligence'),('evolution.manage','Gerenciar Evolution','Abrir e encerrar ciclos','organizational_intelligence'),('evolution.snapshots.generate','Gerar snapshots de Evolution','Preservar leituras históricas','organizational_intelligence'),('journey.read','Consultar Journey','Consultar memória organizacional','organizational_intelligence'),('journey.manage','Gerenciar Journey','Gerenciar memória organizacional','organizational_intelligence'),('journey.events.create','Criar eventos da Journey','Registrar eventos manuais','organizational_intelligence'),('journey.events.manage','Gerenciar eventos da Journey','Ocultar logicamente eventos','organizational_intelligence') ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,module_code=excluded.module_code;
+('action.read','Visualizar Valora Action','Consulta planos e ações rastreáveis.','organizational_intelligence'),('action.manage','Gerenciar Valora Action','Cria e atualiza ações ligadas a evidências.','organizational_intelligence'),('action.approve','Aprovar Action','Aprovar planos de ação','organizational_intelligence'),('action.complete','Concluir Action','Concluir ação com evidência','organizational_intelligence'),('action.comments.manage','Gerenciar comentários de Action','Registrar comentários e check-ins','organizational_intelligence'),('evolution.read','Consultar Evolution','Consultar ciclos e snapshots','organizational_intelligence'),('evolution.manage','Gerenciar Evolution','Abrir e encerrar ciclos','organizational_intelligence'),('evolution.snapshots.generate','Gerar snapshots de Evolution','Preservar leituras históricas','organizational_intelligence'),('journey.read','Consultar Journey','Consultar memória organizacional','organizational_intelligence'),('journey.manage','Gerenciar Journey','Gerenciar memória organizacional','organizational_intelligence'),('journey.events.create','Criar eventos da Journey','Registrar eventos manuais','organizational_intelligence'),('journey.events.manage','Gerenciar eventos da Journey','Ocultar logicamente eventos','organizational_intelligence') ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,module_code=excluded.module_code;
 INSERT INTO valorapesquisa.role_permissions(role_id,permission_id,created_at) SELECT r.id,p.id,now() FROM valorapesquisa.roles r CROSS JOIN valorapesquisa.permissions p WHERE r.code='admin_valora' AND r.deleted_at IS NULL AND p.code IN('action.read','action.manage','action.approve','action.complete','action.comments.manage','evolution.read','evolution.manage','evolution.snapshots.generate','journey.read','journey.manage','journey.events.create','journey.events.manage') ON CONFLICT(role_id,permission_id) DO NOTHING;
 COMMIT;
 
@@ -7117,5 +7118,150 @@ CREATE TRIGGER trg_immutable_survey_methodology_snapshot BEFORE UPDATE OR DELETE
  FOR EACH ROW EXECUTE FUNCTION valorapesquisa.reject_survey_methodology_snapshot_mutation();
 INSERT INTO valorapesquisa.schema_migrations(version,checksum)
 VALUES('2026_09_diagnosis_methodology_snapshot','sha256:diagnosis-methodology-snapshot-v1')
+ON CONFLICT(version) DO NOTHING;
+COMMIT;
+
+-- Colunas do fluxo administrativo/publico esperadas pelo codigo da aplicacao.
+-- A tabela surveys era criada em forma minima; estes campos jamais eram criados.
+-- Acrescimos aditivos e idempotentes, no padrao de migracao ja usado neste script.
+BEGIN;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS title text;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS description text;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS token_hash text;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS starts_at timestamptz;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS expires_at timestamptz;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS lgpd_required boolean NOT NULL DEFAULT true;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS public_slug text;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS public_url text;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS is_free boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS plan_id varchar(80);
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS revoked_at timestamptz;
+
+ALTER TABLE valorapesquisa.survey_links ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+ALTER TABLE valorapesquisa.survey_links ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.survey_links ADD COLUMN IF NOT EXISTS revoked_at timestamptz;
+ALTER TABLE valorapesquisa.survey_links ADD COLUMN IF NOT EXISTS public_url text;
+ALTER TABLE valorapesquisa.survey_links ADD COLUMN IF NOT EXISTS starts_at timestamptz;
+ALTER TABLE valorapesquisa.survey_links ADD COLUMN IF NOT EXISTS updated_at timestamptz;
+
+ALTER TABLE valorapesquisa.responses ADD COLUMN IF NOT EXISTS participant_name text;
+ALTER TABLE valorapesquisa.responses ADD COLUMN IF NOT EXISTS participant_email text;
+ALTER TABLE valorapesquisa.responses ADD COLUMN IF NOT EXISTS participant_phone text;
+ALTER TABLE valorapesquisa.responses ADD COLUMN IF NOT EXISTS result_token_hash text;
+ALTER TABLE valorapesquisa.responses ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'completed';
+ALTER TABLE valorapesquisa.responses ADD COLUMN IF NOT EXISTS completed_at timestamptz;
+
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_09_survey_admin_public_columns','sha256:survey-admin-public-columns-v1')
+ON CONFLICT(version) DO NOTHING;
+COMMIT;
+
+-- Colunas de consulta do fluxo administrativo/publico usadas pelo repositorio legado.
+-- Nomenclatura is_deleted/is_global/time_min coexiste com deleted_at (modelo estruturado).
+-- Acrescimo aditivo e idempotente, continua????o de 2026_09_survey_admin_public_columns.
+BEGIN;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS is_global boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.forms ADD COLUMN IF NOT EXISTS time_min integer;
+UPDATE valorapesquisa.forms SET time_min=estimated_minutes WHERE time_min IS NULL AND estimated_minutes IS NOT NULL;
+ALTER TABLE valorapesquisa.organizations ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.users ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS form_id uuid;
+
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_09_survey_flow_lookup_columns','sha256:survey-flow-lookup-columns-v1')
+ON CONFLICT(version) DO NOTHING;
+COMMIT;
+
+-- Flags de ciclo de vida do survey usadas pelo fluxo administrativo legado
+-- (is_deleted/is_public coexistem com deleted_at do modelo estruturado).
+-- Espelha o estado ja aplicado ao ambiente de homologacao local.
+BEGIN;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS is_public boolean NOT NULL DEFAULT true;
+
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_09_survey_lifecycle_flags','sha256:survey-lifecycle-flags-v1')
+ON CONFLICT(version) DO NOTHING;
+COMMIT;
+
+-- Colunas de resultado individual usadas pelo repositorio de resultados
+-- (SaveResultAsync/SaveDimensionScoresAsync do fluxo de submissao publica).
+-- Coexistem com as colunas estruturadas existentes (result_score_id/dimension_id).
+BEGIN;
+ALTER TABLE valorapesquisa.result_scores ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.result_scores ADD COLUMN IF NOT EXISTS percentage numeric;
+ALTER TABLE valorapesquisa.result_scores ADD COLUMN IF NOT EXISTS maturity_label text;
+ALTER TABLE valorapesquisa.result_scores ADD COLUMN IF NOT EXISTS radar_text text;
+ALTER TABLE valorapesquisa.result_scores ADD COLUMN IF NOT EXISTS strategic_truth text;
+ALTER TABLE valorapesquisa.result_scores ADD COLUMN IF NOT EXISTS risk_if_nothing_changes text;
+ALTER TABLE valorapesquisa.result_scores ADD COLUMN IF NOT EXISTS next_level text;
+
+ALTER TABLE valorapesquisa.dimension_scores ADD COLUMN IF NOT EXISTS organization_id uuid;
+ALTER TABLE valorapesquisa.dimension_scores ADD COLUMN IF NOT EXISTS response_id uuid;
+ALTER TABLE valorapesquisa.dimension_scores ADD COLUMN IF NOT EXISTS dimension_name text;
+ALTER TABLE valorapesquisa.dimension_scores ADD COLUMN IF NOT EXISTS percentage numeric;
+ALTER TABLE valorapesquisa.dimension_scores ADD COLUMN IF NOT EXISTS level_label text;
+
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_10_result_scores_columns','sha256:result-scores-columns-v1')
+ON CONFLICT(version) DO NOTHING;
+COMMIT;
+
+-- Relaxamento aditivo: o fluxo legado de submissao publica grava dimension_scores
+-- chaves por response_id (sem result_score_id/dimension_id); o modelo estruturado
+-- continua gravando os dois. Tornar nullavel nao afeta dados existentes.
+BEGIN;
+ALTER TABLE valorapesquisa.dimension_scores ALTER COLUMN result_score_id DROP NOT NULL;
+ALTER TABLE valorapesquisa.dimension_scores ALTER COLUMN dimension_id DROP NOT NULL;
+
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_10_dimension_scores_nullable_linkage','sha256:dimension-scores-nullable-linkage-v1')
+ON CONFLICT(version) DO NOTHING;
+COMMIT;
+
+-- Colunas e relaxamentos usados pela submissao publica transacional
+-- (PublicResponseTransactionService: certificados por response_id e
+--  email_jobs de comunicacao sem idempotency_key explicita).
+-- Coexistem com o fluxo estruturado (result_id/validation_code, QueueAsync).
+BEGIN;
+ALTER TABLE valorapesquisa.certificates ADD COLUMN IF NOT EXISTS response_id uuid;
+ALTER TABLE valorapesquisa.certificates ADD COLUMN IF NOT EXISTS issuer_name text;
+ALTER TABLE valorapesquisa.certificates ADD COLUMN IF NOT EXISTS survey_name text;
+ALTER TABLE valorapesquisa.certificates ADD COLUMN IF NOT EXISTS maturity_label text;
+ALTER TABLE valorapesquisa.certificates ALTER COLUMN result_id DROP NOT NULL;
+ALTER TABLE valorapesquisa.certificates ALTER COLUMN validation_code DROP NOT NULL;
+
+ALTER TABLE valorapesquisa.email_jobs ADD COLUMN IF NOT EXISTS response_id uuid;
+ALTER TABLE valorapesquisa.email_jobs ADD COLUMN IF NOT EXISTS to_email text;
+ALTER TABLE valorapesquisa.email_jobs ADD COLUMN IF NOT EXISTS body text;
+ALTER TABLE valorapesquisa.email_jobs ALTER COLUMN idempotency_key DROP NOT NULL;
+
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_10_submit_path_columns','sha256:submit-path-columns-v1')
+ON CONFLICT(version) DO NOTHING;
+COMMIT;
+
+-- Ajuste aditivo da intelligent_alerts ao codigo do Decision Center (A4/SCH-7):
+-- duas DDL com o mesmo nome existem neste script e o CREATE TABLE IF NOT EXISTS
+-- aplicado primeiro vence (a anterior), mas o repositorio do Decision Center le
+-- source_type/alert_type/title/message/evidence_summary/assigned_to_user_id/
+-- acknowledged_at/resolved_at. Aditivo e idempotente; os defaults espelham as
+-- colunas existentes (evidence_id/systemic_relation) e o CHECK de severidade e a
+-- uniao dos dois vocabularios declarados neste script (sem semantica nova).
+BEGIN;
+ALTER TABLE valorapesquisa.intelligent_alerts ADD COLUMN IF NOT EXISTS source_type text NOT NULL DEFAULT 'evidence';
+ALTER TABLE valorapesquisa.intelligent_alerts ADD COLUMN IF NOT EXISTS alert_type text NOT NULL DEFAULT 'systemic_relation';
+ALTER TABLE valorapesquisa.intelligent_alerts ADD COLUMN IF NOT EXISTS title text NOT NULL DEFAULT '';
+ALTER TABLE valorapesquisa.intelligent_alerts ADD COLUMN IF NOT EXISTS message text NOT NULL DEFAULT '';
+ALTER TABLE valorapesquisa.intelligent_alerts ADD COLUMN IF NOT EXISTS evidence_summary text NOT NULL DEFAULT '';
+ALTER TABLE valorapesquisa.intelligent_alerts ADD COLUMN IF NOT EXISTS assigned_to_user_id uuid;
+ALTER TABLE valorapesquisa.intelligent_alerts ADD COLUMN IF NOT EXISTS acknowledged_at timestamptz;
+ALTER TABLE valorapesquisa.intelligent_alerts ADD COLUMN IF NOT EXISTS resolved_at timestamptz;
+ALTER TABLE valorapesquisa.intelligent_alerts DROP CONSTRAINT IF EXISTS intelligent_alerts_severity_check;
+ALTER TABLE valorapesquisa.intelligent_alerts ADD CONSTRAINT intelligent_alerts_severity_check CHECK (severity IN ('critical','high','moderate','medium','informational','low','info'));
+
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_10_intelligent_alerts_decision_columns','sha256:intelligent-alerts-decision-columns-v1')
 ON CONFLICT(version) DO NOTHING;
 COMMIT;

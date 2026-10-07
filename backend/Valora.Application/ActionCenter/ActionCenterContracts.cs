@@ -59,32 +59,32 @@ public sealed class AssignResponsibleRequest { public Guid? ResponsibleUserId { 
 public sealed class RescheduleActionRequest { [System.ComponentModel.DataAnnotations.Required] public DateTime? DueAt { get; init; } [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(1000,MinimumLength=3)] public string Reason { get; init; } = ""; [System.ComponentModel.DataAnnotations.Required] public long Version { get; init; } [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(80)] public string CommandId { get; init; } = ""; }
 public sealed class EditActionPlanRequest { [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(180,MinimumLength=3)] public string Title { get; init; } = ""; [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] public string Summary { get; init; } = ""; [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.RegularExpression("critical|high|medium|low")] public string Priority { get; init; } = "medium"; [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] public string ExpectedOutcome { get; init; } = ""; [System.ComponentModel.DataAnnotations.Required] public long Version { get; init; } [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(80)] public string CommandId { get; init; } = ""; }
 public sealed record CreateActionPlanRequest(
-    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(180,MinimumLength=3)] string Title,
-    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string Summary,
-    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.RegularExpression("manual|diagnostic|result|ai_insight|alert|decision")] string OriginType,
+    [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(180,MinimumLength=3)] string Title,
+    [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string Summary,
+    [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.RegularExpression("manual|diagnostic|result|ai_insight|alert|decision")] string OriginType,
     Guid? OriginId, Guid? DiagnosticId, Guid? ResultId, Guid? GovernanceCycleId,
-    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.RegularExpression("critical|high|medium|low")] string Priority,
+    [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.RegularExpression("critical|high|medium|low")] string Priority,
     Guid? OwnerUserId, DateTime? StartsAt, DateTime? DueAt,
-    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string EvidenceSummary,
-    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string ExpectedOutcome,
-    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(80)] string CommandId = "",
+    [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string EvidenceSummary,
+    [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string ExpectedOutcome,
+    [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(80)] string CommandId = "",
     long? ExpectedOriginVersion = null,
-    [property:System.ComponentModel.DataAnnotations.StringLength(1000,MinimumLength=10)] string? AdditionalInitiativeReason = null);
+    [System.ComponentModel.DataAnnotations.StringLength(1000,MinimumLength=10)] string? AdditionalInitiativeReason = null);
 public sealed record CreateActionItemRequest(
-    [property:System.ComponentModel.DataAnnotations.Required] Guid ActionPlanId,
-    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(180,MinimumLength=3)] string Title,
-    [property:System.ComponentModel.DataAnnotations.StringLength(2000)] string Description,
-    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.RegularExpression("manual|diagnostic|result|ai_insight|alert|decision")] string OriginType,
+    [System.ComponentModel.DataAnnotations.Required] Guid ActionPlanId,
+    [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(180,MinimumLength=3)] string Title,
+    [System.ComponentModel.DataAnnotations.StringLength(2000)] string Description,
+    [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.RegularExpression("manual|diagnostic|result|ai_insight|alert|decision")] string OriginType,
     Guid? OriginId, Guid? DiagnosticId, Guid? ResultId,
-    [property:System.ComponentModel.DataAnnotations.StringLength(160)] string? RelatedDimension,
-    [property:System.ComponentModel.DataAnnotations.StringLength(80)] string? RelatedIndexCode,
-    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.RegularExpression("critical|high|medium|low")] string Priority,
+    [System.ComponentModel.DataAnnotations.StringLength(160)] string? RelatedDimension,
+    [System.ComponentModel.DataAnnotations.StringLength(80)] string? RelatedIndexCode,
+    [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.RegularExpression("critical|high|medium|low")] string Priority,
     Guid? ResponsibleUserId, DateTime? DueAt,
-    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string EvidenceSummary,
-    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string ExpectedOutcome,
-    [property:System.ComponentModel.DataAnnotations.StringLength(2000)] string? AiRecommendationSummary,
-    [property:System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(80)] string CommandId = "");
-public sealed record PriorityActionDto(Guid ActionId, Guid PlanId, string PlanTitle, string Title, string Status, string Priority, Guid? ResponsibleUserId, DateTime? DueAt, int ProgressPercent, string EvidenceSummary, string ExpectedOutcome, string? CompletionEvidence, DateTimeOffset LinkedAt);
+    [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string EvidenceSummary,
+    [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(2000,MinimumLength=3)] string ExpectedOutcome,
+    [System.ComponentModel.DataAnnotations.StringLength(2000)] string? AiRecommendationSummary,
+    [System.ComponentModel.DataAnnotations.Required,System.ComponentModel.DataAnnotations.StringLength(80)] string CommandId = "");
+public sealed record PriorityActionDto(Guid ActionId, Guid PlanId, string PlanTitle, string Title, string Status, string Priority, Guid? ResponsibleUserId, DateTime? DueAt, int ProgressPercent, string EvidenceSummary, string ExpectedOutcome, string? CompletionEvidence, DateTime LinkedAt);
 public sealed record ActionOptionDto(Guid Id, string Title, string Status, string Priority, string? Context, Guid? ResponsibleUserId, string? ResponsibleName);
 public sealed class LinkPriorityActionRequest { [System.ComponentModel.DataAnnotations.Required] public Guid ActionId { get; init; } [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(80)] public string CommandId { get; init; } = ""; }
 public sealed class CreatePriorityActionRequest {

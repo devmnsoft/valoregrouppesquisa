@@ -102,7 +102,16 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
             };
         }
 
-        var session = await authentication.SelectOrganizationAsync(HttpContext, request.OrganizationId, cancellationToken);
+        var responsePayload = await validation.Content.ReadAsStringAsync(cancellationToken);
+        Guid selectedOrganizationId = request.OrganizationId;
+        using var document = JsonDocument.Parse(responsePayload);
+        if (document.RootElement.TryGetProperty("organizationId", out var organizationElement)
+            && organizationElement.ValueKind == JsonValueKind.String
+            && Guid.TryParse(organizationElement.GetString(), out var parsedOrganizationId)) {
+            selectedOrganizationId = parsedOrganizationId;
+        }
+
+        var session = await authentication.SelectOrganizationAsync(HttpContext, selectedOrganizationId, cancellationToken);
         return session is null ? Forbid() : Ok(session);
     }
 

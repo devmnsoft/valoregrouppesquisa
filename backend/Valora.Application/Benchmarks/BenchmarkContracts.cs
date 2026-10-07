@@ -2,12 +2,13 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Valora.Application.Benchmarks;
 
-public sealed record BenchmarkCohortDto(Guid Id, string Name, string Description, string Segment, string Industry, string CompanySizeRange, string Region, int MinimumSampleSize, string Status, int MemberCount, DateTimeOffset UpdatedAt);
-public sealed record BenchmarkSnapshotDto(Guid Id, string SourceType, Guid SourceId, DateOnly PeriodStart, DateOnly PeriodEnd, decimal MaturityScore, string ConfidenceLevel, int SampleSize, string MetadataJson, DateTimeOffset CreatedAt);
+// Datas em DateTime: estes registros são materializados diretamente pelo Dapper/Npgsql (timestamptz→DateTime).
+public sealed record BenchmarkCohortDto(Guid Id, string Name, string Description, string Segment, string Industry, string CompanySizeRange, string Region, int MinimumSampleSize, string Status, int MemberCount, DateTime UpdatedAt);
+public sealed record BenchmarkSnapshotDto(Guid Id, string SourceType, Guid SourceId, DateOnly PeriodStart, DateOnly PeriodEnd, decimal MaturityScore, string ConfidenceLevel, int SampleSize, string MetadataJson, DateTime CreatedAt);
 public sealed record BenchmarkMetricDto(string MetricKey, string MetricName, string? Dimension, decimal OrganizationValue, decimal? BenchmarkValue, decimal? Difference, decimal? Percentile, string ConfidenceLevel, int SampleSize, string DataKind);
 public sealed record BenchmarkComparisonDto(Guid Id, string ComparisonType, string Segment, string Criterion, DateOnly PeriodStart, DateOnly PeriodEnd, bool IsAvailable, string ConfidenceLevel, int SampleSize, IReadOnlyList<string> Limitations, IReadOnlyList<BenchmarkMetricDto> Metrics);
-public sealed record BenchmarkInsightDto(Guid Id, string InsightType, string Title, string Description, string EvidenceSummary, string ConfidenceLevel, string Status, Guid? ActionId, DateTimeOffset CreatedAt);
-public sealed record BenchmarkPrivacyRuleDto(Guid Id, int MinimumSampleSize, int KAnonymity, string Status, string? SuppressionReason, DateTimeOffset UpdatedAt);
+public sealed record BenchmarkInsightDto(Guid Id, string InsightType, string Title, string Description, string EvidenceSummary, string ConfidenceLevel, string Status, Guid? ActionId, DateTime CreatedAt);
+public sealed record BenchmarkPrivacyRuleDto(Guid Id, int MinimumSampleSize, int KAnonymity, string Status, string? SuppressionReason, DateTime UpdatedAt);
 public sealed record BenchmarkDashboardDto(BenchmarkSnapshotDto? Current, IReadOnlyList<BenchmarkSnapshotDto> History, IReadOnlyList<BenchmarkInsightDto> Insights, IReadOnlyList<string> Warnings);
 
 public sealed class CreateBenchmarkCohortRequest {

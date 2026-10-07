@@ -53,6 +53,70 @@ public sealed class OrganizationalIntelligenceRepository(IDbConnectionFactory co
     }
 
     private sealed record ModuleRow(Guid Id, string? Code, string Status, string DataJson, int MethodologyVersion, int Version, DateTime CreatedAt, DateTime UpdatedAt);
+    // B1 - Leituras elegíveis para comparação: surveys ativos da organização com
+    // snapshot metodológico imutável capturado na ativação (be4d791f). O índice por
+    // survey replica exatamente a fórmula agregada de GetEvidenceAsync restrita ao
+    // survey; dimensão sem valor avaliado (NULL) não entra na média nem na assinatura.
+    public async Task<IReadOnlyList<EvolutionSurveyComparisonDto>> ListEvolutionComparisonSurveysAsync(Guid organizationId, CancellationToken ct) {
+        const string metaSql = """
+            SELECT s.id SurveyId, COALESCE(s.title, s.name) Title, s.created_at CreatedAt,
+              coalesce(max(qs.captured_at), s.created_at) CapturedAt,
+              s.methodology_snapshot_json::text SnapshotJson,
+              (SELECT encode(digest(coalesce(string_agg(COALESCE(r2.participant_email, r2.participant_name, r2.id::text), ',' ORDER BY COALESCE(r2.participant_email, r2.participant_name, r2.id::text)), ''), 'sha256'), 'hex')
+               FROM valorapesquisa.responses r2
+               JOIN valorapesquisa.result_scores rs2 ON rs2.response_id = r2.id
+               WHERE r2.survey_id = s.id) PopulationSignature,
+              (SELECT count(DISTINCT r3.id)::int FROM valorapesquisa.responses r3
+               JOIN valorapesquisa.result_scores rs3 ON rs3.response_id = r3.id
+               WHERE r3.survey_id = s.id) ScoredResponseCount
+            FROM valorapesquisa.surveys s
+            LEFT JOIN valorapesquisa.survey_methodology_question_snapshots qs ON qs.survey_id = s.id
+            WHERE s.organization_id = @organizationId AND s.deleted_at IS NULL AND s.status = 'active'
+              AND s.methodology_snapshot_hash IS NOT NULL AND s.methodology_snapshot_json IS NOT NULL
+            GROUP BY s.id, s.title, s.name, s.created_at, s.methodology_snapshot_json
+            ORDER BY s.created_at, s.id
+            """;
+        const string criteriaSql = """
+            SELECT qs.survey_id SurveyId, qs.dimension_code DimensionCode, qs.metric_code MetricCode, qs.index_code IndexCode,
+              qs.weight::text WeightText, qs.polarity::int Polarity
+            FROM valorapesquisa.survey_methodology_question_snapshots qs
+            JOIN valorapesquisa.surveys s ON s.id = qs.survey_id
+            WHERE s.organization_id = @organizationId AND s.deleted_at IS NULL AND s.status = 'active'
+              AND s.methodology_snapshot_hash IS NOT NULL AND s.methodology_snapshot_json IS NOT NULL
+            ORDER BY qs.survey_id, qs.question_id
+            """;
+        const string scoreSql = """
+            SELECT r.survey_id SurveyId, d.code Code,
+              round(avg(ds.score::numeric / nullif(ds.max_score, 0)) * 100, 2) Score
+            FROM valorapesquisa.dimension_scores ds
+            JOIN valorapesquisa.result_scores rs ON rs.id = ds.result_score_id
+            JOIN valorapesquisa.responses r ON r.id = rs.response_id
+            JOIN valorapesquisa.dimensions d ON d.id = ds.dimension_id
+            JOIN valorapesquisa.surveys s ON s.id = r.survey_id
+            WHERE s.organization_id = @organizationId AND s.deleted_at IS NULL AND s.status = 'active'
+              AND s.methodology_snapshot_hash IS NOT NULL AND s.methodology_snapshot_json IS NOT NULL
+            GROUP BY r.survey_id, d.id, d.code
+            """;
+        using var c = connections.Create();
+        var parameters = new { organizationId };
+        var surveys = (await c.QueryAsync<EvolutionSurveyRow>(new CommandDefinition(metaSql, parameters, cancellationToken: ct))).ToList();
+        var criteria = (await c.QueryAsync<EvolutionCriterionRow>(new CommandDefinition(criteriaSql, parameters, cancellationToken: ct))).ToList();
+        var scores = (await c.QueryAsync<EvolutionScoreRow>(new CommandDefinition(scoreSql, parameters, cancellationToken: ct))).ToList();
+        return surveys.Select(row => {
+            var measured = scores.Where(x => x.SurveyId == row.SurveyId && x.Score.HasValue).ToList();
+            decimal? maturity = measured.Count == 0 ? null : Math.Round(measured.Average(x => x.Score!.Value), 2);
+            return new EvolutionSurveyComparisonDto(
+                row.SurveyId, row.Title, row.CreatedAt, row.CapturedAt, row.SnapshotJson, row.ScoredResponseCount, row.PopulationSignature, maturity,
+                measured.Select(x => x.Code).Distinct().OrderBy(x => x, StringComparer.Ordinal).ToList(),
+                criteria.Where(x => x.SurveyId == row.SurveyId)
+                    .Select(x => new EvolutionQuestionCriterionRow(x.DimensionCode, x.MetricCode, x.IndexCode, x.WeightText, x.Polarity)).ToList());
+        }).ToList();
+    }
+
+    private sealed record EvolutionSurveyRow(Guid SurveyId, string Title, DateTime CreatedAt, DateTime CapturedAt, string SnapshotJson, string PopulationSignature, int ScoredResponseCount);
+    private sealed record EvolutionCriterionRow(Guid SurveyId, string? DimensionCode, string? MetricCode, string? IndexCode, string WeightText, int Polarity);
+    private sealed record EvolutionScoreRow(Guid SurveyId, string Code, decimal? Score);
+
     public async Task<EvidenceSummaryDto> GetEvidenceAsync(Guid organizationId, CancellationToken ct) {
         const string dimensions = """
             SELECT d.id DimensionId,d.code Code,d.name Name,
@@ -84,7 +148,7 @@ public sealed class OrganizationalIntelligenceRepository(IDbConnectionFactory co
     }
 
     public async Task<IReadOnlyList<OrganizationalIntelligenceRunDto>> ListRunsAsync(Guid organizationId, CancellationToken ct) {
-        const string sql = "SELECT id,organization_id OrganizationId,maturity_index MaturityIndex,culture_trust_index CultureTrustIndex,governance_execution_index GovernanceExecutionIndex,structural_gap StructuralGap,strongest_dimension StrongestDimension,weakest_dimension WeakestDimension,evidence_count EvidenceCount,confidence_level ConfidenceLevel,warning,heatmap::text Heatmap,created_at CreatedAt FROM valorapesquisa.organizational_intelligence_runs WHERE organization_id=@organizationId ORDER BY created_at DESC";
+        const string sql = "SELECT id,organization_id OrganizationId,maturity_index MaturityIndex,culture_trust_index CultureTrustIndex,governance_execution_index GovernanceExecutionIndex,structural_gap StructuralGap,strongest_dimension StrongestDimension,weakest_dimension WeakestDimension,evidence_count EvidenceCount,confidence_level ConfidenceLevel,warning,heatmap::text Heatmap,created_at CreatedAt FROM valorapesquisa.organizational_intelligence_runs WHERE organization_id=@organizationId ORDER BY created_at DESC, id DESC";
         using var c = connections.Create();
         var rows = await c.QueryAsync<RunRow>(new CommandDefinition(sql, new { organizationId }, cancellationToken: ct));
         var result = new List<OrganizationalIntelligenceRunDto>();

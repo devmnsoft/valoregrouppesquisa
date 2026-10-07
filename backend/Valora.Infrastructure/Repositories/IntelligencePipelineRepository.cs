@@ -33,7 +33,7 @@ public sealed class IntelligencePipelineRepository(IDbConnectionFactory connecti
             LEFT JOIN valorapesquisa.survey_methodology_question_snapshots qcm
               ON qcm.survey_id=r.survey_id AND qcm.question_id=ra.question_id
             WHERE r.id=@responseId AND r.organization_id=@organizationId
-            ON CONFLICT(response_id,question_id,concept_code) WHERE deleted_at IS NULL DO UPDATE SET
+            ON CONFLICT(response_id,question_id,concept_code) WHERE deleted_at IS NULL AND response_id IS NOT NULL DO UPDATE SET
               normalized_value=EXCLUDED.normalized_value,raw_value=EXCLUDED.raw_value,weight=EXCLUDED.weight,
               metric_code=EXCLUDED.metric_code,index_code=EXCLUDED.index_code,polarity=EXCLUDED.polarity,confidence_weight=EXCLUDED.confidence_weight,
               score=EXCLUDED.score,source_reference=EXCLUDED.source_reference,mapping_status=EXCLUDED.mapping_status,

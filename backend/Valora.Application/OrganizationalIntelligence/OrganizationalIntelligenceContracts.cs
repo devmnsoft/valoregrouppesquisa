@@ -39,7 +39,7 @@ public sealed record OrganizationalIntelligenceDashboardDto(OrganizationalIntell
     IReadOnlyList<ValoraIndicatorDefinitionDto> Indicators);
 public sealed record GenerateOrganizationalIntelligenceRequest(string? Notes = null);
 public sealed record CreateJourneyEventRequest(string Title, string Description, string EventType, DateTime? OccurredAt = null);
-public sealed record EvolutionPointDto(DateTime CycleAt, decimal MaturityIndex, decimal Change, string Classification, bool HasSufficientHistory, decimal? EstimatedNextCycle);
+public sealed record EvolutionPointDto(DateTime CycleAt, decimal MaturityIndex, decimal Change, string Classification, bool HasSufficientHistory, decimal? EstimatedNextCycle, string? Limitation = null);
 public sealed record ValoraActionDto(Guid Id, Guid OrganizationId, string Code, string Title, string Description,
     string EvidenceJustification, string Capability, string Priority, string? Owner, string? ExecutiveSponsor,
     DateTime? DueAt, string Complexity, string Indicators, string ExpectedResult, string CompletionCriteria,
@@ -59,6 +59,21 @@ public sealed record ReplanValoraActionRequest(string Justification, string? Own
     DateTime? DueAt = null, string? Priority = null);
 public sealed record ValoraActionHistoryDto(Guid Id, Guid ActionId, string Status, string Notes, Guid? ChangedBy, DateTime ChangedAt);
 
+// B1 - Comparação entre leituras a partir de snapshots metodológicos imutáveis.
+// Nenhuma regra de tendência favorável/desfavorável: apenas variação absoluta
+// quando as bases persistidas permitem a comparação.
+public static class EvolutionComparisonSchemas { public const string V1 = "evolution-comparison/v1"; }
+public sealed record EvolutionQuestionCriterionRow(string? DimensionCode, string? MetricCode, string? IndexCode, string WeightText, int Polarity);
+public sealed record EvolutionSurveyComparisonDto(Guid SurveyId, string Title, DateTime CreatedAt, DateTime CapturedAt, string SnapshotJson,
+    int ScoredResponseCount, string PopulationSignature, decimal? MaturityIndex,
+    IReadOnlyList<string> MeasuredDimensionCodes, IReadOnlyList<EvolutionQuestionCriterionRow> CriteriaRows);
+public sealed record EvolutionComparisonCandidateDto(Guid SurveyId, string Title, DateTime CapturedAt, decimal? MaturityIndex, int ScoredResponseCount);
+public sealed record EvolutionComparisonSideDto(Guid SurveyId, string Title, DateTime CapturedAt, decimal? MaturityIndex, int ScoredResponseCount,
+    string MethodologyVersion, bool DataAvailable);
+public sealed record EvolutionComparisonVerdictDto(bool Comparable, decimal? AbsoluteVariation, string? Unit, string Limitation);
+public sealed record EvolutionComparisonDto(string SchemaVersion, EvolutionComparisonSideDto Baseline, EvolutionComparisonSideDto Current,
+    EvolutionComparisonVerdictDto Comparison);
+
 public interface IOrganizationalIntelligenceRepository {
     Task<EvidenceSummaryDto> GetEvidenceAsync(Guid organizationId, CancellationToken ct);
     Task<OrganizationalIntelligenceDashboardDto> GetDashboardAsync(Guid organizationId, CancellationToken ct);
@@ -75,6 +90,7 @@ public interface IOrganizationalIntelligenceRepository {
     Task<bool> DeleteActionAsync(Guid organizationId, Guid actionId, Guid userId, CancellationToken ct);
     Task<IReadOnlyList<EvidenceItemDto>> ListEvidenceItemsAsync(Guid organizationId, CancellationToken ct);
     Task<IReadOnlyList<IntelligenceModuleRecordDto>> ListModuleRecordsAsync(Guid organizationId, string module, CancellationToken ct);
+    Task<IReadOnlyList<EvolutionSurveyComparisonDto>> ListEvolutionComparisonSurveysAsync(Guid organizationId, CancellationToken ct);
 }
 
 public interface IOrganizationalIntelligenceService {
@@ -93,4 +109,6 @@ public interface IOrganizationalIntelligenceService {
     Task<bool> DeleteActionAsync(Guid organizationId, Guid actionId, Guid userId, CancellationToken ct);
     Task<IReadOnlyList<EvidenceItemDto>> EvidenceItemsAsync(Guid organizationId, CancellationToken ct);
     Task<IReadOnlyList<IntelligenceModuleRecordDto>> ModuleRecordsAsync(Guid organizationId, string module, CancellationToken ct);
+    Task<IReadOnlyList<EvolutionComparisonCandidateDto>> EvolutionComparisonCandidatesAsync(Guid organizationId, CancellationToken ct);
+    Task<EvolutionComparisonDto?> EvolutionComparisonAsync(Guid organizationId, Guid? baselineSurveyId, Guid? currentSurveyId, CancellationToken ct);
 }

@@ -7,6 +7,27 @@ namespace Valora.Infrastructure.SaasAdministration;
 public sealed class SaasCustomerRepository(IDbConnectionFactory factory) : ISaasCustomerRepository {
     private const string Projection = "id Id, organization_id OrganizationId, legal_name LegalName, trade_name TradeName, tax_id_normalized TaxIdNormalized, plan_code PlanCode, status Status, created_at CreatedAt";
 
+    // Dapper's positional record deserializer matches ctor parameter types against the reader
+    // field types with no conversion: a text[] column comes back as System.Array and never equals
+    // string[]. We materialize into this row class (property binding) and split module codes by hand.
+    private sealed class SaasCustomerListRow {
+        public Guid Id { get; set; }
+        public Guid OrganizationId { get; set; }
+        public string LegalName { get; set; } = string.Empty;
+        public string TradeName { get; set; } = string.Empty;
+        public string TaxIdMasked { get; set; } = string.Empty;
+        public string PlanCode { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public int ActiveUserCount { get; set; }
+        public string ActiveModules { get; set; } = string.Empty;
+        public DateTime? LastActivityAt { get; set; }
+    }
+
+    private static SaasCustomerListItem ToItem(SaasCustomerListRow x) => new(x.Id, x.OrganizationId, x.LegalName, x.TradeName, x.TaxIdMasked,
+        x.PlanCode, x.Status, x.CreatedAt, x.ActiveUserCount,
+        x.ActiveModules.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries), x.LastActivityAt);
+
     public async Task<IReadOnlyList<SaasCustomerDto>> ListAsync(CancellationToken cancellationToken) {
         using var connection = factory.Create();
         var command = new CommandDefinition($"SELECT {Projection} FROM valorapesquisa.saas_customers ORDER BY trade_name", cancellationToken: cancellationToken);
@@ -23,17 +44,17 @@ public sealed class SaasCustomerRepository(IDbConnectionFactory factory) : ISaas
             SELECT c.id Id,c.organization_id OrganizationId,c.legal_name LegalName,c.trade_name TradeName,
                    CASE WHEN length(c.tax_id_normalized)=14 THEN '••.•••.•••/••'||right(c.tax_id_normalized,4) ELSE '•••.•••.•••-'||right(c.tax_id_normalized,2) END TaxIdMasked,
                    c.plan_code PlanCode,c.status Status,c.created_at CreatedAt,COALESCE(users.active_user_count,0)::int ActiveUserCount,
-                   COALESCE(modules.active_modules,ARRAY[]::text[]) ActiveModules,activity.last_activity_at LastActivityAt
+                   COALESCE(modules.active_modules,'') ActiveModules,activity.last_activity_at LastActivityAt
             FROM valorapesquisa.saas_customers c
             LEFT JOIN LATERAL (SELECT count(*)::int active_user_count FROM valorapesquisa.saas_customer_users u WHERE u.customer_id=c.id AND u.status='active') users ON true
-            LEFT JOIN LATERAL (SELECT array_agg(m.module_code ORDER BY m.module_code) active_modules FROM valorapesquisa.saas_customer_modules m WHERE m.customer_id=c.id AND m.enabled) modules ON true
+            LEFT JOIN LATERAL (SELECT string_agg(m.module_code, ',' ORDER BY m.module_code) active_modules FROM valorapesquisa.saas_customer_modules m WHERE m.customer_id=c.id AND m.enabled) modules ON true
             LEFT JOIN LATERAL (SELECT max(a.created_at) last_activity_at FROM valorapesquisa.saas_customer_audit_events a WHERE a.customer_id=c.id) activity ON true
             {where} ORDER BY {order} OFFSET @offset LIMIT @pageSize;
             """;
         var parameters = new { search = query.Search, status = query.Status, module = query.Module, offset = (query.Page - 1) * query.PageSize, pageSize = query.PageSize };
         using var result = await connection.QueryMultipleAsync(new CommandDefinition(sql, parameters, cancellationToken: cancellationToken));
         var total = await result.ReadSingleAsync<int>();
-        return new SaasCustomerPage((await result.ReadAsync<SaasCustomerListItem>()).AsList(), total, query.Page, query.PageSize);
+        return new SaasCustomerPage((await result.ReadAsync<SaasCustomerListRow>()).Select(ToItem).ToList(), total, query.Page, query.PageSize);
     }
 
     public async Task<SaasCustomerDto?> GetAsync(Guid id, CancellationToken cancellationToken) {

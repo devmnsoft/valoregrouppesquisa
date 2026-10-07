@@ -113,10 +113,10 @@ public sealed class SecurityReliabilityController(IDbConnectionFactory connectio
     private Guid? UserId() => currentRequest.GetCurrent().UserId;
 
     public sealed record PrivacyRequestInput(
-        [property: System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.EmailAddress] string RequesterEmail,
-        [property: System.ComponentModel.DataAnnotations.Required] string RequestType,
-        [property: System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(2000)] string Justification);
+        [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.EmailAddress] string RequesterEmail,
+        [System.ComponentModel.DataAnnotations.Required] string RequestType,
+        [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(2000)] string Justification);
     public sealed record ApiKeyInput(
-        [property: System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(120)] string Name,
+        [System.ComponentModel.DataAnnotations.Required, System.ComponentModel.DataAnnotations.StringLength(120)] string Name,
         string[] Scopes);
 }

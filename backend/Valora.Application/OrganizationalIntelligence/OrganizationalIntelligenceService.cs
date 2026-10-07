@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Valora.Application.Evolution;
 using Valora.Application.Results;
 
 namespace Valora.Application.OrganizationalIntelligence;
@@ -41,19 +42,46 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
 
     public async Task<IReadOnlyList<EvolutionPointDto>> EvolutionAsync(Guid organizationId, CancellationToken ct) {
         // Runs without an evaluated maturity are audit records, not temporal
-        // measurements.  They must not become a zero-valued cycle.
+        // measurements.  They must not become a zero-valued cycle.  The ordering
+        // is total (created_at, id): the same persisted state always yields the
+        // same deterministic series of measurements.
         var runs = (await repository.ListRunsAsync(organizationId, ct))
             .Where(x => x.MaturityIndex.HasValue)
             .OrderBy(x => x.CreatedAt)
+            .ThenBy(x => x.Id)
             .ToList();
-        return runs.Select((run, index) => {
-            var maturity = run.MaturityIndex!.Value;
-            var change = index == 0 ? 0 : Math.Round(maturity - runs[index - 1].MaturityIndex!.Value, 2);
-            var classification = index == 0 ? "baseline" : change >= 2 ? "evolution" : change <= -2 ? "regression" : Math.Abs(change) < .5m ? "stagnation" : "stable";
-            // Compatibility of methodology, population and independent cycles is
-            // not represented by this legacy run. Do not manufacture a forecast.
-            return new EvolutionPointDto(run.CreatedAt, maturity, change, classification, false, null);
-        }).ToList();
+
+        var points = new List<EvolutionPointDto>();
+        OrganizationalIntelligenceRunDto? previous = null;
+        foreach (var run in runs) {
+            // A repeat of the same population producing the same result is a
+            // reprocessment of the same measurement, not a new temporal point.
+            // The rows are preserved and remain queryable through the run list.
+            if (previous is not null && previous.MaturityIndex == run.MaturityIndex && previous.EvidenceCount == run.EvidenceCount)
+                continue;
+
+            var change = 0m;
+            string classification;
+            string? limitation = null;
+            if (previous is null) {
+                classification = "baseline";
+            } else if (previous.EvidenceCount != run.EvidenceCount) {
+                // Different populations: the observed gap reflects time and data
+                // availability, not an assessed organizational change.  Keep the
+                // observed difference but do not assert a direction.
+                change = Math.Round(run.MaturityIndex!.Value - previous.MaturityIndex!.Value, 2);
+                classification = "not_comparable";
+                limitation = $"População de evidências diferente entre as medições ({previous.EvidenceCount} → {run.EvidenceCount}); o intervalo observado não demonstra evolução ou regressão.";
+            } else {
+                change = Math.Round(run.MaturityIndex!.Value - previous.MaturityIndex!.Value, 2);
+                classification = change >= 2 ? "evolution" : change <= -2 ? "regression" : Math.Abs(change) < .5m ? "stagnation" : "stable";
+            }
+            // Methodology version and independent-cycle compatibility are still
+            // not represented by this legacy run; do not manufacture a forecast.
+            points.Add(new EvolutionPointDto(run.CreatedAt, run.MaturityIndex!.Value, change, classification, false, null, limitation));
+            previous = run;
+        }
+        return points;
     }
 
     public async Task<ValoraActionDto> CreateActionAsync(Guid organizationId, Guid userId, CreateValoraActionRequest request, CancellationToken ct) {
@@ -158,5 +186,89 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
     private static decimal? AverageMatching(IEnumerable<DimensionHeatmapDto> values, params string[] terms) {
         var selected = values.Where(x => terms.Any(t => (x.Code + " " + x.Name).Contains(t, StringComparison.OrdinalIgnoreCase))).ToList();
         return selected.Count == 0 ? null : Math.Round(selected.Average(x => x.Score), 2);
+    }
+
+    // B1 - Comparação determinística entre duas leituras com snapshot imutável.
+    // A unidade de comparação é o survey; o índice replica a fórmula agregada do
+    // dashboard restrita ao survey. O veredito nunca classifica tendência como
+    // favorável/desfavorável: apenas variação absoluta quando as bases persistidas
+    // permitem comparação (EvolutionComparisonService.Compare).
+    public async Task<IReadOnlyList<EvolutionComparisonCandidateDto>> EvolutionComparisonCandidatesAsync(Guid organizationId, CancellationToken ct) {
+        var surveys = await repository.ListEvolutionComparisonSurveysAsync(organizationId, ct);
+        return surveys.Select(x => new EvolutionComparisonCandidateDto(x.SurveyId, x.Title, x.CapturedAt, x.MaturityIndex, x.ScoredResponseCount)).ToList();
+    }
+
+    public async Task<EvolutionComparisonDto?> EvolutionComparisonAsync(Guid organizationId, Guid? baselineSurveyId, Guid? currentSurveyId, CancellationToken ct) {
+        var surveys = await repository.ListEvolutionComparisonSurveysAsync(organizationId, ct);
+        if (surveys.Count == 0) return null;
+        var baseline = baselineSurveyId is { } selectedBaseline ? surveys.FirstOrDefault(x => x.SurveyId == selectedBaseline) : surveys[0];
+        var current = currentSurveyId is { } selectedCurrent ? surveys.FirstOrDefault(x => x.SurveyId == selectedCurrent) : surveys[^1];
+        if (baseline is null || current is null) return null;
+        var verdict = baseline.SurveyId == current.SurveyId
+            ? new EvolutionComparisonVerdictDto(false, null, null, "A mesma avaliação não pode ser usada como linha de base e leitura atual.")
+            : BuildVerdict(baseline, current);
+        return new EvolutionComparisonDto(EvolutionComparisonSchemas.V1, BuildSide(baseline), BuildSide(current), verdict);
+    }
+
+    private static EvolutionComparisonSideDto BuildSide(EvolutionSurveyComparisonDto survey) =>
+        new(survey.SurveyId, survey.Title, survey.CapturedAt, survey.MaturityIndex, survey.ScoredResponseCount, MethodologyVersion(survey.SnapshotJson), survey.MaturityIndex.HasValue);
+
+    private static EvolutionComparisonVerdictDto BuildVerdict(EvolutionSurveyComparisonDto baseline, EvolutionSurveyComparisonDto current) {
+        var result = EvolutionComparisonService.Compare(baseline.MaturityIndex, BuildBasis(baseline), current.MaturityIndex, BuildBasis(current));
+        return new EvolutionComparisonVerdictDto(result.IsComparable, result.AbsoluteVariation, result.IsComparable ? "pontos da escala 0 a 100" : null, result.Limitation);
+    }
+
+    private static EvolutionComparisonBasis BuildBasis(EvolutionSurveyComparisonDto survey) =>
+        new(MethodologyVersion(survey.SnapshotJson),
+            string.Join("|", survey.MeasuredDimensionCodes.OrderBy(code => code, StringComparer.Ordinal)),
+            ScaleSignature(survey.SnapshotJson, survey.MeasuredDimensionCodes),
+            CalculationCriteria(survey.CriteriaRows, survey.MeasuredDimensionCodes),
+            survey.PopulationSignature, survey.MaturityIndex.HasValue);
+
+    // Identidade metodológica lida exclusivamente do snapshot imutável (nunca do
+    // catálogo vivo): {code}@{version}.
+    private static string MethodologyVersion(string snapshotJson) {
+        try {
+            using var document = JsonDocument.Parse(snapshotJson);
+            if (!document.RootElement.TryGetProperty("methodology", out var methodology) || methodology.ValueKind != JsonValueKind.Object) return "indefinida";
+            var code = methodology.TryGetProperty("code", out var codeValue) && codeValue.ValueKind == JsonValueKind.String ? codeValue.GetString() ?? string.Empty : string.Empty;
+            string version = string.Empty;
+            if (methodology.TryGetProperty("version", out var versionValue))
+                version = versionValue.ValueKind switch {
+                    JsonValueKind.Number => versionValue.GetInt32().ToString(),
+                    JsonValueKind.String => versionValue.GetString() ?? string.Empty,
+                    _ => versionValue.GetRawText()
+                };
+            return code.Length > 0 && version.Length > 0 ? $"{code}@{version}" : "indefinida";
+        } catch (JsonException) { return "indefinida"; }
+    }
+
+    // Assinatura de escala apenas das perguntas do snapshot cujas dimensões foram
+    // efetivamente medidas: instrumento declarado para o que a leitura calculou.
+    private static string ScaleSignature(string snapshotJson, IReadOnlyList<string> measuredDimensions) {
+        var measured = measuredDimensions.ToHashSet(StringComparer.Ordinal);
+        var scales = new List<string>();
+        try {
+            using var document = JsonDocument.Parse(snapshotJson);
+            if (document.RootElement.TryGetProperty("questions", out var questions) && questions.ValueKind == JsonValueKind.Array) {
+                foreach (var question in questions.EnumerateArray()) {
+                    if (question.ValueKind != JsonValueKind.Object) continue;
+                    if (!question.TryGetProperty("dimension", out var dimension) || dimension.ValueKind != JsonValueKind.String) continue;
+                    if (!measured.Contains(dimension.GetString() ?? string.Empty)) continue;
+                    if (!question.TryGetProperty("scale", out var scale) || scale.ValueKind == JsonValueKind.Null) continue;
+                    scales.Add(scale.GetRawText());
+                }
+            }
+        } catch (JsonException) { }
+        return string.Join("|", scales.Distinct(StringComparer.Ordinal).OrderBy(scale => scale, StringComparer.Ordinal));
+    }
+
+    // Critérios congelados por pergunta (peso, polaridade, métrica e índice) nas
+    // dimensões medidas, na ordem canônica (survey, pergunta) do snapshot.
+    private static string CalculationCriteria(IReadOnlyList<EvolutionQuestionCriterionRow> rows, IReadOnlyList<string> measuredDimensions) {
+        var measured = measuredDimensions.ToHashSet(StringComparer.Ordinal);
+        return string.Join(';', rows
+            .Where(row => !string.IsNullOrWhiteSpace(row.DimensionCode) && measured.Contains(row.DimensionCode!))
+            .Select(row => $"{row.DimensionCode}|{row.MetricCode ?? "-"}|{row.IndexCode ?? "-"}|{row.WeightText}|{row.Polarity}"));
     }
 }

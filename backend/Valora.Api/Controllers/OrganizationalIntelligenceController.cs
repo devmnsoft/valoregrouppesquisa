@@ -52,6 +52,16 @@ public sealed class OrganizationalIntelligenceController(IOrganizationalIntellig
     public async Task<IActionResult> Indicators([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", _ => service.IndicatorsAsync(ct));
     [HttpGet("evolution")]
     public async Task<IActionResult> Evolution([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.EvolutionAsync(id, ct));
+    [HttpGet("evolution/comparison/options")]
+    public async Task<IActionResult> EvolutionComparisonOptions([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, "organizational_intelligence.read", id => service.EvolutionComparisonCandidatesAsync(id, ct));
+    [HttpGet("evolution/comparison")]
+    public async Task<IActionResult> EvolutionComparison([FromQuery] Guid? organizationId, [FromQuery] Guid? baselineSurveyId, [FromQuery] Guid? currentSurveyId, CancellationToken ct) {
+        var access = await Validate(organizationId, "organizational_intelligence.read"); if (access.Error is not null) return access.Error;
+        var comparison = await service.EvolutionComparisonAsync(access.OrganizationId, baselineSurveyId, currentSurveyId, ct);
+        return comparison is null
+            ? NotFound(new { code = "INTELLIGENCE_EVOLUTION_COMPARISON_NOT_FOUND", message = "Nenhuma leitura com snapshot metodológico está disponível nesta organização.", correlationId = HttpContext.TraceIdentifier })
+            : Ok(comparison);
+    }
     [HttpGet("heatmap")]
     public async Task<IActionResult> Heatmap([FromQuery] Guid? organizationId, CancellationToken ct) => await Read(organizationId, Valora.Application.Access.ValoraPermissions.IntelligentDeliverables.HeatmapRead, id => heatmaps.OverviewAsync(id, ct));
     [HttpGet("heatmap/{id:guid}")]

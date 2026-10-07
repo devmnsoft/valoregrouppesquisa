@@ -6,16 +6,16 @@ public sealed record AdminResultReadModel(
     string OrganizationName,
     Guid SurveyId,
     string SurveyTitle,
-    DateTimeOffset? PeriodStart,
-    DateTimeOffset? PeriodEnd,
+    DateTime? PeriodStart,
+    DateTime? PeriodEnd,
     Guid FormId,
     string FormName,
     Guid FormVersionId,
     int FormVersion,
     Guid? ResultId,
     string ProcessingStatus,
-    DateTimeOffset? ProcessedAt,
-    DateTimeOffset? CompletedAt,
+    DateTime? ProcessedAt,
+    DateTime? CompletedAt,
     decimal? TotalScore,
     decimal? MaxScore,
     decimal? Percentage,
@@ -30,5 +30,5 @@ public sealed record AdminResultReadModel(
     IReadOnlyList<AdminResultPlanReadModel> Plans);
 
 public sealed record AdminResultDimensionReadModel(string DimensionName, decimal? Score, decimal? MaxScore, decimal? Percentage, string? LevelLabel);
-public sealed record AdminResultReportReadModel(Guid Id, string Title, string Format, string Status, string? FileName, string? MimeType, DateTimeOffset CreatedAt);
-public sealed record AdminResultPlanReadModel(Guid Id, string Title, string Status, string Priority, string? OwnerName, DateTimeOffset? DueAt, int ProgressPercent);
+public sealed record AdminResultReportReadModel(Guid Id, string Title, string Format, string Status, string? FileName, string? MimeType, DateTime CreatedAt);
+public sealed record AdminResultPlanReadModel(Guid Id, string Title, string Status, string Priority, string? OwnerName, DateTime? DueAt, int ProgressPercent);

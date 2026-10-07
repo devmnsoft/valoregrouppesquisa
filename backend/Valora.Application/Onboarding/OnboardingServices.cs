@@ -4,20 +4,20 @@ using Microsoft.Extensions.Logging;
 namespace Valora.Application.Onboarding;
 
 public sealed record OnboardingStepDto(Guid Id, string Code, string Title, string Guidance, string ActionUrl,
-    bool IsRequired, string Status, DateTimeOffset? CompletedAt, decimal ProgressPercentage);
+    bool IsRequired, string Status, DateTime? CompletedAt, decimal ProgressPercentage);
 public sealed record OnboardingProgressDto(decimal Percentage, int Completed, int Total, string Status,
     IReadOnlyList<OnboardingStepDto> Steps);
 public sealed record ChecklistItemDto(Guid Id, string Code, string Title, bool IsRequired, bool IsCompleted);
-public sealed record AdoptionMetricDto(string FeatureCode, long Events, long ActiveUsers, DateTimeOffset? LastUsedAt);
+public sealed record AdoptionMetricDto(string FeatureCode, long Events, long ActiveUsers, DateTime? LastUsedAt);
 public sealed record CustomerHealthScoreDto(decimal Score, string Level, decimal Usage, decimal Adoption,
-    decimal Diagnostics, decimal Engagement, string Risk, DateTimeOffset CalculatedAt);
-public sealed record CompleteOnboardingStepRequest([property: StringLength(1000)] string? Evidence);
+    decimal Diagnostics, decimal Engagement, string Risk, DateTime CalculatedAt);
+public sealed record CompleteOnboardingStepRequest([StringLength(1000)] string? Evidence);
 public sealed record CreateCustomerSuccessTaskRequest(
-    [property: Required, StringLength(180, MinimumLength = 3)] string Title,
-    [property: StringLength(2000)] string? Description, DateTimeOffset? DueAt);
+    [Required, StringLength(180, MinimumLength = 3)] string Title,
+    [StringLength(2000)] string? Description, DateTimeOffset? DueAt);
 public sealed record CreateCustomerSuccessNoteRequest(
-    [property: Required, StringLength(4000, MinimumLength = 3)] string Content,
-    [property: StringLength(50)] string Type = "internal");
+    [Required, StringLength(4000, MinimumLength = 3)] string Content,
+    [StringLength(50)] string Type = "internal");
 
 public interface IOnboardingRepository {
     Task EnsureDefaultFlowAsync(Guid organizationId, CancellationToken cancellationToken);

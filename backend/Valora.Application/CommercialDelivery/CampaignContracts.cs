@@ -28,13 +28,15 @@ public sealed record CreateCampaignRequest(
     DateTimeOffset? StartsAt = null,
     DateTimeOffset? EndsAt = null,
     decimal? TargetParticipationRate = null);
+// Datas em DateTime: este registro é materializado diretamente pelo Dapper/Npgsql (timestamptz→DateTime) e não é construído em outro lugar.
 public sealed record CampaignRecipientDto(Guid Id, string MaskedRecipient, string Status, string? ErrorCode,
-    DateTimeOffset? QueuedAt, DateTimeOffset? SentAt, DateTimeOffset? OpenedAt, DateTimeOffset? RespondedAt,
-    DateTimeOffset CreatedAt);
+    DateTime? QueuedAt, DateTime? SentAt, DateTime? OpenedAt, DateTime? RespondedAt,
+    DateTime CreatedAt);
 public sealed record CampaignMetricsDto(int Recipients, int Queued, int Sent, int Opened, int Started,
     int Completed, int Expired, int Failed, decimal CompletionRate, DateTimeOffset UpdatedAt);
+// DateTime: materializado direto pelo Dapper/Npgsql (timestamptz→DateTime); o diagnóstico usa apenas leitura/formato.
 public sealed record CampaignHistoryDto(Guid Id, string Action, string Status, Guid? UserId,
-    string? Justification, string? CorrelationId, DateTimeOffset CreatedAt);
+    string? Justification, string? CorrelationId, DateTime CreatedAt);
 public sealed record CampaignTransitionRequest(string? Justification = null, long? ExpectedVersion = null);
 public sealed record DiagnosticCampaignDto(
     Guid Id,

@@ -96,7 +96,7 @@ public sealed class FormalDeliverableCatalogRepository(IDbConnectionFactory conn
 
     public async Task<FormalDeliverableEntity?> GetEntityAsync(Guid organizationId, Guid deliverableId, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
-        return await connection.QuerySingleOrDefaultAsync<FormalDeliverableEntity>(new CommandDefinition("""
+        var row = await connection.QuerySingleOrDefaultAsync<EntityRow>(new CommandDefinition("""
             SELECT id, organization_id AS OrganizationId, diagnostic_id AS DiagnosticId, result_id AS ResultId,
                    deliverable_type AS DeliverableType, title, status, editorial_status AS EditorialStatus,
                    processing_status AS ProcessingStatus, version_number AS VersionNumber, template_code AS TemplateCode,
@@ -109,11 +109,12 @@ public sealed class FormalDeliverableCatalogRepository(IDbConnectionFactory conn
             FROM valorapesquisa.formal_deliverables
             WHERE id=@DeliverableId AND organization_id=@OrganizationId AND deleted_at IS NULL
             """, new { DeliverableId = deliverableId, OrganizationId = organizationId }, cancellationToken: cancellationToken));
+        return row is null ? null : ToEntity(row);
     }
 
     public async Task<FormalDeliverableEntity?> FindByCommandIdAsync(Guid organizationId, string commandId, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
-        return await connection.QuerySingleOrDefaultAsync<FormalDeliverableEntity>(new CommandDefinition("""
+        var row = await connection.QuerySingleOrDefaultAsync<EntityRow>(new CommandDefinition("""
             SELECT id, organization_id AS OrganizationId, diagnostic_id AS DiagnosticId, result_id AS ResultId,
                    deliverable_type AS DeliverableType, title, status, editorial_status AS EditorialStatus,
                    processing_status AS ProcessingStatus, version_number AS VersionNumber, template_code AS TemplateCode,
@@ -128,6 +129,7 @@ public sealed class FormalDeliverableCatalogRepository(IDbConnectionFactory conn
             ORDER BY created_at DESC, id DESC
             LIMIT 1
             """, new { OrganizationId = organizationId, CommandId = commandId }, cancellationToken: cancellationToken));
+        return row is null ? null : ToEntity(row);
     }
 
     public async Task InsertAsync(FormalDeliverableEntity entity, CancellationToken cancellationToken = default) {
@@ -359,16 +361,36 @@ public sealed class FormalDeliverableCatalogRepository(IDbConnectionFactory conn
         }
     }
 
+    // timestamptz chega como DateTime no Npgsql/Dapper; o contrato público mantém DateTimeOffset (conversão implícita).
     private sealed record ListRow(
         Guid Id, string Title, Guid? DiagnosticId, string? DiagnosticName, Guid? ResultId, string Type,
-        int VersionNumber, string EditorialStatus, string ProcessingStatus, DateTimeOffset CreatedAt,
-        DateTimeOffset UpdatedAt, string? ResponsibleName, string? TraceCode, Guid? DocumentId);
+        int VersionNumber, string EditorialStatus, string ProcessingStatus, DateTime CreatedAt,
+        DateTime UpdatedAt, string? ResponsibleName, string? TraceCode, Guid? DocumentId);
 
     private sealed record DetailRow(
         Guid Id, string Title, Guid? DiagnosticId, string? DiagnosticName, Guid? ResultId, string Type,
-        int VersionNumber, string EditorialStatus, string ProcessingStatus, DateTimeOffset CreatedAt,
-        DateTimeOffset UpdatedAt, string? ResponsibleName, string? TraceCode, string? ExecutiveNotes,
-        string? SectionsJson, Guid? ReviewerUserId, string? ReviewerName, DateTimeOffset? PublishedAt,
+        int VersionNumber, string EditorialStatus, string ProcessingStatus, DateTime CreatedAt,
+        DateTime UpdatedAt, string? ResponsibleName, string? TraceCode, string? ExecutiveNotes,
+        string? SectionsJson, Guid? ReviewerUserId, string? ReviewerName, DateTime? PublishedAt,
         string? PublishedByName, string? SourceResultHash, string? MethodologyName, string? MethodologyVersion,
         Guid? ParentDeliverableId, Guid? DocumentId, string? ContentType, string? FileName, string? MetadataJson);
+
+    // A entidade pública é construída em C# com DateTimeOffset; a leitura do banco materializa em DateTime (Npgsql)
+    // e converte aqui, porque o construtor posicional do record exige igualdade estrita de tipo.
+    private sealed record EntityRow(
+        Guid Id, Guid OrganizationId, Guid? DiagnosticId, Guid? ResultId, string DeliverableType, string Title,
+        string Status, string EditorialStatus, string ProcessingStatus, int VersionNumber, string? TemplateCode,
+        string SectionsJson, string? ExecutiveNotes, Guid? ReviewerUserId, string? SourceResultHash,
+        string? MethodologyName, string? MethodologyVersion, DateTime? PublishedAt, Guid? PublishedBy,
+        Guid? ParentDeliverableId, string? CommandId, Guid? DocumentId, Guid? FileId, Guid? GeneratedByUserId,
+        string MetadataJson, DateTime CreatedAt, DateTime UpdatedAt);
+
+    private static FormalDeliverableEntity ToEntity(EntityRow x) => new(x.Id, x.OrganizationId, x.DiagnosticId, x.ResultId,
+        x.DeliverableType, x.Title, x.Status, x.EditorialStatus, x.ProcessingStatus, x.VersionNumber, x.TemplateCode,
+        x.SectionsJson, x.ExecutiveNotes, x.ReviewerUserId, x.SourceResultHash, x.MethodologyName, x.MethodologyVersion,
+        ToUtc(x.PublishedAt), x.PublishedBy, x.ParentDeliverableId, x.CommandId, x.DocumentId, x.FileId,
+        x.GeneratedByUserId, x.MetadataJson, ToUtc(x.CreatedAt), ToUtc(x.UpdatedAt));
+
+    private static DateTimeOffset ToUtc(DateTime d) => new(d, TimeSpan.Zero);
+    private static DateTimeOffset? ToUtc(DateTime? d) => d is null ? null : new DateTimeOffset(d.Value, TimeSpan.Zero);
 }

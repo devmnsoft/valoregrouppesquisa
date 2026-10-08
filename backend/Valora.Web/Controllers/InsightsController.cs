@@ -1,10 +1,10 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Valora.Application.ValoraAi;
 using Valora.Application.Access;
-using Valora.Web.Models.ViewModels;
 using Valora.Application.Common;
+using Valora.Application.ValoraAi;
+using Valora.Web.Models.ViewModels;
 
 namespace Valora.Web.Controllers;
 
@@ -18,18 +18,18 @@ public sealed class InsightsController(
     ILogger<InsightsController> logger) : Controller {
     [HttpGet("")]
     public async Task<IActionResult> Index([FromQuery] AiInsightListQuery query, CancellationToken ct) {
-        if (!TryGetOperationContext(out var organizationId,out var userId)) return OrganizationRequired();
-        var context=requestContext.GetCurrent();
-        return View(new InsightListPageViewModel(await insights.ListAsync(organizationId,userId,context.IsGlobalAdministrator||context.Roles.Contains("admin_cliente",StringComparer.OrdinalIgnoreCase),query,ct),query,Request.Path+Request.QueryString));
+        if (!TryGetOperationContext(out var organizationId, out var userId)) return OrganizationRequired();
+        var context = requestContext.GetCurrent();
+        return View(new InsightListPageViewModel(await insights.ListAsync(organizationId, userId, context.IsGlobalAdministrator || context.Roles.Contains("admin_cliente", StringComparer.OrdinalIgnoreCase), query, ct), query, Request.Path + Request.QueryString));
     }
 
     [HttpGet("Details/{id:guid}")]
-    public async Task<IActionResult> Details(Guid id,string? returnUrl,CancellationToken ct) {
-        if (!TryGetOperationContext(out var organizationId,out var userId)) return OrganizationRequired();
-        var context=requestContext.GetCurrent();var detail=await insights.DetailsAsync(organizationId,userId,id,context.IsGlobalAdministrator||context.Roles.Contains("admin_cliente",StringComparer.OrdinalIgnoreCase),ct);
-        if(detail is null)return NotFound();
-        var back=!string.IsNullOrWhiteSpace(returnUrl)&&Url.IsLocalUrl(returnUrl)&&returnUrl.StartsWith("/Insights",StringComparison.OrdinalIgnoreCase)?returnUrl:"/Insights";
-        return View(new InsightDetailsPageViewModel(detail,back));
+    public async Task<IActionResult> Details(Guid id, string? returnUrl, CancellationToken ct) {
+        if (!TryGetOperationContext(out var organizationId, out var userId)) return OrganizationRequired();
+        var context = requestContext.GetCurrent(); var detail = await insights.DetailsAsync(organizationId, userId, id, context.IsGlobalAdministrator || context.Roles.Contains("admin_cliente", StringComparer.OrdinalIgnoreCase), ct);
+        if (detail is null) return NotFound();
+        var back = !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) && returnUrl.StartsWith("/Insights", StringComparison.OrdinalIgnoreCase) ? returnUrl : "/Insights";
+        return View(new InsightDetailsPageViewModel(detail, back));
     }
 
     [HttpPost("Details/{id:guid}/Approve")]
@@ -74,8 +74,8 @@ public sealed class InsightsController(
             if (insight is null) return NotFound();
             ViewData["OpenRejectDialog"] = true;
             ViewData["RejectionReason"] = model.Reason;
-            var context=requestContext.GetCurrent();var detail=await insights.DetailsAsync(organizationId,userId,id,context.IsGlobalAdministrator||context.Roles.Contains("admin_cliente",StringComparer.OrdinalIgnoreCase),ct);
-            return detail is null?NotFound():View("Details",new InsightDetailsPageViewModel(detail,SafeInsightsReturn(returnUrl)));
+            var context = requestContext.GetCurrent(); var detail = await insights.DetailsAsync(organizationId, userId, id, context.IsGlobalAdministrator || context.Roles.Contains("admin_cliente", StringComparer.OrdinalIgnoreCase), ct);
+            return detail is null ? NotFound() : View("Details", new InsightDetailsPageViewModel(detail, SafeInsightsReturn(returnUrl)));
         }
 
         try {
@@ -127,5 +127,5 @@ public sealed class InsightsController(
         return RedirectToAction("Index", "Organization");
     }
 }
-public sealed record InsightListPageViewModel(AiInsightListResult Result,AiInsightListQuery Query,string CurrentUrl);
-public sealed record InsightDetailsPageViewModel(AiInsightDetails Details,string ReturnUrl);
+public sealed record InsightListPageViewModel(AiInsightListResult Result, AiInsightListQuery Query, string CurrentUrl);
+public sealed record InsightDetailsPageViewModel(AiInsightDetails Details, string ReturnUrl);

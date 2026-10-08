@@ -1,4 +1,48 @@
 @model Valora.Web.Models.ViewModels.CreateOrganizationViewModel
-@{ ViewData["Title"]="Criar organização"; }
-<section class="valora-page"><partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Criar organização", "Configure identidade, plano e limites iniciais.", "Admin Hub"))" /><form method="post" class="admin-panel"><div asp-validation-summary="ModelOnly" class="text-danger"></div><div class="row g-3"><div class="col-md-6"><label asp-for="Name">Nome</label><input asp-for="Name" class="form-control"/><span asp-validation-for="Name" class="text-danger"></span></div><div class="col-md-6"><label asp-for="Slug">Identificador público</label><input asp-for="Slug" class="form-control"/><span asp-validation-for="Slug" class="text-danger"></span></div><div class="col-md-6"><label asp-for="PlanCode">Plano</label><select asp-for="PlanCode" asp-items="Model.Plans" class="form-select"><option value="">Selecione…</option></select><span asp-validation-for="PlanCode" class="text-danger"></span></div><div class="col-md-6"><label asp-for="UserLimit">Limite de usuários</label><input asp-for="UserLimit" class="form-control"/><span asp-validation-for="UserLimit" class="text-danger"></span></div></div><button class="btn btn-primary mt-4">Criar organização</button></form></section>
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+@{ ViewData["Title"] = "Criar organização"; }
+<section class="valora-page">
+    <partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Criar organização", "Identidade, CNPJ, administrador inicial e plano. O cadastro é idempotente por tentativa.", "Admin Hub"))" />
+    @if (TempData["AdminNotice"] is string adminNotice) { <div class="alert alert-success">@adminNotice</div> }
+    @if (Model.Error is not null) { <div class="alert alert-danger" role="alert"><strong>@Model.Error</strong></div> }
+    <form method="post" asp-action="CreateOrganization" class="admin-panel" data-dirty-guard="true">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Language" />
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="row g-3">
+            <div class="col-md-6"><label asp-for="CompanyName">Nome da organização</label><input asp-for="CompanyName" class="form-control" /><span asp-validation-for="CompanyName" class="text-danger"></span></div>
+            <div class="col-md-6"><label asp-for="TradeName">Nome de fantasia (opcional)</label><input asp-for="TradeName" class="form-control" /><span asp-validation-for="TradeName" class="text-danger"></span></div>
+            <div class="col-md-4"><label asp-for="Cnpj">CNPJ</label><input asp-for="Cnpj" class="form-control" placeholder="00.000.000/0000-00" /><span asp-validation-for="Cnpj" class="text-danger"></span></div>
+            <div class="col-md-4"><label asp-for="Phone">Telefone (opcional)</label><input asp-for="Phone" class="form-control" /></div>
+            <div class="col-md-4"><label asp-for="TimeZone">Fuso horário</label><input asp-for="TimeZone" class="form-control" /></div>
+            <div class="col-md-6"><label asp-for="AdministratorName">Nome do administrador</label><input asp-for="AdministratorName" class="form-control" /><span asp-validation-for="AdministratorName" class="text-danger"></span></div>
+            <div class="col-md-6"><label asp-for="AdministratorEmail">E-mail do administrador</label><input asp-for="AdministratorEmail" class="form-control" /><span asp-validation-for="AdministratorEmail" class="text-danger"></span></div>
+            <div class="col-md-6"><label asp-for="Password">Senha inicial</label><input asp-for="Password" class="form-control" /><span asp-validation-for="Password" class="text-danger"></span><small class="text-muted">A senha é validada pela política do sistema antes do cadastro.</small></div>
+            <div class="col-md-6"><label asp-for="RoleTitle">Cargo do administrador (opcional)</label><input asp-for="RoleTitle" class="form-control" /><span asp-validation-for="RoleTitle" class="text-danger"></span></div>
+            <div class="col-md-6">
+                <label asp-for="PlanCode">Plano</label>
+                <select asp-for="PlanCode" asp-items="Model.Plans" class="form-select">
+                    <option value="">Selecione…</option>
+                </select>
+                <span asp-validation-for="PlanCode" class="text-danger"></span>
+            </div>
+            <div class="col-12">
+                <div class="form-check">
+                    <input asp-for="AcceptedTerms" class="form-check-input" />
+                    <label asp-for="AcceptedTerms" class="form-check-label">Li e aceito os termos de uso.</label>
+                    <span asp-validation-for="AcceptedTerms" class="text-danger"></span>
+                </div>
+                <div class="form-check">
+                    <input asp-for="AcceptedPrivacyPolicy" class="form-check-input" />
+                    <label asp-for="AcceptedPrivacyPolicy" class="form-check-label">Li e aceito a política de privacidade (LGPD).</label>
+                    <span asp-validation-for="AcceptedPrivacyPolicy" class="text-danger"></span>
+                </div>
+            </div>
+        </div>
+        <button class="btn btn-primary mt-4" type="submit">Criar organização</button>
+        <a asp-action="Organizations" class="btn btn-link ms-2">Cancelar</a>
+    </form>
+</section>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <partial name="_FormDirtyGuard" />
+}

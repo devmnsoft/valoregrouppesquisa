@@ -11,8 +11,7 @@ public sealed record SaasCustomerPage(IReadOnlyList<SaasCustomerListItem> Items,
 }
 // Classe (não record): em .NET, records somente honram metadados de validação declarados nos
 // parâmetros do construtor primário, invisíveis ao runtime Validator usado em CreateAsync.
-public sealed class CreateSaasCustomerRequest
-{
+public sealed class CreateSaasCustomerRequest {
     [Required, StringLength(200)] public string LegalName { get; set; } = "";
     [Required, StringLength(160)] public string TradeName { get; set; } = "";
     [Required] public string TaxId { get; set; } = "";
@@ -37,6 +36,12 @@ public sealed class SaasCustomerService(ISaasCustomerRepository repository, ILog
         return repository.ListPageAsync(normalized, cancellationToken);
     }
     public Task<SaasCustomerDto?> GetAsync(Guid id, CancellationToken cancellationToken) => repository.GetAsync(RequiredId(id, nameof(id)), cancellationToken);
+
+    public async Task<SaasCustomerDto?> FindByOrganizationIdAsync(Guid organizationId, CancellationToken cancellationToken) {
+        RequiredId(organizationId, nameof(organizationId));
+        var customers = await repository.ListAsync(cancellationToken);
+        return customers.FirstOrDefault(customer => customer.OrganizationId == organizationId);
+    }
 
     public async Task<SaasCustomerDto> CreateAsync(CreateSaasCustomerRequest request, CancellationToken cancellationToken) {
         RequiredId(request.OrganizationId, nameof(request.OrganizationId));

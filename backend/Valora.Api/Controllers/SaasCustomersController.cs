@@ -37,7 +37,8 @@ public sealed class SaasCustomersController(SaasCustomerService service, AuditSe
     [Authorize(Policy = ValoraPermissions.SaasCustomers.View)]
     public async Task<IActionResult> SelectContext(Guid id, [FromBody] SelectCustomerContextRequest request,
         CancellationToken cancellationToken) {
-        var customer = await service.GetAsync(id, cancellationToken);
+        // O identificador pode ser o id do cliente ou o id da organização (a UI envia a organização).
+        var customer = await service.GetAsync(id, cancellationToken) ?? await service.FindByOrganizationIdAsync(id, cancellationToken);
         if (customer is null) return NotFound(new { code = "ORGANIZATION_NOT_FOUND", message = "Cliente não encontrado." });
 
         var current = currentRequest.GetCurrent();

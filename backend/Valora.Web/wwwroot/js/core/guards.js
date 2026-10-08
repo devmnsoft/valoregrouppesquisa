@@ -7,7 +7,10 @@
   }
   function requireAuth(options) {
     const redirectTo = (options && options.redirectTo) || '/Account/Login';
-    if (!isPublicPath(window.location.pathname) && window.Session && !Session.token()) {
+    // No fluxo BFF o cookie de sessao e a fonte da verdade: Session.isAuthenticated()
+    // lê o marker data-authenticated renderizado no <body>. token() fica como fallback legado.
+    var isAuthed = window.Session && (typeof Session.isAuthenticated === 'function' ? Session.isAuthenticated() : Boolean(Session.token()));
+    if (!isPublicPath(window.location.pathname) && window.Session && !isAuthed) {
       window.location.href = redirectTo + '?returnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
       return false;
     }
@@ -20,8 +23,15 @@
     window.location.href = '/Account/Login';
   }
   window.Guards = { isPublicPath: isPublicPath, requireAuth: requireAuth, handleForbidden: handleForbidden, logout: logout };
-  $(function () {
-    $('[data-logout]').on('click', function (event) { event.preventDefault(); logout(); });
+  function init() {
+    document.querySelectorAll('[data-logout]').forEach(function (el) {
+      el.addEventListener('click', function (event) { event.preventDefault(); logout(); });
+    });
     requireAuth({ redirectTo: '/Account/Login' });
-  });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 }());

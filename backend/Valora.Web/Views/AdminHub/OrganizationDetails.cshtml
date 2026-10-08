@@ -1,3 +1,83 @@
-@model Valora.Web.Models.ViewModels.AdminOrganizationDetailsViewModel
-@{ ViewData["Title"]=Model.Organization.Name; }
-<section class="valora-page"><partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel(Model.Organization.Name, "Plano, uso, unidades e histórico do tenant.", "Organizações"))" /><div class="admin-metrics"><article class="admin-metric"><span>Plano</span><strong>@Model.Organization.Plan</strong></article><article class="admin-metric"><span>Usuários</span><strong>@Model.Organization.Users</strong></article><article class="admin-metric"><span>Unidades</span><strong>@Model.Organization.Units</strong></article><article class="admin-metric"><span>Status</span><strong>@Model.Organization.Status</strong></article></div><article class="admin-panel mt-3"><h2>Histórico</h2>@if(Model.RecentEvents.Count==0){<div class="admin-empty">Nenhum evento registrado.</div>}</article></section>
+@model Valora.Web.Models.ViewModels.OrganizationDetailsFormModel
+@{ ViewData["Title"] = "Detalhes da organização"; }
+<section class="valora-page">
+    <partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel(Model.Name, "Plano, uso, dados cadastrais e histórico do tenant.", "Admin Hub"))" />
+    @if (TempData["AdminNotice"] is string adminNotice) { <div class="alert alert-success">@adminNotice</div> }
+    @if (Model.Error is not null) { <div class="alert alert-danger" role="alert"><strong>@Model.Error</strong></div> }
+    <div class="admin-metrics">
+        <article class="admin-metric"><span>Plano</span><strong>@Model.Plan</strong><small>Consulta em tempo real</small></article>
+        <article class="admin-metric"><span>Status</span><strong>@Model.Status</strong><small>Identificador: @Model.Slug</small></article>
+        <article class="admin-metric"><span>CNPJ</span><strong>@(Model.Cnpj ?? "—")</strong><small>Cadastrado na base</small></article>
+        <article class="admin-metric"><span>Criada em</span><strong>@Model.CreatedAt.ToString("dd/MM/yyyy")</strong><small>Organização</small></article>
+    </div>
+    @if (Model.Usage.Count > 0) {
+        <article class="admin-panel mt-3">
+            <h2>Uso dos recursos</h2>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">Recurso</th>
+                            <th scope="col">Período</th>
+                            <th scope="col">Consumo</th>
+                            <th scope="col">Limite</th>
+                            <th scope="col">Percentual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var u in Model.Usage) {
+                            <tr>
+                                <td>@u.Key</td>
+                                <td>@u.Period</td>
+                                <td>@u.Consumed</td>
+                                <td>@(u.Unlimited ? "Ilimitado" : (u.Limit?.ToString() ?? "—"))</td>
+                                <td>@(u.Percentage is null ? "—" : $"{Math.Round(u.Percentage.Value)}%")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    }
+    <form method="post" asp-action="OrganizationDetailsUpdate" asp-route-id="@Model.Id" class="admin-panel mt-3" data-dirty-guard="true">
+        <h2>Dados cadastrais</h2>
+        <input type="hidden" asp-for="Id" />
+        <input type="hidden" asp-for="Version" />
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="row g-3">
+            <div class="col-md-6"><label asp-for="PublicName">Nome público</label><input asp-for="PublicName" class="form-control" /><span asp-validation-for="PublicName" class="text-danger"></span></div>
+            <div class="col-md-6"><label asp-for="LegalName">Razão social</label><input asp-for="LegalName" class="form-control" /><span asp-validation-for="LegalName" class="text-danger"></span></div>
+            <div class="col-md-6"><label asp-for="Email">E-mail institucional</label><input asp-for="Email" class="form-control" /><span asp-validation-for="Email" class="text-danger"></span></div>
+            <div class="col-md-6"><label asp-for="Phone">Telefone</label><input asp-for="Phone" class="form-control" /><span asp-validation-for="Phone" class="text-danger"></span></div>
+            <div class="col-md-4"><label asp-for="TimeZone">Fuso horário</label><input asp-for="TimeZone" class="form-control" /></div>
+            <div class="col-md-4"><label asp-for="Segment">Segmento</label><input asp-for="Segment" class="form-control" /></div>
+            <div class="col-md-4"><label asp-for="PrimaryContactName">Contato principal</label><input asp-for="PrimaryContactName" class="form-control" /></div>
+            <div class="col-md-4"><label asp-for="Region">Região</label><input asp-for="Region" class="form-control" /></div>
+            <div class="col-md-4"><label asp-for="City">Cidade</label><input asp-for="City" class="form-control" /></div>
+            <div class="col-md-4"><label asp-for="State">UF</label><input asp-for="State" class="form-control" maxlength="2" /></div>
+        </div>
+        <button class="btn btn-primary mt-4" type="submit">Salvar alterações</button>
+        <a asp-action="Organizations" class="btn btn-link ms-2">Cancelar</a>
+    </form>
+    @if (Model.RecentEvents.Count > 0) {
+        <article class="admin-panel mt-3">
+            <h2>Histórico recente</h2>
+            <ul class="list-group list-group-flush">
+                @foreach (var ev in Model.RecentEvents) {
+                    <li class="list-group-item d-flex justify-content-between">
+                        <span>@ev.Action@(ev.Message is null ? "" : $" — {ev.Message}")</span>
+                        <small class="text-muted">@ev.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                    </li>
+                }
+            </ul>
+        </article>
+    }
+    else {
+        <div class="admin-empty mt-3">Nenhum evento recente registrado para esta organização.</div>
+    }
+</section>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <partial name="_FormDirtyGuard" />
+}

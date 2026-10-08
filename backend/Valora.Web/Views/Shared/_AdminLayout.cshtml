@@ -28,8 +28,9 @@
   <link rel="stylesheet" href="/css/design-system/responsive.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/valora-responsive.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/print.css" asp-append-version="true">
+  @await RenderSectionAsync("Styles", required: false)
 </head>
-<body class="valora-shell admin-body">
+<body class="valora-shell admin-body" data-authenticated="@(User.Identity?.IsAuthenticated == true ? "true" : "false")">
   <a class="valora-skip-link" href="#main-content">Ir para o conteúdo principal</a>
   @if (Configuration.GetValue<bool>("App:MaintenanceModeEnabled"))
   {
@@ -49,6 +50,7 @@
     </main>
   </div>
   @await Html.PartialAsync("_ToastContainer")
+  @await Html.PartialAsync("_ConfirmationModal")
     <script src="/lib/bootstrap/bootstrap.bundle.min.js" asp-append-version="true"></script>
 <script src="/web-config.js" asp-append-version="true"></script>
 <script src="/js/config.js" asp-append-version="true"></script>
@@ -59,13 +61,14 @@
 <script src="/js/security/role-definitions.js"></script>
 <script src="/js/security/module-definitions.js"></script>
 <script src="/js/security/permissions.js"></script>
-<script src="/js/core/guards.js"></script>
+<script src="/js/core/guards.js" asp-append-version="true"></script>
 <script src="/js/core/masks.js"></script>
 <script src="/js/core/formatters.js"></script>
 <script src="/js/core/validators.js"></script>
 <script src="/js/core/loading.js"></script>
 <script src="/js/core/toast.js"></script>
 <script src="/js/core/modal.js"></script>
+<script src="/js/valora-ui.js"></script>
 <script src="/js/core/table.js"></script>
 <script src="/js/core/form.js"></script>
 <script src="/js/api/ajax-client.js"></script>
@@ -90,7 +93,7 @@
 <script src="/js/api/settings-api.js"></script>
 <script src="/js/api/usage-api.js"></script>
 <script src="/js/router.js"></script>
-<script src="/js/app.js"></script>
+<script src="/js/app.js" asp-append-version="true"></script>
 <script src="/js/shell/navigation-shell.js" asp-append-version="true" defer></script>
 <script src="/js/shell/topbar-shell.js" asp-append-version="true" defer></script>
 <script src="/js/components/valora-experience.js" asp-append-version="true" defer></script>

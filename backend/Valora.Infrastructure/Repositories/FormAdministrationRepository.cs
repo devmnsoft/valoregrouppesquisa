@@ -234,7 +234,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         await unit.Connection.ExecuteAsync(new CommandDefinition(publishSql, new { organizationId, formId, versionId = version.Id, userId }, unit.Transaction, cancellationToken: cancellationToken));
         await AuditAsync(unit, organizationId, userId, "form.published", "form", formId, cancellationToken);
         await unit.CommitAsync();
-        return version with { Status = "published", PublishedAt = DateTimeOffset.UtcNow, Version = version.Version + 1 };
+        return version with { Status = "published", PublishedAt = DateTime.UtcNow, Version = version.Version + 1 };
     }
 
     public async Task<ReorderFormItemResponse?> ReorderAsync(Guid organizationId, Guid formId, ReorderFormItemRequest request, CancellationToken cancellationToken) {
@@ -339,6 +339,13 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
             INSERT INTO valorapesquisa.question_versions(id,organization_id,section_id,code,type,title,description,required,dimension_code,weight,position,display_order,settings,version)
             SELECT @id,@organizationId,@sectionId,@code,@type,@title,@description,@required,@dimensionCode,@weight,@position,@position,CAST(@settings AS jsonb),1 FROM draft
             RETURNING id AS "Id",section_id AS "SectionId",code AS "Code",type AS "Type",title AS "Title",description AS "Description",required AS "Required",dimension_code AS "DimensionCode",weight AS "Weight",position::int AS "Position",settings::text AS "Settings",version::bigint AS "Version";
+            -- Espelho de compatibilidade: response_answers ainda referencia a
+            -- tabela legada questions; cada versão de pergunta mantém uma
+            -- linha com o mesmo id para preservar a FK sem enfraquecê-la.
+            INSERT INTO valorapesquisa.questions(id,code,text,display_order,is_required)
+            SELECT @id,@code,@title,@position,@required
+            FROM valorapesquisa.question_versions WHERE id=@id
+            ON CONFLICT (id) DO NOTHING;
             """;
         var id = Guid.NewGuid();
         var row = await unit.Connection.QuerySingleOrDefaultAsync<QuestionRow>(new CommandDefinition(sql, new {
@@ -568,6 +575,8 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
             foreach (var question in questions) {
                 var newQuestionId = Guid.NewGuid();
                 await unit.Connection.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.question_versions(id,organization_id,section_id,code,type,title,description,required,dimension_code,weight,position,display_order,settings,version) VALUES(@newQuestionId,@organizationId,@newSectionId,@Code,@Type,@Title,@Description,@Required,@DimensionCode,@Weight,@Position,@Position,CAST(@Settings AS jsonb),1)", new { newQuestionId, organizationId, newSectionId, question.Code, question.Type, question.Title, question.Description, question.Required, question.DimensionCode, question.Weight, question.Position, question.Settings }, unit.Transaction, cancellationToken: cancellationToken));
+                // Espelho de compatibilidade para a FK legada de response_answers.
+                await unit.Connection.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.questions(id,code,text,display_order,is_required) VALUES(@newQuestionId,@Code,@Title,@Position,@Required) ON CONFLICT (id) DO NOTHING", new { newQuestionId, question.Code, question.Title, question.Position, question.Required }, unit.Transaction, cancellationToken: cancellationToken));
                 var options = await unit.Connection.QueryAsync<OptionRow>(new CommandDefinition(
                     "SELECT id AS \"Id\",question_id AS \"QuestionId\",label AS \"Label\",value AS \"Value\",score AS \"Score\",position::int AS \"Position\",version::bigint AS \"Version\" FROM valorapesquisa.question_option_versions WHERE question_id=@questionId AND deleted_at IS NULL ORDER BY position,id",
                     new { questionId = question.Id }, unit.Transaction, cancellationToken: cancellationToken));

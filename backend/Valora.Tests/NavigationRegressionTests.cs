@@ -112,21 +112,36 @@ public sealed class NavigationRegressionTests {
 
         var model = await service.BuildAsync(context);
 
-        Assert.True(model.Sections.Count >= 6);
-        var codes = model.Sections.SelectMany(section => section.Items).Select(item => item.Code).ToArray();
-        Assert.Contains("valora.overview", codes);
-        Assert.Contains("diagnostics.surveys", codes);
-        Assert.Contains("intelligence.results", codes);
-        Assert.Contains("intelligence.certificates", codes);
-        Assert.Contains("administration.settings", codes);
-        Assert.Contains("administration.organizations", codes);
-        Assert.Contains("administration.roles", codes);
-        Assert.Contains("administration.permissions", codes);
-        Assert.Contains("saas.modules", codes);
-
+        // Bloco B — 8 seções canônicas: 7 áreas do cliente + ADMINISTRAÇÃO GLOBAL.
         var labels = model.Sections.Select(section => section.Label).ToArray();
-        Assert.Contains("Administração", labels);
-        Assert.Contains("Plataforma", labels);
+        Assert.Equal(8, labels.Length);
+        foreach (var expected in new[] { "Visão Executiva", "Diagnóstico", "Resultados", "Inteligência", "Execução & Evolução", "Risco & Governança", "Organização & Segurança", "ADMINISTRAÇÃO GLOBAL" }) {
+            Assert.Contains(expected, labels);
+        }
+
+        var codes = model.Sections.SelectMany(section => section.Items).Select(item => item.Code).ToArray();
+        foreach (var required in new[] { "valora.overview", "diagnostics.surveys", "intelligence.results", "intelligence.certificates", "administration.settings", "administration.roles", "administration.permissions", "saas.modules", "saas.customers", "execution.plans", "security.overview", "methodology.overview" }) {
+            Assert.Contains(required, codes);
+        }
+        foreach (var removed in new[] { "administration.organizations", "master.organizations", "intelligence.evidence-center", "subscriptions.current" }) {
+            Assert.DoesNotContain(removed, codes);
+        }
+    }
+
+    // Bloco B — aliases GET legados redirecionam para as rotas canônicas.
+    [Fact]
+    public void LegacyAliasActionsRedirectToTheirCanonicalRoutes() {
+        var centers = new ValoraWeb::Valora.Web.Controllers.OrganizationalCentersController();
+        Assert.Equal("/Workspace/Priorities", ((RedirectResult)centers.Priorities()).Url);
+        Assert.Equal("/Intelligence/Evidence", ((RedirectResult)centers.Evidence()).Url);
+        Assert.Equal("/Intelligence/Indices", ((RedirectResult)centers.Indexes()).Url);
+        Assert.Equal("/Intelligence/Radar", ((RedirectResult)centers.Radar()).Url);
+
+        var administration = new ValoraWeb::Valora.Web.Controllers.AdministrationController();
+        Assert.Equal("/AdminValora?module=companies", ((RedirectResult)administration.Organizations()).Url);
+
+        var saas = new ValoraWeb::Valora.Web.Controllers.SaasController(null!, NullLogger<ValoraWeb::Valora.Web.Controllers.SaasController>.Instance);
+        Assert.Equal("/Marketplace", ((RedirectResult)saas.Subscription()).Url);
     }
 
     private sealed class TestRoutes : INavigationRouteResolver {

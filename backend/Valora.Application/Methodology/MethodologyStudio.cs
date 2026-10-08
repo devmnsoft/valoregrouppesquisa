@@ -9,16 +9,14 @@ public sealed record CreateMethodologyVersionRequest(
 
 // Classes (não records): em .NET, records somente honram metadados de validação declarados nos
 // parâmetros do construtor primário, invisíveis ao runtime Validator usado em EnsureAnnotations.
-public sealed class UpdateMethodologyDimensionRequest
-{
+public sealed class UpdateMethodologyDimensionRequest {
     [Required, StringLength(80)] public string Code { get; set; } = "";
     [Required, StringLength(160)] public string Name { get; set; } = "";
     [Required, StringLength(2000)] public string Description { get; set; } = "";
     [Range(typeof(decimal), "0.0001", "100")] public decimal Weight { get; set; }
 }
 
-public sealed class CreateConceptRequest
-{
+public sealed class CreateConceptRequest {
     [Required, StringLength(80)] public string Code { get; set; } = "";
     [Required, StringLength(160)] public string Name { get; set; } = "";
     [Required] public IReadOnlyCollection<Guid> DimensionIds { get; set; } = new Guid[0];
@@ -26,8 +24,7 @@ public sealed class CreateConceptRequest
 
     public CreateConceptRequest() { }
 
-    public CreateConceptRequest(string code, string name, IReadOnlyCollection<Guid> dimensionIds, string evidenceCriteria)
-    {
+    public CreateConceptRequest(string code, string name, IReadOnlyCollection<Guid> dimensionIds, string evidenceCriteria) {
         Code = code; Name = name; DimensionIds = dimensionIds; EvidenceCriteria = evidenceCriteria;
     }
 }
@@ -38,8 +35,7 @@ public sealed record CreateMaturityLevelRequest(
 public sealed record CreateEvidenceCriteriaRequest(
     [Required] Guid ConceptId, [Required] string Name,
     [Required] string ExpectedSource, [Range(1, 5)] int EvidenceStrength);
-public sealed class CreateQuestionBankItemRequest
-{
+public sealed class CreateQuestionBankItemRequest {
     [Required] public string Code { get; set; } = "";
     [Required] public string QuestionText { get; set; } = "";
     [Required] public string ResponseType { get; set; } = "";
@@ -51,14 +47,12 @@ public sealed class CreateQuestionBankItemRequest
     public CreateQuestionBankItemRequest() { }
 
     public CreateQuestionBankItemRequest(string code, string questionText, string responseType, decimal weight,
-        IReadOnlyCollection<Guid> dimensionIds, IReadOnlyCollection<Guid> conceptIds, bool isEvaluative = true)
-    {
+        IReadOnlyCollection<Guid> dimensionIds, IReadOnlyCollection<Guid> conceptIds, bool isEvaluative = true) {
         Code = code; QuestionText = questionText; ResponseType = responseType; Weight = weight;
         DimensionIds = dimensionIds; ConceptIds = conceptIds; IsEvaluative = isEvaluative;
     }
 }
-public sealed class CreateDiagnosticTemplateRequest
-{
+public sealed class CreateDiagnosticTemplateRequest {
     [Required] public string Code { get; set; } = "";
     [Required] public string Name { get; set; } = "";
     [Required] public IReadOnlyCollection<Guid> SectionIds { get; set; } = new Guid[0];
@@ -66,8 +60,7 @@ public sealed class CreateDiagnosticTemplateRequest
 
     public CreateDiagnosticTemplateRequest() { }
 
-    public CreateDiagnosticTemplateRequest(string code, string name, IReadOnlyCollection<Guid> sectionIds, Guid? scoringRuleId)
-    {
+    public CreateDiagnosticTemplateRequest(string code, string name, IReadOnlyCollection<Guid> sectionIds, Guid? scoringRuleId) {
         Code = code; Name = name; SectionIds = sectionIds; ScoringRuleId = scoringRuleId;
     }
 }

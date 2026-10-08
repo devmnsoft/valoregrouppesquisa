@@ -5,33 +5,10 @@
   const banner = document.querySelector('[data-organization-context]');
   document.addEventListener('valora:account-context', event => { if (banner) banner.hidden = Boolean(event.detail?.organizationName); });
 
-  let pendingConfirmation = null;
+  // Confirmações de ações ([data-confirm]) são tratadas por /js/valora-ui.js no diálogo global de confirmação.
   document.addEventListener('click', event => {
     const dismiss = event.target.closest('[data-dismiss-alert]');
     if (dismiss) dismiss.closest('.valora-alert')?.remove();
-
-    const destructive = event.target.closest('[data-confirm]');
-    if (!destructive || destructive.dataset.confirmed === 'true') return;
-    event.preventDefault();
-    pendingConfirmation = destructive;
-    const modalElement = document.querySelector('[data-confirmation-modal]');
-    if (!(modalElement instanceof HTMLDialogElement)) return;
-    const message = modalElement.querySelector('[data-confirmation-message]');
-    if (message) message.textContent = destructive.dataset.confirm || 'Confirme se deseja continuar com esta ação.';
-    modalElement.showModal();
-  });
-
-  document.querySelector('[data-confirm-proceed]')?.addEventListener('click', () => {
-    if (!pendingConfirmation) return;
-    const target = pendingConfirmation;
-    pendingConfirmation = null;
-    target.dataset.confirmed = 'true';
-    document.querySelector('[data-confirmation-modal]')?.close();
-    if (target.form) target.form.requestSubmit(target); else target.click();
-  });
-
-  document.querySelector('[data-confirmation-modal]')?.addEventListener('close', event => {
-    if (event.target.returnValue !== 'confirm') pendingConfirmation = null;
   });
 
   document.addEventListener('submit', event => {

@@ -1,17 +1,20 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Options;
 using Valora.Api.Configuration;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
+using Valora.Application.Exceptions;
 using Valora.Application.Security;
+using Valora.Application.Services;
 
 namespace Valora.Api.Controllers;
 
 [ApiController]
-public sealed class PublicSurveysController(IPublicSurveyService service, IMemoryCache cache, IOptions<FreeSurveySecurityOptions> securityOptions, ILogger<PublicSurveysController> logger) : ControllerBase {
+public sealed class PublicSurveysController(IPublicSurveyService service, IResponseRepository responses, IMemoryCache cache, IOptions<FreeSurveySecurityOptions> securityOptions, ILogger<PublicSurveysController> logger) : ControllerBase {
     [HttpPost("/public/surveys/{surveyId:guid}/validate")]
     public async Task<IActionResult> Validate(Guid surveyId, ValidateSurveyRequest request) {
         var result = await service.ValidateAsync(surveyId, request);
@@ -22,9 +25,29 @@ public sealed class PublicSurveysController(IPublicSurveyService service, IMemor
     public async Task<IActionResult> Submit(Guid surveyId, SubmitSurveyResponseRequest request) {
         if (string.IsNullOrWhiteSpace(request.IdempotencyKey) || request.IdempotencyKey.Length > 128)
             return BadRequest(new { code = "IDEMPOTENCY_KEY_REQUIRED", message = "Não foi possível confirmar a identidade desta tentativa.", correlationId = HttpContext.TraceIdentifier });
-        var idempotencyCacheKey = $"public-survey:idempotency:{surveyId}:{Hash(request.Token ?? string.Empty)}:{Hash(request.IdempotencyKey)}";
+        var idempotencyKey = PublicSubmissionIdempotency.BuildKey(surveyId, request.Token, request.IdempotencyKey);
+        var requestHash = PublicSubmissionIdempotency.ComputeRequestHash(request);
+        // O cache em memória é chaveado por pesquisa, token, chave do
+        // cliente E hash do conteúdo: uma chave reutilizada com conteúdo
+        // diferente não deve repetir uma resposta em cache.
+        var idempotencyCacheKey = $"public-survey:idempotency:{surveyId}:{Hash(request.Token ?? string.Empty)}:{Hash(request.IdempotencyKey)}:{requestHash}";
         if (cache.TryGetValue(idempotencyCacheKey, out SubmitSurveyResponseResult? previous) && previous is not null)
             return Ok(previous);
+        // Replay persistente (sobrevive a reinícios da API): roda antes das
+        // proteções antiabuso para que uma nova tentativa da mesma operação
+        // nunca seja bloqueada pela janela de submissão duplicada.
+        var stored = await responses.GetStoredSubmissionAsync(idempotencyKey);
+        if (stored is not null) {
+            if (!string.Equals(stored.RequestHash, requestHash, StringComparison.Ordinal))
+                throw new BusinessRuleAppException("IDEMPOTENCY_CONFLICT: a chave de idempotência já foi registrada com uma requisição de conteúdo diferente.");
+            if (stored.ResponseBody is { } storedBody) {
+                var replayed = JsonSerializer.Deserialize<SubmitSurveyResponseResult>(storedBody, JsonSerializerOptions.Web);
+                if (replayed is not null) {
+                    cache.Set(idempotencyCacheKey, replayed, TimeSpan.FromHours(24));
+                    return Ok(replayed);
+                }
+            }
+        }
         var blocked = CheckAbuse(surveyId, request);
         if (blocked is not null) return StatusCode(StatusCodes.Status429TooManyRequests, blocked);
         var result = await service.SubmitAsync(surveyId, request);

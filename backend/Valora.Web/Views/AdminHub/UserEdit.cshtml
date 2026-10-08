@@ -1,0 +1,51 @@
+@model Valora.Web.Models.ViewModels.EditAdminUserViewModel
+@{ ViewData["Title"] = "Editar usuário"; }
+<section class="valora-page">
+    <partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Editar usuário", Model.OrganizationName is "" ? "Alterações aplicadas no contexto da organização autenticada." : $"Alterando pessoa da organização {Model.OrganizationName}.", "Admin Hub"))" />
+    @if (TempData["AdminNotice"] is string adminNotice) { <div class="alert alert-success">@adminNotice</div> }
+    @if (Model.Error is not null) { <div class="alert alert-danger" role="alert"><strong>@Model.Error</strong></div> }
+    <form method="post" asp-action="UserEdit" asp-route-id="@Model.Id" class="admin-panel" data-dirty-guard="true">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label for="user-email">E-mail</label>
+                <input id="user-email" type="email" value="@Model.Email" class="form-control" readonly aria-describedby="email-note" />
+                <small id="email-note" class="text-muted">O e-mail de login não pode ser alterado nesta tela.</small>
+            </div>
+            <div class="col-md-6"><label asp-for="Name">Nome completo</label><input asp-for="Name" class="form-control" /><span asp-validation-for="Name" class="text-danger"></span></div>
+            <div class="col-md-4"><label asp-for="Phone">Telefone</label><input asp-for="Phone" class="form-control" /><span asp-validation-for="Phone" class="text-danger"></span></div>
+            <div class="col-md-4">
+                <label asp-for="Status">Status</label>
+                <select asp-for="Status" class="form-select">
+                    <option value="active">ativo</option>
+                    <option value="inactive">inativo</option>
+                    <option value="suspended">suspenso</option>
+                    <option value="locked">bloqueado</option>
+                </select>
+                <span asp-validation-for="Status" class="text-danger"></span>
+            </div>
+            <div class="col-12">
+                <fieldset>
+                    <legend>Papéis</legend>
+                    @if (Model.Roles.Count == 0) {
+                        <p class="text-muted mb-0">Nenhum papel disponível para exibir.</p>
+                    }
+                    @foreach (var role in Model.Roles) {
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="RoleCodes" value="@role.Value" id="role-@role.Value" @(Array.IndexOf(Model.RoleCodes, role.Value) >= 0 ? "checked" : "") />
+                            <label class="form-check-label" for="role-@role.Value">@role.Text</label>
+                        </div>
+                    }
+                </fieldset>
+            </div>
+        </div>
+        <button class="btn btn-primary mt-4" type="submit">Salvar alterações</button>
+        <a asp-action="Users" class="btn btn-link ms-2">Cancelar</a>
+    </form>
+</section>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <partial name="_FormDirtyGuard" />
+}

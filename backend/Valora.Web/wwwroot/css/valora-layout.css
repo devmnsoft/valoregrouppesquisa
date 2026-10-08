@@ -20,4 +20,7 @@
 .organization-switcher__menu { background: #fff; border: 1px solid var(--valora-border, #dce5e7); border-radius: 16px; box-shadow: 0 18px 48px rgb(9 47 55 / 16%); display: grid; gap: .75rem; padding: 1rem; position: absolute; right: 0; top: calc(100% + .5rem); width: min(360px, calc(100vw - 2rem)); z-index: 50; }
 .organization-switcher__menu p { color: #52696e; font-size: .875rem; margin: 0; }
 .organization-switcher__menu form, .organization-switcher__menu .valora-button { width: 100%; }
+.organization-switcher__list { display: grid; gap: .5rem; max-height: 14rem; overflow-y: auto; }
+.organization-switcher__option { text-align: left; }
+.organization-switcher__option.is-current { background: var(--valora-surface-soft, #eef6f4); border-color: var(--valora-accent, #0f766e); font-weight: 600; }
 @media (max-width: 760px) { .organization-switcher > summary { min-width: 0; } .organization-switcher summary span { display: none; } }

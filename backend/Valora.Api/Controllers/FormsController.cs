@@ -80,7 +80,9 @@ public sealed class FormsController(
         if (!organization.IsResolved) return OrganizationRequired();
         var review = await forms.ReviewPublicationAsync(organization.RequireOrganizationId(), formId, cancellationToken);
         return review is null ? NotFound(new ProblemDetails {
-            Title = "Rascunho não encontrado", Detail = "A revisão de publicação está disponível somente para a versão em rascunho.", Status = 404
+            Title = "Rascunho não encontrado",
+            Detail = "A revisão de publicação está disponível somente para a versão em rascunho.",
+            Status = 404
         }) : Ok(review);
     }
 
@@ -108,7 +110,9 @@ public sealed class FormsController(
         var organization = ResolveOrganization();
         if (!organization.IsResolved) return OrganizationRequired();
         return await forms.ArchiveAsync(organization.RequireOrganizationId(), formId, UserId, request, cancellationToken) ? NoContent() : Conflict(new ProblemDetails {
-            Title = "Não foi possível arquivar", Detail = "O formulário foi alterado, já está arquivado ou está vinculado a uma coleta em andamento.", Status = StatusCodes.Status409Conflict
+            Title = "Não foi possível arquivar",
+            Detail = "O formulário foi alterado, já está arquivado ou está vinculado a uma coleta em andamento.",
+            Status = StatusCodes.Status409Conflict
         });
     }
 

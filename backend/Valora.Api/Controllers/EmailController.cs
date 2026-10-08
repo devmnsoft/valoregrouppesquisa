@@ -50,8 +50,7 @@ public sealed class EmailController(IEmailTemplateService templates, IEmailQueue
         ? Ok(new { ok = true, job = await queue.QueueInviteAsync(organizationId, surveyId, body.GetValueOrDefault("toEmail") ?? string.Empty) })
         : OrganizationRequired();
 
-    private static UpsertEmailTemplateRequest ForCurrentOrganization(UpsertEmailTemplateRequest request, Guid organizationId)
-    {
+    private static UpsertEmailTemplateRequest ForCurrentOrganization(UpsertEmailTemplateRequest request, Guid organizationId) {
         request.OrganizationId = organizationId;
         return request;
     }

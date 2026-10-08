@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
@@ -15,6 +16,22 @@ public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IS
         using var connection = db.Create(); connection.Open(); using var transaction = connection.BeginTransaction();
         logger.LogInformation("Public response transaction started. SurveyId={SurveyId} OrganizationId={OrganizationId}", survey.Id, survey.OrganizationId);
         try {
+            // Idempotência persistente da submissão pública: o claim e o resultado
+            // selado compartilham a transação, de modo que um rollback remove o
+            // claim e um commit sempre deixa o corpo selado. Uma chave reutilizada
+            // com conteúdo diferente é rejeitada antes de qualquer escrita.
+            var idempotencyKey = PublicSubmissionIdempotency.BuildKey(survey.Id, request.Token, request.IdempotencyKey);
+            var requestHash = PublicSubmissionIdempotency.ComputeRequestHash(request);
+            var claim = await responses.AcquireSubmissionIdempotencyAsync(idempotencyKey, survey.OrganizationId, requestHash, connection, transaction);
+            if (claim.StoredResponseBody is { } storedResponseBody) {
+                var replayed = JsonSerializer.Deserialize<SubmitSurveyResponseResult>(storedResponseBody, JsonSerializerOptions.Web);
+                if (replayed is not null) {
+                    transaction.Commit();
+                    logger.LogInformation("Public response replayed from idempotency record. SurveyId={SurveyId} OrganizationId={OrganizationId} ResponseId={ResponseId}", survey.Id, survey.OrganizationId, replayed.ResponseId);
+                    return replayed;
+                }
+            }
+            logger.LogInformation("Public response idempotency claim acquired. SurveyId={SurveyId} OrganizationId={OrganizationId} Claimed={Claimed}", survey.Id, survey.OrganizationId, claim.Claimed);
             var eligible = await surveyRepository.LockEligibleForCompletionAsync(survey, connection, transaction);
             if (!eligible) throw new InvalidOperationException("A coleta foi encerrada ou a versão vinculada deixou de ser elegível.");
             var token = tokens.CreateToken(); var tokenHash = tokens.HashToken(token);
@@ -36,9 +53,14 @@ public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IS
             logger.LogInformation("Public response audit_log created. SurveyId={SurveyId} ResponseId={ResponseId}", survey.Id, responseId);
             var jobId = await processingJobs.EnqueueResponseProcessingAsync(new(survey.OrganizationId, survey.Id, responseId, survey.FormId), $"public-response-{responseId:N}", connection, transaction, CancellationToken.None);
             logger.LogInformation("Organizational intelligence processing job {JobId} persisted with response. SurveyId={SurveyId} ResponseId={ResponseId}", jobId, survey.Id, responseId);
+            // O resultado é construído e selado antes do commit: um crash
+            // após o commit sempre encontra o corpo gravado para replay.
+            var result = new SubmitSurveyResponseResult(true, responseId, token, emailStatus, new CertificateMetadataDto(responseId, code, "metadata-ready", name, "Valora Group", survey.Title, DateTime.UtcNow), MapResult(calc, dimensions));
+            var responseJson = JsonSerializer.Serialize(result, JsonSerializerOptions.Web);
+            await responses.StoreSubmissionOutcomeAsync(idempotencyKey, responseJson, connection, transaction);
             transaction.Commit();
             logger.LogInformation("Public response transaction committed. SurveyId={SurveyId} OrganizationId={OrganizationId} ResponseId={ResponseId}", survey.Id, survey.OrganizationId, responseId);
-            return new(true, responseId, token, emailStatus, new CertificateMetadataDto(responseId, code, "metadata-ready", name, "Valora Group", survey.Title, DateTime.UtcNow), MapResult(calc, dimensions));
+            return result;
         }
         catch (Exception ex) {
             try { transaction.Rollback(); logger.LogWarning("Rollback executado na submissão pública. SurveyId={SurveyId} OrganizationId={OrganizationId}", survey.Id, survey.OrganizationId); }

@@ -62,7 +62,20 @@ public sealed class OrganizationBrandingRepository(IDbConnectionFactory factory,
         """;
         return (await c.QueryAsync<OnboardingStepResponse>(new CommandDefinition(sql, new { organizationId }, cancellationToken: cancellationToken))).AsList();
     }
-    public async Task<bool> CompleteStepAsync(Guid organizationId, string stepCode, CancellationToken cancellationToken = default) { using var c = factory.Create(); return await c.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.onboarding_steps(organization_id,step_code,status,completed_at) VALUES(@organizationId,@stepCode,'completed',now()) ON CONFLICT(organization_id,step_code) DO UPDATE SET status='completed',completed_at=now(),updated_at=now()", new { organizationId, stepCode }, cancellationToken: cancellationToken)) > 0; }
+    public async Task<bool> CompleteStepAsync(Guid organizationId, string stepCode, CancellationToken cancellationToken = default) {
+        using var c = factory.Create();
+        const string sql = """
+            DO $$
+            DECLARE v_checklist uuid;
+            BEGIN
+                SELECT id INTO v_checklist FROM valorapescura.onboarding_checklists WHERE organization_id=@OrganizationId AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1;
+                IF v_checklist IS NULL THEN INSERT INTO valorapescura.onboarding_checklists(organization_id,status) VALUES(@OrganizationId,'in_progress') RETURNING id INTO v_checklist; END IF;
+                IF EXISTS(SELECT 1 FROM valorapescura.onboarding_steps WHERE checklist_id=v_checklist AND step_code=@stepCode) THEN UPDATE valorapescura.onboarding_steps SET status='completed',completed_at=now(),updated_at=now(),completion_source='manual' WHERE checklist_id=v_checklist AND step_code=@stepCode; ELSE INSERT INTO valorapescura.onboarding_steps(checklist_id,organization_id,step_code,status,completed_at,completion_source) VALUES(v_checklist,@OrganizationId,@stepCode,'completed',now(),'manual'); END IF;
+            END$$;
+            """;
+        await c.ExecuteAsync(new CommandDefinition(sql, new { OrganizationId = organizationId, stepCode }, cancellationToken: cancellationToken));
+        return true;
+    }
     private static string Label(string key) => string.Join(' ', key.Split('_', '-').Select(x => char.ToUpperInvariant(x[0]) + x[1..]));
     private static DateTimeOffset AsUtcOffset(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
 

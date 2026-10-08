@@ -22,7 +22,7 @@ public sealed class SaasAdminController(
         await saas.ListPlansAsync(cancellationToken)));
 
     [HttpGet("Clients")]
-    public async Task<IActionResult> Customers([FromQuery] SaasCustomerListQuery query, CancellationToken cancellationToken) =>
+    public async Task<IActionResult> Clients([FromQuery] SaasCustomerListQuery query, CancellationToken cancellationToken) =>
         View(await customers.ListPageAsync(query, cancellationToken));
 
     [HttpGet("Clients/Create")]
@@ -46,13 +46,12 @@ public sealed class SaasAdminController(
     public IActionResult Billing(Guid id) => View("ClientArea", new SaasClientAreaViewModel(id, "Assinatura e cobrança", "Consulte plano, limites, módulos e histórico comercial."));
 
     [HttpGet("Billing")]
-    public IActionResult Billing() => RedirectToAction(nameof(Customers));
+    public IActionResult Billing() => RedirectToAction(nameof(Clients));
 
     [HttpGet("Clients/{id:guid}/Audit")]
     public IActionResult Audit(Guid id) => View("ClientArea", new SaasClientAreaViewModel(id, "Auditoria do cliente", "Alterações de plano, módulos, permissões e acesso ficam registradas."));
 
-    [HttpGet("Audit")]
-    public IActionResult Audit() => RedirectToAction(nameof(Customers));
+    // "/Admin/Audit" pertence ao AdminHubController (trilha de auditoria da organização); este console entra pela lista em "/Admin/Clients".
 
     [HttpGet("Modules")]
     public async Task<IActionResult> Modules(CancellationToken cancellationToken) =>

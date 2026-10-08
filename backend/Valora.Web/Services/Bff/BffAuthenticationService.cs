@@ -105,8 +105,11 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
             var result = await api.PostAuthenticationAsync("/api/v1/auth/refresh",
                 new { refreshToken = current.RefreshToken }, CorrelationId(context), cancellationToken);
             var safe = new BffSafeSession(result.User, result.Organization, result.Plan, result.AccessContext);
-            if (current.SafeSession.AccessContext.IsGlobalAdministrator && current.SafeSession.AccessContext.SelectedOrganizationId is not null)
-                safe = safe with { AccessContext = safe.AccessContext with { SelectedOrganizationId = current.SafeSession.AccessContext.SelectedOrganizationId } };
+            if (current.SafeSession.AccessContext.IsGlobalAdministrator && current.SafeSession.AccessContext.SelectedOrganizationId is not null) {
+                var preservedSelection = current.SafeSession.AccessContext.SelectedOrganizationId;
+                safe = safe with { AccessContext = safe.AccessContext with { SelectedOrganizationId = preservedSelection } };
+                result = result with { AccessContext = result.AccessContext with { SelectedOrganizationId = preservedSelection } };
+            }
             await sessions.SetAsync(ticket, new(result.AccessToken, result.AccessTokenExpiresAt, result.RefreshToken,
                 result.RefreshTokenExpiresAt, safe), cancellationToken);
             await RenewCookieAsync(context, ticket, result, cancellationToken);

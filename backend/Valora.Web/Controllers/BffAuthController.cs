@@ -120,6 +120,36 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
         var session = await authentication.SelectOrganizationAsync(HttpContext, null, cancellationToken);
         return session is null ? Forbid() : Ok(session);
     }
+
+    [Authorize(Roles = "admin_valora"), HttpGet("organizations")]
+    public async Task<IActionResult> Organizations(CancellationToken cancellationToken) {
+        var correlationId = CorrelationId();
+        using var response = await authentication.SendAuthorizedAsync(HttpContext, HttpMethod.Get,
+            "/api/v1/saas/customers?page=1&pageSize=100&status=active", null, correlationId, cancellationToken);
+        if (response is null) return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou." });
+        if (!response.IsSuccessStatusCode) {
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            logger.LogWarning("Listagem de clientes SaaS indisponível para o seletor de organizações. Status={Status} CorrelationId={CorrelationId}", (int)response.StatusCode, correlationId);
+            return new ContentResult {
+                StatusCode = (int)response.StatusCode,
+                ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/problem+json",
+                Content = payload
+            };
+        }
+
+        var organizations = new List<object>();
+        using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        if (document.RootElement.TryGetProperty("items", out var items) && items.ValueKind == JsonValueKind.Array) {
+            foreach (var item in items.EnumerateArray()) {
+                if (!item.TryGetProperty("organizationId", out var organizationElement) || organizationElement.ValueKind != JsonValueKind.String) continue;
+                if (!Guid.TryParse(organizationElement.GetString(), out var organizationId)) continue;
+                var name = item.TryGetProperty("tradeName", out var tradeName) && tradeName.ValueKind == JsonValueKind.String
+                    ? tradeName.GetString()?.Trim() ?? "" : "";
+                organizations.Add(new { organizationId, name = string.IsNullOrWhiteSpace(name) ? organizationId.ToString() : name });
+            }
+        }
+        return Ok(organizations);
+    }
 }
 
 public sealed record SelectOrganizationRequest(Guid OrganizationId, string? Reason);

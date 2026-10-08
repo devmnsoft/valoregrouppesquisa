@@ -26,7 +26,7 @@ function harness(confirmResult = true) {
     querySelector(selector) { return selector === '[data-create-error]' ? createError : submit; },
     querySelectorAll() { return []; }, reportValidity() { return true; }, reset() {}
   };
-  const dialog = { querySelector: () => createForm, addEventListener() {}, showModal() {}, close() {} };
+  const dialog = { dataset: {}, querySelector: () => createForm, querySelectorAll: () => [], addEventListener() {}, showModal() {}, close() {} };
   const generic = { value: '', dataset: {}, textContent: '', innerHTML: '', classList: { add() {}, remove() {}, toggle() {} }, addEventListener() {}, querySelector: () => generic, querySelectorAll: () => [] };
   const host = Object.assign({}, generic, {
     querySelector(selector) {

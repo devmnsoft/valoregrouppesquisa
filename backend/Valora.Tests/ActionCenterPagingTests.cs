@@ -1,27 +1,24 @@
+using System.ComponentModel.DataAnnotations;
 using Valora.Application.ActionCenter;
 using Valora.Application.Workspace;
-using System.ComponentModel.DataAnnotations;
 using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
-public sealed class ActionCenterPagingTests
-{
+public sealed class ActionCenterPagingTests {
     [Theory]
     [InlineData("in_progress", "Em execução")]
     [InlineData("blocked", "Bloqueada")]
     [InlineData("completed", "Concluída")]
     [InlineData("critical", "Crítica")]
-    public void Action_labels_are_shared_between_views(string code, string expected)
-    {
+    public void Action_labels_are_shared_between_views(string code, string expected) {
         Assert.Equal(expected, ActionStatuses.Label(code));
     }
 
     [Theory]
     [InlineData(-4, 500, 1, 50)]
     [InlineData(2, 25, 2, 25)]
-    public void Item_query_normalizes_invalid_page_parameters(int page, int size, int expectedPage, int expectedSize)
-    {
+    public void Item_query_normalizes_invalid_page_parameters(int page, int size, int expectedPage, int expectedSize) {
         var query = new ActionItemListQuery(Page: page, PageSize: size);
 
         Assert.Equal(expectedPage, query.ValidPage);
@@ -34,8 +31,7 @@ public sealed class ActionCenterPagingTests
     [InlineData(21, 2, 3, true, true)]
     [InlineData(21, 3, 3, true, false)]
     [InlineData(21, 999, 3, true, false)]
-    public void Page_result_exposes_accessible_navigation(int total, int page, int pages, bool previous, bool next)
-    {
+    public void Page_result_exposes_accessible_navigation(int total, int page, int pages, bool previous, bool next) {
         var result = new PageResult<int>(Array.Empty<int>(), page, 10, total);
 
         Assert.Equal(pages, result.TotalPages);
@@ -44,22 +40,19 @@ public sealed class ActionCenterPagingTests
     }
 }
 
-public sealed class ActionPlanClosurePolicyTests
-{
+public sealed class ActionPlanClosurePolicyTests {
     [Theory]
     [InlineData("in_execution", 0, true)]
     [InlineData("in_execution", 1, false)]
     [InlineData("completed", 0, false)]
     [InlineData("canceled", 0, false)]
     [InlineData("approved", 0, false)]
-    public void Completion_requires_execution_state_and_no_pending_conditions(string status, int pending, bool expected)
-    {
+    public void Completion_requires_execution_state_and_no_pending_conditions(string status, int pending, bool expected) {
         Assert.Equal(expected, ActionPlanClosurePolicy.CanComplete(status, pending));
     }
 
     [Fact]
-    public void Typed_confirmation_is_enforced_by_server_validation()
-    {
+    public void Typed_confirmation_is_enforced_by_server_validation() {
         var request = new CompleteActionPlanRequest { Result = "Resultado válido", Evidence = "Evidência", Version = 7, CommandId = "intent-1", Confirmed = false };
         var errors = new List<ValidationResult>();
 
@@ -68,11 +61,9 @@ public sealed class ActionPlanClosurePolicyTests
     }
 }
 
-public sealed class ActionPlanClosureExperienceTests
-{
+public sealed class ActionPlanClosureExperienceTests {
     [Fact]
-    public void Review_view_avoids_page_directive_collision_and_preserves_navigation_context()
-    {
+    public void Review_view_avoids_page_directive_collision_and_preserves_navigation_context() {
         var view = File.ReadAllText(RepositoryPaths.WebFile("Views", "ActionCenter", "ReviewClosure.cshtml"));
 
         Assert.Contains("var activitiesPage = Model.Activities", view);
@@ -84,8 +75,7 @@ public sealed class ActionPlanClosureExperienceTests
     }
 
     [Fact]
-    public void Closure_script_isolates_drafts_and_never_persists_confirmation()
-    {
+    public void Closure_script_isolates_drafts_and_never_persists_confirmation() {
         var script = File.ReadAllText(RepositoryPaths.WebFile("wwwroot", "js", "action-plan-closure.js"));
 
         Assert.Contains("page.dataset.draftKey", script);
@@ -97,11 +87,9 @@ public sealed class ActionPlanClosureExperienceTests
     }
 }
 
-public sealed class ActionCenterFilterContractTests
-{
+public sealed class ActionCenterFilterContractTests {
     [Fact]
-    public void Dashboard_filters_are_typed_and_do_not_require_fake_identifiers()
-    {
+    public void Dashboard_filters_are_typed_and_do_not_require_fake_identifiers() {
         var unassigned = new ActionItemListQuery(Assignment: ActionAssignmentFilter.Unassigned, Scope: ActionItemScopeFilter.Open);
         var active = new ActionPlanListQuery(Scope: ActionPlanScopeFilter.Active);
         Assert.Equal(ActionAssignmentFilter.Unassigned, unassigned.Assignment);
@@ -113,8 +101,7 @@ public sealed class ActionCenterFilterContractTests
     [InlineData("2026-09-13", "2026-09-14", true)]
     [InlineData("2026-09-14", "2026-09-14", false)]
     [InlineData("2026-09-15", "2026-09-14", false)]
-    public void Civil_due_date_only_becomes_overdue_after_its_local_day(string due, string today, bool overdue)
-    {
+    public void Civil_due_date_only_becomes_overdue_after_its_local_day(string due, string today, bool overdue) {
         Assert.Equal(overdue, DateOnly.Parse(due) < DateOnly.Parse(today));
     }
 }

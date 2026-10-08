@@ -1,5 +1,63 @@
 @model Valora.Web.Models.ViewModels.AdminOrganizationsViewModel
-@{ ViewData["Title"]="Organizações"; }
-<section class="valora-page"><partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Organizações", "Planos, consumo e saúde de cada tenant.", "Admin Hub"))" />
-<form method="get" class="admin-panel mb-3"><label for="search">Pesquisar por nome</label><input id="search" name="search" value="@Model.Search" class="form-control" /><button class="btn btn-outline-primary mt-2">Filtrar</button> <a asp-action="CreateOrganization" class="btn btn-primary mt-2">Nova organização</a></form>
-<div class="admin-panel">@if(Model.Organizations.Count==0){<div class="admin-empty"><strong>Nenhuma organização encontrada.</strong><p>Crie a primeira organização para começar.</p></div>}else{<table class="table"><thead><tr><th>Organização</th><th>Plano</th><th>Status</th><th>Uso</th></tr></thead><tbody>@foreach(var item in Model.Organizations){<tr><td><a asp-action="OrganizationDetails" asp-route-id="@item.Id">@item.Name</a></td><td>@item.Plan</td><td><span class="badge text-bg-success">@item.Status</span></td><td>@item.Users usuários · @item.Units unidades</td></tr>}</tbody></table>}</div></section>
+@{ ViewData["Title"] = "Organizações"; }
+<section class="valora-page">
+    <partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel(Model.IsPlatformScope ? "Organizações" : "Minha organização", Model.IsPlatformScope ? "Portfólio completo: plano, consumo e saúde de cada tenant." : "Plano, consumo e dados da sua organização.", "Admin Hub"))" />
+    @if (TempData["AdminNotice"] is string adminNotice) { <div class="alert alert-success">@adminNotice</div> }
+    <form method="get" class="admin-panel mb-3" role="search">
+        <label for="org-search">Pesquisar por nome</label>
+        <input id="org-search" name="search" value="@Model.Search" class="form-control" placeholder="Nome da organização" />
+        <button class="btn btn-outline-primary mt-2" type="submit">Filtrar</button>
+        @if (Model.IsPlatformScope) { <a asp-action="CreateOrganization" class="btn btn-primary mt-2 ms-2">Nova organização</a> }
+    </form>
+    @if (Model.Error is not null) {
+        <div class="alert alert-danger" role="alert">
+            <strong>@Model.Error</strong>
+            <div class="mt-2"><a asp-action="Organizations" asp-route-search="@Model.Search">Tentar novamente</a></div>
+        </div>
+    }
+    else if (Model.Organizations.Count == 0) {
+        <div class="admin-empty">
+            <strong>Nenhuma organização encontrada.</strong>
+            <p>@(Model.IsPlatformScope ? "Ajuste o filtro ou cadastre a primeira organização." : "Sem registros para exibir.")</p>
+        </div>
+    }
+    else {
+        <div class="admin-panel table-responsive">
+            <table class="table align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">Organização</th>
+                        <th scope="col">Plano</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Uso</th>
+                        <th scope="col">Usuários</th>
+                        <th scope="col">Unidades</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Organizations) {
+                        <tr>
+                            <td>
+                                <a asp-action="OrganizationDetails" asp-route-id="@item.Id">@item.Name</a>
+                                @if (!string.IsNullOrEmpty(item.Slug)) { <small class="text-muted d-block">@item.Slug</small> }
+                            </td>
+                            <td>@item.Plan</td>
+                            <td><span class="badge text-bg-@(item.Status == "active" ? "success" : "secondary")">@item.Status</span></td>
+                            <td>@(item.UsagePercent is null ? "—" : $"{item.UsagePercent}%")</td>
+                            <td>@(item.Users is null ? "—" : item.Users)</td>
+                            <td>@(item.Units is null ? "—" : item.Units)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        @if (Model.IsPlatformScope && Model.Total > Model.PageSize) {
+            int totalPages = (int)Math.Ceiling((double)Model.Total / Model.PageSize);
+            <nav class="mt-3 d-flex align-items-center gap-2" aria-label="Paginação de organizações">
+                @if (Model.Page > 1) { <a class="btn btn-outline-secondary btn-sm" asp-action="Organizations" asp-route-search="@Model.Search" asp-route-page="@(Model.Page - 1)">Anterior</a> }
+                <span>Página @Model.Page de @totalPages</span>
+                @if (Model.Page < totalPages) { <a class="btn btn-outline-secondary btn-sm" asp-action="Organizations" asp-route-search="@Model.Search" asp-route-page="@(Model.Page + 1)">Próxima</a> }
+            </nav>
+        }
+    }
+</section>

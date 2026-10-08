@@ -98,9 +98,9 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
     }
 
     private static (int Status, string Code, string Message) MapException(Exception ex) => ex switch {
-        ValidationAppException => (StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Requisição inválida."),
+        ValidationAppException validation => (StatusCodes.Status400BadRequest, "VALIDATION_ERROR", UserSafeDetail(validation.Message)),
         ArgumentNullException => (StatusCodes.Status500InternalServerError, "INTERNAL_ERROR", "Erro interno. Tente novamente ou acione o suporte."),
-        ArgumentException => (StatusCodes.Status400BadRequest, "VALIDATION_ERROR", "Requisição inválida."),
+        ArgumentException argument => (StatusCodes.Status400BadRequest, "VALIDATION_ERROR", UserSafeDetail(argument.Message)),
         UnauthorizedAccessException => (StatusCodes.Status403Forbidden, "FORBIDDEN", "Você não possui acesso a esta ação."),
         InactiveUserException inactive => (StatusCodes.Status403Forbidden, "AUTH_USER_INACTIVE", inactive.Message),
         InactiveOrganizationException inactive => (StatusCodes.Status403Forbidden, "AUTH_ORGANIZATION_INACTIVE", inactive.Message),
@@ -112,6 +112,7 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
         BusinessRuleAppException business when business.Message.StartsWith("CAPABILITY_NOT_AVAILABLE:", StringComparison.Ordinal) => (StatusCodes.Status422UnprocessableEntity, "CAPABILITY_NOT_AVAILABLE", "O plano contratado não disponibiliza este recurso."),
         BusinessRuleAppException business when business.Message.StartsWith("LAST_ADMINISTRATOR:", StringComparison.Ordinal) => (StatusCodes.Status422UnprocessableEntity, "LAST_ADMINISTRATOR", "O último administrador não pode ser desativado."),
         BusinessRuleAppException business when business.Message.StartsWith("LAST_ADMIN_ROLE:", StringComparison.Ordinal) => (StatusCodes.Status422UnprocessableEntity, "LAST_ADMIN_ROLE", "A última role administrativa não pode ser removida."),
+        BusinessRuleAppException business when business.Message.StartsWith("IDEMPOTENCY_CONFLICT:", StringComparison.Ordinal) => (StatusCodes.Status409Conflict, "IDEMPOTENCY_CONFLICT", "Esta operação já foi registrada com outro conteúdo. Use uma nova chave de idempotência."),
         BusinessRuleAppException => (StatusCodes.Status422UnprocessableEntity, "BUSINESS_RULE_ERROR", "Não foi possível concluir a operação."),
         InvalidOperationException => (StatusCodes.Status500InternalServerError, "DATA_MATERIALIZATION_ERROR", "Não foi possível carregar os dados solicitados."),
         PostgresException postgres when postgres.SqlState is "42703" or "42P01" or "42883" =>
@@ -123,4 +124,8 @@ public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorH
         HttpRequestException => (StatusCodes.Status502BadGateway, "EXTERNAL_SERVICE_ERROR", "Falha em integração externa."),
         _ => (StatusCodes.Status500InternalServerError, "INTERNAL_ERROR", "Erro interno. Tente novamente ou acione o suporte.")
     };
+
+    // Service-level validation messages are authored, user-facing strings (pt-BR) and are safe to surface.
+    private static string UserSafeDetail(string? message) =>
+        string.IsNullOrWhiteSpace(message) ? "Requisição inválida." : message.Trim();
 }

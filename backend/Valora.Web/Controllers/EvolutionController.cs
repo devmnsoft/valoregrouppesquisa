@@ -1,14 +1,14 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Valora.Application.Common;
 using Valora.Application.Access;
+using Valora.Application.Common;
 using Valora.Application.Evolution;
 using Valora.Web.Models.ViewModels;
 
 namespace Valora.Web.Controllers;
 
-[Authorize(Policy=ValoraPermissions.Evolution.Read)]
+[Authorize(Policy = ValoraPermissions.Evolution.Read)]
 [Route("Evolution")]
 public sealed class EvolutionController(
     IEvolutionCycleService cycles,
@@ -32,7 +32,7 @@ public sealed class EvolutionController(
             : OrganizationRequired();
     }
 
-    [ValidateAntiForgeryToken, HttpPost("Cycles/Open"),Authorize(Policy=ValoraPermissions.Evolution.Manage)]
+    [ValidateAntiForgeryToken, HttpPost("Cycles/Open"), Authorize(Policy = ValoraPermissions.Evolution.Manage)]
     public async Task<IActionResult> Open(EvolutionCycleViewModel model, CancellationToken cancellationToken) {
         var organization = organizationProvider.GetCurrent();
         if (!organization.IsResolved) return OrganizationRequired();
@@ -47,7 +47,7 @@ public sealed class EvolutionController(
             model.BaselineScore, model.TargetScore, null, model.PeriodStart, model.PeriodEnd, model.EvidenceSummary);
         Guid id;
         try { id = await cycles.Open(organization.RequireOrganizationId(), UserId, request, cancellationToken); }
-        catch(ArgumentException error) { ModelState.AddModelError("",error.Message);TempData["EvolutionError"]="Revise os campos destacados antes de continuar.";ViewData["CycleCommand"]=model;return View("Cycles",await cycles.List(organization.RequireOrganizationId(),cancellationToken)); }
+        catch (ArgumentException error) { ModelState.AddModelError("", error.Message); TempData["EvolutionError"] = "Revise os campos destacados antes de continuar."; ViewData["CycleCommand"] = model; return View("Cycles", await cycles.List(organization.RequireOrganizationId(), cancellationToken)); }
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -61,20 +61,20 @@ public sealed class EvolutionController(
             : View(new EvolutionDetailsViewModel(cycle, await snapshots.List(organization.RequireOrganizationId(), id, cancellationToken)));
     }
 
-    [ValidateAntiForgeryToken, HttpPost("Cycles/{id:guid}/Snapshot"),Authorize(Policy=ValoraPermissions.Evolution.SnapshotsGenerate)]
+    [ValidateAntiForgeryToken, HttpPost("Cycles/{id:guid}/Snapshot"), Authorize(Policy = ValoraPermissions.Evolution.SnapshotsGenerate)]
     public async Task<IActionResult> Snapshot(Guid id, EvolutionSnapshotViewModel model, CancellationToken cancellationToken) {
         var organization = organizationProvider.GetCurrent();
         if (!organization.IsResolved) return OrganizationRequired();
         if (!ModelState.IsValid) {
-            var cycle=await cycles.Get(organization.RequireOrganizationId(),id,cancellationToken);
-            if(cycle is null)return NotFound();
-            ViewData["SnapshotCommand"]=model;
-            return View("Details",new EvolutionDetailsViewModel(cycle,await snapshots.List(organization.RequireOrganizationId(),id,cancellationToken)));
+            var cycle = await cycles.Get(organization.RequireOrganizationId(), id, cancellationToken);
+            if (cycle is null) return NotFound();
+            ViewData["SnapshotCommand"] = model;
+            return View("Details", new EvolutionDetailsViewModel(cycle, await snapshots.List(organization.RequireOrganizationId(), id, cancellationToken)));
         }
         try { await snapshots.Generate(organization.RequireOrganizationId(), UserId, id, model.Evidence, model.Interpretation, model.Recommendation, cancellationToken); }
-        catch(KeyNotFoundException){return NotFound();}
-        catch(InvalidOperationException error){ModelState.AddModelError("",error.Message);var cycle=await cycles.Get(organization.RequireOrganizationId(),id,cancellationToken);if(cycle is null)return NotFound();ViewData["SnapshotCommand"]=model;return View("Details",new EvolutionDetailsViewModel(cycle,await snapshots.List(organization.RequireOrganizationId(),id,cancellationToken)));}
-        TempData["EvolutionSuccess"]="Leitura preservada. Execução e mudança observada permanecem separadas.";
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (InvalidOperationException error) { ModelState.AddModelError("", error.Message); var cycle = await cycles.Get(organization.RequireOrganizationId(), id, cancellationToken); if (cycle is null) return NotFound(); ViewData["SnapshotCommand"] = model; return View("Details", new EvolutionDetailsViewModel(cycle, await snapshots.List(organization.RequireOrganizationId(), id, cancellationToken))); }
+        TempData["EvolutionSuccess"] = "Leitura preservada. Execução e mudança observada permanecem separadas.";
         return RedirectToAction(nameof(Details), new { id });
     }
 

@@ -75,10 +75,81 @@
       const organizationBanner = document.querySelector('[data-organization-context]');
       if (organizationBanner) organizationBanner.hidden = Boolean(account.organizationName);
       document.dispatchEvent(new CustomEvent('valora:account-context', { detail: { organizationName: account.organizationName || null } }));
+      initOrganizationPicker(account);
     } catch (error) {
       document.querySelector('[data-admin-topbar]')?.setAttribute('data-account-context', 'unavailable');
       document.dispatchEvent(new CustomEvent('valora:account-context', { detail: { unavailable: true } }));
     }
+  }
+  // O seletor de organização só existe para o papel de plataforma (admin_valora), que opera
+  // com contexto explícito. Demais perfis permanecem no isolamento do próprio tenant.
+  async function initOrganizationPicker(account) {
+    const container = document.querySelector('[data-organization-picker]');
+    const roles = Array.isArray(account.roleCodes) ? account.roleCodes.map(value => String(value).toLowerCase()) : [];
+    if (!container || !roles.includes('admin_valora')) return;
+    container.replaceChildren();
+    try {
+      const response = await fetch('/bff/auth/organizations', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      if (!response.ok) throw new Error(`organizations-${response.status}`);
+      const organizations = await response.json();
+      if (!Array.isArray(organizations) || !organizations.length) {
+        container.append(pickerMessage('Nenhuma organização disponível para seleção.'));
+        container.hidden = false;
+        return;
+      }
+      organizations.forEach(organization => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'valora-button valora-button--ghost organization-switcher__option';
+        button.textContent = organization.name;
+        if (organization.organizationId && organization.organizationId === account.organizationId) {
+          button.classList.add('is-current'); button.setAttribute('aria-current', 'true');
+        }
+        button.addEventListener('click', () => selectOrganization(organization.organizationId, button));
+        container.append(button);
+      });
+      container.hidden = false;
+    } catch (error) {
+      container.append(pickerMessage('Não foi possível carregar as organizações disponíveis.'));
+      container.hidden = false;
+    }
+  }
+  function pickerMessage(text) {
+    const message = document.createElement('p'); message.textContent = text; return message;
+  }
+  async function selectOrganization(organizationId, trigger) {
+    trigger.disabled = true;
+    try {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+      const response = await fetch('/bff/auth/select-organization', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+        body: JSON.stringify({ organizationId })
+      });
+      if (!response.ok) {
+        let problem = null;
+        try { problem = await response.json(); } catch { /* mantém mensagem padrão */ }
+        throw new Error(problem?.message || `select-organization-${response.status}`);
+      }
+      window.location.reload();
+    } catch (error) {
+      trigger.disabled = false;
+      const status = containerWithStatus(trigger);
+      status.textContent = error instanceof Error && error.message ? error.message : 'Não foi possível alterar a organização selecionada.';
+      status.hidden = false;
+    }
+  }
+  function containerWithStatus(trigger) {
+    const container = trigger.closest('[data-organization-picker]');
+    let status = container?.querySelector('[data-org-picker-status]');
+    if (!status) {
+      status = document.createElement('p');
+      status.setAttribute('data-org-picker-status', '');
+      status.hidden = true;
+      status.className = 'alert alert-danger m-0';
+      container?.append(status);
+    }
+    return status;
   }
   function loadNotifications() {
     const list = notifications?.querySelector('[data-notification-list]');

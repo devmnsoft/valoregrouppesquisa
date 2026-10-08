@@ -70,7 +70,7 @@ public sealed class PriorityActionRepository(IDbConnectionFactory db, IDbTransac
                          created_by_user_id,due_at,evidence_summary,expected_outcome)
                     VALUES (@plan,@o,@PlanTitle,@Description,'priority',@priority,'draft',@Priority,
                             @ResponsibleUserId,@u,@DueAt,@EvidenceSummary,@ExpectedOutcome)
-                    """, new { plan, o, u, priority, normalized.PlanTitle, Description=normalized.Description, Priority=normalized.Priority, normalized.ResponsibleUserId, normalized.DueAt, normalized.EvidenceSummary, normalized.ExpectedOutcome }, unit.Transaction, cancellationToken: ct));
+                    """, new { plan, o, u, priority, normalized.PlanTitle, Description = normalized.Description, Priority = normalized.Priority, normalized.ResponsibleUserId, normalized.DueAt, normalized.EvidenceSummary, normalized.ExpectedOutcome }, unit.Transaction, cancellationToken: ct));
             }
             else {
                 var existingPlan = await unit.Connection.QuerySingleOrDefaultAsync<ResourceAccess>(new CommandDefinition("""
@@ -108,8 +108,8 @@ public sealed class PriorityActionRepository(IDbConnectionFactory db, IDbTransac
         var visible = await unit.Connection.QuerySingleOrDefaultAsync<PriorityAccess>(new CommandDefinition(VisiblePriority + " FOR UPDATE", new { o, u, priority, wide }, unit.Transaction, cancellationToken: ct));
         if (visible is null) throw new KeyNotFoundException("Prioridade não encontrada ou sem acesso.");
         if (!string.Equals(visible.Status, "active", StringComparison.Ordinal)) throw new InvalidOperationException("Somente prioridades ativas podem receber atividades.");
-        var activeContext=await unit.Connection.ExecuteScalarAsync<bool>(new CommandDefinition("SELECT EXISTS(SELECT 1 FROM valorapesquisa.users WHERE id=@u AND organization_id=@o AND status='active' AND deleted_at IS NULL) AND EXISTS(SELECT 1 FROM valorapesquisa.organization_modules WHERE organization_id=@o AND module_code='organizational_intelligence' AND enabled)",new{o,u},unit.Transaction,cancellationToken:ct));
-        if(!activeContext) throw new UnauthorizedAccessException("Usuário inativo ou módulo Valora Action™ não contratado.");
+        var activeContext = await unit.Connection.ExecuteScalarAsync<bool>(new CommandDefinition("SELECT EXISTS(SELECT 1 FROM valorapesquisa.users WHERE id=@u AND organization_id=@o AND status='active' AND deleted_at IS NULL) AND EXISTS(SELECT 1 FROM valorapesquisa.organization_modules WHERE organization_id=@o AND module_code='organizational_intelligence' AND enabled)", new { o, u }, unit.Transaction, cancellationToken: ct));
+        if (!activeContext) throw new UnauthorizedAccessException("Usuário inativo ou módulo Valora Action™ não contratado.");
 
         var previous = await unit.Connection.QuerySingleOrDefaultAsync<PreviousCommand>(new CommandDefinition("""
             SELECT priority_id PriorityId,operation Operation,request_hash Hash,result_id ResultId,
@@ -124,8 +124,8 @@ public sealed class PriorityActionRepository(IDbConnectionFactory db, IDbTransac
                 SELECT i.id Id,i.status Status,i.responsible_user_id ResponsibleUserId,p.owner_user_id PlanOwnerUserId
                 FROM valorapesquisa.action_items i JOIN valorapesquisa.action_plans p ON p.id=i.action_plan_id AND p.organization_id=i.organization_id AND p.deleted_at IS NULL
                 WHERE i.id=@result AND i.organization_id=@o AND i.deleted_at IS NULL
-                """, new { o, result=previous.ResultId }, unit.Transaction, cancellationToken:ct));
-            EnsureAccessible(currentResult,u,wide,"Resultado da operação");
+                """, new { o, result = previous.ResultId }, unit.Transaction, cancellationToken: ct));
+            EnsureAccessible(currentResult, u, wide, "Resultado da operação");
             return previous.ResultId;
         }
 
@@ -190,7 +190,7 @@ public sealed class PriorityActionRepository(IDbConnectionFactory db, IDbTransac
             VALUES(@o,'action_created',@title,'Atividade criada a partir de prioridade executiva.','action',@action,'medium',@evidence,now(),@u)
             """, new { o, u, action, title, evidence }, unit.Transaction, cancellationToken: ct));
 
-    private sealed record NormalizedCreate(Guid? PlanId,bool CreatePlan,string? PlanTitle,string Title,string Description,string ExpectedOutcome,string EvidenceSummary,string Priority,Guid? ResponsibleUserId,DateTime? DueAt);
+    private sealed record NormalizedCreate(Guid? PlanId, bool CreatePlan, string? PlanTitle, string Title, string Description, string ExpectedOutcome, string EvidenceSummary, string Priority, Guid? ResponsibleUserId, DateTime? DueAt);
     private sealed record PriorityAccess(Guid Id, Guid OrganizationId, string Status, Guid? OwnerUserId, Guid CreatedBy);
     private sealed record ResourceAccess(Guid Id, string Status, Guid? ResponsibleUserId, Guid? PlanOwnerUserId);
     private sealed record PreviousCommand(Guid? PriorityId, string Operation, string Hash, Guid ResultId, Guid ActorId);

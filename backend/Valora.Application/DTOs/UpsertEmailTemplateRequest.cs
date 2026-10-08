@@ -5,8 +5,7 @@ namespace Valora.Application.DTOs;
 // Classe (não record) de propósito: em .NET, records somente honram metadados de validação
 // declarados nos parâmetros do construtor primário, invisíveis ao runtime Validator e à
 // reflexão sobre propriedades. Como classe, o metadata fica visível a todos os mecanismos.
-public sealed class UpsertEmailTemplateRequest
-{
+public sealed class UpsertEmailTemplateRequest {
     public Guid? OrganizationId { get; set; }
 
     [Required, StringLength(80, MinimumLength = 2)] public string Code { get; set; } = "";

@@ -1,15 +1,13 @@
 namespace Valora.Tests;
 
-public sealed class IntelligencePipelinePersistenceContractTests
-{
+public sealed class IntelligencePipelinePersistenceContractTests {
     private static readonly string Repository = File.ReadAllText(Path.Combine(
         FindRoot(), "Valora.Infrastructure", "Repositories", "IntelligencePipelineRepository.cs"));
     private static readonly string Schema = File.ReadAllText(Path.Combine(
         FindRoot(), "database", "postgresql", "script_completo.sql"));
 
     [Fact]
-    public void Retry_updates_the_same_operation_without_deleting_previous_results()
-    {
+    public void Retry_updates_the_same_operation_without_deleting_previous_results() {
         Assert.DoesNotContain("DELETE FROM valorapesquisa.{outputTable}", Repository);
         Assert.DoesNotContain("DELETE FROM valorapesquisa.{table}", Repository);
         Assert.Contains("ON CONFLICT (organization_id,run_id,code)", Repository);
@@ -18,8 +16,7 @@ public sealed class IntelligencePipelinePersistenceContractTests
     }
 
     [Fact]
-    public void Stage_persistence_is_atomic_and_preserves_published_projection()
-    {
+    public void Stage_persistence_is_atomic_and_preserves_published_projection() {
         Assert.Contains("BeginTransaction()", Repository);
         Assert.Contains("transaction.Commit()", Repository);
         Assert.Contains("status='published'", Repository);
@@ -27,8 +24,7 @@ public sealed class IntelligencePipelinePersistenceContractTests
     }
 
     [Fact]
-    public void Processing_uses_the_immutable_diagnosis_methodology_snapshot()
-    {
+    public void Processing_uses_the_immutable_diagnosis_methodology_snapshot() {
         Assert.Contains("survey_methodology_question_snapshots", Repository);
         Assert.DoesNotContain("LEFT JOIN LATERAL (SELECT x.* FROM valorapesquisa.question_", Repository);
         Assert.Contains("capture_survey_methodology_snapshot", Schema);
@@ -40,16 +36,14 @@ public sealed class IntelligencePipelinePersistenceContractTests
     }
 
     [Fact]
-    public void Concurrent_events_are_guarded_by_database_uniqueness()
-    {
+    public void Concurrent_events_are_guarded_by_database_uniqueness() {
         Assert.Contains("ux_notifications_intelligence_event", Schema);
         Assert.Contains("ux_journey_events_pipeline_event", Schema);
         Assert.Contains("ux_governance_events_pipeline_event", Schema);
         Assert.Contains("ON CONFLICT DO NOTHING", Repository);
     }
 
-    private static string FindRoot()
-    {
+    private static string FindRoot() {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Valora.sln")))
             directory = directory.Parent;

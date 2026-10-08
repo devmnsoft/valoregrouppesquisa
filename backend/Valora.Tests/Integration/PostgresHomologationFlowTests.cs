@@ -1,6 +1,6 @@
+using Npgsql;
 using Xunit;
 using Xunit.Sdk;
-using Npgsql;
 
 namespace Valora.Tests.Integration;
 

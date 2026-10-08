@@ -60,6 +60,10 @@
       message = body.message || 'Conflito de dados detectado pela API.';
     } else if (status === 422) {
       message = body.message || 'Verifique os dados informados antes de continuar.';
+    } else if (status === 504) {
+      message = body.message || 'A operação demorou mais que o esperado. Tente novamente.';
+    } else if (status === 503) {
+      message = body.message || 'API temporariamente indisponível. Tente novamente em instantes.';
     } else if (status >= 500) {
       message = 'Não foi possível carregar os dados agora.';
     } else if (body.message) {
@@ -91,7 +95,18 @@
         let body = null; try { body = responseText ? JSON.parse(responseText) : null; } catch { body = null; }
         if (!response.ok) throw normalizeApiError({ status: response.status, responseJSON: body, responseText, getResponseHeader: name => response.headers.get(name) }, correlationId);
         return body;
-      }).catch(error => { if (error?.ok === false) throw error; throw normalizeApiError({ status: 0, responseText: '', getResponseHeader: () => '' }, correlationId); })
+      }).catch(error => {
+        if (error?.ok === false) throw error;
+        if (error?.name === 'AbortError') throw {
+          ok: false,
+          status: 0,
+          code: 'CLIENT_TIMEOUT',
+          message: 'A operação demorou mais que o esperado. Tente novamente.',
+          correlationId,
+          traceId: ''
+        };
+        throw normalizeApiError({ status: 0, responseText: '', getResponseHeader: () => '' }, correlationId);
+      })
       .finally(() => clearTimeout(timeout));
   }
 

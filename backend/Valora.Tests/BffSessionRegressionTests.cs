@@ -57,4 +57,21 @@ public sealed class BffSessionRegressionTests {
         Assert.Contains("options.FallbackPolicy", program);
         Assert.Contains("RequireAuthenticatedUser()", program);
     }
+
+    [Fact]
+    public void IntelligenceBffGatewayClassifiesDependencyTimeoutWithoutDestroyingSession() {
+        var controller = File.ReadAllText(RepositoryPaths.WebFile("Controllers", "BffIntelligenceController.cs"));
+        var ajaxClient = File.ReadAllText(RepositoryPaths.WebFile("wwwroot", "js", "api", "ajax-client.js"));
+
+        Assert.Contains("catch (BffApiUnavailableException exception) when (IsApiTimeout(exception, ct))", controller);
+        Assert.Contains("Status504GatewayTimeout", controller);
+        Assert.Contains("API_TIMEOUT", controller);
+        Assert.Contains("A operação demorou mais que o esperado. Tente novamente.", controller);
+        Assert.Contains("exception.InnerException is TaskCanceledException", controller);
+        Assert.Contains("!requestToken.IsCancellationRequested", controller);
+        Assert.Contains("Status503ServiceUnavailable", controller);
+        Assert.Contains("API_UNAVAILABLE", controller);
+        Assert.Contains("error?.name === 'AbortError'", ajaxClient);
+        Assert.Contains("CLIENT_TIMEOUT", ajaxClient);
+    }
 }

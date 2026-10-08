@@ -7265,3 +7265,45 @@ INSERT INTO valorapesquisa.schema_migrations(version,checksum)
 VALUES('2026_10_intelligent_alerts_decision_columns','sha256:intelligent-alerts-decision-columns-v1')
 ON CONFLICT(version) DO NOTHING;
 COMMIT;
+
+-- Ajuste aditivo do formal_deliverables/formal_deliverable_templates ao repositorio
+-- FormalDeliverableCatalogRepository (ciclo EVO A4): as queries do repositorio leem
+-- e escrevem colunas de ciclo editorial/geracao que nao existem na DDL original
+-- (2026-08): editorial_status, processing_status, version_number, template_code,
+-- sections_json, executive_notes, reviewer_user_id, source_result_hash,
+-- methodology_name, methodology_version, published_at, published_by,
+-- parent_deliverable_id, command_id, document_id; nos templates: template_code e
+-- configuration_json. Sem as colunas, List/GetDetails/GetEntity/FindByCommandId/
+-- Insert/UpdateLifecycle falham com 42703 (mapeado como DATABASE_SCHEMA_MISMATCH)
+-- e toda a area /Reports fica indisponivel. Aditivo e idempotente; os defaults
+-- espelham o estado de criacao em ExecutiveDeliveryService.PrepareAsync
+-- (draft/awaiting_generation, versao 1, sections_json vazio). O index de command_id
+-- nao e unico de proposito: a idempotencia e aplicada em codigo via
+-- FindByCommandIdAsync (ORDER BY created_at DESC LIMIT 1 tolera duplicatas de
+-- retry), e o middleware mapeia 23505 como DATABASE_UNAVAILABLE.
+BEGIN;
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS editorial_status varchar(30) NOT NULL DEFAULT 'draft';
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS processing_status varchar(30) NOT NULL DEFAULT 'awaiting_generation';
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS version_number integer NOT NULL DEFAULT 1;
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS template_code varchar(80);
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS sections_json jsonb NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS executive_notes text;
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS reviewer_user_id uuid;
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS source_result_hash char(64);
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS methodology_name varchar(200);
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS methodology_version varchar(40);
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS published_at timestamptz;
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS published_by uuid;
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS parent_deliverable_id uuid;
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS command_id varchar(80);
+ALTER TABLE valorapesquisa.formal_deliverables ADD COLUMN IF NOT EXISTS document_id uuid;
+CREATE INDEX IF NOT EXISTS ix_formal_deliverables_org_command
+ ON valorapesquisa.formal_deliverables(organization_id,command_id)
+ WHERE command_id IS NOT NULL AND deleted_at IS NULL;
+ALTER TABLE valorapesquisa.formal_deliverable_templates ADD COLUMN IF NOT EXISTS template_code varchar(80);
+ALTER TABLE valorapesquisa.formal_deliverable_templates ADD COLUMN IF NOT EXISTS configuration_json jsonb;
+
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_10_formal_deliverables_lifecycle_columns','sha256:formal-deliverables-lifecycle-columns-v1')
+ON CONFLICT(version) DO NOTHING;
+COMMIT;

@@ -6,7 +6,7 @@
   let opener = null;
   const snapshot = form => new URLSearchParams(new FormData(form)).toString();
   const isDirty = form => Boolean(form) && form.dataset.initialState !== snapshot(form);
-  const mayClose = dialog => !isDirty(dialog.querySelector('form')) || window.confirm('Há alterações não salvas. Deseja descartá-las?');
+  const mayClose = dialog => !isDirty(dialog.querySelector('form')) ? Promise.resolve(true) : (window.ValoraUI?.confirm ? window.ValoraUI.confirm('Há alterações não salvas. Deseja descartá-las?', 'Descartar alterações') : Promise.resolve(window.confirm('Há alterações não salvas. Deseja descartá-las?')));
   const open = id => {
     const dialog = root.querySelector(`#${CSS.escape(id)}`);
     if (!dialog || typeof dialog.showModal !== 'function') return;
@@ -21,12 +21,17 @@
   root.querySelectorAll('dialog[data-action-dialog]').forEach(dialog => {
     const form = dialog.querySelector('form');
     if (form) form.dataset.initialState = snapshot(form);
-    dialog.querySelectorAll('[data-dialog-close]').forEach(button => button.addEventListener('click', () => {
-      if (mayClose(dialog)) dialog.close();
-    }));
-    dialog.addEventListener('cancel', event => { if (!mayClose(dialog)) event.preventDefault(); });
+    dialog.dataset.dialogCloseManaged = 'true';
+    let closing = false;
+    const requestClose = () => {
+      if (closing) return;
+      closing = true;
+      void mayClose(dialog).then(okay => { closing = false; if (okay) dialog.close(); });
+    };
+    dialog.querySelectorAll('[data-dialog-close]').forEach(button => button.addEventListener('click', requestClose));
+    dialog.addEventListener('cancel', event => { event.preventDefault(); requestClose(); });
     dialog.addEventListener('close', () => { opener?.focus(); opener = null; });
-    dialog.addEventListener('click', event => { if (event.target === dialog && mayClose(dialog)) dialog.close(); });
+    dialog.addEventListener('click', event => { if (event.target === dialog) requestClose(); });
     form?.addEventListener('submit', event => {
       if (form.dataset.submitting === 'true') { event.preventDefault(); return; }
       if (!form.checkValidity()) { event.preventDefault(); form.reportValidity(); return; }

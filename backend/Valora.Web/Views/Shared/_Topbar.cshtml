@@ -30,6 +30,7 @@
       <div class="organization-switcher__menu">
         <strong>Contexto de trabalho</strong>
         <p>Escolha uma organização para carregar identidade visual, dados e recursos do plano.</p>
+        <div class="organization-switcher__list" data-organization-picker hidden></div>
         <a class="valora-button valora-button--primary" href="/Organization">Buscar organizações</a>
         <form method="post" action="/Organization/Select">
           @Html.AntiForgeryToken()

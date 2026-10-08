@@ -8,8 +8,11 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
         if (status is not null && status is not ("draft" or "published" or "archived"))
             throw new ArgumentException("Status de formulário inválido.", nameof(query));
         return repository.ListAsync(RequireOrganization(organizationId), query with {
-            Search = NullIfWhiteSpace(query.Search), Category = NullIfWhiteSpace(query.Category), Status = status,
-            Page = Math.Max(1, query.Page), PageSize = Math.Clamp(query.PageSize, 1, 100)
+            Search = NullIfWhiteSpace(query.Search),
+            Category = NullIfWhiteSpace(query.Category),
+            Status = status,
+            Page = Math.Max(1, query.Page),
+            PageSize = Math.Clamp(query.PageSize, 1, 100)
         }, cancellationToken);
     }
 
@@ -47,7 +50,9 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
         ValidateTextLengths(request.Name, request.Description, request.Category);
         if (request.EstimatedMinutes is < 1 or > 480) throw new ArgumentException("O tempo estimado deve estar entre 1 e 480 minutos.", nameof(request));
         return repository.CreateAsync(RequireOrganization(organizationId), userId, request with {
-            Name = request.Name.Trim(), Description = request.Description?.Trim(), Category = request.Category?.Trim()
+            Name = request.Name.Trim(),
+            Description = request.Description?.Trim(),
+            Category = request.Category?.Trim()
         }, cancellationToken);
     }
 
@@ -56,7 +61,9 @@ public sealed class FormAdministrationService(IFormAdministrationRepository repo
         ValidateTextLengths(request.Name, request.Description, request.Category);
         if (request.EstimatedMinutes is < 1 or > 480) throw new ArgumentException("O tempo estimado deve estar entre 1 e 480 minutos.", nameof(request));
         return repository.UpdateAsync(RequireOrganization(organizationId), formId, request with {
-            Name = request.Name.Trim(), Description = request.Description?.Trim(), Category = request.Category?.Trim()
+            Name = request.Name.Trim(),
+            Description = request.Description?.Trim(),
+            Category = request.Category?.Trim()
         }, cancellationToken);
     }
 

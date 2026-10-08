@@ -28,7 +28,8 @@ public sealed class SaasController(CommercialSaasService saas, ILogger<SaasContr
 
     [HttpGet("/Organization/MyPlan")]
     [HttpGet("/Platform/Subscriptions")]
-    public IActionResult Subscription() => LegacyPage("Minha assinatura", "Plano, módulos contratados e limites vigentes.", "my-plan");
+    // Bloco B — alias GET seguro: a superfície canônica é o Marketplace.
+    public IActionResult Subscription() => Redirect("/Marketplace");
 
     [HttpGet("/Platform/Invoices")]
     public IActionResult Invoices() => LegacyPage("Faturas", "Cobrança e histórico financeiro.", "invoices");

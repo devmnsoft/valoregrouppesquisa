@@ -1,3 +1,68 @@
-@model Valora.Web.Models.ViewModels.AdminSettingsViewModel
-@{ ViewData["Title"]="Configurações"; }
-<section class="valora-page"><partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Configurações da organização", "Identidade, diagnósticos, relatórios, privacidade e notificações.", "Admin Hub"))" /><article class="admin-panel"><h2>@Model.OrganizationName</h2><p>Preferências são aplicadas somente à organização autenticada.</p><span class="badge text-bg-success">Privacidade ativa</span></article></section>
+@model Valora.Web.Models.ViewModels.AdminSettingsFormModel
+@{ ViewData["Title"] = "Configurações"; }
+<section class="valora-page">
+    <partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Configurações", Model.OrganizationName is "" ? "Preferências administrativas, plano e uso." : $"Preferências da organização {Model.OrganizationName}.", "Admin Hub"))" />
+    @if (TempData["AdminNotice"] is string adminNotice) { <div class="alert alert-success">@adminNotice</div> }
+    @if (Model.Error is not null) { <div class="alert alert-danger" role="alert"><strong>@Model.Error</strong></div> }
+    <div class="admin-metrics">
+        <article class="admin-metric"><span>Organização</span><strong>@(Model.OrganizationName == "" ? "—" : Model.OrganizationName)</strong><small>Contexto autenticado</small></article>
+        <article class="admin-metric"><span>Plano atual</span><strong>@Model.Plan</strong><small>Consulta em tempo real</small></article>
+    </div>
+    @if (Model.Usage.Count > 0) {
+        <article class="admin-panel mt-3">
+            <h2>Uso dos recursos</h2>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">Recurso</th>
+                            <th scope="col">Período</th>
+                            <th scope="col">Consumo</th>
+                            <th scope="col">Limite</th>
+                            <th scope="col">Percentual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var u in Model.Usage) {
+                            <tr>
+                                <td>@u.Key</td>
+                                <td>@u.Period</td>
+                                <td>@u.Consumed</td>
+                                <td>@(u.Unlimited ? "Ilimitado" : (u.Limit?.ToString() ?? "—"))</td>
+                                <td>@(u.Percentage is null ? "—" : $"{Math.Round(u.Percentage.Value)}%")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    }
+    <form method="post" asp-action="Settings" class="admin-panel mt-3" data-dirty-guard="true">
+        <h2>Preferências</h2>
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <div class="row g-3">
+            <div class="col-12">
+                <div class="form-check">
+                    <input asp-for="DiagnosticReminders" class="form-check-input" />
+                    <label asp-for="DiagnosticReminders" class="form-check-label">Enviar lembretes de diagnósticos pendentes.</label>
+                </div>
+                <div class="form-check">
+                    <input asp-for="ReportNotifications" class="form-check-input" />
+                    <label asp-for="ReportNotifications" class="form-check-label">Notificar quando relatórios ficarem prontos.</label>
+                </div>
+                <div class="form-check">
+                    <input asp-for="AnonymizeResponses" class="form-check-input" />
+                    <label asp-for="AnonymizeResponses" class="form-check-label">Anonimizar respostas armazenadas (LGPD).</label>
+                </div>
+                <small class="text-muted d-block mt-2">As preferências são gravadas nas configurações da organização e auditadas.</small>
+            </div>
+        </div>
+        <button class="btn btn-primary mt-3" type="submit">Salvar configurações</button>
+        <a asp-action="" class="btn btn-link ms-2">Cancelar</a>
+    </form>
+</section>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <partial name="_FormDirtyGuard" />
+}

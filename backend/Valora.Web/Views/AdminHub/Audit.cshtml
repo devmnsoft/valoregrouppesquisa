@@ -1,3 +1,68 @@
-@model Valora.Web.Models.ViewModels.AdminAuditViewModel
-@{ ViewData["Title"]="Auditoria"; }
-<section class="valora-page"><partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Auditoria", "Eventos administrativos pesquisáveis e isolados por tenant.", "Admin Hub"))" /><form method="get" class="admin-panel row g-3"><div class="col-md-6"><label for="search">Ação, usuário ou entidade</label><input id="search" name="search" value="@Model.Search" class="form-control"/></div><div class="col-md-3"><label for="from">De</label><input id="from" name="from" type="date" class="form-control"/></div><div class="col-md-3"><label for="to">Até</label><input id="to" name="to" type="date" class="form-control"/></div><div><button class="btn btn-primary">Pesquisar</button></div></form><div class="admin-empty mt-3"><strong>Nenhum evento no período.</strong></div></section>
+@model Valora.Web.Models.ViewModels.AdminAuditPageViewModel
+@{ ViewData["Title"] = "Auditoria"; }
+<section class="valora-page">
+    <partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Auditoria", Model.OrganizationName is null ? "Histórico de eventos administrativos." : $"Eventos administrativos da organização {Model.OrganizationName}.", "Admin Hub"))" />
+    @if (TempData["AdminNotice"] is string adminNotice) { <div class="alert alert-success">@adminNotice</div> }
+    @if (Model.Error is not null) {
+        <div class="alert alert-danger" role="alert">
+            <strong>@Model.Error</strong>
+            <div class="mt-2"><a asp-action="Audit">Tentar novamente</a></div>
+        </div>
+    }
+    else {
+        var fromText = Model.From?.ToString("yyyy-MM-dd");
+        var toText = Model.To?.ToString("yyyy-MM-dd");
+        <form method="get" class="admin-panel mb-3" role="search">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label for="audit-search">Buscar em ação, mensagem ou entidade</label>
+                    <input id="audit-search" name="search" value="@Model.Search" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label for="audit-from">De</label>
+                    <input id="audit-from" type="date" name="from" value="@fromText" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label for="audit-to">Até</label>
+                    <input id="audit-to" type="date" name="to" value="@toText" class="form-control" />
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button class="btn btn-outline-primary w-100" type="submit">Filtrar</button>
+                </div>
+            </div>
+        </form>
+        <p class="text-muted">Mostrando @Model.Events.Count de @Model.LoadedTotal eventos mais recentes (janela de 200 registros).</p>
+        @if (Model.Events.Count == 0) {
+            <div class="admin-empty">
+                <strong>Nenhum evento encontrado.</strong>
+                <p>Ajuste os filtros de busca ou período.</p>
+            </div>
+        }
+        else {
+            <div class="admin-panel table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">Data/Hora</th>
+                            <th scope="col">Severidade</th>
+                            <th scope="col">Ação</th>
+                            <th scope="col">Entidade</th>
+                            <th scope="col">Mensagem</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var ev in Model.Events) {
+                            <tr>
+                                <td class="text-nowrap">@ev.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td><span class="badge text-bg-@(ev.Severity switch { "warning" => "warning", "error" => "danger", "critical" => "dark", _ => "secondary" })">@ev.Severity</span></td>
+                                <td><code>@ev.Action</code></td>
+                                <td>@(string.IsNullOrEmpty(ev.EntityType) ? "—" : $"{ev.EntityType}: {ev.EntityId}")</td>
+                                <td>@(string.IsNullOrEmpty(ev.Message) ? "—" : ev.Message)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    }
+</section>

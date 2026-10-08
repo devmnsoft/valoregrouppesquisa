@@ -1,3 +1,78 @@
 @model Valora.Web.Models.ViewModels.AdminRolesViewModel
-@{ ViewData["Title"]="Papéis e permissões"; }
-<section class="valora-page"><partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Papéis e permissões", "Atribuição pelo catálogo canônico, sem duplicatas.", "Admin Hub"))" /><article class="admin-panel"><h2>Permissões disponíveis</h2><div class="row">@foreach(var permission in Model.CanonicalPermissions){<div class="col-md-4"><label class="form-check"><input type="checkbox" class="form-check-input" name="permissions" value="@permission"/><span class="form-check-label">@permission</span></label></div>}</div></article></section>
+@{ ViewData["Title"] = "Papéis e permissões"; }
+<section class="valora-page">
+    <partial name="_PageHeader" model="@(new Valora.Web.Models.PageHeaderViewModel("Papéis e permissões", Model.OrganizationName is null ? "Catálogo de papéis disponíveis e módulos do sistema." : $"Papéis da organização {Model.OrganizationName} e catálogo de módulos.", "Admin Hub"))" />
+    @if (TempData["AdminNotice"] is string adminNotice) { <div class="alert alert-success">@adminNotice</div> }
+    @if (Model.Error is not null) {
+        <div class="alert alert-danger" role="alert">
+            <strong>@Model.Error</strong>
+            <div class="mt-2"><a asp-action="Roles">Tentar novamente</a></div>
+        </div>
+    }
+    else if (Model.Roles.Count == 0) {
+        <div class="admin-empty">
+            <strong>Nenhum papel encontrado.</strong>
+            <p>Sem papéis registrados para o contexto atual.</p>
+        </div>
+    }
+    else {
+        <article class="admin-panel">
+            <h2>Papéis</h2>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">Papel</th>
+                            <th scope="col">Código</th>
+                            <th scope="col">Descrição</th>
+                            <th scope="col">Origem</th>
+                            <th scope="col">Usuários</th>
+                            <th scope="col">Permissões</th>
+                            <th scope="col">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var role in Model.Roles) {
+                            <tr>
+                                <td><strong>@role.Name</strong></td>
+                                <td><code>@role.Code</code></td>
+                                <td>@(string.IsNullOrEmpty(role.Description) ? "—" : role.Description)</td>
+                                <td>@(role.IsSystem ? "sistema" : "personalizado")</td>
+                                <td>@role.UserCount</td>
+                                <td>@role.PermissionCount</td>
+                                <td><span class="badge text-bg-@(role.Status == "active" ? "success" : "secondary")">@role.Status</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    }
+    @if (Model.Modules.Count > 0) {
+        <article class="admin-panel mt-3">
+            <h2>Módulos do sistema</h2>
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th scope="col">Módulo</th>
+                            <th scope="col">Código</th>
+                            <th scope="col">Permissões catalogadas</th>
+                            <th scope="col">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var module in Model.Modules) {
+                            <tr>
+                                <td><strong>@module.Name</strong></td>
+                                <td><code>@module.Code</code></td>
+                                <td>@module.PermissionCount</td>
+                                <td><span class="badge text-bg-@(module.Status == "active" ? "success" : "secondary")">@module.Status</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </article>
+    }
+</section>

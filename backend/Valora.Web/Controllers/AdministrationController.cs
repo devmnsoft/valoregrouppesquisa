@@ -52,7 +52,11 @@ public sealed class AdministrationController : Controller {
         return View("Module");
     }
 
-    public IActionResult Organizations() => Module("organizations");
+    // Bloco B — alias GET seguro: organizações são administradas no Admin Hub
+    // (empresa/tenant), não na plataforma. Mantém o slug no dicionário de
+    // módulos para os cartões do hub (/Administration/Index).
+    [HttpGet("Administration/Organizations")]
+    public IActionResult Organizations() => Redirect("/AdminValora?module=companies");
     public IActionResult Users() => Module("users");
     public IActionResult Roles() => Module("roles");
     public IActionResult Plans() => Module("plans");

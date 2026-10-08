@@ -148,11 +148,33 @@ public sealed class FormalDeliverableCatalogRepository(IDbConnectionFactory conn
               @ReviewerUserId,@SourceResultHash,@MethodologyName,@MethodologyVersion,@PublishedAt,@PublishedBy,
               @ParentDeliverableId,@CommandId,@DocumentId)
             """, new {
-            entity.Id, entity.OrganizationId, entity.DiagnosticId, entity.ResultId, entity.DeliverableType, entity.Title,
-            entity.Status, entity.GeneratedByUserId, entity.FileId, entity.MetadataJson, entity.CreatedAt, entity.UpdatedAt,
-            entity.EditorialStatus, entity.ProcessingStatus, entity.VersionNumber, entity.TemplateCode, entity.SectionsJson,
-            entity.ExecutiveNotes, entity.ReviewerUserId, entity.SourceResultHash, entity.MethodologyName, entity.MethodologyVersion,
-            entity.PublishedAt, entity.PublishedBy, entity.ParentDeliverableId, entity.CommandId, entity.DocumentId
+            entity.Id,
+            entity.OrganizationId,
+            entity.DiagnosticId,
+            entity.ResultId,
+            entity.DeliverableType,
+            entity.Title,
+            entity.Status,
+            entity.GeneratedByUserId,
+            entity.FileId,
+            entity.MetadataJson,
+            entity.CreatedAt,
+            entity.UpdatedAt,
+            entity.EditorialStatus,
+            entity.ProcessingStatus,
+            entity.VersionNumber,
+            entity.TemplateCode,
+            entity.SectionsJson,
+            entity.ExecutiveNotes,
+            entity.ReviewerUserId,
+            entity.SourceResultHash,
+            entity.MethodologyName,
+            entity.MethodologyVersion,
+            entity.PublishedAt,
+            entity.PublishedBy,
+            entity.ParentDeliverableId,
+            entity.CommandId,
+            entity.DocumentId
         }, cancellationToken: cancellationToken));
     }
 
@@ -168,10 +190,28 @@ public sealed class FormalDeliverableCatalogRepository(IDbConnectionFactory conn
               document_id=@DocumentId, file_id=@FileId, metadata_json=CAST(@MetadataJson AS jsonb), updated_at=@UpdatedAt
             WHERE id=@Id AND organization_id=@OrganizationId AND deleted_at IS NULL
             """, new {
-            entity.Id, entity.OrganizationId, entity.Title, entity.Status, entity.EditorialStatus, entity.ProcessingStatus,
-            entity.VersionNumber, entity.TemplateCode, entity.SectionsJson, entity.ExecutiveNotes, entity.ReviewerUserId,
-            entity.SourceResultHash, entity.MethodologyName, entity.MethodologyVersion, entity.PublishedAt, entity.PublishedBy,
-            entity.ParentDeliverableId, entity.CommandId, entity.DocumentId, entity.FileId, entity.MetadataJson, entity.UpdatedAt
+            entity.Id,
+            entity.OrganizationId,
+            entity.Title,
+            entity.Status,
+            entity.EditorialStatus,
+            entity.ProcessingStatus,
+            entity.VersionNumber,
+            entity.TemplateCode,
+            entity.SectionsJson,
+            entity.ExecutiveNotes,
+            entity.ReviewerUserId,
+            entity.SourceResultHash,
+            entity.MethodologyName,
+            entity.MethodologyVersion,
+            entity.PublishedAt,
+            entity.PublishedBy,
+            entity.ParentDeliverableId,
+            entity.CommandId,
+            entity.DocumentId,
+            entity.FileId,
+            entity.MetadataJson,
+            entity.UpdatedAt
         }, cancellationToken: cancellationToken));
     }
 

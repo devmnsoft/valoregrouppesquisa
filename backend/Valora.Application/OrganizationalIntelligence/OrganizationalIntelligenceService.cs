@@ -65,14 +65,16 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
             string? limitation = null;
             if (previous is null) {
                 classification = "baseline";
-            } else if (previous.EvidenceCount != run.EvidenceCount) {
+            }
+            else if (previous.EvidenceCount != run.EvidenceCount) {
                 // Different populations: the observed gap reflects time and data
                 // availability, not an assessed organizational change.  Keep the
                 // observed difference but do not assert a direction.
                 change = Math.Round(run.MaturityIndex!.Value - previous.MaturityIndex!.Value, 2);
                 classification = "not_comparable";
                 limitation = $"População de evidências diferente entre as medições ({previous.EvidenceCount} → {run.EvidenceCount}); o intervalo observado não demonstra evolução ou regressão.";
-            } else {
+            }
+            else {
                 change = Math.Round(run.MaturityIndex!.Value - previous.MaturityIndex!.Value, 2);
                 classification = change >= 2 ? "evolution" : change <= -2 ? "regression" : Math.Abs(change) < .5m ? "stagnation" : "stable";
             }
@@ -240,7 +242,8 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
                     _ => versionValue.GetRawText()
                 };
             return code.Length > 0 && version.Length > 0 ? $"{code}@{version}" : "indefinida";
-        } catch (JsonException) { return "indefinida"; }
+        }
+        catch (JsonException) { return "indefinida"; }
     }
 
     // Assinatura de escala apenas das perguntas do snapshot cujas dimensões foram
@@ -259,7 +262,8 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
                     scales.Add(scale.GetRawText());
                 }
             }
-        } catch (JsonException) { }
+        }
+        catch (JsonException) { }
         return string.Join("|", scales.Distinct(StringComparer.Ordinal).OrderBy(scale => scale, StringComparer.Ordinal));
     }
 

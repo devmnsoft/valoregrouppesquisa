@@ -13,8 +13,7 @@ public sealed record InstallationPreview(Guid PackId, string VersionNumber, IRea
 // Classes (não records): em .NET, records somente honram metadados de validação declarados nos
 // parâmetros do construtor primário, invisíveis ao runtime Validator. Como classes, o metadata
 // fica visível tanto ao MVC quanto às chamadas Validator.ValidateObject abaixo.
-public sealed class CreateSolutionPackRequest
-{
+public sealed class CreateSolutionPackRequest {
     [Required, StringLength(160, MinimumLength = 3)] public string Name { get; set; } = "";
     [Required, StringLength(2000)] public string Description { get; set; } = "";
     [Required, StringLength(80)] public string Category { get; set; } = "";
@@ -24,28 +23,24 @@ public sealed class CreateSolutionPackRequest
 
     public CreateSolutionPackRequest() { }
 
-    public CreateSolutionPackRequest(string name, string description, string category, string segment, bool isOfficial, string? evidence)
-    {
+    public CreateSolutionPackRequest(string name, string description, string category, string segment, bool isOfficial, string? evidence) {
         Name = name; Description = description; Category = category; Segment = segment; IsOfficial = isOfficial; Evidence = evidence;
     }
 }
-public sealed class NewVersionRequest
-{
+public sealed class NewVersionRequest {
     [Required, StringLength(32)] public string VersionNumber { get; set; } = "";
     public IReadOnlyList<SolutionPackItemInput> Items { get; set; } = new List<SolutionPackItemInput>();
     public IReadOnlyList<SolutionPackDependencyInput> Dependencies { get; set; } = new List<SolutionPackDependencyInput>();
     public string? ReleaseNotes { get; set; }
 }
-public sealed class SolutionPackItemInput
-{
+public sealed class SolutionPackItemInput {
     [Required] public string ItemType { get; set; } = "";
     [Required] public string Name { get; set; } = "";
     [Required] public string SourceModule { get; set; } = "";
     public Guid? SourceTemplateId { get; set; }
     public string? MetadataJson { get; set; }
 }
-public sealed class SolutionPackDependencyInput
-{
+public sealed class SolutionPackDependencyInput {
     [Required] public string DependencyType { get; set; } = "";
     public string? RequiredModule { get; set; }
     public string? RequiredPermission { get; set; }

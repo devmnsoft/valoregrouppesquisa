@@ -129,7 +129,40 @@ Mapeamento dos defeitos do auditor original: **D2** = ausência de semente/demo 
   - **Cenário de duas avaliações (seed reversível):** survey snapshoted fechada `2da14c85` ativada temporariamente (UPDATE status → restored para `closed` no fim; `finally` garante restauração). Ao vivo: 2 candidatas na ordem `(created_at, id)`; seleção padrão oldest→newest; ids explícitos invertidos honrados; veredito "Os resultados não estão disponíveis para comparação." (verificação de disponibilidade antecede diferenças de base — `Compare` L16–17); pós-restauração o `options` volta a 1 candidata (estado de dados 100% revertido).
   - Caminho comparável + variação absoluta: coberto por testes unitários com strings exatas; o ambiente de trabalho não possui `dimension_scores` utilizáveis (ver OBS-18), então ao vivo o estado correto é o de indisponibilidade honesta.
 
-## 8. Candidatos de auditoria registrados (triagem pendente)
+## 8. Fechamento do Bloco A — Estabilização E2E do fluxo de formulários, contexto de organização e bootstrap web (FECHADO)
+
+**Escopo:** tornar o caminho principal (login → contexto de organização → formulários → persistência) funcional sem erros de dependência, padronizar diálogos/confirmar, remover jQuery dos bootstraps, eliminar o redirect client-side para Login e deixar o pipeline verde.
+
+### 8.1 A1 — Cadeia de dependência de formulários
+- **Listagem de formulários 500:** ctor posicional de `FormListItemResponse` com parâmetros em ordem diferente do SELECT de 18 colunas (materialização Dapper falhava) → reordenado em `FormAdministrationContracts.cs`. Verificado ao vivo: `GET /bff/forms?page=1&pageSize=20` → **200**, `total=2` ("Formulário Block A"[draft] · "Pesquisa Oficial Valora"[active]).
+- **POST /bff/forms 403:** `PermissionAuthorizationHandler` da API resolvia o código de permissão por lookup exato no banco, negando até para o admin global `admin_valora` sem grant granular → adicionado early-succeed em `IsGlobalAdministrator` em `Valora.Api/Authorization/PermissionAuthorization.cs` (espelha o handler do Web; o escopo de dados via `RequireOrganizationId()` ficou intacto). E2E ao vivo completo: diálogo de criação → confirmação padrão → `POST /bff/forms` **201** (`881080f3-4a75-4927-bd3c-0032be771fef`, rascunho "Formulário Block A") → Builder → listagem `total=2`. O artefato permanece em `valora_evo_test`.
+
+### 8.2 Contexto de organização (admin_valora global) + persistência da seleção
+- Decisão implementada e verificada ao vivo: `EffectiveOrganizationId = SelectedOrganizationId` — fallback para a home org só na **exibição** (`/bff/account/context`), nunca nas APIs escopadas.
+- Cadeia: `saas_customers UNIQUE(organization_id)`; `SaasCustomerService.FindByOrganizationIdAsync`; fallback por org-id em `SaasCustomersController.SelectContext`; `GET /bff/auth/organizations` (fonte do picker); picker em `_Topbar.cshtml` + `topbar-shell.js initOrganizationPicker` (+ CSS).
+- **Refresh preservando a seleção:** `RefreshCoreAsync` (`BffAuthenticationService.cs`) reconstruía o cookie no refresh sem `SelectedOrganizationId` → 403 `Organização não selecionada` em `/bff/forms`; a seleção agora é transportada tanto para `safe` quanto para `result`.
+- E2E ao vivo: o picker lista as 2 orgs acessíveis (`Tenant B Group` / `Valora Group`); seleção → `POST /bff/auth/select-organization` **200** + log `BFF organization context changed … OrganizationId=1d48de43…`; pós-reload: `/bff/surveys` 200 e `/bff/forms` 200 (ambos 403 antes da seleção). Nota: `WRN Contexto de organização ausente no Web` é comportamento esperado pré-seleção, não defeito.
+
+### 8.3 Bootstrap web: remoção do jQuery + versionamento (`?v=`) + gate de autenticação
+- jQuery removido dos bootstraps de `_Layout.cshtml`/`_AdminLayout.cshtml`: `guards.js` e `app.js` em JS puro (sem mais `Uncaught ReferenceError: $ is not defined`); `node --check` PASS nos dois; `app.js` retém apenas o `#environmentBadge`; logout vinculado exclusivamente em `topbar-shell.js:171`; parametrizações legadas `$.param` convertidas para `URLSearchParams` (`responses-api.js`, `audit-api.js`).
+- `asp-append-version="true"` em `guards.js` e `app.js` nos dois layouts (causa raiz dos erros de console persistentes: views pré-compiladas + cache estático desatualizado). Verificado ao vivo: `guards.js?v=wQqQqBYpz3IIK9fod-kueOpaBjYsaH51QMxvjtoBnVE` e `app.js?v=P3DLYq185W7o-KLhh1bh_bv6uxyI8h4ueBk7AJNj0yE` servidos em `/Forms` e `/Dashboard`.
+- **Redirect 302 para Login (client-side) — fechado:** a reescrita em JS puro do `guards.js` reativou o predicado `requireAuth` lendo `Session.token()` — stub da era BFF (`auth-session.js`, `token()` sempre nulo) — e nenhum view renderizava `data-authenticated` → todas as páginas autenticadas redirecionavam para Login mesmo com cookie BFF válido. Correção: `<body data-authenticated="@(User.Identity?.IsAuthenticated)">` nos dois layouts + predicado agora prefere `Session.isAuthenticated()` (marca no body) com fallback para `token()`. Verificado ao vivo: `/Dashboard` e `/Forms` seguram com `data-authenticated="true"` e **zero** erros de console; sessão expirada → 401 `SESSION_EXPIRED` do servidor → `/Account/Login?reason=session-expired&returnUrl=…` → relogin pela UI aterrissa em `/Dashboard`.
+
+### 8.4 A3 — Ciclo de vida de diálogos/confirmações (prova ao vivo)
+- Contrato verificado em `valora-ui.js`: `[data-confirmation-modal]` único global (HTMLDialogElement); `[data-confirm-proceed]` → `true`; qualquer fechamento (Esc/backdrop/programático) → `false` (todos os caminhos convergem no listener `close`).
+- Teste ao vivo "Arquivar 'Formulário Block A' → cancelar": `modalCount=1`; mensagem interpola o nome corretamente; **zero** chamadas em `/bff/forms` capturadas após o cancelamento (spy sobre `fetch`); linha, botão de arquivar e status preservados ("Rascunho") — sem mutação.
+- `action-center.js`: todos os caminhos de fechamento (Esc→`cancel`, backdrop, `[data-dialog-close]`) passam por `requestClose` protegida por flag `closing` (garantia de prompt único — verificado por leitura de código, L26–30); usa o mesmo primitivo `ValoraUI.confirm` validado ao vivo acima. O teste ao vivo com diálogo sujo requer um plano existente → agregado ao Bloco C (C5).
+
+### 8.5 Pipeline (pós-mudanças)
+- `dotnet format whitespace Valora.sln --verify-no-changes` → **EXIT=0**.
+- `dotnet build -c Release` (Web+API) → **EXIT=0**; a instância em execução (Web PID 41952 `:5088/:7088`) inclui as mudanças cshtml (hashes `?v=` novos servidos); API PID 36960 `:5080` intocada.
+- `dotnet test Valora.Tests -c Debug` com `VALORA_TEST_POSTGRES_CONNECTION` → **479/479 aprovados, 0 falhas**.
+
+### 8.6 Limitações herdadas
+- **Capturas de tela:** `browser.screenshot` exige aba visível; a superfície permanece `visibilityState:"hidden"` mesmo com janela do OpenCode elevada no SO + tab focado (Chromium embutido no Electron). A evidência funcional está completa sem as capturas → as capturas reais de 3 viewports migram para a passagem de captura do Bloco D.
+- **Sobrevivência de refresh de sessão — FECHADO (PASS, 2026-10-07):** bateria `b2_refresh_check.ps1` em sessão própria (curl): T0 14:15:58 → LOGIN=200, SELECT_ORG=200; `GET /bff/forms` aos 14 min (`AT_14MIN_BFF_FORMS`) = **200** e aos 14:45 min (`AT_14MIN45S_BFF_FORMS`) = **200**, atravessando a renovação automática do access token (~15 min). `web_out.log`: **3 renovações** registradas na janela — `[14:30:05 INF] BFF access token renewed. SessionId=f692dbc9-92f6-4866-8608-2c580a05dc5b UserId=9f1e8a01-… OrganizationId=1d48de43-3bbb-4827-9951-83cd1e6dc4cb` — confirmando o fix do Bloco A de que `RefreshCoreAsync` preserva `SelectedOrganizationId` no refresh em janela real (>15 min).
+
+## 9. Candidatos de auditoria registrados (triagem pendente)
 
 | Id | Achado | Impacto |
 |---|---|---|
@@ -152,10 +185,119 @@ Mapeamento dos defeitos do auditor original: **D2** = ausência de semente/demo 
 | OBS-17 | Views mortas `Views/ActionPlans/Index.cshtml` + `wwwroot/js/pages/action-plans-page.js` (o controller sempre redireciona; tracked desde `905a93f0`) — mantidas | Higiene do código |
 | OBS-18 | Estado de dados do ambiente de trabalho: as 3 respostas da jornada têm `result_scores` mas **zero** `dimension_scores` anexadas; as 30 linhas existentes de `dimension_scores` em `valora_evo_test` referenciam `result_score_id` inexistentes (linhas antigas dos drifts `2026_10_result_scores_columns`/`2026_10_dimension_scores_nullable_linkage`) apesar da FK existir — a etapa de pontuação por dimensão não produziu linhas vinculadas às avaliações atuais. Consequência: toda leitura de maturidade comparável é `null` ao vivo (B1 exibe "não disponíveis" honestamente; `/evolution` legado usa evidências e não é afetado) | Completude de dados derivadas no ambiente local |
 
-## 9. Próximos passos
+## 10. Próximos passos
 
 1. ~~**A2** — corrigir `EvolutionAsync` + seleção determinística (ver item 5 — FECHADO).~~
 2. ~~**A4** — navegação/rastreabilidade OrganizationalIntelligence × Action Center + D7 (ver item 6 — FECHADO).~~
 3. ~~**B1** — comparação de evolução exposta a partir de snapshots imutáveis (ver item 7 — FECHADO; 479/479 + npm trio + smoke autenticado ao vivo incl. cenário reversível de duas avaliações).~~
-4. **B2–B4** — passo a passo do workspace (situação/evidência/impedimento/próxima ação por estado persistido), ciclo fechado insight→plano→atividades→evidência→reevaluação com learning, e validação visual em 3 viewports (1440×900, 768×1024, 390×844) + bateria de gates a cada mudança.
-5. Ao fim da sessão: dropar `valora_evo_scratch`.
+4. ~~**Bloco A** — estabilização E2E de formulários, contexto de organização e bootstrap web (ver §8 — FECHADO; pipeline verde 479/479).~~
+5. ~~**Bloco B** — consolidação de navegação: 7 áreas do cliente + ADMINISTRAÇÃO GLOBAL (ver §11 — FECHADO; 169→165 itens, 4 remoções registradas, 6 aliases GET seguros, pipeline 480/480, validação ao vivo 48/48 asserts + browser com console limpo).~~
+6. **Bloco C** — CRUDs reais C1–C6 (org/acessos, ciclo de vida de formulários, diagnóstico/coleta, resultados, planos de ação, padrões de formulários), incluindo o teste de diálogo sujo ao vivo com plano real (C5).
+7. **Bloco D** — cascata de layout + validação em 3 viewports (390×844 / 768×1024 / 1440×900) com capturas reais + contraste/acessibilidade (inclui a passagem de capturas herdada em §8.6).
+8. **B2–B4** — passo a passo do workspace (situação/evidência/impedimento/próxima ação por estado persistido), ciclo fechado insight→plano→atividades→evidência→reevaluação com learning, e bateria de gates a cada mudança.
+9. ~~Checagem final: sobrevivência de refresh de sessão >15 min (§8.6) — FECHADO: `AT_14MIN_BFF_FORMS=200`, `AT_14MIN45S_BFF_FORMS=200`, 3 renovações em `web_out.log` com `OrganizationId=1d48de43-…` preservado (ver §8.6).~~
+10. Ao fim da sessão: dropar `valora_evo_scratch`.
+
+## 11. Bloco B — Consolidação de navegação (FECHADO)
+
+Baseline `aeb31bfe`. Escopo executado: taxonomia de 7 áreas do cliente + ADMINISTRAÇÃO GLOBAL (confirmada pelo usuário), reuso canônico de URLs, remoções registradas, aliases apenas como redirect GET seguro. Sem mudança de autorização: papéis/permissões/escopos de cada item mantidos como em HEAD (menu oculto ≠ autorização — a visibilidade é UX; o gate server-side é inalterado).
+
+### 11.1 Taxonomia final (códigos exatos)
+
+| Ordem | Código da seção | Rótulo (exato) |
+|---|---|---|
+| 10 | `executive` | "Visão Executiva" |
+| 20 | `diagnostics` | "Diagnóstico" |
+| 30 | `results` | "Resultados" |
+| 40 | `intelligence` | "Inteligência" |
+| 50 | `execution` | "Execução & Evolução" |
+| 60 | `governance` | "Risco & Governança" |
+| 70 | `organization` | "Organização & Segurança" |
+| 90 | `global-administration` | "ADMINISTRAÇÃO GLOBAL" |
+
+### 11.2 Menu ANTES (169 itens, 15 seções — git HEAD)
+
+- `valora` "Admin Valora" (1): Visão Geral Valora (`valora.overview`)
+- `workspace` "Visão Geral" (3): Workspace, Meu Dia, Busca Global
+- `executive` "Visão Executiva" (3): Visão Geral, Prioridades, Cockpit Executivo
+- `diagnostics` "Diagnóstico" (8): Onboarding, Novo Diagnóstico, Ciclos Diagnósticos, Templates, Formulários, Pesquisas, Campanhas, Respostas
+- `methodology` "Metodologia Valora" (13): Visão Geral, Versões, Dimensões, Dicionário Cognitivo, Mapa Cognitivo, Índices, Perguntas Oficiais, Prompts IA, Guardrails, Validação, Templates, Scoring, Recomendações
+- `intelligence` "Inteligência" (34): People, Teams, Culture, Engagement, Competencies, Development Plans, Risks, Knowledge Center, Valora Advisor™, Architecture Studio, Resultados, Inteligência Organizacional, Gerar análise IA, Revisão de IA, Mapeamento Metodológico, Centro de Processamento, Evidências, **Centro de Evidências** (`intelligence.evidence-center` — removido), Metrics™, Índices Valora™, Motor de Inferência, Insights IA™, Radar™, Heatmap™, Benchmark, Executive Reports™, One-on-One™, Lideranças, Comparativos, Evolução Histórica, Recomendações, Valora Action™, Relatórios, Certificados
+- `execution-evolution` "Execução e evolução" (19): Benchmarks, Compare, Cohorts, Insights comparativos, Privacy (5); Processes, Definitions, Builder, Instances, Approvals, SLA, Insights, Templates (8); Central de ações, Planos de Ação, Ações, Evolução, Ciclos de Evolução, Histórico (6)
+- `risk-compliance` "Risk & Compliance" (8): Risk & Compliance, Risks, Heatmap, Controls, Compliance, Non-Conformities, Mitigation Plans, Audits
+- `decision-governance` "Governança e Decisão" (6): Decision Center, Alertas Inteligentes, Decisões, Indicadores, Ciclos de Governança, Reuniões de Governança
+- `administration` "Administração" (46): Admin Hub, Solution Packs ×4; SaaS Admin, Clientes, Cobrança, Módulos, Auditoria SaaS; master: Visão Geral, **Organizações** (`master.organizations` — removido), Planos e Assinaturas, Feature Flags, Diagnósticos, Questionários e Perguntas, Respostas, Resultados, Relatórios, Certificados, Inteligência Organizacional, Benchmark, One-on-One, Notificações, Auditoria, Jobs e Processamentos, Logs do Sistema, Configurações, Aparência e Marca, Suporte; security ×9 (Segurança e Compliance, Privacidade e LGPD, Solicitações de Titulares, Retenção de Dados, Auditoria de Compliance, Incidentes de Segurança, Revisão de Acessos, Acessos Sensíveis, Chaves de API); Estrutura Organizacional, Públicos e Segmentações, **Organizações** (`administration.organizations` — removido), Usuários, Perfis e papéis, Permissões e acessos, Configuração de Benchmark
+- `platform` "Plataforma" (16): Suporte (operação), Feedback, Customer Success, Métricas de Adoção, Onboarding, Solicitações Comerciais, Incidentes, Release Notes, Planos e Uso, Communication Center, Auditoria, Governança da Plataforma, Saúde do Sistema, Backup e Restore, Modo de Manutenção, Configurações
+- `subscriptions` "Planos e Assinaturas" (3): Marketplace de Módulos, **Minha Assinatura** (`subscriptions.current` — removido), Limites e Uso
+- `data` "Dados" (1): Data Hub
+- `customer-success` "Suporte / Success Center" (7): Visão Geral, Onboarding, Saúde da Conta, Chamados, Base de Conhecimento, Playbooks, Uso do Produto
+- `support` "Suporte" (1): Ajuda (`support.help`)
+
+### 11.3 Menu DEPOIS (165 itens, 8 seções — `NavigationCatalog.cs` reescrito)
+
+- `executive` "Visão Executiva" (7): Visão Geral Valora, Visão Geral, Workspace, Meu Dia, Prioridades, Cockpit Executivo, Busca Global *(consolida as antigas `valora` + `workspace` + `executive`)*
+- `diagnostics` "Diagnóstico" (9): Onboarding, Novo Diagnóstico, Ciclos Diagnósticos, Formulários, Pesquisas, Campanhas, **Públicos e Segmentações** (movido de `administration`), Respostas, Templates
+- `results` "Resultados" (7): Resultados, Comparativos, Evolução Histórica, Recomendações, Executive Reports™, Relatórios, Certificados *(seção nova, extraída de `intelligence`)*
+- `intelligence` "Inteligência" (25): People ×7, Knowledge Center, Valora Advisor™, Architecture Studio, Inteligência Organizacional, Gerar análise IA, Revisão de IA, Mapeamento Metodológico, Centro de Processamento, Evidências, Metrics™, Índices Valora™, Motor de Inferência, Insights IA™, Radar™, Heatmap™, Benchmark, One-on-One™, Lideranças *(sem `evidence-center`; itens de resultados extraídos)*
+- `execution` "Execução & Evolução" (7): Central de ações, Planos de Ação, Ações, Valora Action™, Evolução, Ciclos de Evolução, Histórico *(rótulo "Execução e evolução" → "Execução & Evolução"; Benchmarks/Processes movidos para `governance`)*
+- `governance` "Risco & Governança" (27): risk ×8, Decision Center ×6 (Decision Center, Alertas Inteligentes, Decisões, Indicadores, Ciclos de Governança, Reuniões de Governança), Benchmarks ×5, Processes ×8 *(consolida `risk-compliance` + `decision-governance` + blocos de benchmark/processo vindos de `execution-evolution`)*
+- `organization` "Organização & Segurança" (20): Admin Hub, Estrutura Organizacional, Usuários, Perfis e papéis, Permissões e acessos, Configuração de Benchmark, security ×9, Planos e Uso, Communication Center, Auditoria, Configurações, **Ajuda** (`support.help`, movido da seção `support`)
+- `global-administration` "ADMINISTRAÇÃO GLOBAL" (63): SaaS Admin, Clientes, Cobrança, Módulos, Auditoria SaaS; master ×19 (sem `master.organizations`); Metodologia ×13 (seção própria dissolvida); Solution Packs ×4; operação ×8; success ×7; Marketplace de Módulos + Limites e Uso (sem `subscriptions.current`); Governança da Plataforma, Saúde do Sistema, Backup e Restore, Modo de Manutenção; Data Hub
+
+Totais conferidos por contagem direta: 169 (HEAD) → 165 (novo); diferença = exatamente as 4 remoções de §11.4.
+
+### 11.4 Remoções do menu (exatamente 4)
+
+| Código removido | Destino antigo | Rótulo | Fundamento / destino canônico |
+|---|---|---|---|
+| `administration.organizations` | `Enterprise.Organizations` (`/Enterprise/Organizations`) | Organizações | duplicava `master.organizations` e o Admin Hub (OBS-14); gestão de organizações é do Admin Hub |
+| `master.organizations` | `Administration.Organizations` (`/Administration/Organizations`) | Organizações | mesma funcionalidade; canônica = Admin Hub `companies` (`/AdminValora?module=companies`) |
+| `intelligence.evidence-center` | `OrganizationalCenters.Evidence` (`/Evidence`) | Centro de Evidências | reuso canônico de evidências = `Intelligence.Evidence` (`/Intelligence/Evidence`); endpoints `/Evidence/Details/{guid}` e `/Evidence/ByDiagnostic/{guid}` mantidos e 200 ao vivo |
+| `subscriptions.current` | `Saas.Subscription` (`/Organization/MyPlan`, `/Platform/Subscriptions`) | Minha Assinatura | reuso canônico = `Saas.Marketplace` (`/Marketplace`) |
+
+Nenhuma tabela foi removida (invariante do DB intacta); `valora_actions` continua separado de `action_plans`/`action_items`.
+
+### 11.5 Correção de destino: `saas.customers` (renomeio método + view)
+
+- O action `[HttpGet("Clients")]` de `SaasAdminController` estava no método `Customers` (desalinhamento rota↔metodologia detectado pelos testes de reflexão do catálogo).
+- Corrigido por renomeio: método `Customers` → `Clients` (+ 2 refs por `nameof`) e view `Views/SaasAdmin/Customers.cshtml` → `Clients.cshtml` via `git mv` (**única mudança STAGED no índice git**; restante do trabalho fica uncommitted, baseline permanece `aeb31bfe`).
+- Item `saas.customers` agora aponta para `SaasAdmin/Clients` = `/Admin/Clients` (200 ao vivo; link antigo `/SaasAdmin/Customers` ausente do menu verificado).
+
+### 11.6 Desvio registrado: Admin Hub na área 7 (`organization`)
+
+`admin.hub` ficou em "Organização & Segurança" (ordem 0 da seção), e não em `global-administration`. Motivo: `AdminHubController` autoriza `admin_valora` **e** `empresa_admin`, enquanto a seção global é exclusivamente `admin_valora`. Mantê-lo na área 7 preserva a semântica de escopo do hub (administração de empresa/tenant) e a segregação da administração de plataforma.
+
+### 11.7 Aliases — redirects GET seguros aplicados neste bloco (6 URLs)
+
+| URL legada | Status | Destino (302) | Implementação |
+|---|---|---|---|
+| `/Priorities` | 302 | `/Workspace/Priorities` | `OrganizationalCenters.Priorities() => Redirect(...)` |
+| `/Evidence` | 302 | `/Intelligence/Evidence` | `OrganizationalCenters.Evidence()` |
+| `/Indexes` | 302 | `/Intelligence/Indices` | `OrganizationalCenters.Indexes()` |
+| `/Radar` | 302 | `/Intelligence/Radar` | `OrganizationalCenters.Radar()` |
+| `/Administration/Organizations` | 302 | `/AdminValora?module=companies` | `AdministrationController.Organizations()` + rota literal `[HttpGet("Administration/Organizations")]` (necessária: `[HttpGet("Administration/{module}")]` sombriava a rota convencional — atributo > convencional, e segmento literal > parâmetro) |
+| `/Organization/MyPlan` e `/Platform/Subscriptions` | 302 | `/Marketplace` | `Saas.Subscription()` (duas rotas no mesmo action) |
+
+Todos com comentário `// Bloco B — alias GET seguro: ...`. **Aliases pré-existentes preservados (não alterados):** `/Support` → `/SuccessCenter/Support`; `/Support/Tickets` e `/Support/Tickets/{id}` → `/SuccessCenter/Support[/Details/{id}]` (`AssistedOperationsController`); `/AdminValora/Organizations` (endpoint real do hub em `AdminHubController`). **Endpoints de detalhe mantidos com dados:** `/Evidence/Details/{guid}`, `/Evidence/ByDiagnostic/{guid}`, `/Indexes/Details/{code}` — todos 200 ao vivo.
+
+### 11.8 Arquivos alterados (Bloco B)
+
+- `backend/Valora.Web/Navigation/NavigationCatalog.cs` — reescrito (8 seções/165 itens; cabeçalho com regra de reuso canônico e registro deste §11). Linhas de itens vertiginais ao HEAD exceto seção/ordem/destino do `saas.customers` (âncora de diff: `nav_orig.txt`).
+- `backend/Valora.Web/Controllers/OrganizationalCentersController.cs` — 4 actions raiz → `Redirect`; endpoints de detalhe intocados.
+- `backend/Valora.Web/Controllers/AdministrationController.cs` — `Organizations()` → `Redirect("/AdminValora?module=companies")` + rota literal.
+- `backend/Valora.Web/Controllers/SaasController.cs` — `Subscription()` → `Redirect("/Marketplace")`; `Usage()` inalterado.
+- `backend/Valora.Web/Controllers/SaasAdminController.cs` — método `Customers`→`Clients` (ver §11.5); view renomeada por `git mv`.
+- `backend/Valora.Tests/NavigationRegressionTests.cs` — `AdminValoraReceivesTheCompleteNavigationWithoutTenantClaims` reescrita (8 rótulos exatos, 12 códigos obrigatórios, 4 removidos ausentes); novo Fact `LegacyAliasActionsRedirectToTheirCanonicalRoutes` (instancia controladores diretamente, incl. `SaasController(null!, NullLogger<…>.Instance)`).
+
+### 11.9 Pipeline e evidência ao vivo
+
+- `dotnet format whitespace Valora.sln --verify-no-changes` → **EXIT=0** (re-validado após o último edit — rota literal em `AdministrationController`).
+- `dotnet build Valora.sln -c Release` → **EXIT=0** (0 erros, 8 avisos preexistentes CS8603/CS8604). Web reiniciada: **PID 17720** `:5088/:7088` (PID 46472 anterior stopado antes do build); API PID 36960 `:5080` intocada.
+- `dotnet test Valora.Tests -c Debug` com `VALORA_TEST_POSTGRES_CONNECTION` → **480/480 aprovados, 0 falhas** (479 → 480 pelo novo Fact de aliases).
+- **Validação HTTP ao vivo** (`b1_nav_verify.ps1`, login `admin.tenanta@valora.local` + seleção da org Valora Group): LOGIN/SELECT_ORG/DASHBOARD/FORMS = 200; **48/48 asserts PASS, zero FAIL**: 8 seções presentes nos dois layouts (Dashboard e Forms — sidebar compartilhado); 8 rótulos exatos conferidos por decodificação das entidades HTML numéricas emitidas pelo Razor (ex.: `Vis&#xE3;o Executiva` = "Visão Executiva" — artefato de codificação do probe inicial, não defeito da app); 4 códigos removidos ausentes; `saas.customers` presente apontando para `/Admin/Clients`; 6 aliases → 302 com location exata (normalização de URL absoluta do curl); 7 destinos canônicos → 200; 3 deep links de evidência/índices → 200.
+- **Validação browser** (aba `tab_72b3b8fd-0292-4554-8f53-6292d6e01b1d`, login fresco 200 + select-org 200): `/Dashboard` — link ativo `executive.overview`; `/Forms` — link ativo `diagnostics.forms`; navegação renderizada = 165 itens × 2 instâncias (sidebar desktop + drawer mobile) = 330 nós; 8 seções × 2; códigos removidos ausentes; `saas.customers` → `/Admin/Clients`; **console errors = 0 nas duas páginas**. (Obs.: `/Dashboard` exibe 2 `h1` — encaminhado ao Bloco D, item "um único h1 por página".)
+
+### 11.10 Efeitos colaterais resolvidos / pendências
+
+- **OBS-14 RESOLVIDA** — os dois rótulos duplicados "Organizações" (`administration.organizations` e `master.organizations`) foram removidos do menu.
+- **Checagem de sobreviência de refresh >15 min — PASS (2026-10-07):** `b2_refresh_check.ps1` (shell `sh_1175d57e4001WofaalDYNF0PVf`): T0 14:15:58 login+select-org 200; `GET /bff/forms` aos 14 min e 14:45 min = 200/200; 3 renovações em `web_out.log` (primeira 14:30:05) com `OrganizationId=1d48de43-…` preservado. Detalhe em §8.6.

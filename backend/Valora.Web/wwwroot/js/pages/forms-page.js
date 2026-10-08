@@ -11,6 +11,7 @@
   const category = host.querySelector('[data-filter-category]');
   const pagination = host.querySelector('[data-pagination]');
   const createForm = dialog.querySelector('[data-form-create]');
+  dialog.dataset.dialogCloseManaged = 'true';
   const createError = createForm.querySelector('[data-create-error]');
   let page = 1;
   let requestSequence = 0;
@@ -66,7 +67,7 @@
   function filtersChanged(delayed) { page = 1; storeFilters(); clearTimeout(searchTimer); if (delayed) searchTimer = setTimeout(load, 300); else load(); }
   host.querySelectorAll('[data-new-form], [data-action="new-form"]').forEach(button => button.addEventListener('click', () => dialog.showModal()));
   async function closeCreateDialog() { if (createSubmitting) return; if (createDirty && !await window.ValoraUI.confirm('Descartar os dados ainda não salvos deste formulário?')) return; createForm.reset(); createDirty = false; createError.classList.add('d-none'); dialog.close(); }
-  document.querySelectorAll('[data-dialog-close]').forEach(button => button.addEventListener('click', closeCreateDialog));
+  dialog.querySelectorAll('[data-dialog-close]').forEach(button => button.addEventListener('click', closeCreateDialog));
   dialog.addEventListener('cancel', event => { event.preventDefault(); closeCreateDialog(); });
   host.querySelector('[data-refresh]').addEventListener('click', load); host.querySelector('[data-retry]').addEventListener('click', load);
   search.addEventListener('input', () => filtersChanged(true)); [status, category].forEach(control => control.addEventListener('change', () => filtersChanged(false)));

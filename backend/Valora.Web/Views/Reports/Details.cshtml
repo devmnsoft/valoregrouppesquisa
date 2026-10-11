@@ -49,6 +49,18 @@
       }
     </section>
   }
+  @if (!string.IsNullOrWhiteSpace(Model.ShareReplayMessage)) {
+    <section class="valora-card share-token-once" aria-labelledby="share-replay-title">
+      <h2 id="share-replay-title">Operação de compartilhamento já executada</h2>
+      <p class="valora-alert valora-alert--warning" role="status">@Model.ShareReplayMessage</p>
+      <dl class="action-facts">
+        <div><dt>Link</dt><dd><code>@(string.IsNullOrWhiteSpace(Model.ShareLinkId) ? "—" : Model.ShareLinkId[..8])</code></dd></div>
+        <div><dt>Validade</dt><dd>@(Model.ShareExpiresAt ?? "—")</dd></div>
+        <div><dt>Download permitido</dt><dd>@(Model.ShareAllowDownload ?? "—")</dd></div>
+      </dl>
+      <p>Use a lista de links abaixo para revogar o acesso existente. Para exibir uma nova URL copiável, emita outro link com uma nova operação.</p>
+    </section>
+  }
 
   <section class="action-summary-grid">
     <article class="valora-card">

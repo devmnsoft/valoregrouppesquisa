@@ -215,12 +215,22 @@ public sealed class ReportsController(
 
         try {
             var created = await delivery.ShareAsync(organizationId, userId, id, command, cancellationToken);
-            TempData["DeliverableSuccess"] = "Link seguro criado. Copie o token agora; ele não poderá ser recuperado depois.";
-            TempData["ShareToken"] = created.Token;
-            TempData["SharePublicUrl"] = $"{Request.Scheme}://{Request.Host}/entregas/publica/{created.Token}";
+            TempData["ShareLinkId"] = created.Id.ToString("N");
+            TempData["ShareExpiresAt"] = created.ExpiresAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+            TempData["ShareAllowDownload"] = created.AllowDownload ? "Sim" : "Não";
+            if (created.TokenAvailable) {
+                TempData["DeliverableSuccess"] = "Link seguro criado. Copie o token agora; ele não poderá ser recuperado depois.";
+                TempData["ShareToken"] = created.Token;
+                TempData["SharePublicUrl"] = $"{Request.Scheme}://{Request.Host}/entregas/publica/{created.Token}";
+            }
+            else {
+                TempData["DeliverableSuccess"] = "Esta operação já havia criado um link seguro.";
+                TempData["ShareReplayMessage"] = created.ReplayMessage
+                    ?? "O token original não é recuperável. Revogue o link existente e emita outro se precisar exibir uma nova URL.";
+            }
             return RedirectToAction(nameof(Details), new { id, returnUrl = back });
         }
-        catch (Exception ex) when (ex is ValidationAppException or InvalidOperationException) {
+        catch (Exception ex) when (ex is ValidationAppException or InvalidOperationException or ConcurrencyConflictException) {
             ModelState.AddModelError("", FriendlyModuleMessage(ex.Message));
             return await DetailsWithCommand(organizationId, id, back, "share-dialog", command, cancellationToken);
         }
@@ -313,7 +323,11 @@ public sealed class ReportsController(
             command,
             returnUrl,
             TempData["ShareToken"] as string,
-            TempData["SharePublicUrl"] as string);
+            TempData["SharePublicUrl"] as string,
+            TempData["ShareReplayMessage"] as string,
+            TempData["ShareLinkId"] as string,
+            TempData["ShareExpiresAt"] as string,
+            TempData["ShareAllowDownload"] as string);
     }
 
     private string CurrentUrl() => Request.Path + Request.QueryString;
@@ -369,4 +383,8 @@ public sealed record DeliverableDetailsPageViewModel(
     object? Command,
     string ReturnUrl,
     string? ShareToken,
-    string? SharePublicUrl);
+    string? SharePublicUrl,
+    string? ShareReplayMessage,
+    string? ShareLinkId,
+    string? ShareExpiresAt,
+    string? ShareAllowDownload);

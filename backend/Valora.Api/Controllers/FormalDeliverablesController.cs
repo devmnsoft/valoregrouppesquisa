@@ -61,10 +61,27 @@ public sealed class FormalDeliverablesController(
     public async Task<IActionResult> ShareDeliverable(Guid id, [FromBody] CreateDeliverableShareRequest request, CancellationToken ct) {
         try {
             var created = await delivery.ShareAsync(OrganizationId(), RequireUserId(), id, request, ct);
+            if (!created.TokenAvailable) {
+                return Ok(new {
+                    ok = true,
+                    replay = true,
+                    created.Id,
+                    created.ExpiresAt,
+                    created.AllowDownload,
+                    tokenAvailable = false,
+                    token = "",
+                    url = (string?)null,
+                    notice = created.ReplayMessage
+                        ?? "Este comando já criou um link seguro. O token original não é recuperável; revogue e emita um novo link se precisar exibi-lo novamente."
+                });
+            }
             return Created($"/entregas/publica/{created.Token}", new {
+                ok = true,
+                replay = false,
                 created.Id,
                 created.ExpiresAt,
                 created.AllowDownload,
+                tokenAvailable = true,
                 token = created.Token,
                 url = $"{Request.Scheme}://{Request.Host}/entregas/publica/{created.Token}",
                 notice = "O token bruto é exibido somente agora e não pode ser recuperado depois. Revogue e crie um novo link se necessário."
@@ -72,6 +89,7 @@ public sealed class FormalDeliverablesController(
         }
         catch (NotFoundAppException) { return NotFound(new { ok = false, code = "DELIVERABLE_NOT_FOUND" }); }
         catch (ValidationAppException ex) { return BadRequest(new { ok = false, message = ex.Message }); }
+        catch (ConcurrencyConflictException ex) { return Conflict(new { ok = false, message = ex.Message }); }
         catch (InvalidOperationException ex) { return Conflict(new { ok = false, message = ex.Message }); }
     }
 

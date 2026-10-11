@@ -6,13 +6,19 @@ using Valora.Application.FormalDeliverables;
 namespace Valora.Infrastructure.FormalDeliverables;
 
 public sealed class ShareLinkRepository(IDbConnectionFactory connections) : IShareLinkRepository {
-    public async Task SaveAsync(ShareLink link, Guid? createdBy, CancellationToken cancellationToken = default) {
+    public async Task<bool> TrySaveAsync(ShareLink link, Guid? createdBy, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
-        await connection.ExecuteAsync(new CommandDefinition("""
+        var sql = link.CommandId is null ? """
             INSERT INTO valorapesquisa.secure_share_links
               (id,organization_id,diagnostic_id,result_id,deliverable_id,token_hash,public_slug,title,status,expires_at,allow_download,created_by_user_id,command_id,request_hash)
             VALUES (@Id,@OrganizationId,@DiagnosisId,@ResultId,@DeliverableId,@TokenHash,@DatabaseSlug,'Resultado Valora Insight','active',@ExpiresAt,@AllowDownload,@CreatedBy,@CommandId,@RequestHash)
-            """, new {
+            """ : """
+            INSERT INTO valorapesquisa.secure_share_links
+              (id,organization_id,diagnostic_id,result_id,deliverable_id,token_hash,public_slug,title,status,expires_at,allow_download,created_by_user_id,command_id,request_hash)
+            VALUES (@Id,@OrganizationId,@DiagnosisId,@ResultId,@DeliverableId,@TokenHash,@DatabaseSlug,'Resultado Valora Insight','active',@ExpiresAt,@AllowDownload,@CreatedBy,@CommandId,@RequestHash)
+            ON CONFLICT (organization_id, command_id) WHERE command_id IS NOT NULL AND deleted_at IS NULL DO NOTHING
+            """;
+        return await connection.ExecuteAsync(new CommandDefinition(sql, new {
             link.Id,
             link.OrganizationId,
             link.DiagnosisId,
@@ -25,7 +31,7 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
             CreatedBy = createdBy,
             link.CommandId,
             link.RequestHash
-        }, cancellationToken: cancellationToken));
+        }, cancellationToken: cancellationToken)) == 1;
     }
 
     public Task<ShareLink?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default) =>

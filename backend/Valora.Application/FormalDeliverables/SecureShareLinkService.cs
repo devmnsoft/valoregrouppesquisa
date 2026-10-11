@@ -16,15 +16,13 @@ public sealed class SecureShareLinkService(IShareLinkRepository repository, IExp
             throw new ArgumentOutOfRangeException(nameof(lifetime), "A validade deve estar entre um instante e 90 dias.");
         commandId = string.IsNullOrWhiteSpace(commandId) ? null : commandId.Trim();
         if (commandId is not null) {
+            if (commandId.Length > 80)
+                throw new ValidationAppException("A chave da operação deve ter até 80 caracteres.");
             if (string.IsNullOrWhiteSpace(requestHash))
                 throw new ArgumentException("O hash da intenção é obrigatório para criação idempotente.", nameof(requestHash));
             var existing = await repository.FindByCommandIdAsync(organizationId, commandId, cancellationToken);
             if (existing is not null) {
-                if (!string.Equals(existing.RequestHash, requestHash, StringComparison.Ordinal))
-                    throw new ConcurrencyConflictException("A chave da operação de compartilhamento já foi usada com outro conteúdo.");
-                return new CreatedShareLink(existing.Id, "", existing.PublicSlug, existing.ExpiresAt, existing.AllowDownload,
-                    TokenAvailable: false,
-                    ReplayMessage: "Este comando já criou um link seguro. O token original não é recuperável; revogue e emita um novo link se precisar exibi-lo novamente.");
+                return await ReplayAsync(existing, requestHash, userId, cancellationToken);
             }
         }
         var token = Base64Url(RandomNumberGenerator.GetBytes(32));
@@ -32,10 +30,25 @@ public sealed class SecureShareLinkService(IShareLinkRepository repository, IExp
         // Opaque route segment is the token; only its SHA-256 digest and public_slug=id are persisted.
         var link = new ShareLink(id, organizationId, diagnosisId, Hash(token), id.ToString("N"), DateTimeOffset.UtcNow.Add(lifetime), allowDownload,
             DeliverableId: deliverableId, ResultId: resultId, CommandId: commandId, RequestHash: requestHash);
-        await repository.SaveAsync(link, userId, cancellationToken);
+        if (!await repository.TrySaveAsync(link, userId, cancellationToken)) {
+            var existing = commandId is null ? null : await repository.FindByCommandIdAsync(organizationId, commandId, cancellationToken);
+            if (existing is null)
+                throw new ConcurrencyConflictException("O link seguro não foi criado porque outra operação concorrente reutilizou a mesma chave.");
+            return await ReplayAsync(existing, requestHash, userId, cancellationToken);
+        }
         await audit.RecordAsync(organizationId, userId, "share_link.created", deliverableId.HasValue ? "formal_deliverable" : "diagnosis",
             (deliverableId ?? diagnosisId).ToString(), true, null, cancellationToken);
         return new CreatedShareLink(link.Id, token, token, link.ExpiresAt, link.AllowDownload);
+    }
+
+    private async Task<CreatedShareLink> ReplayAsync(ShareLink existing, string? requestHash, Guid? userId, CancellationToken cancellationToken) {
+        if (!string.Equals(existing.RequestHash, requestHash, StringComparison.Ordinal))
+            throw new ConcurrencyConflictException("A chave da operação de compartilhamento já foi usada com outro conteúdo.");
+        await audit.RecordAsync(existing.OrganizationId, userId, "share_link.replayed", existing.DeliverableId.HasValue ? "formal_deliverable" : "diagnosis",
+            (existing.DeliverableId ?? existing.DiagnosisId).ToString(), true, existing.Id.ToString("N"), cancellationToken);
+        return new CreatedShareLink(existing.Id, "", existing.PublicSlug, existing.ExpiresAt, existing.AllowDownload,
+            TokenAvailable: false,
+            ReplayMessage: "Este comando já criou um link seguro. O token original não é recuperável; revogue e emita um novo link se precisar exibi-lo novamente.");
     }
 
     public async Task<ShareLink?> ResolveAsync(string token, bool downloadRequested, CancellationToken cancellationToken = default) {

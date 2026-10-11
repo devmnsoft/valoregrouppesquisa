@@ -72,7 +72,7 @@ public sealed record CreatedShareLink(Guid Id, string Token, string PublicSlug, 
     bool TokenAvailable = true, string? ReplayMessage = null);
 
 public interface IShareLinkRepository {
-    Task SaveAsync(ShareLink link, Guid? createdBy, CancellationToken cancellationToken = default);
+    Task<bool> TrySaveAsync(ShareLink link, Guid? createdBy, CancellationToken cancellationToken = default);
     Task<ShareLink?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default);
     Task<ShareLink?> FindAnyByHashAsync(string tokenHash, CancellationToken cancellationToken = default);
     Task<ShareLink?> FindByCommandIdAsync(Guid organizationId, string commandId, CancellationToken cancellationToken = default);

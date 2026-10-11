@@ -209,6 +209,39 @@ public sealed class ExecutiveDeliveryTests {
     }
 
     [Fact]
+    public async Task Share_CommandIdLengthIsValidatedBeforePersistence() {
+        var repo = new FakeShareRepo();
+        var service = new SecureShareLinkService(repo, new AuditSpy());
+        var longCommand = new string('x', 81);
+
+        await Assert.ThrowsAsync<ValidationAppException>(() =>
+            service.CreateForDeliverableAsync(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+                TimeSpan.FromHours(1), false, longCommand, new string('a', 64)));
+
+        Assert.Equal(0, repo.SaveCount);
+    }
+
+    [Fact]
+    public async Task Share_ConcurrentCommandWinnerIsReturnedAsReplay() {
+        var repo = new FakeShareRepo { ForceDuplicateOnNextSave = true };
+        var service = new SecureShareLinkService(repo, new AuditSpy());
+        var org = Guid.NewGuid();
+        var command = "share-race";
+        var hash = new string('b', 64);
+        var winner = new ShareLink(Guid.NewGuid(), org, Guid.NewGuid(), new string('c', 64),
+            Guid.NewGuid().ToString("N"), DateTimeOffset.UtcNow.AddHours(1), false,
+            CommandId: command, RequestHash: hash);
+        repo.DuplicateWinner = winner;
+
+        var replay = await service.CreateForDeliverableAsync(org, Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
+            TimeSpan.FromHours(1), false, command, hash);
+
+        Assert.Equal(winner.Id, replay.Id);
+        Assert.False(replay.TokenAvailable);
+        Assert.Equal(1, repo.SaveCount);
+    }
+
+    [Fact]
     public void Pdf_StillNonEmptyViaExistingExporter() {
         var snapshot = new DiagnosisDocumentSnapshot(
             Guid.NewGuid(), "Org", Guid.NewGuid(), "Diag", DateTimeOffset.UtcNow, 70m, "Estruturado",
@@ -280,13 +313,21 @@ public sealed class ExecutiveDeliveryTests {
         private readonly Dictionary<(Guid OrganizationId, string CommandId), ShareLink> _byCommand = new();
         public ShareLink Last { get; private set; } = new(Guid.Empty, Guid.Empty, Guid.Empty, "", "", DateTimeOffset.UtcNow, false);
         public int SaveCount { get; private set; }
-        public Task SaveAsync(ShareLink link, Guid? createdBy, CancellationToken cancellationToken = default) {
+        public bool ForceDuplicateOnNextSave { get; set; }
+        public ShareLink? DuplicateWinner { get; set; }
+        public Task<bool> TrySaveAsync(ShareLink link, Guid? createdBy, CancellationToken cancellationToken = default) {
             SaveCount++;
+            if (ForceDuplicateOnNextSave) {
+                ForceDuplicateOnNextSave = false;
+                if (DuplicateWinner is { } winner && !string.IsNullOrWhiteSpace(winner.CommandId))
+                    _byCommand[(winner.OrganizationId, winner.CommandId)] = winner;
+                return Task.FromResult(false);
+            }
             Last = link;
             _byHash[link.TokenHash] = link;
             if (!string.IsNullOrWhiteSpace(link.CommandId))
                 _byCommand[(link.OrganizationId, link.CommandId)] = link;
-            return Task.CompletedTask;
+            return Task.FromResult(true);
         }
         public Task<ShareLink?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default) =>
             Task.FromResult(_byHash.TryGetValue(tokenHash, out var link) && link.RevokedAt is null ? link : null);
@@ -318,6 +359,11 @@ public sealed class ExecutiveDeliveryTests {
         public void Seed(string token, ShareLink link) {
             Last = link;
             _byHash[Hash(token)] = link;
+            if (!string.IsNullOrWhiteSpace(link.CommandId))
+                _byCommand[(link.OrganizationId, link.CommandId)] = link;
+        }
+        public void SeedCommand(ShareLink link) {
+            Last = link;
             if (!string.IsNullOrWhiteSpace(link.CommandId))
                 _byCommand[(link.OrganizationId, link.CommandId)] = link;
         }

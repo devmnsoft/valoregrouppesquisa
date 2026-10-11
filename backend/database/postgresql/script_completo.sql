@@ -1480,6 +1480,7 @@ CREATE TABLE IF NOT EXISTS valorapesquisa.secure_share_links (
  title varchar(200) NOT NULL, status varchar(20) NOT NULL DEFAULT 'active', expires_at timestamptz NOT NULL,
  max_access_count integer, access_count integer NOT NULL DEFAULT 0, allow_download boolean NOT NULL DEFAULT false,
  requires_pin boolean NOT NULL DEFAULT false, pin_hash char(64), created_by_user_id uuid, revoked_at timestamptz,
+ command_id varchar(80), request_hash char(64),
  created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now(), deleted_at timestamptz,
  CHECK (max_access_count IS NULL OR max_access_count > 0), CHECK (NOT requires_pin OR pin_hash IS NOT NULL)
 );
@@ -1525,11 +1526,14 @@ ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS allow_dow
 ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS requires_pin boolean NOT NULL DEFAULT false;
 ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS pin_hash char(64);
 ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS revoked_at timestamptz;
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS command_id varchar(80);
+ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS request_hash char(64);
 ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 ALTER TABLE valorapesquisa.secure_share_links ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
 CREATE INDEX IF NOT EXISTS ix_formal_deliverables_org_result ON valorapesquisa.formal_deliverables(organization_id,result_id,created_at DESC) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS ix_formal_deliverable_files_deliverable ON valorapesquisa.formal_deliverable_files(deliverable_id,created_at DESC) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS ix_secure_share_links_lookup ON valorapesquisa.secure_share_links(token_hash,status,expires_at) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS ux_secure_share_links_command ON valorapesquisa.secure_share_links(organization_id,command_id) WHERE command_id IS NOT NULL AND deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS ix_share_access_link ON valorapesquisa.secure_share_link_access_logs(share_link_id,accessed_at DESC);
 INSERT INTO valorapesquisa.permissions(code,name,description,module_code) VALUES
  ('deliverables.read','Consultar entregáveis','Consulta entregas formais da organização.','organizational_intelligence'),

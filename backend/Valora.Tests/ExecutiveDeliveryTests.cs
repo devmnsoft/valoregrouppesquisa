@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Globalization;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
+using Valora.Application.Exceptions;
 using Valora.Application.FormalDeliverables;
 
 namespace Valora.Tests;
@@ -167,6 +168,47 @@ public sealed class ExecutiveDeliveryTests {
     }
 
     [Fact]
+    public async Task Share_CommandReplayDoesNotCreateDuplicateOrRecoverToken() {
+        var org = Guid.NewGuid();
+        var user = Guid.NewGuid();
+        var deliverableId = Guid.NewGuid();
+        var resultId = Guid.NewGuid();
+        var shareRepo = new FakeShareRepo();
+        var entity = Entity(org, deliverableId, resultId, Guid.NewGuid(), "abc",
+            DeliverableEditorialStatuses.Published, DeliverableProcessingStatuses.Available, user);
+        var service = CreateService(new FakeRepo { Entity = entity }, new SecureShareLinkService(shareRepo, new AuditSpy()));
+        var request = new CreateDeliverableShareRequest { Confirmed = true, CommandId = "share-1", ValidForHours = 24, AllowDownload = false };
+
+        var created = await service.ShareAsync(org, user, deliverableId, request);
+        var replay = await service.ShareAsync(org, user, deliverableId, request);
+
+        Assert.Equal(created.Id, replay.Id);
+        Assert.Equal(1, shareRepo.SaveCount);
+        Assert.True(created.TokenAvailable);
+        Assert.False(string.IsNullOrWhiteSpace(created.Token));
+        Assert.False(replay.TokenAvailable);
+        Assert.Equal("", replay.Token);
+        Assert.Contains("não é recuperável", replay.ReplayMessage, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Share_CommandReplayWithDifferentContentIsConflict() {
+        var org = Guid.NewGuid();
+        var user = Guid.NewGuid();
+        var deliverableId = Guid.NewGuid();
+        var resultId = Guid.NewGuid();
+        var shareRepo = new FakeShareRepo();
+        var entity = Entity(org, deliverableId, resultId, Guid.NewGuid(), "abc",
+            DeliverableEditorialStatuses.Published, DeliverableProcessingStatuses.Available, user);
+        var service = CreateService(new FakeRepo { Entity = entity }, new SecureShareLinkService(shareRepo, new AuditSpy()));
+        await service.ShareAsync(org, user, deliverableId,
+            new CreateDeliverableShareRequest { Confirmed = true, CommandId = "share-1", ValidForHours = 24, AllowDownload = false });
+
+        await Assert.ThrowsAsync<ConcurrencyConflictException>(() => service.ShareAsync(org, user, deliverableId,
+            new CreateDeliverableShareRequest { Confirmed = true, CommandId = "share-1", ValidForHours = 24, AllowDownload = true }));
+    }
+
+    [Fact]
     public void Pdf_StillNonEmptyViaExistingExporter() {
         var snapshot = new DiagnosisDocumentSnapshot(
             Guid.NewGuid(), "Org", Guid.NewGuid(), "Diag", DateTimeOffset.UtcNow, 70m, "Estruturado",
@@ -191,12 +233,12 @@ public sealed class ExecutiveDeliveryTests {
         Assert.True(item.CanShare);
     }
 
-    private static IExecutiveDeliveryService CreateService(FakeRepo repo, Guid? userId = null) {
+    private static IExecutiveDeliveryService CreateService(FakeRepo repo, ISecureShareLinkService? shareService = null, Guid? userId = null) {
         var entitlements = new EntitlementStub();
         var permissions = new PermissionStub(true);
         var documents = new DocumentServiceStub();
         var store = new MemoryStore();
-        var shares = new SecureShareLinkService(new FakeShareRepo(), new AuditSpy());
+        var shares = shareService ?? new SecureShareLinkService(new FakeShareRepo(), new AuditSpy());
         return new ExecutiveDeliveryService(repo, documents, store, shares, entitlements, permissions, new AuditSpy());
     }
 
@@ -235,16 +277,23 @@ public sealed class ExecutiveDeliveryTests {
 
     private sealed class FakeShareRepo : IShareLinkRepository {
         private readonly Dictionary<string, ShareLink> _byHash = new(StringComparer.Ordinal);
+        private readonly Dictionary<(Guid OrganizationId, string CommandId), ShareLink> _byCommand = new();
         public ShareLink Last { get; private set; } = new(Guid.Empty, Guid.Empty, Guid.Empty, "", "", DateTimeOffset.UtcNow, false);
+        public int SaveCount { get; private set; }
         public Task SaveAsync(ShareLink link, Guid? createdBy, CancellationToken cancellationToken = default) {
+            SaveCount++;
             Last = link;
             _byHash[link.TokenHash] = link;
+            if (!string.IsNullOrWhiteSpace(link.CommandId))
+                _byCommand[(link.OrganizationId, link.CommandId)] = link;
             return Task.CompletedTask;
         }
         public Task<ShareLink?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default) =>
             Task.FromResult(_byHash.TryGetValue(tokenHash, out var link) && link.RevokedAt is null ? link : null);
         public Task<ShareLink?> FindAnyByHashAsync(string tokenHash, CancellationToken cancellationToken = default) =>
             Task.FromResult(_byHash.TryGetValue(tokenHash, out var link) ? link : null);
+        public Task<ShareLink?> FindByCommandIdAsync(Guid organizationId, string commandId, CancellationToken cancellationToken = default) =>
+            Task.FromResult(_byCommand.TryGetValue((organizationId, commandId), out var link) ? link : null);
         public Task<bool> RegisterAccessAsync(Guid linkId, bool downloadRequested, CancellationToken cancellationToken = default) {
             foreach (var pair in _byHash.ToList()) {
                 var link = pair.Value;
@@ -269,6 +318,8 @@ public sealed class ExecutiveDeliveryTests {
         public void Seed(string token, ShareLink link) {
             Last = link;
             _byHash[Hash(token)] = link;
+            if (!string.IsNullOrWhiteSpace(link.CommandId))
+                _byCommand[(link.OrganizationId, link.CommandId)] = link;
         }
         public static string Hash(string token) =>
             Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token))).ToLowerInvariant();

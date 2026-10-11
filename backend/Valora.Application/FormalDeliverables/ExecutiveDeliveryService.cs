@@ -254,8 +254,10 @@ public sealed class ExecutiveDeliveryService(
             throw new InvalidOperationException("O entregável não possui resultado para compartilhamento.");
 
         var hours = Math.Clamp(request.ValidForHours, 1, 2160);
+        var commandId = request.CommandId.Trim();
+        var requestHash = ComputeShareRequestHash(deliverableId, entity.ResultId.Value, hours, request.AllowDownload);
         var created = await shares.CreateForDeliverableAsync(organizationId, deliverableId, entity.ResultId.Value, userId,
-            TimeSpan.FromHours(hours), request.AllowDownload, cancellationToken);
+            TimeSpan.FromHours(hours), request.AllowDownload, commandId, requestHash, cancellationToken);
         await audit.RecordAsync(organizationId, userId, "deliverable.share_created", "formal_deliverable", deliverableId.ToString(), true,
             request.InternalLabel, cancellationToken);
         return created;
@@ -431,6 +433,16 @@ public sealed class ExecutiveDeliveryService(
 
     private static string CanonicalDate(DateTime? value) =>
         value is null ? "" : DateTime.SpecifyKind(value.Value, DateTimeKind.Utc).ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
+
+    private static string ComputeShareRequestHash(Guid deliverableId, Guid resultId, int validForHours, bool allowDownload) {
+        var payload = string.Join("|",
+            "deliverable-share-v1",
+            deliverableId.ToString("N"),
+            resultId.ToString("N"),
+            validForHours.ToString(CultureInfo.InvariantCulture),
+            allowDownload ? "download" : "view");
+        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload))).ToLowerInvariant();
+    }
 
     private sealed record CertificateCriteriaEvaluation(
         bool Configured,

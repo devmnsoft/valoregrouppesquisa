@@ -10,8 +10,8 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
         using var connection = connections.Create();
         await connection.ExecuteAsync(new CommandDefinition("""
             INSERT INTO valorapesquisa.secure_share_links
-              (id,organization_id,diagnostic_id,result_id,deliverable_id,token_hash,public_slug,title,status,expires_at,allow_download,created_by_user_id)
-            VALUES (@Id,@OrganizationId,@DiagnosisId,@ResultId,@DeliverableId,@TokenHash,@DatabaseSlug,'Resultado Valora Insight','active',@ExpiresAt,@AllowDownload,@CreatedBy)
+              (id,organization_id,diagnostic_id,result_id,deliverable_id,token_hash,public_slug,title,status,expires_at,allow_download,created_by_user_id,command_id,request_hash)
+            VALUES (@Id,@OrganizationId,@DiagnosisId,@ResultId,@DeliverableId,@TokenHash,@DatabaseSlug,'Resultado Valora Insight','active',@ExpiresAt,@AllowDownload,@CreatedBy,@CommandId,@RequestHash)
             """, new {
             link.Id,
             link.OrganizationId,
@@ -22,7 +22,9 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
             DatabaseSlug = link.Id.ToString("N"),
             link.ExpiresAt,
             link.AllowDownload,
-            CreatedBy = createdBy
+            CreatedBy = createdBy,
+            link.CommandId,
+            link.RequestHash
         }, cancellationToken: cancellationToken));
     }
 
@@ -38,12 +40,28 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
             SELECT id, organization_id AS OrganizationId, diagnostic_id AS DiagnosisId, token_hash AS TokenHash,
                    public_slug AS PublicSlug, expires_at AS ExpiresAt, allow_download AS AllowDownload,
                    max_access_count AS MaxAccessCount, access_count AS AccessCount, revoked_at AS RevokedAt,
-                   deliverable_id AS DeliverableId, result_id AS ResultId
+                   deliverable_id AS DeliverableId, result_id AS ResultId,
+                   command_id AS CommandId, request_hash AS RequestHash
             FROM valorapesquisa.secure_share_links
             WHERE token_hash=@TokenHash AND deleted_at IS NULL
             """ + (activeOnly ? " AND status='active'" : "");
         return await connection.QuerySingleOrDefaultAsync<ShareLink>(new CommandDefinition(
             sql, new { TokenHash = tokenHash }, cancellationToken: cancellationToken));
+    }
+
+    public async Task<ShareLink?> FindByCommandIdAsync(Guid organizationId, string commandId, CancellationToken cancellationToken = default) {
+        using var connection = connections.Create();
+        return await connection.QuerySingleOrDefaultAsync<ShareLink>(new CommandDefinition("""
+            SELECT id, organization_id AS OrganizationId, diagnostic_id AS DiagnosisId, token_hash AS TokenHash,
+                   public_slug AS PublicSlug, expires_at AS ExpiresAt, allow_download AS AllowDownload,
+                   max_access_count AS MaxAccessCount, access_count AS AccessCount, revoked_at AS RevokedAt,
+                   deliverable_id AS DeliverableId, result_id AS ResultId,
+                   command_id AS CommandId, request_hash AS RequestHash
+            FROM valorapesquisa.secure_share_links
+            WHERE organization_id=@OrganizationId AND command_id=@CommandId AND deleted_at IS NULL
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1
+            """, new { OrganizationId = organizationId, CommandId = commandId }, cancellationToken: cancellationToken));
     }
 
     public async Task<bool> RevokeAsync(Guid organizationId, Guid linkId, CancellationToken cancellationToken = default) {

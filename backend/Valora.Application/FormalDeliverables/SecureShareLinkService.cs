@@ -1,23 +1,37 @@
 using System.Security.Cryptography;
 using System.Text;
+using Valora.Application.Exceptions;
 
 namespace Valora.Application.FormalDeliverables;
 
 public sealed class SecureShareLinkService(IShareLinkRepository repository, IExportAuditService audit) : ISecureShareLinkService {
     public Task<CreatedShareLink> CreateAsync(Guid organizationId, Guid diagnosisId, Guid? userId, TimeSpan lifetime, bool allowDownload, CancellationToken cancellationToken = default) =>
-        CreateCoreAsync(organizationId, diagnosisId, null, diagnosisId, userId, lifetime, allowDownload, cancellationToken);
+        CreateCoreAsync(organizationId, diagnosisId, null, diagnosisId, userId, lifetime, allowDownload, null, null, cancellationToken);
 
-    public Task<CreatedShareLink> CreateForDeliverableAsync(Guid organizationId, Guid deliverableId, Guid resultId, Guid? userId, TimeSpan lifetime, bool allowDownload, CancellationToken cancellationToken = default) =>
-        CreateCoreAsync(organizationId, resultId, deliverableId, resultId, userId, lifetime, allowDownload, cancellationToken);
+    public Task<CreatedShareLink> CreateForDeliverableAsync(Guid organizationId, Guid deliverableId, Guid resultId, Guid? userId, TimeSpan lifetime, bool allowDownload, string? commandId = null, string? requestHash = null, CancellationToken cancellationToken = default) =>
+        CreateCoreAsync(organizationId, resultId, deliverableId, resultId, userId, lifetime, allowDownload, commandId, requestHash, cancellationToken);
 
-    private async Task<CreatedShareLink> CreateCoreAsync(Guid organizationId, Guid diagnosisId, Guid? deliverableId, Guid? resultId, Guid? userId, TimeSpan lifetime, bool allowDownload, CancellationToken cancellationToken) {
+    private async Task<CreatedShareLink> CreateCoreAsync(Guid organizationId, Guid diagnosisId, Guid? deliverableId, Guid? resultId, Guid? userId, TimeSpan lifetime, bool allowDownload, string? commandId, string? requestHash, CancellationToken cancellationToken) {
         if (lifetime <= TimeSpan.Zero || lifetime > TimeSpan.FromDays(90))
             throw new ArgumentOutOfRangeException(nameof(lifetime), "A validade deve estar entre um instante e 90 dias.");
+        commandId = string.IsNullOrWhiteSpace(commandId) ? null : commandId.Trim();
+        if (commandId is not null) {
+            if (string.IsNullOrWhiteSpace(requestHash))
+                throw new ArgumentException("O hash da intenção é obrigatório para criação idempotente.", nameof(requestHash));
+            var existing = await repository.FindByCommandIdAsync(organizationId, commandId, cancellationToken);
+            if (existing is not null) {
+                if (!string.Equals(existing.RequestHash, requestHash, StringComparison.Ordinal))
+                    throw new ConcurrencyConflictException("A chave da operação de compartilhamento já foi usada com outro conteúdo.");
+                return new CreatedShareLink(existing.Id, "", existing.PublicSlug, existing.ExpiresAt, existing.AllowDownload,
+                    TokenAvailable: false,
+                    ReplayMessage: "Este comando já criou um link seguro. O token original não é recuperável; revogue e emita um novo link se precisar exibi-lo novamente.");
+            }
+        }
         var token = Base64Url(RandomNumberGenerator.GetBytes(32));
         var id = Guid.NewGuid();
         // Opaque route segment is the token; only its SHA-256 digest and public_slug=id are persisted.
         var link = new ShareLink(id, organizationId, diagnosisId, Hash(token), id.ToString("N"), DateTimeOffset.UtcNow.Add(lifetime), allowDownload,
-            DeliverableId: deliverableId, ResultId: resultId);
+            DeliverableId: deliverableId, ResultId: resultId, CommandId: commandId, RequestHash: requestHash);
         await repository.SaveAsync(link, userId, cancellationToken);
         await audit.RecordAsync(organizationId, userId, "share_link.created", deliverableId.HasValue ? "formal_deliverable" : "diagnosis",
             (deliverableId ?? diagnosisId).ToString(), true, null, cancellationToken);

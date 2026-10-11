@@ -44,7 +44,24 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
         if (module.Equals("actions", StringComparison.OrdinalIgnoreCase)) sql = "SELECT id,code,status,to_jsonb(x)::text DataJson,created_at CreatedAt,updated_at UpdatedAt FROM valorapesquisa.valora_actions x WHERE organization_id=@organizationId AND survey_id=@surveyId AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 200";
         else if (module.Equals("alerts", StringComparison.OrdinalIgnoreCase)) sql = "SELECT id,indicator_code code,status,to_jsonb(x)::text DataJson,created_at CreatedAt,updated_at UpdatedAt FROM valorapesquisa.intelligent_alerts x WHERE organization_id=@organizationId AND survey_id=@surveyId AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 200";
         else if (module.Equals("participation", StringComparison.OrdinalIgnoreCase)) sql = "SELECT id,'participation'::text code,status,to_jsonb(x)::text DataJson,created_at CreatedAt,updated_at UpdatedAt FROM valorapesquisa.diagnostic_participation_snapshots x WHERE organization_id=@organizationId AND (cycle_id=@cycleId OR survey_id=@surveyId) AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1";
-        else if (module.Equals("responses", StringComparison.OrdinalIgnoreCase)) sql = "SELECT id,NULL::text code,status,(to_jsonb(x)-'participant_email'-'participant_name')::text DataJson,created_at CreatedAt,coalesce(updated_at,created_at) UpdatedAt FROM valorapesquisa.responses x WHERE organization_id=@organizationId AND survey_id=@surveyId AND coalesce(is_deleted,false)=false ORDER BY created_at DESC LIMIT 200";
+        else if (module.Equals("responses", StringComparison.OrdinalIgnoreCase)) sql = """
+            SELECT x.id,NULL::text code,x.status,
+              jsonb_build_object(
+                'id',x.id,
+                'surveyId',x.survey_id,
+                'status',x.status,
+                'submittedAt',x.submitted_at,
+                'completedAt',x.completed_at,
+                'createdAt',x.created_at,
+                'updatedAt',coalesce(x.updated_at,x.created_at),
+                'hasQualitativeAnswer',NULLIF(x.qualitative,'') IS NOT NULL,
+                'answerCount',(SELECT count(*)::int FROM valorapesquisa.response_answers a WHERE a.response_id=x.id)
+              )::text DataJson,
+              x.created_at CreatedAt,coalesce(x.updated_at,x.created_at) UpdatedAt
+            FROM valorapesquisa.responses x
+            WHERE x.organization_id=@organizationId AND x.survey_id=@surveyId AND coalesce(x.is_deleted,false)=false
+            ORDER BY x.created_at DESC LIMIT 200
+            """;
         else { if (!Tables.TryGetValue(module, out var table)) throw new ArgumentException("Módulo inválido.", nameof(module)); sql = $"SELECT id,code,status,to_jsonb(x)::text DataJson,created_at CreatedAt,updated_at UpdatedAt FROM valorapesquisa.{table} x WHERE organization_id=@organizationId AND (cycle_id=@cycleId OR survey_id=@surveyId) AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 200"; }
         using var c = connections.Create(); var rows = await c.QueryAsync<Row>(new CommandDefinition(sql, new { organizationId, cycleId, surveyId }, cancellationToken: ct));
         return rows.Select(x => new DiagnosticWorkspaceItemDto(x.Id, x.Code, x.Status, JsonSerializer.Deserialize<JsonElement>(x.DataJson), x.CreatedAt, x.UpdatedAt)).ToList();

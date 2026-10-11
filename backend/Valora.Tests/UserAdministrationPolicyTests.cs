@@ -21,6 +21,34 @@ public sealed class UserAdministrationPolicyTests {
     }
 
     [Fact]
+    public async Task TenantAdministratorCannotCreateUserWithTrimmedPlatformRole() {
+        var repository = new RecordingUserAdministrationRepository();
+        var service = new UserAdministrationService(repository);
+
+        await Assert.ThrowsAsync<ForbiddenAppException>(() => service.CreateAdministrativeAsync(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            actorIsGlobalAdministrator: false,
+            new CreateAdministrativeUserRequest("Usuário", "user@example.test", "hash", "  ADMIN_VALORA  ")));
+
+        Assert.Equal(0, repository.CreateCalls);
+    }
+
+    [Fact]
+    public async Task EmptyRoleCodeIsRejectedBeforePersistence() {
+        var repository = new RecordingUserAdministrationRepository();
+        var service = new UserAdministrationService(repository);
+
+        await Assert.ThrowsAsync<ValidationAppException>(() => service.CreateAdministrativeAsync(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            actorIsGlobalAdministrator: true,
+            new CreateAdministrativeUserRequest("Usuário", "user@example.test", "hash", "   ")));
+
+        Assert.Equal(0, repository.CreateCalls);
+    }
+
+    [Fact]
     public async Task TenantAdministratorCannotPartiallyUpdateWhenRoleIsForbidden() {
         var repository = new RecordingUserAdministrationRepository();
         var service = new UserAdministrationService(repository);
@@ -53,13 +81,40 @@ public sealed class UserAdministrationPolicyTests {
         Assert.Equal(userId, created.Id);
         Assert.Equal(1, repository.CreateCalls);
         Assert.Equal("user@example.test", repository.LastCreateRequest?.Email);
+        Assert.Equal("admin_valora", repository.LastCreateRequest?.RoleCode);
+    }
+
+    [Fact]
+    public async Task AdministrativeUpdateAuthorizesAndPersistsNormalizedRoleCodes() {
+        var repository = new RecordingUserAdministrationRepository {
+            Updated = new UserAdministrationResponse(Guid.NewGuid(), "Usuário", "user@example.test", null, "active", ["empresa_admin"], [], null, DateTimeOffset.UtcNow, null)
+        };
+        var service = new UserAdministrationService(repository);
+
+        await Assert.ThrowsAsync<ForbiddenAppException>(() => service.UpdateAdministrativeAsync(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            actorIsGlobalAdministrator: false,
+            Guid.NewGuid(),
+            new UpdateAdministrativeUserRequest("Usuário", null, "active", [" empresa_admin ", " ADMIN_VALORA "])));
+
+        await service.UpdateAdministrativeAsync(
+            Guid.NewGuid(),
+            Guid.NewGuid(),
+            actorIsGlobalAdministrator: true,
+            Guid.NewGuid(),
+            new UpdateAdministrativeUserRequest("Usuário", null, "active", [" EMPRESA_ADMIN ", " empresa_admin "]));
+
+        Assert.Equal(["empresa_admin"], repository.LastUpdateRequest?.RoleCodes);
     }
 
     private sealed class RecordingUserAdministrationRepository : IUserAdministrationRepository {
         public int CreateCalls { get; private set; }
         public int UpdateAdministrativeCalls { get; private set; }
         public CreateAdministrativeUserRequest? LastCreateRequest { get; private set; }
+        public UpdateAdministrativeUserRequest? LastUpdateRequest { get; private set; }
         public UserAdministrationResponse? Created { get; set; }
+        public UserAdministrationResponse? Updated { get; set; }
 
         public Task<(IReadOnlyList<UserAdministrationResponse> Items, long Total)> ListAsync(Guid organizationId, UserListQuery query, CancellationToken ct = default) =>
             Task.FromResult<(IReadOnlyList<UserAdministrationResponse>, long)>(([], 0));
@@ -81,7 +136,8 @@ public sealed class UserAdministrationPolicyTests {
 
         public Task<UserAdministrationResponse?> UpdateAdministrativeAsync(Guid organizationId, Guid actorId, Guid userId, UpdateAdministrativeUserRequest request, CancellationToken ct = default) {
             UpdateAdministrativeCalls++;
-            return Task.FromResult<UserAdministrationResponse?>(null);
+            LastUpdateRequest = request;
+            return Task.FromResult(Updated);
         }
 
         public Task<int> CountAdministratorsAsync(Guid organizationId, CancellationToken ct = default) => Task.FromResult(1);

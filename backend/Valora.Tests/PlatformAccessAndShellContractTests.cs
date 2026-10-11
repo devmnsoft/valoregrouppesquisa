@@ -164,6 +164,18 @@ public sealed class PlatformAccessAndShellContractTests {
     }
 
     [Fact]
+    public void DiagnosticWorkspaceResponsesUseExplicitPublicProjection() {
+        var root = FindRepositoryRoot();
+        var repository = File.ReadAllText(Path.Combine(root, "backend/Valora.Infrastructure/Repositories/DiagnosticWorkspaceRepository.cs"));
+        Assert.Contains("jsonb_build_object(", repository);
+        Assert.Contains("'answerCount'", repository);
+        Assert.Contains("'hasQualitativeAnswer'", repository);
+        Assert.DoesNotContain("to_jsonb(x)-'participant_email'-'participant_name'", repository);
+        Assert.DoesNotContain("'participant_phone'", repository);
+        Assert.DoesNotContain("'result_token_hash'", repository);
+    }
+
+    [Fact]
     public void OrganizationSelectorUsesServerPaginationSearchAndPreservesSelectedOrganization() {
         var root = FindRepositoryRoot();
         var controller = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/Controllers/BffAuthController.cs"));

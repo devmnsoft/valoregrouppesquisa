@@ -54,17 +54,31 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
             """, new { LinkId = linkId, OrganizationId = organizationId }, cancellationToken: cancellationToken)) == 1;
     }
 
-    public async Task RegisterAccessAsync(Guid linkId, bool downloadRequested, CancellationToken cancellationToken = default) {
+    public async Task<bool> RegisterAccessAsync(Guid linkId, bool downloadRequested, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
         connection.Open();
         using var transaction = connection.BeginTransaction();
-        await connection.ExecuteAsync(new CommandDefinition("""
-            UPDATE valorapesquisa.secure_share_links SET access_count=access_count+1,updated_at=now()
-            WHERE id=@LinkId AND status='active' AND deleted_at IS NULL;
-            INSERT INTO valorapesquisa.secure_share_link_access_logs(share_link_id,access_type,was_allowed)
-            VALUES (@LinkId,CASE WHEN @DownloadRequested THEN 'download' ELSE 'view' END,true)
+        var updated = await connection.ExecuteScalarAsync<int>(new CommandDefinition("""
+            WITH consumed AS (
+                UPDATE valorapesquisa.secure_share_links
+                   SET access_count=access_count+1,updated_at=now()
+                 WHERE id=@LinkId
+                   AND status='active'
+                   AND revoked_at IS NULL
+                   AND deleted_at IS NULL
+                   AND expires_at > now()
+                   AND (@DownloadRequested = false OR allow_download = true)
+                   AND (max_access_count IS NULL OR access_count < max_access_count)
+                 RETURNING 1
+            )
+            SELECT COUNT(*)::int FROM consumed
             """, new { LinkId = linkId, DownloadRequested = downloadRequested }, transaction, cancellationToken: cancellationToken));
+        await connection.ExecuteAsync(new CommandDefinition("""
+            INSERT INTO valorapesquisa.secure_share_link_access_logs(share_link_id,access_type,was_allowed)
+            VALUES (@LinkId,CASE WHEN @DownloadRequested THEN 'download' ELSE 'view' END,@WasAllowed)
+            """, new { LinkId = linkId, DownloadRequested = downloadRequested, WasAllowed = updated == 1 }, transaction, cancellationToken: cancellationToken));
         transaction.Commit();
+        return updated == 1;
     }
 }
 

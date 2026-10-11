@@ -73,7 +73,7 @@ public interface IShareLinkRepository {
     Task SaveAsync(ShareLink link, Guid? createdBy, CancellationToken cancellationToken = default);
     Task<ShareLink?> FindByHashAsync(string tokenHash, CancellationToken cancellationToken = default);
     Task<ShareLink?> FindAnyByHashAsync(string tokenHash, CancellationToken cancellationToken = default);
-    Task RegisterAccessAsync(Guid linkId, bool downloadRequested, CancellationToken cancellationToken = default);
+    Task<bool> RegisterAccessAsync(Guid linkId, bool downloadRequested, CancellationToken cancellationToken = default);
     Task<bool> RevokeAsync(Guid organizationId, Guid linkId, CancellationToken cancellationToken = default);
 }
 

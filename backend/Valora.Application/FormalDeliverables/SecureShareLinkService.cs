@@ -30,7 +30,8 @@ public sealed class SecureShareLinkService(IShareLinkRepository repository, IExp
         if (link is null || link.RevokedAt.HasValue || link.ExpiresAt <= DateTimeOffset.UtcNow ||
             (link.MaxAccessCount.HasValue && link.AccessCount >= link.MaxAccessCount.Value)) return null;
         if (downloadRequested && !link.AllowDownload) return null;
-        await repository.RegisterAccessAsync(link.Id, downloadRequested, cancellationToken);
+        if (!await repository.RegisterAccessAsync(link.Id, downloadRequested, cancellationToken))
+            return null;
         await audit.RecordAsync(link.OrganizationId, null, "share_link.accessed", "diagnosis", link.DiagnosisId.ToString(), true, null, cancellationToken);
         return link;
     }

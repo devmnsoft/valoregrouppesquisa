@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
 using Valora.Application.FormalDeliverables;
@@ -85,6 +86,64 @@ public sealed class ExecutiveDeliveryTests {
     }
 
     [Fact]
+    public async Task Certificate_MaturityCriteriaBlocksWhenResultDoesNotMeetMinimum() {
+        var org = Guid.NewGuid();
+        var resultId = Guid.NewGuid();
+        var repo = new FakeRepo {
+            Eligible = Eligible(resultId, Guid.NewGuid(), 74, 100),
+            Template = new DeliverableTemplateInfo("certificate_maturity", "Certificado de Maturidade", DeliverableTypes.Certificate,
+                """{"certificateType":"maturity","maturityCriteria":{"minPercentage":80,"methodologyName":"Valora","methodologyVersion":"1.0"}}""")
+        };
+        var service = CreateService(repo);
+
+        var result = await service.CertificateEligibilityAsync(org, resultId, "certificate_maturity");
+
+        Assert.False(result.Eligible);
+        Assert.Equal("certificate.min_percentage_not_met", result.PendingRuleCode);
+        Assert.Contains("Percentual mínimo", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task Certificate_MaturityCriteriaApprovesOnlyWhenCriteriaAreEvaluated() {
+        var org = Guid.NewGuid();
+        var resultId = Guid.NewGuid();
+        var repo = new FakeRepo {
+            Eligible = Eligible(resultId, Guid.NewGuid(), 86, 100),
+            Template = new DeliverableTemplateInfo("certificate_maturity", "Certificado de Maturidade", DeliverableTypes.Certificate,
+                """{"certificateType":"maturity","maturityCriteria":{"minPercentage":80,"minTotalScore":80,"methodologyName":"Valora","methodologyVersion":"1.0"}}""")
+        };
+        var service = CreateService(repo);
+
+        var result = await service.CertificateEligibilityAsync(org, resultId, "certificate_maturity");
+
+        Assert.True(result.Eligible);
+        Assert.Null(result.PendingRuleCode);
+        Assert.Contains("Critérios avaliados", result.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ResultHash_IsStableAcrossCultures() {
+        var result = Eligible(Guid.NewGuid(), Guid.NewGuid(), 12.34m, 100m);
+        var originalCulture = CultureInfo.CurrentCulture;
+        var originalUiCulture = CultureInfo.CurrentUICulture;
+        try {
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pt-BR");
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("pt-BR");
+            var ptHash = ExecutiveDeliveryService.ComputeResultHash(result);
+
+            CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
+            CultureInfo.CurrentUICulture = CultureInfo.GetCultureInfo("en-US");
+            var enHash = ExecutiveDeliveryService.ComputeResultHash(result);
+
+            Assert.Equal(ptHash, enHash);
+        }
+        finally {
+            CultureInfo.CurrentCulture = originalCulture;
+            CultureInfo.CurrentUICulture = originalUiCulture;
+        }
+    }
+
+    [Fact]
     public async Task Share_RevokePreventsResolve() {
         var repo = new FakeShareRepo();
         var audit = new AuditSpy();
@@ -93,6 +152,18 @@ public sealed class ExecutiveDeliveryTests {
         Assert.NotNull(await service.ResolveAsync(created.Token, true));
         Assert.True(await service.RevokeAsync(repo.Last.OrganizationId, created.Id, Guid.NewGuid()));
         Assert.Null(await service.ResolveAsync(created.Token, true));
+    }
+
+    [Fact]
+    public async Task Share_ResolveConsumesLastAccessOnlyOnce() {
+        var repo = new FakeShareRepo();
+        var service = new SecureShareLinkService(repo, new AuditSpy());
+        var token = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        repo.Seed(token, new ShareLink(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), FakeShareRepo.Hash(token),
+            token, DateTimeOffset.UtcNow.AddHours(1), true, MaxAccessCount: 1));
+
+        Assert.NotNull(await service.ResolveAsync(token, false));
+        Assert.Null(await service.ResolveAsync(token, false));
     }
 
     [Fact]
@@ -174,7 +245,18 @@ public sealed class ExecutiveDeliveryTests {
             Task.FromResult(_byHash.TryGetValue(tokenHash, out var link) && link.RevokedAt is null ? link : null);
         public Task<ShareLink?> FindAnyByHashAsync(string tokenHash, CancellationToken cancellationToken = default) =>
             Task.FromResult(_byHash.TryGetValue(tokenHash, out var link) ? link : null);
-        public Task RegisterAccessAsync(Guid linkId, bool downloadRequested, CancellationToken cancellationToken = default) => Task.CompletedTask;
+        public Task<bool> RegisterAccessAsync(Guid linkId, bool downloadRequested, CancellationToken cancellationToken = default) {
+            foreach (var pair in _byHash.ToList()) {
+                var link = pair.Value;
+                if (link.Id != linkId || link.RevokedAt is not null) continue;
+                if (downloadRequested && !link.AllowDownload) return Task.FromResult(false);
+                if (link.MaxAccessCount.HasValue && link.AccessCount >= link.MaxAccessCount.Value)
+                    return Task.FromResult(false);
+                _byHash[pair.Key] = link with { AccessCount = link.AccessCount + 1 };
+                return Task.FromResult(true);
+            }
+            return Task.FromResult(false);
+        }
         public Task<bool> RevokeAsync(Guid organizationId, Guid linkId, CancellationToken cancellationToken = default) {
             foreach (var pair in _byHash.ToList()) {
                 if (pair.Value.Id == linkId && pair.Value.OrganizationId == organizationId) {
@@ -184,6 +266,12 @@ public sealed class ExecutiveDeliveryTests {
             }
             return Task.FromResult(false);
         }
+        public void Seed(string token, ShareLink link) {
+            Last = link;
+            _byHash[Hash(token)] = link;
+        }
+        public static string Hash(string token) =>
+            Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(token))).ToLowerInvariant();
     }
 
     private sealed class EntitlementStub : IEntitlementService {

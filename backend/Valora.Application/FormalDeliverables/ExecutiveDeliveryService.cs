@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Globalization;
 using Valora.Application.Contracts;
 using Valora.Application.Exceptions;
 using Valora.Application.Workspace;
@@ -285,14 +286,26 @@ public sealed class ExecutiveDeliveryService(
         certificateType ??= InferCertificateType(code, template?.DeliverableType);
 
         if (IsMaturityOrClassification(certificateType, code)) {
-            var hasCriteria = root.TryGetProperty("maturityCriteria", out var criteria) && criteria.ValueKind is JsonValueKind.Object or JsonValueKind.Array
-                || root.TryGetProperty("classificationCriteria", out var classCriteria) && classCriteria.ValueKind is JsonValueKind.Object or JsonValueKind.Array
-                || (root.TryGetProperty("formalMaturityCertification", out var formal) && formal.ValueKind == JsonValueKind.True);
-            if (!hasCriteria) {
+            var criteria = SelectCertificateCriteria(root);
+            var evaluation = EvaluateFormalCertificateCriteria(result, criteria);
+            if (!evaluation.Configured) {
                 return new CertificateEligibilityResult(false, certificateType ?? "maturity",
                     "certificate.maturity_criteria_undefined",
                     "Não há critérios de maturidade/classificação definidos no modelo. A conclusão do questionário não constitui certificação de maturidade.");
             }
+            if (!evaluation.ValidConfiguration) {
+                return new CertificateEligibilityResult(false, certificateType ?? "maturity",
+                    "certificate.maturity_criteria_invalid",
+                    "A configuração de certificação de maturidade/classificação está vazia ou inválida.");
+            }
+            if (!evaluation.Passed) {
+                return new CertificateEligibilityResult(false, certificateType ?? "maturity",
+                    evaluation.PendingRuleCode ?? "certificate.maturity_criteria_not_met",
+                    evaluation.Message ?? "O resultado concluído não atende aos critérios formais de maturidade/classificação.");
+            }
+
+            return new CertificateEligibilityResult(true, certificateType ?? "maturity", null,
+                evaluation.Message ?? "Elegível para certificação formal conforme critérios avaliados.");
         }
 
         if (string.Equals(certificateType, "participation", StringComparison.OrdinalIgnoreCase)
@@ -325,8 +338,110 @@ public sealed class ExecutiveDeliveryService(
     }
 
     public static string ComputeResultHash(EligibleResultInfo result) {
-        var payload = $"{result.ResultId:N}|{result.TotalScore}|{result.MaxScore}|{result.Percentage}|{result.SubmittedAt:O}|{result.ScoreUpdatedAt:O}";
+        var payload = string.Join("|",
+            "result-hash-v2",
+            result.ResultId.ToString("N"),
+            result.DiagnosticId.ToString("N"),
+            CanonicalDecimal(result.TotalScore),
+            CanonicalDecimal(result.MaxScore),
+            CanonicalDecimal(result.Percentage),
+            CanonicalDate(result.SubmittedAt),
+            CanonicalDate(result.ScoreUpdatedAt),
+            result.MethodologyName.Trim(),
+            result.MethodologyVersion.Trim());
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload))).ToLowerInvariant();
+    }
+
+    private static JsonElement? SelectCertificateCriteria(JsonElement root) {
+        if (root.TryGetProperty("maturityCriteria", out var maturity) && maturity.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
+            return maturity;
+        if (root.TryGetProperty("classificationCriteria", out var classification) && classification.ValueKind is JsonValueKind.Object or JsonValueKind.Array)
+            return classification;
+        if (root.TryGetProperty("formalMaturityCertification", out var formal) && formal.ValueKind == JsonValueKind.True)
+            return root;
+        return null;
+    }
+
+    private static CertificateCriteriaEvaluation EvaluateFormalCertificateCriteria(EligibleResultInfo result, JsonElement? criteriaElement) {
+        if (criteriaElement is null) return CertificateCriteriaEvaluation.NotConfigured();
+
+        var criteria = criteriaElement.Value.ValueKind == JsonValueKind.Array
+            ? criteriaElement.Value.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.Object).ToArray()
+            : [criteriaElement.Value];
+        if (criteria.Length == 0) return CertificateCriteriaEvaluation.Invalid();
+
+        var failures = new List<string>();
+        var recognized = false;
+        foreach (var criterion in criteria) {
+            recognized |= EvaluateDecimalMinimum(criterion, "minPercentage", result.Percentage, "certificate.min_percentage_not_met",
+                $"Percentual mínimo exigido: {ReadDecimal(criterion, "minPercentage"):0.##}%. Resultado: {result.Percentage:0.##}%.", failures);
+            recognized |= EvaluateDecimalMinimum(criterion, "minTotalScore", result.TotalScore, "certificate.min_total_score_not_met",
+                $"Pontuação mínima exigida: {ReadDecimal(criterion, "minTotalScore"):0.##}. Resultado: {result.TotalScore:0.##}.", failures);
+
+            if (TryReadString(criterion, "methodologyName", out var methodologyName)) {
+                recognized = true;
+                if (!string.Equals(result.MethodologyName, methodologyName, StringComparison.OrdinalIgnoreCase))
+                    failures.Add("certificate.methodology_mismatch|A metodologia do resultado não corresponde à exigida pelo modelo.");
+            }
+            if (TryReadString(criterion, "methodologyVersion", out var methodologyVersion)) {
+                recognized = true;
+                if (!string.Equals(result.MethodologyVersion, methodologyVersion, StringComparison.OrdinalIgnoreCase))
+                    failures.Add("certificate.methodology_version_mismatch|A versão da metodologia do resultado não corresponde à exigida pelo modelo.");
+            }
+        }
+
+        if (!recognized) return CertificateCriteriaEvaluation.Invalid();
+        if (failures.Count > 0) {
+            var first = failures[0].Split('|', 2);
+            return CertificateCriteriaEvaluation.Fail(first[0], first.Length > 1 ? first[1] : null);
+        }
+
+        return CertificateCriteriaEvaluation.Pass(
+            $"Elegível para certificação formal. Critérios avaliados com metodologia {result.MethodologyName} {result.MethodologyVersion}, resultado {result.Percentage.ToString("0.##", CultureInfo.InvariantCulture)}%.");
+    }
+
+    private static bool EvaluateDecimalMinimum(JsonElement criterion, string property, decimal actual, string code, string message, List<string> failures) {
+        if (!TryReadDecimal(criterion, property, out var minimum)) return false;
+        if (actual < minimum) failures.Add($"{code}|{message}");
+        return true;
+    }
+
+    private static decimal ReadDecimal(JsonElement criterion, string property) =>
+        TryReadDecimal(criterion, property, out var value) ? value : 0m;
+
+    private static bool TryReadDecimal(JsonElement element, string property, out decimal value) {
+        value = 0m;
+        if (!element.TryGetProperty(property, out var propertyElement)) return false;
+        return propertyElement.ValueKind switch {
+            JsonValueKind.Number => propertyElement.TryGetDecimal(out value),
+            JsonValueKind.String => decimal.TryParse(propertyElement.GetString(), NumberStyles.Number, CultureInfo.InvariantCulture, out value),
+            _ => false
+        };
+    }
+
+    private static bool TryReadString(JsonElement element, string property, out string value) {
+        value = "";
+        if (!element.TryGetProperty(property, out var propertyElement) || propertyElement.ValueKind != JsonValueKind.String)
+            return false;
+        value = propertyElement.GetString()?.Trim() ?? "";
+        return value.Length > 0;
+    }
+
+    private static string CanonicalDecimal(decimal value) => value.ToString("0.#############################", CultureInfo.InvariantCulture);
+
+    private static string CanonicalDate(DateTime? value) =>
+        value is null ? "" : DateTime.SpecifyKind(value.Value, DateTimeKind.Utc).ToUniversalTime().ToString("O", CultureInfo.InvariantCulture);
+
+    private sealed record CertificateCriteriaEvaluation(
+        bool Configured,
+        bool ValidConfiguration,
+        bool Passed,
+        string? PendingRuleCode,
+        string? Message) {
+        public static CertificateCriteriaEvaluation NotConfigured() => new(false, false, false, null, null);
+        public static CertificateCriteriaEvaluation Invalid() => new(true, false, false, null, null);
+        public static CertificateCriteriaEvaluation Fail(string code, string? message) => new(true, true, false, code, message);
+        public static CertificateCriteriaEvaluation Pass(string message) => new(true, true, true, null, message);
     }
 
     private async Task EnsureModuleAsync(Guid organizationId, string deliverableType) {

@@ -3,6 +3,7 @@ using Npgsql;
 using Valora.Application.Contracts;
 using Valora.Application.FormalDeliverables;
 using Valora.Infrastructure.FormalDeliverables;
+using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
@@ -18,14 +19,8 @@ public sealed class SecureShareLinkPostgresTests {
             Task.CompletedTask;
     }
 
-    private static string? Connection() {
-        var connectionString = Environment.GetEnvironmentVariable("VALORA_TEST_POSTGRES_CONNECTION");
-        if (string.IsNullOrWhiteSpace(connectionString))
-            return null;
-        var builder = new NpgsqlConnectionStringBuilder(connectionString);
-        Assert.Matches("(?i)(test|teste|homolog|qa)", builder.Database ?? "");
-        return connectionString;
-    }
+    private static string Connection() =>
+        PostgresTestEnvironment.ConnectionString("regressão PostgreSQL de compartilhamento concorrente não executada.");
 
     private static async Task<int> ExecAsync(NpgsqlConnection connection, string sql, params (string Name, object? Value)[] parameters) {
         await using var command = new NpgsqlCommand(sql, connection);
@@ -43,11 +38,9 @@ public sealed class SecureShareLinkPostgresTests {
         return (long)(await command.ExecuteScalarAsync() ?? 0L);
     }
 
-    [Fact]
+    [PostgresFact("regressão PostgreSQL de compartilhamento concorrente não executada.")]
     public async Task Concurrent_share_creation_with_same_command_creates_once_and_replays() {
         var connectionString = Connection();
-        if (connectionString is null)
-            return;
         var organizationId = Guid.NewGuid();
         var deliverableId = Guid.NewGuid();
         var resultId = Guid.NewGuid();

@@ -9,8 +9,8 @@ using Valora.Application.Services;
 using Valora.Infrastructure.Database;
 using Valora.Infrastructure.Repositories;
 using Valora.Infrastructure.Security;
+using Valora.Tests.Support;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Valora.Tests;
 
@@ -21,14 +21,8 @@ public sealed class AdminHubPostgresTests {
         public IDbConnection Create() => new NpgsqlConnection(connectionString);
     }
 
-    private static string Connection() {
-        var connectionString = Environment.GetEnvironmentVariable("VALORA_TEST_POSTGRES_CONNECTION");
-        if (string.IsNullOrWhiteSpace(connectionString))
-            throw SkipException.ForSkip("VALORA_TEST_POSTGRES_CONNECTION não configurada; regressão PostgreSQL não executada.");
-        var builder = new NpgsqlConnectionStringBuilder(connectionString);
-        Assert.Matches("(?i)(test|teste|homolog|qa)", builder.Database ?? "");
-        return connectionString;
-    }
+    private static string Connection() =>
+        PostgresTestEnvironment.ConnectionString("regressão PostgreSQL do Admin Hub não executada.");
 
     private static async Task<int> ExecAsync(NpgsqlConnection connection, string sql, params (string Name, object? Value)[] parameters) {
         await using var command = new NpgsqlCommand(sql, connection);
@@ -78,7 +72,7 @@ public sealed class AdminHubPostgresTests {
         return roleId;
     }
 
-    [Fact]
+    [PostgresFact("regressão PostgreSQL do Admin Hub não executada.")]
     public async Task User_administration_list_is_scoped_to_each_organization_and_cross_org_get_is_null() {
         var connectionString = Connection();
         var factory = new TestConnectionFactory(connectionString);
@@ -112,7 +106,7 @@ public sealed class AdminHubPostgresTests {
         }
     }
 
-    [Fact]
+    [PostgresFact("regressão PostgreSQL do Admin Hub não executada.")]
     public async Task Last_administrator_cannot_be_deactivated_or_demoted_by_role_removal() {
         var connectionString = Connection();
         var factory = new TestConnectionFactory(connectionString);
@@ -155,7 +149,7 @@ public sealed class AdminHubPostgresTests {
         }
     }
 
-    [Fact]
+    [PostgresFact("regressão PostgreSQL do Admin Hub não executada.")]
     public async Task User_create_prefers_global_roles_rejects_unknown_roles_and_duplicate_emails() {
         var connectionString = Connection();
         var factory = new TestConnectionFactory(connectionString);
@@ -190,7 +184,7 @@ public sealed class AdminHubPostgresTests {
         }
     }
 
-    [Fact]
+    [PostgresFact("regressão PostgreSQL do Admin Hub não executada.")]
     public async Task Organization_update_uses_expected_version_compare_and_swap_and_rejects_stale_writers() {
         var connectionString = Connection();
         var factory = new TestConnectionFactory(connectionString);
@@ -213,7 +207,7 @@ public sealed class AdminHubPostgresTests {
         }
     }
 
-    [Fact]
+    [PostgresFact("regressão PostgreSQL do Admin Hub não executada.")]
     public async Task Company_registration_is_idempotent_per_key_and_rejects_conflicting_payloads() {
         var connectionString = Connection();
         var factory = new TestConnectionFactory(connectionString);

@@ -2,7 +2,7 @@ using System.Data;
 using Npgsql;
 using Valora.Application.Contracts;
 using Valora.Infrastructure.Repositories;
-using Xunit.Sdk;
+using Valora.Tests.Support;
 
 namespace Valora.Tests;
 
@@ -38,14 +38,9 @@ public sealed class WorkspaceRepositoryPostgresTests {
         Assert.Contains("ValoraPermissions.Priorities.Manage", controller, StringComparison.Ordinal);
     }
 
-    [Fact]
+    [PostgresFact("regressão PostgreSQL do Workspace não executada.")]
     public async Task Workspace_queries_enforce_visibility_tenant_and_idempotent_pins() {
-        var connectionString = Environment.GetEnvironmentVariable("VALORA_TEST_POSTGRES_CONNECTION");
-        if (string.IsNullOrWhiteSpace(connectionString))
-            throw SkipException.ForSkip("VALORA_TEST_POSTGRES_CONNECTION não configurada; regressão PostgreSQL não executada.");
-
-        var builder = new NpgsqlConnectionStringBuilder(connectionString);
-        Assert.Matches("(?i)(test|teste|homolog|qa)", builder.Database ?? "");
+        var connectionString = PostgresTestEnvironment.ConnectionString("regressão PostgreSQL do Workspace não executada.");
 
         var organization = Guid.NewGuid();
         var otherOrganization = Guid.NewGuid();

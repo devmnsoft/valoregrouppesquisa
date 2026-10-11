@@ -1,16 +1,14 @@
 using Npgsql;
+using Valora.Tests.Support;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Valora.Tests.Integration;
 
 [Trait("Category", "Integration")]
 public sealed class PostgresHomologationFlowTests {
-    [Fact]
+    [PostgresFact("homologação PostgreSQL real bloqueada.")]
     public async Task HomologationDatabaseHasDurableResponseProcessingContract() {
-        var connection = Environment.GetEnvironmentVariable("VALORA_TEST_POSTGRES_CONNECTION");
-        if (string.IsNullOrWhiteSpace(connection))
-            throw SkipException.ForSkip("VALORA_TEST_POSTGRES_CONNECTION não configurada; homologação PostgreSQL real bloqueada.");
+        var connection = PostgresTestEnvironment.ConnectionString("homologação PostgreSQL real bloqueada.");
 
         await using var database = new NpgsqlConnection(connection);
         await database.OpenAsync();

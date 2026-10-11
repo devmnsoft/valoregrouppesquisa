@@ -9,8 +9,8 @@ using Valora.Application.Services;
 using Valora.Infrastructure.Database;
 using Valora.Infrastructure.Repositories;
 using Valora.Infrastructure.Security;
+using Valora.Tests.Support;
 using Xunit;
-using Xunit.Sdk;
 
 namespace Valora.Tests;
 
@@ -21,14 +21,8 @@ public sealed class PublicIdempotencyPostgresTests {
         public IDbConnection Create() => new NpgsqlConnection(connectionString);
     }
 
-    private static string Connection() {
-        var connectionString = Environment.GetEnvironmentVariable("VALORA_TEST_POSTGRES_CONNECTION");
-        if (string.IsNullOrWhiteSpace(connectionString))
-            throw SkipException.ForSkip("VALORA_TEST_POSTGRES_CONNECTION não configurada; regressão PostgreSQL não executada.");
-        var builder = new NpgsqlConnectionStringBuilder(connectionString);
-        Assert.Matches("(?i)(test|teste|homolog|qa)", builder.Database ?? "");
-        return connectionString;
-    }
+    private static string Connection() =>
+        PostgresTestEnvironment.ConnectionString("regressão PostgreSQL de idempotência pública não executada.");
 
     private static async Task<int> ExecAsync(NpgsqlConnection connection, string sql, params (string Name, object? Value)[] parameters) {
         await using var command = new NpgsqlCommand(sql, connection);
@@ -78,7 +72,7 @@ public sealed class PublicIdempotencyPostgresTests {
         Certificate: new CertificateMetadataDto(responseId, "VAL-0000000000", "metadata-ready", "Participante EVO", "Valora Group", "Diagnóstico EVO", DateTime.UtcNow),
         Result: new ResultScoreDto(40, 100, 40, "Em desenvolvimento", "Dimensão A", "Dimensão B", "Radar EVO", "Verdade estratégica", "Risco", "Próximo nível"));
 
-    [Fact]
+    [PostgresFact("regressão PostgreSQL de idempotência pública não executada.")]
     public async Task Public_response_submission_is_idempotent_per_key_and_rejects_conflicting_payloads() {
         var connectionString = Connection();
         var factory = new TestConnectionFactory(connectionString);

@@ -32,7 +32,7 @@ public sealed class EnterpriseV6Tests {
         Assert.Throws<Valora.Application.Exceptions.ValidationAppException>(() => service.PreviewCsv("anything", "nome\nAna"));
     }
 
-    private sealed class NoopAudit : Valora.Application.Contracts.IAuditRepository { public Task AddAsync(Valora.Application.DTOs.AuditEntry entry) => Task.CompletedTask; public Task LogAsync(Valora.Application.DTOs.AuditEntry entry, System.Data.IDbTransaction? transaction = null) => Task.CompletedTask; public Task<IReadOnlyList<dynamic>> ListAdminAsync(Guid organizationId, int limit = 100) => Task.FromResult<IReadOnlyList<dynamic>>([]); }
+    private sealed class NoopAudit : Valora.Application.Contracts.IAuditRepository { public Task AddAsync(Valora.Application.DTOs.AuditEntry entry) => Task.CompletedTask; public Task LogAsync(Valora.Application.DTOs.AuditEntry entry, System.Data.IDbTransaction? transaction = null) => Task.CompletedTask; public Task<IReadOnlyList<dynamic>> ListAdminAsync(Guid organizationId, int limit = 100) => Task.FromResult<IReadOnlyList<dynamic>>([]); public Task<(IReadOnlyList<dynamic> Items, long Total)> ListAdminAsync(Guid organizationId, Valora.Application.DTOs.AuditListQuery query, CancellationToken ct = default) => Task.FromResult<(IReadOnlyList<dynamic>, long)>(([], 0)); }
     private sealed class NoopRepository : IEnterpriseRepository {
         public EnterpriseListQuery? LastCompanyQuery { get; private set; }
         public Task<PortfolioSummary> SummaryAsync(CancellationToken ct) => throw new NotImplementedException(); public Task<EnterprisePage<PortfolioCompany>> CompaniesAsync(EnterpriseListQuery q, CancellationToken ct) { LastCompanyQuery = q; return Task.FromResult(new EnterprisePage<PortfolioCompany>([], 0, q.Page, q.PageSize)); }

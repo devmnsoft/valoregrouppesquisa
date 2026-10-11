@@ -9,6 +9,8 @@
   const userToggle = document.querySelector('[data-action="toggle-user-menu"]');
   let activeResult = 0;
   let timer;
+  let organizationRequest = 0;
+  let organizationAbort;
 
   // Keep this catalog deliberately small: every destination is backed by an MVC
   // endpoint. Module-specific results continue to be discovered by the server search.
@@ -89,9 +91,15 @@
     if (!container || !roles.includes('admin_valora')) return;
     container.replaceChildren();
     try {
-      const response = await fetch('/bff/auth/organizations', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      const request = ++organizationRequest;
+      organizationAbort?.abort();
+      organizationAbort = new AbortController();
+      const params = new URLSearchParams({ page: '1', pageSize: '25' });
+      if (account.organizationId) params.set('selectedOrganizationId', account.organizationId);
+      const response = await fetch(`/bff/auth/organizations?${params}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: organizationAbort.signal });
       if (!response.ok) throw new Error(`organizations-${response.status}`);
       const organizations = await response.json();
+      if (request !== organizationRequest) return;
       if (!Array.isArray(organizations) || !organizations.length) {
         container.append(pickerMessage('Nenhuma organização disponível para seleção.'));
         container.hidden = false;
@@ -131,6 +139,10 @@
         try { problem = await response.json(); } catch { /* mantém mensagem padrão */ }
         throw new Error(problem?.message || `select-organization-${response.status}`);
       }
+      sessionStorage.setItem('valora.context.switching', String(Date.now()));
+      localStorage.removeItem('valora.workspace.cache');
+      localStorage.removeItem('valora.dashboard.cache');
+      document.dispatchEvent(new CustomEvent('valora:organization-changing', { detail: { organizationId } }));
       window.location.reload();
     } catch (error) {
       trigger.disabled = false;

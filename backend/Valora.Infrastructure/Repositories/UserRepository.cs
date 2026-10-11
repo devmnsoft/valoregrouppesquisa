@@ -127,7 +127,7 @@ public sealed class UserRepository(IDbConnectionFactory factory, ILogger<UserRep
         using var transaction = connection.BeginTransaction();
         try {
             var userId = await connection.ExecuteScalarAsync<Guid>("INSERT INTO valorapesquisa.users(organization_id,name,email,password_hash) VALUES (@organizationId,@name,@email,@passwordHash) RETURNING id", new { organizationId, name, email, passwordHash }, transaction);
-            var roleId = await connection.ExecuteScalarAsync<Guid?>("SELECT id FROM valorapesquisa.roles WHERE code=@role AND deleted_at IS NULL AND (organization_id IS NULL OR organization_id=@organizationId) ORDER BY organization_id NULLS FIRST LIMIT 1", new { role, organizationId }, transaction);
+            var roleId = await connection.ExecuteScalarAsync<Guid?>("SELECT id FROM valorapesquisa.roles WHERE code=@role AND status='active' AND deleted_at IS NULL AND (organization_id IS NULL OR organization_id=@organizationId) ORDER BY (organization_id IS NULL), name LIMIT 1", new { role, organizationId }, transaction);
             if (roleId is null) throw new InvalidOperationException("Role de cadastro não configurada.");
             await connection.ExecuteAsync("INSERT INTO valorapesquisa.user_roles(user_id,role_id) VALUES (@userId,@roleId) ON CONFLICT DO NOTHING", new { userId, roleId }, transaction);
             transaction.Commit();

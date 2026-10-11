@@ -37,32 +37,8 @@
             </div>
         </article>
     }
-    <form method="post" asp-action="Settings" class="admin-panel mt-3" data-dirty-guard="true">
+    <article class="admin-panel mt-3">
         <h2>Preferências</h2>
-        @Html.AntiForgeryToken()
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-        <div class="row g-3">
-            <div class="col-12">
-                <div class="form-check">
-                    <input asp-for="DiagnosticReminders" class="form-check-input" />
-                    <label asp-for="DiagnosticReminders" class="form-check-label">Enviar lembretes de diagnósticos pendentes.</label>
-                </div>
-                <div class="form-check">
-                    <input asp-for="ReportNotifications" class="form-check-input" />
-                    <label asp-for="ReportNotifications" class="form-check-label">Notificar quando relatórios ficarem prontos.</label>
-                </div>
-                <div class="form-check">
-                    <input asp-for="AnonymizeResponses" class="form-check-input" />
-                    <label asp-for="AnonymizeResponses" class="form-check-label">Anonimizar respostas armazenadas (LGPD).</label>
-                </div>
-                <small class="text-muted d-block mt-2">As preferências são gravadas nas configurações da organização e auditadas.</small>
-            </div>
-        </div>
-        <button class="btn btn-primary mt-3" type="submit">Salvar configurações</button>
-        <a asp-action="" class="btn btn-link ms-2">Cancelar</a>
-    </form>
+        <p class="text-muted mb-0">Lembretes de diagnóstico, notificações de relatório e anonimização de respostas não possuem execução funcional conectada nesta versão. Os controles editáveis foram removidos até que a regra de negócio, processamento e evidências de auditoria estejam implementados de ponta a ponta.</p>
+    </article>
 </section>
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-    <partial name="_FormDirtyGuard" />
-}

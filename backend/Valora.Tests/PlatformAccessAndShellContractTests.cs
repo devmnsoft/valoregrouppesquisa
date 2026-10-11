@@ -52,6 +52,26 @@ public sealed class PlatformAccessAndShellContractTests {
     }
 
     [Fact]
+    public void RoleAssignmentPolicyReservesPlatformRolesForGlobalAdministrators() {
+        var roles = new[]
+        {
+            new AccessRoleDto(Guid.NewGuid(), ValoraAccessCatalog.PlatformRole, "Administrador Valora", null, true, "active", 1, 0, []),
+            new AccessRoleDto(Guid.NewGuid(), "consultor_valora", "Consultor Valora", null, true, "active", 1, 0, []),
+            new AccessRoleDto(Guid.NewGuid(), "empresa_admin", "Administrador da empresa", null, true, "active", 1, 0, []),
+            new AccessRoleDto(Guid.NewGuid(), "papel_inativo", "Inativo", null, false, "inactive", 1, 0, [])
+        };
+
+        var tenantAssignable = RoleAssignmentPolicy.FilterAssignable(roles, actorIsGlobalAdministrator: false).Select(role => role.Code).ToArray();
+        Assert.Equal(new[] { "empresa_admin" }, tenantAssignable);
+
+        var globalAssignable = RoleAssignmentPolicy.FilterAssignable(roles, actorIsGlobalAdministrator: true).Select(role => role.Code).ToArray();
+        Assert.Contains(ValoraAccessCatalog.PlatformRole, globalAssignable);
+        Assert.Contains("consultor_valora", globalAssignable);
+        Assert.Contains("empresa_admin", globalAssignable);
+        Assert.DoesNotContain("papel_inativo", globalAssignable);
+    }
+
+    [Fact]
     public void EveryPermissionSeededByTheCompleteDatabaseScriptIsCanonical() {
         var root = FindRepositoryRoot();
         var sql = File.ReadAllText(Path.Combine(root, "backend/database/postgresql/script_completo.sql"));
@@ -104,6 +124,57 @@ public sealed class PlatformAccessAndShellContractTests {
             var source = File.ReadAllText(Path.Combine(root, "backend/Valora.Infrastructure/Repositories", repository));
             Assert.DoesNotMatch(@"(?i)SELECT\s+\*", source);
         }
+    }
+
+    [Fact]
+    public void AdministrativeUserCreationUsesCanonicalRoleAssignmentPolicyOnPostAndOptions() {
+        var root = FindRepositoryRoot();
+        var controller = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/Controllers/AdminHubController.cs"));
+        Assert.Contains("CreateAdministrativeAsync(org, Actor, Context.IsGlobalAdministrator", controller);
+        Assert.Contains("ListAssignableRolesAsync(org, Context.IsGlobalAdministrator", controller);
+        Assert.DoesNotContain("ListRolesAsync(org, CancellationToken.None)).Select(r => new SelectListItem", controller);
+    }
+
+    [Fact]
+    public void UserEditUsesSingleTransactionalAdministrativeCommand() {
+        var root = FindRepositoryRoot();
+        var controller = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/Controllers/AdminHubController.cs"));
+        var repository = File.ReadAllText(Path.Combine(root, "backend/Valora.Infrastructure/Repositories/UserAdministrationRepository.cs"));
+        Assert.Contains("UpdateAdministrativeAsync(org, Actor, Context.IsGlobalAdministrator, id", controller);
+        Assert.DoesNotContain("SetRolesAsync(org, Actor, id", controller);
+        Assert.DoesNotContain("UpdateStatusAsync(org, Actor, id", controller);
+        Assert.Contains("using var tx = c.BeginTransaction()", repository);
+        Assert.Contains("FOR UPDATE", repository);
+        Assert.Contains("LAST_ADMINISTRATOR", repository);
+        Assert.Contains("INSERT INTO valorapesquisa.audit_logs", repository);
+        Assert.Contains("UPDATE valorapesquisa.user_sessions SET revoked_at", repository);
+        Assert.Contains("tx.Commit()", repository);
+    }
+
+    [Fact]
+    public void UserRepositoriesRejectInactiveRolesAndPreferOrganizationSpecificRoleCode() {
+        var root = FindRepositoryRoot();
+        var userRepository = File.ReadAllText(Path.Combine(root, "backend/Valora.Infrastructure/Repositories/UserRepository.cs"));
+        var adminRepository = File.ReadAllText(Path.Combine(root, "backend/Valora.Infrastructure/Repositories/UserAdministrationRepository.cs"));
+        Assert.Contains("status='active'", userRepository);
+        Assert.Contains("ORDER BY (organization_id IS NULL)", userRepository);
+        Assert.Contains("DISTINCT ON (code)", adminRepository);
+        Assert.Contains("status='active'", adminRepository);
+        Assert.Contains("ORDER BY code,(organization_id IS NULL)", adminRepository);
+    }
+
+    [Fact]
+    public void OrganizationSelectorUsesServerPaginationSearchAndPreservesSelectedOrganization() {
+        var root = FindRepositoryRoot();
+        var controller = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/Controllers/BffAuthController.cs"));
+        var script = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/wwwroot/js/shell/topbar-shell.js"));
+        Assert.Contains("[FromQuery] string? search", controller);
+        Assert.Contains("pageSize = Math.Clamp(pageSize, 10, 100)", controller);
+        Assert.Contains("selectedOrganizationId", controller);
+        Assert.DoesNotContain("page=1&pageSize=100&status=active", controller);
+        Assert.Contains("organizationAbort?.abort()", script);
+        Assert.Contains("selectedOrganizationId", script);
+        Assert.Contains("valora:organization-changing", script);
     }
 
     private static string FindRepositoryRoot() {

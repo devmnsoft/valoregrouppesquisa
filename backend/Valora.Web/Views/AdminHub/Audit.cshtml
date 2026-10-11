@@ -19,6 +19,14 @@
                     <input id="audit-search" name="search" value="@Model.Search" class="form-control" />
                 </div>
                 <div class="col-md-3">
+                    <label for="audit-action">Ação exata</label>
+                    <input id="audit-action" name="action" value="@Model.Action" class="form-control" />
+                </div>
+                <div class="col-md-2">
+                    <label for="audit-entity">Entidade</label>
+                    <input id="audit-entity" name="entityType" value="@Model.EntityType" class="form-control" />
+                </div>
+                <div class="col-md-3">
                     <label for="audit-from">De</label>
                     <input id="audit-from" type="date" name="from" value="@fromText" class="form-control" />
                 </div>
@@ -26,12 +34,12 @@
                     <label for="audit-to">Até</label>
                     <input id="audit-to" type="date" name="to" value="@toText" class="form-control" />
                 </div>
-                <div class="col-md-1 d-flex align-items-end">
+                <div class="col-md-2 d-flex align-items-end">
                     <button class="btn btn-outline-primary w-100" type="submit">Filtrar</button>
                 </div>
             </div>
         </form>
-        <p class="text-muted">Mostrando @Model.Events.Count de @Model.LoadedTotal eventos mais recentes (janela de 200 registros).</p>
+        <p class="text-muted">Mostrando @Model.Events.Count de @Model.TotalItems eventos encontrados no banco.</p>
         @if (Model.Events.Count == 0) {
             <div class="admin-empty">
                 <strong>Nenhum evento encontrado.</strong>
@@ -63,6 +71,20 @@
                     </tbody>
                 </table>
             </div>
+        }
+        @if (Model.TotalItems > Model.PageSize) {
+            var totalPages = (int)Math.Ceiling(Model.TotalItems / (double)Model.PageSize);
+            <nav class="mt-3" aria-label="Paginação da auditoria">
+                <ul class="pagination">
+                    <li class="page-item @(Model.Page <= 1 ? "disabled" : "")">
+                        <a class="page-link" asp-action="Audit" asp-route-search="@Model.Search" asp-route-action="@Model.Action" asp-route-entityType="@Model.EntityType" asp-route-from="@fromText" asp-route-to="@toText" asp-route-page="@(Model.Page - 1)" asp-route-pageSize="@Model.PageSize">Anterior</a>
+                    </li>
+                    <li class="page-item disabled"><span class="page-link">Página @Model.Page de @totalPages</span></li>
+                    <li class="page-item @(Model.Page >= totalPages ? "disabled" : "")">
+                        <a class="page-link" asp-action="Audit" asp-route-search="@Model.Search" asp-route-action="@Model.Action" asp-route-entityType="@Model.EntityType" asp-route-from="@fromText" asp-route-to="@toText" asp-route-page="@(Model.Page + 1)" asp-route-pageSize="@Model.PageSize">Próxima</a>
+                    </li>
+                </ul>
+            </nav>
         }
     }
 </section>

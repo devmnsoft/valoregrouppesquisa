@@ -122,10 +122,21 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
     }
 
     [Authorize(Roles = "admin_valora"), HttpGet("organizations")]
-    public async Task<IActionResult> Organizations(CancellationToken cancellationToken) {
+    public async Task<IActionResult> Organizations([FromQuery] string? search, [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25, [FromQuery] Guid? selectedOrganizationId = null,
+        CancellationToken cancellationToken = default) {
         var correlationId = CorrelationId();
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 10, 100);
+        var query = new Dictionary<string, string?> {
+            ["page"] = page.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["pageSize"] = pageSize.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["status"] = "active"
+        };
+        if (!string.IsNullOrWhiteSpace(search)) query["search"] = search.Trim();
+        var path = Microsoft.AspNetCore.WebUtilities.QueryHelpers.AddQueryString("/api/v1/saas/customers", query);
         using var response = await authentication.SendAuthorizedAsync(HttpContext, HttpMethod.Get,
-            "/api/v1/saas/customers?page=1&pageSize=100&status=active", null, correlationId, cancellationToken);
+            path, null, correlationId, cancellationToken);
         if (response is null) return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou." });
         if (!response.IsSuccessStatusCode) {
             var payload = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -141,14 +152,31 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
         using var document = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
         if (document.RootElement.TryGetProperty("items", out var items) && items.ValueKind == JsonValueKind.Array) {
             foreach (var item in items.EnumerateArray()) {
-                if (!item.TryGetProperty("organizationId", out var organizationElement) || organizationElement.ValueKind != JsonValueKind.String) continue;
-                if (!Guid.TryParse(organizationElement.GetString(), out var organizationId)) continue;
-                var name = item.TryGetProperty("tradeName", out var tradeName) && tradeName.ValueKind == JsonValueKind.String
-                    ? tradeName.GetString()?.Trim() ?? "" : "";
-                organizations.Add(new { organizationId, name = string.IsNullOrWhiteSpace(name) ? organizationId.ToString() : name });
+                AddOrganization(organizations, item);
+            }
+        }
+        if (selectedOrganizationId is { } selected && selected != Guid.Empty
+            && !organizations.Any(item => (Guid)item.GetType().GetProperty("organizationId")!.GetValue(item)! == selected)) {
+            using var selectedResponse = await authentication.SendAuthorizedAsync(HttpContext, HttpMethod.Get,
+                $"/api/v1/saas/customers/{selected}", null, correlationId, cancellationToken);
+            if (selectedResponse?.IsSuccessStatusCode == true) {
+                using var selectedDocument = JsonDocument.Parse(await selectedResponse.Content.ReadAsStringAsync(cancellationToken));
+                AddOrganization(organizations, selectedDocument.RootElement);
             }
         }
         return Ok(organizations);
+    }
+
+    private static void AddOrganization(List<object> organizations, JsonElement item) {
+        if (!item.TryGetProperty("organizationId", out var organizationElement) || organizationElement.ValueKind != JsonValueKind.String) return;
+        if (!Guid.TryParse(organizationElement.GetString(), out var organizationId)) return;
+        if (organizations.Any(existing => (Guid)existing.GetType().GetProperty("organizationId")!.GetValue(existing)! == organizationId)) return;
+        var trade = item.TryGetProperty("tradeName", out var tradeName) && tradeName.ValueKind == JsonValueKind.String
+            ? tradeName.GetString()?.Trim() ?? "" : "";
+        var legal = item.TryGetProperty("legalName", out var legalName) && legalName.ValueKind == JsonValueKind.String
+            ? legalName.GetString()?.Trim() ?? "" : "";
+        var name = !string.IsNullOrWhiteSpace(trade) ? trade : legal;
+        organizations.Add(new { organizationId, name = string.IsNullOrWhiteSpace(name) ? "Organização sem nome" : name });
     }
 }
 

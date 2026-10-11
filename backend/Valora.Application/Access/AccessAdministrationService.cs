@@ -4,6 +4,8 @@ namespace Valora.Application.Access;
 
 public sealed class AccessAdministrationService(IAccessAdministrationRepository repository) : IAccessAdministrationService {
     public Task<IReadOnlyList<AccessRoleDto>> ListRolesAsync(Guid org, CancellationToken ct) => repository.ListRolesAsync(Required(org), ct);
+    public async Task<IReadOnlyList<AccessRoleDto>> ListAssignableRolesAsync(Guid org, bool actorIsGlobalAdministrator, CancellationToken ct) =>
+        RoleAssignmentPolicy.FilterAssignable(await repository.ListRolesAsync(Required(org), ct), actorIsGlobalAdministrator);
     public async Task<AccessRoleDto> GetRoleAsync(Guid org, Guid id, CancellationToken ct) => await repository.GetRoleAsync(Required(org), id, ct) ?? throw new NotFoundAppException("Papel não encontrado.");
     public Task<IReadOnlyList<AccessPermissionDto>> ListPermissionsAsync(CancellationToken ct) => repository.ListPermissionsAsync(ct);
     public async Task<IReadOnlyList<AccessModuleDto>> ListModulesAsync(CancellationToken ct) { var permissions = await repository.ListPermissionsAsync(ct); return ValoraModules.All.Select(code => new AccessModuleDto(code, ModuleName(code), "active", permissions.Where(p => p.ModuleCode == code).ToArray())).ToArray(); }

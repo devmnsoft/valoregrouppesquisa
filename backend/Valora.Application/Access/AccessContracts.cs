@@ -12,6 +12,7 @@ public sealed record AccessScopeDto(string Type, Guid Id, string Label);
 
 public interface IAccessAdministrationService {
     Task<IReadOnlyList<AccessRoleDto>> ListRolesAsync(Guid organizationId, CancellationToken ct);
+    Task<IReadOnlyList<AccessRoleDto>> ListAssignableRolesAsync(Guid organizationId, bool actorIsGlobalAdministrator, CancellationToken ct);
     Task<AccessRoleDto> GetRoleAsync(Guid organizationId, Guid roleId, CancellationToken ct);
     Task<AccessRoleDto> CreateRoleAsync(Guid organizationId, Guid actorId, CreateAccessRoleRequest request, CancellationToken ct);
     Task<AccessRoleDto> UpdateRoleAsync(Guid organizationId, Guid actorId, Guid roleId, UpdateAccessRoleRequest request, CancellationToken ct);

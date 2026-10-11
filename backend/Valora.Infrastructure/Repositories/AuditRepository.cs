@@ -93,6 +93,64 @@ public sealed class AuditRepository(
         }
     }
 
+    public async Task<(IReadOnlyList<dynamic> Items, long Total)> ListAdminAsync(Guid organizationId, AuditListQuery query, CancellationToken ct = default) {
+        const string where = """
+            organization_id = @OrganizationId
+            AND (@FromUtc::timestamptz IS NULL OR created_at >= @FromUtc)
+            AND (@ToUtcExclusive::timestamptz IS NULL OR created_at < @ToUtcExclusive)
+            AND (@Action::text IS NULL OR action = @Action)
+            AND (@EntityType::text IS NULL OR entity_type = @EntityType)
+            AND (@Search::text IS NULL OR action ILIKE '%'||@Search||'%'
+                 OR entity_type ILIKE '%'||@Search||'%'
+                 OR entity_id ILIKE '%'||@Search||'%'
+                 OR message ILIKE '%'||@Search||'%'
+                 OR correlation_id ILIKE '%'||@Search||'%')
+            """;
+        var page = Math.Max(1, query.Page);
+        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+        var parameters = new {
+            OrganizationId = organizationId,
+            query.FromUtc,
+            query.ToUtcExclusive,
+            Action = string.IsNullOrWhiteSpace(query.Action) ? null : query.Action.Trim(),
+            EntityType = string.IsNullOrWhiteSpace(query.EntityType) ? null : query.EntityType.Trim(),
+            Search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim(),
+            Offset = (page - 1) * pageSize,
+            PageSize = pageSize
+        };
+        var selectSql = $"""
+            SELECT id,
+                   organization_id AS OrganizationId,
+                   user_id AS UserId,
+                   action,
+                   entity_type AS EntityType,
+                   entity_id AS EntityId,
+                   message,
+                   metadata_json::text AS MetadataJson,
+                   correlation_id AS CorrelationId,
+                   ip_hash AS IpHash,
+                   user_agent AS UserAgent,
+                   severity,
+                   module,
+                   created_at AS CreatedAt
+              FROM valorapesquisa.audit_logs
+             WHERE {where}
+             ORDER BY created_at DESC, id DESC
+             LIMIT @PageSize OFFSET @Offset
+            """;
+        var countSql = $"SELECT count(*) FROM valorapesquisa.audit_logs WHERE {where}";
+        try {
+            using var connection = connectionFactory.Create();
+            var items = (await connection.QueryAsync(new CommandDefinition(selectSql, parameters, cancellationToken: ct))).AsList();
+            var total = await connection.ExecuteScalarAsync<long>(new CommandDefinition(countSql, parameters, cancellationToken: ct));
+            return (items, total);
+        }
+        catch (Exception exception) {
+            logger.LogError(exception, "Failed to search append-only audit. OrganizationId={OrganizationId}", organizationId);
+            throw;
+        }
+    }
+
     private static void ValidateMetadata(string metadataJson) {
         using var document = JsonDocument.Parse(metadataJson);
         if (document.RootElement.ValueKind != JsonValueKind.Object) {

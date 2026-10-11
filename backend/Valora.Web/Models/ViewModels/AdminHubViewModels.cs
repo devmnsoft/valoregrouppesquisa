@@ -123,9 +123,13 @@ public sealed class AdminSettingsFormModel {
 
 public sealed record AdminAuditPageViewModel(
     IReadOnlyList<AdminAuditRowViewModel> Events,
-    int LoadedTotal = 0,
+    long TotalItems = 0,
     string? Search = null,
     DateOnly? From = null,
     DateOnly? To = null,
+    string? Action = null,
+    string? EntityType = null,
+    int Page = 1,
+    int PageSize = 50,
     string? OrganizationName = null,
     string? Error = null);

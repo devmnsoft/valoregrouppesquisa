@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -259,8 +258,14 @@ public sealed class AdminHubController(
         foreach (var problem in passwordCheck.Errors) ModelState.AddModelError(nameof(model.Password), problem);
         if (!ModelState.IsValid) return View(await WithRoleOptions(model, org));
         try {
-            var userId = await users.CreateAsync(org, model.Name.Trim(), model.Email.Trim().ToLowerInvariant(), passwordHasher.Hash(model.Password), model.RoleCode);
-            await audit.AddAsync(new AuditEntry(org, Actor, "admin.user.created", "user", userId.ToString(), $"Usuário {model.Email} criado com papel {model.RoleCode}.", module: "admin"));
+            var assignableRoles = await access.ListAssignableRolesAsync(org, Context.IsGlobalAdministrator, HttpContext.RequestAborted);
+            if (!assignableRoles.Any(role => role.Code.Equals(model.RoleCode, StringComparison.OrdinalIgnoreCase))) {
+                ModelState.AddModelError(nameof(model.RoleCode), "Papel indisponível para atribuição neste contexto.");
+                return View(await WithRoleOptions(model, org));
+            }
+            await userAdministration.CreateAdministrativeAsync(org, Actor, Context.IsGlobalAdministrator,
+                new CreateAdministrativeUserRequest(model.Name, model.Email, passwordHasher.Hash(model.Password), model.RoleCode),
+                HttpContext.RequestAborted);
             TempData["AdminNotice"] = "Usuário criado com sucesso.";
             return RedirectToAction(nameof(Users));
         }
@@ -327,11 +332,8 @@ public sealed class AdminHubController(
             return View(model);
         }
         try {
-            await userAdministration.UpdateAsync(org, id, new UpdateUserRequest(model.Name.Trim(), model.Phone));
-            await userAdministration.SetRolesAsync(org, Actor, id, new UpdateUserRolesRequest([.. model.RoleCodes.Distinct(StringComparer.OrdinalIgnoreCase)]));
-            await userAdministration.UpdateStatusAsync(org, Actor, id, new UpdateUserStatusRequest(model.Status));
-            await audit.AddAsync(new AuditEntry(org, Actor, "admin.user.updated", "user", id.ToString(),
-                $"Usuário {model.Email} atualizado (status: {model.Status}; papéis: {string.Join(",", model.RoleCodes.Distinct(StringComparer.OrdinalIgnoreCase))}).", module: "admin"));
+            await userAdministration.UpdateAdministrativeAsync(org, Actor, Context.IsGlobalAdministrator, id,
+                new UpdateAdministrativeUserRequest(model.Name.Trim(), model.Phone, model.Status, [.. model.RoleCodes.Distinct(StringComparer.OrdinalIgnoreCase)]));
             TempData["AdminNotice"] = "Usuário atualizado com sucesso.";
             return RedirectToAction(nameof(UserEdit), new { id });
         }
@@ -381,13 +383,9 @@ public sealed class AdminHubController(
             var record = await organizations.GetAsync(org);
             if (record is null)
                 return View(new AdminSettingsFormModel { OrganizationName = "", Error = "Organização não encontrada para o contexto atual." });
-            var settings = ReadSettings(await organizations.GetSettingsAsync(org));
             return View(new AdminSettingsFormModel {
                 OrganizationName = record.Name,
                 Plan = await PlanNameAsync(org),
-                DiagnosticReminders = settings.GetBool("diagnostic_reminders"),
-                ReportNotifications = settings.GetBool("report_notifications"),
-                AnonymizeResponses = settings.GetBool("anonymize_responses"),
                 Usage = await UsageRowsAsync(org)
             });
         }
@@ -404,13 +402,8 @@ public sealed class AdminHubController(
             return View(model);
         }
         try {
-            var existing = ReadSettings(await organizations.GetSettingsAsync(org));
-            existing["diagnostic_reminders"] = JsonSerializer.SerializeToElement(model.DiagnosticReminders);
-            existing["report_notifications"] = JsonSerializer.SerializeToElement(model.ReportNotifications);
-            existing["anonymize_responses"] = JsonSerializer.SerializeToElement(model.AnonymizeResponses);
-            await organizations.UpsertSettingsAsync(org, existing);
-            await audit.AddAsync(new AuditEntry(org, Actor, "admin.settings.updated", "settings", org.ToString(), "Preferências administrativas atualizadas.", module: "admin"));
-            TempData["AdminNotice"] = "Configurações salvas.";
+            await audit.AddAsync(new AuditEntry(org, Actor, "admin.settings.viewed", "settings", org.ToString(), "Configurações administrativas consultadas; controles sem suporte funcional permanecem indisponíveis.", module: "admin"));
+            TempData["AdminNotice"] = "Nenhuma configuração editável está disponível nesta versão.";
             return RedirectToAction(nameof(Settings));
         }
         catch (Exception) {
@@ -420,35 +413,22 @@ public sealed class AdminHubController(
     }
 
     [HttpGet("Audit")]
-    public async Task<IActionResult> Audit(string? search, DateOnly? from, DateOnly? to) {
+    public async Task<IActionResult> Audit(string? search, DateOnly? from, DateOnly? to, string? action, string? entityType, int page = 1, int pageSize = 50) {
         if (EffectiveOrg is not { } org)
-            return View(new AdminAuditPageViewModel([], 0, search, from, to, null, "Selecione uma organização no menu superior."));
+            return View(new AdminAuditPageViewModel([], 0, search, from, to, action, entityType, 1, pageSize, null, "Selecione uma organização no menu superior."));
         string? orgName = null;
-        List<AdminAuditRowViewModel> all = [];
         try {
-            orgName = (await organizations.GetAsync(org))?.Name;
-            all = (await audit.ListAdminAsync(org, 200)).Select(MapAudit).ToList();
+            var orgRecord = await organizations.GetAsync(org);
+            orgName = orgRecord?.Name;
+            var (fromUtc, toUtcExclusive) = DateBounds(from, to, orgRecord?.TimeZone);
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 100);
+            var result = await audit.ListAdminAsync(org, new AuditListQuery(fromUtc, toUtcExclusive, action, entityType, search, page, pageSize), HttpContext.RequestAborted);
+            return View(new AdminAuditPageViewModel(result.Items.Select(MapAudit).ToList(), result.Total, search, from, to, action, entityType, page, pageSize, orgName));
         }
         catch (Exception) {
-            return View(new AdminAuditPageViewModel([], 0, search, from, to, orgName, "Não foi possível carregar a auditoria. Tente novamente."));
+            return View(new AdminAuditPageViewModel([], 0, search, from, to, action, entityType, page, pageSize, orgName, "Não foi possível consultar a auditoria no banco. Tente novamente."));
         }
-        IEnumerable<AdminAuditRowViewModel> filtered = all;
-        if (!string.IsNullOrWhiteSpace(search)) {
-            var term = search.Trim();
-            filtered = filtered.Where(e => (e.Action != null && e.Action.Contains(term, StringComparison.OrdinalIgnoreCase))
-                || (e.Message != null && e.Message.Contains(term, StringComparison.OrdinalIgnoreCase))
-                || (e.EntityType != null && e.EntityType.Contains(term, StringComparison.OrdinalIgnoreCase))
-                || (e.EntityId != null && e.EntityId.Contains(term, StringComparison.OrdinalIgnoreCase)));
-        }
-        if (from is { } f) {
-            var start = f.ToDateTime(TimeOnly.MinValue);
-            filtered = filtered.Where(e => e.CreatedAt >= start);
-        }
-        if (to is { } t) {
-            var end = t.ToDateTime(TimeOnly.MaxValue);
-            filtered = filtered.Where(e => e.CreatedAt <= end);
-        }
-        return View(new AdminAuditPageViewModel(filtered.ToList(), all.Count, search, from, to, orgName));
     }
 
     private async Task<OrganizationDetailsFormModel> HydrateDetailsAsync(Guid id) {
@@ -499,7 +479,8 @@ public sealed class AdminHubController(
     }
 
     private async Task<IReadOnlyList<SelectListItem>> RoleOptionsAsync(Guid org) =>
-        (await access.ListRolesAsync(org, CancellationToken.None)).Select(r => new SelectListItem($"{r.Name} ({r.Code})", r.Code)).ToList();
+        (await access.ListAssignableRolesAsync(org, Context.IsGlobalAdministrator, CancellationToken.None))
+            .Select(r => new SelectListItem($"{r.Name} ({r.Code})", r.Code)).ToList();
 
     private async Task<CreateAdminUserViewModel> WithRoleOptions(CreateAdminUserViewModel model, Guid org) {
         try { model.Roles = await RoleOptionsAsync(org); } catch (Exception) { /* opções ficam vazias; o erro de carregamento já é exibido */ }
@@ -521,17 +502,6 @@ public sealed class AdminHubController(
         try { return await operation(); } catch (Exception) { return []; }
     }
 
-    private static Dictionary<string, object?> ReadSettings(IReadOnlyList<OrganizationSettingRecord> records) {
-        var raw = records.FirstOrDefault()?.Settings;
-        if (string.IsNullOrWhiteSpace(raw)) return [];
-        try {
-            var parsed = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(raw);
-            if (parsed is null) return [];
-            return parsed.ToDictionary(kv => kv.Key, kv => (object?)kv.Value);
-        }
-        catch (JsonException) { return []; }
-    }
-
     private static AdminAuditRowViewModel MapAudit(object row) {
         var r = (IDictionary<string, object>)row;
         return new AdminAuditRowViewModel(
@@ -551,9 +521,11 @@ public sealed class AdminHubController(
         DateTimeOffset offset => offset.UtcDateTime,
         _ => DateTime.MinValue
     };
-}
 
-file static class OrganizationSettingExtensions {
-    public static bool GetBool(this IReadOnlyDictionary<string, object?> settings, string key) =>
-        settings.TryGetValue(key, out var value) && value is JsonElement { ValueKind: JsonValueKind.True };
+    private static (DateTimeOffset? FromUtc, DateTimeOffset? ToUtcExclusive) DateBounds(DateOnly? from, DateOnly? to, string? timeZoneId) {
+        var zone = TimeZoneInfo.FindSystemTimeZoneById(string.IsNullOrWhiteSpace(timeZoneId) ? "America/Sao_Paulo" : timeZoneId);
+        DateTimeOffset? start = from is null ? null : new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(from.Value.ToDateTime(TimeOnly.MinValue), zone), TimeSpan.Zero);
+        DateTimeOffset? end = to is null ? null : new DateTimeOffset(TimeZoneInfo.ConvertTimeToUtc(to.Value.AddDays(1).ToDateTime(TimeOnly.MinValue), zone), TimeSpan.Zero);
+        return (start, end);
+    }
 }

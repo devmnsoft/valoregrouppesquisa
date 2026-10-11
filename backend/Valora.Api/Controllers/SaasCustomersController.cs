@@ -22,7 +22,9 @@ public sealed class SaasCustomersController(SaasCustomerService service, AuditSe
     [HttpGet("{id:guid}")]
     [Authorize(Policy = ValoraPermissions.SaasCustomers.View)]
     public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken) {
-        var customer = await service.GetAsync(id, cancellationToken);
+        // Aceita id do cliente comercial ou id da organização. O seletor de contexto da Web
+        // opera com organizationId para não misturar os dois conceitos silenciosamente no BFF.
+        var customer = await service.GetAsync(id, cancellationToken) ?? await service.FindByOrganizationIdAsync(id, cancellationToken);
         return customer is null ? NotFound(new { message = "Cliente não encontrado." }) : Ok(customer);
     }
 

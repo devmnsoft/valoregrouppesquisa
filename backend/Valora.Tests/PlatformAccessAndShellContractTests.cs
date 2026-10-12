@@ -191,6 +191,32 @@ public sealed class PlatformAccessAndShellContractTests {
     }
 
     [Fact]
+    public void DiagnosticWorkspaceExecutionDoesNotExposePlanSiblingsFromSingleLinkedItem() {
+        var root = FindRepositoryRoot();
+        var repository = File.ReadAllText(Path.Combine(root, "backend/Valora.Infrastructure/Repositories/DiagnosticWorkspaceRepository.cs"));
+
+        Assert.Contains("direct_plans", repository);
+        Assert.Contains("OR p.id IN (SELECT id FROM direct_plans)", repository);
+        Assert.DoesNotContain("OR p.id IN (SELECT id FROM linked_plans)", repository);
+    }
+
+    [Fact]
+    public void DiagnosticWorkspaceCampaignFormCollectsEmailRecipientsAndLegalBasis() {
+        var root = FindRepositoryRoot();
+        var script = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/wwwroot/js/pages/diagnostic-workspace.js"));
+
+        Assert.Contains("name=\"recipients\"", script);
+        Assert.Contains("hasConsent", script);
+        Assert.Contains("hasLegalBasis", script);
+        Assert.Contains("uniqueRecipients().map(email => ({ email", script);
+        Assert.DoesNotContain("recipients: []", script);
+        Assert.Contains("allowedTabs", script);
+        Assert.Contains("activeRequest", script);
+        Assert.Contains("mappedEvidenceCount", script);
+        Assert.DoesNotContain("'Mapeada' : 'A calcular'", script);
+    }
+
+    [Fact]
     public void OrganizationSelectorUsesServerPaginationSearchAndPreservesSelectedOrganization() {
         var root = FindRepositoryRoot();
         var controller = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/Controllers/BffAuthController.cs"));

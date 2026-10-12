@@ -10,6 +10,8 @@
   const error = host.querySelector('[data-error]');
   const message = host.querySelector('[data-message]');
   let overviewState = null;
+  let activeRequest = 0;
+  const allowedTabs = new Set(['overview', 'responses', 'participation', 'evidence', 'metrics', 'indices', 'heatmap', 'radar', 'inferences', 'insights', 'actions', 'evolution', 'benchmark', 'report', 'campaign', 'certificates', 'exports', 'shares']);
 
   const esc = value => {
     const span = document.createElement('span');
@@ -25,9 +27,10 @@
     ai_insight: 'Insight revisado', manual: 'Manual'
   }[value] || value || 'Não informado');
 
-  async function api(path = '', method = 'GET') {
+  async function api(path = '', method = 'GET', signal) {
     const response = await fetch(`/bff/diagnostics/${diagnosticId}/workspace${path ? `/${path}` : ''}`, {
       method,
+      signal,
       headers: {
         Accept: 'application/json',
         ...(method === 'POST' ? { RequestVerificationToken: host.querySelector('[name="__RequestVerificationToken"]').value } : {})
@@ -38,9 +41,10 @@
     return body.data ?? body;
   }
 
-  async function campaignApi(action = '', method = 'GET', body) {
+  async function campaignApi(action = '', method = 'GET', body, signal) {
     const response = await fetch(`/bff/diagnostics/${diagnosticId}/campaign${action ? `/${action}` : ''}`, {
       method,
+      signal,
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
@@ -54,6 +58,19 @@
   }
 
   const empty = text => `<div class="empty-state"><h3>Dados insuficientes</h3><p>${esc(text || 'As informações disponíveis ainda não permitem concluir esta análise com segurança.')}</p></div>`;
+  const coverageLabel = cycle => {
+    const total = Number(cycle.evidenceCount || 0);
+    const mapped = Number(cycle.mappedEvidenceCount || 0);
+    const pending = Number(cycle.pendingEvidenceCount || Math.max(total - mapped, 0));
+    if (!total) return 'Sem evidências';
+    if (!mapped && pending) return `${pending}/${total} pendentes`;
+    if (pending) return `${mapped}/${total} mapeadas`;
+    return `${mapped}/${total} mapeadas`;
+  };
+  const stage = status => ({
+    draft: 'Rascunho', published: 'Publicado', active: 'Coleta ativa', processing: 'Processamento',
+    processed: 'Processado', report_ready: 'Relatório preparado', closed: 'Encerrado'
+  }[status] || label(status));
 
   function cards(items) {
     if (!items?.length) return empty();
@@ -77,9 +94,11 @@
     host.querySelector('[data-confidence]').textContent = `Confiança ${cycle.confidenceLevel ?? 'a calcular'}`;
     host.querySelector('[data-value="responses"]').textContent = cycle.responseCount;
     host.querySelector('[data-value="evidence"]').textContent = cycle.evidenceCount;
-    host.querySelector('[data-value="coverage"]').textContent = cycle.evidenceCount ? 'Mapeada' : 'A calcular';
+    host.querySelector('[data-value="coverage"]').textContent = coverageLabel(cycle);
     host.querySelector('[data-value="processing"]').textContent = data.lastJob?.status || cycle.processingStatus;
-    host.querySelector('[data-progress]').style.width = `${({ draft: 10, published: 30, active: 45, processing: 65, processed: 80, report_ready: 90, closed: 100 }[cycle.status] || 20)}%`;
+    const progress = host.querySelector('[data-progress]');
+    progress.style.width = cycle.status === 'closed' ? '100%' : cycle.processingStatus === 'processed' ? '100%' : '0%';
+    progress.setAttribute('aria-valuetext', stage(cycle.status));
   }
 
   function diagnosticPlanUrl(cycle) {
@@ -109,11 +128,14 @@
     const history = data.history?.length
       ? `<ol class="action-history">${data.history.map(row => `<li><strong>${esc(row.title)}</strong><span>${esc(label(row.operation))} · ${esc(row.actorName || 'Sistema')} · ${esc(date(row.changedAt))}</span><small>${esc([row.fromValue, row.toValue].filter(Boolean).join(' → ') || row.reason || 'Registro operacional preservado.')}</small></li>`).join('')}</ol>`
       : '<p>O histórico aparecerá quando houver criação, vínculo, atribuição, bloqueio, retomada ou conclusão.</p>';
-    content.innerHTML = `<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h2>Action™</h2><p>Planos e atividades vinculados ao diagnóstico com os mesmos dados do Action Center.</p></div><a class="valora-button valora-button--primary" href="${createUrl}">Criar plano vinculado</a></div><section class="valora-card"><h3>Planos vinculados</h3>${plans}</section><section class="valora-card"><h3>Atividades em execução</h3>${items}</section><section class="valora-card"><h3>Histórico no contexto</h3>${history}</section>`;
+    const more = [data.hasMorePlans && 'planos', data.hasMoreItems && 'atividades', data.hasMoreHistory && 'histórico'].filter(Boolean);
+    const moreNotice = more.length ? `<div class="alert alert-info">Esta visão mostra os registros mais recentes de ${esc(more.join(', '))}. Abra o Action Center para navegar o conjunto completo.</div>` : '';
+    content.innerHTML = `<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h2>Action™</h2><p>Planos e atividades vinculados ao diagnóstico com os mesmos dados do Action Center.</p></div><a class="valora-button valora-button--primary" href="${createUrl}">Criar plano vinculado</a></div>${moreNotice}<section class="valora-card"><h3>Planos vinculados</h3>${plans}</section><section class="valora-card"><h3>Atividades em execução</h3>${items}</section><section class="valora-card"><h3>Histórico no contexto</h3>${history}</section>`;
   }
 
   function campaignView(data) {
-    content.innerHTML = `<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h2>Campanha</h2><p>Convite e distribuição do link público com governança.</p></div><span class="valora-status">${esc(data.status)}</span></div><div class="metric-grid"><article class="metric-card"><span>Destinatários protegidos</span><strong>${data.recipientCount}</strong></article><article class="metric-card"><span>Enviados</span><strong>${data.sentCount}</strong></article><article class="metric-card"><span>Falhas</span><strong>${data.failedCount}</strong></article></div><div class="valora-card mt-3"><h3>${esc(data.name)}</h3><p>${esc(data.message)}</p><label class="form-label">Link público</label><div class="input-group"><input class="form-control" readonly value="${esc(data.publicUrl || 'Diagnóstico ainda não publicado')}"><button class="btn btn-primary" data-copy-link ${data.publicUrl ? '' : 'disabled'}>Copiar link</button><button class="btn btn-outline-primary" data-copy-message>Copiar mensagem</button></div><div class="d-flex gap-2 mt-3"><button class="btn btn-primary" data-send>Preparar envio</button><button class="btn btn-outline-danger" data-cancel>Cancelar pendentes</button></div></div>`;
+    const sendLabel = data.channel === 'email' ? 'Preparar envio' : 'Ativar campanha manual';
+    content.innerHTML = `<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h2>Campanha</h2><p>Convite e distribuição do link público com governança.</p></div><span class="valora-status">${esc(data.status)}</span></div><div class="metric-grid"><article class="metric-card"><span>Destinatários protegidos</span><strong>${data.recipientCount}</strong></article><article class="metric-card"><span>Enviados</span><strong>${data.sentCount}</strong></article><article class="metric-card"><span>Falhas</span><strong>${data.failedCount}</strong></article></div><div class="valora-card mt-3"><h3>${esc(data.name)}</h3><p>${esc(data.message)}</p><label class="form-label">Link público</label><div class="input-group"><input class="form-control" readonly value="${esc(data.publicUrl || 'Diagnóstico ainda não publicado')}"><button class="btn btn-primary" data-copy-link ${data.publicUrl ? '' : 'disabled'}>Copiar link</button><button class="btn btn-outline-primary" data-copy-message>Copiar mensagem</button></div><div class="d-flex gap-2 mt-3"><button class="btn btn-primary" data-send>${sendLabel}</button><button class="btn btn-outline-danger" data-cancel>Cancelar pendentes</button></div></div>`;
     content.querySelector('[data-copy-link]')?.addEventListener('click', () => navigator.clipboard.writeText(data.publicUrl));
     content.querySelector('[data-copy-message]').addEventListener('click', () => navigator.clipboard.writeText(`${data.message}\n${data.publicUrl || ''}`));
     content.querySelector('[data-send]').addEventListener('click', () => campaignCommand('send'));
@@ -133,12 +155,40 @@
   }
 
   function campaignEmpty() {
-    content.innerHTML = `<div class="empty-state"><h2>Crie a campanha deste diagnóstico</h2><p>Configure uma mensagem real e use o link público quando o diagnóstico estiver publicado.</p><form data-create-campaign class="valora-form"><label>Nome<input name="name" required maxlength="180" class="form-control"></label><label>Canal<select name="channel" class="form-select"><option value="manual">Compartilhamento manual</option><option value="whatsapp_manual">WhatsApp manual</option><option value="email">E-mail configurado</option></select></label><label>Assunto (opcional)<input name="subject" maxlength="180" class="form-control"></label><label>Mensagem<textarea name="message" required maxlength="10000" rows="5" class="form-control"></textarea></label><p class="form-text">O e-mail somente será habilitado quando o SMTP deste ambiente estiver válido.</p><button class="btn btn-primary mt-3">Criar campanha</button></form></div>`;
-    content.querySelector('form').addEventListener('submit', async event => {
+    content.innerHTML = `<div class="empty-state"><h2>Crie a campanha deste diagnóstico</h2><p>Configure uma mensagem real e use o link público quando o diagnóstico estiver publicado.</p><form data-create-campaign class="valora-form"><label>Nome<input name="name" required maxlength="180" class="form-control"></label><label>Canal<select name="channel" class="form-select"><option value="manual">Compartilhamento manual</option><option value="whatsapp_manual">WhatsApp manual</option><option value="email">E-mail configurado</option></select></label><div data-email-fields hidden><label>Assunto do e-mail<input name="subject" maxlength="180" class="form-control"></label><label>Destinatários<input name="recipients" class="form-control" placeholder="nome@empresa.com; outro@empresa.com"></label><div class="form-check"><input class="form-check-input" type="checkbox" id="campaign-consent" name="hasConsent"><label class="form-check-label" for="campaign-consent">Tenho consentimento registrado para estes destinatários.</label></div><div class="form-check"><input class="form-check-input" type="checkbox" id="campaign-legal" name="hasLegalBasis"><label class="form-check-label" for="campaign-legal">Há base legal documentada para este envio.</label></div><p class="form-text" data-recipient-count>0 destinatários válidos informados.</p></div><label>Mensagem<textarea name="message" required maxlength="10000" rows="5" class="form-control"></textarea></label><p class="form-text" data-channel-help>Este canal cria a campanha e preserva o link para cópia manual.</p><button class="btn btn-primary mt-3">Criar campanha</button></form></div>`;
+    const formElement = content.querySelector('form');
+    const emailFields = content.querySelector('[data-email-fields]');
+    const recipientInput = formElement.elements.recipients;
+    const subjectInput = formElement.elements.subject;
+    const recipientCount = content.querySelector('[data-recipient-count]');
+    const channelHelp = content.querySelector('[data-channel-help]');
+    const parseRecipients = () => recipientInput.value.split(/[\s,;]+/).map(x => x.trim().toLowerCase()).filter(Boolean);
+    const uniqueRecipients = () => [...new Set(parseRecipients())];
+    const updateChannel = () => {
+      const email = formElement.elements.channel.value === 'email';
+      emailFields.hidden = !email;
+      subjectInput.required = email;
+      recipientInput.required = email;
+      channelHelp.textContent = email ? 'O envio só será preparado se o SMTP do ambiente estiver válido.' : 'Este canal cria a campanha e preserva o link para cópia manual.';
+      recipientCount.textContent = `${uniqueRecipients().length} destinatário(s) único(s) informado(s).`;
+    };
+    formElement.elements.channel.addEventListener('change', updateChannel);
+    recipientInput.addEventListener('input', updateChannel);
+    updateChannel();
+    formElement.addEventListener('submit', async event => {
       event.preventDefault();
       const form = new FormData(event.target);
+      const channel = form.get('channel');
+      const recipients = channel === 'email'
+        ? uniqueRecipients().map(email => ({ email, hasConsent: form.has('hasConsent'), hasLegalBasis: form.has('hasLegalBasis') }))
+        : [];
+      if (channel === 'email' && parseRecipients().length !== recipients.length) {
+        error.textContent = 'Remova e-mails duplicados antes de criar a campanha.';
+        error.classList.remove('d-none');
+        return;
+      }
       try {
-        await campaignApi('', 'POST', { name: form.get('name'), channel: form.get('channel'), subject: form.get('subject'), message: form.get('message'), recipients: [] });
+        await campaignApi('', 'POST', { name: form.get('name'), channel, subject: channel === 'email' ? form.get('subject') : null, message: form.get('message'), recipients });
         message.textContent = 'Campanha criada. O link e a mensagem de convite já estão disponíveis para compartilhamento.';
         message.classList.remove('d-none');
         await tab('campaign');
@@ -150,16 +200,19 @@
   }
 
   async function tab(name) {
+    if (!allowedTabs.has(name)) name = 'overview';
+    const requestId = ++activeRequest;
     loading.classList.remove('d-none');
     error.classList.add('d-none');
     try {
       if (name === 'campaign') {
-        try { campaignView(await campaignApi()); } catch (ex) { if (ex.code === 'CAMPAIGN_NOT_FOUND') campaignEmpty(); else throw ex; }
+        try { const data = await campaignApi(); if (requestId === activeRequest) campaignView(data); } catch (ex) { if (ex.code === 'CAMPAIGN_NOT_FOUND') campaignEmpty(); else throw ex; }
         return;
       }
       if (name === 'actions') {
         if (!overviewState) setOverviewHeader(await api('overview'));
-        executionView(await api('execution'));
+        const data = await api('execution');
+        if (requestId === activeRequest) executionView(data);
         return;
       }
       if (name === 'certificates') { location.href = '/Certificates'; return; }
@@ -169,10 +222,10 @@
         return;
       }
       const data = await api(name);
+      if (requestId !== activeRequest) return;
       if (name === 'overview') overview(data);
       else {
-        const note = { evolution: 'Primeiro ciclo registrado. A evolução longitudinal será calculada a partir do próximo ciclo.', benchmark: 'Ainda não existem dados suficientes para gerar um Benchmark Externo confiável para este perfil organizacional.', report: 'Exportação PDF ainda não configurada neste ambiente. O preview executivo está disponível.' }[name];
-        content.innerHTML = `<h2>${esc(host.querySelector(`[data-tab="${name}"]`).textContent)}</h2>${cards(data)}${note ? `<div class="alert alert-info">${note}</div>` : ''}`;
+        content.innerHTML = `<h2>${esc(host.querySelector(`[data-tab="${name}"]`).textContent)}</h2>${cards(data)}`;
       }
     } catch (ex) {
       error.textContent = ex.message || 'Não foi possível carregar este módulo. Os dados originais permanecem preservados.';
@@ -202,5 +255,6 @@
     }
   }));
 
-  tab(new URLSearchParams(location.search).get('tab') || 'overview');
+  const initialTab = new URLSearchParams(location.search).get('tab') || 'overview';
+  tab(allowedTabs.has(initialTab) ? initialTab : 'overview');
 })();

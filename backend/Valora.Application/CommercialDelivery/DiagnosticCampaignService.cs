@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Options;
+using System.Net.Mail;
 using Valora.Application.Communication;
 
 namespace Valora.Application.CommercialDelivery;
@@ -42,15 +43,19 @@ public sealed class DiagnosticCampaignService(
         if (request.EndsAt <= DateTimeOffset.UtcNow) throw new ArgumentException("A data de encerramento deve estar no futuro.");
         if (request.TargetParticipationRate is not null and (< 1 or > 100))
             throw new ArgumentException("A meta de adesão deve estar entre 1% e 100%.");
-        if (channel == "email" && (request.Recipients is null || request.Recipients.Count == 0))
+        var recipients = NormalizeRecipients(request.Recipients);
+        if (channel == "email" && recipients.Count == 0)
             throw new ArgumentException("Adicione ao menos um destinatário para o canal de e-mail.");
-        if (request.Recipients?.Any(recipient => !recipient.HasConsent && !recipient.HasLegalBasis) == true)
+        if (channel != "email" && recipients.Count > 0)
+            throw new ArgumentException("Destinatários por e-mail só devem ser informados no canal de e-mail.");
+        if (recipients.Any(recipient => !recipient.HasConsent && !recipient.HasLegalBasis))
             throw new ArgumentException("Cada destinatário por e-mail exige consentimento ou base legal registrada.");
         return repository.CreateAsync(organizationId, surveyId, userId, request with {
             Name = request.Name.Trim(),
             Message = request.Message.Trim(),
             Channel = channel,
-            Subject = request.Subject?.Trim()
+            Subject = channel == "email" ? request.Subject?.Trim() : null,
+            Recipients = recipients
         }, correlationId, ct);
     }
 
@@ -85,4 +90,23 @@ public sealed class DiagnosticCampaignService(
     private static IReadOnlySet<string> Set(params string[] values) => new HashSet<string>(values, StringComparer.Ordinal);
     private static Guid RequireOrganization(Guid value) => value != Guid.Empty ? value : throw new UnauthorizedAccessException("Selecione uma organização.");
     private static Guid RequireUser(Guid value) => value != Guid.Empty ? value : throw new UnauthorizedAccessException("Não foi possível identificar o usuário.");
+    private static IReadOnlyList<CampaignRecipientRequest> NormalizeRecipients(IReadOnlyList<CampaignRecipientRequest>? recipients) {
+        if (recipients is null || recipients.Count == 0) return [];
+        var normalized = new List<CampaignRecipientRequest>(recipients.Count);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var recipient in recipients) {
+            var email = recipient.Email?.Trim().ToLowerInvariant();
+            if (string.IsNullOrWhiteSpace(email) || !IsEmail(email))
+                throw new ArgumentException("Revise os destinatários: há e-mails inválidos na lista.");
+            if (!seen.Add(email))
+                throw new ArgumentException($"O destinatário {email} aparece mais de uma vez.");
+            normalized.Add(recipient with { Email = email });
+        }
+        return normalized;
+    }
+
+    private static bool IsEmail(string value) {
+        try { return new MailAddress(value).Address.Equals(value.Trim(), StringComparison.OrdinalIgnoreCase); }
+        catch { return false; }
+    }
 }

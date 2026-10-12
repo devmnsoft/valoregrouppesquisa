@@ -28,6 +28,8 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
           coalesce(dc.closed_at,s.expires_at) ClosedAt,dc.processed_at ProcessedAt,dc.report_generated_at ReportGeneratedAt,
           (SELECT count(*)::int FROM valorapesquisa.responses r WHERE r.organization_id=s.organization_id AND r.survey_id=s.id AND coalesce(r.is_deleted,false)=false) ResponseCount,
           (SELECT count(*)::int FROM valorapesquisa.evidence_items e WHERE e.organization_id=s.organization_id AND e.survey_id=s.id AND e.deleted_at IS NULL) EvidenceCount,
+          (SELECT count(*)::int FROM valorapesquisa.evidence_items e WHERE e.organization_id=s.organization_id AND e.survey_id=s.id AND e.deleted_at IS NULL AND coalesce(e.mapping_status,e.metadata_json->>'mappingStatus')='mapped') MappedEvidenceCount,
+          (SELECT count(*)::int FROM valorapesquisa.evidence_items e WHERE e.organization_id=s.organization_id AND e.survey_id=s.id AND e.deleted_at IS NULL AND coalesce(e.mapping_status,e.metadata_json->>'mappingStatus','pending_mapping')<>'mapped') PendingEvidenceCount,
           dc.confidence_level ConfidenceLevel,coalesce(dc.processing_status,'pending') ProcessingStatus,s.public_url PublicUrl,
           coalesce(dc.created_at,s.created_at) CreatedAt,coalesce(dc.updated_at,s.updated_at,s.created_at) UpdatedAt
         FROM valorapesquisa.surveys s LEFT JOIN valorapesquisa.diagnostic_cycles dc ON dc.survey_id=s.id AND dc.organization_id=s.organization_id AND dc.deleted_at IS NULL
@@ -45,19 +47,25 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
         var planSql = $"""
         WITH diagnostic_refs AS (
             SELECT @cycleId::uuid id UNION SELECT @surveyId::uuid id
-        ), linked_plans AS (
+        ), direct_plans AS (
             SELECT DISTINCT p.id
             FROM valorapesquisa.action_plans p
             WHERE {planScope}
               AND (
                 p.diagnostic_id IN (SELECT id FROM diagnostic_refs)
                 OR (p.origin_type='diagnostic' AND p.origin_id IN (SELECT id FROM diagnostic_refs))
-                OR EXISTS (
+              )
+        ), linked_plans AS (
+            SELECT id FROM direct_plans
+            UNION
+            SELECT DISTINCT p.id
+            FROM valorapesquisa.action_plans p
+            WHERE {planScope}
+              AND EXISTS (
                     SELECT 1 FROM valorapesquisa.action_items i
                     WHERE i.action_plan_id=p.id AND i.organization_id=p.organization_id AND i.deleted_at IS NULL
                       AND (i.diagnostic_id IN (SELECT id FROM diagnostic_refs) OR (i.origin_type='diagnostic' AND i.origin_id IN (SELECT id FROM diagnostic_refs)))
                 )
-              )
         ), linked_items AS (
             SELECT DISTINCT i.id
             FROM valorapesquisa.action_items i
@@ -66,7 +74,7 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
               AND (
                 i.diagnostic_id IN (SELECT id FROM diagnostic_refs)
                 OR (i.origin_type='diagnostic' AND i.origin_id IN (SELECT id FROM diagnostic_refs))
-                OR p.id IN (SELECT id FROM linked_plans)
+                OR p.id IN (SELECT id FROM direct_plans)
               )
         )
         SELECT p.id,p.title,p.status,p.priority,p.origin_type OriginType,p.owner_user_id OwnerUserId,u.name OwnerName,p.due_at DueAt,
@@ -78,24 +86,30 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
         WHERE p.id IN (SELECT id FROM linked_plans)
         GROUP BY p.id,u.name
         ORDER BY p.created_at DESC,p.id DESC
-        LIMIT 50;
+        LIMIT 51;
         """;
         var itemSql = $"""
         WITH diagnostic_refs AS (
             SELECT @cycleId::uuid id UNION SELECT @surveyId::uuid id
-        ), linked_plans AS (
+        ), direct_plans AS (
             SELECT DISTINCT p.id
             FROM valorapesquisa.action_plans p
             WHERE {planScope}
               AND (
                 p.diagnostic_id IN (SELECT id FROM diagnostic_refs)
                 OR (p.origin_type='diagnostic' AND p.origin_id IN (SELECT id FROM diagnostic_refs))
-                OR EXISTS (
+              )
+        ), linked_plans AS (
+            SELECT id FROM direct_plans
+            UNION
+            SELECT DISTINCT p.id
+            FROM valorapesquisa.action_plans p
+            WHERE {planScope}
+              AND EXISTS (
                     SELECT 1 FROM valorapesquisa.action_items i
                     WHERE i.action_plan_id=p.id AND i.organization_id=p.organization_id AND i.deleted_at IS NULL
                       AND (i.diagnostic_id IN (SELECT id FROM diagnostic_refs) OR (i.origin_type='diagnostic' AND i.origin_id IN (SELECT id FROM diagnostic_refs)))
                 )
-              )
         ), linked_items AS (
             SELECT DISTINCT i.id
             FROM valorapesquisa.action_items i
@@ -104,7 +118,7 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
               AND (
                 i.diagnostic_id IN (SELECT id FROM diagnostic_refs)
                 OR (i.origin_type='diagnostic' AND i.origin_id IN (SELECT id FROM diagnostic_refs))
-                OR p.id IN (SELECT id FROM linked_plans)
+                OR p.id IN (SELECT id FROM direct_plans)
               )
         )
         SELECT i.id,i.action_plan_id ActionPlanId,p.title PlanTitle,i.title,i.status,i.priority,i.responsible_user_id ResponsibleUserId,u.name ResponsibleName,i.due_at DueAt,
@@ -118,24 +132,30 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
         LEFT JOIN valorapesquisa.users u ON u.id=i.responsible_user_id AND u.organization_id=i.organization_id AND u.deleted_at IS NULL
         WHERE i.id IN (SELECT id FROM linked_items)
         ORDER BY i.due_at NULLS LAST,i.created_at DESC,i.id DESC
-        LIMIT 100;
+        LIMIT 101;
         """;
         var historySql = $"""
         WITH diagnostic_refs AS (
             SELECT @cycleId::uuid id UNION SELECT @surveyId::uuid id
-        ), linked_plans AS (
+        ), direct_plans AS (
             SELECT DISTINCT p.id
             FROM valorapesquisa.action_plans p
             WHERE {planScope}
               AND (
                 p.diagnostic_id IN (SELECT id FROM diagnostic_refs)
                 OR (p.origin_type='diagnostic' AND p.origin_id IN (SELECT id FROM diagnostic_refs))
-                OR EXISTS (
+              )
+        ), linked_plans AS (
+            SELECT id FROM direct_plans
+            UNION
+            SELECT DISTINCT p.id
+            FROM valorapesquisa.action_plans p
+            WHERE {planScope}
+              AND EXISTS (
                     SELECT 1 FROM valorapesquisa.action_items i
                     WHERE i.action_plan_id=p.id AND i.organization_id=p.organization_id AND i.deleted_at IS NULL
                       AND (i.diagnostic_id IN (SELECT id FROM diagnostic_refs) OR (i.origin_type='diagnostic' AND i.origin_id IN (SELECT id FROM diagnostic_refs)))
                 )
-              )
         ), linked_items AS (
             SELECT DISTINCT i.id
             FROM valorapesquisa.action_items i
@@ -144,7 +164,7 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
               AND (
                 i.diagnostic_id IN (SELECT id FROM diagnostic_refs)
                 OR (i.origin_type='diagnostic' AND i.origin_id IN (SELECT id FROM diagnostic_refs))
-                OR p.id IN (SELECT id FROM linked_plans)
+                OR p.id IN (SELECT id FROM direct_plans)
               )
         )
         SELECT 'plan' Kind,p.id EntityId,p.title,h.operation Operation,h.from_value FromValue,h.to_value ToValue,h.reason,u.name ActorName,h.changed_at ChangedAt
@@ -159,13 +179,14 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
         LEFT JOIN valorapesquisa.users u ON u.id=h.changed_by_user_id
         WHERE i.id IN (SELECT id FROM linked_items)
         ORDER BY ChangedAt DESC,EntityId DESC
-        LIMIT 100;
+        LIMIT 101;
         """;
         using var c = connections.Create();
         var plans = (await c.QueryAsync<DiagnosticLinkedPlanDto>(new CommandDefinition(planSql, args, cancellationToken: ct))).AsList();
         var items = (await c.QueryAsync<DiagnosticLinkedActionItemDto>(new CommandDefinition(itemSql, args, cancellationToken: ct))).AsList();
         var history = (await c.QueryAsync<DiagnosticExecutionHistoryDto>(new CommandDefinition(historySql, args, cancellationToken: ct))).AsList();
-        return new(plans, items, history);
+        return new(plans.Take(50).ToList(), items.Take(100).ToList(), history.Take(100).ToList(),
+            plans.Count > 50, items.Count > 100, history.Count > 100);
     }
     public async Task<IReadOnlyList<DiagnosticWorkspaceItemDto>> ModuleAsync(Guid organizationId, Guid cycleId, Guid surveyId, string module, CancellationToken ct) {
         string sql;

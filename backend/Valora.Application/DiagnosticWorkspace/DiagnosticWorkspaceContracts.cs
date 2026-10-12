@@ -5,8 +5,8 @@ namespace Valora.Application.DiagnosticWorkspace;
 public sealed record DiagnosticCycleDto(Guid Id, Guid OrganizationId, Guid SurveyId, Guid? FormId, string Title,
     string? Description, int CycleNumber, string MethodologyVersion, string Status, DateTime? OpenedAt,
     DateTime? PublishedAt, DateTime? ClosedAt, DateTime? ProcessedAt, DateTime? ReportGeneratedAt,
-    int ResponseCount, int EvidenceCount, decimal? ConfidenceLevel, string ProcessingStatus, string? PublicUrl,
-    DateTime CreatedAt, DateTime UpdatedAt);
+    int ResponseCount, int EvidenceCount, int MappedEvidenceCount, int PendingEvidenceCount,
+    decimal? ConfidenceLevel, string ProcessingStatus, string? PublicUrl, DateTime CreatedAt, DateTime UpdatedAt);
 public sealed record DiagnosticWorkspaceItemDto(Guid Id, string? Code, string Status, JsonElement Data,
     DateTime CreatedAt, DateTime UpdatedAt);
 public sealed record DiagnosticWorkspaceEvidenceDto(Guid Id, Guid? ResponseId, Guid? QuestionId, string ConceptCode,
@@ -21,7 +21,8 @@ public sealed record DiagnosticLinkedActionItemDto(Guid Id, Guid ActionPlanId, s
 public sealed record DiagnosticExecutionHistoryDto(string Kind, Guid EntityId, string Title, string Operation,
     string? FromValue, string? ToValue, string? Reason, string? ActorName, DateTime ChangedAt);
 public sealed record DiagnosticWorkspaceExecutionDto(IReadOnlyList<DiagnosticLinkedPlanDto> Plans,
-    IReadOnlyList<DiagnosticLinkedActionItemDto> Items, IReadOnlyList<DiagnosticExecutionHistoryDto> History);
+    IReadOnlyList<DiagnosticLinkedActionItemDto> Items, IReadOnlyList<DiagnosticExecutionHistoryDto> History,
+    bool HasMorePlans = false, bool HasMoreItems = false, bool HasMoreHistory = false);
 public sealed record DiagnosticWorkspaceOverviewDto(DiagnosticCycleDto Cycle, DiagnosticWorkspaceItemDto? LastJob,
     IReadOnlyList<DiagnosticWorkspaceItemDto> MainIndices, IReadOnlyList<DiagnosticWorkspaceItemDto> MainInsights,
     IReadOnlyList<DiagnosticWorkspaceItemDto> RecommendedActions, IReadOnlyList<DiagnosticWorkspaceItemDto> Alerts);

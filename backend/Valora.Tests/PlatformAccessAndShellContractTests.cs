@@ -225,12 +225,15 @@ public sealed class PlatformAccessAndShellContractTests {
         var workspace = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/wwwroot/js/pages/diagnostic-workspace.js"));
 
         Assert.Contains("ResultOptions", controller);
-        Assert.Contains("selectedResult?.Percentage", controller);
-        Assert.Contains("Selecione um resultado calculado", controller);
-        Assert.Contains("result_scores rs", repository);
+        Assert.DoesNotContain("selectedResult?.Percentage", controller);
+        Assert.DoesNotContain("FirstOrDefault(x => x.ResultId", controller);
+        Assert.Contains("IOrganizationalIntelligenceRepository", File.ReadAllText(Path.Combine(root, "backend/Valora.Application/Evolution/EvolutionServices.cs")));
+        Assert.Contains("ListEvolutionComparisonSurveysAsync", File.ReadAllText(Path.Combine(root, "backend/Valora.Application/Evolution/EvolutionServices.cs")));
+        Assert.DoesNotContain("result_scores rs", repository);
         Assert.Contains("metadata_json->>'baselineSource'", repository);
         Assert.Contains("diagnostic_id DiagnosticId,result_id ResultId", repository);
         Assert.Contains("name=\"ResultId\"", cyclesView);
+        Assert.Contains("medição organizacional", cyclesView);
         Assert.Contains("GUIDs não são digitados manualmente", cyclesView);
         Assert.Contains("/Evolution/Cycles?diagnosticId=", workspace);
     }
@@ -241,8 +244,12 @@ public sealed class PlatformAccessAndShellContractTests {
         var repository = File.ReadAllText(Path.Combine(root, "backend/Valora.Infrastructure/Repositories/EvolutionRepository.cs"));
 
         Assert.Contains("scoped_plans", repository);
+        Assert.Contains("direct_plans", repository);
+        Assert.Contains("linked_items", repository);
+        Assert.Contains("scoped_items", repository);
         Assert.Contains("cyc.diagnostic_id", repository);
         Assert.Contains("cyc.result_id", repository);
+        Assert.DoesNotContain("JOIN scoped_plans p ON p.id=i.action_plan_id", repository);
         Assert.DoesNotContain("FROM valorapesquisa.action_items WHERE organization_id=@o AND deleted_at IS NULL), alerts", repository);
     }
 

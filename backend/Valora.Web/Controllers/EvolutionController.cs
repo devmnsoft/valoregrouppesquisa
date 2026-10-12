@@ -45,9 +45,6 @@ public sealed class EvolutionController(
         var organization = organizationProvider.GetCurrent();
         if (!organization.IsResolved) return OrganizationRequired();
         var resultOptions = await cycles.ResultOptions(organization.RequireOrganizationId(), model.DiagnosticId, cancellationToken);
-        var selectedResult = model.ResultId.HasValue ? resultOptions.FirstOrDefault(x => x.ResultId == model.ResultId.Value) : null;
-        if (model.ResultId.HasValue && selectedResult is null)
-            ModelState.AddModelError(nameof(model.ResultId), "Selecione um resultado calculado disponível para esta organização e diagnóstico.");
         if (model.PeriodEnd.HasValue && model.PeriodEnd.Value < model.PeriodStart)
             ModelState.AddModelError(nameof(model.PeriodEnd), "A data final deve ser posterior à data inicial.");
         if (!ModelState.IsValid) {
@@ -57,12 +54,8 @@ public sealed class EvolutionController(
             ViewData["ReturnUrl"] = SafeReturnUrl(returnUrl, "/Evolution", "/Diagnostics/", "/ActionCenter/", "/Results/");
             return View("Cycles", await cycles.List(organization.RequireOrganizationId(), cancellationToken));
         }
-        var baseline = selectedResult?.Percentage ?? model.BaselineScore;
-        var evidence = selectedResult is null
-            ? model.EvidenceSummary
-            : $"{model.EvidenceSummary.Trim()} Resultado calculado selecionado: {selectedResult.DiagnosticTitle}, {selectedResult.Percentage:0.0} pontos, metodologia {selectedResult.MethodologyVersion}, calculado em {selectedResult.CalculatedAt:dd/MM/yyyy}.";
-        var request = new OpenEvolutionCycleRequest(selectedResult?.DiagnosticId ?? model.DiagnosticId, selectedResult?.ResultId ?? model.ResultId, null, model.Title, model.Summary,
-            baseline, model.TargetScore, selectedResult is null ? null : "Resultado calculado", model.PeriodStart, model.PeriodEnd, evidence);
+        var request = new OpenEvolutionCycleRequest(model.DiagnosticId, model.ResultId, null, model.Title, model.Summary,
+            model.BaselineScore, model.TargetScore, null, model.PeriodStart, model.PeriodEnd, model.EvidenceSummary);
         Guid id;
         try { id = await cycles.Open(organization.RequireOrganizationId(), UserId, request, cancellationToken); }
         catch (ArgumentException error) { ModelState.AddModelError("", error.Message); TempData["EvolutionError"] = "Revise os campos destacados antes de continuar."; ViewData["CycleCommand"] = model; ViewData["ResultOptions"] = resultOptions; ViewData["ReturnUrl"] = SafeReturnUrl(returnUrl, "/Evolution", "/Diagnostics/", "/ActionCenter/", "/Results/"); return View("Cycles", await cycles.List(organization.RequireOrganizationId(), cancellationToken)); }
@@ -80,20 +73,21 @@ public sealed class EvolutionController(
     }
 
     [ValidateAntiForgeryToken, HttpPost("Cycles/{id:guid}/Snapshot"), Authorize(Policy = ValoraPermissions.Evolution.SnapshotsGenerate)]
-    public async Task<IActionResult> Snapshot(Guid id, EvolutionSnapshotViewModel model, CancellationToken cancellationToken) {
+    public async Task<IActionResult> Snapshot(Guid id, EvolutionSnapshotViewModel model, string? returnUrl, CancellationToken cancellationToken) {
         var organization = organizationProvider.GetCurrent();
         if (!organization.IsResolved) return OrganizationRequired();
+        var safeReturnUrl = SafeReturnUrl(returnUrl, "/Evolution/Cycles", "/Diagnostics/", "/ActionCenter/", "/Results/");
         if (!ModelState.IsValid) {
             var cycle = await cycles.Get(organization.RequireOrganizationId(), id, cancellationToken);
             if (cycle is null) return NotFound();
             ViewData["SnapshotCommand"] = model;
-            return View("Details", new EvolutionDetailsViewModel(cycle, await snapshots.List(organization.RequireOrganizationId(), id, cancellationToken), "/Evolution/Cycles"));
+            return View("Details", new EvolutionDetailsViewModel(cycle, await snapshots.List(organization.RequireOrganizationId(), id, cancellationToken), safeReturnUrl));
         }
         try { await snapshots.Generate(organization.RequireOrganizationId(), UserId, id, model.Evidence, model.Interpretation, model.Recommendation, cancellationToken); }
         catch (KeyNotFoundException) { return NotFound(); }
-        catch (InvalidOperationException error) { ModelState.AddModelError("", error.Message); var cycle = await cycles.Get(organization.RequireOrganizationId(), id, cancellationToken); if (cycle is null) return NotFound(); ViewData["SnapshotCommand"] = model; return View("Details", new EvolutionDetailsViewModel(cycle, await snapshots.List(organization.RequireOrganizationId(), id, cancellationToken), "/Evolution/Cycles")); }
+        catch (InvalidOperationException error) { ModelState.AddModelError("", error.Message); var cycle = await cycles.Get(organization.RequireOrganizationId(), id, cancellationToken); if (cycle is null) return NotFound(); ViewData["SnapshotCommand"] = model; return View("Details", new EvolutionDetailsViewModel(cycle, await snapshots.List(organization.RequireOrganizationId(), id, cancellationToken), safeReturnUrl)); }
         TempData["EvolutionSuccess"] = "Leitura preservada. Execução e mudança observada permanecem separadas.";
-        return RedirectToAction(nameof(Details), new { id });
+        return RedirectToAction(nameof(Details), new { id, returnUrl = safeReturnUrl });
     }
 
     private static string SafeReturnUrl(string? value, string fallback, params string[] allowedPrefixes) {

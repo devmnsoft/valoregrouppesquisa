@@ -97,7 +97,8 @@
     host.querySelector('[data-value="coverage"]').textContent = coverageLabel(cycle);
     host.querySelector('[data-value="processing"]').textContent = data.lastJob?.status || cycle.processingStatus;
     const progress = host.querySelector('[data-progress]');
-    progress.style.width = cycle.status === 'closed' ? '100%' : cycle.processingStatus === 'processed' ? '100%' : '0%';
+    progress.hidden = true;
+    progress.style.width = '0%';
     progress.setAttribute('aria-valuetext', stage(cycle.status));
   }
 
@@ -129,7 +130,8 @@
       ? `<ol class="action-history">${data.history.map(row => `<li><strong>${esc(row.title)}</strong><span>${esc(label(row.operation))} · ${esc(row.actorName || 'Sistema')} · ${esc(date(row.changedAt))}</span><small>${esc([row.fromValue, row.toValue].filter(Boolean).join(' → ') || row.reason || 'Registro operacional preservado.')}</small></li>`).join('')}</ol>`
       : '<p>O histórico aparecerá quando houver criação, vínculo, atribuição, bloqueio, retomada ou conclusão.</p>';
     const more = [data.hasMorePlans && 'planos', data.hasMoreItems && 'atividades', data.hasMoreHistory && 'histórico'].filter(Boolean);
-    const moreNotice = more.length ? `<div class="alert alert-info">Esta visão mostra os registros mais recentes de ${esc(more.join(', '))}. Abra o Action Center para navegar o conjunto completo.</div>` : '';
+    const actionCenterUrl = `/ActionCenter/Plans?search=${encodeURIComponent(cycle?.title || diagnosticId)}&returnUrl=${encodeURIComponent(returnUrl)}`;
+    const moreNotice = more.length ? `<div class="alert alert-info">Esta visão mostra os registros mais recentes de ${esc(more.join(', '))}. <a href="${actionCenterUrl}">Navegar no Action Center</a>.</div>` : '';
     content.innerHTML = `<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h2>Action™</h2><p>Planos e atividades vinculados ao diagnóstico com os mesmos dados do Action Center.</p></div><a class="valora-button valora-button--primary" href="${createUrl}">Criar plano vinculado</a></div>${moreNotice}<section class="valora-card"><h3>Planos vinculados</h3>${plans}</section><section class="valora-card"><h3>Atividades em execução</h3>${items}</section><section class="valora-card"><h3>Histórico no contexto</h3>${history}</section>`;
   }
 
@@ -206,7 +208,7 @@
     error.classList.add('d-none');
     try {
       if (name === 'campaign') {
-        try { const data = await campaignApi(); if (requestId === activeRequest) campaignView(data); } catch (ex) { if (ex.code === 'CAMPAIGN_NOT_FOUND') campaignEmpty(); else throw ex; }
+        try { const data = await campaignApi(); if (requestId === activeRequest) campaignView(data); } catch (ex) { if (requestId !== activeRequest) return; if (ex.code === 'CAMPAIGN_NOT_FOUND') campaignEmpty(); else throw ex; }
         return;
       }
       if (name === 'actions') {
@@ -221,6 +223,7 @@
         content.innerHTML = '<div class="empty-state"><h2>Compartilhamentos controlados</h2><p>Gere primeiro um snapshot do Executive Report™. Os links são criados no detalhe do relatório, com expiração e revogação.</p><a class="btn btn-primary" href="/Intelligence/ExecutiveReport">Abrir Executive Report™</a></div>';
         return;
       }
+      if (name === 'evolution' && !overviewState) setOverviewHeader(await api('overview'));
       const data = await api(name);
       if (requestId !== activeRequest) return;
       if (name === 'overview') overview(data);
@@ -231,9 +234,11 @@
         content.innerHTML = `<h2>${esc(host.querySelector(`[data-tab="${name}"]`).textContent)}</h2>${contextualAction}${cards(data)}`;
       }
     } catch (ex) {
+      if (requestId !== activeRequest) return;
       error.textContent = ex.message || 'Não foi possível carregar este módulo. Os dados originais permanecem preservados.';
       error.classList.remove('d-none');
     } finally {
+      if (requestId !== activeRequest) return;
       loading.classList.add('d-none');
     }
   }

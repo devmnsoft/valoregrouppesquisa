@@ -16,7 +16,7 @@
     <dl class="summary-grid">
       <div><dt>Objetivo</dt><dd>@Model.Cycle.Summary</dd></div>
       <div><dt>Período</dt><dd>@Model.Cycle.PeriodStart.ToString("dd/MM/yyyy") — @(Model.Cycle.PeriodEnd?.ToString("dd/MM/yyyy") ?? "em aberto")</dd></div>
-      <div><dt>Baseline</dt><dd>@(Model.Cycle.BaselineScore?.ToString("0.0") ?? "Sem resultado vinculado") <small class="d-block text-muted">@(Model.Cycle.BaselineSource == "diagnostic_result" ? "Resultado calculado vinculado" : "Valor informado manualmente")</small></dd></div>
+      <div><dt>Baseline</dt><dd>@(Model.Cycle.BaselineScore?.ToString("0.0") ?? "Sem resultado vinculado") <small class="d-block text-muted">@(Model.Cycle.BaselineSource == "organizational_measurement" ? "Medição organizacional vinculada" : "Valor informado manualmente")</small></dd></div>
       <div><dt>Origem</dt><dd>@(Model.Cycle.DiagnosticId.HasValue ? $"Diagnóstico {Model.Cycle.DiagnosticId}" : "Sem diagnóstico vinculado")@(Model.Cycle.ResultId.HasValue ? $" · resultado {Model.Cycle.ResultId}" : "")</dd></div>
       <div><dt>Leitura metodológica</dt><dd>Não calculada sem duas avaliações comprovadamente comparáveis.</dd></div>
     </dl>
@@ -33,7 +33,7 @@
   <section class="valora-card" aria-labelledby="snapshot-form-title">
     <h2 id="snapshot-form-title">Registrar acompanhamento</h2>
     <details class="page-help"><summary>Como usar</summary><p>Descreva fatos verificáveis, registre a interpretação separadamente e indique o próximo passo. Ao salvar, a leitura e a autoria são preservadas no histórico. O registro não altera resultados de diagnóstico.</p></details>
-    <form method="post" action="/Evolution/Cycles/@Model.Cycle.Id/Snapshot" data-submit-once>
+    <form method="post" action="/Evolution/Cycles/@Model.Cycle.Id/Snapshot?returnUrl=@Uri.EscapeDataString(Model.ReturnUrl)" data-submit-once>
       @Html.AntiForgeryToken()
       <div class="valora-field"><label for="Evidence">Evidências observadas <span aria-hidden="true">*</span></label><textarea class="form-control" id="Evidence" name="Evidence" required maxlength="2000" rows="4">@command.Evidence</textarea>@Html.ValidationMessage("Evidence")<small class="form-help">Fatos, registros ou indicadores disponíveis.</small></div>
       <div class="valora-field"><label for="Interpretation">Interpretação humana <span aria-hidden="true">*</span></label><textarea class="form-control" id="Interpretation" name="Interpretation" required maxlength="2000" rows="4">@command.Interpretation</textarea>@Html.ValidationMessage("Interpretation")<small class="form-help">Não atribua causalidade sem evidência apropriada.</small></div>

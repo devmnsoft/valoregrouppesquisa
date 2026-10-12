@@ -225,7 +225,10 @@
       if (requestId !== activeRequest) return;
       if (name === 'overview') overview(data);
       else {
-        content.innerHTML = `<h2>${esc(host.querySelector(`[data-tab="${name}"]`).textContent)}</h2>${cards(data)}`;
+        const contextualAction = name === 'evolution' && overviewState?.cycle
+          ? `<div class="valora-card"><h3>Reavaliação vinculada</h3><p>Abra um ciclo Evolution™ a partir deste diagnóstico para selecionar um resultado calculado elegível. Valor manual ficará identificado como informado.</p><a class="valora-button valora-button--primary" href="/Evolution/Cycles?diagnosticId=${encodeURIComponent(overviewState.cycle.surveyId)}&returnUrl=${encodeURIComponent(`/Diagnostics/${diagnosticId}/Workspace?tab=evolution`)}">Criar ciclo vinculado</a></div>`
+          : '';
+        content.innerHTML = `<h2>${esc(host.querySelector(`[data-tab="${name}"]`).textContent)}</h2>${contextualAction}${cards(data)}`;
       }
     } catch (ex) {
       error.textContent = ex.message || 'Não foi possível carregar este módulo. Os dados originais permanecem preservados.';

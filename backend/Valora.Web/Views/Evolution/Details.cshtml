@@ -7,7 +7,7 @@
 }
 
 <main class="valora-page">
-  <partial name="_PageHeader" model="@(new PageHeaderViewModel(Model.Cycle.Title, "Acompanhe execução e evidências sem confundir atividade concluída com mudança organizacional.", "Valora Evolution™", Actions: new[] { new PageHeaderAction("Voltar aos ciclos", "/Evolution/Cycles") }))" />
+  <partial name="_PageHeader" model="@(new PageHeaderViewModel(Model.Cycle.Title, "Acompanhe execução e evidências sem confundir atividade concluída com mudança organizacional.", "Valora Evolution™", Actions: new[] { new PageHeaderAction(Model.ReturnUrl.StartsWith("/Diagnostics/", StringComparison.OrdinalIgnoreCase) ? "Voltar ao diagnóstico" : "Voltar aos ciclos", Model.ReturnUrl) }))" />
   @if (TempData["EvolutionSuccess"] is string success) { <div class="valora-alert valora-alert--success" role="status">@success</div> }
   <div asp-validation-summary="ModelOnly" class="validation-summary-errors" role="alert"></div>
 
@@ -16,7 +16,8 @@
     <dl class="summary-grid">
       <div><dt>Objetivo</dt><dd>@Model.Cycle.Summary</dd></div>
       <div><dt>Período</dt><dd>@Model.Cycle.PeriodStart.ToString("dd/MM/yyyy") — @(Model.Cycle.PeriodEnd?.ToString("dd/MM/yyyy") ?? "em aberto")</dd></div>
-      <div><dt>Baseline informado</dt><dd>@(Model.Cycle.BaselineScore?.ToString("0.0") ?? "Sem resultado vinculado")</dd></div>
+      <div><dt>Baseline</dt><dd>@(Model.Cycle.BaselineScore?.ToString("0.0") ?? "Sem resultado vinculado") <small class="d-block text-muted">@(Model.Cycle.BaselineSource == "diagnostic_result" ? "Resultado calculado vinculado" : "Valor informado manualmente")</small></dd></div>
+      <div><dt>Origem</dt><dd>@(Model.Cycle.DiagnosticId.HasValue ? $"Diagnóstico {Model.Cycle.DiagnosticId}" : "Sem diagnóstico vinculado")@(Model.Cycle.ResultId.HasValue ? $" · resultado {Model.Cycle.ResultId}" : "")</dd></div>
       <div><dt>Leitura metodológica</dt><dd>Não calculada sem duas avaliações comprovadamente comparáveis.</dd></div>
     </dl>
     <p class="form-help">Os totais operacionais mostram execução de ações. Eles não representam melhoria de maturidade nem comprovam que um plano causou mudança no diagnóstico.</p>

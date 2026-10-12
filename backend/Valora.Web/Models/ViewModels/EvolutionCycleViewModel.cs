@@ -3,6 +3,9 @@ using System.ComponentModel.DataAnnotations;
 namespace Valora.Web.Models.ViewModels;
 
 public sealed class EvolutionCycleViewModel {
+    public Guid? DiagnosticId { get; init; }
+    public Guid? ResultId { get; init; }
+
     [Required(ErrorMessage = "Informe um nome para o ciclo.")]
     [StringLength(160, MinimumLength = 3, ErrorMessage = "Use entre 3 e 160 caracteres.")]
     public string Title { get; init; } = string.Empty;

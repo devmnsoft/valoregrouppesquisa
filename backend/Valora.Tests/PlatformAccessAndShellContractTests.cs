@@ -217,6 +217,36 @@ public sealed class PlatformAccessAndShellContractTests {
     }
 
     [Fact]
+    public void EvolutionCycleCanStartFromDiagnosticResultWithoutManualGuid() {
+        var root = FindRepositoryRoot();
+        var controller = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/Controllers/EvolutionController.cs"));
+        var repository = File.ReadAllText(Path.Combine(root, "backend/Valora.Infrastructure/Repositories/EvolutionRepository.cs"));
+        var cyclesView = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/Views/Evolution/Cycles.cshtml"));
+        var workspace = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/wwwroot/js/pages/diagnostic-workspace.js"));
+
+        Assert.Contains("ResultOptions", controller);
+        Assert.Contains("selectedResult?.Percentage", controller);
+        Assert.Contains("Selecione um resultado calculado", controller);
+        Assert.Contains("result_scores rs", repository);
+        Assert.Contains("metadata_json->>'baselineSource'", repository);
+        Assert.Contains("diagnostic_id DiagnosticId,result_id ResultId", repository);
+        Assert.Contains("name=\"ResultId\"", cyclesView);
+        Assert.Contains("GUIDs não são digitados manualmente", cyclesView);
+        Assert.Contains("/Evolution/Cycles?diagnosticId=", workspace);
+    }
+
+    [Fact]
+    public void EvolutionSnapshotsUseCycleScopeInsteadOfOrganizationWideCounts() {
+        var root = FindRepositoryRoot();
+        var repository = File.ReadAllText(Path.Combine(root, "backend/Valora.Infrastructure/Repositories/EvolutionRepository.cs"));
+
+        Assert.Contains("scoped_plans", repository);
+        Assert.Contains("cyc.diagnostic_id", repository);
+        Assert.Contains("cyc.result_id", repository);
+        Assert.DoesNotContain("FROM valorapesquisa.action_items WHERE organization_id=@o AND deleted_at IS NULL), alerts", repository);
+    }
+
+    [Fact]
     public void OrganizationSelectorUsesServerPaginationSearchAndPreservesSelectedOrganization() {
         var root = FindRepositoryRoot();
         var controller = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/Controllers/BffAuthController.cs"));

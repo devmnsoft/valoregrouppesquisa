@@ -12,6 +12,16 @@ public sealed record DiagnosticWorkspaceItemDto(Guid Id, string? Code, string St
 public sealed record DiagnosticWorkspaceEvidenceDto(Guid Id, Guid? ResponseId, Guid? QuestionId, string ConceptCode,
     string? MetricCode, string? IndexCode, string EvidenceType, decimal? NormalizedValue, decimal Weight,
     decimal ConfidenceWeight, string MappingStatus, string? MaskedAnswer, DateTime CreatedAt);
+public sealed record DiagnosticLinkedPlanDto(Guid Id, string Title, string Status, string Priority, string OriginType,
+    Guid? OwnerUserId, string? OwnerName, DateTime? DueAt, int ProgressPercent, int ActiveItemCount, DateTime CreatedAt);
+public sealed record DiagnosticLinkedActionItemDto(Guid Id, Guid ActionPlanId, string PlanTitle, string Title,
+    string Status, string Priority, Guid? ResponsibleUserId, string? ResponsibleName, DateTime? DueAt,
+    int ProgressPercent, string EvidenceSummary, string ExpectedOutcome, string? CompletionEvidence,
+    string? CompletionResult, bool IsOverdue, DateTime CreatedAt);
+public sealed record DiagnosticExecutionHistoryDto(string Kind, Guid EntityId, string Title, string Operation,
+    string? FromValue, string? ToValue, string? Reason, string? ActorName, DateTime ChangedAt);
+public sealed record DiagnosticWorkspaceExecutionDto(IReadOnlyList<DiagnosticLinkedPlanDto> Plans,
+    IReadOnlyList<DiagnosticLinkedActionItemDto> Items, IReadOnlyList<DiagnosticExecutionHistoryDto> History);
 public sealed record DiagnosticWorkspaceOverviewDto(DiagnosticCycleDto Cycle, DiagnosticWorkspaceItemDto? LastJob,
     IReadOnlyList<DiagnosticWorkspaceItemDto> MainIndices, IReadOnlyList<DiagnosticWorkspaceItemDto> MainInsights,
     IReadOnlyList<DiagnosticWorkspaceItemDto> RecommendedActions, IReadOnlyList<DiagnosticWorkspaceItemDto> Alerts);
@@ -24,6 +34,7 @@ public sealed record DiagnosticWorkspaceCommandDto(Guid CycleId, string Status, 
 public interface IDiagnosticWorkspaceRepository {
     Task<DiagnosticCycleDto?> GetCycleAsync(Guid organizationId, Guid id, CancellationToken ct);
     Task<IReadOnlyList<DiagnosticWorkspaceEvidenceDto>> EvidenceAsync(Guid organizationId, Guid surveyId, CancellationToken ct);
+    Task<DiagnosticWorkspaceExecutionDto> ExecutionAsync(Guid organizationId, DiagnosticCycleDto cycle, Guid userId, bool organizationWide, CancellationToken ct);
     Task<IReadOnlyList<DiagnosticWorkspaceItemDto>> ModuleAsync(Guid organizationId, Guid cycleId, Guid surveyId, string module, CancellationToken ct);
     Task<DiagnosticWorkspaceItemDto?> LastJobAsync(Guid organizationId, Guid surveyId, CancellationToken ct);
     Task<bool> HasActiveJobAsync(Guid organizationId, Guid surveyId, CancellationToken ct);
@@ -36,6 +47,7 @@ public interface IDiagnosticWorkspaceService {
     Task<DiagnosticWorkspaceDto?> GetWorkspaceAsync(Guid organizationId, Guid id, CancellationToken ct);
     Task<DiagnosticWorkspaceOverviewDto?> GetOverviewAsync(Guid organizationId, Guid id, CancellationToken ct);
     Task<IReadOnlyList<DiagnosticWorkspaceEvidenceDto>?> GetEvidenceAsync(Guid organizationId, Guid id, CancellationToken ct);
+    Task<DiagnosticWorkspaceExecutionDto?> GetExecutionAsync(Guid organizationId, Guid id, Guid userId, bool organizationWide, CancellationToken ct);
     Task<IReadOnlyList<DiagnosticWorkspaceItemDto>?> GetModuleAsync(Guid organizationId, Guid id, string module, CancellationToken ct);
     Task<DiagnosticWorkspaceCommandDto?> ProcessAsync(Guid organizationId, Guid id, Guid userId, string correlationId, CancellationToken ct);
     Task<DiagnosticWorkspaceCommandDto?> CloseCycleAsync(Guid organizationId, Guid id, Guid userId, string correlationId, CancellationToken ct);

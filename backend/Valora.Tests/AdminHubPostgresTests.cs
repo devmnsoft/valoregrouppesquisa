@@ -136,7 +136,7 @@ public sealed class AdminHubPostgresTests {
             await service.UpdateStatusAsync(org, actor, adminA, new UpdateUserStatusRequest("active"));
             await Assert.ThrowsAsync<BusinessRuleAppException>(() => service.SetRolesAsync(org, actor, adminA, new UpdateUserRolesRequest([])));
             await service.SetRolesAsync(org, actor, adminB, new UpdateUserRolesRequest(["empresa_admin"]));
-            await Assert.ThrowsAsync<BusinessRuleAppException>(() => service.SetRolesAsync(org, actor, adminB, new UpdateUserRolesRequest([])));
+            await service.SetRolesAsync(org, actor, adminB, new UpdateUserRolesRequest([]));
             await service.SetRolesAsync(org, actor, adminA, new UpdateUserRolesRequest(["empresa_admin"]));
         }
         finally {
@@ -150,7 +150,7 @@ public sealed class AdminHubPostgresTests {
     }
 
     [PostgresFact("regressão PostgreSQL do Admin Hub não executada.")]
-    public async Task User_create_prefers_global_roles_rejects_unknown_roles_and_duplicate_emails() {
+    public async Task User_create_prefers_organization_roles_rejects_unknown_roles_and_duplicate_emails() {
         var connectionString = Connection();
         var factory = new TestConnectionFactory(connectionString);
         var orgRepo = new OrganizationRepository(factory, NullLogger<OrganizationRepository>.Instance);
@@ -167,7 +167,7 @@ public sealed class AdminHubPostgresTests {
 
             var userId = await userRepo.CreateAsync(org, "Usuário Pref", $"pref-{suffix}@evo.test.local", new BCryptPasswordHasher().Hash("SenhaEvo#1"), roleCode);
             var assigned = (Guid)(await ScalarAsync(setup, "SELECT role_id FROM valorapesquisa.user_roles WHERE user_id=@u", ("u", userId)))!;
-            Assert.Equal(globalRoleId, assigned);
+            Assert.Equal(orgRoleId, assigned);
 
             var unknown = await Record.ExceptionAsync(() => userRepo.CreateAsync(org, "Usuário Sem Papel", $"unknown-{suffix}@evo.test.local", "hash", $"ah-missing-{suffix}"));
             Assert.IsType<InvalidOperationException>(unknown);

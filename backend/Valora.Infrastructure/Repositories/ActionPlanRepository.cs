@@ -110,7 +110,7 @@ public sealed class ActionPlanRepository(IDbConnectionFactory db, IDbTransaction
           AND EXISTS(SELECT 1 FROM valorapesquisa.organization_modules om WHERE om.organization_id=@o AND om.module_code='organizational_intelligence' AND om.enabled)
           AND (@OwnerUserId IS NULL OR EXISTS(SELECT 1 FROM valorapesquisa.users usr WHERE usr.id=@OwnerUserId AND usr.organization_id=@o AND usr.status='active' AND usr.deleted_at IS NULL))
           AND (@DueAt IS NULL OR @DueAt::date >= (now() AT TIME ZONE org.time_zone)::date) AND (@StartsAt IS NULL OR @DueAt IS NULL OR @StartsAt::date<=@DueAt::date)
-          AND (@DiagnosticId IS NULL OR EXISTS(SELECT 1 FROM valorapesquisa.diagnostics d WHERE d.id=@DiagnosticId AND d.organization_id=@o AND d.deleted_at IS NULL))
+          AND (@DiagnosticId IS NULL OR EXISTS(SELECT 1 FROM valorapesquisa.diagnostics d WHERE d.id=@DiagnosticId AND d.organization_id=@o AND d.deleted_at IS NULL) OR EXISTS(SELECT 1 FROM valorapesquisa.surveys s WHERE s.id=@DiagnosticId AND s.organization_id=@o AND coalesce(s.is_deleted,false)=false) OR EXISTS(SELECT 1 FROM valorapesquisa.diagnostic_cycles dc WHERE dc.id=@DiagnosticId AND dc.organization_id=@o AND dc.deleted_at IS NULL))
           AND (@ResultId IS NULL OR EXISTS(SELECT 1 FROM valorapesquisa.results rs WHERE rs.id=@ResultId AND rs.organization_id=@o))
           AND (@GovernanceCycleId IS NULL OR EXISTS(SELECT 1 FROM valorapesquisa.organizational_governance_cycles gc WHERE gc.id=@GovernanceCycleId AND gc.organization_id=@o AND gc.deleted_at IS NULL))
           AND ((@OriginType='manual' AND @OriginId IS NULL)

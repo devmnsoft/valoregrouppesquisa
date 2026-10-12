@@ -39,6 +39,134 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
         const string sql = """SELECT id,response_id ResponseId,question_id QuestionId,concept_code ConceptCode,metric_code MetricCode,index_code IndexCode,evidence_type EvidenceType,normalized_value NormalizedValue,weight,confidence_weight ConfidenceWeight,coalesce(mapping_status,metadata_json->>'mappingStatus','pending_mapping') MappingStatus,CASE WHEN text_excerpt IS NULL THEN NULL ELSE regexp_replace(text_excerpt,'.(?=.{4})','•','g') END MaskedAnswer,created_at CreatedAt FROM valorapesquisa.evidence_items WHERE organization_id=@organizationId AND survey_id=@surveyId AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 500""";
         using var c = connections.Create(); return (await c.QueryAsync<DiagnosticWorkspaceEvidenceDto>(new CommandDefinition(sql, new { organizationId, surveyId }, cancellationToken: ct))).ToList();
     }
+    public async Task<DiagnosticWorkspaceExecutionDto> ExecutionAsync(Guid organizationId, DiagnosticCycleDto cycle, Guid userId, bool organizationWide, CancellationToken ct) {
+        const string planScope = "p.organization_id=@organizationId AND p.deleted_at IS NULL AND EXISTS(SELECT 1 FROM valorapesquisa.organization_modules om_scope WHERE om_scope.organization_id=@organizationId AND om_scope.module_code='organizational_intelligence' AND om_scope.enabled) AND (@organizationWide OR p.owner_user_id IS NULL OR p.owner_user_id=@userId OR EXISTS(SELECT 1 FROM valorapesquisa.action_items ai_scope WHERE ai_scope.action_plan_id=p.id AND ai_scope.organization_id=p.organization_id AND ai_scope.deleted_at IS NULL AND ai_scope.responsible_user_id=@userId))";
+        var args = new { organizationId, cycleId = cycle.Id, surveyId = cycle.SurveyId, userId, organizationWide };
+        var planSql = $"""
+        WITH diagnostic_refs AS (
+            SELECT @cycleId::uuid id UNION SELECT @surveyId::uuid id
+        ), linked_plans AS (
+            SELECT DISTINCT p.id
+            FROM valorapesquisa.action_plans p
+            WHERE {planScope}
+              AND (
+                p.diagnostic_id IN (SELECT id FROM diagnostic_refs)
+                OR (p.origin_type='diagnostic' AND p.origin_id IN (SELECT id FROM diagnostic_refs))
+                OR EXISTS (
+                    SELECT 1 FROM valorapesquisa.action_items i
+                    WHERE i.action_plan_id=p.id AND i.organization_id=p.organization_id AND i.deleted_at IS NULL
+                      AND (i.diagnostic_id IN (SELECT id FROM diagnostic_refs) OR (i.origin_type='diagnostic' AND i.origin_id IN (SELECT id FROM diagnostic_refs)))
+                )
+              )
+        ), linked_items AS (
+            SELECT DISTINCT i.id
+            FROM valorapesquisa.action_items i
+            JOIN valorapesquisa.action_plans p ON p.id=i.action_plan_id AND p.organization_id=i.organization_id
+            WHERE i.organization_id=@organizationId AND i.deleted_at IS NULL AND {planScope}
+              AND (
+                i.diagnostic_id IN (SELECT id FROM diagnostic_refs)
+                OR (i.origin_type='diagnostic' AND i.origin_id IN (SELECT id FROM diagnostic_refs))
+                OR p.id IN (SELECT id FROM linked_plans)
+              )
+        )
+        SELECT p.id,p.title,p.status,p.priority,p.origin_type OriginType,p.owner_user_id OwnerUserId,u.name OwnerName,p.due_at DueAt,
+          CASE WHEN count(i.id) FILTER(WHERE i.status<>'canceled')=0 THEN 0 ELSE coalesce(round(avg(i.progress_percent) FILTER(WHERE i.status<>'canceled'))::int,0) END ProgressPercent,
+          count(i.id) FILTER(WHERE i.status NOT IN('completed','canceled'))::int ActiveItemCount,p.created_at CreatedAt
+        FROM valorapesquisa.action_plans p
+        LEFT JOIN valorapesquisa.action_items i ON i.action_plan_id=p.id AND i.organization_id=p.organization_id AND i.deleted_at IS NULL
+        LEFT JOIN valorapesquisa.users u ON u.id=p.owner_user_id AND u.organization_id=p.organization_id AND u.deleted_at IS NULL
+        WHERE p.id IN (SELECT id FROM linked_plans)
+        GROUP BY p.id,u.name
+        ORDER BY p.created_at DESC,p.id DESC
+        LIMIT 50;
+        """;
+        var itemSql = $"""
+        WITH diagnostic_refs AS (
+            SELECT @cycleId::uuid id UNION SELECT @surveyId::uuid id
+        ), linked_plans AS (
+            SELECT DISTINCT p.id
+            FROM valorapesquisa.action_plans p
+            WHERE {planScope}
+              AND (
+                p.diagnostic_id IN (SELECT id FROM diagnostic_refs)
+                OR (p.origin_type='diagnostic' AND p.origin_id IN (SELECT id FROM diagnostic_refs))
+                OR EXISTS (
+                    SELECT 1 FROM valorapesquisa.action_items i
+                    WHERE i.action_plan_id=p.id AND i.organization_id=p.organization_id AND i.deleted_at IS NULL
+                      AND (i.diagnostic_id IN (SELECT id FROM diagnostic_refs) OR (i.origin_type='diagnostic' AND i.origin_id IN (SELECT id FROM diagnostic_refs)))
+                )
+              )
+        ), linked_items AS (
+            SELECT DISTINCT i.id
+            FROM valorapesquisa.action_items i
+            JOIN valorapesquisa.action_plans p ON p.id=i.action_plan_id AND p.organization_id=i.organization_id
+            WHERE i.organization_id=@organizationId AND i.deleted_at IS NULL AND {planScope}
+              AND (
+                i.diagnostic_id IN (SELECT id FROM diagnostic_refs)
+                OR (i.origin_type='diagnostic' AND i.origin_id IN (SELECT id FROM diagnostic_refs))
+                OR p.id IN (SELECT id FROM linked_plans)
+              )
+        )
+        SELECT i.id,i.action_plan_id ActionPlanId,p.title PlanTitle,i.title,i.status,i.priority,i.responsible_user_id ResponsibleUserId,u.name ResponsibleName,i.due_at DueAt,
+          i.progress_percent ProgressPercent,i.evidence_summary EvidenceSummary,i.expected_outcome ExpectedOutcome,i.completion_evidence CompletionEvidence,
+          i.metadata_json->>'completionResult' CompletionResult,
+          ((i.due_at AT TIME ZONE org.time_zone)::date < (now() AT TIME ZONE org.time_zone)::date AND i.status NOT IN('completed','canceled')) IsOverdue,
+          i.created_at CreatedAt
+        FROM valorapesquisa.action_items i
+        JOIN valorapesquisa.action_plans p ON p.id=i.action_plan_id AND p.organization_id=i.organization_id
+        JOIN valorapesquisa.organizations org ON org.id=i.organization_id
+        LEFT JOIN valorapesquisa.users u ON u.id=i.responsible_user_id AND u.organization_id=i.organization_id AND u.deleted_at IS NULL
+        WHERE i.id IN (SELECT id FROM linked_items)
+        ORDER BY i.due_at NULLS LAST,i.created_at DESC,i.id DESC
+        LIMIT 100;
+        """;
+        var historySql = $"""
+        WITH diagnostic_refs AS (
+            SELECT @cycleId::uuid id UNION SELECT @surveyId::uuid id
+        ), linked_plans AS (
+            SELECT DISTINCT p.id
+            FROM valorapesquisa.action_plans p
+            WHERE {planScope}
+              AND (
+                p.diagnostic_id IN (SELECT id FROM diagnostic_refs)
+                OR (p.origin_type='diagnostic' AND p.origin_id IN (SELECT id FROM diagnostic_refs))
+                OR EXISTS (
+                    SELECT 1 FROM valorapesquisa.action_items i
+                    WHERE i.action_plan_id=p.id AND i.organization_id=p.organization_id AND i.deleted_at IS NULL
+                      AND (i.diagnostic_id IN (SELECT id FROM diagnostic_refs) OR (i.origin_type='diagnostic' AND i.origin_id IN (SELECT id FROM diagnostic_refs)))
+                )
+              )
+        ), linked_items AS (
+            SELECT DISTINCT i.id
+            FROM valorapesquisa.action_items i
+            JOIN valorapesquisa.action_plans p ON p.id=i.action_plan_id AND p.organization_id=i.organization_id
+            WHERE i.organization_id=@organizationId AND i.deleted_at IS NULL AND {planScope}
+              AND (
+                i.diagnostic_id IN (SELECT id FROM diagnostic_refs)
+                OR (i.origin_type='diagnostic' AND i.origin_id IN (SELECT id FROM diagnostic_refs))
+                OR p.id IN (SELECT id FROM linked_plans)
+              )
+        )
+        SELECT 'plan' Kind,p.id EntityId,p.title,h.operation Operation,h.from_value FromValue,h.to_value ToValue,h.reason,u.name ActorName,h.changed_at ChangedAt
+        FROM valorapesquisa.action_plan_change_history h
+        JOIN valorapesquisa.action_plans p ON p.id=h.action_plan_id
+        LEFT JOIN valorapesquisa.users u ON u.id=h.changed_by_user_id
+        WHERE p.id IN (SELECT id FROM linked_plans)
+        UNION ALL
+        SELECT 'item' Kind,i.id EntityId,i.title,h.operation,coalesce(h.from_value,h.from_status) FromValue,coalesce(h.to_value,h.to_status) ToValue,h.reason,u.name ActorName,h.changed_at ChangedAt
+        FROM valorapesquisa.action_item_status_history h
+        JOIN valorapesquisa.action_items i ON i.id=h.action_item_id
+        LEFT JOIN valorapesquisa.users u ON u.id=h.changed_by_user_id
+        WHERE i.id IN (SELECT id FROM linked_items)
+        ORDER BY ChangedAt DESC,EntityId DESC
+        LIMIT 100;
+        """;
+        using var c = connections.Create();
+        var plans = (await c.QueryAsync<DiagnosticLinkedPlanDto>(new CommandDefinition(planSql, args, cancellationToken: ct))).AsList();
+        var items = (await c.QueryAsync<DiagnosticLinkedActionItemDto>(new CommandDefinition(itemSql, args, cancellationToken: ct))).AsList();
+        var history = (await c.QueryAsync<DiagnosticExecutionHistoryDto>(new CommandDefinition(historySql, args, cancellationToken: ct))).AsList();
+        return new(plans, items, history);
+    }
     public async Task<IReadOnlyList<DiagnosticWorkspaceItemDto>> ModuleAsync(Guid organizationId, Guid cycleId, Guid surveyId, string module, CancellationToken ct) {
         string sql;
         if (module.Equals("actions", StringComparison.OrdinalIgnoreCase)) sql = "SELECT id,code,status,to_jsonb(x)::text DataJson,created_at CreatedAt,updated_at UpdatedAt FROM valorapesquisa.valora_actions x WHERE organization_id=@organizationId AND survey_id=@surveyId AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 200";

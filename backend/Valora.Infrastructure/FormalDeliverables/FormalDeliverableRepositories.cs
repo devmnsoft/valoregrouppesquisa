@@ -51,13 +51,14 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
             FROM valorapesquisa.secure_share_links
             WHERE token_hash=@TokenHash AND deleted_at IS NULL
             """ + (activeOnly ? " AND status='active'" : "");
-        return await connection.QuerySingleOrDefaultAsync<ShareLink>(new CommandDefinition(
+        var row = await connection.QuerySingleOrDefaultAsync<ShareLinkRow>(new CommandDefinition(
             sql, new { TokenHash = tokenHash }, cancellationToken: cancellationToken));
+        return row?.ToShareLink();
     }
 
     public async Task<ShareLink?> FindByCommandIdAsync(Guid organizationId, string commandId, CancellationToken cancellationToken = default) {
         using var connection = connections.Create();
-        return await connection.QuerySingleOrDefaultAsync<ShareLink>(new CommandDefinition("""
+        var row = await connection.QuerySingleOrDefaultAsync<ShareLinkRow>(new CommandDefinition("""
             SELECT id, organization_id AS OrganizationId, diagnostic_id AS DiagnosisId, token_hash AS TokenHash,
                    public_slug AS PublicSlug, expires_at AS ExpiresAt, allow_download AS AllowDownload,
                    max_access_count AS MaxAccessCount, access_count AS AccessCount, revoked_at AS RevokedAt,
@@ -68,6 +69,7 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
             ORDER BY created_at DESC, id DESC
             LIMIT 1
             """, new { OrganizationId = organizationId, CommandId = commandId }, cancellationToken: cancellationToken));
+        return row?.ToShareLink();
     }
 
     public async Task<bool> RevokeAsync(Guid organizationId, Guid linkId, CancellationToken cancellationToken = default) {
@@ -103,6 +105,15 @@ public sealed class ShareLinkRepository(IDbConnectionFactory connections) : ISha
             """, new { LinkId = linkId, DownloadRequested = downloadRequested, WasAllowed = updated == 1 }, transaction, cancellationToken: cancellationToken));
         transaction.Commit();
         return updated == 1;
+    }
+
+    private sealed record ShareLinkRow(Guid Id, Guid OrganizationId, Guid DiagnosisId, string TokenHash,
+        string PublicSlug, DateTime ExpiresAt, bool AllowDownload, int? MaxAccessCount, int AccessCount,
+        DateTime? RevokedAt, Guid? DeliverableId, Guid? ResultId, string? CommandId, string? RequestHash) {
+        public ShareLink ToShareLink() => new(Id, OrganizationId, DiagnosisId, TokenHash, PublicSlug,
+            new DateTimeOffset(ExpiresAt, TimeSpan.Zero), AllowDownload, MaxAccessCount, AccessCount,
+            RevokedAt is null ? null : new DateTimeOffset(RevokedAt.Value, TimeSpan.Zero),
+            DeliverableId, ResultId, CommandId, RequestHash);
     }
 }
 

@@ -12,6 +12,7 @@ public sealed class DiagnosticWorkspaceController(IDiagnosticWorkspaceService se
     [HttpGet("overview")] public Task<IActionResult> Overview(Guid id, CancellationToken ct) => Read(id, (o) => service.GetOverviewAsync(o, id, ct));
     [HttpGet("/api/v1/diagnostics/{id:guid}/participation")] public Task<IActionResult> Participation(Guid id, CancellationToken ct) => Read(id, o => service.GetModuleAsync(o, id, "participation", ct));
     [HttpGet("evidence")] public Task<IActionResult> Evidence(Guid id, CancellationToken ct) => Read(id, (o) => service.GetEvidenceAsync(o, id, ct));
+    [HttpGet("execution")] public Task<IActionResult> Execution(Guid id, CancellationToken ct) => Read(id, (o) => service.GetExecutionAsync(o, id, UserId, IsOrganizationWide, ct));
     [HttpGet("/api/v1/diagnostics/{id:guid}/evidence")] public Task<IActionResult> DiagnosticEvidence(Guid id, CancellationToken ct) => Evidence(id, ct);
     [HttpGet("/api/v1/diagnostics/{id:guid}/processing-status")] public Task<IActionResult> ProcessingStatus(Guid id, CancellationToken ct) => Overview(id, ct);
     [HttpGet("/api/v1/diagnostics/{id:guid}/metrics")] public Task<IActionResult> DiagnosticMetrics(Guid id, CancellationToken ct) => Module(id, "metrics", ct);
@@ -34,5 +35,6 @@ public sealed class DiagnosticWorkspaceController(IDiagnosticWorkspaceService se
     private async Task<(Guid OrganizationId, IActionResult? Error)> Access(string permission) { if (!Guid.TryParse(User.FindFirstValue("organization_id"), out var o)) return (Guid.Empty, ForbidProblem("ORGANIZATION_REQUIRED", "Selecione uma organização para abrir o diagnóstico.")); if (!IsAdmin && (!await permissions.HasPermissionAsync(UserId, permission, o) || !await entitlements.CanUseAsync(o, "organizational_intelligence"))) return (o, ForbidProblem("WORKSPACE_FORBIDDEN", "Este recurso faz parte dos módulos avançados do Valora Insight™ Profissional.")); return (o, null); }
     private Guid UserId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : Guid.Empty;
     private bool IsAdmin => User.IsInRole("admin_valora") || User.Claims.Any(x => (x.Type is ClaimTypes.Role or "role") && x.Value.Equals("admin_valora", StringComparison.OrdinalIgnoreCase));
+    private bool IsOrganizationWide => IsAdmin || User.Claims.Any(x => (x.Type is ClaimTypes.Role or "role") && x.Value.Equals("admin_cliente", StringComparison.OrdinalIgnoreCase));
     private ObjectResult ForbidProblem(string code, string message) => StatusCode(403, new { code, message, correlationId = HttpContext.TraceIdentifier });
 }

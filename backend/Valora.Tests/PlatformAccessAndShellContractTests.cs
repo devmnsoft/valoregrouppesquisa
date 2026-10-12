@@ -176,6 +176,21 @@ public sealed class PlatformAccessAndShellContractTests {
     }
 
     [Fact]
+    public void DiagnosticWorkspaceActionTabUsesActionCenterAsCanonicalExecutionSource() {
+        var root = FindRepositoryRoot();
+        var repository = File.ReadAllText(Path.Combine(root, "backend/Valora.Infrastructure/Repositories/DiagnosticWorkspaceRepository.cs"));
+        var script = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/wwwroot/js/pages/diagnostic-workspace.js"));
+        Assert.Contains("ExecutionAsync", repository);
+        Assert.Contains("action_plans p", repository);
+        Assert.Contains("action_items i", repository);
+        Assert.Contains("action_plan_change_history", repository);
+        Assert.Contains("action_item_status_history", repository);
+        Assert.Contains("originType=diagnostic", script);
+        Assert.Contains("/ActionCenter/Plans/Details/", script);
+        Assert.Contains("/ActionCenter/Items/Details/", script);
+    }
+
+    [Fact]
     public void OrganizationSelectorUsesServerPaginationSearchAndPreservesSelectedOrganization() {
         var root = FindRepositoryRoot();
         var controller = File.ReadAllText(Path.Combine(root, "backend/Valora.Web/Controllers/BffAuthController.cs"));

@@ -51,16 +51,28 @@
           vp.toast('Informe um e-mail válido ou selecione resposta anônima.', 'error');
           return;
         }
-        form.querySelector('[data-submit-feedback]').textContent = 'Salvando sua resposta com segurança…';
-        const result = await PublicSurveyApi.submit(surveyId, {
-          participant: { name: anonymous ? null : data.get('name'), email: anonymous ? null : email, phone: null, anonymous, consentVersion: '8.0' },
-          answers: questions.map(answerFor),
-          lgpdConsent: true,
-          communicationConsent: !anonymous,
-          idempotencyKey: crypto.randomUUID()
-        });
-        if (!result.responseId || !result.resultUrl) throw new Error('RESPONSE_NOT_CONFIRMED');
-        location.assign(result.resultUrl);
+        const feedback = form.querySelector('[data-submit-feedback]');
+        if (feedback) {
+          feedback.textContent = 'Salvando sua resposta com segurança…';
+          feedback.style.color = 'inherit';
+        }
+        try {
+          const result = await PublicSurveyApi.submit(surveyId, {
+            participant: { name: anonymous ? null : data.get('name'), email: anonymous ? null : email, phone: null, anonymous, consentVersion: '8.0' },
+            answers: questions.map(answerFor),
+            lgpdConsent: true,
+            communicationConsent: !anonymous,
+            idempotencyKey: crypto.randomUUID()
+          });
+          if (!result.responseId || !result.resultUrl) throw new Error('A gravação não pôde ser confirmada pelo servidor.');
+          location.assign(result.resultUrl);
+        } catch (err) {
+          if (feedback) {
+            feedback.textContent = err?.message || 'A gravação não foi confirmada. Seus dados foram preservados abaixo para correção.';
+            feedback.style.color = '#dc2626';
+          }
+          vp.toast(err?.message || 'Falha ao enviar resposta. Seus dados foram mantidos no formulário.', 'error');
+        }
       });
     }).catch(error => {
       const incomplete = error?.message === 'FORM_WITHOUT_QUESTIONS';
@@ -73,14 +85,21 @@
   const id = document.querySelector('[name=responseId]')?.value;
   ResultsApi.public(id).then(result => {
     const response = result?.response || result || {};
-    const score = result?.result || result || {};
+    const score = result?.result;
     const dimensions = result?.dimensions || [];
     const setText = (selector, value) => { const element = document.querySelector(selector); if (element) element.textContent = value; };
     setText('[data-result-date]', (window.formatValoraDate || (value => value || 'Data não informada'))(response.completedAt || response.createdAt));
-    setText('[data-result-score]', safe(score.percentage ?? score.score ?? '--'));
-    setText('[data-result-level]', safe(score.maturityLabel || score.level || 'Nível de maturidade em processamento'));
-    setText('[data-executive-reading]', safe(score.executiveSummary || score.reading || 'Leitura executiva em processamento.'));
-    if (dimensions.length) setText('[data-dimensions-text]', dimensions.map(dimension => `${dimension.dimensionName || dimension.name}: ${dimension.percentage ?? dimension.score ?? 'em análise'}`).join(' • '));
+    if (score) {
+      setText('[data-result-score]', safe(score.percentage ?? score.totalScore ?? '--'));
+      setText('[data-result-level]', safe(score.maturityLabel || score.nextLevel || 'Nível de maturidade calculado'));
+      setText('[data-executive-reading]', safe(score.strategicTruth || score.radarText || 'Leitura executiva calculada com base nas respostas.'));
+      if (dimensions.length) setText('[data-dimensions-text]', dimensions.map(dimension => `${dimension.dimensionName || dimension.name}: ${dimension.percentage ?? dimension.score ?? 'calculado'}%`).join(' • '));
+    } else {
+      setText('[data-result-score]', 'Qualitativo');
+      setText('[data-result-level]', 'Diagnóstico Qualitativo Concluído');
+      setText('[data-executive-reading]', 'Suas respostas qualitativas foram registradas com sucesso e integradas à análise do diagnóstico.');
+      setText('[data-dimensions-text]', 'Formulário focado em relatos e percepções qualitativas.');
+    }
   }).catch(() => {
     const element = document.querySelector('[data-executive-reading]');
     if (element) element.textContent = 'Resultado em preparação. Tente novamente em instantes ou fale com a Valora Group.';

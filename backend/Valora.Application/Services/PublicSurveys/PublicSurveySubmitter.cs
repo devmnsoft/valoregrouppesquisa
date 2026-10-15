@@ -14,9 +14,16 @@ public sealed class PublicSurveySubmitter(PublicSurveyValidator validator, Publi
             logger.LogInformation("Public survey validated. SurveyId={SurveyId} OrganizationId={OrganizationId}", surveyId, data.Survey.OrganizationId);
             var scored = scorer.Score(data.Questions, data.Dims, data.Options, request.Answers);
             logger.LogInformation("Public survey answers scored. SurveyId={SurveyId} AnswerCount={AnswerCount}", surveyId, scored.Count);
-            var calc = calculator.Calculate(scored.Select(x => new AnswerScore(x.DimensionName, x.Score)));
-            logger.LogInformation("Public survey result calculated. SurveyId={SurveyId} Level={Level}", surveyId, calc.Level);
-            var dims = scored.GroupBy(x => x.DimensionName).Select(g => new DimensionScoreInput(g.Key, g.Sum(x => x.Score), g.Sum(x => x.MaxScore), g.Sum(x => x.MaxScore) == 0 ? 0 : Math.Round(g.Sum(x => x.Score) / g.Sum(x => x.MaxScore) * 100, 2), calc.Level)).ToList();
+            var quantitative = scored.Where(x => x.Score.HasValue).Select(x => new AnswerScore(x.DimensionName, x.Score!.Value)).ToList();
+            ValoraInsightResult? calc = null;
+            List<DimensionScoreInput> dims = [];
+            if (quantitative.Count > 0) {
+                calc = calculator.Calculate(quantitative);
+                logger.LogInformation("Public survey result calculated. SurveyId={SurveyId} Level={Level}", surveyId, calc.Level);
+                dims = scored.Where(x => x.Score.HasValue).GroupBy(x => x.DimensionName).Select(g => new DimensionScoreInput(g.Key, g.Sum(x => x.Score!.Value), g.Sum(x => x.MaxScore ?? 0), g.Sum(x => x.MaxScore ?? 0) == 0 ? 0 : Math.Round(g.Sum(x => x.Score!.Value) / g.Sum(x => x.MaxScore ?? 0) * 100, 2), calc.Level)).ToList();
+            } else {
+                logger.LogInformation("Public survey has qualitative answers only, skipping numeric scoring. SurveyId={SurveyId}", surveyId);
+            }
             logger.LogInformation("Public survey transaction called. SurveyId={SurveyId} DimensionCount={DimensionCount}", surveyId, dims.Count);
             var result = await tx.SaveAsync(data.Survey, request, scored, calc, dims);
             logger.LogInformation("Public survey submit succeeded. SurveyId={SurveyId} ResponseId={ResponseId}", surveyId, result.ResponseId);

@@ -85,13 +85,160 @@
     if (!items?.length) return empty();
     return `<div class="row g-3">${items.map(item => {
       const data = item.data || item;
+      const title = data.title || data.name || item.code || 'Registro do ciclo';
+      const statusBadge = item.status || item.mappingStatus || data.status;
       const rows = Object.entries(data)
-        .filter(([key]) => !['data', 'organization_id', 'participant_email', 'participant_name', 'raw_value'].includes(key))
-        .slice(0, 8)
+        .filter(([key]) => !['data', 'organization_id', 'participant_email', 'participant_name', 'raw_value', 'title', 'name', 'status', 'id', 'survey_id', 'cycle_id'].includes(key))
+        .slice(0, 6)
         .map(([key, value]) => `<div><dt>${esc(key.replaceAll('_', ' '))}</dt><dd>${esc(typeof value === 'object' ? JSON.stringify(value) : value)}</dd></div>`)
         .join('');
-      return `<article class="col-12 col-lg-6"><div class="metric-card h-100"><strong>${esc(item.code || data.title || 'Registro do ciclo')}</strong> <span class="valora-status">${esc(item.status || item.mappingStatus)}</span><dl>${rows}</dl></div></article>`;
+      return `<article class="col-12 col-lg-6"><div class="metric-card h-100"><div class="d-flex justify-content-between align-items-start gap-2 mb-2"><strong>${esc(title)}</strong> ${statusBadge ? `<span class="valora-status">${esc(label(statusBadge))}</span>` : ''}</div><dl class="small mb-0">${rows}</dl></div></article>`;
     }).join('')}</div>`;
+  }
+
+  function participationView(items) {
+    const item = items?.[0];
+    const data = item?.data || {};
+    const origens = data.origens || {};
+    const destEmail = Number(data.destinatariosEmail || 0);
+    const respValidas = Number(data.respostasValidas || 0);
+    const taxaAdesao = destEmail > 0 ? `${Math.round(respValidas / destEmail * 100)}%` : 'Não aplicável (sem lista de e-mails)';
+    content.innerHTML = `<h2>Participação & Coleta</h2>
+      <p class="form-help">Os contadores refletem o estado real persistido no banco de dados. Compartilhamento manual não é contado como envio confirmado.</p>
+      <div class="metric-grid">
+        <article class="metric-card"><span>Respostas recebidas</span><strong>${esc(data.respostasRecebidas ?? 0)}</strong><small>total gravado</small></article>
+        <article class="metric-card"><span>Respostas válidas</span><strong>${esc(data.respostasValidas ?? 0)}</strong><small>concluídas e íntegras</small></article>
+        <article class="metric-card"><span>Respostas pontuadas</span><strong>${esc(data.respostasPontuadas ?? 0)}</strong><small>com maturidade apurada</small></article>
+        <article class="metric-card"><span>Pendências de processamento</span><strong>${esc(data.pendenciasProcessamento ?? 0)}</strong><small>jobs em processamento</small></article>
+        <article class="metric-card"><span>Destinatários por e-mail</span><strong>${esc(data.destinatariosEmail ?? 0)}</strong><small>cadastrados na campanha</small></article>
+        <article class="metric-card"><span>Mensagens na fila</span><strong>${esc(data.mensagensFila ?? 0)}</strong><small>aguardando envio</small></article>
+        <article class="metric-card"><span>Envios registrados</span><strong>${esc(data.enviosRegistrados ?? 0)}</strong><small>entregues/enviados</small></article>
+        <article class="metric-card"><span>Falhas de entrega</span><strong>${esc(data.falhas ?? 0)}</strong><small>erros ou devoluções</small></article>
+        <article class="metric-card"><span>Taxa de adesão</span><strong>${esc(taxaAdesao)}</strong><small>${destEmail > 0 ? 'respostas válidas / destinatários' : 'denominador ausente'}</small></article>
+      </div>
+      <section class="valora-card mt-3">
+        <h3>Origens Auditadas dos Contadores</h3>
+        <div class="table-responsive"><table class="valora-table"><thead><tr><th>Contador</th><th>Valor</th><th>Fonte Canônica</th></tr></thead><tbody>
+          <tr><td><strong>Respostas recebidas</strong></td><td>${esc(data.respostasRecebidas ?? 0)}</td><td>${esc(origens.respostasRecebidas || 'Tabela responses (is_deleted=false)')}</td></tr>
+          <tr><td><strong>Respostas válidas</strong></td><td>${esc(data.respostasValidas ?? 0)}</td><td>${esc(origens.respostasValidas || 'Tabela responses com status=completed')}</td></tr>
+          <tr><td><strong>Respostas pontuadas</strong></td><td>${esc(data.respostasPontuadas ?? 0)}</td><td>${esc(origens.respostasPontuadas || 'Tabela result_scores')}</td></tr>
+          <tr><td><strong>Pendências de processamento</strong></td><td>${esc(data.pendenciasProcessamento ?? 0)}</td><td>${esc(origens.pendenciasProcessamento || 'Tabela intelligence_processing_jobs')}</td></tr>
+          <tr><td><strong>Destinatários por e-mail</strong></td><td>${esc(data.destinatariosEmail ?? 0)}</td><td>${esc(origens.destinatariosEmail || 'Tabela survey_invites')}</td></tr>
+          <tr><td><strong>Mensagens na fila</strong></td><td>${esc(data.mensagensFila ?? 0)}</td><td>${esc(origens.mensagensFila || 'Tabela communications pendentes')}</td></tr>
+          <tr><td><strong>Envios registrados</strong></td><td>${esc(data.enviosRegistrados ?? 0)}</td><td>${esc(origens.enviosRegistrados || 'Tabela communications enviadas')}</td></tr>
+          <tr><td><strong>Falhas</strong></td><td>${esc(data.falhas ?? 0)}</td><td>${esc(origens.falhas || 'Tabela communications com falha')}</td></tr>
+        </tbody></table></div>
+      </section>`;
+  }
+
+  function evidenceView(items) {
+    if (!items?.length) return empty('Nenhuma evidência foi registrada para este ciclo.');
+    content.innerHTML = `<h2>Evidências Rastreáveis</h2>
+      <p class="form-help">Evidências coletadas de respostas reais anonimizadas ou mascaradas para análise metodológica.</p>
+      <div class="row g-3">${items.map(item => {
+        const data = item.data || item;
+        return `<article class="col-12 col-lg-6">
+          <div class="metric-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <strong>${esc(data.conceptCode || data.metricCode || 'Evidência')}</strong>
+              <span class="valora-status">${esc(label(data.mappingStatus || item.status || 'Registrado'))}</span>
+            </div>
+            <p class="mb-2"><em>${esc(data.maskedAnswer || data.textExcerpt || 'Valor coletado registrado com sucesso.')}</em></p>
+            <dl class="small mb-2">
+              <div><dt>Tipo de evidência</dt><dd>${esc(data.evidenceType || 'Resposta')}</dd></div>
+              <div><dt>Peso metodológico</dt><dd>${esc(data.weight ?? 1)} (Confiança: ${esc(data.confidenceWeight ?? 1)})</dd></div>
+              <div><dt>Registro</dt><dd>${esc(date(item.createdAt || data.createdAt))}</dd></div>
+            </dl>
+          </div>
+        </article>`;
+      }).join('')}</div>`;
+  }
+
+  function insightsView(items) {
+    if (!items?.length) return empty('Nenhum insight gerado ou em análise para este diagnóstico.');
+    const returnUrl = `/Diagnostics/${diagnosticId}/Workspace?tab=insights`;
+    content.innerHTML = `<h2>Insights IA™ & Revisão Humana</h2>
+      <p class="form-help">Achados sugeridos por inteligência artificial passam obrigatoriamente por revisão humana antes de se tornarem planos aprovados no Action Center.</p>
+      <div class="row g-3">${items.map(item => {
+        const data = item.data || item;
+        const isApproved = (item.status === 'approved' || data.status === 'approved');
+        const isPending = (item.status === 'proposed' || item.status === 'pending_review' || data.status === 'proposed' || data.status === 'pending_review');
+        const isConverted = (item.status === 'converted_to_action' || data.status === 'converted_to_action');
+        const planLink = `/ActionCenter/Plans/Create?originType=ai_insight&originId=${encodeURIComponent(item.id)}&returnUrl=${encodeURIComponent(returnUrl)}`;
+        const reviewLink = `/Insights/Details/${encodeURIComponent(item.id)}?returnUrl=${encodeURIComponent(returnUrl)}`;
+        return `<article class="col-12 col-lg-6">
+          <div class="metric-card h-100 d-flex flex-column justify-content-between">
+            <div>
+              <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <strong>${esc(data.title || item.code || 'Achado sugerido')}</strong>
+                <span class="valora-status">${esc(label(item.status || data.status))}</span>
+              </div>
+              <p class="text-muted small mb-2">${esc(data.description || data.summary || data.strategicTruth || 'Sem descrição detalhada.')}</p>
+              <dl class="small mb-2">
+                <div><dt>Natureza</dt><dd>Sugestão de IA™ com revisão humana</dd></div>
+                <div><dt>Dimensão</dt><dd>${esc(data.dimension || data.dimensionName || 'Geral')}</dd></div>
+                ${data.limitation ? `<div><dt>Limitação</dt><dd class="text-warning">${esc(data.limitation)}</dd></div>` : ''}
+              </dl>
+            </div>
+            <div class="d-flex gap-2 flex-wrap mt-3 pt-2 border-top">
+              <a class="btn btn-sm btn-outline-primary" href="${reviewLink}">Revisar achado</a>
+              ${isApproved ? `<a class="btn btn-sm btn-primary" href="${planLink}">Criar plano no Action Center</a>` : ''}
+              ${isConverted ? `<span class="badge bg-success align-self-center">Vinculado a plano</span>` : ''}
+              ${isPending ? `<small class="text-muted align-self-center">Aprovação exigida antes de criar plano.</small>` : ''}
+            </div>
+          </div>
+        </article>`;
+      }).join('')}</div>`;
+  }
+
+  function metricsIndicesView(name, items) {
+    if (!items?.length) return empty(`Nenhum registro de ${name} apurado até o momento.`);
+    const tabLabel = host.querySelector(`[data-tab="${name}"]`)?.textContent || name;
+    return `<h2>${esc(tabLabel)}</h2>
+      <p class="form-help">Indicadores apurados a partir das medições do ciclo. Quando não há dados suficientes, a ausência é informada sem substituição por zero.</p>
+      <div class="row g-3">${items.map(item => {
+        const data = item.data || item;
+        const hasValue = data.value != null || data.score != null || data.normalizedValue != null;
+        const displayVal = hasValue ? esc(data.value ?? data.score ?? data.normalizedValue) : '<span class="text-muted">Aguardando dados</span>';
+        return `<article class="col-12 col-lg-6">
+          <div class="metric-card h-100">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+              <strong>${esc(data.name || data.title || item.code || 'Indicador')}</strong>
+              <span class="valora-status">${esc(label(item.status || data.status || 'Ativo'))}</span>
+            </div>
+            <div class="display-6 my-2">${displayVal} <small class="fs-6 text-muted">${esc(data.unit || '')}</small></div>
+            <dl class="small mb-0">
+              <div><dt>O que mede</dt><dd>${esc(data.description || data.whatItMeasures || 'Medição metodológica do ciclo.')}</dd></div>
+              <div><dt>Fonte</dt><dd>${esc(data.source || 'Respostas do diagnóstico')}</dd></div>
+              <div><dt>Período / Recorte</dt><dd>${esc(data.period || 'Ciclo atual')}</dd></div>
+              <div><dt>Limitações</dt><dd>${esc(data.limitation || 'Válido sob a amostragem coletada.')}</dd></div>
+            </dl>
+          </div>
+        </article>`;
+      }).join('')}</div>`;
+  }
+
+  function inferencesView(items) {
+    if (!items?.length) return empty('Nenhuma inferência calculada até o momento.');
+    return `<h2>Inferências Organizacionais</h2>
+      <p class="form-help">Hipóteses e relações identificadas pelo modelo estatístico a partir das correlações observadas.</p>
+      <div class="row g-3">${items.map(item => {
+        const data = item.data || item;
+        return `<article class="col-12 col-lg-6">
+          <div class="metric-card h-100">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+              <strong>${esc(data.title || item.code || 'Inferência')}</strong>
+              <span class="valora-status">${esc(label(item.status || 'Identificada'))}</span>
+            </div>
+            <p>${esc(data.statement || data.hypothesis || data.description || 'Relação identificada.')}</p>
+            <dl class="small mb-0">
+              <div><dt>Natureza</dt><dd>Hipótese metodológica</dd></div>
+              <div><dt>Confiança</dt><dd>${esc(data.confidence || 'Padrão estatístico')}</dd></div>
+              <div><dt>Premissas</dt><dd>${esc(data.premises || 'Respostas apuradas no ciclo')}</dd></div>
+            </dl>
+          </div>
+        </article>`;
+      }).join('')}</div>`;
   }
 
   function setOverviewHeader(data) {
@@ -115,10 +262,43 @@
   function overview(data) {
     setOverviewHeader(data);
     const cycle = data.cycle;
-    content.innerHTML = `<h2>Visão Geral</h2>
-      <section class="valora-card"><h3>Como usar</h3><p>Revise respostas, evidências e limitações antes de converter um achado em plano. A execução continua no Action Center para preservar responsável, prazo, histórico e evidência de conclusão.</p></section>
-      ${cycle.responseCount ? `${cards(data.mainIndices)}${cards(data.mainInsights)}${cards(data.recommendedActions)}` : '<div class="alert alert-info">Compartilhe o link público para iniciar a coleta de evidências.</div>'}
-      <section class="valora-card"><h3>Próxima ação permitida</h3><p>${cycle.evidenceCount ? 'Há evidências registradas. Crie um plano vinculado ao diagnóstico ou revise atividades existentes na aba Action™.' : 'A criação de plano continua disponível, mas registre a limitação se ainda não houver evidência suficiente.'}</p><a class="valora-button valora-button--primary" href="${diagnosticPlanUrl(cycle)}">Criar plano vinculado</a></section>`;
+    const isDraft = cycle.status === 'draft';
+    const hasResponses = Number(cycle.responseCount || 0) > 0;
+    const hasEvidence = Number(cycle.evidenceCount || 0) > 0;
+
+    content.innerHTML = `<h2>Visão Geral da Jornada</h2>
+      <div class="row g-3 mb-3">
+        <article class="col-12 col-md-6">
+          <div class="valora-card h-100">
+            <h3>Em que etapa está o diagnóstico?</h3>
+            <p><span class="badge bg-primary fs-6">${esc(stage(cycle.status))}</span></p>
+            <p>${isDraft ? 'O diagnóstico está em preparação/rascunho. Revise o questionário e publique para iniciar a coleta.' : hasResponses ? 'Coleta em andamento com participações registradas. O processamento analítico pode ser acionado.' : 'Diagnóstico ativo aguardando as primeiras submissões dos participantes.'}</p>
+          </div>
+        </article>
+        <article class="col-12 col-md-6">
+          <div class="valora-card h-100">
+            <h3>Situação das Etapas</h3>
+            <ul class="list-unstyled mb-0 small">
+              <li>${isDraft ? '⏳' : '✅'} <strong>1. Publicação:</strong> ${isDraft ? 'Pendente de ativação' : 'Publicado e ativo'}</li>
+              <li>${hasResponses ? '✅' : '⏳'} <strong>2. Coleta de Respostas:</strong> ${hasResponses ? `${cycle.responseCount} participações gravadas` : 'Nenhuma resposta recebida ainda'}</li>
+              <li>${hasEvidence ? '✅' : '⏳'} <strong>3. Evidências & Resultados:</strong> ${hasEvidence ? `${cycle.evidenceCount} evidências metodológicas` : 'Aguardando processamento'}</li>
+              <li>${data.recommendedActions?.length ? '✅' : '⏳'} <strong>4. Planos & Execução:</strong> Action Center integrado</li>
+            </ul>
+          </div>
+        </article>
+      </div>
+
+      <section class="valora-card mb-3">
+        <h3>Próxima Ação Autorizada</h3>
+        <p>${hasEvidence ? 'Há evidências e respostas registradas. Crie um plano vinculado ou navegue nos achados para revisão humana.' : hasResponses ? 'Respostas foram recebidas. Processe a inteligência para calcular índices e evidências.' : 'Compartilhe o link da campanha ou convide participantes para iniciar a coleta.'}</p>
+        <div class="d-flex gap-2 flex-wrap">
+          <a class="valora-button valora-button--primary" href="${diagnosticPlanUrl(cycle)}">Criar plano vinculado</a>
+          <button class="btn btn-outline-secondary" onclick="document.querySelector('[data-tab=campaign]').click()">Acessar Campanha & Links</button>
+          <button class="btn btn-outline-secondary" onclick="document.querySelector('[data-tab=participation]').click()">Ver Participação Real</button>
+        </div>
+      </section>
+
+      ${hasResponses ? `${cards(data.mainIndices)}${cards(data.mainInsights)}${cards(data.recommendedActions)}` : '<div class="alert alert-info">Compartilhe o link público na aba Campanha para iniciar a coleta de evidências reais.</div>'}`;
   }
 
   function executionView(data) {
@@ -292,6 +472,12 @@
       const data = await api(name);
       if (requestId !== activeRequest) return;
       if (name === 'overview') overview(data);
+      else if (name === 'participation') participationView(data);
+      else if (name === 'evidence') evidenceView(data);
+      else if (name === 'insights') insightsView(data);
+      else if (name === 'inferences') content.innerHTML = inferencesView(data);
+      else if (name === 'metrics') content.innerHTML = metricsIndicesView('metrics', data);
+      else if (name === 'indices') content.innerHTML = metricsIndicesView('indices', data);
       else if (name === 'evolution') {
         const back = `/Diagnostics/${diagnosticId}/Workspace?tab=evolution`;
         const records = Array.isArray(data) ? data : data.items || [];

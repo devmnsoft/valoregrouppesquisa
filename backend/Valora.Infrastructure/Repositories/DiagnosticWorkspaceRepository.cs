@@ -204,7 +204,34 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
             WHERE x.organization_id=@organizationId AND (x.diagnostic_id IN(@cycleId,@surveyId) OR x.cycle_id=@cycleId OR x.survey_id=@surveyId) AND x.deleted_at IS NULL
             ORDER BY x.created_at DESC LIMIT 200
             """;
-        else if (module.Equals("participation", StringComparison.OrdinalIgnoreCase)) sql = "SELECT id,'participation'::text code,status,to_jsonb(x)::text DataJson,created_at CreatedAt,updated_at UpdatedAt FROM valorapesquisa.diagnostic_participation_snapshots x WHERE organization_id=@organizationId AND (cycle_id=@cycleId OR survey_id=@surveyId) AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1";
+        else if (module.Equals("participation", StringComparison.OrdinalIgnoreCase)) sql = """
+            SELECT
+              coalesce((SELECT id FROM valorapesquisa.diagnostic_participation_snapshots WHERE organization_id=@organizationId AND (cycle_id=@cycleId OR survey_id=@surveyId) AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1), gen_random_uuid()) Id,
+              'participation'::text Code,
+              'computed'::text Status,
+              jsonb_build_object(
+                'respostasRecebidas', (SELECT count(*)::int FROM valorapesquisa.responses WHERE organization_id=@organizationId AND survey_id=@surveyId AND coalesce(is_deleted,false)=false),
+                'respostasValidas', (SELECT count(*)::int FROM valorapesquisa.responses WHERE organization_id=@organizationId AND survey_id=@surveyId AND status='completed' AND coalesce(is_deleted,false)=false),
+                'respostasPontuadas', (SELECT count(*)::int FROM valorapesquisa.result_scores rs JOIN valorapesquisa.responses r ON r.id=rs.response_id WHERE r.organization_id=@organizationId AND r.survey_id=@surveyId AND coalesce(r.is_deleted,false)=false),
+                'pendenciasProcessamento', (SELECT count(*)::int FROM valorapesquisa.intelligence_processing_jobs WHERE organization_id=@organizationId AND survey_id=@surveyId AND status IN ('pending','running','retry_scheduled') AND deleted_at IS NULL),
+                'destinatariosEmail', coalesce((SELECT count(*)::int FROM valorapesquisa.diagnostic_campaign_recipients dcr JOIN valorapesquisa.diagnostic_campaigns dc ON dc.id=dcr.campaign_id WHERE dc.organization_id=@organizationId AND dc.survey_id=@surveyId), 0) + (SELECT count(*)::int FROM valorapesquisa.survey_invites WHERE organization_id=@organizationId AND survey_id=@surveyId),
+                'mensagensFila', (SELECT count(*)::int FROM valorapesquisa.email_jobs WHERE organization_id=@organizationId AND status IN ('pending','queued')),
+                'enviosRegistrados', (SELECT count(*)::int FROM valorapesquisa.email_jobs WHERE organization_id=@organizationId AND status IN ('sent','delivered')),
+                'falhas', (SELECT count(*)::int FROM valorapesquisa.email_jobs WHERE organization_id=@organizationId AND status IN ('failed','undelivered','bounced')),
+                'origens', jsonb_build_object(
+                    'respostasRecebidas', 'Tabela responses (is_deleted=false) associadas ao diagnóstico.',
+                    'respostasValidas', 'Tabela responses com status=completed e sem exclusão lógica.',
+                    'respostasPontuadas', 'Tabela result_scores com cálculo de maturidade persistido.',
+                    'pendenciasProcessamento', 'Tabela intelligence_processing_jobs com status pendente ou em execução.',
+                    'destinatariosEmail', 'Destinatários registrados em campanhas e convites diretos do diagnóstico.',
+                    'mensagensFila', 'Mensagens de e-mail na fila (status pending/queued).',
+                    'enviosRegistrados', 'Disparos confirmados como enviados ou entregues.',
+                    'falhas', 'Disparos com falha ou devolução registradas.'
+                )
+              )::text DataJson,
+              now() CreatedAt,
+              now() UpdatedAt
+            """;
         else if (module.Equals("responses", StringComparison.OrdinalIgnoreCase)) sql = """
             SELECT x.id,NULL::text code,x.status,
               jsonb_build_object(

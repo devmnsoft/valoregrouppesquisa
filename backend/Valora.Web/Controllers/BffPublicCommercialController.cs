@@ -54,7 +54,7 @@ public sealed class BffPublicCommercialController(
     public async Task<IActionResult> Submit(Guid surveyId, CancellationToken ct) {
         var token = await publicSessions.ReadAsync(HttpContext, "survey", surveyId, ct);
         if (token is null) return Unauthorized(Error("PUBLIC_SESSION_EXPIRED", "O acesso expirou. Abra novamente o link da pesquisa."));
-        var body = Request.ContentLength > 0 ? await JsonNode.ParseAsync(Request.Body, cancellationToken: ct) as JsonObject : new JsonObject();
+        var body = (Request.ContentLength is > 0 || (Request.ContentLength is null && Request.HasJsonContentType())) ? await JsonNode.ParseAsync(Request.Body, cancellationToken: ct) as JsonObject : new JsonObject();
         if (body is null) return BadRequest(Error("PUBLIC_REQUEST_INVALID", "Não foi possível interpretar as respostas."));
         body["token"] = token;
         using var response = await api.SendAsync(HttpMethod.Post, $"/public/surveys/{surveyId}/responses", body,
@@ -97,7 +97,7 @@ public sealed class BffPublicCommercialController(
         Proxy(HttpMethod.Get, $"/certificates/validate/{Uri.EscapeDataString(code)}", null, ct);
 
     private async Task<IActionResult> Proxy(HttpMethod method, string path, object? body, CancellationToken ct) {
-        if (body is null && Request.ContentLength > 0)
+        if (body is null && (Request.ContentLength is > 0 || (Request.ContentLength is null && Request.HasJsonContentType())))
             body = await JsonSerializer.DeserializeAsync<object>(Request.Body, cancellationToken: ct);
         using var response = await api.SendAsync(method, path, body, string.Empty, HttpContext.TraceIdentifier, ct);
         var payload = await response.Content.ReadAsStringAsync(ct);

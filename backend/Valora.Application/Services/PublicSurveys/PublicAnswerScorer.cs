@@ -12,10 +12,13 @@ public sealed class PublicAnswerScorer(PublicAnswerNormalizer normalizer) {
             if (!normalized.TryGetValue(q.Id, out var answer))
                 throw new InvalidOperationException("Não foi possível relacionar a resposta à pergunta do formulário.");
             if (q.Required && string.IsNullOrWhiteSpace(answer.AnswerText)) throw new InvalidOperationException($"Pergunta obrigatória sem resposta: {q.Text}");
-            var score = answer.NumericValue ?? 0;
-            if (score < 0 || score > q.MaxScore) throw new InvalidOperationException($"Resposta fora do range da pergunta: {q.Text}");
+            decimal? score = answer.NumericValue;
+            decimal? maxScore = q.MaxScore > 0 ? q.MaxScore : (decimal?)null;
+            if (score.HasValue && maxScore.HasValue) {
+                if (score.Value < 0 || score.Value > maxScore.Value) throw new InvalidOperationException($"Resposta fora do range da pergunta: {q.Text}");
+            }
             var dimension = dimensions.FirstOrDefault(d => d.Id == q.DimensionId)?.Name ?? "Sem dimensão";
-            scored.Add(new(q.Id, dimension, answer.AnswerText, answer.AnswerJson, score, q.MaxScore));
+            scored.Add(new(q.Id, dimension, answer.AnswerText, answer.AnswerJson, score, maxScore));
         }
         return scored;
     }

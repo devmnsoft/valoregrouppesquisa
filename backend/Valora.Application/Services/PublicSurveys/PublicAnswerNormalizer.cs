@@ -33,7 +33,7 @@ public sealed class PublicAnswerNormalizer {
                 "multiple_choice" => AverageScore(answer.OptionIds, question.Id, options),
                 "number" => answer.NumberValue,
                 "yes_no" => answer.BooleanValue is null ? null : answer.BooleanValue.Value ? question.MaxScore : 0,
-                _ => 0
+                _ => (decimal?)null
             };
             return new NormalizedAnswer(question.Id, text, JsonSerializer.Serialize(answer), numeric);
         }).ToList();

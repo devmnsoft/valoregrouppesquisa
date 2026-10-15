@@ -128,7 +128,9 @@ public sealed class PublicIdempotencyPostgresTests {
             Assert.Equal(result.ResponseId, roundTripped!.ResponseId);
             Assert.Equal(result.ResultToken, roundTripped.ResultToken);
             Assert.Equal(result.Certificate.CertificateCode, roundTripped.Certificate.CertificateCode);
-            Assert.Equal(result.Result.TotalScore, roundTripped.Result.TotalScore);
+            Assert.NotNull(result.Result);
+            Assert.NotNull(roundTripped.Result);
+            Assert.Equal(result.Result!.TotalScore, roundTripped.Result!.TotalScore);
 
             // 4. Same key with different payload is rejected as a conflict.
             Exception? conflict = null;

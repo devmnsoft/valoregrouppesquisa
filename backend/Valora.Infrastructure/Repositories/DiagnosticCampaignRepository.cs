@@ -44,6 +44,10 @@ public sealed class DiagnosticCampaignRepository(
             if (survey is null) return null;
             if (survey.Status is not ("published" or "active"))
                 throw new InvalidOperationException("A campanha só pode usar um diagnóstico publicado.");
+            var existing = await unit.Connection.QuerySingleOrDefaultAsync<CampaignRow>(new CommandDefinition(
+                CampaignSql + " AND c.correlation_id=@correlationId ORDER BY c.created_at DESC LIMIT 1",
+                new { organizationId, surveyId = (Guid?)surveyId, correlationId }, unit.Transaction, cancellationToken: ct));
+            if (existing is not null) return await MapAsync(unit.Connection, existing, ct);
             var campaignId = Guid.NewGuid();
             await unit.Connection.ExecuteAsync(new CommandDefinition(
                 """

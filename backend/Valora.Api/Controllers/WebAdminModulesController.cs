@@ -20,6 +20,8 @@ public sealed class WebAdminModulesController(
     IResponseRepository responses,
     IAuditRepository audit,
     IPlanRepository plans,
+    IFormRepository forms,
+    IPlanEntitlementService entitlements,
     ICurrentRequestContext currentRequest, IPermissionService permissions, ICommercialSaasRepository commercial) : ControllerBase {
     private CurrentRequestContext Context => currentRequest.GetCurrent();
     private Guid OrganizationId => Context.EffectiveOrganizationId ?? Guid.Empty;
@@ -77,7 +79,119 @@ public sealed class WebAdminModulesController(
     [HttpPut("/surveys/{surveyId:guid}")]
     public Task<IActionResult> UpdateSurvey(Guid surveyId, [FromBody] JsonElement request) => Safe(async () => { await surveys.UpdateAdminAsync(OrganizationId, surveyId, GuidValue(request, "formId"), GuidValue(request, "formVersionId"), Text(request, "title"), Text(request, "description"), DateValue(request, "startsAt"), DateValue(request, "expiresAt")); await Audit("survey.updated", "survey", surveyId); return new { ok = true, id = surveyId, correlationId = CorrelationId }; }, "surveys.update");
     [HttpPatch("/surveys/{surveyId:guid}/status")]
-    public Task<IActionResult> SurveyStatus(Guid surveyId, [FromBody] JsonElement request) => Safe(async () => { await surveys.UpdateStatusAdminAsync(OrganizationId, surveyId, Text(request, "status") ?? "draft"); await Audit("survey.status", "survey", surveyId); return new { ok = true, id = surveyId, correlationId = CorrelationId }; }, "surveys.status", Text(request, "status") == "closed" ? "surveys.close" : "surveys.publish");
+    public Task<IActionResult> SurveyStatus(Guid surveyId, [FromBody] JsonElement request) => Safe(async () => {
+        var status = Text(request, "status") ?? "draft";
+        if (status == "active") {
+            var limit = await entitlements.CheckLimitAsync(OrganizationId, "activeSurveys");
+            if (!limit.Allowed) throw new InvalidOperationException("Limite do plano atingido para diagnósticos ativos.");
+        }
+        await surveys.UpdateStatusAdminAsync(OrganizationId, surveyId, status);
+        await Audit("survey.status", "survey", surveyId);
+        return new { ok = true, id = surveyId, correlationId = CorrelationId };
+    }, "surveys.status", Text(request, "status") == "closed" ? "surveys.close" : "surveys.publish");
+
+    [HttpGet("/surveys/{surveyId:guid}/publication-review")]
+    public Task<IActionResult> PublicationReview(Guid surveyId) => Safe(async () => {
+        var survey = await surveys.GetAdminAsync(OrganizationId, surveyId);
+        if (survey is null) throw new InvalidOperationException("Diagnóstico não encontrado.");
+
+        var blockers = new List<object>();
+        var warnings = new List<object>();
+
+        string status = survey.status?.ToString() ?? "draft";
+        if (status != "draft") {
+            warnings.Add(new {
+                problem = $"O diagnóstico já se encontra na situação '{status}'.",
+                impact = "A publicação se aplica primariamente a diagnósticos em rascunho.",
+                action = "Nenhuma ação de publicação é necessária.",
+                targetUrl = $"/Surveys/{surveyId}",
+                requiredPermission = "surveys.read",
+                isBlocker = false
+            });
+        }
+
+        Guid? formId = survey.form_id is Guid fid ? fid : (Guid.TryParse(survey.form_id?.ToString(), out Guid gFid) ? gFid : (Guid?)null);
+        Guid? formVersionId = survey.form_version_id is Guid fvid ? fvid : (Guid.TryParse(survey.form_version_id?.ToString(), out Guid gFvid) ? gFvid : (Guid?)null);
+        if (formVersionId is null || formVersionId == Guid.Empty) {
+            blockers.Add(new {
+                problem = "O diagnóstico não possui uma versão de formulário associada.",
+                impact = "Não é possível publicar ou coletar sem um questionário definido.",
+                action = "Selecione e vincule uma versão publicada do formulário.",
+                targetUrl = $"/Surveys/{surveyId}/Edit",
+                requiredPermission = "surveys.update",
+                isBlocker = true
+            });
+        } else {
+            var form = formId.HasValue ? await forms.GetPublishedVersionAsync(formId.Value, formVersionId.Value, OrganizationId) : null;
+            if (form is null) {
+                blockers.Add(new {
+                    problem = "A versão do formulário vinculada não está publicada ou não pertence a esta organização.",
+                    impact = "Participantes não conseguirão acessar as perguntas para responder.",
+                    action = "Vincule uma versão publicada válida ou publique o formulário correspondente.",
+                    targetUrl = "/Admin/Forms",
+                    requiredPermission = "forms.publish",
+                    isBlocker = true
+                });
+            } else {
+                var questions = await forms.GetQuestionsAsync(formVersionId.Value);
+                if (questions.Count == 0) {
+                    blockers.Add(new {
+                        problem = "O questionário vinculado não possui perguntas públicas ativas.",
+                        impact = "O participante encontrará um formulário vazio e não conseguirá concluir a resposta.",
+                        action = "Adicione ao menos uma pergunta ao formulário e publique nova versão.",
+                        targetUrl = $"/Admin/Forms/{form.Id}",
+                        requiredPermission = "forms.edit",
+                        isBlocker = true
+                    });
+                } else {
+                    bool allQualitative = questions.All(q => q.Type is "short_text" or "long_text" or "text_short" or "text_long" or "texto_curto" or "texto_longo");
+                    if (allQualitative) {
+                        warnings.Add(new {
+                            problem = "Formulário exclusivamente qualitativo.",
+                            impact = "As respostas serão salvas como relatos e evidências sem produzir pontuação numérica artificial ou radar de maturidade.",
+                            action = "Aviso metodológico: se desejar cálculo quantitativo, adicione perguntas de escala, likert ou múltipla escolha.",
+                            targetUrl = $"/Admin/Forms/{form.Id}",
+                            requiredPermission = "forms.edit",
+                            isBlocker = false
+                        });
+                    }
+                }
+            }
+        }
+
+        if (survey.expires_at is DateTime exp && exp <= DateTime.UtcNow) {
+            blockers.Add(new {
+                problem = "O período de coleta do diagnóstico já expirou.",
+                impact = "Participantes receberão aviso de link expirado.",
+                action = "Ajuste a data de término nas configurações do diagnóstico antes de ativar.",
+                targetUrl = $"/Surveys/{surveyId}/Edit",
+                requiredPermission = "surveys.update",
+                isBlocker = true
+            });
+        }
+
+        var limit = await entitlements.CheckLimitAsync(OrganizationId, "activeSurveys");
+        if (!limit.Allowed && status == "draft") {
+            blockers.Add(new {
+                problem = "Limite comercial de diagnósticos ativos atingido para o plano atual.",
+                impact = "A ativação do diagnóstico será recusada pela plataforma.",
+                action = "Encerre diagnósticos que já concluíram a coleta ou realize o upgrade do plano.",
+                targetUrl = "/Settings/Billing",
+                requiredPermission = "commercial.manage",
+                isBlocker = true
+            });
+        }
+
+        return new {
+            ok = true,
+            surveyId,
+            title = survey.title?.ToString() ?? "Diagnóstico",
+            canPublish = blockers.Count == 0,
+            blockers,
+            warnings,
+            correlationId = CorrelationId
+        };
+    }, "surveys.review", "surveys.read");
 
     [HttpGet("/surveys/{surveyId:guid}/links")]
     public Task<IActionResult> Links(Guid surveyId) => Safe(async () => new { ok = true, data = await surveys.ListLinksAdminAsync(OrganizationId, surveyId), correlationId = CorrelationId }, "links.list");

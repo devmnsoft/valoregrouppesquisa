@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Valora.Application.Contracts;
 using Valora.Application.DTOs;
+using Valora.Application.ReadModels;
 
 namespace Valora.Application.Services;
 
@@ -10,9 +11,9 @@ public sealed class PublicResultService(PublicResultValidator validator, ISurvey
             logger.LogInformation("Public result lookup started. ResponseId={ResponseId} HasToken={HasToken}", responseId, !string.IsNullOrWhiteSpace(request.ResultToken));
             var response = await validator.ValidateAsync(responseId, request);
             var survey = await surveys.GetResultSurveyAsync(response.SurveyId) ?? throw new InvalidOperationException("Pesquisa do resultado não encontrada.");
-            var score = await results.GetByResponseAsync(responseId) ?? throw new InvalidOperationException("Pontuação não encontrada.");
-            var dims = await results.GetDimensionsByResponseIdAsync(responseId);
-            logger.LogInformation("Public result found. ResponseId={ResponseId} SurveyId={SurveyId} DimensionCount={DimensionCount}", responseId, response.SurveyId, dims.Count);
+            var score = await results.GetByResponseAsync(responseId);
+            IReadOnlyList<DimensionScoreReadModel> dims = score is not null ? await results.GetDimensionsByResponseIdAsync(responseId) : Array.Empty<DimensionScoreReadModel>();
+            logger.LogInformation("Public result found. ResponseId={ResponseId} SurveyId={SurveyId} DimensionCount={DimensionCount} HasScore={HasScore}", responseId, response.SurveyId, dims.Count, score is not null);
             var cert = await certificates.GetByResponseAsync(responseId) ?? throw new InvalidOperationException("Certificado não encontrado.");
             logger.LogInformation("Public result certificate found. ResponseId={ResponseId}", responseId);
             return assembler.Assemble(response, survey, score, dims, cert);

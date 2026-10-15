@@ -12,7 +12,7 @@ using Valora.Application.Security;
 namespace Valora.Application.Services;
 
 public sealed class PublicResponseTransactionService(IDbConnectionFactory db, ISurveyRepository surveyRepository, IResponseRepository responses, IResultRepository results, ICertificateRepository certificates, ICommunicationRepository communications, IAuditRepository audit, ILgpdRepository lgpd, IResultTokenService tokens, IIntelligenceProcessingJobService processingJobs, ILogger<PublicResponseTransactionService> logger) {
-    public async Task<SubmitSurveyResponseResult> SaveAsync(SurveyPublicReadModel survey, SubmitSurveyResponseRequest request, IReadOnlyList<ScoredAnswer> scored, ValoraInsightResult calc, IReadOnlyList<DimensionScoreInput> dimensions) {
+    public async Task<SubmitSurveyResponseResult> SaveAsync(SurveyPublicReadModel survey, SubmitSurveyResponseRequest request, IReadOnlyList<ScoredAnswer> scored, ValoraInsightResult? calc, IReadOnlyList<DimensionScoreInput> dimensions) {
         using var connection = db.Create(); connection.Open(); using var transaction = connection.BeginTransaction();
         logger.LogInformation("Public response transaction started. SurveyId={SurveyId} OrganizationId={OrganizationId}", survey.Id, survey.OrganizationId);
         try {
@@ -23,13 +23,16 @@ public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IS
             var idempotencyKey = PublicSubmissionIdempotency.BuildKey(survey.Id, request.Token, request.IdempotencyKey);
             var requestHash = PublicSubmissionIdempotency.ComputeRequestHash(request);
             var claim = await responses.AcquireSubmissionIdempotencyAsync(idempotencyKey, survey.OrganizationId, requestHash, connection, transaction);
-            if (claim.StoredResponseBody is { } storedResponseBody) {
-                var replayed = JsonSerializer.Deserialize<SubmitSurveyResponseResult>(storedResponseBody, JsonSerializerOptions.Web);
-                if (replayed is not null) {
-                    transaction.Commit();
-                    logger.LogInformation("Public response replayed from idempotency record. SurveyId={SurveyId} OrganizationId={OrganizationId} ResponseId={ResponseId}", survey.Id, survey.OrganizationId, replayed.ResponseId);
-                    return replayed;
+            if (!claim.Claimed) {
+                if (claim.StoredResponseBody is { } storedResponseBody) {
+                    var replayed = JsonSerializer.Deserialize<SubmitSurveyResponseResult>(storedResponseBody, JsonSerializerOptions.Web);
+                    if (replayed is not null) {
+                        transaction.Commit();
+                        logger.LogInformation("Public response replayed from idempotency record. SurveyId={SurveyId} OrganizationId={OrganizationId} ResponseId={ResponseId}", survey.Id, survey.OrganizationId, replayed.ResponseId);
+                        return replayed;
+                    }
                 }
+                throw new InvalidOperationException("Uma submissão idêntica já está em processamento para esta requisição.");
             }
             logger.LogInformation("Public response idempotency claim acquired. SurveyId={SurveyId} OrganizationId={OrganizationId} Claimed={Claimed}", survey.Id, survey.OrganizationId, claim.Claimed);
             var eligible = await surveyRepository.LockEligibleForCompletionAsync(survey, connection, transaction);
@@ -40,12 +43,15 @@ public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IS
             await SaveLgpdConsentAsync(survey, request, responseId, request.Participant.Email, connection, transaction);
             await responses.AddAnswersAsync(responseId, scored, connection, transaction);
             logger.LogInformation("Public response answers saved. SurveyId={SurveyId} ResponseId={ResponseId} AnswerCount={AnswerCount}", survey.Id, responseId, scored.Count);
-            await results.SaveResultAsync(survey.OrganizationId, responseId, calc.TotalScore, calc.MaxScore, Percent(calc), calc.Level, "Radar calculado com respostas reais por dimensão.", calc.StrategicTruth, calc.Risk, calc.NextLevel, transaction);
-            logger.LogInformation("Public response result_scores saved. SurveyId={SurveyId} ResponseId={ResponseId}", survey.Id, responseId);
-            await results.SaveDimensionScoresAsync(survey.OrganizationId, responseId, dimensions, transaction);
-            logger.LogInformation("Public response dimension_scores saved. SurveyId={SurveyId} ResponseId={ResponseId} DimensionCount={DimensionCount}", survey.Id, responseId, dimensions.Count);
+            if (calc is not null) {
+                await results.SaveResultAsync(survey.OrganizationId, responseId, calc.TotalScore, calc.MaxScore, Percent(calc), calc.Level, "Radar calculado com respostas reais por dimensão.", calc.StrategicTruth, calc.Risk, calc.NextLevel, transaction);
+                logger.LogInformation("Public response result_scores saved. SurveyId={SurveyId} ResponseId={ResponseId}", survey.Id, responseId);
+                await results.SaveDimensionScoresAsync(survey.OrganizationId, responseId, dimensions, transaction);
+                logger.LogInformation("Public response dimension_scores saved. SurveyId={SurveyId} ResponseId={ResponseId} DimensionCount={DimensionCount}", survey.Id, responseId, dimensions.Count);
+            }
+            var maturityOrLabel = calc?.Level ?? "Qualitativo";
             var code = $"VAL-{responseId:N}"[..14]; var name = request.Participant.Name; var email = request.Participant.Email;
-            await certificates.CreateMetadataAsync(survey.OrganizationId, responseId, code, name, "Valora Group", survey.Title, calc.Level, transaction);
+            await certificates.CreateMetadataAsync(survey.OrganizationId, responseId, code, name, "Valora Group", survey.Title, maturityOrLabel, transaction);
             logger.LogInformation("Public response certificate metadata saved. SurveyId={SurveyId} ResponseId={ResponseId}", survey.Id, responseId);
             var emailStatus = await SaveCommunicationAsync(survey, request, responseId, email, transaction);
             logger.LogInformation("Public response email job {EmailStatus}. SurveyId={SurveyId} ResponseId={ResponseId} Email={Email}", emailStatus, survey.Id, responseId, LogSanitizer.MaskEmail(email));
@@ -55,7 +61,8 @@ public sealed class PublicResponseTransactionService(IDbConnectionFactory db, IS
             logger.LogInformation("Organizational intelligence processing job {JobId} persisted with response. SurveyId={SurveyId} ResponseId={ResponseId}", jobId, survey.Id, responseId);
             // O resultado é construído e selado antes do commit: um crash
             // após o commit sempre encontra o corpo gravado para replay.
-            var result = new SubmitSurveyResponseResult(true, responseId, token, emailStatus, new CertificateMetadataDto(responseId, code, "metadata-ready", name, "Valora Group", survey.Title, DateTime.UtcNow), MapResult(calc, dimensions));
+            var resultDto = calc is not null ? MapResult(calc, dimensions) : null;
+            var result = new SubmitSurveyResponseResult(true, responseId, token, emailStatus, new CertificateMetadataDto(responseId, code, "metadata-ready", name, "Valora Group", survey.Title, DateTime.UtcNow), resultDto);
             var responseJson = JsonSerializer.Serialize(result, JsonSerializerOptions.Web);
             await responses.StoreSubmissionOutcomeAsync(idempotencyKey, responseJson, connection, transaction);
             transaction.Commit();

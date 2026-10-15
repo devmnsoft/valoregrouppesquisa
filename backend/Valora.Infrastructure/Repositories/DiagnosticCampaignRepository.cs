@@ -140,6 +140,8 @@ public sealed class DiagnosticCampaignRepository(
                  FOR UPDATE
                 """, new { organizationId, surveyId }, unit.Transaction, cancellationToken: ct));
             if (row is null) return null;
+            if (request.ExpectedVersion is { } expected && expected != row.Version)
+                throw new InvalidOperationException("A campanha mudou. Atualize a situação antes de confirmar novamente.");
             var effectiveStatus = targetStatus;
             if (targetStatus == DiagnosticCampaignStatus.Sending && row.Channel != "email")
                 effectiveStatus = DiagnosticCampaignStatus.Active;
@@ -148,7 +150,7 @@ public sealed class DiagnosticCampaignRepository(
                 UPDATE valorapesquisa.diagnostic_campaigns
                    SET status=@effectiveStatus, version=version+1, updated_at=now(),
                        scheduled_at=CASE WHEN @effectiveStatus='scheduled' THEN COALESCE(starts_at,now()) ELSE scheduled_at END,
-                       sent_at=CASE WHEN @effectiveStatus IN ('sending','active') THEN COALESCE(sent_at,now()) ELSE sent_at END,
+                       sent_at=CASE WHEN @effectiveStatus='sending' THEN COALESCE(sent_at,now()) ELSE sent_at END,
                        cancelled_at=CASE WHEN @effectiveStatus='cancelled' THEN now() ELSE cancelled_at END
                  WHERE id=@id AND organization_id=@organizationId AND version=@version;
                 """, new { effectiveStatus, row.Id, organizationId, row.Version }, unit.Transaction, cancellationToken: ct));
@@ -267,7 +269,7 @@ public sealed class DiagnosticCampaignRepository(
             row.Audience, row.UnitId, row.DepartmentId, row.StartsAt, row.EndsAt, row.TargetParticipationRate,
             row.RecipientCount, row.QueuedCount, row.SentCount, row.OpenedCount, row.StartedCount,
             row.CompletedCount, row.ExpiredCount, row.ResponseCount, row.FailedCount,
-            row.RecipientCount == 0 ? 0 : Math.Round(row.CompletedCount * 100m / row.RecipientCount, 2),
+            row.RecipientCount == 0 ? null : Math.Round(row.CompletedCount * 100m / row.RecipientCount, 2),
             row.CreatedAt, row.Version, recipients);
     }
 

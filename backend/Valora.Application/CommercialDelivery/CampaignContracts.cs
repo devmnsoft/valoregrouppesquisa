@@ -33,7 +33,7 @@ public sealed record CampaignRecipientDto(Guid Id, string MaskedRecipient, strin
     DateTime? QueuedAt, DateTime? SentAt, DateTime? OpenedAt, DateTime? RespondedAt,
     DateTime CreatedAt);
 public sealed record CampaignMetricsDto(int Recipients, int Queued, int Sent, int Opened, int Started,
-    int Completed, int Expired, int Failed, decimal CompletionRate, DateTimeOffset UpdatedAt);
+    int Completed, int Expired, int Failed, decimal? CompletionRate, DateTimeOffset UpdatedAt);
 // DateTime: materializado direto pelo Dapper/Npgsql (timestamptz→DateTime); o diagnóstico usa apenas leitura/formato.
 public sealed record CampaignHistoryDto(Guid Id, string Action, string Status, Guid? UserId,
     string? Justification, string? CorrelationId, DateTime CreatedAt);
@@ -62,7 +62,7 @@ public sealed record DiagnosticCampaignDto(
     int ExpiredCount,
     int ResponseCount,
     int FailedCount,
-    decimal CompletionRate,
+    decimal? CompletionRate,
     DateTimeOffset CreatedAt,
     long Version,
     IReadOnlyList<CampaignRecipientDto> Recipients);

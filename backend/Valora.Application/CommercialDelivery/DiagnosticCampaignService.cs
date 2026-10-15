@@ -1,12 +1,13 @@
 using Microsoft.Extensions.Options;
 using System.Net.Mail;
 using Valora.Application.Communication;
+using Valora.Application.Contracts;
 
 namespace Valora.Application.CommercialDelivery;
 
 public sealed class DiagnosticCampaignService(
     IDiagnosticCampaignRepository repository,
-    IOptions<EmailOptions> emailOptions) : IDiagnosticCampaignService {
+    IOptions<EmailOptions> emailOptions, ISurveyRepository surveys) : IDiagnosticCampaignService {
     private static readonly IReadOnlyDictionary<string, IReadOnlySet<string>> Transitions =
         new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal) {
             [DiagnosticCampaignStatus.Draft] = Set(DiagnosticCampaignStatus.Scheduled, DiagnosticCampaignStatus.Sending, DiagnosticCampaignStatus.Active, DiagnosticCampaignStatus.Cancelled),
@@ -67,6 +68,8 @@ public sealed class DiagnosticCampaignService(
         if (!DiagnosticCampaignStatus.All.Contains(targetStatus)) throw new ArgumentException("Estado de campanha inválido.");
         var campaign = await repository.GetAsync(organizationId, surveyId, ct);
         if (campaign is null) return null;
+        if (request.ExpectedVersion is { } expected && expected != campaign.Version)
+            throw new InvalidOperationException("A campanha mudou. Atualize a situação antes de confirmar novamente.");
         if (!Transitions.TryGetValue(campaign.Status, out var allowed) || !allowed.Contains(targetStatus))
             throw new InvalidOperationException($"A transição de {campaign.Status} para {targetStatus} não é permitida.");
         if (targetStatus == DiagnosticCampaignStatus.Sending && campaign.Channel == "email" &&
@@ -76,11 +79,13 @@ public sealed class DiagnosticCampaignService(
             throw new InvalidOperationException("Informe a data de início antes de agendar.");
         if (targetStatus == DiagnosticCampaignStatus.Scheduled && campaign.StartsAt <= DateTimeOffset.UtcNow)
             throw new InvalidOperationException("A data de início da campanha agendada deve estar no futuro.");
-        if (targetStatus == DiagnosticCampaignStatus.Sending && campaign.RecipientCount == 0 && string.IsNullOrWhiteSpace(campaign.PublicUrl))
-            throw new InvalidOperationException("Configure destinatários válidos ou um link público antes do envio.");
+        if (targetStatus == DiagnosticCampaignStatus.Sending && campaign.Channel != "email" && await surveys.GetPublicLinkAsync(surveyId) is null)
+            throw new InvalidOperationException("Gere um link público ativo para compartilhar a campanha manual.");
+        if (targetStatus == DiagnosticCampaignStatus.Sending && campaign.Channel == "email" && campaign.RecipientCount == 0)
+            throw new InvalidOperationException("Configure destinatários válidos antes de preparar o envio.");
         if (targetStatus == DiagnosticCampaignStatus.Closed && campaign.EndsAt < DateTimeOffset.UtcNow && string.IsNullOrWhiteSpace(request.Justification))
             throw new InvalidOperationException("Informe uma justificativa para encerrar uma campanha após a data planejada.");
-        return await repository.TransitionAsync(organizationId, surveyId, userId, targetStatus, request, correlationId, ct);
+        return await repository.TransitionAsync(organizationId, surveyId, userId, targetStatus, request with { ExpectedVersion = request.ExpectedVersion ?? campaign.Version }, correlationId, ct);
     }
 
     public Task<CampaignCommandResult?> ResendFailuresAsync(Guid organizationId, Guid surveyId, Guid userId,

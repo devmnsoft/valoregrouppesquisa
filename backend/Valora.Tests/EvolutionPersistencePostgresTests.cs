@@ -97,7 +97,11 @@ public sealed class EvolutionPersistencePostgresTests {
             var posterior = measurement with { Id = Guid.NewGuid(), Score = 10, ReferenceAt = measurement.ReferenceAt.AddDays(1), SourceJson = "{\"posterior\":true}" };
             var preview = EvolutionReevaluation.Preview(await repository.Version(o, id, default), measurement, posterior);
             var commandId = Guid.NewGuid().ToString("N");
-            var registered = await repository.Reevaluate(o, Guid.NewGuid(), id, preview, commandId, default);
+            var competing = await Task.WhenAll(
+                repository.Reevaluate(o, Guid.NewGuid(), id, preview, commandId, default),
+                repository.Reevaluate(o, Guid.NewGuid(), id, preview, commandId, default));
+            var registered = competing[0];
+            Assert.Equal(registered, competing[1]);
             Assert.Equal(registered, await repository.Reevaluate(o, Guid.NewGuid(), id, preview, commandId, default));
             Assert.Equal(registered, await repository.ReevaluationReplay(o, id, commandId, preview.Fingerprint, posterior.SurveyId, preview.Version, default));
             Assert.Equal(10, Assert.Single(await repository.Snapshots(o, id, default)).Delta);
@@ -108,10 +112,15 @@ public sealed class EvolutionPersistencePostgresTests {
             await Assert.ThrowsAsync<InvalidOperationException>(() => repository.CloseReviewed(o, Guid.NewGuid(), id, 1, "Learned", "Pending", default));
             await repository.CloseReviewed(o, Guid.NewGuid(), id, 2, "Learned", "Plans remain open", default);
             Assert.Equal("closed", (await repository.Get(o, id, default))!.Status);
+            await Assert.ThrowsAsync<InvalidOperationException>(() => repository.Snapshot(o, Guid.NewGuid(), id, "Late evidence", "Late interpretation", "Next step", default));
+            Assert.Single(await repository.Snapshots(o, id, default));
             Assert.Equal(3, (await intelligence.ListModuleRecordsAsync(o, "evolution-cycles", default)).Single(x => x.Id == id).Version);
             Assert.Equal("draft", (await plans.Get(o, Guid.NewGuid(), firstPlan, true, default))!.Status);
             Assert.Equal(3, await db.ExecuteScalarAsync<int>("SELECT count(*)::int FROM valorapesquisa.action_items WHERE organization_id=@o AND status='pending'", new { o }));
             await Assert.ThrowsAsync<ArgumentException>(() => repository.Open(Guid.NewGuid(), Guid.NewGuid(), request, default));
+            await db.ExecuteAsync("UPDATE valorapesquisa.evolution_measurements SET metadata_json='{}'::jsonb WHERE id=@Id AND organization_id=@o", new { measurement.Id, o });
+            Assert.Null(await repository.Baseline(o, id, default));
+            Assert.Equal(0, (await repository.Get(o, id, default))!.BaselineScore);
         }
         finally {
             await db.ExecuteAsync("DELETE FROM valorapesquisa.journey_events WHERE organization_id=@o; DELETE FROM valorapesquisa.evolution_snapshots WHERE organization_id=@o; DELETE FROM valorapesquisa.action_items WHERE organization_id=@o; DELETE FROM valorapesquisa.action_plans WHERE organization_id=@o; DELETE FROM valorapesquisa.organization_modules WHERE organization_id=@o; UPDATE valorapesquisa.evolution_cycles SET baseline_measurement_id=NULL WHERE organization_id=@o; DELETE FROM valorapesquisa.evolution_measurements WHERE organization_id=@o; DELETE FROM valorapesquisa.evolution_cycles WHERE organization_id=@o; DELETE FROM valorapesquisa.dimension_scores WHERE result_score_id IN(SELECT rs.id FROM valorapesquisa.result_scores rs JOIN valorapesquisa.responses r ON r.id=rs.response_id WHERE r.organization_id=@o); DELETE FROM valorapesquisa.result_scores WHERE response_id IN(SELECT id FROM valorapesquisa.responses WHERE organization_id=@o); DELETE FROM valorapesquisa.responses WHERE organization_id=@o; DELETE FROM valorapesquisa.diagnostic_cycles WHERE organization_id=@o; UPDATE valorapesquisa.surveys SET deleted_at=now() WHERE organization_id=@o", new { o });

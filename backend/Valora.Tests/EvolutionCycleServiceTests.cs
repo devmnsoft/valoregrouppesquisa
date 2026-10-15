@@ -8,6 +8,57 @@ using Valora.Application.ModularSaas;
 namespace Valora.Tests;
 
 public sealed class EvolutionCycleServiceTests {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Every_measured_dimension_requires_preserved_scale_and_calculation_criteria(bool missingScale) {
+        var reading = Reading() with {
+            MeasuredDimensionCodes = ["people", "process"],
+            SnapshotJson = missingScale ? Reading().SnapshotJson : """{"methodology":{"code":"professional","version":3},"questions":[{"dimension":"people","scale":{"min":1,"max":5}},{"dimension":"process","scale":{"min":1,"max":5}}]}""",
+            CriteriaRows = missingScale ? [new("people", "trust", "maturity", "1", 1), new("process", "trust", "maturity", "1", 1)] : Reading().CriteriaRows
+        };
+        var measurement = EvolutionMeasurementBasis.Capture(reading);
+        var comparison = EvolutionComparisonService.Compare(measurement.Score, measurement.Basis, measurement.Score, measurement.Basis);
+        Assert.False(comparison.IsComparable);
+        Assert.Null(comparison.AbsoluteVariation);
+        Assert.Contains(missingScale ? "escala" : "critérios", comparison.Limitation);
+    }
+    [Theory]
+    [InlineData("{}")]
+    [InlineData("[]")]
+    [InlineData("{\"methodology\":{\"code\":\"professional\",\"version\":{}}}")]
+    [InlineData("{\"methodology\":{\"code\":\"unknown\",\"version\":3}}")]
+    public void Incomplete_snapshot_never_proves_comparability(string json) {
+        var measurement = EvolutionMeasurementBasis.Capture(Reading() with { SnapshotJson = json });
+        var comparison = EvolutionComparisonService.Compare(measurement.Score, measurement.Basis, measurement.Score, measurement.Basis);
+        Assert.False(comparison.IsComparable);
+        Assert.Null(comparison.AbsoluteVariation);
+    }
+    [Theory]
+    [InlineData("{")]
+    [InlineData("{\"methodology\":")]
+    public async Task Malformed_metadata_does_not_remove_other_selection_options(string json) {
+        var invalid = Reading() with { SnapshotJson = json };
+        var service = new EvolutionCycleService(new CaptureEvolutionRepository(),
+            new IntelligenceRepositoryStub([invalid, Reading() with { SurveyId = Guid.NewGuid() }]), new ContextStub(), new CommercialStub());
+        var options = await service.ResultOptions(OrganizationId, null, default);
+        Assert.Equal(2, options.Count);
+        Assert.Contains("comparação está indisponível", options[0].Limitation);
+        Assert.Equal("professional@3", options[1].MethodologyVersion);
+        var preserved = EvolutionMeasurementBasis.Capture(invalid);
+        Assert.False(preserved.Basis.DataAvailable);
+        Assert.Equal(invalid.MaturityIndex, preserved.Score);
+        Assert.Contains("metadados", preserved.Limitation);
+        Assert.False(EvolutionComparisonService.Compare(preserved.Score, preserved.Basis, preserved.Score, preserved.Basis).IsComparable);
+    }
+
+    [Fact]
+    public void Malformed_calculation_rule_preserves_score_without_comparability() {
+        var reading = Reading() with { CriteriaRows = [new("people", "trust", "maturity", "1", 1) { CalculationRuleJson = "{" }] };
+        var preserved = EvolutionMeasurementBasis.Capture(reading);
+        Assert.False(preserved.Basis.DataAvailable);
+        Assert.Equal(reading.MaturityIndex, preserved.Score);
+    }
     private static readonly Guid OrganizationId = Guid.Parse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
     private static readonly Guid UserId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
     private static readonly Guid SurveyId = Guid.Parse("cccccccc-cccc-cccc-cccc-cccccccccccc");
@@ -116,6 +167,84 @@ public sealed class EvolutionCycleServiceTests {
         Assert.False(EvolutionComparisonService.Compare(1, basis, 2, EvolutionMeasurementBasis.Capture(second with { SnapshotJson = second.SnapshotJson.Replace("5.0", "10") }).Basis).IsComparable);
     }
 
+
+    private static readonly PreservedEvolutionMeasurement Initial = EvolutionMeasurementBasis.Capture(Reading() with { CapturedAt = new DateTime(2026, 1, 1) });
+
+    [Theory]
+    [InlineData(true, true, true, false)]
+    [InlineData(true, false, false, false)]
+    [InlineData(false, true, false, false)]
+    [InlineData(true, false, true, false)]
+    [InlineData(false, false, false, false)]
+    [InlineData(false, false, false, true)]
+    public async Task Explicit_permissions_distinguish_read_manage_and_monitor(bool read, bool manage, bool monitor, bool global) {
+        var permissions = new List<string>();
+        if (read) permissions.Add(ValoraPermissions.Evolution.Read);
+        if (manage) permissions.Add(ValoraPermissions.Evolution.Manage);
+        if (monitor) permissions.Add(ValoraPermissions.Evolution.SnapshotsGenerate);
+        var context = new ContextStub(permissions.ToArray(), global);
+        var repository = new CaptureEvolutionRepository();
+        var commercial = new CommercialStub();
+        var cycles = new EvolutionCycleService(repository, new IntelligenceRepositoryStub([Reading()]), context, commercial);
+        var snapshots = new EvolutionSnapshotService(repository, context, commercial);
+        if (read || global) {
+            await cycles.List(OrganizationId, default);
+            await snapshots.List(OrganizationId, Guid.NewGuid(), default);
+        }
+        else {
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => cycles.List(OrganizationId, default));
+            await Assert.ThrowsAsync<UnauthorizedAccessException>(() => snapshots.List(OrganizationId, Guid.NewGuid(), default));
+        }
+        if (manage || global) await cycles.Open(OrganizationId, UserId, Request(SurveyId), default);
+        else await Assert.ThrowsAsync<UnauthorizedAccessException>(() => cycles.Open(OrganizationId, UserId, Request(SurveyId), default));
+        if (monitor || global) await snapshots.Generate(OrganizationId, UserId, Guid.NewGuid(), "Evidence", "Interpretation", "Next step", default);
+        else await Assert.ThrowsAsync<UnauthorizedAccessException>(() => snapshots.Generate(OrganizationId, UserId, Guid.NewGuid(), "Evidence", "Interpretation", "Next step", default));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => cycles.List(Guid.NewGuid(), default));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => snapshots.Generate(OrganizationId, Guid.NewGuid(), Guid.NewGuid(), "Evidence", "Interpretation", "Next step", default));
+    }
+
+    [Fact]
+    public async Task Commercial_restriction_after_preview_prevents_confirmation_and_replay() {
+        var repository = new CaptureEvolutionRepository();
+        var commercial = new CommercialStub();
+        var cycles = new EvolutionCycleService(repository, new IntelligenceRepositoryStub([Reading()]), new ContextStub(), commercial);
+        var cycle = Guid.NewGuid();
+        var preview = await cycles.Preview(OrganizationId, UserId, cycle, SurveyId, default);
+        commercial.Enabled = false;
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => cycles.ConfirmReevaluation(OrganizationId, UserId, cycle, SurveyId, preview.Version, preview.Fingerprint, Guid.NewGuid().ToString("N"), default));
+        repository.ReplayId = Guid.NewGuid();
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => cycles.ConfirmReevaluation(OrganizationId, UserId, cycle, SurveyId, preview.Version, preview.Fingerprint, Guid.NewGuid().ToString("N"), default));
+        Assert.Equal(0, repository.ReevaluationWrites);
+        var monitor = new EvolutionSnapshotService(repository, new ContextStub([ValoraPermissions.Evolution.SnapshotsGenerate]), commercial);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => monitor.Generate(OrganizationId, UserId, cycle, "Evidence", "Interpretation", "Next step", default));
+        Assert.Equal(0, repository.SnapshotWrites);
+    }
+
+    [Theory]
+    [InlineData("version")]
+    [InlineData("source")]
+    [InlineData("closed")]
+    public async Task Changed_cycle_or_source_requires_new_preview_without_writing(string change) {
+        var repository = new CaptureEvolutionRepository();
+        var readings = new List<EvolutionSurveyComparisonDto> { Reading() };
+        var cycles = new EvolutionCycleService(repository, new IntelligenceRepositoryStub(readings), new ContextStub(), new CommercialStub());
+        var cycle = Guid.NewGuid();
+        var preview = await cycles.Preview(OrganizationId, UserId, cycle, SurveyId, default);
+        if (change == "version") repository.CurrentVersion++;
+        if (change == "closed") repository.Status = "closed";
+        if (change == "source") readings[0] = Reading() with { MaturityIndex = 80 };
+        await Assert.ThrowsAsync<InvalidOperationException>(() => cycles.ConfirmReevaluation(OrganizationId, UserId, cycle, SurveyId, preview.Version, preview.Fingerprint, Guid.NewGuid().ToString("N"), default));
+        Assert.Equal(0, repository.ReevaluationWrites);
+    }
+
+    [Fact]
+    public async Task Authorized_replay_returns_existing_registration_without_new_write() {
+        var repository = new CaptureEvolutionRepository { ReplayId = Guid.NewGuid(), Status = "closed" };
+        var cycles = new EvolutionCycleService(repository, new IntelligenceRepositoryStub([]), new ContextStub(), new CommercialStub());
+        Assert.Equal(repository.ReplayId, await cycles.ConfirmReevaluation(OrganizationId, UserId, Guid.NewGuid(), SurveyId, 1, new string('a', 64), Guid.NewGuid().ToString("N"), default));
+        Assert.Equal(0, repository.ReevaluationWrites);
+    }
+
     private static OpenEvolutionCycleRequest Request(Guid resultId) => new(
         DiagnosticId: null,
         ResultId: null,
@@ -144,22 +273,33 @@ public sealed class EvolutionCycleServiceTests {
         [new EvolutionQuestionCriterionRow("people", "trust", "maturity", "1", 1)]);
 
     private sealed class CaptureEvolutionRepository : IEvolutionRepository {
+        public long CurrentVersion { get; set; } = 1;
+        public string Status { get; set; } = "open";
+        public int ReevaluationWrites { get; private set; }
+        public int SnapshotWrites { get; private set; }
+        public Guid? ReplayId { get; set; }
+        public Task<long> Version(Guid o, Guid cycle, CancellationToken c) => Task.FromResult(CurrentVersion);
+        public Task<PreservedEvolutionMeasurement?> Baseline(Guid o, Guid cycle, CancellationToken c) => Task.FromResult<PreservedEvolutionMeasurement?>(Initial);
+        public Task<Guid?> ReevaluationReplay(Guid o, Guid cycle, string commandId, string fingerprint, Guid surveyId, long version, CancellationToken c) => Task.FromResult(ReplayId);
+        public Task<Guid> Reevaluate(Guid o, Guid u, Guid cycle, EvolutionReevaluationPreview preview, string commandId, CancellationToken c) { ReevaluationWrites++; return Task.FromResult(Guid.NewGuid()); }
+
         public Task<Guid?> ResultSurvey(Guid o, Guid resultId, CancellationToken c) => Task.FromResult<Guid?>(null);
         public Task<Guid?> DiagnosticSurvey(Guid o, Guid diagnosticId, CancellationToken c) => Task.FromResult<Guid?>(diagnosticId == SurveyId ? SurveyId : null);
         public Task<bool> LinksAvailable(Guid o, Guid? diagnosticId, Guid? governanceCycleId, CancellationToken c) => Task.FromResult(true);
         public OpenEvolutionCycleRequest? LastOpen { get; private set; }
         public Task<IReadOnlyList<EvolutionCycleDto>> List(Guid o, CancellationToken c) => Task.FromResult<IReadOnlyList<EvolutionCycleDto>>(Array.Empty<EvolutionCycleDto>());
-        public Task<EvolutionCycleDto?> Get(Guid o, Guid id, CancellationToken c) => Task.FromResult<EvolutionCycleDto?>(null);
+        public Task<EvolutionCycleDto?> Get(Guid o, Guid id, CancellationToken c) => Task.FromResult<EvolutionCycleDto?>(new(id, null, null, "Cycle", "Objective", Status, 60, 60, null, null, null, "insufficient_sample", DateTime.UtcNow, null, "Evidence", null, "organizational_measurement", "professional@3", DateTime.UtcNow));
         public Task<IReadOnlyList<EvolutionSnapshotDto>> Snapshots(Guid o, Guid cycle, CancellationToken c) => Task.FromResult<IReadOnlyList<EvolutionSnapshotDto>>(Array.Empty<EvolutionSnapshotDto>());
         public Task<Guid> Open(Guid o, Guid u, OpenEvolutionCycleRequest r, CancellationToken c) { LastOpen = r; return Task.FromResult(Guid.NewGuid()); }
-        public Task<Guid> Snapshot(Guid o, Guid u, Guid cycle, string evidence, string interpretation, string recommendation, CancellationToken c) => Task.FromResult(Guid.NewGuid());
+        public Task<Guid> Snapshot(Guid o, Guid u, Guid cycle, string evidence, string interpretation, string recommendation, CancellationToken c) { SnapshotWrites++; return Task.FromResult(Guid.NewGuid()); }
         public Task Close(Guid o, Guid u, Guid cycle, string learning, CancellationToken c) => Task.CompletedTask;
     }
-    private sealed class ContextStub : ICurrentRequestContext {
-        public CurrentRequestContext GetCurrent() => new(UserId, null, OrganizationId, null, false, [], [ValoraPermissions.Evolution.Manage], [], [], [], "active", 1);
+    private sealed class ContextStub(string[]? permissions = null, bool global = false) : ICurrentRequestContext {
+        public CurrentRequestContext GetCurrent() => new(UserId, null, OrganizationId, global ? OrganizationId : null, global, [], permissions ?? [ValoraPermissions.Evolution.Read, ValoraPermissions.Evolution.Manage], [], [], [], "active", 1);
     }
     private sealed class CommercialStub(bool enabled = true) : ICommercialSaasRepository {
-        public Task<ModuleAccessDecision> EvaluateAccessAsync(Guid clientId, string moduleCode, bool writeOperation, CancellationToken c) => Task.FromResult(enabled ? ModuleAccessDecision.Granted() : ModuleAccessDecision.Denied("MODULE_READ_ONLY", "Somente consulta."));
+        public bool Enabled { get; set; } = enabled;
+        public Task<ModuleAccessDecision> EvaluateAccessAsync(Guid clientId, string moduleCode, bool writeOperation, CancellationToken c) => Task.FromResult(Enabled ? ModuleAccessDecision.Granted() : ModuleAccessDecision.Denied("MODULE_READ_ONLY", "Somente consulta."));
         public Task<IReadOnlyList<CommercialModule>> ListModulesAsync(Guid? clientId, CancellationToken c) => throw new NotSupportedException();
         public Task<IReadOnlyList<CommercialPlan>> ListPlansAsync(CancellationToken c) => throw new NotSupportedException();
         public Task<bool> SetModuleStatusAsync(Guid clientId, string moduleCode, string status, Guid actorUserId, string reason, string correlationId, CancellationToken c) => throw new NotSupportedException();

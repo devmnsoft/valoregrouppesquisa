@@ -39,7 +39,7 @@
       const data = await response.json();
       data.items.forEach(item => {
         if (Array.from(target.options).some(option => option.value === item.sourceSurveyId)) return;
-        const option = new Option(item.diagnosticTitle + ' · ' + item.percentage + ' pontos · ' + item.scoredResponseCount + ' respostas · ' + item.methodologyVersion, item.sourceSurveyId);
+        const option = new Option(item.diagnosticTitle + ' · ' + item.percentage + ' pontos · ' + item.scoredResponseCount + ' respostas · ' + item.methodologyVersion + (item.limitation ? ' · ' + item.limitation : ''), item.sourceSurveyId);
         option.dataset.score = item.percentage;
         target.add(option);
       });

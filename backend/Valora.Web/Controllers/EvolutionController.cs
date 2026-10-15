@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Access;
 using Valora.Application.Common;
 using Valora.Application.Evolution;
+using Valora.Application.ModularSaas;
 using Valora.Application.Contracts;
 using Valora.Web.Models.ViewModels;
 
@@ -14,7 +15,7 @@ namespace Valora.Web.Controllers;
 public sealed class EvolutionController(
     IEvolutionCycleService cycles,
     EvolutionSnapshotService snapshots,
-    ICurrentOrganizationProvider organizationProvider, IOrganizationRepository organizations) : Controller {
+    ICurrentOrganizationProvider organizationProvider, IOrganizationRepository organizations, ICommercialSaasRepository commercial) : Controller {
     private Guid UserId => Guid.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub"), out var id) ? id : Guid.Empty;
 
     [HttpGet("")]
@@ -62,6 +63,7 @@ public sealed class EvolutionController(
             model.BaselineScore, model.TargetScore, null, model.PeriodStart, model.PeriodEnd, model.EvidenceSummary, SourceSurveyId: model.SourceSurveyId, ReferenceMode: model.ReferenceMode);
         Guid id;
         try { id = await cycles.Open(organization.RequireOrganizationId(), UserId, request, cancellationToken); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
         catch (ArgumentException error) { ModelState.AddModelError("", error.Message); TempData["EvolutionError"] = "Revise os campos destacados antes de continuar."; ViewData["CycleCommand"] = model; ViewData["ResultOptions"] = resultOptions; ViewData["ReturnUrl"] = SafeReturnUrl(returnUrl, "/Evolution", "/Diagnostics/", "/ActionCenter/", "/Results/"); return View("Cycles", await cycles.List(organization.RequireOrganizationId(), cancellationToken)); }
         return RedirectToAction(nameof(Details), new { id, returnUrl = SafeReturnUrl(returnUrl, "/Evolution", "/Diagnostics/", "/ActionCenter/", "/Results/") });
     }
@@ -136,6 +138,9 @@ public sealed class EvolutionController(
         };
     }
     private async Task<TimeZoneInfo> LoadTimeZone(Guid o, CancellationToken c) {
+        var module = await commercial.EvaluateAccessAsync(o, "evolution", true, c);
+        ViewData["EvolutionCanWrite"] = module.Allowed && !module.ReadOnly;
+        ViewData["EvolutionWriteLimitation"] = module.Allowed && !module.ReadOnly ? null : module.Message;
         var name = (await organizations.GetAsync(o, c))?.TimeZone ?? "UTC";
         ViewData["OrganizationTimeZone"] = name;
         return TimeZoneInfo.FindSystemTimeZoneById(name);
@@ -148,6 +153,7 @@ public sealed class EvolutionController(
         if (cycle is null) return NotFound();
         ViewData["SelectedSurveyId"] = sourceSurveyId;
         try { ViewData["ComparisonPreview"] = await cycles.Preview(o, UserId, id, sourceSurveyId, c); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException) { ModelState.AddModelError("SourceSurveyId", error.Message); }
         return View("Details", await DetailsModel(o, cycle, SafeReturnUrl(returnUrl, "/Evolution/Cycles", "/Evolution/", "/Diagnostics/", "/ActionCenter/", "/Results/"), c));
     }
@@ -161,6 +167,7 @@ public sealed class EvolutionController(
             return RedirectToAction(nameof(Details), new { id, returnUrl });
         }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException) {
             ModelState.AddModelError("SourceSurveyId", error.Message);
             var cycle = await cycles.Get(o, id, c);
@@ -179,6 +186,7 @@ public sealed class EvolutionController(
             return RedirectToAction(nameof(Details), new { id, returnUrl });
         }
         catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException) {
             ModelState.AddModelError("", error.Message);
             ViewData["Learning"] = learning; ViewData["PendingTreatment"] = pendingTreatment;

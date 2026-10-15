@@ -148,7 +148,7 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
             correlationId = HttpContext.TraceIdentifier
         });
         object? body = null;
-        if (Request.ContentLength > 0)
+        if ((Request.ContentLength is > 0 || (Request.ContentLength is null && Request.HasJsonContentType())))
             body = await JsonSerializer.DeserializeAsync<JsonElement>(Request.Body, cancellationToken: cancellationToken);
         var query = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
         var correlationId = Request.Headers["X-Correlation-Id"].FirstOrDefault() ?? HttpContext.TraceIdentifier;

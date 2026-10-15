@@ -37,7 +37,7 @@ public sealed class CommercialModuleAccessMiddleware(RequestDelegate next, ILogg
         try {
             var writeOperation = !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method);
             var decision = await saas.EvaluateAccessAsync(clientId, route.Module, writeOperation, context.RequestAborted);
-            if (!decision.Allowed) {
+            if (!decision.Allowed || (writeOperation && decision.ReadOnly)) {
                 logger.LogWarning(
                     "Commercial module access denied. UserId={UserId} ClientId={ClientId} ModuleCode={ModuleCode} Action={Action} Status={Status} CorrelationId={CorrelationId}",
                     context.User.FindFirstValue(ClaimTypes.NameIdentifier), clientId, route.Module,

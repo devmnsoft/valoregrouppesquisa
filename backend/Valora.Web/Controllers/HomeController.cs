@@ -15,7 +15,8 @@ public sealed class HomeController(ILogger<HomeController> logger) : Controller 
             throw;
         }
     }
-    [HttpGet("/error/{statusCode:int}")]
+    // Status-code re-execution keeps the original HTTP method, including rejected POSTs.
+    [Route("/error/{statusCode:int}")]
     public IActionResult Error(int statusCode = 500) {
         var safeStatus = statusCode is 400 or 401 or 403 or 404 or 500 ? statusCode : 500;
         // Re-execution preserves the original status, but a direct visit to /error/{code}

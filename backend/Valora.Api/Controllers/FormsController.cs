@@ -1,3 +1,4 @@
+using Valora.Api.Authorization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,6 +10,7 @@ namespace Valora.Api.Controllers;
 
 [Authorize]
 [ApiController]
+[RequireCommercialModule("forms")]
 [Route("api/v1/forms")]
 public sealed class FormsController(
     IFormAdministrationService forms,

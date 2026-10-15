@@ -45,6 +45,9 @@ public sealed class EvolutionComparisonTests {
     [Theory]
     [InlineData("indefinida")]
     [InlineData("")]
+    [InlineData("unknown@3")]
+    [InlineData("professional@unknown")]
+    [InlineData("professional@")]
     public void UnknownMethodologyNeverProvidesComparability(string version) {
         var comparison = EvolutionComparisonService.Compare(0, Basis(version: version), 10, Basis(version: version));
         Assert.False(comparison.IsComparable);

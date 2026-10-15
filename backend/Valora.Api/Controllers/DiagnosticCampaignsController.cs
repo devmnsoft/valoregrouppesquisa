@@ -1,3 +1,4 @@
+using Valora.Api.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Access;
@@ -6,7 +7,7 @@ using Valora.Application.Common;
 
 namespace Valora.Api.Controllers;
 
-[Authorize, ApiController]
+[Authorize, ApiController, RequireCommercialModule("surveys")]
 [Route("api/v1/diagnostics/{id:guid}/campaign")]
 [Route("api/v1/diagnostics/{id:guid}/campaigns")]
 public sealed class DiagnosticCampaignsController(IDiagnosticCampaignService campaigns, ICurrentRequestContext currentRequest) : ControllerBase {

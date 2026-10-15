@@ -163,7 +163,7 @@ SELECT m.metadata_json::text FROM valorapesquisa.evolution_cycles ec
 JOIN valorapesquisa.evolution_measurements m ON m.id=ec.baseline_measurement_id AND m.organization_id=ec.organization_id
 WHERE ec.organization_id=@o AND ec.id=@cycle AND ec.deleted_at IS NULL
 """, new { o, cycle }, cancellationToken: c));
-        return json is null ? null : System.Text.Json.JsonSerializer.Deserialize<PreservedEvolutionMeasurement>(json);
+        return json is null ? null : EvolutionPreservedMetadata.Read(json);
     }
     public async Task<Guid> Snapshot(Guid o, Guid u, Guid cycle, string evidence, string interpretation, string recommendation, CancellationToken c) { var id = Guid.NewGuid(); await using var z = await tx.BeginAsync(c); var state = await z.Connection.QuerySingleOrDefaultAsync<string>(new CommandDefinition("SELECT status FROM valorapesquisa.evolution_cycles WHERE id=@cycle AND organization_id=@o AND deleted_at IS NULL FOR UPDATE", new { o, cycle }, z.Transaction, cancellationToken: c)); if (state is null) throw new KeyNotFoundException("Ciclo não encontrado."); if (state is "closed" or "archived") throw new InvalidOperationException("Um ciclo encerrado não aceita novas leituras."); const string q = """
 WITH cyc AS (

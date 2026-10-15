@@ -2,24 +2,30 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Web.Services.Bff;
+using Valora.Application.Access;
 
 namespace Valora.Web.Controllers;
 
 [Authorize, ApiController, AutoValidateAntiforgeryToken, Route("bff/diagnostics/{id:guid}")]
-public sealed class BffDiagnosticOperationsController(IBffApiClient api, BffAuthenticationService authentication) : ControllerBase {
+public sealed class BffDiagnosticOperationsController(IBffApiClient api, BffAuthenticationService authentication, IAuthorizationService authorization) : ControllerBase {
     [HttpGet("/bff/diagnostic-campaigns")]
     public Task<IActionResult> Campaigns(CancellationToken ct) => ForwardPath("/api/v1/diagnostic-campaigns", ct);
 
     [HttpGet("participation")]
     public Task<IActionResult> Participation(Guid id, CancellationToken ct) => Forward(id, "participation", ct);
 
-    [AcceptVerbs("GET", "POST"), Route("campaign/{action?}")]
-    public Task<IActionResult> Campaign(Guid id, string? action, CancellationToken ct) =>
-        Forward(id, string.IsNullOrWhiteSpace(action) ? "campaign" : $"campaign/{action}", ct);
+    [AcceptVerbs("GET", "POST"), Route("campaign/{command?}")]
+    public async Task<IActionResult> Campaign(Guid id, string? command, CancellationToken ct) {
+        if (HttpMethods.IsGet(Request.Method) && string.IsNullOrWhiteSpace(command)) {
+            Response.Headers["X-Valora-Campaign-Manage"] = (await authorization.AuthorizeAsync(User, null, ValoraPermissions.Campaigns.Manage)).Succeeded ? "true" : "false";
+            Response.Headers["X-Valora-Campaign-Distribute"] = (await authorization.AuthorizeAsync(User, null, ValoraPermissions.Surveys.Distribute)).Succeeded ? "true" : "false";
+        }
+        return await Forward(id, string.IsNullOrWhiteSpace(command) ? "campaign" : $"campaign/{command}", ct);
+    }
 
-    [AcceptVerbs("GET", "POST"), Route("executive-report/{action?}")]
-    public Task<IActionResult> ExecutiveReport(Guid id, string? action, CancellationToken ct) =>
-        Forward(id, string.IsNullOrWhiteSpace(action) ? "executive-report" : $"executive-report/{action}", ct);
+    [AcceptVerbs("GET", "POST"), Route("executive-report/{command?}")]
+    public Task<IActionResult> ExecutiveReport(Guid id, string? command, CancellationToken ct) =>
+        Forward(id, string.IsNullOrWhiteSpace(command) ? "executive-report" : $"executive-report/{command}", ct);
 
     private async Task<IActionResult> Forward(Guid id, string resource, CancellationToken ct)
         => await ForwardPath($"/api/v1/diagnostics/{id}/{resource}{Request.QueryString}", ct);
@@ -30,12 +36,14 @@ public sealed class BffDiagnosticOperationsController(IBffApiClient api, BffAuth
             return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou. Entre novamente.", correlationId = HttpContext.TraceIdentifier });
 
         object? body = null;
-        if (Request.ContentLength > 0)
+        if ((Request.ContentLength is > 0 || (Request.ContentLength is null && Request.HasJsonContentType())))
             body = await JsonSerializer.DeserializeAsync<JsonElement>(Request.Body, cancellationToken: ct);
 
         var correlation = Request.Headers["X-Correlation-Id"].FirstOrDefault() ?? HttpContext.TraceIdentifier;
         using var response = await api.SendAsync(new HttpMethod(Request.Method), path, body, session.AccessToken, correlation, ct);
         var payload = await response.Content.ReadAsStringAsync(ct);
+        if (response.Headers.TryGetValues("X-Valora-Module-Access", out var moduleAccess))
+            Response.Headers["X-Valora-Module-Access"] = moduleAccess.First();
         Response.Headers["X-Correlation-Id"] = response.Headers.TryGetValues("X-Correlation-Id", out var values) ? values.First() : correlation;
         return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/json", Content = payload };
     }

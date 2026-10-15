@@ -52,6 +52,16 @@ public sealed class NavigationRegressionTests {
     }
 
     [Fact]
+    public void Evolution_entries_use_read_permission_and_the_canonical_access_module() {
+        var items = new NavigationCatalog().Sections.SelectMany(x => x.Items).Where(x => x.Destination.Controller == "Evolution").ToArray();
+        Assert.Equal(2, items.Length);
+        Assert.All(items, item => {
+            Assert.Equal("evolution.read", item.Permission);
+            Assert.Equal("organizational_intelligence", item.ModuleCode);
+        });
+    }
+
+    [Fact]
     public void SparklesIsAnOfficialDesignSystemIcon() {
         var registry = new ValoraIconRegistry();
 

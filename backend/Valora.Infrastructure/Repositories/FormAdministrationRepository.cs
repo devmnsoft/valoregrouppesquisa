@@ -303,7 +303,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         await using var unit = await transactions.BeginAsync(cancellationToken);
         const string sql = """
             UPDATE valorapesquisa.form_section_versions s
-               SET title=@title,description=@description,version=version+1,updated_at=now()
+               SET title=@title,description=@description,version=s.version+1,updated_at=now()
               FROM valorapesquisa.form_versions fv,valorapesquisa.forms f
              WHERE s.id=@sectionId AND s.form_version_id=fv.id AND fv.form_id=f.id
                AND f.id=@formId AND f.organization_id=@organizationId AND f.current_draft_version_id=fv.id
@@ -342,8 +342,8 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
             -- Espelho de compatibilidade: response_answers ainda referencia a
             -- tabela legada questions; cada versão de pergunta mantém uma
             -- linha com o mesmo id para preservar a FK sem enfraquecê-la.
-            INSERT INTO valorapesquisa.questions(id,code,text,display_order,is_required)
-            SELECT @id,@code,@title,@position,@required
+            INSERT INTO valorapesquisa.questions(id,code,text,display_order,position,question_type,is_qualitative,is_required)
+            SELECT @id,@code,@title,@position,@position,CASE WHEN @type='likert_1_5' THEN 'scale_1_5' ELSE @type END,@type IN ('short_text','long_text'),@required
             FROM valorapesquisa.question_versions WHERE id=@id
             ON CONFLICT (id) DO NOTHING;
             """;
@@ -376,7 +376,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         const string sql = """
             UPDATE valorapesquisa.question_versions q
                SET code=@code,type=@type,title=@title,description=@description,required=@required,
-                   dimension_code=@dimensionCode,weight=@weight,settings=CAST(@settings AS jsonb),version=version+1,updated_at=now()
+                   dimension_code=@dimensionCode,weight=@weight,settings=CAST(@settings AS jsonb),version=q.version+1,updated_at=now()
               FROM valorapesquisa.form_section_versions s,valorapesquisa.form_versions fv,valorapesquisa.forms f
              WHERE q.id=@questionId AND q.section_id=s.id AND s.form_version_id=fv.id AND fv.form_id=f.id
                AND f.id=@formId AND f.organization_id=@organizationId AND f.current_draft_version_id=fv.id
@@ -445,7 +445,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         await using var unit = await transactions.BeginAsync(cancellationToken);
         const string sql = """
             UPDATE valorapesquisa.question_option_versions o
-               SET label=@label,value=@value,score=@score,version=version+1,updated_at=now()
+               SET label=@label,value=@value,score=@score,version=o.version+1,updated_at=now()
               FROM valorapesquisa.question_versions q,valorapesquisa.form_section_versions s,valorapesquisa.form_versions fv,valorapesquisa.forms f
              WHERE o.id=@optionId AND o.question_id=q.id AND q.section_id=s.id AND s.form_version_id=fv.id AND fv.form_id=f.id
                AND f.id=@formId AND f.organization_id=@organizationId AND f.current_draft_version_id=fv.id
@@ -531,7 +531,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
         long expectedVersion, string table, string versionExpression, string action, string entityType,
         CancellationToken cancellationToken) {
         await using var unit = await transactions.BeginAsync(cancellationToken);
-        var sql = $"UPDATE valorapesquisa.{table} i SET deleted_at=now(),updated_at=now(),version=version+1 FROM valorapesquisa.form_versions fv,valorapesquisa.forms f WHERE i.id=@itemId AND fv.id={versionExpression} AND f.id=fv.form_id AND f.id=@formId AND f.organization_id=@organizationId AND f.current_draft_version_id=fv.id AND fv.status='draft' AND i.deleted_at IS NULL AND i.version=@expectedVersion RETURNING fv.id;";
+        var sql = $"UPDATE valorapesquisa.{table} i SET deleted_at=now(),updated_at=now(),version=i.version+1 FROM valorapesquisa.form_versions fv,valorapesquisa.forms f WHERE i.id=@itemId AND fv.id={versionExpression} AND f.id=fv.form_id AND f.id=@formId AND f.organization_id=@organizationId AND f.current_draft_version_id=fv.id AND fv.status='draft' AND i.deleted_at IS NULL AND i.version=@expectedVersion RETURNING fv.id;";
         var draftId = await unit.Connection.ExecuteScalarAsync<Guid?>(new CommandDefinition(sql,
             new { organizationId, formId, itemId, expectedVersion }, unit.Transaction, cancellationToken: cancellationToken));
         if (draftId is null) return false;
@@ -576,7 +576,7 @@ public sealed class FormAdministrationRepository(IDbConnectionFactory connection
                 var newQuestionId = Guid.NewGuid();
                 await unit.Connection.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.question_versions(id,organization_id,section_id,code,type,title,description,required,dimension_code,weight,position,display_order,settings,version) VALUES(@newQuestionId,@organizationId,@newSectionId,@Code,@Type,@Title,@Description,@Required,@DimensionCode,@Weight,@Position,@Position,CAST(@Settings AS jsonb),1)", new { newQuestionId, organizationId, newSectionId, question.Code, question.Type, question.Title, question.Description, question.Required, question.DimensionCode, question.Weight, question.Position, question.Settings }, unit.Transaction, cancellationToken: cancellationToken));
                 // Espelho de compatibilidade para a FK legada de response_answers.
-                await unit.Connection.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.questions(id,code,text,display_order,is_required) VALUES(@newQuestionId,@Code,@Title,@Position,@Required) ON CONFLICT (id) DO NOTHING", new { newQuestionId, question.Code, question.Title, question.Position, question.Required }, unit.Transaction, cancellationToken: cancellationToken));
+                await unit.Connection.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.questions(id,code,text,display_order,position,question_type,is_qualitative,is_required) VALUES(@newQuestionId,@Code,@Title,@Position,@Position,CASE WHEN @Type='likert_1_5' THEN 'scale_1_5' ELSE @Type END,@Type IN ('short_text','long_text'),@Required) ON CONFLICT (id) DO NOTHING", new { newQuestionId, question.Code, question.Type, question.Title, question.Position, question.Required }, unit.Transaction, cancellationToken: cancellationToken));
                 var options = await unit.Connection.QueryAsync<OptionRow>(new CommandDefinition(
                     "SELECT id AS \"Id\",question_id AS \"QuestionId\",label AS \"Label\",value AS \"Value\",score AS \"Score\",position::int AS \"Position\",version::bigint AS \"Version\" FROM valorapesquisa.question_option_versions WHERE question_id=@questionId AND deleted_at IS NULL ORDER BY position,id",
                     new { questionId = question.Id }, unit.Transaction, cancellationToken: cancellationToken));

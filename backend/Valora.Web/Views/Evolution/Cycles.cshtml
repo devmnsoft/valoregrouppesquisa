@@ -1,6 +1,8 @@
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService Authorization
 @model IReadOnlyList<Valora.Application.Evolution.EvolutionCycleDto>
 @using Valora.Application.Evolution
 @{
+    var canManage = ViewData["EvolutionCanWrite"] is true && (await Authorization.AuthorizeAsync(User, null, Valora.Application.Access.ValoraPermissions.Evolution.Manage)).Succeeded;
     ViewData["Title"] = "Ciclos de evolução";
     var command = ViewData["CycleCommand"] as EvolutionCycleViewModel ?? new();
     var options = ViewData["ResultOptions"] as IReadOnlyList<EvolutionResultOptionDto> ?? [];
@@ -12,14 +14,16 @@
 }
 @section Styles { <link rel="stylesheet" href="~/css/evolution.css" asp-append-version="true"> }
 <main class="valora-page evolution-cycles">
-    <partial name="_PageHeader" model="@(new PageHeaderViewModel("Ciclos de evolução", "Objetivos, execução e medições preservadas.", "Valora Evolution", Actions: new[] { new PageHeaderAction("Novo ciclo", DataAction: "new-cycle", Style: "primary", Icon: "plus"), new PageHeaderAction("Voltar", returnUrl) }))" />
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel("Ciclos de evolução", "Objetivos, execução e medições preservadas.", "Valora Evolution", Actions: canManage ? new[] { new PageHeaderAction("Novo ciclo", DataAction: "new-cycle", Style: "primary", Icon: "plus"), new PageHeaderAction("Voltar", returnUrl) } : new[] { new PageHeaderAction("Voltar", returnUrl) }))" />
     <div asp-validation-summary="All" role="alert"></div>
+    @if (ViewData["EvolutionWriteLimitation"] is string limitation) { <p class="valora-alert" role="status">@limitation</p> }
     @if (Model.Count == 0) { <partial name="_EmptyState" model="@(new EmptyStateViewModel("Nenhum ciclo cadastrado", "Ainda não há ciclos de evolução neste contexto."))" /> }
     else {
         <div class="table-responsive"><table class="valora-table"><thead><tr><th>Ciclo</th><th>Início</th><th>Situação</th><th>Referência inicial</th><th>Valor na base inicial</th></tr></thead><tbody>
             @foreach (var cycle in Model) { <tr><td><a href="/Evolution/Cycles/Details/@cycle.Id?returnUrl=@Uri.EscapeDataString(returnUrl)">@(string.IsNullOrWhiteSpace(cycle.Title) ? "Ciclo histórico sem título" : cycle.Title)</a><small class="d-block">@(cycle.BaselineSource == "legacy_review_required" ? "Referência pendente de revisão" : cycle.BaselineSource == "manual_informed" ? "Referência manual" : "Medição organizacional preservada")</small></td><td>@cycle.PeriodStart.ToString("dd/MM/yyyy")</td><td>@Status(cycle.Status)</td><td>@(cycle.BaselineScore?.ToString("0.00") ?? "Sem medição")</td><td>@(cycle.CurrentScore?.ToString("0.00") ?? "Sem medição")</td></tr> }
         </tbody></table></div>
     }
+    @if (canManage) {
     <dialog class="valora-dialog" data-cycle-dialog aria-labelledby="cycle-title">
         <form method="post" action="/Evolution/Cycles/Open?returnUrl=@Uri.EscapeDataString(returnUrl)" data-submit-once>
             @Html.AntiForgeryToken()
@@ -27,9 +31,10 @@
             <input type="hidden" name="DiagnosticId" value="@command.DiagnosticId">
             <input type="hidden" name="ResultId" value="@command.ResultId">
             <div asp-validation-summary="All" role="alert"></div>
+    @if (ViewData["EvolutionWriteLimitation"] is string limitation) { <p class="valora-alert" role="status">@limitation</p> }
             <fieldset><legend>Referência inicial</legend><label><input type="radio" name="ReferenceMode" value="calculated" checked="@(command.ReferenceMode == "calculated")"> Medição calculada</label><label><input type="radio" name="ReferenceMode" value="manual" checked="@(command.ReferenceMode == "manual")"> Valor manual</label><p class="form-help">A medição calculada preserva uma leitura organizacional. O valor manual registra uma referência informada.</p></fieldset>
             <div data-calculated-fields hidden="@(command.ReferenceMode != "calculated")">
-                <div class="valora-field"><label for="cycle-result">Pesquisa da medição inicial</label><select id="cycle-result" name="SourceSurveyId" data-measurement-select><option value="">Selecione</option>@foreach (var option in options) { <option value="@option.SourceSurveyId" data-score="@option.Percentage.ToString(System.Globalization.CultureInfo.InvariantCulture)" selected="@(command.SourceSurveyId == option.SourceSurveyId)">@option.DiagnosticTitle · medição organizacional · @option.Percentage.ToString("0.00") pontos · @option.ScoredResponseCount respostas · @When(option.CalculatedAt) (@zoneName) · @option.MethodologyVersion</option> }</select>@Html.ValidationMessage("SourceSurveyId")</div>
+                <div class="valora-field"><label for="cycle-result">Pesquisa da medição inicial</label><select id="cycle-result" name="SourceSurveyId" data-measurement-select><option value="">Selecione</option>@foreach (var option in options) { <option value="@option.SourceSurveyId" data-score="@option.Percentage.ToString(System.Globalization.CultureInfo.InvariantCulture)" selected="@(command.SourceSurveyId == option.SourceSurveyId)">@option.DiagnosticTitle · medição organizacional · @option.Percentage.ToString("0.00") pontos · @option.ScoredResponseCount respostas · @When(option.CalculatedAt) (@zoneName) · @option.MethodologyVersion @(option.Limitation is null ? "" : " · " + option.Limitation)</option> }</select>@Html.ValidationMessage("SourceSurveyId")</div>
                 <button type="button" class="valora-button" data-measurements-more data-diagnostic="@command.DiagnosticId" data-page="2">Carregar mais medições</button><span role="status" data-measurements-status></span>
                 <div class="valora-field"><label for="calculated-score">Nota calculada</label><input id="calculated-score" type="number" min="0" max="100" step="0.01" readonly value="" data-calculated-score></div>
             </div>
@@ -45,6 +50,7 @@
             <partial name="_FormActions" model="@(new FormActionsViewModel("Criar ciclo", "Cancelar"))" />
         </form>
     </dialog>
+    }
 </main>
 @section Scripts {
     <script src="~/js/pages/evolution.js" asp-append-version="true"></script>

@@ -10,6 +10,7 @@
   const error = host.querySelector('[data-error]');
   const message = host.querySelector('[data-message]');
   let overviewState = null;
+  let campaignLink = null;
   let activeRequest = 0;
   const allowedTabs = new Set(['overview', 'responses', 'participation', 'evidence', 'metrics', 'indices', 'heatmap', 'radar', 'inferences', 'insights', 'actions', 'evolution', 'benchmark', 'report', 'campaign', 'certificates', 'exports', 'shares']);
 
@@ -26,6 +27,7 @@
     medium: 'Média', low: 'Baixa', diagnostic: 'Diagnóstico', result: 'Resultado',
     ai_insight: 'Insight revisado', manual: 'Manual', active: 'Ativo', open: 'Aberto',
     closed: 'Encerrado', archived: 'Arquivado', reviewed: 'Reavaliado', monitoring: 'Em acompanhamento',
+    sending: 'Envio em preparação', scheduled: 'Agendada', paused: 'Pausada', failed: 'Falha',
     running: 'Em processamento', retry_scheduled: 'Nova tentativa agendada', cancelled: 'Cancelado'
   }[value] || value || 'Não informado');
 
@@ -35,7 +37,7 @@
       signal,
       headers: {
         Accept: 'application/json',
-        ...(method === 'POST' ? { RequestVerificationToken: host.querySelector('[name="__RequestVerificationToken"]').value } : {})
+        ...(method === 'POST' ? { 'X-CSRF-TOKEN': host.querySelector('[name="__RequestVerificationToken"]').value } : {})
       }
     });
     const body = await response.json().catch(() => ({}));
@@ -50,13 +52,18 @@
       headers: {
         Accept: 'application/json',
         'Content-Type': 'application/json',
-        ...(method === 'POST' ? { RequestVerificationToken: host.querySelector('[name="__RequestVerificationToken"]').value } : {})
+        ...(method === 'POST' ? { 'X-CSRF-TOKEN': host.querySelector('[name="__RequestVerificationToken"]').value } : {})
       },
       body: body ? JSON.stringify(body) : undefined
     });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw payload;
-    return payload.data ?? payload;
+    const access = {
+      canManage: response.headers.get('X-Valora-Campaign-Manage') === 'true',
+      canDistribute: response.headers.get('X-Valora-Campaign-Distribute') === 'true',
+      readOnly: response.headers.get('X-Valora-Module-Access') === 'read-only'
+    };
+    if (!response.ok) throw { ...payload, ...access };
+    return method === 'GET' ? { ...(payload.data ?? payload), ...access } : payload.data ?? payload;
   }
 
   const empty = text => `<div class="empty-state"><h3>Dados insuficientes</h3><p>${esc(text || 'As informações disponíveis ainda não permitem concluir esta análise com segurança.')}</p></div>`;
@@ -134,18 +141,62 @@
   }
 
   function campaignView(data) {
-    const sendLabel = data.channel === 'email' ? 'Preparar envio' : 'Ativar campanha manual';
-    content.innerHTML = `<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h2>Campanha</h2><p>Convite e distribuição do link público com governança.</p></div><span class="valora-status">${esc(data.status)}</span></div><div class="metric-grid"><article class="metric-card"><span>Destinatários protegidos</span><strong>${data.recipientCount}</strong></article><article class="metric-card"><span>Enviados</span><strong>${data.sentCount}</strong></article><article class="metric-card"><span>Falhas</span><strong>${data.failedCount}</strong></article></div><div class="valora-card mt-3"><h3>${esc(data.name)}</h3><p>${esc(data.message)}</p><label class="form-label">Link público</label><div class="input-group"><input class="form-control" readonly value="${esc(data.publicUrl || 'Diagnóstico ainda não publicado')}"><button class="btn btn-primary" data-copy-link ${data.publicUrl ? '' : 'disabled'}>Copiar link</button><button class="btn btn-outline-primary" data-copy-message>Copiar mensagem</button></div><div class="d-flex gap-2 mt-3"><button class="btn btn-primary" data-send>${sendLabel}</button><button class="btn btn-outline-danger" data-cancel>Cancelar pendentes</button></div></div>`;
-    content.querySelector('[data-copy-link]')?.addEventListener('click', () => navigator.clipboard.writeText(data.publicUrl));
-    content.querySelector('[data-copy-message]').addEventListener('click', () => navigator.clipboard.writeText(`${data.message}\n${data.publicUrl || ''}`));
-    content.querySelector('[data-send]').addEventListener('click', () => campaignCommand('send'));
-    content.querySelector('[data-cancel]').addEventListener('click', () => campaignCommand('cancel'));
+    const manual = data.channel !== 'email';
+    const canSend = data.canManage && !data.readOnly && ['draft', 'scheduled', 'failed'].includes(data.status);
+    const canCancel = data.canManage && !data.readOnly && !['closed', 'cancelled'].includes(data.status);
+    const channelName = data.channel === 'whatsapp_manual' ? 'WhatsApp manual' : manual ? 'Compartilhamento manual' : 'E-mail';
+    content.innerHTML = `<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h2>Campanha</h2><p>${esc(channelName)}</p></div><span class="valora-status">${esc(label(data.status))}</span></div>
+      <div class="metric-grid"><article class="metric-card"><span>Destinatários por e-mail</span><strong>${data.recipientCount}</strong></article><article class="metric-card"><span>Na fila</span><strong>${data.queuedCount}</strong></article><article class="metric-card"><span>Envios registrados</span><strong>${data.sentCount}</strong></article><article class="metric-card"><span>Falhas</span><strong>${data.failedCount}</strong></article></div>
+      <p class="form-help">Fila não comprova entrega. Compartilhamento manual e cópia de link não são contabilizados como envio.</p>
+      <div class="valora-card mt-3"><h3>${esc(data.name)}</h3><p>${esc(data.message)}</p><label class="form-label" for="campaign-public-link">Link público gerado nesta sessão</label><div class="input-group"><input id="campaign-public-link" class="form-control" readonly value="${esc(campaignLink || '')}" placeholder="Gere um link para compartilhar"><button class="btn btn-outline-primary" data-generate-link ${data.canDistribute && !data.readOnly ? '' : 'disabled'}>Gerar link de participação</button><button class="btn btn-primary" data-copy-link ${campaignLink ? '' : 'disabled'}>Copiar link</button><button class="btn btn-outline-primary" data-copy-message ${campaignLink ? '' : 'disabled'}>Copiar convite</button></div>
+      <p class="form-help">O token é exibido somente na criação do link. Ao reabrir esta página, gere outro link pelo fluxo existente.</p>
+      <div class="d-flex gap-2 mt-3"><button class="btn btn-primary" data-send ${canSend ? '' : 'disabled'}>${manual ? 'Ativar compartilhamento manual' : 'Preparar envio por e-mail'}</button><button class="btn btn-outline-danger" data-cancel ${canCancel ? '' : 'disabled'}>Cancelar pendentes</button></div></div>`;
+    const showCopyResult = async text => {
+      try {
+        await navigator.clipboard.writeText(text);
+        message.textContent = 'Conteúdo copiado. Nenhum envio ou entrega foi registrado por esta cópia.';
+        message.classList.remove('d-none');
+      } catch {
+        error.textContent = 'Não foi possível copiar. Selecione o link e copie manualmente.';
+        error.classList.remove('d-none');
+      }
+    };
+    content.querySelector('[data-copy-link]').addEventListener('click', () => showCopyResult(campaignLink));
+    content.querySelector('[data-copy-message]').addEventListener('click', () => showCopyResult(`${data.message}\n${campaignLink}`));
+    content.querySelector('[data-generate-link]').addEventListener('click', async event => {
+      const requestId = activeRequest;
+      event.currentTarget.disabled = true;
+      try {
+        const surveyId = overviewState?.cycle?.surveyId || diagnosticId;
+        const response = await fetch(`/bff/surveys/${encodeURIComponent(surveyId)}/links`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': host.querySelector('[name="__RequestVerificationToken"]').value }, body: '{}'
+        });
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) throw payload;
+        const result = payload.data ?? payload;
+        if (!result.publicUrl) throw new Error('O servidor não retornou um link de participação.');
+        campaignLink = new URL(result.publicUrl, location.origin).href;
+        if (requestId !== activeRequest) return;
+        campaignView(data);
+        message.textContent = 'Link gerado. Revise o convite e compartilhe pelo canal escolhido.';
+        message.classList.remove('d-none');
+      } catch (ex) {
+        if (requestId !== activeRequest) return;
+        campaignView(data);
+        error.textContent = ex.message || 'Não foi possível gerar o link. Verifique publicação, permissão e contratação.';
+        error.classList.remove('d-none');
+      }
+    });
+    content.querySelector('[data-send]').addEventListener('click', event => campaignCommand('send', data.version, event.currentTarget));
+    content.querySelector('[data-cancel]').addEventListener('click', event => campaignCommand('cancel', data.version, event.currentTarget));
   }
 
-  async function campaignCommand(action) {
+  async function campaignCommand(action, expectedVersion, button) {
+    if (button.disabled) return;
+    button.disabled = true;
     const requestId = activeRequest;
     try {
-      const result = await campaignApi(action, 'POST');
+      const result = await campaignApi(action, 'POST', { expectedVersion });
       if (requestId !== activeRequest) return;
       message.textContent = result.message;
       message.classList.remove('d-none');
@@ -154,6 +205,8 @@
       if (requestId !== activeRequest) return;
       error.textContent = ex.message || 'Não foi possível concluir a ação.';
       error.classList.remove('d-none');
+    } finally {
+      button.disabled = false;
     }
   }
 
@@ -194,7 +247,7 @@
       try {
         await campaignApi('', 'POST', { name: form.get('name'), channel, subject: channel === 'email' ? form.get('subject') : null, message: form.get('message'), recipients });
         if (requestId !== activeRequest) return;
-        message.textContent = 'Campanha criada. O link e a mensagem de convite já estão disponíveis para compartilhamento.';
+        message.textContent = 'Campanha salva. Gere um link para o compartilhamento manual; o preparo de e-mail depende da configuração do ambiente.';
         message.classList.remove('d-none');
         await tab('campaign');
       } catch (ex) {
@@ -212,7 +265,7 @@
     error.classList.add('d-none');
     try {
       if (name === 'campaign') {
-        try { const data = await campaignApi(); if (requestId === activeRequest) campaignView(data); } catch (ex) { if (requestId !== activeRequest) return; if (ex.code === 'CAMPAIGN_NOT_FOUND') campaignEmpty(); else throw ex; }
+        try { const data = await campaignApi(); if (requestId === activeRequest) campaignView(data); } catch (ex) { if (requestId !== activeRequest) return; if (ex.code === 'CAMPAIGN_NOT_FOUND') { if (ex.canManage && !ex.readOnly) campaignEmpty(); else content.innerHTML = '<p>Nenhuma campanha registrada. Solicite a configuração a um usuário autorizado.</p>'; } else throw ex; }
         return;
       }
       if (name === 'actions') {

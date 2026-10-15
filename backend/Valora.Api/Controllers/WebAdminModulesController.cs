@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Valora.Application.Common;
 using Valora.Application.Contracts;
+using Valora.Application.ModularSaas;
 using Valora.Application.DTOs;
 using Valora.Application.Security;
 
@@ -19,15 +20,36 @@ public sealed class WebAdminModulesController(
     IResponseRepository responses,
     IAuditRepository audit,
     IPlanRepository plans,
-    ICurrentRequestContext currentRequest) : ControllerBase {
+    ICurrentRequestContext currentRequest, IPermissionService permissions, ICommercialSaasRepository commercial) : ControllerBase {
     private CurrentRequestContext Context => currentRequest.GetCurrent();
     private Guid OrganizationId => Context.EffectiveOrganizationId ?? Guid.Empty;
     private Guid? UserId => Context.UserId;
     private string CorrelationId => HttpContext.TraceIdentifier;
 
-    private async Task<IActionResult> Safe(Func<Task<object?>> action, string actionName) {
+    private async Task<IActionResult> Safe(Func<Task<object?>> action, string actionName, string? surveyPermission = null) {
         if (OrganizationId == Guid.Empty) return StatusCode(StatusCodes.Status403Forbidden, new { status = 403, code = "ORGANIZATION_SCOPE_REQUIRED", message = "Selecione uma organização para acessar este recurso.", correlationId = CorrelationId });
+        var permission = surveyPermission ?? (actionName switch {
+            "surveys.list" or "surveys.get" or "links.list" => "surveys.read",
+            "surveys.create" => "surveys.create",
+            "surveys.update" => "surveys.update",
+            "links.create" or "links.status" => "surveys.distribute",
+            _ => null
+        });
+        if (permission is not null) {
+            if (!Context.IsGlobalAdministrator && (UserId is not { } actor || !await permissions.HasPermissionAsync(actor, permission, OrganizationId)))
+                return StatusCode(403, new { code = "PERMISSION_DENIED", message = "Você não tem permissão para executar esta ação.", correlationId = CorrelationId });
+            var write = !HttpMethods.IsGet(Request.Method) && !HttpMethods.IsHead(Request.Method);
+            var access = await commercial.EvaluateAccessAsync(OrganizationId, "surveys", write, HttpContext.RequestAborted);
+            if (!access.Allowed || (write && access.ReadOnly))
+                return StatusCode(403, new { code = access.Code, message = access.Message, correlationId = CorrelationId });
+        }
         try { return Ok(await action()); }
+        catch (ArgumentException ex) when (permission is not null) {
+            return BadRequest(new { code = "SURVEY_VALIDATION_FAILED", message = ex.Message, correlationId = CorrelationId });
+        }
+        catch (InvalidOperationException ex) when (permission is not null) {
+            return UnprocessableEntity(new { code = "SURVEY_NOT_AVAILABLE", message = ex.Message, correlationId = CorrelationId });
+        }
         catch (Exception ex) {
             logger.LogError(ex, "Falha controlada em endpoint administrativo web. Action={Action} OrganizationId={OrganizationId} CorrelationId={CorrelationId}", actionName, OrganizationId, CorrelationId);
             return StatusCode(500, new { ok = false, code = "WEB_ADMIN_ENDPOINT_ERROR", message = "Falha controlada ao processar a solicitação.", correlationId = CorrelationId });
@@ -55,7 +77,7 @@ public sealed class WebAdminModulesController(
     [HttpPut("/surveys/{surveyId:guid}")]
     public Task<IActionResult> UpdateSurvey(Guid surveyId, [FromBody] JsonElement request) => Safe(async () => { await surveys.UpdateAdminAsync(OrganizationId, surveyId, GuidValue(request, "formId"), GuidValue(request, "formVersionId"), Text(request, "title"), Text(request, "description"), DateValue(request, "startsAt"), DateValue(request, "expiresAt")); await Audit("survey.updated", "survey", surveyId); return new { ok = true, id = surveyId, correlationId = CorrelationId }; }, "surveys.update");
     [HttpPatch("/surveys/{surveyId:guid}/status")]
-    public Task<IActionResult> SurveyStatus(Guid surveyId, [FromBody] JsonElement request) => Safe(async () => { await surveys.UpdateStatusAdminAsync(OrganizationId, surveyId, Text(request, "status") ?? "draft"); await Audit("survey.status", "survey", surveyId); return new { ok = true, id = surveyId, correlationId = CorrelationId }; }, "surveys.status");
+    public Task<IActionResult> SurveyStatus(Guid surveyId, [FromBody] JsonElement request) => Safe(async () => { await surveys.UpdateStatusAdminAsync(OrganizationId, surveyId, Text(request, "status") ?? "draft"); await Audit("survey.status", "survey", surveyId); return new { ok = true, id = surveyId, correlationId = CorrelationId }; }, "surveys.status", Text(request, "status") == "closed" ? "surveys.close" : "surveys.publish");
 
     [HttpGet("/surveys/{surveyId:guid}/links")]
     public Task<IActionResult> Links(Guid surveyId) => Safe(async () => new { ok = true, data = await surveys.ListLinksAdminAsync(OrganizationId, surveyId), correlationId = CorrelationId }, "links.list");

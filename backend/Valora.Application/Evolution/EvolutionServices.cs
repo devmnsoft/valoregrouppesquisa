@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Valora.Application.OrganizationalIntelligence;
 using Valora.Application.Common;
 using Valora.Application.Access;
@@ -7,7 +8,7 @@ namespace Valora.Application.Evolution;
 
 public sealed record EvolutionCycleDto(Guid Id, Guid? DiagnosticId, Guid? ResultId, string Title, string Summary, string Status, decimal? BaselineScore, decimal? CurrentScore, decimal? TargetScore, string? BaselineLevel, string? CurrentLevel, string Trend, DateTime PeriodStart, DateTime? PeriodEnd, string EvidenceSummary, string? LearningSummary, string BaselineSource, string? MethodologyVersion, DateTime CreatedAt, string? PendingTreatment = null);
 public sealed record EvolutionSnapshotDto(Guid Id, Guid EvolutionCycleId, string SnapshotType, decimal? Score, decimal? PreviousScore, decimal? Delta, string? Level, string Trend, int CompletedActions, int DelayedActions, int OpenAlerts, string EvidenceSummary, string Interpretation, string Recommendation, DateTime CalculatedAt, string MetadataJson = "{}");
-public sealed record EvolutionResultOptionDto(Guid SourceSurveyId, string DiagnosticTitle, decimal Score, decimal MaxScore, decimal Percentage, string MethodologyVersion, DateTime CalculatedAt, int ScoredResponseCount, string ResultType = "organizational_aggregate_candidate");
+public sealed record EvolutionResultOptionDto(Guid SourceSurveyId, string DiagnosticTitle, decimal Score, decimal MaxScore, decimal Percentage, string MethodologyVersion, DateTime CalculatedAt, int ScoredResponseCount, string ResultType = "organizational_aggregate_candidate", string? Limitation = null);
 public sealed record OpenEvolutionCycleRequest(Guid? DiagnosticId, Guid? ResultId, Guid? GovernanceCycleId, string Title, string Summary, decimal? BaselineScore, decimal? TargetScore, string? BaselineLevel, DateTime PeriodStart, DateTime? PeriodEnd, string EvidenceSummary, string? MethodologyVersion = null, string? PopulationSignature = null, string? DimensionSignature = null, string? ScaleSignature = null, string? CalculationCriteria = null, string BaselineSource = "manual_informed", Guid? SourceSurveyId = null, PreservedEvolutionMeasurement? Measurement = null, string? ReferenceMode = null);
 public interface IEvolutionRepository {
     Task<Guid> ReviewReference(Guid o, Guid u, Guid cycle, long version, string evidence, string nextStep, string commandId, CancellationToken c) => throw new NotSupportedException();
@@ -32,7 +33,7 @@ public interface IEvolutionCycleService {
     Task<Guid> ConfirmReevaluation(Guid o, Guid u, Guid cycle, Guid surveyId, long version, string fingerprint, string commandId, CancellationToken c);
     Task CloseReviewed(Guid o, Guid u, Guid cycle, long version, string learning, string pendingTreatment, CancellationToken c);
 }
-public sealed class EvolutionCycleService(IEvolutionRepository r, IOrganizationalIntelligenceRepository intelligence, ICurrentRequestContext context, ICommercialSaasRepository commercial) : IEvolutionCycleService {
+public sealed class EvolutionCycleService(IEvolutionRepository r, IOrganizationalIntelligenceRepository intelligence, ICurrentRequestContext context, ICommercialSaasRepository commercial, ILogger<EvolutionCycleService>? logger = null) : IEvolutionCycleService {
     public async Task<Guid> ReviewReference(Guid o, Guid u, Guid cycle, long version, string evidence, string nextStep, string commandId, CancellationToken c) {
         await Authorize(o, u, c);
         if (version < 1 || !Guid.TryParseExact(commandId, "N", out _)) throw new ArgumentException("A revisão exige versão e identificador de comando válidos.");
@@ -48,7 +49,7 @@ public sealed class EvolutionCycleService(IEvolutionRepository r, IOrganizationa
     public async Task<EvolutionResultOptionDto?> SelectedOption(Guid o, Guid surveyId, CancellationToken c) {
         AuthorizeRead(o);
         var reading = await intelligence.GetEvolutionSurveyAsync(o, surveyId, c);
-        return reading?.MaturityIndex is { } score ? new(reading.SurveyId, reading.Title, score, 100, score, EvolutionMeasurementBasis.Capture(reading).Basis.MethodologyVersion, reading.CapturedAt, reading.ScoredResponseCount) : null;
+        return reading?.MaturityIndex is >= 0 and <= 100 ? ToOption(reading) : null;
     }
     public async Task<EvolutionSelectionPage> SelectionPage(Guid o, Guid? diagnosticId, int page, CancellationToken c) {
         AuthorizeRead(o);
@@ -57,9 +58,18 @@ public sealed class EvolutionCycleService(IEvolutionRepository r, IOrganizationa
         var readings = await intelligence.SelectEvolutionSurveysAsync(o, surveyId, page, 20, c);
         var options = readings
             .Where(x => x.MaturityIndex is >= 0 and <= 100)
-            .Select(x => new EvolutionResultOptionDto(x.SurveyId, x.Title, x.MaturityIndex!.Value, 100, x.MaturityIndex.Value, EvolutionMeasurementBasis.Capture(x).Basis.MethodologyVersion, x.CapturedAt, x.ScoredResponseCount))
+            .Select(ToOption)
             .ToList();
         return new(options, Math.Max(1, page), readings.Count == 20);
+    }
+    private EvolutionResultOptionDto ToOption(EvolutionSurveyComparisonDto reading) {
+        var measurement = EvolutionMeasurementBasis.Capture(reading);
+        if (!measurement.Basis.DataAvailable)
+            logger?.LogWarning("Evolution metadata invalid for survey {SurveyId}", reading.SurveyId);
+        var comparison = EvolutionComparisonService.Compare(measurement.Score, measurement.Basis, measurement.Score, measurement.Basis);
+        return new(reading.SurveyId, reading.Title, measurement.Score, 100, measurement.Score,
+            measurement.Basis.MethodologyVersion, reading.CapturedAt, reading.ScoredResponseCount,
+            Limitation: measurement.Basis.DataAvailable ? (comparison.IsComparable ? null : comparison.Limitation) : measurement.Limitation);
     }
     public async Task<Guid> Open(Guid o, Guid u, OpenEvolutionCycleRequest x, CancellationToken c) {
         await Authorize(o, u, c);
@@ -123,7 +133,7 @@ public sealed class EvolutionCycleService(IEvolutionRepository r, IOrganizationa
     }
     private void AuthorizeRead(Guid o) {
         var access = context.GetCurrent();
-        if (access.RequireOrganizationId() != o || (!access.IsGlobalAdministrator && !access.Permissions.Contains(ValoraPermissions.Evolution.Read, StringComparer.OrdinalIgnoreCase) && !access.Permissions.Contains(ValoraPermissions.Evolution.Manage, StringComparer.OrdinalIgnoreCase)))
+        if (access.RequireOrganizationId() != o || (!access.IsGlobalAdministrator && !access.Permissions.Contains(ValoraPermissions.Evolution.Read, StringComparer.OrdinalIgnoreCase)))
             throw new UnauthorizedAccessException("Sem permissão para consultar a evolução desta organização.");
     }
 
@@ -200,8 +210,9 @@ public static class EvolutionComparisonService {
             : new(false, null, $"Comparação indisponível: diferem {string.Join(", ", differences)}. Os resultados devem ser analisados separadamente.");
     }
     private static bool Known(string value) => !string.IsNullOrWhiteSpace(value)
-        && !string.Equals(value.Trim(), "indefinida", StringComparison.OrdinalIgnoreCase)
-        && !string.Equals(value.Trim(), "unknown", StringComparison.OrdinalIgnoreCase);
+        && value.Split('@').All(part => !string.IsNullOrWhiteSpace(part)
+            && !string.Equals(part.Trim(), "indefinida", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(part.Trim(), "unknown", StringComparison.OrdinalIgnoreCase));
 }
 public sealed class OpenEvolutionCycleUseCase(EvolutionCycleService s) { public Task<Guid> Execute(Guid o, Guid u, OpenEvolutionCycleRequest r, CancellationToken c) => s.Open(o, u, r, c); }
 public sealed class CloseEvolutionCycleUseCase(EvolutionCycleService s) { public Task Execute(Guid o, Guid u, Guid id, string l, CancellationToken c) => s.Close(o, u, id, l, c); }

@@ -24,4 +24,8 @@ public sealed class DiagnosticWorkspaceService(IDiagnosticWorkspaceRepository re
     public async Task<DiagnosticWorkspaceCommandDto?> ProcessAsync(Guid o, Guid id, Guid user, string correlation, CancellationToken ct) { var c = await repository.GetCycleAsync(o, id, ct); if (c is null) return null; if (await repository.HasActiveJobAsync(o, c.SurveyId, ct)) return new(c.Id, "processing", "Já existe um processamento em andamento para este diagnóstico."); var job = await repository.MarkProcessingAsync(o, c, user, correlation, ct); return new(c.Id, "processing", "A Inteligência Organizacional iniciou o processamento deste ciclo.", job); }
     public async Task<DiagnosticWorkspaceCommandDto?> CloseCycleAsync(Guid o, Guid id, Guid user, string correlation, CancellationToken ct) { var c = await repository.GetCycleAsync(o, id, ct); return c is null ? null : await repository.CloseAsync(o, c, user, correlation, ct); }
     public async Task<DiagnosticWorkspaceCommandDto?> GenerateReportAsync(Guid o, Guid id, Guid user, bool preview, CancellationToken ct) { var c = await repository.GetCycleAsync(o, id, ct); return c is null ? null : await repository.GenerateReportAsync(o, c, user, preview, ct); }
+    public Task<DiagnosticWorkspacePreparationOptionsDto?> GetPreparationOptionsAsync(Guid organizationId, Guid surveyId, CancellationToken ct) =>
+        repository.GetPreparationOptionsAsync(organizationId, surveyId, ct);
+    public Task<DiagnosticCycleDto?> UpdatePreparationAsync(Guid organizationId, Guid surveyId, UpdateDiagnosticPreparationDto dto, Guid userId, string correlationId, CancellationToken ct) =>
+        repository.UpdatePreparationAsync(organizationId, surveyId, dto, userId, correlationId, ct);
 }

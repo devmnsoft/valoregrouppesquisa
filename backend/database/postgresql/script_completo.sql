@@ -7154,6 +7154,10 @@ ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS public_url text;
 ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS is_free boolean NOT NULL DEFAULT false;
 ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS plan_id varchar(80);
 ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS revoked_at timestamptz;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS responsible_user_id uuid REFERENCES valorapesquisa.users(id);
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS target_audience text;
+ALTER TABLE valorapesquisa.diagnostic_cycles ADD COLUMN IF NOT EXISTS responsible_user_id uuid REFERENCES valorapesquisa.users(id);
+ALTER TABLE valorapesquisa.diagnostic_cycles ADD COLUMN IF NOT EXISTS target_audience text;
 
 ALTER TABLE valorapesquisa.survey_links ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
 ALTER TABLE valorapesquisa.survey_links ADD COLUMN IF NOT EXISTS is_deleted boolean NOT NULL DEFAULT false;
@@ -7323,5 +7327,10 @@ ALTER TABLE valorapesquisa.formal_deliverable_templates ADD COLUMN IF NOT EXISTS
 
 INSERT INTO valorapesquisa.schema_migrations(version,checksum)
 VALUES('2026_10_formal_deliverables_lifecycle_columns','sha256:formal-deliverables-lifecycle-columns-v1')
+ON CONFLICT(version) DO NOTHING;
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS row_version integer NOT NULL DEFAULT 1;
+ALTER TABLE valorapesquisa.diagnostic_cycles ADD COLUMN IF NOT EXISTS row_version integer NOT NULL DEFAULT 1;
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_10_diagnostic_preparation_optimistic_concurrency','sha256:diagnostic-preparation-optimistic-concurrency-v1')
 ON CONFLICT(version) DO NOTHING;
 COMMIT;

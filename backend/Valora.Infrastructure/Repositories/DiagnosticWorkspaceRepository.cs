@@ -33,9 +33,12 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
           dc.confidence_level ConfidenceLevel,coalesce(dc.processing_status,'pending') ProcessingStatus,s.public_url PublicUrl,
           coalesce(dc.created_at,s.created_at) CreatedAt,coalesce(dc.updated_at,s.updated_at,s.created_at) UpdatedAt,
           f.name FormName, fv.version FormVersionNumber, s.starts_at StartsAt, s.expires_at ExpiresAt,
-          coalesce(s.public_slug, 'Participantes com link elegível') TargetAudience,
+          coalesce(nullif(to_jsonb(dc)->>'target_audience',''), nullif(to_jsonb(s)->>'target_audience',''), nullif(dc.metadata_json->>'targetAudience',''), nullif(dc.metadata_json->>'target_audience',''), (SELECT nullif(camp.audience_json->>'description','') FROM valorapesquisa.diagnostic_campaigns camp WHERE camp.organization_id=s.organization_id AND camp.survey_id=s.id AND camp.deleted_at IS NULL ORDER BY camp.created_at DESC LIMIT 1)) TargetAudience,
           coalesce((SELECT channel FROM valorapesquisa.diagnostic_campaigns camp WHERE camp.organization_id=s.organization_id AND camp.survey_id=s.id ORDER BY camp.created_at DESC LIMIT 1), 'manual') DistributionChannel,
-          (SELECT u.name FROM valorapesquisa.users u WHERE u.organization_id=s.organization_id AND u.status='active' ORDER BY u.created_at LIMIT 1) ResponsibleName
+          (SELECT u.name FROM valorapesquisa.users u WHERE u.id=coalesce((to_jsonb(dc)->>'responsible_user_id')::uuid, (to_jsonb(s)->>'responsible_user_id')::uuid, (dc.metadata_json->>'responsibleUserId')::uuid, (dc.metadata_json->>'responsible_user_id')::uuid, (to_jsonb(dc)->>'created_by')::uuid, (SELECT camp.created_by FROM valorapesquisa.diagnostic_campaigns camp WHERE camp.organization_id=s.organization_id AND camp.survey_id=s.id AND camp.deleted_at IS NULL ORDER BY camp.created_at DESC LIMIT 1)) AND u.organization_id=s.organization_id) ResponsibleName,
+          coalesce((to_jsonb(dc)->>'responsible_user_id')::uuid, (to_jsonb(s)->>'responsible_user_id')::uuid, (dc.metadata_json->>'responsibleUserId')::uuid, (dc.metadata_json->>'responsible_user_id')::uuid) ResponsibleUserId,
+          s.form_version_id FormVersionId,
+          coalesce(nullif(to_jsonb(s)->>'row_version','')::int, nullif(to_jsonb(dc)->>'row_version','')::int, 1) RowVersion
         FROM valorapesquisa.surveys s
         LEFT JOIN valorapesquisa.diagnostic_cycles dc ON dc.survey_id=s.id AND dc.organization_id=s.organization_id AND dc.deleted_at IS NULL
         LEFT JOIN valorapesquisa.form_versions fv ON fv.id=s.form_version_id
@@ -219,21 +222,80 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
               jsonb_build_object(
                 'respostasRecebidas', (SELECT count(*)::int FROM valorapesquisa.responses WHERE organization_id=@organizationId AND survey_id=@surveyId AND coalesce(is_deleted,false)=false),
                 'respostasValidas', (SELECT count(*)::int FROM valorapesquisa.responses WHERE organization_id=@organizationId AND survey_id=@surveyId AND status='completed' AND coalesce(is_deleted,false)=false),
-                'respostasPontuadas', (SELECT count(*)::int FROM valorapesquisa.result_scores rs JOIN valorapesquisa.responses r ON r.id=rs.response_id WHERE r.organization_id=@organizationId AND r.survey_id=@surveyId AND coalesce(r.is_deleted,false)=false),
+                'respostasPontuadas', (SELECT count(DISTINCT r.id)::int FROM valorapesquisa.result_scores rs JOIN valorapesquisa.responses r ON r.id=rs.response_id WHERE r.organization_id=@organizationId AND r.survey_id=@surveyId AND coalesce(r.is_deleted,false)=false),
                 'pendenciasProcessamento', (SELECT count(*)::int FROM valorapesquisa.intelligence_processing_jobs WHERE organization_id=@organizationId AND survey_id=@surveyId AND status IN ('pending','running','retry_scheduled') AND deleted_at IS NULL),
-                'destinatariosEmail', coalesce((SELECT count(*)::int FROM valorapesquisa.diagnostic_campaign_recipients dcr JOIN valorapesquisa.diagnostic_campaigns dc ON dc.id=dcr.campaign_id WHERE dc.organization_id=@organizationId AND dc.survey_id=@surveyId), 0) + (SELECT count(*)::int FROM valorapesquisa.survey_invites WHERE organization_id=@organizationId AND survey_id=@surveyId),
-                'mensagensFila', (SELECT count(*)::int FROM valorapesquisa.email_jobs WHERE organization_id=@organizationId AND status IN ('pending','queued')),
-                'enviosRegistrados', (SELECT count(*)::int FROM valorapesquisa.email_jobs WHERE organization_id=@organizationId AND status IN ('sent','delivered')),
-                'falhas', (SELECT count(*)::int FROM valorapesquisa.email_jobs WHERE organization_id=@organizationId AND status IN ('failed','undelivered','bounced')),
+                'destinatariosEmail', (
+                    SELECT count(DISTINCT coalesce(nullif(hash,''), id::text))::int FROM (
+                        SELECT lower(trim(coalesce(nullif(dcr.email_hash,''), nullif(dcr.recipient_reference,''), dcr.id::text))) as hash, dcr.id
+                        FROM valorapesquisa.diagnostic_campaign_recipients dcr
+                        JOIN valorapesquisa.diagnostic_campaigns dc ON dc.id=dcr.campaign_id
+                        WHERE dc.organization_id=@organizationId AND dc.survey_id=@surveyId AND dcr.deleted_at IS NULL
+                        UNION ALL
+                        SELECT lower(trim(coalesce(nullif(si.email_hash,''), si.id::text))) as hash, si.id
+                        FROM valorapesquisa.survey_invites si
+                        WHERE si.organization_id=@organizationId AND si.survey_id=@surveyId
+                    ) t
+                ),
+                'mensagensFila', (
+                    SELECT count(*)::int FROM valorapesquisa.email_jobs ej
+                    WHERE ej.organization_id=@organizationId
+                      AND ej.status IN ('pending','queued')
+                      AND (
+                        ej.id IN (
+                            SELECT dcr.email_job_id FROM valorapesquisa.diagnostic_campaign_recipients dcr
+                            JOIN valorapesquisa.diagnostic_campaigns dc ON dc.id=dcr.campaign_id
+                            WHERE dc.organization_id=@organizationId AND dc.survey_id=@surveyId AND dcr.email_job_id IS NOT NULL
+                        )
+                        OR ej.response_id IN (
+                            SELECT r.id FROM valorapesquisa.responses r
+                            WHERE r.organization_id=@organizationId AND r.survey_id=@surveyId
+                        )
+                        OR (ej.payload_json->>'surveyId')::text = @surveyId::text
+                      )
+                ),
+                'enviosRegistrados', (
+                    SELECT count(*)::int FROM valorapesquisa.email_jobs ej
+                    WHERE ej.organization_id=@organizationId
+                      AND ej.status IN ('sent','delivered')
+                      AND (
+                        ej.id IN (
+                            SELECT dcr.email_job_id FROM valorapesquisa.diagnostic_campaign_recipients dcr
+                            JOIN valorapesquisa.diagnostic_campaigns dc ON dc.id=dcr.campaign_id
+                            WHERE dc.organization_id=@organizationId AND dc.survey_id=@surveyId AND dcr.email_job_id IS NOT NULL
+                        )
+                        OR ej.response_id IN (
+                            SELECT r.id FROM valorapesquisa.responses r
+                            WHERE r.organization_id=@organizationId AND r.survey_id=@surveyId
+                        )
+                        OR (ej.payload_json->>'surveyId')::text = @surveyId::text
+                      )
+                ),
+                'falhas', (
+                    SELECT count(*)::int FROM valorapesquisa.email_jobs ej
+                    WHERE ej.organization_id=@organizationId
+                      AND ej.status IN ('failed','undelivered','bounced')
+                      AND (
+                        ej.id IN (
+                            SELECT dcr.email_job_id FROM valorapesquisa.diagnostic_campaign_recipients dcr
+                            JOIN valorapesquisa.diagnostic_campaigns dc ON dc.id=dcr.campaign_id
+                            WHERE dc.organization_id=@organizationId AND dc.survey_id=@surveyId AND dcr.email_job_id IS NOT NULL
+                        )
+                        OR ej.response_id IN (
+                            SELECT r.id FROM valorapesquisa.responses r
+                            WHERE r.organization_id=@organizationId AND r.survey_id=@surveyId
+                        )
+                        OR (ej.payload_json->>'surveyId')::text = @surveyId::text
+                      )
+                ),
                 'origens', jsonb_build_object(
-                    'respostasRecebidas', 'Tabela responses (is_deleted=false) associadas ao diagnóstico.',
-                    'respostasValidas', 'Tabela responses com status=completed e sem exclusão lógica.',
-                    'respostasPontuadas', 'Tabela result_scores com cálculo de maturidade persistido.',
-                    'pendenciasProcessamento', 'Tabela intelligence_processing_jobs com status pendente ou em execução.',
-                    'destinatariosEmail', 'Destinatários registrados em campanhas e convites diretos do diagnóstico.',
-                    'mensagensFila', 'Mensagens de e-mail na fila (status pending/queued).',
-                    'enviosRegistrados', 'Disparos confirmados como enviados ou entregues.',
-                    'falhas', 'Disparos com falha ou devolução registradas.'
+                    'respostasRecebidas', 'Respostas registradas com vínculo direto a este diagnóstico.',
+                    'respostasValidas', 'Respostas concluídas (status completed) associadas exclusivamente a este diagnóstico.',
+                    'respostasPontuadas', 'Respostas distintas com scores de maturidade apurados.',
+                    'pendenciasProcessamento', 'Tarefas de inteligência analítica pendentes ou em reprocessamento.',
+                    'destinatariosEmail', 'Destinatários únicos consolidados de campanhas e convites deste diagnóstico.',
+                    'mensagensFila', 'Disparos na fila vinculados às campanhas ou respostas deste diagnóstico.',
+                    'enviosRegistrados', 'Disparos concluídos com sucesso para este diagnóstico.',
+                    'falhas', 'Disparos com falha ou devolução registrados para este diagnóstico.'
                 )
               )::text DataJson,
               now() CreatedAt,
@@ -262,17 +324,18 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
               (to_jsonb(x.data) || jsonb_build_object(
                 'id', x.id,
                 'code', x.code,
+                'originType', 'insight',
                 'status', x.status,
                 'title', coalesce(x.data->>'title', x.code, 'Achado analítico'),
                 'description', coalesce(x.data->>'executiveSummary', x.data->>'description', x.data->>'probableCause', 'Achado gerado a partir de evidências do diagnóstico.'),
                 'dimension', coalesce(x.data->>'dimension', x.data->>'related_dimension', 'Maturidade Organizacional'),
                 'evidenceCount', coalesce(jsonb_array_length(case when jsonb_typeof(x.data->'evidenceIds')='array' then x.data->'evidenceIds' else '[]'::jsonb end), 0),
                 'limitation', coalesce(x.data->>'limitation', 'Sustentado exclusivamente pelas evidências convergentes da amostra coletada.'),
-                'nature', coalesce(x.data->>'nature', 'sugestao_ia'),
+                'nature', coalesce(x.data->>'nature', case when x.status IN ('approved','reviewed','converted_to_action') then 'decisao_revisada' when x.code IN ('hypothesis','inference') then 'hipotese' when x.data->>'calculatedScore' is not null then 'fato_calculado' else 'sugestao_ia' end),
                 'confidence', x.data->>'confidence',
                 'recommendation', coalesce(x.data->>'recommendation', 'Revisar metodologicamente e converter em plano de ação rastreável.'),
                 'reviewStatus', coalesce(x.data->>'reviewStatus', x.status, 'pending_review'),
-                'linkedPlanId', (SELECT ap.id FROM valorapesquisa.action_plans ap WHERE ap.organization_id=@organizationId AND (ap.origin_id=x.id OR ap.diagnostic_id=@surveyId) AND ap.deleted_at IS NULL ORDER BY ap.created_at DESC LIMIT 1)
+                'linkedPlanId', (SELECT ap.id FROM valorapesquisa.action_plans ap WHERE ap.organization_id=@organizationId AND ap.origin_id=x.id AND ap.deleted_at IS NULL ORDER BY ap.created_at DESC LIMIT 1)
               ))::text DataJson,
               x.created_at CreatedAt, x.updated_at UpdatedAt
             FROM valorapesquisa.insights x
@@ -282,13 +345,14 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
               jsonb_build_object(
                 'id', vi.id,
                 'code', vi.insight_type,
+                'originType', 'valora_ai_insight',
                 'status', vi.status,
                 'title', vi.title,
                 'description', vi.summary,
                 'dimension', coalesce(vi.related_dimension, 'Geral'),
                 'evidenceSummary', vi.evidence_summary,
                 'limitation', coalesce(vi.limitation, 'Sustentado pelas evidências vinculadas ao pacote analítico.'),
-                'nature', 'sugestao_ia',
+                'nature', case when vi.status IN ('approved','reviewed','converted_to_action') then 'decisao_revisada' else 'sugestao_ia' end,
                 'confidence', vi.confidence_level,
                 'recommendation', vi.recommendation,
                 'reviewStatus', vi.status,
@@ -324,6 +388,153 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
         }
         catch { await u.RollbackAsync(); throw; }
     }
+    public async Task<DiagnosticWorkspacePreparationOptionsDto> GetPreparationOptionsAsync(Guid organizationId, Guid surveyId, CancellationToken ct) {
+        using var c = connections.Create();
+        var users = (await c.QueryAsync<EligibleUserDto>(new CommandDefinition(
+            """
+            SELECT u.id, u.name, u.email, NULL as Department
+            FROM valorapesquisa.users u
+            WHERE u.organization_id=@organizationId AND u.status='active' AND coalesce(u.is_deleted,false)=false
+            ORDER BY u.name ASC
+            """, new { organizationId }, cancellationToken: ct))).ToList();
+
+        var surveyInfo = await c.QuerySingleOrDefaultAsync<(Guid FormId, Guid FormVersionId, string Status, int ResponseCount)>(new CommandDefinition(
+            """
+            SELECT coalesce(s.form_id, fv.form_id) FormId, s.form_version_id FormVersionId, s.status Status,
+                   (SELECT count(*)::int FROM valorapesquisa.responses r WHERE r.organization_id=@organizationId AND r.survey_id=@surveyId AND coalesce(r.is_deleted,false)=false) ResponseCount
+            FROM valorapesquisa.surveys s
+            LEFT JOIN valorapesquisa.form_versions fv ON fv.id=s.form_version_id
+            WHERE s.organization_id=@organizationId AND s.id=@surveyId AND coalesce(s.is_deleted,false)=false
+            LIMIT 1
+            """, new { organizationId, surveyId }, cancellationToken: ct));
+
+        var versions = (await c.QueryAsync<FormVersionOptionDto>(new CommandDefinition(
+            """
+            SELECT fv.id, fv.version, f.name Title, fv.status, fv.is_immutable IsImmutable, fv.created_at CreatedAt
+            FROM valorapesquisa.form_versions fv
+            JOIN valorapesquisa.forms f ON f.id=fv.form_id
+            WHERE fv.form_id=@formId AND fv.status='published'
+            ORDER BY fv.version DESC
+            """, new { formId = surveyInfo.FormId }, cancellationToken: ct))).ToList();
+
+        bool canChange = surveyInfo.Status == "draft" && surveyInfo.ResponseCount == 0;
+        string? lockReason = surveyInfo.ResponseCount > 0
+            ? $"Metodologia fixada porque já existem {surveyInfo.ResponseCount} respostas coletadas neste ciclo."
+            : surveyInfo.Status != "draft"
+                ? "A metodologia só pode ser alterada enquanto o diagnóstico estiver em rascunho."
+                : null;
+
+        return new DiagnosticWorkspacePreparationOptionsDto(users, versions, canChange, lockReason);
+    }
+
+    public async Task<DiagnosticCycleDto> UpdatePreparationAsync(Guid organizationId, Guid surveyId, UpdateDiagnosticPreparationDto dto, Guid userId, string correlationId, CancellationToken ct) {
+        if (string.IsNullOrWhiteSpace(dto.Title) || dto.Title.Trim().Length < 3)
+            throw new ArgumentException("O título do diagnóstico é obrigatório e deve ter no mínimo 3 caracteres.", nameof(dto.Title));
+
+        if (dto.StartsAt.HasValue && dto.ExpiresAt.HasValue && dto.ExpiresAt.Value <= dto.StartsAt.Value)
+            throw new ArgumentException("O prazo final de coleta deve ser posterior à data de início.", nameof(dto.ExpiresAt));
+
+        await using var u = await transactions.BeginAsync(ct);
+        try {
+            var current = await u.Connection.QuerySingleOrDefaultAsync<(Guid Id, Guid FormId, Guid FormVersionId, string Status, int ResponseCount, int RowVersion)>(new CommandDefinition(
+                """
+                SELECT s.id,
+                       coalesce(s.form_id, (SELECT fv.form_id FROM valorapesquisa.form_versions fv WHERE fv.id=s.form_version_id)) FormId,
+                       s.form_version_id FormVersionId, s.status Status,
+                       (SELECT count(*)::int FROM valorapesquisa.responses r WHERE r.organization_id=@organizationId AND r.survey_id=@surveyId AND coalesce(r.is_deleted,false)=false) ResponseCount,
+                       coalesce(nullif(to_jsonb(s)->>'row_version','')::int, 1) RowVersion
+                FROM valorapesquisa.surveys s
+                WHERE s.organization_id=@organizationId AND s.id=@surveyId AND coalesce(s.is_deleted,false)=false
+                FOR UPDATE
+                """, new { organizationId, surveyId }, u.Transaction, cancellationToken: ct));
+
+            if (current.Id == Guid.Empty)
+                throw new KeyNotFoundException("Diagnóstico não encontrado.");
+
+            if (dto.RowVersion > 0 && current.RowVersion != dto.RowVersion)
+                throw new DiagnosticConcurrencyException("O diagnóstico foi modificado por outro usuário ou sessão. Recarregue a página para obter a versão mais recente dos parâmetros.");
+
+            if (dto.ResponsibleUserId.HasValue) {
+                var userExists = await u.Connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+                    "SELECT EXISTS(SELECT 1 FROM valorapesquisa.users WHERE id=@userId AND organization_id=@organizationId AND status='active' AND coalesce(is_deleted,false)=false)",
+                    new { userId = dto.ResponsibleUserId.Value, organizationId }, u.Transaction, cancellationToken: ct));
+                if (!userExists)
+                    throw new ArgumentException("O responsável designado deve ser um usuário ativo da organização.", nameof(dto.ResponsibleUserId));
+            }
+
+            var targetVersionId = current.FormVersionId;
+            if (dto.FormVersionId.HasValue && dto.FormVersionId.Value != current.FormVersionId) {
+                if (current.ResponseCount > 0)
+                    throw new InvalidOperationException($"Metodologia fixada porque já existem {current.ResponseCount} respostas coletadas neste ciclo.");
+                if (current.Status != "draft")
+                    throw new InvalidOperationException("A metodologia só pode ser alterada enquanto o diagnóstico estiver em rascunho.");
+
+                var versionValid = await u.Connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+                    "SELECT EXISTS(SELECT 1 FROM valorapesquisa.form_versions WHERE id=@versionId AND form_id=@formId AND status='published')",
+                    new { versionId = dto.FormVersionId.Value, formId = current.FormId }, u.Transaction, cancellationToken: ct));
+                if (!versionValid)
+                    throw new ArgumentException("A versão metodológica selecionada não é válida para este formulário ou não está publicada.", nameof(dto.FormVersionId));
+
+                targetVersionId = dto.FormVersionId.Value;
+            }
+
+            var cleanTitle = dto.Title.Trim();
+            var cleanDesc = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
+            var cleanAudience = string.IsNullOrWhiteSpace(dto.TargetAudience) ? null : dto.TargetAudience.Trim();
+
+            await u.Connection.ExecuteAsync(new CommandDefinition(
+                """
+                UPDATE valorapesquisa.surveys
+                SET title = @cleanTitle,
+                    description = @cleanDesc,
+                    target_audience = @cleanAudience,
+                    responsible_user_id = @responsibleUserId,
+                    form_version_id = @targetVersionId,
+                    starts_at = @startsAt,
+                    expires_at = @expiresAt,
+                    row_version = coalesce(row_version, 1) + 1,
+                    updated_at = now()
+                WHERE id = @surveyId AND organization_id = @organizationId;
+                """, new {
+                    surveyId, organizationId, cleanTitle, cleanDesc, cleanAudience,
+                    responsibleUserId = dto.ResponsibleUserId, targetVersionId,
+                    startsAt = dto.StartsAt, expiresAt = dto.ExpiresAt
+                }, u.Transaction, cancellationToken: ct));
+
+            await u.Connection.ExecuteAsync(new CommandDefinition(
+                """
+                INSERT INTO valorapesquisa.diagnostic_cycles
+                    (id, organization_id, survey_id, form_id, title, description, target_audience, responsible_user_id, collection_starts_at, collection_ends_at, row_version, updated_at)
+                VALUES
+                    (gen_random_uuid(), @organizationId, @surveyId, @formId, @cleanTitle, @cleanDesc, @cleanAudience, @responsibleUserId, @startsAt, @expiresAt, coalesce(@rowVersion, 1) + 1, now())
+                ON CONFLICT (organization_id, survey_id) WHERE deleted_at IS NULL
+                DO UPDATE SET
+                    title = @cleanTitle,
+                    description = @cleanDesc,
+                    target_audience = @cleanAudience,
+                    responsible_user_id = @responsibleUserId,
+                    collection_starts_at = @startsAt,
+                    collection_ends_at = @expiresAt,
+                    row_version = coalesce(valorapesquisa.diagnostic_cycles.row_version, 1) + 1,
+                    updated_at = now();
+                """, new {
+                    organizationId, surveyId, formId = current.FormId, cleanTitle, cleanDesc, cleanAudience,
+                    responsibleUserId = dto.ResponsibleUserId, startsAt = dto.StartsAt, expiresAt = dto.ExpiresAt,
+                    rowVersion = current.RowVersion
+                }, u.Transaction, cancellationToken: ct));
+
+            await Audit(u, organizationId, surveyId, userId, "diagnostic.preparation.updated", ct);
+            await u.CommitAsync();
+
+            var updatedCycle = await GetCycleAsync(organizationId, surveyId, ct);
+            return updatedCycle ?? throw new InvalidOperationException("Falha ao recuperar diagnóstico atualizado.");
+        }
+        catch {
+            await u.RollbackAsync();
+            throw;
+        }
+    }
+
     private static async Task<Guid> EnsureCycle(System.Data.IDbConnection c, System.Data.IDbTransaction tx, Guid o, DiagnosticCycleDto d, Guid user, CancellationToken ct) => await c.ExecuteScalarAsync<Guid>(new CommandDefinition("INSERT INTO valorapesquisa.diagnostic_cycles(organization_id,survey_id,form_id,title,description,status,methodology_version,created_by) VALUES(@o,@survey,@form,@Title,@Description,@Status,@MethodologyVersion,@user) ON CONFLICT(organization_id,survey_id) WHERE deleted_at IS NULL DO UPDATE SET updated_at=now() RETURNING id", new { o, survey = d.SurveyId, form = d.FormId, d.Title, d.Description, d.Status, d.MethodologyVersion, user }, tx, cancellationToken: ct));
     private static async Task Audit(Valora.Application.Contracts.IUnitOfWork u, Guid o, Guid cycle, Guid user, string code, CancellationToken ct) => await u.Connection.ExecuteAsync(new CommandDefinition("INSERT INTO valorapesquisa.platform_governance_events(organization_id,cycle_id,code,status,data) VALUES(@o,@cycle,@code,'completed',jsonb_build_object('userId',@user))", new { o, cycle, user, code }, u.Transaction, cancellationToken: ct));
     private sealed record Row(Guid Id, string? Code, string Status, string DataJson, DateTime CreatedAt, DateTime UpdatedAt);

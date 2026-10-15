@@ -1,0 +1,55 @@
+@model Valora.Web.Models.ViewModels.InDevelopmentViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+<main class="valora-page" id="main-content">
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+        Model.Title,
+        Model.Description,
+        "Valora Insight™",
+        "Em desenvolvimento",
+        new[] { new PageHeaderAction("Voltar", Model.ReturnUrl ?? "/Diagnostics", Style: "secondary", Icon: "arrow-left") }
+    ))" />
+
+    <section class="valora-card mb-4">
+        <h2>Sobre esta funcionalidade</h2>
+        <p class="fs-5 text-muted">@Model.DetailedDescription</p>
+
+        <div class="alert alert-info d-flex align-items-start gap-3 my-4">
+            <span class="fs-4">ℹ️</span>
+            <div>
+                <strong>Integração com a Jornada Diagnóstica:</strong>
+                <p class="mb-0 mt-1">@Model.DiagnosticJourneyRelation</p>
+            </div>
+        </div>
+
+        <div class="row g-3 my-3">
+            <div class="col-12 col-md-4">
+                <div class="metric-card h-100">
+                    <span class="text-muted small">Etapa Relacionada</span>
+                    <div class="h5 mt-2 mb-1"><strong>@Model.JourneyStage</strong></div>
+                    <small class="text-muted">Jornada de escuta, interpretação e evolução</small>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="metric-card h-100">
+                    <span class="text-muted small">Estado da Funcionalidade</span>
+                    <div class="h5 mt-2 mb-1"><span class="badge bg-warning text-dark">Em Desenvolvimento</span></div>
+                    <small class="text-muted">Roadmap oficial de engenharia</small>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="metric-card h-100">
+                    <span class="text-muted small">Acesso Alternativo</span>
+                    <div class="h5 mt-2 mb-1"><strong>Workspace Diagnóstico</strong></div>
+                    <small class="text-muted">Acompanhe dados e evidências atuais</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 flex-wrap mt-4 pt-3 border-top">
+            <a class="valora-button valora-button--primary" href="@(Model.ReturnUrl ?? "/Diagnostics")">Voltar ao Workspace Diagnóstico</a>
+            <a class="valora-button valora-button--secondary" href="/Dashboard">Ir para o Dashboard</a>
+        </div>
+    </section>
+</main>

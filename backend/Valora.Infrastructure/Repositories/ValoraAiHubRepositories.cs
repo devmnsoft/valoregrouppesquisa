@@ -77,14 +77,15 @@ public sealed class ValoraAiInsightRepository(IDbConnectionFactory connections) 
         var args = new { organizationId, userId, organizationWide, search, status, priority, dimension, diagnosticId = query.DiagnosticId, hasPlan = query.HasPlan, size, offset };
         var sql = $"""
             SELECT count(*)::int FROM valorapesquisa.valora_ai_insights vi WHERE {filter};
-            SELECT {Projection},d.title DiagnosticName,
+            SELECT {Projection},coalesce(nullif(trim(d.title),''), nullif(trim(s.title),''), nullif(trim(s.name),''), 'Diagnóstico sem nome') DiagnosticName,
               count(p.id)::int PlanCount,
               count(p.id) FILTER(WHERE p.status IN('approved','in_execution'))::int ActivePlanCount,
               count(p.id) FILTER(WHERE p.status IN('completed','canceled'))::int ClosedPlanCount
             FROM valorapesquisa.valora_ai_insights vi
             LEFT JOIN valorapesquisa.diagnostics d ON d.id=vi.diagnostic_id AND d.organization_id=vi.organization_id AND d.deleted_at IS NULL
+            LEFT JOIN valorapesquisa.surveys s ON s.id=vi.diagnostic_id AND s.organization_id=vi.organization_id AND coalesce(s.is_deleted,false)=false
             LEFT JOIN valorapesquisa.action_plans p ON p.organization_id=vi.organization_id AND p.origin_type='ai_insight' AND p.origin_id=vi.id AND p.deleted_at IS NULL AND {scope}
-            WHERE {filter} GROUP BY vi.id,d.title ORDER BY {order} LIMIT @size OFFSET @offset;
+            WHERE {filter} GROUP BY vi.id,d.title,s.title,s.name ORDER BY {order} LIMIT @size OFFSET @offset;
             SELECT
               count(*) FILTER(WHERE vi.status='pending_review')::int PendingReview,
               count(*) FILTER(WHERE vi.status='approved' AND NOT EXISTS(SELECT 1 FROM valorapesquisa.action_plans p WHERE p.organization_id=vi.organization_id AND p.origin_type='ai_insight' AND p.origin_id=vi.id AND p.deleted_at IS NULL AND {scope}))::int ApprovedWithoutPlan,
@@ -92,7 +93,11 @@ public sealed class ValoraAiInsightRepository(IDbConnectionFactory connections) 
               count(*) FILTER(WHERE EXISTS(SELECT 1 FROM valorapesquisa.action_plans p WHERE p.organization_id=vi.organization_id AND p.origin_type='ai_insight' AND p.origin_id=vi.id AND p.deleted_at IS NULL AND {scope}) AND NOT EXISTS(SELECT 1 FROM valorapesquisa.action_plans p WHERE p.organization_id=vi.organization_id AND p.origin_type='ai_insight' AND p.origin_id=vi.id AND p.deleted_at IS NULL AND p.status NOT IN('completed','canceled') AND {scope}))::int WithAllPlansClosed
             FROM valorapesquisa.valora_ai_insights vi WHERE vi.organization_id=@organizationId AND vi.deleted_at IS NULL;
             SELECT count(*)::int FROM valorapesquisa.valora_ai_insights vi WHERE vi.organization_id=@organizationId AND vi.deleted_at IS NULL;
-            SELECT d.id,coalesce(nullif(trim(d.title),''),'Diagnóstico sem nome') Name FROM valorapesquisa.diagnostics d WHERE d.organization_id=@organizationId AND d.deleted_at IS NULL AND EXISTS(SELECT 1 FROM valorapesquisa.valora_ai_insights vi WHERE vi.organization_id=d.organization_id AND vi.diagnostic_id=d.id AND vi.deleted_at IS NULL) ORDER BY Name,d.id;
+            SELECT id, Name FROM (
+                SELECT d.id,coalesce(nullif(trim(d.title),''),'Diagnóstico sem nome') Name FROM valorapesquisa.diagnostics d WHERE d.organization_id=@organizationId AND d.deleted_at IS NULL AND EXISTS(SELECT 1 FROM valorapesquisa.valora_ai_insights vi WHERE vi.organization_id=d.organization_id AND vi.diagnostic_id=d.id AND vi.deleted_at IS NULL)
+                UNION
+                SELECT s.id,coalesce(nullif(trim(s.title),''), nullif(trim(s.name),''),'Diagnóstico sem nome') Name FROM valorapesquisa.surveys s WHERE s.organization_id=@organizationId AND coalesce(s.is_deleted,false)=false AND EXISTS(SELECT 1 FROM valorapesquisa.valora_ai_insights vi WHERE vi.organization_id=s.organization_id AND vi.diagnostic_id=s.id AND vi.deleted_at IS NULL)
+            ) sub_diag ORDER BY Name,id;
             """;
         using var db = connections.Create(); using var multi = await db.QueryMultipleAsync(new CommandDefinition(sql, args, cancellationToken: ct));
         var total = await multi.ReadSingleAsync<int>();

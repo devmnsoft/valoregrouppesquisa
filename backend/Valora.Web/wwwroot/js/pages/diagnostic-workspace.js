@@ -114,34 +114,183 @@
     const data = item?.data || {};
     const origens = data.origens || {};
     const destEmail = Number(data.destinatariosEmail || 0);
+    const respRecebidas = Number(data.respostasRecebidas || 0);
     const respValidas = Number(data.respostasValidas || 0);
+    const respPontuadas = Number(data.respostasPontuadas || 0);
+    const pendencias = Number(data.pendenciasProcessamento || 0);
+    const fila = Number(data.mensagensFila || 0);
+    const envios = Number(data.enviosRegistrados || 0);
+    const falhas = Number(data.falhas || 0);
     const taxaAdesao = destEmail > 0 ? `${Math.round(respValidas / destEmail * 100)}%` : 'Não aplicável (sem lista de e-mails)';
-    content.innerHTML = `<h2>Participação & Coleta</h2>
-      <p class="form-help">Os contadores refletem o estado real persistido no banco de dados. Compartilhamento manual não é contado como envio confirmado.</p>
-      <div class="metric-grid">
-        <article class="metric-card"><span>Respostas recebidas</span><strong>${esc(data.respostasRecebidas ?? 0)}</strong><small>total gravado</small></article>
-        <article class="metric-card"><span>Respostas válidas</span><strong>${esc(data.respostasValidas ?? 0)}</strong><small>concluídas e íntegras</small></article>
-        <article class="metric-card"><span>Respostas pontuadas</span><strong>${esc(data.respostasPontuadas ?? 0)}</strong><small>com maturidade apurada</small></article>
-        <article class="metric-card"><span>Pendências de processamento</span><strong>${esc(data.pendenciasProcessamento ?? 0)}</strong><small>jobs em processamento</small></article>
-        <article class="metric-card"><span>Destinatários por e-mail</span><strong>${esc(data.destinatariosEmail ?? 0)}</strong><small>cadastrados na campanha</small></article>
-        <article class="metric-card"><span>Mensagens na fila</span><strong>${esc(data.mensagensFila ?? 0)}</strong><small>aguardando envio</small></article>
-        <article class="metric-card"><span>Envios registrados</span><strong>${esc(data.enviosRegistrados ?? 0)}</strong><small>entregues/enviados</small></article>
-        <article class="metric-card"><span>Falhas de entrega</span><strong>${esc(data.falhas ?? 0)}</strong><small>erros ou devoluções</small></article>
-        <article class="metric-card"><span>Taxa de adesão</span><strong>${esc(taxaAdesao)}</strong><small>${destEmail > 0 ? 'respostas válidas / destinatários' : 'denominador ausente'}</small></article>
+    const cycle = overviewState?.cycle || {};
+    const surveyId = cycle.surveyId || diagnosticId;
+
+    content.innerHTML = `<h2>Participação & Coleta em Campo</h2>
+      <p class="form-help">Métricas em tempo real persistidas com isolamento estrito para este diagnóstico. Nenhuma estatística ou percentual é estimado artificialmente.</p>
+
+      <div class="row g-3 mb-4">
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <span class="text-muted small">Respostas Recebidas</span>
+            <div class="display-6 my-2"><strong>${esc(respRecebidas)}</strong> <small class="fs-6 text-muted">respostas</small></div>
+            <dl class="small mb-0">
+              <div><dt>Unidade</dt><dd>Submissões gravadas</dd></div>
+              <div><dt>Período</dt><dd>Ciclo diagnóstico atual</dd></div>
+              <div><dt>Limitação</dt><dd>Inclui questionários completos e em andamento</dd></div>
+            </dl>
+          </div>
+        </article>
+
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <span class="text-muted small">Respostas Válidas</span>
+            <div class="display-6 my-2"><strong>${esc(respValidas)}</strong> <small class="fs-6 text-muted">concluídas</small></div>
+            <dl class="small mb-0">
+              <div><dt>Unidade</dt><dd>Questionários 100% íntegros</dd></div>
+              <div><dt>Período</dt><dd>Status 'completed' sem exclusão</dd></div>
+              <div><dt>Limitação</dt><dd>Elegíveis para apuração analítica</dd></div>
+            </dl>
+          </div>
+        </article>
+
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <span class="text-muted small">Respostas Pontuadas</span>
+            <div class="display-6 my-2"><strong>${esc(respPontuadas)}</strong> <small class="fs-6 text-muted">calculadas</small></div>
+            <dl class="small mb-0">
+              <div><dt>Unidade</dt><dd>Respostas com score consolidado</dd></div>
+              <div><dt>Período</dt><dd>Apuradas em result_scores</dd></div>
+              <div><dt>Limitação</dt><dd>Base para índices e inferências</dd></div>
+            </dl>
+          </div>
+        </article>
+
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <span class="text-muted small">Taxa de Adesão</span>
+            <div class="display-6 my-2"><strong>${esc(taxaAdesao)}</strong></div>
+            <dl class="small mb-0">
+              <div><dt>Unidade</dt><dd>% de conclusão sobre lista</dd></div>
+              <div><dt>Período</dt><dd>Acumulado da campanha</dd></div>
+              <div><dt>Limitação</dt><dd>${destEmail > 0 ? 'Calculada estritamente sobre destinatários cadastrados' : 'Sem denominador fixo em compartilhamento manual'}</dd></div>
+            </dl>
+          </div>
+        </article>
+
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <span class="text-muted small">Destinatários Registrados</span>
+            <div class="display-6 my-2"><strong>${esc(destEmail)}</strong> <small class="fs-6 text-muted">contatos</small></div>
+            <dl class="small mb-0">
+              <div><dt>Unidade</dt><dd>Destinatários únicos</dd></div>
+              <div><dt>Período</dt><dd>Campanhas e convites deste ciclo</dd></div>
+              <div><dt>Ação</dt><dd><a href="#tab=campaign" onclick="document.querySelector('[data-tab=campaign]')?.click()">Ver lista na Campanha</a></dd></div>
+            </dl>
+          </div>
+        </article>
+
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <span class="text-muted small">Mensagens na Fila</span>
+            <div class="display-6 my-2"><strong>${esc(fila)}</strong> <small class="fs-6 text-muted">mensagens</small></div>
+            <dl class="small mb-0">
+              <div><dt>Unidade</dt><dd>Jobs em fila de despacho</dd></div>
+              <div><dt>Status</dt><dd>Aguardando worker de e-mail</dd></div>
+              <div><dt>Limitação</dt><dd>Disparos deste diagnóstico</dd></div>
+            </dl>
+          </div>
+        </article>
+
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <span class="text-muted small">Envios Registrados</span>
+            <div class="display-6 my-2"><strong>${esc(envios)}</strong> <small class="fs-6 text-muted">disparos</small></div>
+            <dl class="small mb-0">
+              <div><dt>Unidade</dt><dd>Disparos entregues / enviados</dd></div>
+              <div><dt>Status</dt><dd>Confirmados pelo provedor</dd></div>
+              <div><dt>Rastreio</dt><dd>Vinculados a este diagnóstico</dd></div>
+            </dl>
+          </div>
+        </article>
+
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <span class="text-muted small">Falhas de Entrega</span>
+            <div class="display-6 my-2 ${falhas > 0 ? 'text-danger' : ''}"><strong>${esc(falhas)}</strong> <small class="fs-6 text-muted">falhas</small></div>
+            <dl class="small mb-0">
+              <div><dt>Unidade</dt><dd>Erros ou devoluções (bounces)</dd></div>
+              <div><dt>Status</dt><dd>${falhas > 0 ? 'Requer atenção operacional' : 'Nenhuma falha registrada'}</dd></div>
+              <div><dt>Limitação</dt><dd>E-mails com falha de entrega</dd></div>
+            </dl>
+          </div>
+        </article>
+
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <span class="text-muted small">Pendências Analíticas</span>
+            <div class="display-6 my-2"><strong>${esc(pendencias)}</strong> <small class="fs-6 text-muted">jobs</small></div>
+            <dl class="small mb-0">
+              <div><dt>Unidade</dt><dd>Tarefas de processamento</dd></div>
+              <div><dt>Status</dt><dd>${pendencias > 0 ? 'Processamento ativo' : 'Pipeline atualizado'}</dd></div>
+              <div><dt>Ação</dt><dd><button class="btn btn-sm btn-link p-0 text-decoration-none" onclick="document.querySelector('[data-command=process]')?.click()">Disparar recálculo</button></dd></div>
+            </dl>
+          </div>
+        </article>
       </div>
-      <section class="valora-card mt-3">
+
+      ${falhas > 0 ? `
+        <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <strong>⚠️ Atenção: ${falhas} falha(s) de envio registradas.</strong> Mensagens de convite não foram entregues devido a erro de SMTP ou endereço rejeitado.
+          </div>
+          <a class="btn btn-sm btn-outline-dark" href="/Communications?surveyId=${encodeURIComponent(surveyId)}">Ver log de erros detalhado</a>
+        </div>
+      ` : ''}
+
+      ${pendencias > 0 ? `
+        <div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <strong>⚙️ Tarefas de inteligência em processamento (${pendencias} pendente(s)):</strong> Evidências e índices estão sendo atualizados no servidor.
+          </div>
+          <button class="btn btn-sm btn-primary" onclick="document.querySelector('[data-command=process]')?.click()">Recalcular agora</button>
+        </div>
+      ` : ''}
+
+      <section class="valora-card mb-4">
+        <h3>Navegação Rápida & Listas de Apoio</h3>
+        <p class="small text-muted mb-3">Acesso direto aos registros canônicos vinculados exclusivamente a este diagnóstico:</p>
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-outline-primary" onclick="document.querySelector('[data-tab=campaign]')?.click()">📋 Destinatários da Campanha</button>
+          <a class="btn btn-outline-primary" href="/Surveys/${encodeURIComponent(surveyId)}/Links">🔗 Links Públicos e Convites Diretos</a>
+          <button class="btn btn-outline-primary" onclick="document.querySelector('[data-tab=responses]')?.click()">📥 Respostas Individuais Recebidas</button>
+          <button class="btn btn-outline-secondary" onclick="document.querySelector('[data-tab=overview]')?.click()">⚙️ Acompanhar Pipeline de Inteligência</button>
+        </div>
+      </section>
+
+      <section class="valora-card mb-4">
         <h3>Origens Auditadas dos Contadores</h3>
         <div class="table-responsive"><table class="valora-table"><thead><tr><th>Contador</th><th>Valor</th><th>Fonte Canônica</th></tr></thead><tbody>
-          <tr><td><strong>Respostas recebidas</strong></td><td>${esc(data.respostasRecebidas ?? 0)}</td><td>${esc(origens.respostasRecebidas || 'Tabela responses (is_deleted=false)')}</td></tr>
-          <tr><td><strong>Respostas válidas</strong></td><td>${esc(data.respostasValidas ?? 0)}</td><td>${esc(origens.respostasValidas || 'Tabela responses com status=completed')}</td></tr>
-          <tr><td><strong>Respostas pontuadas</strong></td><td>${esc(data.respostasPontuadas ?? 0)}</td><td>${esc(origens.respostasPontuadas || 'Tabela result_scores')}</td></tr>
-          <tr><td><strong>Pendências de processamento</strong></td><td>${esc(data.pendenciasProcessamento ?? 0)}</td><td>${esc(origens.pendenciasProcessamento || 'Tabela intelligence_processing_jobs')}</td></tr>
-          <tr><td><strong>Destinatários por e-mail</strong></td><td>${esc(data.destinatariosEmail ?? 0)}</td><td>${esc(origens.destinatariosEmail || 'Tabela survey_invites')}</td></tr>
-          <tr><td><strong>Mensagens na fila</strong></td><td>${esc(data.mensagensFila ?? 0)}</td><td>${esc(origens.mensagensFila || 'Tabela communications pendentes')}</td></tr>
-          <tr><td><strong>Envios registrados</strong></td><td>${esc(data.enviosRegistrados ?? 0)}</td><td>${esc(origens.enviosRegistrados || 'Tabela communications enviadas')}</td></tr>
-          <tr><td><strong>Falhas</strong></td><td>${esc(data.falhas ?? 0)}</td><td>${esc(origens.falhas || 'Tabela communications com falha')}</td></tr>
+          <tr><td><strong>Respostas recebidas</strong></td><td>${esc(respRecebidas)}</td><td>${esc(origens.respostasRecebidas || 'Tabela responses (is_deleted=false)')}</td></tr>
+          <tr><td><strong>Respostas válidas</strong></td><td>${esc(respValidas)}</td><td>${esc(origens.respostasValidas || 'Tabela responses com status=completed')}</td></tr>
+          <tr><td><strong>Respostas pontuadas</strong></td><td>${esc(respPontuadas)}</td><td>${esc(origens.respostasPontuadas || 'Tabela result_scores')}</td></tr>
+          <tr><td><strong>Pendências de processamento</strong></td><td>${esc(pendencias)}</td><td>${esc(origens.pendenciasProcessamento || 'Tabela intelligence_processing_jobs')}</td></tr>
+          <tr><td><strong>Destinatários por e-mail</strong></td><td>${esc(destEmail)}</td><td>${esc(origens.destinatariosEmail || 'Tabela survey_invites')}</td></tr>
+          <tr><td><strong>Mensagens na fila</strong></td><td>${esc(fila)}</td><td>${esc(origens.mensagensFila || 'Tabela communications pendentes')}</td></tr>
+          <tr><td><strong>Envios registrados</strong></td><td>${esc(envios)}</td><td>${esc(origens.enviosRegistrados || 'Tabela communications enviadas')}</td></tr>
+          <tr><td><strong>Falhas</strong></td><td>${esc(falhas)}</td><td>${esc(origens.falhas || 'Tabela communications com falha')}</td></tr>
         </tbody></table></div>
-      </section>`;
+      </section>
+
+      <div class="valora-card">
+        <h3>Limitações Metodológicas da Coleta</h3>
+        <p class="small text-muted mb-0">
+          ${respValidas > 0 ? `
+            <strong>Representatividade da amostra:</strong> Os escores e indicadores deste ciclo refletem as respostas de ${respValidas} participante(s) concluinte(s). Em pesquisas organizacionais de maturidade, a amostragem é por adesão (não probabilística); as conclusões retratam a percepção dos participantes do ciclo sem extrapolação para públicos que não responderam.
+          ` : `
+            <strong>Aguardando respostas:</strong> Nenhuma resposta foi concluída até o momento. Indicadores e escores analíticos serão liberados automaticamente quando os primeiros questionários forem concluídos.
+          `}
+        </p>
+      </div>`;
   }
 
   function evidenceView(items) {
@@ -180,7 +329,10 @@
         const isConverted = status === 'converted_to_action';
         const isRejected = status === 'rejected';
 
-        const nature = data.nature || (data.aiRunId ? 'sugestao_ia' : item.code === 'inference' ? 'hipotese' : data.calculatedScore != null ? 'fato_calculado' : 'sugestao_ia');
+        const originType = data.originType || (data.aiRunId ? 'valora_ai_insight' : 'insight');
+        const isAiInsight = originType === 'valora_ai_insight';
+
+        const nature = data.nature || (isAiInsight ? 'sugestao_ia' : item.code === 'inference' ? 'hipotese' : data.calculatedScore != null ? 'fato_calculado' : 'sugestao_ia');
         const natureInfo = {
           fato_calculado: { label: 'Fato Calculado', desc: 'Medição quantitativa apurada a partir das respostas do ciclo', badgeClass: 'badge-nature badge-nature--fact' },
           observacao_informada: { label: 'Observação Informada', desc: 'Relato direto registrado por participante da pesquisa', badgeClass: 'badge-nature badge-nature--hypothesis' },
@@ -189,7 +341,7 @@
           decisao_revisada: { label: 'Decisão Revisada', desc: 'Achado analisado e validado humanamente pela liderança', badgeClass: 'badge-nature badge-nature--reviewed' }
         }[nature] || { label: 'Achado Metodológico', desc: 'Registro analítico do ciclo', badgeClass: 'badge-nature badge-nature--hypothesis' };
 
-        const planLink = `/ActionCenter/Plans/Create?originType=ai_insight&originId=${encodeURIComponent(item.id)}&returnUrl=${encodeURIComponent(returnUrl)}`;
+        const planLink = `/ActionCenter/Plans/Create?originType=${isAiInsight ? 'ai_insight' : 'diagnostic'}&originId=${encodeURIComponent(isAiInsight ? item.id : (overviewState?.cycle?.surveyId || diagnosticId))}&returnUrl=${encodeURIComponent(returnUrl)}`;
         const reviewLink = `/Insights/Details/${encodeURIComponent(item.id)}?returnUrl=${encodeURIComponent(returnUrl)}`;
         const linkedPlanUrl = data.linkedPlanId ? `/ActionCenter/Plans/Details/${encodeURIComponent(data.linkedPlanId)}?returnUrl=${encodeURIComponent(returnUrl)}` : null;
 
@@ -206,6 +358,7 @@
               <p class="text-muted small mb-3">${esc(data.description || data.summary || data.strategicTruth || 'Sem descrição detalhada.')}</p>
               <dl class="small mb-2">
                 <div><dt>Dimensão ou conceito</dt><dd><strong>${esc(data.dimension || data.relatedDimension || data.conceptCode || 'Geral')}</strong></dd></div>
+                <div><dt>Origem técnica</dt><dd><span class="badge bg-light text-dark border">${isAiInsight ? 'Fila Editorial (valora_ai_insight)' : 'Pipeline Analítico (insight)'}</span></dd></div>
                 <div><dt>Evidência de origem</dt><dd><em>${esc(evidenceDisplay)}</em></dd></div>
                 <div><dt>Resultado calculado</dt><dd>${scoreDisplay}</dd></div>
                 <div><dt>Limitação</dt><dd class="text-warning">${esc(data.limitation || 'Válido sob a amostragem coletada no ciclo.')}</dd></div>
@@ -214,11 +367,11 @@
               </dl>
             </div>
             <div class="d-flex gap-2 flex-wrap mt-3 pt-3 border-top">
-              <a class="btn btn-sm btn-outline-primary" href="${reviewLink}">Revisar achado (aprovar / rejeitar)</a>
-              ${isApproved ? `<a class="btn btn-sm btn-primary" href="${planLink}">Criar plano no Action Center</a>` : ''}
+              ${isAiInsight ? `<a class="btn btn-sm btn-outline-primary" href="${reviewLink}">Revisar achado (aprovar / rejeitar)</a>` : `<button class="btn btn-sm btn-outline-secondary" onclick="document.querySelector('[data-tab=evidence]')?.click()">Ver evidências de apoio</button>`}
+              ${isApproved || !isAiInsight ? `<a class="btn btn-sm btn-primary" href="${planLink}">Criar plano no Action Center</a>` : ''}
               ${isConverted && linkedPlanUrl ? `<a class="btn btn-sm btn-outline-success" href="${linkedPlanUrl}">Ver plano vinculado</a>` : isConverted ? `<span class="badge bg-success align-self-center">Vinculado a plano</span>` : ''}
-              ${isPending ? `<small class="text-muted align-self-center">Aprovação exigida antes de criar plano.</small>` : ''}
-              ${isRejected ? `<small class="text-danger align-self-center">Rejeitado na revisão humana.</small>` : ''}
+              ${isPending && isAiInsight ? `<small class="text-muted align-self-center">Aprovação exigida antes de criar plano.</small>` : ''}
+              ${isRejected && isAiInsight ? `<small class="text-danger align-self-center">Rejeitado na revisão humana.</small>` : ''}
             </div>
           </div>
         </article>`;
@@ -233,19 +386,20 @@
       <div class="row g-3">${items.map(item => {
         const data = item.data || item;
         const hasValue = data.value != null || data.score != null || data.normalizedValue != null;
-        const displayVal = hasValue ? esc(data.value ?? data.score ?? data.normalizedValue) : '<span class="text-muted">Aguardando dados</span>';
+        const displayVal = hasValue ? esc(data.value ?? data.score ?? data.normalizedValue) : '<span class="text-muted">Aguardando dados (sem cálculo fictício)</span>';
+        const unit = data.unit || (hasValue ? 'pts' : '');
         return `<article class="col-12 col-lg-6">
           <div class="metric-card h-100">
             <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
               <strong>${esc(data.name || data.title || item.code || 'Indicador')}</strong>
               <span class="valora-status">${esc(label(item.status || data.status || 'Ativo'))}</span>
             </div>
-            <div class="display-6 my-2">${displayVal} <small class="fs-6 text-muted">${esc(data.unit || '')}</small></div>
+            <div class="display-6 my-2">${displayVal} <small class="fs-6 text-muted">${esc(unit)}</small></div>
             <dl class="small mb-0">
               <div><dt>O que mede</dt><dd>${esc(data.description || data.whatItMeasures || 'Medição metodológica do ciclo.')}</dd></div>
-              <div><dt>Fonte</dt><dd>${esc(data.source || 'Respostas do diagnóstico')}</dd></div>
-              <div><dt>Período / Recorte</dt><dd>${esc(data.period || 'Ciclo atual')}</dd></div>
-              <div><dt>Limitações</dt><dd>${esc(data.limitation || 'Válido sob a amostragem coletada.')}</dd></div>
+              <div><dt>Fonte</dt><dd>${esc(data.source || 'Respostas apuradas no banco de dados')}</dd></div>
+              <div><dt>Período / Recorte</dt><dd>${esc(data.period || 'Ciclo vigente sem exclusão')}</dd></div>
+              <div><dt>Limitações</dt><dd class="text-warning">${esc(data.limitation || 'Válido estritamente para a amostra respondente.')}</dd></div>
             </dl>
           </div>
         </article>`;
@@ -267,8 +421,12 @@
             <p>${esc(data.statement || data.hypothesis || data.description || 'Relação identificada.')}</p>
             <dl class="small mb-0">
               <div><dt>Natureza</dt><dd>Hipótese metodológica</dd></div>
+              <div><dt>O que mede</dt><dd>${esc(data.whatItMeasures || data.statement || 'Correlação entre dimensões')}</dd></div>
+              <div><dt>Fonte</dt><dd>${esc(data.source || 'Respostas agregadas do diagnóstico')}</dd></div>
+              <div><dt>Período / Recorte</dt><dd>${esc(data.period || 'Amostra do ciclo vigente')}</dd></div>
               <div><dt>Confiança</dt><dd>${esc(data.confidence || 'Padrão estatístico')}</dd></div>
               <div><dt>Premissas</dt><dd>${esc(data.premises || 'Respostas apuradas no ciclo')}</dd></div>
+              <div><dt>Limitações</dt><dd class="text-warning">${esc(data.limitation || 'Não estabelece nexo de causalidade determinístico.')}</dd></div>
             </dl>
           </div>
         </article>`;
@@ -304,11 +462,25 @@
     const hasJobFailed = lastJob?.status === 'failed';
     const hasPendingReviewInsights = data.mainInsights?.some(x => (x.status === 'proposed' || x.status === 'pending_review' || x.data?.reviewStatus === 'pending_review'));
     const hasActions = (data.recommendedActions?.length || 0) > 0;
+    const isExpired = cycle.expiresAt ? new Date(cycle.expiresAt) < new Date() : false;
+    const hasReport = Boolean(cycle.status === 'report_ready' || cycle.reportGeneratedAt);
 
     if (isDraft) {
+      const hasForm = Boolean(cycle.formId || cycle.formVersionId);
+      if (!hasForm) {
+        return {
+          stageName: '1. Rascunho sem Formulário Vinculado',
+          whatHappened: 'Diagnóstico criado no sistema, porém nenhuma metodologia ou formulário ativo foi vinculado.',
+          whatIsMissing: 'Configurar o questionário na preparação para definir perguntas, escalas e blocos temáticos.',
+          whoMustAct: 'Gestor do Diagnóstico / Administrador.',
+          operationLabel: 'Configurar formulário',
+          operationTarget: 'preparation',
+          buttonClass: 'btn-primary'
+        };
+      }
       return {
-        stageName: '1. Preparação & Rascunho',
-        whatHappened: 'Diagnóstico criado no sistema com formulário e parâmetros vinculados.',
+        stageName: '1. Rascunho Pronto para Publicação',
+        whatHappened: 'Formulário vinculado e parâmetros definidos. Diagnóstico pronto para auditoria técnica.',
         whatIsMissing: 'Revisar checklist pré-publicação, resolver impedimentos técnicos e ativar a coleta.',
         whoMustAct: 'Gestor do Diagnóstico / Administrador com permissão de publicação.',
         operationLabel: 'Revisar preparação & publicar',
@@ -316,28 +488,42 @@
         buttonClass: 'btn-primary'
       };
     }
+
     if (isClosed) {
+      if (hasActions) {
+        return {
+          stageName: '6. Ciclo Encerrado (Planos em Execução)',
+          whatHappened: 'Coleta finalizada e planos de ação registrados no Action Center.',
+          whatIsMissing: 'Acompanhar a conclusão das atividades, comprovações de entrega e eficácia das ações.',
+          whoMustAct: 'Líderes de iniciativas e executores no Action Center.',
+          operationLabel: 'Acompanhar execução no Action™',
+          operationTarget: 'actions',
+          buttonClass: 'btn-primary'
+        };
+      }
       return {
-        stageName: '6. Ciclo Encerrado & Evolução',
-        whatHappened: 'A coleta de respostas foi finalizada e o ciclo diagnóstico está formalmente encerrado.',
-        whatIsMissing: 'Acompanhar a evolução histórica ou abrir novo ciclo comparativo no Evolution™.',
+        stageName: '6. Ciclo Encerrado (Sem Planos Ativos)',
+        whatHappened: 'Coleta de respostas finalizada e ciclo formalmente encerrado sem planos de intervenção.',
+        whatIsMissing: 'Definir planos de intervenção para os achados ou abrir novo ciclo comparativo no Evolution™.',
         whoMustAct: 'Comitê de Governança / Consultor de Evolução Organizacional.',
-        operationLabel: 'Abrir reavaliação no Evolution™',
+        operationLabel: 'Definir planos ou abrir ciclo no Evolution™',
         operationTarget: 'evolution',
         buttonClass: 'btn-outline-primary'
       };
     }
+
     if (responseCount === 0) {
       return {
-        stageName: '2. Coleta em Campo (Aguardando Respostas)',
+        stageName: '2. Publicado (Aguardando Respostas)',
         whatHappened: 'Diagnóstico publicado com sucesso. Link seguro disponível para distribuição.',
-        whatIsMissing: 'Coletar as primeiras respostas de colaboradores ou respondentes convidados.',
+        whatIsMissing: 'Divulgar o questionário aos participantes ou enviar convites por e-mail.',
         whoMustAct: 'Participantes convidados / Gestor de campanha para envio ou compartilhamento.',
-        operationLabel: 'Compartilhar link de participação',
+        operationLabel: 'Divulgar ou enviar convites',
         operationTarget: 'campaign',
         buttonClass: 'btn-primary'
       };
     }
+
     if (isProcessing) {
       return {
         stageName: '3. Processamento Analítico em Andamento',
@@ -349,28 +535,54 @@
         buttonClass: 'btn-outline-secondary'
       };
     }
+
     if (evidenceCount === 0 || hasJobFailed) {
+      if (isExpired) {
+        return {
+          stageName: '3. Prazo Vencido com Respostas (Pronto para Processar)',
+          whatHappened: `Prazo da pesquisa encerrado com ${responseCount} resposta(s) persistida(s) no banco de dados.`,
+          whatIsMissing: 'Disparar o processamento analítico para consolidar evidências, índices e inferências.',
+          whoMustAct: 'Analista de Inteligência Organizacional / Gestor do Diagnóstico.',
+          operationLabel: 'Processar Inteligência Valora™',
+          operationCommand: 'process',
+          buttonClass: 'btn-primary'
+        };
+      }
       return {
-        stageName: '3. Respostas Recebidas (Pronto para Processar)',
-        whatHappened: `${responseCount} resposta(s) persistida(s) no banco de dados com integridade comprovada.`,
-        whatIsMissing: 'Executar o processamento de inteligência para consolidar evidências, índices e inferências.',
-        whoMustAct: 'Analista de Inteligência Organizacional / Gestor do Diagnóstico.',
-        operationLabel: 'Processar Inteligência Valora™',
+        stageName: '2. Coleta em Andamento no Prazo',
+        whatHappened: `${responseCount} resposta(s) recebida(s) dentro do período ativo da pesquisa.`,
+        whatIsMissing: 'Aguardar encerramento do prazo de coleta ou disparar processamento analítico parcial antecipado.',
+        whoMustAct: 'Gestor do Diagnóstico / Respondentes adicionais.',
+        operationLabel: 'Processar parcialmente',
         operationCommand: 'process',
-        buttonClass: 'btn-primary'
+        buttonClass: 'btn-outline-primary'
       };
     }
+
     if (hasPendingReviewInsights) {
       return {
-        stageName: '4. Evidências Apuradas (Revisão de Achados)',
+        stageName: '4. Evidências Apuradas (Achados Pendentes de Revisão)',
         whatHappened: `${evidenceCount} evidências metodológicas extraídas das respostas reais dos participantes.`,
-        whatIsMissing: 'Revisão humana dos achados sugeridos antes da conversão em planos de ação.',
+        whatIsMissing: 'Revisão humana dos achados sugeridos (aprovar/rejeitar com justificativa) antes de gerar planos.',
         whoMustAct: 'Liderança / Gestor responsável pela validação editorial.',
         operationLabel: 'Revisar achados analíticos',
         operationTarget: 'insights',
         buttonClass: 'btn-primary'
       };
     }
+
+    if (hasReport) {
+      return {
+        stageName: '4. Processado com Relatório Disponível',
+        whatHappened: `${responseCount} resposta(s) e ${evidenceCount} evidência(s) apuradas com relatório executivo gerado.`,
+        whatIsMissing: 'Consultar o relatório executivo ou criar planos de ação preventivos e corretivos.',
+        whoMustAct: 'Gestor do Diagnóstico / Liderança Executiva.',
+        operationLabel: 'Consultar relatório executivo',
+        operationTarget: 'report',
+        buttonClass: 'btn-primary'
+      };
+    }
+
     if (hasActions) {
       return {
         stageName: '5. Planos de Ação & Execução',
@@ -382,10 +594,11 @@
         buttonClass: 'btn-primary'
       };
     }
+
     return {
       stageName: '4. Resultados Consolidados',
       whatHappened: `${responseCount} resposta(s) e ${evidenceCount} evidência(s) apuradas com sucesso.`,
-      whatIsMissing: 'Explorar os resultados nos painéis metodológicos ou gerar o relatório executivo.',
+      whatIsMissing: 'Explorar os resultados nos painéis metodológicos ou criar plano de ação vinculado.',
       whoMustAct: 'Gestor do Diagnóstico / Liderança Executiva.',
       operationLabel: 'Criar plano de ação vinculado',
       operationUrl: diagnosticPlanUrl(cycle),
@@ -393,54 +606,173 @@
     };
   }
 
-  function preparationView(data, review) {
-    const cycle = data.cycle;
+  function preparationView(data, review, prepOptions) {
+    const cycle = data.cycle || data;
     const isDraft = cycle.status === 'draft';
-    const canPublish = review ? review.canPublish : isDraft;
-    const blockers = review?.blockers || [];
-    const warnings = review?.warnings || [];
+    const isReadOnly = host.dataset.readOnly === 'true';
     const surveyId = cycle.surveyId || diagnosticId;
 
+    let reviewState = 'unavailable';
+    if (review === 'loading') {
+      reviewState = 'loading';
+    } else if (review && review.ok) {
+      reviewState = (review.canPublish && (!review.blockers || review.blockers.length === 0)) ? 'ready' : 'blocked';
+    } else {
+      reviewState = 'unavailable';
+    }
+
+    const canPublish = !isReadOnly && isDraft && reviewState === 'ready';
+    const blockers = (review && review.blockers) ? review.blockers : [];
+    const warnings = (review && review.warnings) ? review.warnings : [];
+
+    let badgeHtml = '';
+    let alertHtml = '';
+
+    if (reviewState === 'loading') {
+      badgeHtml = '<span class="badge bg-info text-dark fs-6">Avaliando pré-requisitos…</span>';
+      alertHtml = `
+        <div class="alert alert-info d-flex align-items-center gap-2 mb-3">
+          <div class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></div>
+          <div>Consultando questionário vinculado, perguntas ativas e conformidade comercial no servidor…</div>
+        </div>`;
+    } else if (reviewState === 'ready') {
+      badgeHtml = '<span class="badge bg-success fs-6">Apto para publicação</span>';
+      alertHtml = `
+        <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
+          <span>✅</span> <div><strong>Requisitos técnicos atendidos:</strong> Questionário publicado vinculado, perguntas ativas disponíveis e limite comercial do plano verificado com sucesso.</div>
+        </div>`;
+    } else if (reviewState === 'blocked') {
+      badgeHtml = '<span class="badge bg-danger fs-6">Impedimentos pendentes</span>';
+      alertHtml = `
+        <div class="alert alert-danger mb-3">
+          <strong>Impedimentos Técnicos (${blockers.length}):</strong> Estas pendências devem ser corrigidas antes de disponibilizar o link público.
+        </div>
+        <div class="table-responsive mb-3">
+          <table class="valora-table">
+            <thead><tr><th>Problema</th><th>Impacto</th><th>Ação Recomendada</th><th></th></tr></thead>
+            <tbody>
+              ${blockers.map(b => `<tr>
+                <td><strong>${esc(b.problem)}</strong></td>
+                <td>${esc(b.impact)}</td>
+                <td>${esc(b.action)}</td>
+                <td>${b.targetUrl ? `<a class="btn btn-sm btn-outline-primary" href="${esc(b.targetUrl)}">Corrigir</a>` : ''}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    } else {
+      badgeHtml = '<span class="badge bg-secondary fs-6">Revisão indisponível</span>';
+      alertHtml = `
+        <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <div>
+            <strong>⚠️ Revisão técnica indisponível:</strong> Não foi possível validar os requisitos e limites de publicação no servidor. Por segurança, a publicação não está liberada até que a revisão seja concluída com êxito.
+          </div>
+          <button type="button" class="btn btn-sm btn-outline-dark" data-retry-review>Tentar novamente</button>
+        </div>`;
+    }
+
+    const eligibleUsers = prepOptions?.eligibleUsers || [];
+    const availableVersions = prepOptions?.availableVersions || [];
+    const canChangeMethodology = prepOptions?.canChangeMethodology ?? (isDraft && Number(cycle.responseCount || 0) === 0);
+    const lockReason = prepOptions?.methodologyLockReason || (Number(cycle.responseCount || 0) > 0 ? `Metodologia fixada porque já existem ${cycle.responseCount} respostas coletadas neste ciclo.` : null);
+
+    const startsAtVal = cycle.startsAt ? new Date(cycle.startsAt).toISOString().split('T')[0] : '';
+    const expiresAtVal = cycle.expiresAt ? new Date(cycle.expiresAt).toISOString().split('T')[0] : '';
+
     content.innerHTML = `<h2>Preparação Consolidada do Diagnóstico</h2>
-      <p class="form-help">Parâmetros operacionais e metodológicos organizados para conduzir o ciclo de escuta com segurança.</p>
-      <div class="row g-3 mb-4">
-        <article class="col-12 col-md-6 col-lg-4">
-          <div class="metric-card h-100">
-            <strong>Objetivo do Diagnóstico</strong>
-            <p class="small mt-2 mb-0">${esc(cycle.description || cycle.title || 'Diagnóstico de maturidade organizacional')}</p>
+      <p class="form-help">Parâmetros operacionais e metodológicos organizados para conduzir o ciclo de escuta com segurança e rastreabilidade.</p>
+
+      <section class="valora-card mb-4" id="preparation-parameters-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h3 class="mb-0">Parâmetros Operacionais do Ciclo</h3>
+            <small class="text-muted">Formulário editável com validação, concorrência otimista e proteção metodológica.</small>
           </div>
-        </article>
-        <article class="col-12 col-md-6 col-lg-4">
-          <div class="metric-card h-100">
-            <strong>Responsável Designado</strong>
-            <p class="small mt-2 mb-0">${esc(cycle.responsibleName || 'Gestor do Diagnóstico')}</p>
+          <span class="badge bg-light text-dark border">Versão dos dados: v${esc(cycle.rowVersion || 1)}</span>
+        </div>
+
+        <div class="alert alert-danger d-none" data-form-error></div>
+        <div class="alert alert-success d-none" data-form-success></div>
+        <div class="alert alert-warning d-none" data-concurrency-alert>
+          <strong>⚠️ Conflito de versão detectado:</strong> Este diagnóstico foi modificado por outro usuário ou sessão.
+          <button type="button" class="btn btn-sm btn-outline-dark ms-2" data-reload-prep>Recarregar dados atualizados</button>
+        </div>
+
+        <form data-prep-form class="needs-validation">
+          <input type="hidden" name="rowVersion" value="${esc(cycle.rowVersion || 1)}" />
+
+          <div class="row g-3">
+            <div class="col-12 col-md-8">
+              <label class="form-label" for="prep-title"><strong>Título do Diagnóstico *</strong></label>
+              <input type="text" class="form-control" id="prep-title" name="title" required minlength="3" value="${esc(cycle.title || '')}" ${isReadOnly ? 'disabled' : ''} />
+              <div class="form-text">Mínimo de 3 caracteres. Identifica o ciclo nos painéis e relatórios.</div>
+            </div>
+
+            <div class="col-12 col-md-4">
+              <label class="form-label" for="prep-responsible"><strong>Responsável Designado</strong></label>
+              <select class="form-select" id="prep-responsible" name="responsibleUserId" ${isReadOnly ? 'disabled' : ''}>
+                <option value="">Não atribuído</option>
+                ${eligibleUsers.map(u => `
+                  <option value="${esc(u.id)}" ${u.id === cycle.responsibleUserId ? 'selected' : ''}>
+                    ${esc(u.name)} (${esc(u.email)})${u.department ? ` - ${esc(u.department)}` : ''}
+                  </option>
+                `).join('')}
+              </select>
+              <div class="form-text">Usuários ativos elegíveis da organização.</div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label" for="prep-description"><strong>Objetivo / Descrição do Diagnóstico</strong></label>
+              <textarea class="form-control" id="prep-description" name="description" rows="2" ${isReadOnly ? 'disabled' : ''}>${esc(cycle.description || '')}</textarea>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="prep-targetAudience"><strong>Público-Alvo ou Recorte Organizacional</strong></label>
+              <input type="text" class="form-control" id="prep-targetAudience" name="targetAudience" value="${esc(cycle.targetAudience || '')}" placeholder="Ex: Lideranças Regionais, Operações, Todos os Colaboradores" ${isReadOnly ? 'disabled' : ''} />
+              <div class="form-text">Segmento que norteia a amostragem e a interpretação dos resultados.</div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="prep-formVersion"><strong>Questionário & Versão Metodológica</strong></label>
+              ${canChangeMethodology && availableVersions.length > 0 ? `
+                <select class="form-select" id="prep-formVersion" name="formVersionId" ${isReadOnly ? 'disabled' : ''}>
+                  ${availableVersions.map(v => `
+                    <option value="${esc(v.id)}" ${v.id === cycle.formVersionId ? 'selected' : ''}>
+                      Versão ${esc(v.version)} (${v.isImmutable ? 'Imutável' : 'Publicada'}) - ${date(v.createdAt)}
+                    </option>
+                  `).join('')}
+                </select>
+                <div class="form-text text-success">Permitido alterar versão antes do início da coleta (0 respostas).</div>
+              ` : `
+                <input type="text" class="form-control" disabled value="${esc(cycle.formName || 'Formulário do Diagnóstico')} - v${esc(cycle.formVersionNumber || 1)}" />
+                <div class="alert alert-secondary py-2 px-3 small mt-2 mb-0">
+                  🔒 <strong>${esc(lockReason || 'Metodologia fixada.')}</strong>
+                </div>
+              `}
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="prep-startsAt"><strong>Data de Início da Coleta</strong></label>
+              <input type="date" class="form-control" id="prep-startsAt" name="startsAt" value="${esc(startsAtVal)}" ${isReadOnly ? 'disabled' : ''} />
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label" for="prep-expiresAt"><strong>Data de Término / Expiração</strong></label>
+              <input type="date" class="form-control" id="prep-expiresAt" name="expiresAt" value="${esc(expiresAtVal)}" ${isReadOnly ? 'disabled' : ''} />
+              <div class="form-text">Deve ser posterior à data de início.</div>
+            </div>
           </div>
-        </article>
-        <article class="col-12 col-md-6 col-lg-4">
-          <div class="metric-card h-100">
-            <strong>Público ou Recorte</strong>
-            <p class="small mt-2 mb-0">${esc(cycle.targetAudience || 'Participantes elegíveis da organização')}</p>
-          </div>
-        </article>
-        <article class="col-12 col-md-6 col-lg-4">
-          <div class="metric-card h-100">
-            <strong>Questionário & Versão</strong>
-            <p class="small mt-2 mb-0">${esc(cycle.formName || 'Formulário do Diagnóstico')} <span class="badge bg-secondary">v${esc(cycle.formVersionNumber || '1')}</span></p>
-          </div>
-        </article>
-        <article class="col-12 col-md-6 col-lg-4">
-          <div class="metric-card h-100">
-            <strong>Período de Coleta</strong>
-            <p class="small mt-2 mb-0">${cycle.startsAt ? date(cycle.startsAt) : 'Início imediato'} até ${cycle.expiresAt ? date(cycle.expiresAt) : 'Sem expiração definida'}</p>
-          </div>
-        </article>
-        <article class="col-12 col-md-6 col-lg-4">
-          <div class="metric-card h-100">
-            <strong>Canal de Distribuição</strong>
-            <p class="small mt-2 mb-0">${cycle.distributionChannel === 'email' ? 'Disparo oficial por E-mail' : cycle.distributionChannel === 'whatsapp_manual' ? 'WhatsApp manual' : 'Compartilhamento manual de link seguro'}</p>
-          </div>
-        </article>
-      </div>
+
+          ${!isReadOnly ? `
+            <div class="d-flex gap-2 justify-content-end mt-4 pt-3 border-top">
+              <button type="submit" class="btn btn-primary" data-save-prep-btn>
+                <span class="spinner-border spinner-border-sm d-none me-1" role="status" aria-hidden="true" data-save-spinner></span>
+                💾 Salvar Parâmetros
+              </button>
+            </div>
+          ` : ''}
+        </form>
+      </section>
 
       <section class="valora-card mb-4">
         <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
@@ -448,31 +780,10 @@
             <h3 class="mb-0">Revisão Pré-Publicação</h3>
             <small class="text-muted">Conferência dos requisitos técnicos, avisos analíticos e limites de contratação.</small>
           </div>
-          <span class="badge ${canPublish ? 'bg-success' : 'bg-danger'} fs-6">${canPublish ? 'Apto para publicação' : 'Impedimentos pendentes'}</span>
+          ${badgeHtml}
         </div>
 
-        ${blockers.length === 0 ? `
-          <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
-            <span>✅</span> <div><strong>Requisitos técnicos atendidos:</strong> Questionário publicado vinculado, perguntas ativas disponíveis e limite comercial do plano verificado com sucesso.</div>
-          </div>
-        ` : `
-          <div class="alert alert-danger mb-3">
-            <strong>Impedimentos Técnicos (${blockers.length}):</strong> Estas pendências devem ser corrigidas antes de disponibilizar o link público.
-          </div>
-          <div class="table-responsive mb-3">
-            <table class="valora-table">
-              <thead><tr><th>Problema</th><th>Impacto</th><th>Ação Recomendada</th><th></th></tr></thead>
-              <tbody>
-                ${blockers.map(b => `<tr>
-                  <td><strong>${esc(b.problem)}</strong></td>
-                  <td>${esc(b.impact)}</td>
-                  <td>${esc(b.action)}</td>
-                  <td>${b.targetUrl ? `<a class="btn btn-sm btn-outline-primary" href="${esc(b.targetUrl)}">Corrigir</a>` : ''}</td>
-                </tr>`).join('')}
-              </tbody>
-            </table>
-          </div>
-        `}
+        ${alertHtml}
 
         ${warnings.length > 0 ? `
           <div class="alert alert-warning mb-3">
@@ -486,16 +797,125 @@
           </ul>
         ` : ''}
 
-        <div class="d-flex gap-2 flex-wrap pt-3 border-top">
+        <div class="d-flex gap-2 flex-wrap pt-3 border-top align-items-center">
           ${isDraft ? `
             <button class="btn btn-primary" data-publish-survey ${canPublish ? '' : 'disabled'}>Publicar Diagnóstico & Ativar Coleta</button>
-            <a class="btn btn-outline-secondary" href="/Surveys/${encodeURIComponent(surveyId)}/Edit">Editar configurações</a>
+            ${!isReadOnly ? `<a class="btn btn-outline-secondary" href="/Surveys/${encodeURIComponent(surveyId)}/Edit">Editar configurações</a>` : ''}
           ` : `
             <button class="btn btn-outline-primary" onclick="document.querySelector('[data-tab=campaign]')?.click()">Acessar Campanha & Links</button>
             <button class="btn btn-outline-secondary" onclick="document.querySelector('[data-tab=participation]')?.click()">Ver Participação Real</button>
           `}
+          ${isReadOnly ? `<span class="text-muted small ms-2">🔒 Modo somente leitura: ações operacionais indisponíveis.</span>` : ''}
         </div>
       </section>`;
+
+    const prepForm = content.querySelector('[data-prep-form]');
+    if (prepForm) {
+      prepForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formError = content.querySelector('[data-form-error]');
+        const formSuccess = content.querySelector('[data-form-success]');
+        const concurrencyAlert = content.querySelector('[data-concurrency-alert]');
+        const saveBtn = content.querySelector('[data-save-prep-btn]');
+        const spinner = content.querySelector('[data-save-spinner]');
+
+        formError.classList.add('d-none');
+        formSuccess.classList.add('d-none');
+        concurrencyAlert.classList.add('d-none');
+
+        const formData = new FormData(prepForm);
+        const title = (formData.get('title') || '').toString().trim();
+        const description = (formData.get('description') || '').toString().trim();
+        const targetAudience = (formData.get('targetAudience') || '').toString().trim();
+        const responsibleUserId = formData.get('responsibleUserId') ? formData.get('responsibleUserId').toString() : null;
+        const startsAt = formData.get('startsAt') ? formData.get('startsAt').toString() : null;
+        const expiresAt = formData.get('expiresAt') ? formData.get('expiresAt').toString() : null;
+        const formVersionId = formData.get('formVersionId') ? formData.get('formVersionId').toString() : null;
+        const rowVersion = parseInt(formData.get('rowVersion') || '1', 10);
+
+        if (!title || title.length < 3) {
+          formError.textContent = 'O título do diagnóstico é obrigatório e deve ter no mínimo 3 caracteres.';
+          formError.classList.remove('d-none');
+          return;
+        }
+
+        if (startsAt && expiresAt && new Date(expiresAt) <= new Date(startsAt)) {
+          formError.textContent = 'O prazo final de coleta deve ser posterior à data de início.';
+          formError.classList.remove('d-none');
+          return;
+        }
+
+        if (saveBtn) saveBtn.disabled = true;
+        if (spinner) spinner.classList.remove('d-none');
+
+        try {
+          const res = await fetch(`/bff/diagnostics/${encodeURIComponent(diagnosticId)}/workspace/preparation`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              'X-CSRF-TOKEN': host.querySelector('[name="__RequestVerificationToken"]').value
+            },
+            body: JSON.stringify({
+              title,
+              description: description || null,
+              targetAudience: targetAudience || null,
+              responsibleUserId: responsibleUserId || null,
+              startsAt: startsAt ? new Date(startsAt).toISOString() : null,
+              expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+              formVersionId: formVersionId || null,
+              rowVersion
+            })
+          });
+
+          const result = await res.json().catch(() => ({}));
+          if (res.status === 409) {
+            concurrencyAlert.classList.remove('d-none');
+            return;
+          }
+          if (!res.ok) {
+            formError.textContent = result.message || 'Falha ao salvar parâmetros do diagnóstico.';
+            formError.classList.remove('d-none');
+            return;
+          }
+
+          formSuccess.textContent = 'Parâmetros atualizados com sucesso no banco de dados!';
+          formSuccess.classList.remove('d-none');
+
+          const updatedCycle = result.data || result;
+          if (overviewState) overviewState.cycle = updatedCycle;
+          setOverviewHeader(overviewState || { cycle: updatedCycle });
+
+          setTimeout(async () => {
+            const [refreshedReview, refreshedOptions] = await Promise.all([
+              getPublicationReview(surveyId),
+              api('preparation/options').catch(() => null)
+            ]);
+            preparationView(updatedCycle, refreshedReview, refreshedOptions);
+          }, 800);
+        } catch (ex) {
+          formError.textContent = ex.message || 'Erro de comunicação ao salvar parâmetros.';
+          formError.classList.remove('d-none');
+        } finally {
+          if (saveBtn) saveBtn.disabled = false;
+          if (spinner) spinner.classList.add('d-none');
+        }
+      });
+    }
+
+    const reloadPrepBtn = content.querySelector('[data-reload-prep]');
+    if (reloadPrepBtn) {
+      reloadPrepBtn.addEventListener('click', () => tab('preparation'));
+    }
+
+    const retryBtn = content.querySelector('[data-retry-review]');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', async () => {
+        preparationView(data, 'loading', prepOptions);
+        const refreshed = await getPublicationReview(surveyId);
+        preparationView(data, refreshed, prepOptions);
+      });
+    }
 
     const publishBtn = content.querySelector('[data-publish-survey]');
     if (publishBtn) {
@@ -523,7 +943,7 @@
           error.textContent = ex.message || 'Falha ao publicar diagnóstico.';
           error.classList.remove('d-none');
         } finally {
-          publishBtn.disabled = false;
+          if (requestId === activeRequest && publishBtn) publishBtn.disabled = false;
         }
       });
     }
@@ -820,9 +1240,13 @@
           setOverviewHeader(overview);
         }
         const surveyId = overviewState?.cycle?.surveyId || diagnosticId;
-        const review = await getPublicationReview(surveyId);
+        preparationView(overviewState?.cycle || {}, 'loading', null);
+        const [review, prepOptions] = await Promise.all([
+          getPublicationReview(surveyId),
+          api('preparation/options').catch(() => null)
+        ]);
         if (requestId !== activeRequest) return;
-        preparationView(overviewState?.cycle || {}, review);
+        preparationView(overviewState?.cycle || {}, review, prepOptions);
         return;
       }
       if (name === 'campaign') {
@@ -884,7 +1308,19 @@
     const button = event.target.closest('[data-tab]');
     if (button) tab(button.dataset.tab);
   });
+  if (isReadOnly) {
+    host.querySelectorAll('[data-command]').forEach(button => {
+      button.disabled = true;
+      button.title = 'Modo de consulta (somente leitura): Ação desabilitada.';
+    });
+  }
+
   host.querySelectorAll('[data-command]').forEach(button => button.addEventListener('click', async () => {
+    if (isReadOnly) {
+      error.textContent = 'Ações operacionais não são permitidas no perfil somente leitura.';
+      error.classList.remove('d-none');
+      return;
+    }
     if (button.dataset.command === 'close' && !await window.ValoraUI.confirm('Encerrar este ciclo e bloquear novas respostas?')) return;
     const requestId = activeRequest;
     button.disabled = true;
@@ -899,7 +1335,7 @@
       error.textContent = ex.message || 'Não foi possível concluir a ação.';
       error.classList.remove('d-none');
     } finally {
-      button.disabled = false;
+      if (!isReadOnly) button.disabled = false;
     }
   }));
 

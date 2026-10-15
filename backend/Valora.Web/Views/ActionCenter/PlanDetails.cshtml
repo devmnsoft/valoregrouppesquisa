@@ -37,7 +37,22 @@
                 </dl>
                 @if(capabilities.CanEditContent||capabilities.CanAssign||capabilities.CanReschedule){<div class="action-buttons">@if(capabilities.CanEditContent){<a class="valora-button valora-button--primary" asp-action="EditPlan" asp-route-id="@plan.Id" asp-route-returnUrl="@planCurrentUrl">Editar plano</a>}@if(capabilities.CanAssign){<button type="button" class="valora-button" data-action-dialog-open="assign-plan-dialog">@(plan.OwnerUserId is null?"Definir responsável do plano":"Alterar responsável do plano")</button>}@if(capabilities.CanReschedule){<button type="button" class="valora-button" data-action-dialog-open="reschedule-plan-dialog">Alterar prazo do plano</button>}</div>}
             </article>
-            <article class="valora-card"><h2>Resultado e evidência</h2><h3>Resultado esperado</h3><p>@plan.ExpectedOutcome</p><h3>Evidência de origem</h3><p>@plan.EvidenceSummary</p>@if(plan.Status=="completed"){<h3>Resultado alcançado</h3><p>@(string.IsNullOrWhiteSpace(plan.CompletionResult)?"Resultado de conclusão não recuperado nos dados históricos.":plan.CompletionResult)</p><h3>Evidência de conclusão</h3><p>@(string.IsNullOrWhiteSpace(plan.CompletionEvidence)?"Evidência de conclusão não recuperada nos dados históricos.":plan.CompletionEvidence)</p>}@if(plan.Status is "completed" or "canceled"){<div class="action-buttons"><a class="valora-button" asp-action="PrintPlan" asp-route-id="@plan.Id">Visualizar impressão</a></div>}</article>
+            <article class="valora-card" id="origem">
+                <h2>Origem e evidência</h2>
+                <dl class="action-facts mb-3">
+                    <div><dt>Origem técnica</dt><dd>@ActionStatuses.Label(plan.OriginType)</dd></div>
+                    @if(plan.DiagnosticId.HasValue) {
+                        <div><dt>Diagnóstico de origem</dt><dd><a href="/Diagnostics/@plan.DiagnosticId/Workspace">Acessar workspace do diagnóstico</a></dd></div>
+                    }
+                    @if(plan.OriginType == "ai_insight" && plan.OriginId.HasValue) {
+                        <div><dt>Achado de inteligência</dt><dd><a href="/Insights/Details/@plan.OriginId">Ver achado revisado no Hub</a></dd></div>
+                    }
+                </dl>
+                <h3>Resultado esperado</h3><p>@plan.ExpectedOutcome</p>
+                <h3>Evidência de origem</h3><p>@plan.EvidenceSummary</p>
+                @if(plan.Status=="completed"){<h3>Resultado alcançado</h3><p>@(string.IsNullOrWhiteSpace(plan.CompletionResult)?"Resultado de conclusão não recuperado nos dados históricos.":plan.CompletionResult)</p><h3>Evidência de conclusão</h3><p>@(string.IsNullOrWhiteSpace(plan.CompletionEvidence)?"Evidência de conclusão não recuperada nos dados históricos.":plan.CompletionEvidence)</p>}
+                @if(plan.Status is "completed" or "canceled"){<div class="action-buttons"><a class="valora-button" asp-action="PrintPlan" asp-route-id="@plan.Id">Visualizar impressão</a></div>}
+            </article>
         </section>
         <section class="valora-card" id="atividades">
             <div class="section-heading">

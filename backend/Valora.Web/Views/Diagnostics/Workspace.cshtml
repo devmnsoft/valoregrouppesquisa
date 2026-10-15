@@ -1,8 +1,12 @@
 @section Styles {
     <link rel="stylesheet" href="~/css/diagnostic-workspace.css" asp-append-version="true" />
 }
-@{ ViewData["Title"]="Workspace do Diagnóstico"; var diagnosticId=(Guid)ViewData["DiagnosticId"]!; }
-<main class="valora-page intelligence-workspace" data-page="diagnostic-workspace" data-diagnostic-id="@diagnosticId">
+@{
+    ViewData["Title"]="Workspace do Diagnóstico";
+    var diagnosticId=(Guid)ViewData["DiagnosticId"]!;
+    var isReadOnly = User.Claims.Any(c => (c.Type is System.Security.Claims.ClaimTypes.Role or "role") && c.Value.Equals("visualizador_somente_leitura", StringComparison.OrdinalIgnoreCase));
+}
+<main class="valora-page intelligence-workspace" data-page="diagnostic-workspace" data-diagnostic-id="@diagnosticId" data-read-only="@(isReadOnly ? "true" : "false")">
 @Html.AntiForgeryToken()
 <nav><ol class="breadcrumb"><li class="breadcrumb-item"><a href="/Surveys">Diagnósticos</a></li><li class="breadcrumb-item active">Workspace</li></ol></nav>
 <section class="workspace-hero">

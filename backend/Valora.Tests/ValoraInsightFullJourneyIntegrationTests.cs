@@ -1,5 +1,6 @@
 using System.Data;
 using System.Text.Json;
+using Dapper;
 using Microsoft.Extensions.Logging.Abstractions;
 using Npgsql;
 using Valora.Application.CommercialDelivery;
@@ -94,6 +95,9 @@ public sealed class ValoraInsightFullJourneyIntegrationTests {
             DELETE FROM valorapesquisa.response_answers WHERE response_id IN (SELECT id FROM valorapesquisa.responses WHERE organization_id=@o);
             DELETE FROM valorapesquisa.responses WHERE organization_id=@o;
             DELETE FROM valorapesquisa.diagnostic_cycles WHERE organization_id=@o;
+            DELETE FROM valorapesquisa.notification_events WHERE organization_id=@o;
+            DELETE FROM valorapesquisa.notification_reads WHERE organization_id=@o;
+            DELETE FROM valorapesquisa.notification_recipients WHERE organization_id=@o;
             DELETE FROM valorapesquisa.notifications WHERE organization_id=@o OR user_id IN (SELECT id FROM valorapesquisa.users WHERE organization_id=@o);
             DELETE FROM valorapesquisa.lgpd_consents WHERE organization_id=@o;
             DELETE FROM valorapesquisa.surveys WHERE organization_id=@o;
@@ -693,5 +697,593 @@ public sealed class ValoraInsightFullJourneyIntegrationTests {
             await CleanupOrganizationAsync(connectionString, orgIdA);
             await CleanupOrganizationAsync(connectionString, orgIdB);
         }
+    }
+
+    [Fact]
+    public async Task Sprint1_Validation_TrueResponsible_TrueAudience_IsolatedParticipation_And_TenantSegregation() {
+        var connectionString = Environment.GetEnvironmentVariable("VALORA_TEST_POSTGRES_CONNECTION");
+        if (string.IsNullOrWhiteSpace(connectionString)) return;
+
+        var orgId1 = Guid.NewGuid();
+        var orgId2 = Guid.NewGuid();
+        var userAdmin = Guid.NewGuid();
+        var userGestor = Guid.NewGuid();
+        var formId = Guid.NewGuid();
+        var formVersionId = Guid.NewGuid();
+        var surveyId1 = Guid.NewGuid();
+        var surveyId2 = Guid.NewGuid();
+        var cycleId1 = Guid.NewGuid();
+        var cycleId2 = Guid.NewGuid();
+
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+
+        // Garantir colunas adicionadas nesta sprint de forma idempotente
+        await ExecAsync(conn, """
+            ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS responsible_user_id uuid REFERENCES valorapesquisa.users(id);
+            ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS target_audience text;
+            ALTER TABLE valorapesquisa.diagnostic_cycles ADD COLUMN IF NOT EXISTS responsible_user_id uuid REFERENCES valorapesquisa.users(id);
+            ALTER TABLE valorapesquisa.diagnostic_cycles ADD COLUMN IF NOT EXISTS target_audience text;
+        """);
+
+        var connFactory = new TestConnectionFactory(connectionString);
+        var txFactory = new TestTransactionFactory(connectionString);
+        var workspaceRepo = new DiagnosticWorkspaceRepository(connFactory, txFactory);
+
+        try {
+            // Setup Org 1 e Org 2
+            await ExecAsync(conn, "INSERT INTO valorapesquisa.organizations(id,name,slug,status) VALUES (@id1,'Org 1 Primária','org-1-primaria','active'), (@id2,'Org 2 Secundária','org-2-secundaria','active');",
+                ("id1", orgId1), ("id2", orgId2));
+            await ExecAsync(conn, "INSERT INTO valorapesquisa.organization_modules(organization_id,module_code,enabled) VALUES (@id1,'organizational_intelligence',true), (@id2,'organizational_intelligence',true);",
+                ("id1", orgId1), ("id2", orgId2));
+
+            // Users in Org 1: Admin criado primeiro, Gestor criado depois
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.users(id,organization_id,name,email,password_hash,status,created_at) VALUES
+                (@u1, @id1, 'Admin Primeiro', 'admin1@example.com', 'hash_pw_1', 'active', now() - interval '2 days'),
+                (@u2, @id1, 'Gestor Segundo', 'gestor2@example.com', 'hash_pw_2', 'active', now() - interval '1 day');
+                """,
+                ("u1", userAdmin), ("u2", userGestor), ("id1", orgId1));
+
+            // Form e versão
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.forms (id, organization_id, code, name, title, slug, form_key, status)
+                VALUES (@f, @id1, 'form_alpha', 'Questionário Alpha', 'Questionário Alpha', 'form_alpha', 'form_alpha', 'published');
+                INSERT INTO valorapesquisa.form_versions (id, form_id, organization_id, version, version_number, status, is_immutable, row_version)
+                VALUES (@fv, @f, @id1, 1, 1, 'published', true, 1);
+                """, ("f", formId), ("fv", formVersionId), ("id1", orgId1));
+
+            // DIAGNÓSTICO 1: Sem responsável designado e sem público-alvo (tem apenas public_slug)
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.surveys(id,organization_id,form_id,form_version_id,name,title,status,public_slug)
+                VALUES (@s1, @id1, @f, @fv, 'Diagnóstico Sem Responsável', 'Diagnóstico Sem Responsável', 'draft', 'slug-link-d1');
+                INSERT INTO valorapesquisa.diagnostic_cycles(id,organization_id,survey_id,title,status)
+                VALUES (@c1, @id1, @s1, 'Diagnóstico Sem Responsável', 'draft');
+                """,
+                ("s1", surveyId1), ("c1", cycleId1), ("id1", orgId1), ("f", formId), ("fv", formVersionId));
+
+            var cycle1 = await workspaceRepo.GetCycleAsync(orgId1, surveyId1, CancellationToken.None);
+            Assert.NotNull(cycle1);
+            // REGRA 1.1: Sem inferência de primeiro usuário ativo da organização
+            Assert.Null(cycle1.ResponsibleName);
+            // REGRA 1.2: Sem cópia de public_slug como público-alvo
+            Assert.Null(cycle1.TargetAudience);
+
+            // DIAGNÓSTICO 2: Com responsável explícito (userGestor) e público-alvo explícito
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.surveys(id,organization_id,form_id,form_version_id,name,title,status,public_slug,responsible_user_id,target_audience)
+                VALUES (@s2, @id1, @f, @fv, 'Diagnóstico Com Responsável', 'Diagnóstico Com Responsável', 'active', 'slug-link-d2', @uGestor, 'Lideranças e Coordenadores');
+                INSERT INTO valorapesquisa.diagnostic_cycles(id,organization_id,survey_id,title,status,responsible_user_id,target_audience)
+                VALUES (@c2, @id1, @s2, 'Diagnóstico Com Responsável', 'active', @uGestor, 'Lideranças e Coordenadores');
+                """,
+                ("s2", surveyId2), ("c2", cycleId2), ("id1", orgId1), ("f", formId), ("fv", formVersionId), ("uGestor", userGestor));
+
+            var cycle2 = await workspaceRepo.GetCycleAsync(orgId1, surveyId2, CancellationToken.None);
+            Assert.NotNull(cycle2);
+            Assert.Equal("Gestor Segundo", cycle2.ResponsibleName);
+            Assert.Equal("Lideranças e Coordenadores", cycle2.TargetAudience);
+
+            // REGRA 1.1: Preserva histórico quando o responsável deixa de estar ativo
+            await ExecAsync(conn, "UPDATE valorapesquisa.users SET status='inactive' WHERE id=@uGestor;", ("uGestor", userGestor));
+            var cycle2AfterInactive = await workspaceRepo.GetCycleAsync(orgId1, surveyId2, CancellationToken.None);
+            Assert.NotNull(cycle2AfterInactive);
+            Assert.Equal("Gestor Segundo", cycle2AfterInactive.ResponsibleName);
+
+            // REGRA 1.4: Participação e E-mails isolados por diagnóstico na mesma organização
+            // Diag 1: 1 campanha, 2 destinatários, 1 resposta
+            var campId1 = Guid.NewGuid();
+            await ExecAsync(conn, "INSERT INTO valorapesquisa.diagnostic_campaigns(id,organization_id,survey_id,name,channel,status) VALUES (@camp, @id1, @s1, 'Campanha 1', 'email', 'active');",
+                ("camp", campId1), ("id1", orgId1), ("s1", surveyId1));
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.diagnostic_campaign_recipients(id,organization_id,campaign_id,recipient_reference,email_hash,recipient_masked,status,idempotency_key)
+                VALUES
+                (gen_random_uuid(), @id1, @camp, 'user1@example.com', 'h1', 'u***1@example.com', 'sent', 'k1'),
+                (gen_random_uuid(), @id1, @camp, 'user2@example.com', 'h2', 'u***2@example.com', 'sent', 'k2');
+                """, ("id1", orgId1), ("camp", campId1));
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.responses(id,organization_id,survey_id,status,created_at)
+                VALUES (gen_random_uuid(), @id1, @s1, 'completed', now());
+                """, ("id1", orgId1), ("s1", surveyId1));
+
+            // Diag 2: 1 campanha, 3 destinatários, 2 respostas
+            var campId2 = Guid.NewGuid();
+            await ExecAsync(conn, "INSERT INTO valorapesquisa.diagnostic_campaigns(id,organization_id,survey_id,name,channel,status) VALUES (@camp, @id1, @s2, 'Campanha 2', 'email', 'active');",
+                ("camp", campId2), ("id1", orgId1), ("s2", surveyId2));
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.diagnostic_campaign_recipients(id,organization_id,campaign_id,recipient_reference,email_hash,recipient_masked,status,idempotency_key)
+                VALUES
+                (gen_random_uuid(), @id1, @camp, 'user3@example.com', 'h3', 'u***3@example.com', 'sent', 'k3'),
+                (gen_random_uuid(), @id1, @camp, 'user4@example.com', 'h4', 'u***4@example.com', 'sent', 'k4'),
+                (gen_random_uuid(), @id1, @camp, 'user5@example.com', 'h5', 'u***5@example.com', 'sent', 'k5');
+                """, ("id1", orgId1), ("camp", campId2));
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.responses(id,organization_id,survey_id,status,created_at)
+                VALUES
+                (gen_random_uuid(), @id1, @s2, 'completed', now()),
+                (gen_random_uuid(), @id1, @s2, 'completed', now());
+                """, ("id1", orgId1), ("s2", surveyId2));
+
+            // Consultar participação do Diagnóstico 1
+            var partList1 = await workspaceRepo.ModuleAsync(orgId1, cycleId1, surveyId1, "participation", CancellationToken.None);
+            Assert.NotEmpty(partList1);
+            var part1 = partList1[0].Data;
+            Assert.Equal(1, part1.GetProperty("respostasRecebidas").GetInt32());
+            Assert.Equal(2, part1.GetProperty("destinatariosEmail").GetInt32());
+
+            // Consultar participação do Diagnóstico 2
+            var partList2 = await workspaceRepo.ModuleAsync(orgId1, cycleId2, surveyId2, "participation", CancellationToken.None);
+            Assert.NotEmpty(partList2);
+            var part2 = partList2[0].Data;
+            Assert.Equal(2, part2.GetProperty("respostasRecebidas").GetInt32());
+            Assert.Equal(3, part2.GetProperty("destinatariosEmail").GetInt32());
+
+            // Multi-tenant: Org 2 não consegue consultar ciclo nem participação de Org 1
+            var crossCycle = await workspaceRepo.GetCycleAsync(orgId2, surveyId1, CancellationToken.None);
+            Assert.Null(crossCycle);
+            var crossPartList = await workspaceRepo.ModuleAsync(orgId2, cycleId1, surveyId1, "participation", CancellationToken.None);
+            Assert.NotEmpty(crossPartList);
+            var crossPart = crossPartList[0].Data;
+            Assert.Equal(0, crossPart.GetProperty("respostasRecebidas").GetInt32());
+            Assert.Equal(0, crossPart.GetProperty("destinatariosEmail").GetInt32());
+        }
+        finally {
+            await CleanupOrganizationAsync(connectionString, orgId1);
+            await CleanupOrganizationAsync(connectionString, orgId2);
+        }
+    }
+
+    [Fact]
+    public async Task Sprint2_Validation_Preparation_Parameters_Methodology_Lock_And_Concurrency() {
+        var connectionString = Connection();
+        var connFactory = new TestConnectionFactory(connectionString);
+        var txFactory = new TestTransactionFactory(connectionString);
+        var workspaceRepo = new DiagnosticWorkspaceRepository(connFactory, txFactory);
+
+        var orgId = Guid.NewGuid();
+        var userAdmin = Guid.NewGuid();
+        var userGestor1 = Guid.NewGuid();
+        var userGestor2 = Guid.NewGuid();
+        var userSuspended = Guid.NewGuid();
+        var formId = Guid.NewGuid();
+        var formVersion1 = Guid.NewGuid();
+        var formVersion2 = Guid.NewGuid();
+        var sectionId1 = Guid.NewGuid();
+        var sectionId2 = Guid.NewGuid();
+        var qId1 = Guid.NewGuid();
+        var qId2 = Guid.NewGuid();
+        var surveyId = Guid.NewGuid();
+        var cycleId = Guid.NewGuid();
+
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+
+        // Ensure row_version columns exist idempotently
+        await ExecAsync(conn, """
+            ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS row_version integer NOT NULL DEFAULT 1;
+            ALTER TABLE valorapesquisa.diagnostic_cycles ADD COLUMN IF NOT EXISTS row_version integer NOT NULL DEFAULT 1;
+            """);
+
+        try {
+            await ExecAsync(conn, "INSERT INTO valorapesquisa.organizations(id,name,slug,status) VALUES (@o,'Org Sprint 2','org-sprint-2','active');", ("o", orgId));
+            await ExecAsync(conn, "INSERT INTO valorapesquisa.organization_modules(organization_id,module_code,enabled) VALUES (@o,'organizational_intelligence',true);", ("o", orgId));
+
+            // Users: 2 active, 1 suspended
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.users(id,organization_id,name,email,password_hash,status) VALUES
+                (@u1, @o, 'Gestor Titular', 'titular@valora.test', 'hash', 'active'),
+                (@u2, @o, 'Gestor Adjunto', 'adjunto@valora.test', 'hash', 'active'),
+                (@u3, @o, 'Usuário Suspenso', 'suspenso@valora.test', 'hash', 'suspended');
+                """, ("u1", userGestor1), ("u2", userGestor2), ("u3", userSuspended), ("o", orgId));
+
+            // Form with 2 published versions
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.forms (id, organization_id, code, name, title, slug, form_key, status)
+                VALUES (@f, @o, 'form_prep', 'Questionário Preparação', 'Questionário Preparação', 'form_prep', 'form_prep', 'published');
+
+                INSERT INTO valorapesquisa.form_versions (id, form_id, organization_id, version, version_number, status, is_immutable, row_version)
+                VALUES
+                (@fv1, @f, @o, 1, 1, 'published', true, 1),
+                (@fv2, @f, @o, 2, 2, 'published', true, 1);
+
+                INSERT INTO valorapesquisa.form_section_versions (id, organization_id, form_version_id, title, position, display_order)
+                VALUES
+                (@s1, @o, @fv1, 'Seção 1', 1, 1),
+                (@s2, @o, @fv2, 'Seção 2', 1, 1);
+
+                INSERT INTO valorapesquisa.question_versions (id, organization_id, section_id, code, type, title, required, position, display_order, settings)
+                VALUES
+                (@q1, @o, @s1, 'q1', 'likert_1_5', 'Pergunta V1', true, 1, 1, '{}'::jsonb),
+                (@q2, @o, @s2, 'q2', 'likert_1_5', 'Pergunta V2', true, 1, 1, '{}'::jsonb);
+                """,
+                ("f", formId), ("fv1", formVersion1), ("fv2", formVersion2),
+                ("s1", sectionId1), ("s2", sectionId2), ("q1", qId1), ("q2", qId2), ("o", orgId));
+
+            // Initial Survey in draft linked to version 1, 0 responses
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.surveys(id,organization_id,form_id,form_version_id,name,title,status,row_version)
+                VALUES (@s, @o, @f, @fv1, 'Diagnóstico Inicial Rascunho', 'Diagnóstico Inicial Rascunho', 'draft', 1);
+
+                INSERT INTO valorapesquisa.diagnostic_cycles(id,organization_id,survey_id,form_id,title,status,row_version)
+                VALUES (@c, @o, @s, @f, 'Diagnóstico Inicial Rascunho', 'draft', 1);
+                """, ("s", surveyId), ("c", cycleId), ("f", formId), ("fv1", formVersion1), ("o", orgId));
+
+            // 1. GetPreparationOptionsAsync: Verifica usuários elegíveis e versões disponíveis
+            var options = await workspaceRepo.GetPreparationOptionsAsync(orgId, surveyId, CancellationToken.None);
+            Assert.NotNull(options);
+            Assert.Contains(options.EligibleUsers, u => u.Id == userGestor1 && u.Name == "Gestor Titular");
+            Assert.Contains(options.EligibleUsers, u => u.Id == userGestor2 && u.Name == "Gestor Adjunto");
+            Assert.DoesNotContain(options.EligibleUsers, u => u.Id == userSuspended); // Suspenso excluído
+            Assert.Equal(2, options.AvailableVersions.Count);
+            Assert.True(options.CanChangeMethodology, "Com 0 respostas em draft, metodologia deve ser alterável.");
+            Assert.Null(options.MethodologyLockReason);
+
+            // 2. Validações de entrada: Não salva dados corrompidos
+            // Título inválido (< 3 caracteres)
+            await Assert.ThrowsAsync<ArgumentException>(() => workspaceRepo.UpdatePreparationAsync(orgId, surveyId,
+                new UpdateDiagnosticPreparationDto("Oi", "Desc", "Público", userGestor1, null, null, null, 1),
+                userAdmin, "corr-test", CancellationToken.None));
+
+            // Prazo incoerente (término anterior ao início)
+            var start = DateTime.UtcNow.AddDays(5);
+            var end = DateTime.UtcNow.AddDays(1);
+            await Assert.ThrowsAsync<ArgumentException>(() => workspaceRepo.UpdatePreparationAsync(orgId, surveyId,
+                new UpdateDiagnosticPreparationDto("Diagnóstico Válido", "Desc", "Público", userGestor1, start, end, null, 1),
+                userAdmin, "corr-test", CancellationToken.None));
+
+            // Usuário suspenso selecionado como responsável
+            await Assert.ThrowsAsync<ArgumentException>(() => workspaceRepo.UpdatePreparationAsync(orgId, surveyId,
+                new UpdateDiagnosticPreparationDto("Diagnóstico Válido", "Desc", "Público", userSuspended, null, null, null, 1),
+                userAdmin, "corr-test", CancellationToken.None));
+
+            // 3. Atualização Válida: Altera título, público-alvo, responsável e versão do formulário (v1 -> v2)
+            var validStart = DateTime.UtcNow.AddDays(1);
+            var validEnd = DateTime.UtcNow.AddDays(30);
+            var updatedCycle = await workspaceRepo.UpdatePreparationAsync(orgId, surveyId,
+                new UpdateDiagnosticPreparationDto("Diagnóstico Estratégico 2026", "Avaliação de Maturidade", "Liderança Executiva", userGestor1, validStart, validEnd, formVersion2, 1),
+                userAdmin, "corr-test", CancellationToken.None);
+
+            Assert.NotNull(updatedCycle);
+            Assert.Equal("Diagnóstico Estratégico 2026", updatedCycle.Title);
+            Assert.Equal("Avaliação de Maturidade", updatedCycle.Description);
+            Assert.Equal("Liderança Executiva", updatedCycle.TargetAudience);
+            Assert.Equal("Gestor Titular", updatedCycle.ResponsibleName);
+            Assert.Equal(userGestor1, updatedCycle.ResponsibleUserId);
+            Assert.Equal(2, updatedCycle.FormVersionNumber);
+            Assert.Equal(2, updatedCycle.RowVersion);
+
+            // Persistência confirmada em nova leitura
+            var reloadedCycle = await workspaceRepo.GetCycleAsync(orgId, surveyId, CancellationToken.None);
+            Assert.NotNull(reloadedCycle);
+            Assert.Equal("Diagnóstico Estratégico 2026", reloadedCycle!.Title);
+            Assert.Equal("Liderança Executiva", reloadedCycle.TargetAudience);
+            Assert.Equal("Gestor Titular", reloadedCycle.ResponsibleName);
+            Assert.Equal(2, reloadedCycle.RowVersion);
+
+            // 4. Proteção da Metodologia com Respostas Coletadas:
+            // Inserir 1 resposta
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.responses(id, organization_id, survey_id, status, submitted_at)
+                VALUES (gen_random_uuid(), @o, @s, 'completed', now());
+                """, ("o", orgId), ("s", surveyId));
+
+            var optionsWithResponses = await workspaceRepo.GetPreparationOptionsAsync(orgId, surveyId, CancellationToken.None);
+            Assert.False(optionsWithResponses.CanChangeMethodology, "Com respostas coletadas, metodologia DEVE ser bloqueada.");
+            Assert.NotNull(optionsWithResponses.MethodologyLockReason);
+            Assert.Contains("1 respostas coletadas", optionsWithResponses.MethodologyLockReason);
+
+            // Tentar alterar versão do formulário com respostas existentes deve lançar exceção
+            await Assert.ThrowsAsync<InvalidOperationException>(() => workspaceRepo.UpdatePreparationAsync(orgId, surveyId,
+                new UpdateDiagnosticPreparationDto("Diagnóstico Estratégico 2026", "Desc", "Liderança Executiva", userGestor1, validStart, validEnd, formVersion1, 2),
+                userAdmin, "corr-test", CancellationToken.None));
+
+            // 5. Concorrência Otimista (RowVersion):
+            // Enviar rowVersion obsoleto (1, enquanto o atual é 2)
+            await Assert.ThrowsAsync<DiagnosticConcurrencyException>(() => workspaceRepo.UpdatePreparationAsync(orgId, surveyId,
+                new UpdateDiagnosticPreparationDto("Diagnóstico Modificado Paralelo", "Desc", "Liderança Executiva", userGestor1, validStart, validEnd, null, 1),
+                userAdmin, "corr-test", CancellationToken.None));
+
+            // Atualização com rowVersion correto (2) funciona e avança para 3
+            var cycleV3 = await workspaceRepo.UpdatePreparationAsync(orgId, surveyId,
+                new UpdateDiagnosticPreparationDto("Diagnóstico Atualizado V3", "Desc", "Liderança Executiva", userGestor2, validStart, validEnd, null, 2),
+                userAdmin, "corr-test", CancellationToken.None);
+
+            Assert.Equal("Diagnóstico Atualizado V3", cycleV3.Title);
+            Assert.Equal("Gestor Adjunto", cycleV3.ResponsibleName);
+            Assert.Equal(3, cycleV3.RowVersion);
+        }
+        finally {
+            await CleanupOrganizationAsync(connectionString, orgId);
+        }
+    }
+
+    [Fact]
+    public async Task Sprint3_Validation_Participation_Metrics_Transparency_And_NextAction_State() {
+        var connectionString = Connection();
+        var connFactory = new TestConnectionFactory(connectionString);
+        var txFactory = new TestTransactionFactory(connectionString);
+        var workspaceRepo = new DiagnosticWorkspaceRepository(connFactory, txFactory);
+
+        var orgId = Guid.NewGuid();
+        var surveyId = Guid.NewGuid();
+        var cycleId = Guid.NewGuid();
+        var formId = Guid.NewGuid();
+        var formVersionId = Guid.NewGuid();
+
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+
+        try {
+            await ExecAsync(conn, "INSERT INTO valorapesquisa.organizations(id,name,slug,status) VALUES (@o,'Org Sprint 3','org-sprint-3','active');", ("o", orgId));
+            await ExecAsync(conn, "INSERT INTO valorapesquisa.organization_modules(organization_id,module_code,enabled) VALUES (@o,'organizational_intelligence',true);", ("o", orgId));
+
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.forms (id, organization_id, code, name, title, slug, form_key, status)
+                VALUES (@f, @o, 'form_sp3', 'Form Sprint 3', 'Form Sprint 3', 'form_sp3', 'form_sp3', 'published');
+
+                INSERT INTO valorapesquisa.form_versions (id, form_id, organization_id, version, version_number, status, is_immutable, row_version)
+                VALUES (@fv, @f, @o, 1, 1, 'published', true, 1);
+
+                INSERT INTO valorapesquisa.surveys(id,organization_id,form_id,form_version_id,name,title,status,row_version)
+                VALUES (@s, @o, @f, @fv, 'Diagnóstico Sprint 3', 'Diagnóstico Sprint 3', 'active', 1);
+
+                INSERT INTO valorapesquisa.diagnostic_cycles(id,organization_id,survey_id,form_id,title,status,row_version)
+                VALUES (@c, @o, @s, @f, 'Diagnóstico Sprint 3', 'active', 1);
+                """, ("f", formId), ("fv", formVersionId), ("s", surveyId), ("c", cycleId), ("o", orgId));
+
+            // Insert 3 responses (2 completed, 1 in_progress)
+            var resp1 = Guid.NewGuid();
+            var resp2 = Guid.NewGuid();
+            var resp3 = Guid.NewGuid();
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.responses(id, organization_id, survey_id, status, submitted_at)
+                VALUES
+                (@r1, @o, @s, 'completed', now()),
+                (@r2, @o, @s, 'completed', now()),
+                (@r3, @o, @s, 'in_progress', now());
+                """, ("r1", resp1), ("r2", resp2), ("r3", resp3), ("o", orgId), ("s", surveyId));
+
+            // Insert result scores for completed responses
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.result_scores(id, organization_id, response_id, total_score, max_score)
+                VALUES
+                (gen_random_uuid(), @o, @r1, 80, 100),
+                (gen_random_uuid(), @o, @r2, 85, 100);
+                """, ("r1", resp1), ("r2", resp2), ("o", orgId));
+
+            // Query participation module
+            var partItems = await workspaceRepo.ModuleAsync(orgId, cycleId, surveyId, "participation", CancellationToken.None);
+            Assert.NotEmpty(partItems);
+            var partData = partItems[0].Data;
+
+            // 1. Transparency of Counters: Real audited numbers
+            Assert.Equal(3, partData.GetProperty("respostasRecebidas").GetInt32());
+            Assert.Equal(2, partData.GetProperty("respostasValidas").GetInt32());
+            Assert.Equal(2, partData.GetProperty("respostasPontuadas").GetInt32());
+
+            // 2. Audited Sources Metadata
+            Assert.True(partData.TryGetProperty("origens", out var origens));
+            Assert.False(string.IsNullOrWhiteSpace(origens.GetProperty("respostasRecebidas").GetString()));
+            Assert.False(string.IsNullOrWhiteSpace(origens.GetProperty("respostasValidas").GetString()));
+            Assert.False(string.IsNullOrWhiteSpace(origens.GetProperty("respostasPontuadas").GetString()));
+            Assert.False(string.IsNullOrWhiteSpace(origens.GetProperty("pendenciasProcessamento").GetString()));
+            Assert.False(string.IsNullOrWhiteSpace(origens.GetProperty("destinatariosEmail").GetString()));
+        }
+        finally {
+            await CleanupOrganizationAsync(connectionString, orgId);
+        }
+    }
+
+    [Fact]
+    public async Task Sprint4_Validation_Insights_Canonical_Origins_Editorial_Review_And_ActionCenter_Traceability() {
+        var connectionString = Connection();
+        var connFactory = new TestConnectionFactory(connectionString);
+        var txFactory = new TestTransactionFactory(connectionString);
+        var workspaceRepo = new DiagnosticWorkspaceRepository(connFactory, txFactory);
+        var actionPlanRepo = new ActionPlanRepository(connFactory, txFactory);
+
+        var orgId = Guid.NewGuid();
+        var userAdmin = Guid.NewGuid();
+        var surveyId = Guid.NewGuid();
+        var cycleId = Guid.NewGuid();
+        var formId = Guid.NewGuid();
+        var formVersionId = Guid.NewGuid();
+        var insightAnalyticalId = Guid.NewGuid();
+        var aiInsightApprovedId = Guid.NewGuid();
+        var aiInsightPendingId = Guid.NewGuid();
+        var actionPlanApprovedId = Guid.NewGuid();
+        var actionPlanGeneralId = Guid.NewGuid();
+
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+
+        try {
+            await ExecAsync(conn, "INSERT INTO valorapesquisa.organizations(id,name,slug,status) VALUES (@o,'Org Sprint 4','org-sprint-4','active');", ("o", orgId));
+            await ExecAsync(conn, "INSERT INTO valorapesquisa.organization_modules(organization_id,module_code,enabled) VALUES (@o,'organizational_intelligence',true);", ("o", orgId));
+            await ExecAsync(conn, "INSERT INTO valorapesquisa.users(id,organization_id,name,email,password_hash,status) VALUES (@u,@o,'Admin Sprint 4','admin.sp4@valora.test','hash','active');", ("u", userAdmin), ("o", orgId));
+
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.forms (id, organization_id, code, name, title, slug, form_key, status)
+                VALUES (@f, @o, 'form_sp4', 'Form Sprint 4', 'Form Sprint 4', 'form_sp4', 'form_sp4', 'published');
+
+                INSERT INTO valorapesquisa.form_versions (id, form_id, organization_id, version, version_number, status, is_immutable, row_version)
+                VALUES (@fv, @f, @o, 1, 1, 'published', true, 1);
+
+                INSERT INTO valorapesquisa.surveys(id,organization_id,form_id,form_version_id,name,title,status,row_version)
+                VALUES (@s, @o, @f, @fv, 'Diagnóstico Sprint 4', 'Diagnóstico Sprint 4', 'active', 1);
+
+                INSERT INTO valorapesquisa.diagnostic_cycles(id,organization_id,survey_id,form_id,title,status,row_version)
+                VALUES (@c, @o, @s, @f, 'Diagnóstico Sprint 4', 'active', 1);
+                """, ("f", formId), ("fv", formVersionId), ("s", surveyId), ("c", cycleId), ("o", orgId));
+
+            // 1. Analytical insight from pipeline (valorapesquisa.insights)
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.insights(id, organization_id, survey_id, code, status, data)
+                VALUES (@id, @o, @s, 'correlacao_lideranca', 'approved', jsonb_build_object(
+                    'title', 'Correlação Direta entre Liderança e Eficácia',
+                    'dimension', 'Liderança',
+                    'calculatedScore', 82.5,
+                    'nature', 'fato_calculado'
+                ));
+                """, ("id", insightAnalyticalId), ("o", orgId), ("s", surveyId));
+
+            // 2. AI insight in editorial queue (valorapesquisa.valora_ai_insights) - approved
+            var runId = Guid.NewGuid();
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.valora_ai_runs (id, organization_id, diagnosis_id, prompt_code, prompt_version, provider, model, correlation_id, input_json, status)
+                VALUES (@r, @o, @s, 'eval_prompt', 1, 'openai', 'gpt-4o', 'corr-sp4', '{}'::jsonb, 'completed');
+                """, ("r", runId), ("o", orgId), ("s", surveyId));
+
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.valora_ai_insights(id, organization_id, diagnostic_id, ai_run_id, insight_type, title, summary, evidence_summary, recommendation, related_dimension, severity, priority, confidence_level, status, review_version)
+                VALUES (@id, @o, @s, @r, 'recommendation', 'Plano de Ação para Comunicação', 'Resumo da recomendação', 'Evidência convergente', 'Recomendação estruturada', 'Comunicação', 'medium', 'high', 'Alto', 'converted_to_action', 1);
+                """, ("id", aiInsightApprovedId), ("o", orgId), ("s", surveyId), ("r", runId));
+
+            // 3. AI insight in editorial queue - pending review
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.valora_ai_insights(id, organization_id, diagnostic_id, ai_run_id, insight_type, title, summary, evidence_summary, recommendation, related_dimension, severity, priority, confidence_level, status, review_version)
+                VALUES (@id, @o, @s, @r, 'warning', 'Risco de Ruído em Canais Informais', 'Resumo do aviso', 'Evidência textual', 'Recomendação estruturada', 'Comunicação', 'low', 'medium', 'Médio', 'pending_review', 0);
+                """, ("id", aiInsightPendingId), ("o", orgId), ("s", surveyId), ("r", runId));
+
+            // 4. Action Plans in Action Center
+            // Plan A: Strictly linked to aiInsightApprovedId
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.action_plans(id, organization_id, title, summary, origin_type, origin_id, diagnostic_id, status, priority, evidence_summary, expected_outcome)
+                VALUES (@pid, @o, 'Plano de Ação Aprovado', 'Plano derivado do insight aprovado', 'ai_insight', @origId, @s, 'in_execution', 'high', 'Evidência convergente', 'Melhorar alinhamento');
+                """, ("pid", actionPlanApprovedId), ("o", orgId), ("origId", aiInsightApprovedId), ("s", surveyId));
+
+            // Plan B: General plan linked to the survey as a whole (origin_type = 'diagnostic')
+            await ExecAsync(conn, """
+                INSERT INTO valorapesquisa.action_plans(id, organization_id, title, summary, origin_type, origin_id, diagnostic_id, status, priority, evidence_summary, expected_outcome)
+                VALUES (@pid, @o, 'Plano Geral do Diagnóstico', 'Plano macro da pesquisa', 'diagnostic', @s, @s, 'draft', 'medium', 'Metas gerais', 'Concluir ciclo');
+                """, ("pid", actionPlanGeneralId), ("o", orgId), ("s", surveyId));
+
+            // Query ModuleAsync("insights")
+            var insights = await workspaceRepo.ModuleAsync(orgId, cycleId, surveyId, "insights", CancellationToken.None);
+            Assert.NotEmpty(insights);
+
+            // Assert Canonical Discriminators
+            var analyticalItem = insights.FirstOrDefault(x => x.Id == insightAnalyticalId);
+            Assert.NotNull(analyticalItem);
+            Assert.Equal("insight", analyticalItem!.Data.GetProperty("originType").GetString());
+            Assert.Equal("fato_calculado", analyticalItem.Data.GetProperty("nature").GetString());
+
+            var aiApprovedItem = insights.FirstOrDefault(x => x.Id == aiInsightApprovedId);
+            Assert.NotNull(aiApprovedItem);
+            Assert.Equal("valora_ai_insight", aiApprovedItem!.Data.GetProperty("originType").GetString());
+            Assert.Equal("decisao_revisada", aiApprovedItem.Data.GetProperty("nature").GetString());
+            // Strict link: Points directly to actionPlanApprovedId
+            Assert.True(aiApprovedItem.Data.TryGetProperty("linkedPlanId", out var planIdProp));
+            Assert.Equal(actionPlanApprovedId, planIdProp.GetGuid());
+
+            var aiPendingItem = insights.FirstOrDefault(x => x.Id == aiInsightPendingId);
+            Assert.NotNull(aiPendingItem);
+            Assert.Equal("valora_ai_insight", aiPendingItem!.Data.GetProperty("originType").GetString());
+            Assert.Equal("sugestao_ia", aiPendingItem.Data.GetProperty("nature").GetString());
+            // CRITICAL TEST: Loose fallback (OR ap.diagnostic_id=@surveyId) MUST NOT associate Plan B to this pending insight
+            Assert.True(aiPendingItem.Data.TryGetProperty("linkedPlanId", out var pendingPlanProp));
+            Assert.True(pendingPlanProp.ValueKind == System.Text.Json.JsonValueKind.Null,
+                "Insight pendente NÃO deve ter linkedPlanId vinculado por heurística frágil de survey.");
+
+            // ActionPlanDto: Verify OriginId, DiagnosticId mapping
+            var plan = await actionPlanRepo.Get(orgId, userAdmin, actionPlanApprovedId, true, CancellationToken.None);
+            Assert.NotNull(plan);
+            Assert.Equal(aiInsightApprovedId, plan!.OriginId);
+            Assert.Equal(surveyId, plan.DiagnosticId);
+            Assert.Equal("ai_insight", plan.OriginType);
+        }
+        finally {
+            await CleanupOrganizationAsync(connectionString, orgId);
+        }
+    }
+
+    [Fact]
+    public async Task Sprint5_Validation_Homologation_Seed_And_MultiTenant_Gate() {
+        var connectionString = Connection();
+        var hasher = new Valora.Infrastructure.Security.BCryptPasswordHasher();
+
+        // Path to seed script
+        var seedPath = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "database", "postgresql", "seed_homologacao.sql");
+        if (!File.Exists(seedPath)) {
+            seedPath = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "database", "postgresql", "seed_homologacao.sql"));
+        }
+        Assert.True(File.Exists(seedPath), $"seed_homologacao.sql deve existir no repositório. Procurado em: {seedPath}");
+
+        var seedSql = await File.ReadAllTextAsync(seedPath);
+
+        await using var conn = new NpgsqlConnection(connectionString);
+        await conn.OpenAsync();
+
+        // 1. Execute Seed (Run twice to prove idempotency)
+        await ExecAsync(conn, seedSql);
+        await ExecAsync(conn, seedSql);
+
+        var orgDemoId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+        var orgInicioId = Guid.Parse("22222222-2222-2222-2222-222222222222");
+        var orgIsoId = Guid.Parse("33333333-3333-3333-3333-333333333333");
+
+        // 2. Validate Organizations
+        var orgs = (await conn.QueryAsync<(Guid Id, string Name, string Status)>(
+            "SELECT id, name, status FROM valorapesquisa.organizations WHERE id IN (@o1, @o2, @o3)",
+            new { o1 = orgDemoId, o2 = orgInicioId, o3 = orgIsoId })).ToList();
+
+        Assert.Equal(3, orgs.Count);
+        Assert.All(orgs, o => Assert.Equal("active", o.Status));
+
+        // 3. Validate Users and BCrypt Passwords for Admin@123
+        var users = (await conn.QueryAsync<(Guid Id, string Email, string PasswordHash)>(
+            "SELECT id, email, password_hash FROM valorapesquisa.users WHERE organization_id IN (@o1, @o2, @o3)",
+            new { o1 = orgDemoId, o2 = orgInicioId, o3 = orgIsoId })).ToList();
+
+        Assert.True(users.Count >= 6, "Seed deve conter no mínimo 6 usuários de homologação.");
+        foreach (var user in users) {
+            Assert.True(hasher.Verify("Admin@123", user.PasswordHash),
+                $"Senha de {user.Email} deve verificar com sucesso contra 'Admin@123'");
+        }
+
+        // 4. Validate Cliente Demonstração has full journey
+        var demoSurveys = await conn.ExecuteScalarAsync<int>("SELECT count(*) FROM valorapesquisa.surveys WHERE organization_id=@o", new { o = orgDemoId });
+        var demoResponses = await conn.ExecuteScalarAsync<int>("SELECT count(*) FROM valorapesquisa.responses WHERE organization_id=@o", new { o = orgDemoId });
+        var demoEvidence = await conn.ExecuteScalarAsync<int>("SELECT count(*) FROM valorapesquisa.evidence_items WHERE organization_id=@o", new { o = orgDemoId });
+        var demoInsights = await conn.ExecuteScalarAsync<int>("SELECT count(*) FROM valorapesquisa.valora_ai_insights WHERE organization_id=@o", new { o = orgDemoId });
+        var demoPlans = await conn.ExecuteScalarAsync<int>("SELECT count(*) FROM valorapesquisa.action_plans WHERE organization_id=@o", new { o = orgDemoId });
+
+        Assert.True(demoSurveys > 0, "Cliente Demonstração deve conter diagnóstico.");
+        Assert.True(demoResponses >= 5, "Cliente Demonstração deve conter respostas.");
+        Assert.True(demoEvidence > 0, "Cliente Demonstração deve conter evidências.");
+        Assert.True(demoInsights > 0, "Cliente Demonstração deve conter achados.");
+        Assert.True(demoPlans > 0, "Cliente Demonstração deve conter planos de ação.");
+
+        // 5. Validate Cliente Início has 0 surveys (fresh onboarding state)
+        var inicioSurveys = await conn.ExecuteScalarAsync<int>("SELECT count(*) FROM valorapesquisa.surveys WHERE organization_id=@o", new { o = orgInicioId });
+        Assert.Equal(0, inicioSurveys);
+
+        // 6. Validate Cliente Isolamento segregation
+        var isoSurveys = await conn.ExecuteScalarAsync<int>("SELECT count(*) FROM valorapesquisa.surveys WHERE organization_id=@o", new { o = orgIsoId });
+        Assert.True(isoSurveys > 0);
+
+        var crossTenantResponses = await conn.ExecuteScalarAsync<int>(
+            "SELECT count(*) FROM valorapesquisa.responses WHERE organization_id=@iso AND survey_id IN (SELECT id FROM valorapesquisa.surveys WHERE organization_id=@demo)",
+            new { iso = orgIsoId, demo = orgDemoId });
+        Assert.Equal(0, crossTenantResponses);
     }
 }

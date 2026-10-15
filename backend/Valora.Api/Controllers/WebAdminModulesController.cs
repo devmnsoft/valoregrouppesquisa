@@ -84,6 +84,13 @@ public sealed class WebAdminModulesController(
         if (status == "active") {
             var limit = await entitlements.CheckLimitAsync(OrganizationId, "activeSurveys");
             if (!limit.Allowed) throw new InvalidOperationException("Limite do plano atingido para diagnósticos ativos.");
+            var survey = await surveys.GetAdminAsync(OrganizationId, surveyId);
+            if (survey is null) throw new InvalidOperationException("Diagnóstico não encontrado.");
+            Guid? formVersionId = survey.form_version_id is Guid fvid ? fvid : (Guid.TryParse(survey.form_version_id?.ToString(), out Guid gFvid) ? gFvid : (Guid?)null);
+            if (formVersionId is null || formVersionId == Guid.Empty) throw new InvalidOperationException("Não é possível publicar diagnóstico sem questionário vinculado.");
+            var questions = await forms.GetQuestionsAsync(formVersionId.Value);
+            if (questions.Count == 0) throw new InvalidOperationException("Não é possível publicar diagnóstico cujo questionário não possui perguntas.");
+            if (survey.expires_at is DateTime exp && exp <= DateTime.UtcNow) throw new InvalidOperationException("O período de coleta do diagnóstico já expirou.");
         }
         await surveys.UpdateStatusAdminAsync(OrganizationId, surveyId, status);
         await Audit("survey.status", "survey", surveyId);

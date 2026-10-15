@@ -8,7 +8,8 @@ public sealed record DiagnosticCycleDto(Guid Id, Guid OrganizationId, Guid Surve
     int ResponseCount, int EvidenceCount, int MappedEvidenceCount, int PendingEvidenceCount,
     decimal? ConfidenceLevel, string ProcessingStatus, string? PublicUrl, DateTime CreatedAt, DateTime UpdatedAt,
     string? FormName = null, int? FormVersionNumber = null, DateTime? StartsAt = null, DateTime? ExpiresAt = null,
-    string? TargetAudience = null, string? DistributionChannel = null, string? ResponsibleName = null);
+    string? TargetAudience = null, string? DistributionChannel = null, string? ResponsibleName = null,
+    Guid? ResponsibleUserId = null, Guid? FormVersionId = null, int RowVersion = 1);
 public sealed record DiagnosticWorkspaceItemDto(Guid Id, string? Code, string Status, JsonElement Data,
     DateTime CreatedAt, DateTime UpdatedAt);
 public sealed record DiagnosticWorkspaceEvidenceDto(Guid Id, Guid? ResponseId, Guid? QuestionId, string ConceptCode,
@@ -34,6 +35,28 @@ public sealed record DiagnosticWorkspaceDto(DiagnosticWorkspaceOverviewDto Overv
     IReadOnlyList<DiagnosticWorkspaceItemDto> Insights, IReadOnlyList<DiagnosticWorkspaceItemDto> Actions);
 public sealed record DiagnosticWorkspaceCommandDto(Guid CycleId, string Status, string Message, Guid? JobId = null, bool HasLimitation = false);
 
+public sealed record EligibleUserDto(Guid Id, string Name, string Email, string? Department = null);
+public sealed record FormVersionOptionDto(Guid Id, int Version, string? Title, string Status, bool IsImmutable, DateTime CreatedAt);
+public sealed record DiagnosticWorkspacePreparationOptionsDto(
+    IReadOnlyList<EligibleUserDto> EligibleUsers,
+    IReadOnlyList<FormVersionOptionDto> AvailableVersions,
+    bool CanChangeMethodology,
+    string? MethodologyLockReason = null);
+
+public sealed record UpdateDiagnosticPreparationDto(
+    string Title,
+    string? Description,
+    string? TargetAudience,
+    Guid? ResponsibleUserId,
+    DateTime? StartsAt,
+    DateTime? ExpiresAt,
+    Guid? FormVersionId,
+    int RowVersion);
+
+public class DiagnosticConcurrencyException : Exception {
+    public DiagnosticConcurrencyException(string message) : base(message) { }
+}
+
 public interface IDiagnosticWorkspaceRepository {
     Task<DiagnosticCycleDto?> GetCycleAsync(Guid organizationId, Guid id, CancellationToken ct);
     Task<IReadOnlyList<DiagnosticWorkspaceEvidenceDto>> EvidenceAsync(Guid organizationId, Guid surveyId, CancellationToken ct);
@@ -44,6 +67,8 @@ public interface IDiagnosticWorkspaceRepository {
     Task<Guid> MarkProcessingAsync(Guid organizationId, DiagnosticCycleDto cycle, Guid userId, string correlationId, CancellationToken ct);
     Task<DiagnosticWorkspaceCommandDto?> CloseAsync(Guid organizationId, DiagnosticCycleDto cycle, Guid userId, string correlationId, CancellationToken ct);
     Task<DiagnosticWorkspaceCommandDto> GenerateReportAsync(Guid organizationId, DiagnosticCycleDto cycle, Guid userId, bool preview, CancellationToken ct);
+    Task<DiagnosticWorkspacePreparationOptionsDto> GetPreparationOptionsAsync(Guid organizationId, Guid surveyId, CancellationToken ct);
+    Task<DiagnosticCycleDto> UpdatePreparationAsync(Guid organizationId, Guid surveyId, UpdateDiagnosticPreparationDto dto, Guid userId, string correlationId, CancellationToken ct);
 }
 
 public interface IDiagnosticWorkspaceService {
@@ -55,4 +80,6 @@ public interface IDiagnosticWorkspaceService {
     Task<DiagnosticWorkspaceCommandDto?> ProcessAsync(Guid organizationId, Guid id, Guid userId, string correlationId, CancellationToken ct);
     Task<DiagnosticWorkspaceCommandDto?> CloseCycleAsync(Guid organizationId, Guid id, Guid userId, string correlationId, CancellationToken ct);
     Task<DiagnosticWorkspaceCommandDto?> GenerateReportAsync(Guid organizationId, Guid id, Guid userId, bool preview, CancellationToken ct);
+    Task<DiagnosticWorkspacePreparationOptionsDto?> GetPreparationOptionsAsync(Guid organizationId, Guid surveyId, CancellationToken ct);
+    Task<DiagnosticCycleDto?> UpdatePreparationAsync(Guid organizationId, Guid surveyId, UpdateDiagnosticPreparationDto dto, Guid userId, string correlationId, CancellationToken ct);
 }

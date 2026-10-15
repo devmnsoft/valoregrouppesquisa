@@ -30,6 +30,32 @@ public sealed class DiagnosticWorkspaceController(IDiagnosticWorkspaceService se
     [HttpPost("/api/v1/diagnostics/{id:guid}/executive-report/preview")] public Task<IActionResult> ExecutivePreview(Guid id, CancellationToken ct) => Preview(id, ct);
     [HttpPost("/api/v1/diagnostics/{id:guid}/executive-report/generate")] public Task<IActionResult> ExecutiveGenerate(Guid id, CancellationToken ct) => Generate(id, ct);
     [HttpGet("/api/v1/diagnostics/{id:guid}/executive-report")] public Task<IActionResult> ExecutiveReport(Guid id, CancellationToken ct) => Read(id, o => service.GetModuleAsync(o, id, "report", ct));
+
+    [HttpGet("preparation/options")]
+    public Task<IActionResult> PreparationOptions(Guid id, CancellationToken ct) =>
+        Read(id, o => service.GetPreparationOptionsAsync(o, id, ct));
+
+    [HttpPut("preparation")]
+    public async Task<IActionResult> UpdatePreparation(Guid id, [FromBody] UpdateDiagnosticPreparationDto request, CancellationToken ct) {
+        var access = await Access("surveys.manage");
+        if (access.Error is not null) return access.Error;
+        try {
+            var updated = await service.UpdatePreparationAsync(access.OrganizationId, id, request, UserId, HttpContext.TraceIdentifier, ct);
+            return updated is null
+                ? NotFound(new { code = "DIAGNOSTIC_NOT_FOUND", message = "Diagnóstico não encontrado.", correlationId = HttpContext.TraceIdentifier })
+                : Ok(new { ok = true, data = updated, correlationId = HttpContext.TraceIdentifier });
+        }
+        catch (DiagnosticConcurrencyException ex) {
+            return StatusCode(409, new { code = "CONCURRENCY_CONFLICT", message = ex.Message, correlationId = HttpContext.TraceIdentifier });
+        }
+        catch (ArgumentException ex) {
+            return BadRequest(new { code = "VALIDATION_FAILED", message = ex.Message, correlationId = HttpContext.TraceIdentifier });
+        }
+        catch (InvalidOperationException ex) {
+            return StatusCode(409, new { code = "OPERATION_BLOCKED", message = ex.Message, correlationId = HttpContext.TraceIdentifier });
+        }
+    }
+
     private async Task<IActionResult> Read<T>(Guid id, Func<Guid, Task<T?>> action) { var access = await Access("organizational_intelligence.read"); if (access.Error is not null) return access.Error; var value = await action(access.OrganizationId); return value is null ? NotFound(new { code = "DIAGNOSTIC_NOT_FOUND", message = "Diagnóstico não encontrado.", correlationId = HttpContext.TraceIdentifier }) : Ok(value); }
     private async Task<IActionResult> Write<T>(Guid id, string permission, Func<Guid, Task<T?>> action) { var access = await Access(permission); if (access.Error is not null) return access.Error; var value = await action(access.OrganizationId); return value is null ? NotFound(new { code = "DIAGNOSTIC_NOT_FOUND", message = "Diagnóstico não encontrado.", correlationId = HttpContext.TraceIdentifier }) : Ok(value); }
     private async Task<(Guid OrganizationId, IActionResult? Error)> Access(string permission) { if (!Guid.TryParse(User.FindFirstValue("organization_id"), out var o)) return (Guid.Empty, ForbidProblem("ORGANIZATION_REQUIRED", "Selecione uma organização para abrir o diagnóstico.")); if (!IsAdmin && (!await permissions.HasPermissionAsync(UserId, permission, o) || !await entitlements.CanUseAsync(o, "organizational_intelligence"))) return (o, ForbidProblem("WORKSPACE_FORBIDDEN", "Este recurso faz parte dos módulos avançados do Valora Insight™ Profissional.")); return (o, null); }

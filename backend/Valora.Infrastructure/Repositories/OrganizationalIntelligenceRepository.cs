@@ -52,36 +52,51 @@ public sealed class OrganizationalIntelligenceRepository(IDbConnectionFactory co
             JsonSerializer.Deserialize<JsonElement>(x.DataJson), x.MethodologyVersion, x.Version, x.CreatedAt, x.UpdatedAt)).ToList();
     }
 
-    private sealed record ModuleRow(Guid Id, string? Code, string Status, string DataJson, int MethodologyVersion, int Version, DateTime CreatedAt, DateTime UpdatedAt);
+    private sealed class ModuleRow {
+        public Guid Id { get; set; }
+        public string? Code { get; set; }
+        public string Status { get; set; } = "";
+        public string DataJson { get; set; } = "{}";
+        public int MethodologyVersion { get; set; }
+        public int Version { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
     // B1 - Leituras elegíveis para comparação: surveys ativos da organização com
     // snapshot metodológico imutável capturado na ativação (be4d791f). O índice por
     // survey replica exatamente a fórmula agregada de GetEvidenceAsync restrita ao
     // survey; dimensão sem valor avaliado (NULL) não entra na média nem na assinatura.
-    public async Task<IReadOnlyList<EvolutionSurveyComparisonDto>> ListEvolutionComparisonSurveysAsync(Guid organizationId, CancellationToken ct) {
+    public Task<IReadOnlyList<EvolutionSurveyComparisonDto>> ListEvolutionComparisonSurveysAsync(Guid organizationId, CancellationToken ct) => ReadEvolutionSurveys(organizationId, null, 0, int.MaxValue, false, ct);
+    public Task<IReadOnlyList<EvolutionSurveyComparisonDto>> SelectEvolutionSurveysAsync(Guid organizationId, Guid? surveyId, int page, int size, CancellationToken ct) => ReadEvolutionSurveys(organizationId, surveyId, checked((Math.Max(1, page) - 1) * Math.Clamp(size, 1, 50)), Math.Clamp(size, 1, 50), false, ct);
+    public async Task<EvolutionSurveyComparisonDto?> GetEvolutionSurveyAsync(Guid organizationId, Guid surveyId, CancellationToken ct) => (await ReadEvolutionSurveys(organizationId, surveyId, 0, 1, true, ct)).SingleOrDefault();
+    private async Task<IReadOnlyList<EvolutionSurveyComparisonDto>> ReadEvolutionSurveys(Guid organizationId, Guid? surveyId, int offset, int size, bool includeSource, CancellationToken ct) {
         const string metaSql = """
             SELECT s.id SurveyId, COALESCE(s.title, s.name) Title, s.created_at CreatedAt,
-              coalesce(max(qs.captured_at), s.created_at) CapturedAt,
+              coalesce((SELECT max(greatest(rs.created_at,rs.updated_at,r.submitted_at)) FROM valorapesquisa.responses r JOIN valorapesquisa.result_scores rs ON rs.response_id=r.id WHERE r.survey_id=s.id AND (r.organization_id=@organizationId OR r.organization_id IS NULL) AND coalesce(r.is_deleted,false)=false),max(qs.captured_at), s.created_at) CapturedAt,
               s.methodology_snapshot_json::text SnapshotJson,
-              (SELECT encode(digest(coalesce(string_agg(COALESCE(r2.participant_email, r2.participant_name, r2.id::text), ',' ORDER BY COALESCE(r2.participant_email, r2.participant_name, r2.id::text)), ''), 'sha256'), 'hex')
+              CASE WHEN @includeSource THEN (SELECT coalesce(jsonb_agg(jsonb_build_object('resultScoreId',rs.id,'responseId',r.id,'totalScore',rs.total_score,'maxScore',rs.max_score,'processedAt',greatest(rs.created_at,rs.updated_at),
+                  'dimensions',(SELECT jsonb_agg(jsonb_build_object('dimensionId',ds.dimension_id,'score',ds.score,'maxScore',ds.max_score) ORDER BY ds.dimension_id) FROM valorapesquisa.dimension_scores ds WHERE ds.result_score_id=rs.id)) ORDER BY rs.id),'[]'::jsonb)::text
+               FROM valorapesquisa.responses r JOIN valorapesquisa.result_scores rs ON rs.response_id=r.id WHERE r.survey_id=s.id AND (r.organization_id=@organizationId OR r.organization_id IS NULL) AND coalesce(r.is_deleted,false)=false) ELSE '[]' END ProcessingSourceJson,
+              (SELECT encode(digest(coalesce(string_agg(COALESCE(NULLIF(lower(trim(r2.participant_email)),''),NULLIF(lower(trim(r2.participant_name)),''),r2.id::text), ',' ORDER BY COALESCE(NULLIF(lower(trim(r2.participant_email)),''),NULLIF(lower(trim(r2.participant_name)),''),r2.id::text)), ''), 'sha256'), 'hex')
                FROM valorapesquisa.responses r2
                JOIN valorapesquisa.result_scores rs2 ON rs2.response_id = r2.id
-               WHERE r2.survey_id = s.id) PopulationSignature,
+               WHERE r2.survey_id = s.id AND (r2.organization_id=@organizationId OR r2.organization_id IS NULL) AND coalesce(r2.is_deleted,false)=false) PopulationSignature,
               (SELECT count(DISTINCT r3.id)::int FROM valorapesquisa.responses r3
                JOIN valorapesquisa.result_scores rs3 ON rs3.response_id = r3.id
-               WHERE r3.survey_id = s.id) ScoredResponseCount
+               WHERE r3.survey_id = s.id AND (r3.organization_id=@organizationId OR r3.organization_id IS NULL) AND coalesce(r3.is_deleted,false)=false) ScoredResponseCount
             FROM valorapesquisa.surveys s
             LEFT JOIN valorapesquisa.survey_methodology_question_snapshots qs ON qs.survey_id = s.id
-            WHERE s.organization_id = @organizationId AND s.deleted_at IS NULL AND s.status = 'active'
+            WHERE s.organization_id = @organizationId AND s.deleted_at IS NULL AND coalesce(s.is_deleted,false)=false AND s.status IN ('active','closed')
               AND s.methodology_snapshot_hash IS NOT NULL AND s.methodology_snapshot_json IS NOT NULL
             GROUP BY s.id, s.title, s.name, s.created_at, s.methodology_snapshot_json
             ORDER BY s.created_at, s.id
             """;
         const string criteriaSql = """
             SELECT qs.survey_id SurveyId, qs.dimension_code DimensionCode, qs.metric_code MetricCode, qs.index_code IndexCode,
-              qs.weight::text WeightText, qs.polarity::int Polarity
+              qs.weight::text WeightText, qs.polarity::int Polarity,qs.calculation_rule::text CalculationRuleJson
             FROM valorapesquisa.survey_methodology_question_snapshots qs
             JOIN valorapesquisa.surveys s ON s.id = qs.survey_id
-            WHERE s.organization_id = @organizationId AND s.deleted_at IS NULL AND s.status = 'active'
+            WHERE s.organization_id = @organizationId AND s.deleted_at IS NULL AND coalesce(s.is_deleted,false)=false AND s.status IN ('active','closed')
               AND s.methodology_snapshot_hash IS NOT NULL AND s.methodology_snapshot_json IS NOT NULL
             ORDER BY qs.survey_id, qs.question_id
             """;
@@ -93,28 +108,36 @@ public sealed class OrganizationalIntelligenceRepository(IDbConnectionFactory co
             JOIN valorapesquisa.responses r ON r.id = rs.response_id
             JOIN valorapesquisa.dimensions d ON d.id = ds.dimension_id
             JOIN valorapesquisa.surveys s ON s.id = r.survey_id
-            WHERE s.organization_id = @organizationId AND s.deleted_at IS NULL AND s.status = 'active'
+            WHERE s.organization_id = @organizationId AND s.deleted_at IS NULL AND coalesce(s.is_deleted,false)=false AND s.status IN ('active','closed')
               AND s.methodology_snapshot_hash IS NOT NULL AND s.methodology_snapshot_json IS NOT NULL
+            AND (r.organization_id=@organizationId OR r.organization_id IS NULL) AND coalesce(r.is_deleted,false)=false
             GROUP BY r.survey_id, d.id, d.code
             """;
         using var c = connections.Create();
-        var parameters = new { organizationId };
-        var surveys = (await c.QueryAsync<EvolutionSurveyRow>(new CommandDefinition(metaSql, parameters, cancellationToken: ct))).ToList();
-        var criteria = (await c.QueryAsync<EvolutionCriterionRow>(new CommandDefinition(criteriaSql, parameters, cancellationToken: ct))).ToList();
-        var scores = (await c.QueryAsync<EvolutionScoreRow>(new CommandDefinition(scoreSql, parameters, cancellationToken: ct))).ToList();
-        return surveys.Select(row => {
+        const string selected = " AND (@surveyId IS NULL OR s.id=@surveyId)";
+        c.Open();
+        using var snapshotTransaction = c.BeginTransaction(System.Data.IsolationLevel.RepeatableRead);
+        var meta = metaSql.Replace("GROUP BY s.id", selected + " GROUP BY s.id") + " LIMIT @size OFFSET @offset";
+        var surveys = (await c.QueryAsync<EvolutionSurveyRow>(new CommandDefinition(meta, new { organizationId, surveyId, size, offset, includeSource }, snapshotTransaction, cancellationToken: ct))).ToList();
+        if (surveys.Count == 0) return [];
+        var parameters = new { organizationId, ids = surveys.Select(x => x.SurveyId).ToArray() };
+        var criteria = (await c.QueryAsync<EvolutionCriterionRow>(new CommandDefinition(criteriaSql.Replace("ORDER BY qs.survey_id", "AND s.id=ANY(@ids) ORDER BY qs.survey_id"), parameters, snapshotTransaction, cancellationToken: ct))).ToList();
+        var scores = (await c.QueryAsync<EvolutionScoreRow>(new CommandDefinition(scoreSql.Replace("GROUP BY r.survey_id", "AND s.id=ANY(@ids) GROUP BY r.survey_id"), parameters, snapshotTransaction, cancellationToken: ct))).ToList();
+        var result = surveys.Select(row => {
             var measured = scores.Where(x => x.SurveyId == row.SurveyId && x.Score.HasValue).ToList();
             decimal? maturity = measured.Count == 0 ? null : Math.Round(measured.Average(x => x.Score!.Value), 2);
             return new EvolutionSurveyComparisonDto(
                 row.SurveyId, row.Title, row.CreatedAt, row.CapturedAt, row.SnapshotJson, row.ScoredResponseCount, row.PopulationSignature, maturity,
                 measured.Select(x => x.Code).Distinct().OrderBy(x => x, StringComparer.Ordinal).ToList(),
                 criteria.Where(x => x.SurveyId == row.SurveyId)
-                    .Select(x => new EvolutionQuestionCriterionRow(x.DimensionCode, x.MetricCode, x.IndexCode, x.WeightText, x.Polarity)).ToList());
+                    .Select(x => new EvolutionQuestionCriterionRow(x.DimensionCode, x.MetricCode, x.IndexCode, x.WeightText, x.Polarity) { CalculationRuleJson = x.CalculationRuleJson }).ToList()) { ProcessingSourceJson = row.ProcessingSourceJson };
         }).ToList();
+        snapshotTransaction.Commit();
+        return result;
     }
 
-    private sealed record EvolutionSurveyRow(Guid SurveyId, string Title, DateTime CreatedAt, DateTime CapturedAt, string SnapshotJson, string PopulationSignature, int ScoredResponseCount);
-    private sealed record EvolutionCriterionRow(Guid SurveyId, string? DimensionCode, string? MetricCode, string? IndexCode, string WeightText, int Polarity);
+    private sealed record EvolutionSurveyRow(Guid SurveyId, string Title, DateTime CreatedAt, DateTime CapturedAt, string SnapshotJson, string ProcessingSourceJson, string PopulationSignature, int ScoredResponseCount);
+    private sealed record EvolutionCriterionRow(Guid SurveyId, string? DimensionCode, string? MetricCode, string? IndexCode, string WeightText, int Polarity, string CalculationRuleJson);
     private sealed record EvolutionScoreRow(Guid SurveyId, string Code, decimal? Score);
 
     public async Task<EvidenceSummaryDto> GetEvidenceAsync(Guid organizationId, CancellationToken ct) {

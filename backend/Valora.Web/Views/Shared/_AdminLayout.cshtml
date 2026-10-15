@@ -8,7 +8,7 @@
   <meta name="csrf-token" content="@Antiforgery.GetAndStoreTokens(Context).RequestToken">
   <title>@ViewData["Title"] - Valora Group</title>
   <meta name="theme-color" content="#0c3448">
-  <link href="/lib/bootstrap/bootstrap.min.css" rel="stylesheet" asp-append-version="true">
+  <link href="/lib/bootstrap/bootstrap-5.3.3.min.css" rel="stylesheet" asp-append-version="true">
   <link rel="stylesheet" href="/css/design-system/tokens.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/design-system/typography.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/design-system/layout.css" asp-append-version="true">
@@ -51,7 +51,7 @@
   </div>
   @await Html.PartialAsync("_ToastContainer")
   @await Html.PartialAsync("_ConfirmationModal")
-    <script src="/lib/bootstrap/bootstrap.bundle.min.js" asp-append-version="true"></script>
+    <script src="/lib/bootstrap/bootstrap-5.3.3.bundle.min.js" asp-append-version="true"></script>
 <script src="/web-config.js" asp-append-version="true"></script>
 <script src="/js/config.js" asp-append-version="true"></script>
 <script src="/js/core/logger.js"></script>

@@ -221,11 +221,7 @@ public sealed class OrganizationalIntelligenceService(IOrganizationalIntelligenc
     }
 
     private static EvolutionComparisonBasis BuildBasis(EvolutionSurveyComparisonDto survey) =>
-        new(MethodologyVersion(survey.SnapshotJson),
-            string.Join("|", survey.MeasuredDimensionCodes.OrderBy(code => code, StringComparer.Ordinal)),
-            ScaleSignature(survey.SnapshotJson, survey.MeasuredDimensionCodes),
-            CalculationCriteria(survey.CriteriaRows, survey.MeasuredDimensionCodes),
-            survey.PopulationSignature, survey.MaturityIndex.HasValue);
+        survey.MaturityIndex.HasValue ? EvolutionMeasurementBasis.Capture(survey).Basis : new("", "", "", "", "", false);
 
     // Identidade metodológica lida exclusivamente do snapshot imutável (nunca do
     // catálogo vivo): {code}@{version}.

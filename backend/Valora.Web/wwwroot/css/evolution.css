@@ -1,0 +1,25 @@
+.evolution-details { display: grid; gap: 28px; }
+.evolution-details > section { border-top: 1px solid var(--valora-line, #dce7e6); padding-top: 20px; min-width: 0; }
+.evolution-details h2 { font-size: 20px; margin: 0 0 16px; }
+.evolution-details h3 { font-size: 18px; }
+.evolution-details h4 { font-size: 16px; }
+.evolution-details form, .evolution-cycles dialog form { display: grid; gap: 16px; min-width: 0; }
+.evolution-details .summary-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 20px; }
+.evolution-details dd { margin: 4px 0 0; }
+.evolution-details :is(p, dd, label), .evolution-cycles :is(p, label) { overflow-wrap: anywhere; }
+.evolution-details .form-grid, .evolution-cycles .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.evolution-details .form-grid > *, .evolution-cycles .form-grid > * { grid-column: auto; }
+.evolution-details .timeline-item { border-left: 3px solid #40856b; padding: 12px 16px; margin: 16px 0; }
+.evolution-details :is(input:not([type=checkbox]), select, textarea), .evolution-cycles :is(input:not([type=radio]), select, textarea) { box-sizing: border-box; width: 100%; max-width: 100%; min-width: 0; border: 1px solid #98acae; border-radius: 6px; background: #fff; color: #16363e; padding: 10px 12px; font: inherit; }
+.evolution-details select, .evolution-cycles select { text-overflow: ellipsis; }
+.evolution-details .valora-button { justify-self: start; }
+.evolution-cycles dialog { max-width: 680px; width: calc(100% - 32px); max-height: calc(100dvh - 32px); overflow: auto; }
+.evolution-cycles dialog fieldset { border: 0; padding: 0; min-width: 0; }
+.evolution-cycles dialog legend { font-size: 16px; font-weight: 600; }
+.evolution-cycles dialog fieldset label { display: inline-flex; align-items: center; gap: 6px; margin-right: 16px; }
+.evolution-cycles dialog [hidden] { display: none; }
+.evolution-cycles dialog .form-actions { margin: 0; padding: 16px 0 0; position: static; background: transparent; }
+@media (max-width: 640px) {
+  .evolution-details .form-grid, .evolution-cycles .form-grid, .evolution-details .summary-grid { grid-template-columns: minmax(0, 1fr); }
+  .evolution-details .valora-button { max-width: 100%; white-space: normal; }
+}

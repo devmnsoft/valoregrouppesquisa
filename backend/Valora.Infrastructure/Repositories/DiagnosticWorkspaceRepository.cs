@@ -192,6 +192,18 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
         string sql;
         if (module.Equals("actions", StringComparison.OrdinalIgnoreCase)) sql = "SELECT id,code,status,to_jsonb(x)::text DataJson,created_at CreatedAt,updated_at UpdatedAt FROM valorapesquisa.valora_actions x WHERE organization_id=@organizationId AND survey_id=@surveyId AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 200";
         else if (module.Equals("alerts", StringComparison.OrdinalIgnoreCase)) sql = "SELECT id,indicator_code code,status,to_jsonb(x)::text DataJson,created_at CreatedAt,updated_at UpdatedAt FROM valorapesquisa.intelligent_alerts x WHERE organization_id=@organizationId AND survey_id=@surveyId AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 200";
+        else if (module.Equals("evolution", StringComparison.OrdinalIgnoreCase)) sql = """
+            SELECT x.id,NULL::text code,x.status,
+              (to_jsonb(x)||jsonb_build_object(
+                'timeZone',(SELECT time_zone FROM valorapesquisa.organizations WHERE id=x.organization_id),
+                'lastMonitoringAt',(SELECT max(es.calculated_at) FROM valorapesquisa.evolution_snapshots es WHERE es.organization_id=x.organization_id AND es.evolution_cycle_id=x.id AND es.snapshot_type='monitoring' AND es.deleted_at IS NULL),
+                'lastReevaluationAt',(SELECT max(es.calculated_at) FROM valorapesquisa.evolution_snapshots es WHERE es.organization_id=x.organization_id AND es.evolution_cycle_id=x.id AND es.snapshot_type='reevaluation' AND es.deleted_at IS NULL),
+                'referenceReviewRequired',x.baseline_measurement_id IS NULL AND (x.result_id IS NOT NULL OR coalesce(x.metadata_json->>'baselineSource','') NOT IN('manual','manual_informed')) AND x.metadata_json->>'referenceSchemaVersion' IS DISTINCT FROM '2'))::text DataJson,
+              x.created_at CreatedAt,x.updated_at UpdatedAt
+            FROM valorapesquisa.evolution_cycles x
+            WHERE x.organization_id=@organizationId AND (x.diagnostic_id IN(@cycleId,@surveyId) OR x.cycle_id=@cycleId OR x.survey_id=@surveyId) AND x.deleted_at IS NULL
+            ORDER BY x.created_at DESC LIMIT 200
+            """;
         else if (module.Equals("participation", StringComparison.OrdinalIgnoreCase)) sql = "SELECT id,'participation'::text code,status,to_jsonb(x)::text DataJson,created_at CreatedAt,updated_at UpdatedAt FROM valorapesquisa.diagnostic_participation_snapshots x WHERE organization_id=@organizationId AND (cycle_id=@cycleId OR survey_id=@surveyId) AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 1";
         else if (module.Equals("responses", StringComparison.OrdinalIgnoreCase)) sql = """
             SELECT x.id,NULL::text code,x.status,

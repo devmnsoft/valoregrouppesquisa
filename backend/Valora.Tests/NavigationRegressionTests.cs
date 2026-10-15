@@ -71,11 +71,13 @@ public sealed class NavigationRegressionTests {
         var context = new TagHelperContext(new TagHelperAttributeList(), new Dictionary<object, object>(), "icon-test");
         var output = new TagHelperOutput("valora-icon", new TagHelperAttributeList(),
             (_, _) => Task.FromResult<TagHelperContent>(new DefaultTagHelperContent()));
+        output.TagMode = TagMode.SelfClosing;
 
         var exception = Record.Exception(() => helper.Process(context, output));
 
         Assert.Null(exception);
         Assert.Equal("svg", output.TagName);
+        Assert.Equal(TagMode.StartTagAndEndTag, output.TagMode);
         Assert.Equal(ValoraIconRegistry.FallbackIcon, output.Attributes["data-valora-icon"].Value);
         Assert.Equal("true", output.Attributes["data-icon-fallback"].Value);
         Assert.NotEmpty(output.Content.GetContent());

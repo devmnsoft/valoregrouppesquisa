@@ -228,13 +228,13 @@ public sealed class PlatformAccessAndShellContractTests {
         Assert.DoesNotContain("selectedResult?.Percentage", controller);
         Assert.DoesNotContain("FirstOrDefault(x => x.ResultId", controller);
         Assert.Contains("IOrganizationalIntelligenceRepository", File.ReadAllText(Path.Combine(root, "backend/Valora.Application/Evolution/EvolutionServices.cs")));
-        Assert.Contains("ListEvolutionComparisonSurveysAsync", File.ReadAllText(Path.Combine(root, "backend/Valora.Application/Evolution/EvolutionServices.cs")));
+        Assert.Contains("GetEvolutionSurveyAsync", File.ReadAllText(Path.Combine(root, "backend/Valora.Application/Evolution/EvolutionServices.cs")));
         Assert.DoesNotContain("result_scores rs", repository);
-        Assert.Contains("metadata_json->>'baselineSource'", repository);
+        Assert.Contains("legacy_review_required", repository);
         Assert.Contains("diagnostic_id DiagnosticId,result_id ResultId", repository);
-        Assert.Contains("name=\"ResultId\"", cyclesView);
+        Assert.Contains("name=\"SourceSurveyId\"", cyclesView);
         Assert.Contains("medição organizacional", cyclesView);
-        Assert.Contains("GUIDs não são digitados manualmente", cyclesView);
+        Assert.Contains("name=\"ReferenceMode\"", cyclesView);
         Assert.Contains("/Evolution/Cycles?diagnosticId=", workspace);
     }
 

@@ -1,0 +1,11 @@
+@model Valora.Application.Evolution.PreservedEvolutionMeasurement
+@{ var zoneName = ViewData["OrganizationTimeZone"] as string ?? "UTC"; var zone = TimeZoneInfo.FindSystemTimeZoneById(zoneName); }
+<dl class="summary-grid">
+    <div><dt>Pesquisa</dt><dd>@Model.Title</dd></div>
+    <div><dt>Fonte</dt><dd>Medição organizacional preservada</dd></div>
+    <div><dt>Referência</dt><dd>@TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(Model.ReferenceAt, DateTimeKind.Utc), zone).ToString("dd/MM/yyyy HH:mm") (@zoneName)</dd></div>
+    <div><dt>Valor</dt><dd>@Model.Score.ToString("0.00") pontos na escala de 0 a 100</dd></div>
+    <div><dt>Metodologia</dt><dd>@(string.IsNullOrWhiteSpace(Model.Basis.MethodologyVersion) ? "Não identificada" : Model.Basis.MethodologyVersion)</dd></div>
+    <div><dt>Recorte</dt><dd>@Model.ResponseCount respostas pontuadas da pesquisa</dd></div>
+</dl>
+<p class="form-help">@Model.Limitation</p>

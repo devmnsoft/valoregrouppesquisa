@@ -63,10 +63,14 @@ public sealed record ValoraActionHistoryDto(Guid Id, Guid ActionId, string Statu
 // Nenhuma regra de tendência favorável/desfavorável: apenas variação absoluta
 // quando as bases persistidas permitem a comparação.
 public static class EvolutionComparisonSchemas { public const string V1 = "evolution-comparison/v1"; }
-public sealed record EvolutionQuestionCriterionRow(string? DimensionCode, string? MetricCode, string? IndexCode, string WeightText, int Polarity);
+public sealed record EvolutionQuestionCriterionRow(string? DimensionCode, string? MetricCode, string? IndexCode, string WeightText, int Polarity) {
+    public string CalculationRuleJson { get; init; } = "{}";
+}
 public sealed record EvolutionSurveyComparisonDto(Guid SurveyId, string Title, DateTime CreatedAt, DateTime CapturedAt, string SnapshotJson,
     int ScoredResponseCount, string PopulationSignature, decimal? MaturityIndex,
-    IReadOnlyList<string> MeasuredDimensionCodes, IReadOnlyList<EvolutionQuestionCriterionRow> CriteriaRows);
+    IReadOnlyList<string> MeasuredDimensionCodes, IReadOnlyList<EvolutionQuestionCriterionRow> CriteriaRows) {
+    public string ProcessingSourceJson { get; init; } = "[]";
+}
 public sealed record EvolutionComparisonCandidateDto(Guid SurveyId, string Title, DateTime CapturedAt, decimal? MaturityIndex, int ScoredResponseCount);
 public sealed record EvolutionComparisonSideDto(Guid SurveyId, string Title, DateTime CapturedAt, decimal? MaturityIndex, int ScoredResponseCount,
     string MethodologyVersion, bool DataAvailable);
@@ -91,6 +95,8 @@ public interface IOrganizationalIntelligenceRepository {
     Task<IReadOnlyList<EvidenceItemDto>> ListEvidenceItemsAsync(Guid organizationId, CancellationToken ct);
     Task<IReadOnlyList<IntelligenceModuleRecordDto>> ListModuleRecordsAsync(Guid organizationId, string module, CancellationToken ct);
     Task<IReadOnlyList<EvolutionSurveyComparisonDto>> ListEvolutionComparisonSurveysAsync(Guid organizationId, CancellationToken ct);
+    Task<IReadOnlyList<EvolutionSurveyComparisonDto>> SelectEvolutionSurveysAsync(Guid organizationId, Guid? surveyId, int page, int size, CancellationToken ct) => throw new NotSupportedException();
+    Task<EvolutionSurveyComparisonDto?> GetEvolutionSurveyAsync(Guid organizationId, Guid surveyId, CancellationToken ct) => throw new NotSupportedException();
 }
 
 public interface IOrganizationalIntelligenceService {

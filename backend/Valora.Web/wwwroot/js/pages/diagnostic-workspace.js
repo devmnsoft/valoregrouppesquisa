@@ -18,13 +18,15 @@
     span.textContent = value == null ? '' : String(value);
     return span.innerHTML;
   };
-  const date = value => value ? new Date(value).toLocaleDateString('pt-BR') : 'A definir';
+  const date = (value, timeZone) => value ? new Date(value).toLocaleDateString('pt-BR', timeZone ? { timeZone } : undefined) : 'A definir';
   const label = value => ({
     draft: 'Rascunho', proposed: 'Proposto', approved: 'Aprovado', in_execution: 'Em execução',
     pending: 'Pendente', in_progress: 'Em execução', blocked: 'Bloqueada', overdue: 'Atrasada',
     completed: 'Concluída', canceled: 'Cancelada', critical: 'Crítica', high: 'Alta',
     medium: 'Média', low: 'Baixa', diagnostic: 'Diagnóstico', result: 'Resultado',
-    ai_insight: 'Insight revisado', manual: 'Manual'
+    ai_insight: 'Insight revisado', manual: 'Manual', active: 'Ativo', open: 'Aberto',
+    closed: 'Encerrado', archived: 'Arquivado', reviewed: 'Reavaliado', monitoring: 'Em acompanhamento',
+    running: 'Em processamento', retry_scheduled: 'Nova tentativa agendada', cancelled: 'Cancelado'
   }[value] || value || 'Não informado');
 
   async function api(path = '', method = 'GET', signal) {
@@ -90,16 +92,12 @@
     overviewState = data;
     host.querySelector('[data-title]').textContent = cycle.title;
     host.querySelector('[data-description]').textContent = cycle.description || 'Ciclo oficial de evolução organizacional.';
-    host.querySelector('[data-status]').textContent = cycle.status;
+    host.querySelector('[data-status]').textContent = stage(cycle.status);
     host.querySelector('[data-confidence]').textContent = `Confiança ${cycle.confidenceLevel ?? 'a calcular'}`;
     host.querySelector('[data-value="responses"]').textContent = cycle.responseCount;
     host.querySelector('[data-value="evidence"]').textContent = cycle.evidenceCount;
     host.querySelector('[data-value="coverage"]').textContent = coverageLabel(cycle);
-    host.querySelector('[data-value="processing"]').textContent = data.lastJob?.status || cycle.processingStatus;
-    const progress = host.querySelector('[data-progress]');
-    progress.hidden = true;
-    progress.style.width = '0%';
-    progress.setAttribute('aria-valuetext', stage(cycle.status));
+    host.querySelector('[data-value="processing"]').textContent = label(data.lastJob?.status || cycle.processingStatus);
   }
 
   function diagnosticPlanUrl(cycle) {
@@ -130,7 +128,7 @@
       ? `<ol class="action-history">${data.history.map(row => `<li><strong>${esc(row.title)}</strong><span>${esc(label(row.operation))} · ${esc(row.actorName || 'Sistema')} · ${esc(date(row.changedAt))}</span><small>${esc([row.fromValue, row.toValue].filter(Boolean).join(' → ') || row.reason || 'Registro operacional preservado.')}</small></li>`).join('')}</ol>`
       : '<p>O histórico aparecerá quando houver criação, vínculo, atribuição, bloqueio, retomada ou conclusão.</p>';
     const more = [data.hasMorePlans && 'planos', data.hasMoreItems && 'atividades', data.hasMoreHistory && 'histórico'].filter(Boolean);
-    const actionCenterUrl = `/ActionCenter/Plans?search=${encodeURIComponent(cycle?.title || diagnosticId)}&returnUrl=${encodeURIComponent(returnUrl)}`;
+    const actionCenterUrl = `/ActionCenter/Plans?diagnosticId=${encodeURIComponent(cycle?.surveyId || diagnosticId)}&returnUrl=${encodeURIComponent(returnUrl)}`;
     const moreNotice = more.length ? `<div class="alert alert-info">Esta visão mostra os registros mais recentes de ${esc(more.join(', '))}. <a href="${actionCenterUrl}">Navegar no Action Center</a>.</div>` : '';
     content.innerHTML = `<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h2>Action™</h2><p>Planos e atividades vinculados ao diagnóstico com os mesmos dados do Action Center.</p></div><a class="valora-button valora-button--primary" href="${createUrl}">Criar plano vinculado</a></div>${moreNotice}<section class="valora-card"><h3>Planos vinculados</h3>${plans}</section><section class="valora-card"><h3>Atividades em execução</h3>${items}</section><section class="valora-card"><h3>Histórico no contexto</h3>${history}</section>`;
   }
@@ -145,12 +143,15 @@
   }
 
   async function campaignCommand(action) {
+    const requestId = activeRequest;
     try {
       const result = await campaignApi(action, 'POST');
+      if (requestId !== activeRequest) return;
       message.textContent = result.message;
       message.classList.remove('d-none');
       await tab('campaign');
     } catch (ex) {
+      if (requestId !== activeRequest) return;
       error.textContent = ex.message || 'Não foi possível concluir a ação.';
       error.classList.remove('d-none');
     }
@@ -179,6 +180,7 @@
     updateChannel();
     formElement.addEventListener('submit', async event => {
       event.preventDefault();
+      const requestId = activeRequest;
       const form = new FormData(event.target);
       const channel = form.get('channel');
       const recipients = channel === 'email'
@@ -191,10 +193,12 @@
       }
       try {
         await campaignApi('', 'POST', { name: form.get('name'), channel, subject: channel === 'email' ? form.get('subject') : null, message: form.get('message'), recipients });
+        if (requestId !== activeRequest) return;
         message.textContent = 'Campanha criada. O link e a mensagem de convite já estão disponíveis para compartilhamento.';
         message.classList.remove('d-none');
         await tab('campaign');
       } catch (ex) {
+        if (requestId !== activeRequest) return;
         error.textContent = ex.message || 'Não foi possível criar a campanha.';
         error.classList.remove('d-none');
       }
@@ -212,7 +216,11 @@
         return;
       }
       if (name === 'actions') {
-        if (!overviewState) setOverviewHeader(await api('overview'));
+        if (!overviewState) {
+          const overview = await api('overview');
+          if (requestId !== activeRequest) return;
+          setOverviewHeader(overview);
+        }
         const data = await api('execution');
         if (requestId === activeRequest) executionView(data);
         return;
@@ -223,10 +231,19 @@
         content.innerHTML = '<div class="empty-state"><h2>Compartilhamentos controlados</h2><p>Gere primeiro um snapshot do Executive Report™. Os links são criados no detalhe do relatório, com expiração e revogação.</p><a class="btn btn-primary" href="/Intelligence/ExecutiveReport">Abrir Executive Report™</a></div>';
         return;
       }
-      if (name === 'evolution' && !overviewState) setOverviewHeader(await api('overview'));
+      if (name === 'evolution' && !overviewState) {
+        const overview = await api('overview');
+        if (requestId !== activeRequest) return;
+        setOverviewHeader(overview);
+      }
       const data = await api(name);
       if (requestId !== activeRequest) return;
       if (name === 'overview') overview(data);
+      else if (name === 'evolution') {
+        const back = `/Diagnostics/${diagnosticId}/Workspace?tab=evolution`;
+        const records = Array.isArray(data) ? data : data.items || [];
+        content.innerHTML = `<h2>Evolução</h2>${records.length ? `<div class="table-responsive"><table class="valora-table"><thead><tr><th>Ciclo</th><th>Situação</th><th>Último acompanhamento</th><th>Última reavaliação</th><th>Pendência</th><th></th></tr></thead><tbody>${records.map(item => { const cycle = item.data || item; return `<tr><td>${esc(cycle.title || 'Ciclo de evolução')}</td><td>${esc(label(item.status || cycle.status))}</td><td>${esc(cycle.lastMonitoringAt ? date(cycle.lastMonitoringAt, cycle.timeZone) : 'Nenhum registro')}</td><td>${esc(cycle.lastReevaluationAt ? date(cycle.lastReevaluationAt, cycle.timeZone) : 'Nenhum registro')}</td><td>${cycle.referenceReviewRequired ? 'Revisar referência inicial' : cycle.lastReevaluationAt ? 'Nenhuma pendência de medição' : 'Reavaliação ainda não registrada'}</td><td><a href="/Evolution/Cycles/Details/${encodeURIComponent(item.id)}?returnUrl=${encodeURIComponent(back)}">Continuar ciclo</a></td></tr>`; }).join('')}</tbody></table></div>` : '<p>Nenhum ciclo vinculado.</p>'}<a class="valora-button" href="/Evolution/Cycles?diagnosticId=${encodeURIComponent(overviewState.cycle.surveyId)}&returnUrl=${encodeURIComponent(back)}">Novo ciclo</a>`;
+      }
       else {
         const contextualAction = name === 'evolution' && overviewState?.cycle
           ? `<div class="valora-card"><h3>Reavaliação vinculada</h3><p>Abra um ciclo Evolution™ a partir deste diagnóstico para selecionar um resultado calculado elegível. Valor manual ficará identificado como informado.</p><a class="valora-button valora-button--primary" href="/Evolution/Cycles?diagnosticId=${encodeURIComponent(overviewState.cycle.surveyId)}&returnUrl=${encodeURIComponent(`/Diagnostics/${diagnosticId}/Workspace?tab=evolution`)}">Criar ciclo vinculado</a></div>`
@@ -249,13 +266,16 @@
   });
   host.querySelectorAll('[data-command]').forEach(button => button.addEventListener('click', async () => {
     if (button.dataset.command === 'close' && !await window.ValoraUI.confirm('Encerrar este ciclo e bloquear novas respostas?')) return;
+    const requestId = activeRequest;
     button.disabled = true;
     try {
       const result = await api(button.dataset.command, 'POST');
+      if (requestId !== activeRequest) return;
       message.textContent = result.message;
       message.classList.remove('d-none');
       await tab('overview');
     } catch (ex) {
+      if (requestId !== activeRequest) return;
       error.textContent = ex.message || 'Não foi possível concluir a ação.';
       error.classList.remove('d-none');
     } finally {

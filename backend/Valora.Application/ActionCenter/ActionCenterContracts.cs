@@ -53,7 +53,7 @@ public sealed record ActionHistoryDto(Guid Id, string? FromStatus, string ToStat
 public sealed record ActionPlanHistoryDto(Guid Id, string Operation, string? FromValue, string? ToValue, string? Reason, string? AuthorName, DateTime ChangedAt, long? IntentVersion);
 public sealed record ActionItemDetailsDto(ActionItemDto Item, IReadOnlyList<ActionHistoryDto> History, int HistoryPage, int HistoryPages, bool CanEdit, bool CanAssign, bool CanReschedule, bool CanProgress, bool CanBlock, bool CanResume, bool CanComplete);
 public sealed record ActionDashboardDto(int Critical, int Overdue, int Unassigned, int ActivePlans, int Blocked, IReadOnlyList<ActionItemDto> Upcoming, IReadOnlyList<ActionPlanDto> Plans);
-public sealed record ActionPlanListQuery(int Page = 1, int PageSize = 20, string? Search = null, string? Status = null, Guid? OwnerUserId = null, string? Priority = null, string? Due = null, string? Sort = null, ActionPlanScopeFilter? Scope = null) {
+public sealed record ActionPlanListQuery(int Page = 1, int PageSize = 20, string? Search = null, string? Status = null, Guid? OwnerUserId = null, string? Priority = null, string? Due = null, string? Sort = null, ActionPlanScopeFilter? Scope = null, Guid? DiagnosticId = null) {
     public int ValidPage => Math.Max(1, Page); public int ValidPageSize => Math.Clamp(PageSize, 1, 50);
 }
 public sealed record ActionItemListQuery(int Page = 1, int PageSize = 20, string? Search = null, string? Status = null, Guid? ResponsibleUserId = null, string? Priority = null, string? Due = null, ActionAssignmentFilter? Assignment = null, ActionItemScopeFilter? Scope = null) {

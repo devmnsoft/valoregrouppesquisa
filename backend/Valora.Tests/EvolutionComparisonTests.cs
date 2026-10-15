@@ -41,4 +41,13 @@ public sealed class EvolutionComparisonTests {
         Assert.False(comparison.IsComparable);
         Assert.Null(comparison.AbsoluteVariation);
     }
+
+    [Theory]
+    [InlineData("indefinida")]
+    [InlineData("")]
+    public void UnknownMethodologyNeverProvidesComparability(string version) {
+        var comparison = EvolutionComparisonService.Compare(0, Basis(version: version), 10, Basis(version: version));
+        Assert.False(comparison.IsComparable);
+        Assert.Null(comparison.AbsoluteVariation);
+    }
 }

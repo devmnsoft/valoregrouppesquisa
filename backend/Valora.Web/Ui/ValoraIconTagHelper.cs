@@ -24,6 +24,7 @@ public sealed class ValoraIconTagHelper(
         var paths = registry.GetRequired(resolvedName);
         var size = Math.Clamp(Size, 12, 64);
         output.TagName = "svg";
+        output.TagMode = TagMode.StartTagAndEndTag;
         var cssClass = string.Join(' ', new[] { "valora-icon", CssClass }
             .Where(value => !string.IsNullOrWhiteSpace(value)));
         output.Attributes.SetAttribute("class", cssClass);

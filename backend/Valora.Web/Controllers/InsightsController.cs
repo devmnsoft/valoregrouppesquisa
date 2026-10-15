@@ -28,7 +28,7 @@ public sealed class InsightsController(
         if (!TryGetOperationContext(out var organizationId, out var userId)) return OrganizationRequired();
         var context = requestContext.GetCurrent(); var detail = await insights.DetailsAsync(organizationId, userId, id, context.IsGlobalAdministrator || context.Roles.Contains("admin_cliente", StringComparer.OrdinalIgnoreCase), ct);
         if (detail is null) return NotFound();
-        var back = !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl) && returnUrl.StartsWith("/Insights", StringComparison.OrdinalIgnoreCase) ? returnUrl : "/Insights";
+        var back = SafeInsightsReturn(returnUrl);
         return View(new InsightDetailsPageViewModel(detail, back));
     }
 
@@ -108,7 +108,11 @@ public sealed class InsightsController(
     private string SafeInsightsReturn(string? value) {
         if (string.IsNullOrWhiteSpace(value) || !Url.IsLocalUrl(value)) return "/Insights";
         var path = value.Split('?', 2)[0];
-        return path.Equals("/Insights", StringComparison.OrdinalIgnoreCase) ? value : "/Insights";
+        return path.StartsWith("/Insights", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/Diagnostics/", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/ActionCenter", StringComparison.OrdinalIgnoreCase)
+            || path.StartsWith("/Surveys", StringComparison.OrdinalIgnoreCase)
+            ? value : "/Insights";
     }
 
     private bool TryGetOrganizationId(out Guid organizationId) =>

@@ -1,0 +1,568 @@
+/* Valora Insight™ — Diagnostic Workspace Premium Stylesheet */
+
+:root {
+  --dw-navy-deep: #071b28;
+  --dw-navy-card: #0c2b3d;
+  --dw-navy-soft: #143e54;
+  --dw-teal: #0f766e;
+  --dw-teal-light: #14b8a6;
+  --dw-teal-soft: #ccfbf1;
+  --dw-cyan: #06b6d4;
+  --dw-cyan-soft: #cffafe;
+  --dw-amber: #d97706;
+  --dw-amber-soft: #fef3c7;
+  --dw-rose: #e11d48;
+  --dw-rose-soft: #ffe4e6;
+  --dw-emerald: #059669;
+  --dw-emerald-soft: #d1fae5;
+  --dw-indigo: #4f46e5;
+  --dw-indigo-soft: #e0e7ff;
+  --dw-slate-50: #f8fafc;
+  --dw-slate-100: #f1f5f9;
+  --dw-slate-200: #e2e8f0;
+  --dw-slate-300: #cbd5e1;
+  --dw-slate-400: #94a3b8;
+  --dw-slate-500: #64748b;
+  --dw-slate-600: #475569;
+  --dw-slate-700: #334155;
+  --dw-slate-800: #1e293b;
+  --dw-slate-900: #0f172a;
+  --dw-radius: 16px;
+  --dw-radius-sm: 10px;
+  --dw-radius-full: 9999px;
+  --dw-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.04);
+  --dw-shadow-md: 0 6px 20px rgba(15, 23, 42, 0.06);
+  --dw-shadow-lg: 0 16px 36px -8px rgba(15, 23, 42, 0.1);
+  --dw-shadow-hero: 0 20px 45px -12px rgba(7, 27, 40, 0.45);
+}
+
+/* Base Page Container */
+.intelligence-workspace {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding: clamp(1rem, 2.5vw, 2rem);
+  font-family: var(--valora-font, 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif);
+  color: var(--dw-slate-800);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Breadcrumb Navigation */
+.intelligence-workspace .breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0;
+  margin-bottom: 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--dw-slate-500);
+}
+
+.intelligence-workspace .breadcrumb-item a {
+  color: var(--dw-teal);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.intelligence-workspace .breadcrumb-item a:hover {
+  color: var(--dw-teal-light);
+  text-decoration: underline;
+}
+
+.intelligence-workspace .breadcrumb-item.active {
+  color: var(--dw-slate-600);
+  font-weight: 600;
+}
+
+/* Hero Section */
+.intelligence-workspace .workspace-hero {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.75rem;
+  padding: clamp(1.5rem, 3.5vw, 2.5rem);
+  border-radius: 20px;
+  color: #ffffff;
+  background: radial-gradient(circle at 88% 18%, rgba(20, 184, 166, 0.22) 0%, transparent 45%),
+              linear-gradient(135deg, var(--dw-navy-deep) 0%, var(--dw-navy-card) 60%, var(--dw-navy-soft) 100%);
+  box-shadow: var(--dw-shadow-hero), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+}
+
+.intelligence-workspace .workspace-hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.intelligence-workspace .workspace-hero .eyebrow {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #5eead4;
+  margin-bottom: 0.4rem;
+}
+
+.intelligence-workspace .workspace-hero h1 {
+  font-size: clamp(1.65rem, 3.2vw, 2.35rem);
+  font-weight: 800;
+  line-height: 1.15;
+  color: #ffffff;
+  margin: 0.2rem 0 0.5rem;
+  letter-spacing: -0.025em;
+}
+
+.intelligence-workspace .workspace-hero p {
+  font-size: clamp(0.9rem, 1.5vw, 1rem);
+  color: #cbd5e1;
+  max-width: 680px;
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+}
+
+.intelligence-workspace .workspace-hero .valora-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 5px 12px;
+  border-radius: var(--dw-radius-full);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+/* Hero Action Buttons */
+.intelligence-workspace .workspace-hero .btn-primary {
+  background: linear-gradient(135deg, #0d9488, #0f766e);
+  border: 1px solid #14b8a6;
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: var(--dw-radius-sm);
+  padding: 0.65rem 1.25rem;
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.35);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.intelligence-workspace .workspace-hero .btn-primary:hover {
+  background: linear-gradient(135deg, #14b8a6, #0d9488);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(13, 148, 136, 0.45);
+}
+
+.intelligence-workspace .workspace-hero .btn-outline-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #f8fafc;
+  font-weight: 600;
+  border-radius: var(--dw-radius-sm);
+  padding: 0.65rem 1.15rem;
+  backdrop-filter: blur(6px);
+  transition: all 0.2s ease;
+}
+
+.intelligence-workspace .workspace-hero .btn-outline-secondary:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+.intelligence-workspace .workspace-hero .btn-outline-danger {
+  background: rgba(225, 29, 72, 0.1);
+  border: 1px solid rgba(244, 63, 94, 0.35);
+  color: #fda4af;
+  font-weight: 600;
+  border-radius: var(--dw-radius-sm);
+  padding: 0.65rem 1.15rem;
+  transition: all 0.2s ease;
+}
+
+.intelligence-workspace .workspace-hero .btn-outline-danger:hover {
+  background: #e11d48;
+  border-color: #e11d48;
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(225, 29, 72, 0.4);
+}
+
+/* Metric KPI Grid */
+.intelligence-workspace .metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.15rem;
+  margin-bottom: 1.5rem;
+}
+
+.intelligence-workspace .metric-card {
+  position: relative;
+  background: #ffffff;
+  border: 1px solid var(--dw-slate-200);
+  border-radius: var(--dw-radius);
+  padding: 1.25rem 1.35rem;
+  box-shadow: var(--dw-shadow-sm);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.intelligence-workspace .metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--dw-teal-light), var(--dw-cyan));
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.intelligence-workspace .metric-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--dw-shadow-md);
+  border-color: var(--dw-slate-300);
+}
+
+.intelligence-workspace .metric-card:hover::before {
+  opacity: 1;
+}
+
+.intelligence-workspace .metric-card span {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dw-slate-500);
+}
+
+.intelligence-workspace .metric-card strong {
+  display: block;
+  font-size: 2.15rem;
+  font-weight: 800;
+  color: var(--dw-slate-900);
+  margin: 0.35rem 0;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.intelligence-workspace .metric-card small {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--dw-slate-500);
+  font-weight: 500;
+}
+
+/* Workspace Tabs Bar */
+.intelligence-workspace .workspace-tabs {
+  background: #ffffff;
+  border: 1px solid var(--dw-slate-200);
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: var(--dw-shadow-sm);
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  margin-bottom: 1.5rem;
+}
+
+.intelligence-workspace .workspace-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.intelligence-workspace .workspace-tabs::-webkit-scrollbar-thumb {
+  background: var(--dw-slate-300);
+  border-radius: 4px;
+}
+
+.intelligence-workspace .workspace-tabs button {
+  white-space: nowrap;
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 0.55rem 0.95rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  transition: all 0.16s ease;
+  cursor: pointer;
+}
+
+.intelligence-workspace .workspace-tabs button.btn-outline-secondary {
+  background: transparent;
+  color: var(--dw-slate-600);
+  border-color: transparent;
+}
+
+.intelligence-workspace .workspace-tabs button.btn-outline-secondary:hover {
+  background: var(--dw-slate-100);
+  color: var(--dw-slate-900);
+  border-color: var(--dw-slate-200);
+}
+
+.intelligence-workspace .workspace-tabs button.btn-primary,
+.intelligence-workspace .workspace-tabs button.active {
+  background: var(--dw-teal);
+  color: #ffffff;
+  border-color: var(--dw-teal);
+  box-shadow: 0 4px 12px rgba(15, 118, 110, 0.28);
+  font-weight: 700;
+}
+
+/* Content Section & Cards */
+.intelligence-workspace .valora-card {
+  background: #ffffff;
+  border: 1px solid var(--dw-slate-200);
+  border-radius: var(--dw-radius);
+  padding: 1.5rem;
+  box-shadow: var(--dw-shadow-sm);
+  margin-bottom: 1.25rem;
+  transition: border-color 0.15s ease;
+}
+
+.intelligence-workspace .valora-card:hover {
+  border-color: var(--dw-slate-300);
+}
+
+.intelligence-workspace .valora-card h2,
+.intelligence-workspace .valora-card h3 {
+  color: var(--dw-slate-900);
+  font-weight: 750;
+  letter-spacing: -0.015em;
+}
+
+.intelligence-workspace .valora-card h2 {
+  font-size: 1.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.intelligence-workspace .valora-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Alert Boxes & Banners */
+.intelligence-workspace .alert {
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  border-width: 1px;
+  border-style: solid;
+  font-size: 0.9rem;
+}
+
+.intelligence-workspace .alert-success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
+}
+
+.intelligence-workspace .alert-danger {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #9f1239;
+}
+
+.intelligence-workspace .alert-warning {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.intelligence-workspace .alert-info {
+  background: #f0fdfa;
+  border-color: #99f6e4;
+  color: #115e59;
+}
+
+/* Table Styling */
+.intelligence-workspace .valora-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.88rem;
+}
+
+.intelligence-workspace .valora-table th {
+  background: var(--dw-slate-50);
+  color: var(--dw-slate-600);
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.85rem 1rem;
+  border-bottom: 2px solid var(--dw-slate-200);
+  text-align: left;
+}
+
+.intelligence-workspace .valora-table td {
+  padding: 0.95rem 1rem;
+  border-bottom: 1px solid var(--dw-slate-100);
+  color: var(--dw-slate-700);
+  vertical-align: middle;
+}
+
+.intelligence-workspace .valora-table tr:last-child td {
+  border-bottom: none;
+}
+
+.intelligence-workspace .valora-table tr:hover td {
+  background: #f8fafc;
+}
+
+/* Insight Cards */
+.intelligence-workspace .insight-card-item {
+  background: #ffffff;
+  border: 1px solid var(--dw-slate-200);
+  border-left: 5px solid var(--dw-teal);
+  border-radius: var(--dw-radius);
+  padding: 1.35rem;
+  box-shadow: var(--dw-shadow-sm);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.intelligence-workspace .insight-card-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--dw-shadow-md);
+}
+
+.intelligence-workspace .insight-card-item[data-nature="fato_calculado"] {
+  border-left-color: var(--dw-cyan);
+}
+
+.intelligence-workspace .insight-card-item[data-nature="sugestao_ia"] {
+  border-left-color: var(--dw-indigo);
+}
+
+.intelligence-workspace .insight-card-item[data-nature="decisao_revisada"] {
+  border-left-color: var(--dw-emerald);
+}
+
+.intelligence-workspace .insight-card-item[data-nature="hipotese"] {
+  border-left-color: var(--dw-amber);
+}
+
+/* Badges & Chips */
+.intelligence-workspace .badge-nature {
+  font-size: 0.72rem;
+  font-weight: 750;
+  padding: 3px 9px;
+  border-radius: var(--dw-radius-full);
+}
+
+.intelligence-workspace .badge-nature--fact {
+  background: var(--dw-cyan-soft);
+  color: #0e7490;
+}
+
+.intelligence-workspace .badge-nature--ai {
+  background: var(--dw-indigo-soft);
+  color: #3730a3;
+}
+
+.intelligence-workspace .badge-nature--reviewed {
+  background: var(--dw-emerald-soft);
+  color: #065f46;
+}
+
+.intelligence-workspace .badge-nature--hypothesis {
+  background: var(--dw-amber-soft);
+  color: #92400e;
+}
+
+/* Skeletons */
+.intelligence-workspace .survey-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 2rem 0;
+}
+
+.intelligence-workspace .survey-skeleton span {
+  display: block;
+  height: 20px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: dwShimmer 1.5s infinite;
+}
+
+.intelligence-workspace .survey-skeleton span:nth-child(1) { width: 70%; height: 28px; }
+.intelligence-workspace .survey-skeleton span:nth-child(2) { width: 90%; }
+.intelligence-workspace .survey-skeleton span:nth-child(3) { width: 50%; }
+
+@keyframes dwShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Empty States */
+.intelligence-workspace .empty-state {
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+  background: #ffffff;
+  border: 1px dashed var(--dw-slate-300);
+  border-radius: var(--dw-radius);
+  color: var(--dw-slate-500);
+}
+
+.intelligence-workspace .empty-state h2,
+.intelligence-workspace .empty-state h3 {
+  color: var(--dw-slate-800);
+  font-weight: 750;
+  margin-bottom: 0.4rem;
+}
+
+.intelligence-workspace .empty-state p {
+  max-width: 500px;
+  margin: 0 auto 1.25rem;
+  font-size: 0.92rem;
+}
+
+/* Responsive Media Queries */
+@media (max-width: 1024px) {
+  .intelligence-workspace .metric-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .intelligence-workspace .workspace-hero {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.25rem;
+  }
+  .intelligence-workspace .metric-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .intelligence-workspace {
+    padding: 0.75rem;
+  }
+  .intelligence-workspace .metric-grid {
+    grid-template-columns: 1fr;
+  }
+  .intelligence-workspace .workspace-hero h1 {
+    font-size: 1.5rem;
+  }
+}

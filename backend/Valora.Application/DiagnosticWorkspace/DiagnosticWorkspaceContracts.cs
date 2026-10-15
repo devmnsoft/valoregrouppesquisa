@@ -6,7 +6,9 @@ public sealed record DiagnosticCycleDto(Guid Id, Guid OrganizationId, Guid Surve
     string? Description, int CycleNumber, string MethodologyVersion, string Status, DateTime? OpenedAt,
     DateTime? PublishedAt, DateTime? ClosedAt, DateTime? ProcessedAt, DateTime? ReportGeneratedAt,
     int ResponseCount, int EvidenceCount, int MappedEvidenceCount, int PendingEvidenceCount,
-    decimal? ConfidenceLevel, string ProcessingStatus, string? PublicUrl, DateTime CreatedAt, DateTime UpdatedAt);
+    decimal? ConfidenceLevel, string ProcessingStatus, string? PublicUrl, DateTime CreatedAt, DateTime UpdatedAt,
+    string? FormName = null, int? FormVersionNumber = null, DateTime? StartsAt = null, DateTime? ExpiresAt = null,
+    string? TargetAudience = null, string? DistributionChannel = null, string? ResponsibleName = null);
 public sealed record DiagnosticWorkspaceItemDto(Guid Id, string? Code, string Status, JsonElement Data,
     DateTime CreatedAt, DateTime UpdatedAt);
 public sealed record DiagnosticWorkspaceEvidenceDto(Guid Id, Guid? ResponseId, Guid? QuestionId, string ConceptCode,

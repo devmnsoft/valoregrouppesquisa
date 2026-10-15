@@ -31,8 +31,15 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
           (SELECT count(*)::int FROM valorapesquisa.evidence_items e WHERE e.organization_id=s.organization_id AND e.survey_id=s.id AND e.deleted_at IS NULL AND coalesce(e.mapping_status,e.metadata_json->>'mappingStatus')='mapped') MappedEvidenceCount,
           (SELECT count(*)::int FROM valorapesquisa.evidence_items e WHERE e.organization_id=s.organization_id AND e.survey_id=s.id AND e.deleted_at IS NULL AND coalesce(e.mapping_status,e.metadata_json->>'mappingStatus','pending_mapping')<>'mapped') PendingEvidenceCount,
           dc.confidence_level ConfidenceLevel,coalesce(dc.processing_status,'pending') ProcessingStatus,s.public_url PublicUrl,
-          coalesce(dc.created_at,s.created_at) CreatedAt,coalesce(dc.updated_at,s.updated_at,s.created_at) UpdatedAt
-        FROM valorapesquisa.surveys s LEFT JOIN valorapesquisa.diagnostic_cycles dc ON dc.survey_id=s.id AND dc.organization_id=s.organization_id AND dc.deleted_at IS NULL
+          coalesce(dc.created_at,s.created_at) CreatedAt,coalesce(dc.updated_at,s.updated_at,s.created_at) UpdatedAt,
+          f.name FormName, fv.version FormVersionNumber, s.starts_at StartsAt, s.expires_at ExpiresAt,
+          coalesce(s.public_slug, 'Participantes com link elegível') TargetAudience,
+          coalesce((SELECT channel FROM valorapesquisa.diagnostic_campaigns camp WHERE camp.organization_id=s.organization_id AND camp.survey_id=s.id ORDER BY camp.created_at DESC LIMIT 1), 'manual') DistributionChannel,
+          (SELECT u.name FROM valorapesquisa.users u WHERE u.organization_id=s.organization_id AND u.status='active' ORDER BY u.created_at LIMIT 1) ResponsibleName
+        FROM valorapesquisa.surveys s
+        LEFT JOIN valorapesquisa.diagnostic_cycles dc ON dc.survey_id=s.id AND dc.organization_id=s.organization_id AND dc.deleted_at IS NULL
+        LEFT JOIN valorapesquisa.form_versions fv ON fv.id=s.form_version_id
+        LEFT JOIN valorapesquisa.forms f ON f.id=coalesce(s.form_id, fv.form_id)
         WHERE s.organization_id=@organizationId AND (s.id=@id OR dc.id=@id) AND coalesce(s.is_deleted,false)=false LIMIT 1
         """;
         using var c = connections.Create(); return await c.QuerySingleOrDefaultAsync<DiagnosticCycleDto>(new CommandDefinition(sql, new { organizationId, id }, cancellationToken: ct));
@@ -249,6 +256,50 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
             FROM valorapesquisa.responses x
             WHERE x.organization_id=@organizationId AND x.survey_id=@surveyId AND coalesce(x.is_deleted,false)=false
             ORDER BY x.created_at DESC LIMIT 200
+            """;
+        else if (module.Equals("insights", StringComparison.OrdinalIgnoreCase)) sql = """
+            SELECT x.id, x.code, x.status,
+              (to_jsonb(x.data) || jsonb_build_object(
+                'id', x.id,
+                'code', x.code,
+                'status', x.status,
+                'title', coalesce(x.data->>'title', x.code, 'Achado analítico'),
+                'description', coalesce(x.data->>'executiveSummary', x.data->>'description', x.data->>'probableCause', 'Achado gerado a partir de evidências do diagnóstico.'),
+                'dimension', coalesce(x.data->>'dimension', x.data->>'related_dimension', 'Maturidade Organizacional'),
+                'evidenceCount', coalesce(jsonb_array_length(case when jsonb_typeof(x.data->'evidenceIds')='array' then x.data->'evidenceIds' else '[]'::jsonb end), 0),
+                'limitation', coalesce(x.data->>'limitation', 'Sustentado exclusivamente pelas evidências convergentes da amostra coletada.'),
+                'nature', coalesce(x.data->>'nature', 'sugestao_ia'),
+                'confidence', x.data->>'confidence',
+                'recommendation', coalesce(x.data->>'recommendation', 'Revisar metodologicamente e converter em plano de ação rastreável.'),
+                'reviewStatus', coalesce(x.data->>'reviewStatus', x.status, 'pending_review'),
+                'linkedPlanId', (SELECT ap.id FROM valorapesquisa.action_plans ap WHERE ap.organization_id=@organizationId AND (ap.origin_id=x.id OR ap.diagnostic_id=@surveyId) AND ap.deleted_at IS NULL ORDER BY ap.created_at DESC LIMIT 1)
+              ))::text DataJson,
+              x.created_at CreatedAt, x.updated_at UpdatedAt
+            FROM valorapesquisa.insights x
+            WHERE x.organization_id=@organizationId AND (x.survey_id=@surveyId OR x.survey_id=@cycleId) AND x.deleted_at IS NULL
+            UNION ALL
+            SELECT vi.id, vi.insight_type Code, vi.status,
+              jsonb_build_object(
+                'id', vi.id,
+                'code', vi.insight_type,
+                'status', vi.status,
+                'title', vi.title,
+                'description', vi.summary,
+                'dimension', coalesce(vi.related_dimension, 'Geral'),
+                'evidenceSummary', vi.evidence_summary,
+                'limitation', coalesce(vi.limitation, 'Sustentado pelas evidências vinculadas ao pacote analítico.'),
+                'nature', 'sugestao_ia',
+                'confidence', vi.confidence_level,
+                'recommendation', vi.recommendation,
+                'reviewStatus', vi.status,
+                'reviewVersion', vi.review_version,
+                'reviewedAt', vi.reviewed_at,
+                'linkedPlanId', (SELECT ap.id FROM valorapesquisa.action_plans ap WHERE ap.organization_id=@organizationId AND ap.origin_type='ai_insight' AND ap.origin_id=vi.id AND ap.deleted_at IS NULL LIMIT 1)
+              )::text DataJson,
+              vi.created_at CreatedAt, vi.updated_at UpdatedAt
+            FROM valorapesquisa.valora_ai_insights vi
+            WHERE vi.organization_id=@organizationId AND vi.diagnostic_id=@surveyId AND vi.deleted_at IS NULL
+            ORDER BY CreatedAt DESC LIMIT 200
             """;
         else { if (!Tables.TryGetValue(module, out var table)) throw new ArgumentException("Módulo inválido.", nameof(module)); sql = $"SELECT id,code,status,to_jsonb(x)::text DataJson,created_at CreatedAt,updated_at UpdatedAt FROM valorapesquisa.{table} x WHERE organization_id=@organizationId AND (cycle_id=@cycleId OR survey_id=@surveyId) AND deleted_at IS NULL ORDER BY created_at DESC LIMIT 200"; }
         using var c = connections.Create(); var rows = await c.QueryAsync<Row>(new CommandDefinition(sql, new { organizationId, cycleId, surveyId }, cancellationToken: ct));

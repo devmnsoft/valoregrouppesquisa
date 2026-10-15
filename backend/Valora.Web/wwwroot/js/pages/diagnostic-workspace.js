@@ -12,7 +12,7 @@
   let overviewState = null;
   let campaignLink = null;
   let activeRequest = 0;
-  const allowedTabs = new Set(['overview', 'responses', 'participation', 'evidence', 'metrics', 'indices', 'heatmap', 'radar', 'inferences', 'insights', 'actions', 'evolution', 'benchmark', 'report', 'campaign', 'certificates', 'exports', 'shares']);
+  const allowedTabs = new Set(['overview', 'preparation', 'responses', 'participation', 'evidence', 'metrics', 'indices', 'heatmap', 'radar', 'inferences', 'insights', 'actions', 'evolution', 'benchmark', 'report', 'campaign', 'certificates', 'exports', 'shares']);
 
   const esc = value => {
     const span = document.createElement('span');
@@ -64,6 +64,19 @@
     };
     if (!response.ok) throw { ...payload, ...access };
     return method === 'GET' ? { ...(payload.data ?? payload), ...access } : payload.data ?? payload;
+  }
+
+  async function getPublicationReview(surveyId) {
+    try {
+      const response = await fetch(`/bff/surveys/${encodeURIComponent(surveyId)}/publication-review`, {
+        headers: { Accept: 'application/json' }
+      });
+      if (!response.ok) return null;
+      const payload = await response.json().catch(() => ({}));
+      return payload.data ?? payload;
+    } catch {
+      return null;
+    }
   }
 
   const empty = text => `<div class="empty-state"><h3>Dados insuficientes</h3><p>${esc(text || 'As informações disponíveis ainda não permitem concluir esta análise com segurança.')}</p></div>`;
@@ -155,36 +168,57 @@
   }
 
   function insightsView(items) {
-    if (!items?.length) return empty('Nenhum insight gerado ou em análise para este diagnóstico.');
+    if (!items?.length) return empty('Nenhum achado gerado ou em análise para este diagnóstico.');
     const returnUrl = `/Diagnostics/${diagnosticId}/Workspace?tab=insights`;
-    content.innerHTML = `<h2>Insights IA™ & Revisão Humana</h2>
-      <p class="form-help">Achados sugeridos por inteligência artificial passam obrigatoriamente por revisão humana antes de se tornarem planos aprovados no Action Center.</p>
+    content.innerHTML = `<h2>Achados Analíticos & Revisão Humana</h2>
+      <p class="form-help">Achados sugeridos por inteligência artificial passam obrigatoriamente por revisão humana com justificativa e preservação de autoria antes de se tornarem planos aprovados no Action Center. Fatos calculados e hipóteses estatísticas são diferenciados explicitamente.</p>
       <div class="row g-3">${items.map(item => {
         const data = item.data || item;
-        const isApproved = (item.status === 'approved' || data.status === 'approved');
-        const isPending = (item.status === 'proposed' || item.status === 'pending_review' || data.status === 'proposed' || data.status === 'pending_review');
-        const isConverted = (item.status === 'converted_to_action' || data.status === 'converted_to_action');
+        const status = item.status || data.status || 'proposed';
+        const isApproved = status === 'approved';
+        const isPending = status === 'proposed' || status === 'pending_review';
+        const isConverted = status === 'converted_to_action';
+        const isRejected = status === 'rejected';
+
+        const nature = data.nature || (data.aiRunId ? 'sugestao_ia' : item.code === 'inference' ? 'hipotese' : data.calculatedScore != null ? 'fato_calculado' : 'sugestao_ia');
+        const natureInfo = {
+          fato_calculado: { label: 'Fato Calculado', desc: 'Medição quantitativa apurada a partir das respostas do ciclo', badgeClass: 'badge-nature badge-nature--fact' },
+          observacao_informada: { label: 'Observação Informada', desc: 'Relato direto registrado por participante da pesquisa', badgeClass: 'badge-nature badge-nature--hypothesis' },
+          hipotese: { label: 'Hipótese Estatística', desc: 'Correlação metodológica inferida pelo modelo estatístico', badgeClass: 'badge-nature badge-nature--hypothesis' },
+          sugestao_ia: { label: 'Sugestão de IA™', desc: 'Achado gerado por inteligência com revisão humana mandatória', badgeClass: 'badge-nature badge-nature--ai' },
+          decisao_revisada: { label: 'Decisão Revisada', desc: 'Achado analisado e validado humanamente pela liderança', badgeClass: 'badge-nature badge-nature--reviewed' }
+        }[nature] || { label: 'Achado Metodológico', desc: 'Registro analítico do ciclo', badgeClass: 'badge-nature badge-nature--hypothesis' };
+
         const planLink = `/ActionCenter/Plans/Create?originType=ai_insight&originId=${encodeURIComponent(item.id)}&returnUrl=${encodeURIComponent(returnUrl)}`;
         const reviewLink = `/Insights/Details/${encodeURIComponent(item.id)}?returnUrl=${encodeURIComponent(returnUrl)}`;
+        const linkedPlanUrl = data.linkedPlanId ? `/ActionCenter/Plans/Details/${encodeURIComponent(data.linkedPlanId)}?returnUrl=${encodeURIComponent(returnUrl)}` : null;
+
+        const scoreDisplay = data.calculatedScore != null ? `${esc(data.calculatedScore)} pts` : data.resultScore != null ? `${esc(data.resultScore)} pts` : '<span class="text-muted">Não se aplica / sem cálculo</span>';
+        const evidenceDisplay = data.evidenceSummary || data.evidence || (data.evidenceCount ? `${data.evidenceCount} evidências convergentes` : 'Evidências convergentes da amostra coletada');
+
         return `<article class="col-12 col-lg-6">
-          <div class="metric-card h-100 d-flex flex-column justify-content-between">
+          <div class="insight-card-item h-100 d-flex flex-column justify-content-between" data-nature="${esc(nature)}">
             <div>
               <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                <strong>${esc(data.title || item.code || 'Achado sugerido')}</strong>
-                <span class="valora-status">${esc(label(item.status || data.status))}</span>
+                <strong class="fs-5">${esc(data.title || item.code || 'Achado sugerido')}</strong>
+                <span class="${natureInfo.badgeClass}">${esc(natureInfo.label)}</span>
               </div>
-              <p class="text-muted small mb-2">${esc(data.description || data.summary || data.strategicTruth || 'Sem descrição detalhada.')}</p>
+              <p class="text-muted small mb-3">${esc(data.description || data.summary || data.strategicTruth || 'Sem descrição detalhada.')}</p>
               <dl class="small mb-2">
-                <div><dt>Natureza</dt><dd>Sugestão de IA™ com revisão humana</dd></div>
-                <div><dt>Dimensão</dt><dd>${esc(data.dimension || data.dimensionName || 'Geral')}</dd></div>
-                ${data.limitation ? `<div><dt>Limitação</dt><dd class="text-warning">${esc(data.limitation)}</dd></div>` : ''}
+                <div><dt>Dimensão ou conceito</dt><dd><strong>${esc(data.dimension || data.relatedDimension || data.conceptCode || 'Geral')}</strong></dd></div>
+                <div><dt>Evidência de origem</dt><dd><em>${esc(evidenceDisplay)}</em></dd></div>
+                <div><dt>Resultado calculado</dt><dd>${scoreDisplay}</dd></div>
+                <div><dt>Limitação</dt><dd class="text-warning">${esc(data.limitation || 'Válido sob a amostragem coletada no ciclo.')}</dd></div>
+                <div><dt>Data do achado</dt><dd>${esc(date(item.createdAt || data.createdAt))}</dd></div>
+                <div><dt>Situação de revisão</dt><dd><span class="valora-status">${esc(label(status))}</span></dd></div>
               </dl>
             </div>
-            <div class="d-flex gap-2 flex-wrap mt-3 pt-2 border-top">
-              <a class="btn btn-sm btn-outline-primary" href="${reviewLink}">Revisar achado</a>
+            <div class="d-flex gap-2 flex-wrap mt-3 pt-3 border-top">
+              <a class="btn btn-sm btn-outline-primary" href="${reviewLink}">Revisar achado (aprovar / rejeitar)</a>
               ${isApproved ? `<a class="btn btn-sm btn-primary" href="${planLink}">Criar plano no Action Center</a>` : ''}
-              ${isConverted ? `<span class="badge bg-success align-self-center">Vinculado a plano</span>` : ''}
+              ${isConverted && linkedPlanUrl ? `<a class="btn btn-sm btn-outline-success" href="${linkedPlanUrl}">Ver plano vinculado</a>` : isConverted ? `<span class="badge bg-success align-self-center">Vinculado a plano</span>` : ''}
               ${isPending ? `<small class="text-muted align-self-center">Aprovação exigida antes de criar plano.</small>` : ''}
+              ${isRejected ? `<small class="text-danger align-self-center">Rejeitado na revisão humana.</small>` : ''}
             </div>
           </div>
         </article>`;
@@ -259,27 +293,264 @@
     return `/ActionCenter/Plans/Create?originType=diagnostic&originId=${encodeURIComponent(cycle.surveyId)}&returnUrl=${encodeURIComponent(returnUrl)}`;
   }
 
+  function computeNextAction(data) {
+    const cycle = data.cycle;
+    const isDraft = cycle.status === 'draft';
+    const isClosed = cycle.status === 'closed';
+    const responseCount = Number(cycle.responseCount || 0);
+    const evidenceCount = Number(cycle.evidenceCount || 0);
+    const lastJob = data.lastJob;
+    const isProcessing = cycle.processingStatus === 'processing' || lastJob?.status === 'running' || lastJob?.status === 'pending';
+    const hasJobFailed = lastJob?.status === 'failed';
+    const hasPendingReviewInsights = data.mainInsights?.some(x => (x.status === 'proposed' || x.status === 'pending_review' || x.data?.reviewStatus === 'pending_review'));
+    const hasActions = (data.recommendedActions?.length || 0) > 0;
+
+    if (isDraft) {
+      return {
+        stageName: '1. Preparação & Rascunho',
+        whatHappened: 'Diagnóstico criado no sistema com formulário e parâmetros vinculados.',
+        whatIsMissing: 'Revisar checklist pré-publicação, resolver impedimentos técnicos e ativar a coleta.',
+        whoMustAct: 'Gestor do Diagnóstico / Administrador com permissão de publicação.',
+        operationLabel: 'Revisar preparação & publicar',
+        operationTarget: 'preparation',
+        buttonClass: 'btn-primary'
+      };
+    }
+    if (isClosed) {
+      return {
+        stageName: '6. Ciclo Encerrado & Evolução',
+        whatHappened: 'A coleta de respostas foi finalizada e o ciclo diagnóstico está formalmente encerrado.',
+        whatIsMissing: 'Acompanhar a evolução histórica ou abrir novo ciclo comparativo no Evolution™.',
+        whoMustAct: 'Comitê de Governança / Consultor de Evolução Organizacional.',
+        operationLabel: 'Abrir reavaliação no Evolution™',
+        operationTarget: 'evolution',
+        buttonClass: 'btn-outline-primary'
+      };
+    }
+    if (responseCount === 0) {
+      return {
+        stageName: '2. Coleta em Campo (Aguardando Respostas)',
+        whatHappened: 'Diagnóstico publicado com sucesso. Link seguro disponível para distribuição.',
+        whatIsMissing: 'Coletar as primeiras respostas de colaboradores ou respondentes convidados.',
+        whoMustAct: 'Participantes convidados / Gestor de campanha para envio ou compartilhamento.',
+        operationLabel: 'Compartilhar link de participação',
+        operationTarget: 'campaign',
+        buttonClass: 'btn-primary'
+      };
+    }
+    if (isProcessing) {
+      return {
+        stageName: '3. Processamento Analítico em Andamento',
+        whatHappened: `${responseCount} resposta(s) recebida(s). Job de inteligência está em execução no servidor.`,
+        whatIsMissing: 'Conclusão da apuração de evidências e indicadores pelo pipeline analítico.',
+        whoMustAct: 'Serviço de Inteligência Organizacional em segundo plano.',
+        operationLabel: 'Atualizar status do processamento',
+        operationTarget: 'overview',
+        buttonClass: 'btn-outline-secondary'
+      };
+    }
+    if (evidenceCount === 0 || hasJobFailed) {
+      return {
+        stageName: '3. Respostas Recebidas (Pronto para Processar)',
+        whatHappened: `${responseCount} resposta(s) persistida(s) no banco de dados com integridade comprovada.`,
+        whatIsMissing: 'Executar o processamento de inteligência para consolidar evidências, índices e inferências.',
+        whoMustAct: 'Analista de Inteligência Organizacional / Gestor do Diagnóstico.',
+        operationLabel: 'Processar Inteligência Valora™',
+        operationCommand: 'process',
+        buttonClass: 'btn-primary'
+      };
+    }
+    if (hasPendingReviewInsights) {
+      return {
+        stageName: '4. Evidências Apuradas (Revisão de Achados)',
+        whatHappened: `${evidenceCount} evidências metodológicas extraídas das respostas reais dos participantes.`,
+        whatIsMissing: 'Revisão humana dos achados sugeridos antes da conversão em planos de ação.',
+        whoMustAct: 'Liderança / Gestor responsável pela validação editorial.',
+        operationLabel: 'Revisar achados analíticos',
+        operationTarget: 'insights',
+        buttonClass: 'btn-primary'
+      };
+    }
+    if (hasActions) {
+      return {
+        stageName: '5. Planos de Ação & Execução',
+        whatHappened: 'Achados validados pela liderança com planos e atividades em andamento no Action Center.',
+        whatIsMissing: 'Acompanhar a evolução das atividades, evidências de conclusão e marcos de entrega.',
+        whoMustAct: 'Responsáveis pelas atividades no Action Center.',
+        operationLabel: 'Acompanhar execução no Action™',
+        operationTarget: 'actions',
+        buttonClass: 'btn-primary'
+      };
+    }
+    return {
+      stageName: '4. Resultados Consolidados',
+      whatHappened: `${responseCount} resposta(s) e ${evidenceCount} evidência(s) apuradas com sucesso.`,
+      whatIsMissing: 'Explorar os resultados nos painéis metodológicos ou gerar o relatório executivo.',
+      whoMustAct: 'Gestor do Diagnóstico / Liderança Executiva.',
+      operationLabel: 'Criar plano de ação vinculado',
+      operationUrl: diagnosticPlanUrl(cycle),
+      buttonClass: 'btn-primary'
+    };
+  }
+
+  function preparationView(data, review) {
+    const cycle = data.cycle;
+    const isDraft = cycle.status === 'draft';
+    const canPublish = review ? review.canPublish : isDraft;
+    const blockers = review?.blockers || [];
+    const warnings = review?.warnings || [];
+    const surveyId = cycle.surveyId || diagnosticId;
+
+    content.innerHTML = `<h2>Preparação Consolidada do Diagnóstico</h2>
+      <p class="form-help">Parâmetros operacionais e metodológicos organizados para conduzir o ciclo de escuta com segurança.</p>
+      <div class="row g-3 mb-4">
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <strong>Objetivo do Diagnóstico</strong>
+            <p class="small mt-2 mb-0">${esc(cycle.description || cycle.title || 'Diagnóstico de maturidade organizacional')}</p>
+          </div>
+        </article>
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <strong>Responsável Designado</strong>
+            <p class="small mt-2 mb-0">${esc(cycle.responsibleName || 'Gestor do Diagnóstico')}</p>
+          </div>
+        </article>
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <strong>Público ou Recorte</strong>
+            <p class="small mt-2 mb-0">${esc(cycle.targetAudience || 'Participantes elegíveis da organização')}</p>
+          </div>
+        </article>
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <strong>Questionário & Versão</strong>
+            <p class="small mt-2 mb-0">${esc(cycle.formName || 'Formulário do Diagnóstico')} <span class="badge bg-secondary">v${esc(cycle.formVersionNumber || '1')}</span></p>
+          </div>
+        </article>
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <strong>Período de Coleta</strong>
+            <p class="small mt-2 mb-0">${cycle.startsAt ? date(cycle.startsAt) : 'Início imediato'} até ${cycle.expiresAt ? date(cycle.expiresAt) : 'Sem expiração definida'}</p>
+          </div>
+        </article>
+        <article class="col-12 col-md-6 col-lg-4">
+          <div class="metric-card h-100">
+            <strong>Canal de Distribuição</strong>
+            <p class="small mt-2 mb-0">${cycle.distributionChannel === 'email' ? 'Disparo oficial por E-mail' : cycle.distributionChannel === 'whatsapp_manual' ? 'WhatsApp manual' : 'Compartilhamento manual de link seguro'}</p>
+          </div>
+        </article>
+      </div>
+
+      <section class="valora-card mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+          <div>
+            <h3 class="mb-0">Revisão Pré-Publicação</h3>
+            <small class="text-muted">Conferência dos requisitos técnicos, avisos analíticos e limites de contratação.</small>
+          </div>
+          <span class="badge ${canPublish ? 'bg-success' : 'bg-danger'} fs-6">${canPublish ? 'Apto para publicação' : 'Impedimentos pendentes'}</span>
+        </div>
+
+        ${blockers.length === 0 ? `
+          <div class="alert alert-success d-flex align-items-center gap-2 mb-3">
+            <span>✅</span> <div><strong>Requisitos técnicos atendidos:</strong> Questionário publicado vinculado, perguntas ativas disponíveis e limite comercial do plano verificado com sucesso.</div>
+          </div>
+        ` : `
+          <div class="alert alert-danger mb-3">
+            <strong>Impedimentos Técnicos (${blockers.length}):</strong> Estas pendências devem ser corrigidas antes de disponibilizar o link público.
+          </div>
+          <div class="table-responsive mb-3">
+            <table class="valora-table">
+              <thead><tr><th>Problema</th><th>Impacto</th><th>Ação Recomendada</th><th></th></tr></thead>
+              <tbody>
+                ${blockers.map(b => `<tr>
+                  <td><strong>${esc(b.problem)}</strong></td>
+                  <td>${esc(b.impact)}</td>
+                  <td>${esc(b.action)}</td>
+                  <td>${b.targetUrl ? `<a class="btn btn-sm btn-outline-primary" href="${esc(b.targetUrl)}">Corrigir</a>` : ''}</td>
+                </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        `}
+
+        ${warnings.length > 0 ? `
+          <div class="alert alert-warning mb-3">
+            <strong>Avisos Metodológicos (${warnings.length}):</strong> Não bloqueiam a coleta pública, mas definem o tipo de resultado que será gerado.
+          </div>
+          <ul class="list-group mb-3">
+            ${warnings.map(w => `<li class="list-group-item list-group-item-warning">
+              <strong>${esc(w.problem)}</strong> — ${esc(w.impact)}
+              <div class="small mt-1 text-muted"><strong>Ação opcional:</strong> ${esc(w.action)}</div>
+            </li>`).join('')}
+          </ul>
+        ` : ''}
+
+        <div class="d-flex gap-2 flex-wrap pt-3 border-top">
+          ${isDraft ? `
+            <button class="btn btn-primary" data-publish-survey ${canPublish ? '' : 'disabled'}>Publicar Diagnóstico & Ativar Coleta</button>
+            <a class="btn btn-outline-secondary" href="/Surveys/${encodeURIComponent(surveyId)}/Edit">Editar configurações</a>
+          ` : `
+            <button class="btn btn-outline-primary" onclick="document.querySelector('[data-tab=campaign]')?.click()">Acessar Campanha & Links</button>
+            <button class="btn btn-outline-secondary" onclick="document.querySelector('[data-tab=participation]')?.click()">Ver Participação Real</button>
+          `}
+        </div>
+      </section>`;
+
+    const publishBtn = content.querySelector('[data-publish-survey]');
+    if (publishBtn) {
+      publishBtn.addEventListener('click', async () => {
+        if (!await window.ValoraUI.confirm('Publicar este diagnóstico e ativar o link de coleta pública?')) return;
+        publishBtn.disabled = true;
+        const requestId = activeRequest;
+        try {
+          const res = await fetch(`/bff/surveys/${encodeURIComponent(surveyId)}/status`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-TOKEN': host.querySelector('[name="__RequestVerificationToken"]').value
+            },
+            body: JSON.stringify({ status: 'active' })
+          });
+          const payload = await res.json().catch(() => ({}));
+          if (!res.ok) throw payload;
+          if (requestId !== activeRequest) return;
+          message.textContent = 'Diagnóstico publicado com sucesso! A coleta está ativa.';
+          message.classList.remove('d-none');
+          await tab('overview');
+        } catch (ex) {
+          if (requestId !== activeRequest) return;
+          error.textContent = ex.message || 'Falha ao publicar diagnóstico.';
+          error.classList.remove('d-none');
+        } finally {
+          publishBtn.disabled = false;
+        }
+      });
+    }
+  }
+
   function overview(data) {
     setOverviewHeader(data);
     const cycle = data.cycle;
     const isDraft = cycle.status === 'draft';
     const hasResponses = Number(cycle.responseCount || 0) > 0;
     const hasEvidence = Number(cycle.evidenceCount || 0) > 0;
+    const nextAction = computeNextAction(data);
 
-    content.innerHTML = `<h2>Visão Geral da Jornada</h2>
+    content.innerHTML = `<h2>Visão Geral da Jornada Operacional</h2>
       <div class="row g-3 mb-3">
         <article class="col-12 col-md-6">
           <div class="valora-card h-100">
             <h3>Em que etapa está o diagnóstico?</h3>
-            <p><span class="badge bg-primary fs-6">${esc(stage(cycle.status))}</span></p>
-            <p>${isDraft ? 'O diagnóstico está em preparação/rascunho. Revise o questionário e publique para iniciar a coleta.' : hasResponses ? 'Coleta em andamento com participações registradas. O processamento analítico pode ser acionado.' : 'Diagnóstico ativo aguardando as primeiras submissões dos participantes.'}</p>
+            <p><span class="badge bg-primary fs-6">${esc(nextAction.stageName)}</span></p>
+            <p>${isDraft ? 'O diagnóstico está em preparação/rascunho. Revise o questionário e publique para iniciar a coleta.' : hasResponses ? 'Coleta em andamento com participações registradas no banco de dados.' : 'Diagnóstico ativo aguardando as primeiras submissões dos participantes.'}</p>
           </div>
         </article>
         <article class="col-12 col-md-6">
           <div class="valora-card h-100">
             <h3>Situação das Etapas</h3>
             <ul class="list-unstyled mb-0 small">
-              <li>${isDraft ? '⏳' : '✅'} <strong>1. Publicação:</strong> ${isDraft ? 'Pendente de ativação' : 'Publicado e ativo'}</li>
+              <li>${isDraft ? '⏳' : '✅'} <strong>1. Preparação & Publicação:</strong> ${isDraft ? 'Pendente de ativação' : 'Publicado e ativo'}</li>
               <li>${hasResponses ? '✅' : '⏳'} <strong>2. Coleta de Respostas:</strong> ${hasResponses ? `${cycle.responseCount} participações gravadas` : 'Nenhuma resposta recebida ainda'}</li>
               <li>${hasEvidence ? '✅' : '⏳'} <strong>3. Evidências & Resultados:</strong> ${hasEvidence ? `${cycle.evidenceCount} evidências metodológicas` : 'Aguardando processamento'}</li>
               <li>${data.recommendedActions?.length ? '✅' : '⏳'} <strong>4. Planos & Execução:</strong> Action Center integrado</li>
@@ -289,12 +560,22 @@
       </div>
 
       <section class="valora-card mb-3">
-        <h3>Próxima Ação Autorizada</h3>
-        <p>${hasEvidence ? 'Há evidências e respostas registradas. Crie um plano vinculado ou navegue nos achados para revisão humana.' : hasResponses ? 'Respostas foram recebidas. Processe a inteligência para calcular índices e evidências.' : 'Compartilhe o link da campanha ou convide participantes para iniciar a coleta.'}</p>
+        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+          <h3 class="mb-0">Próxima Ação Autorizada</h3>
+          <span class="valora-status">${esc(label(cycle.status))}</span>
+        </div>
+        <div class="row g-2 mb-3 small">
+          <div class="col-12 col-md-6"><strong>O que já aconteceu:</strong> ${esc(nextAction.whatHappened)}</div>
+          <div class="col-12 col-md-6"><strong>O que está faltando:</strong> ${esc(nextAction.whatIsMissing)}</div>
+          <div class="col-12"><strong>Quem precisa agir:</strong> <span class="badge bg-light text-dark border">${esc(nextAction.whoMustAct)}</span></div>
+        </div>
         <div class="d-flex gap-2 flex-wrap">
-          <a class="valora-button valora-button--primary" href="${diagnosticPlanUrl(cycle)}">Criar plano vinculado</a>
-          <button class="btn btn-outline-secondary" onclick="document.querySelector('[data-tab=campaign]').click()">Acessar Campanha & Links</button>
-          <button class="btn btn-outline-secondary" onclick="document.querySelector('[data-tab=participation]').click()">Ver Participação Real</button>
+          ${nextAction.operationUrl ? `<a class="btn ${nextAction.buttonClass}" href="${esc(nextAction.operationUrl)}">${esc(nextAction.operationLabel)}</a>` : ''}
+          ${nextAction.operationCommand ? `<button class="btn ${nextAction.buttonClass}" onclick="document.querySelector('[data-command=${nextAction.operationCommand}]')?.click()">${esc(nextAction.operationLabel)}</button>` : ''}
+          ${nextAction.operationTarget ? `<button class="btn ${nextAction.buttonClass}" onclick="document.querySelector('[data-tab=${nextAction.operationTarget}]')?.click()">${esc(nextAction.operationLabel)}</button>` : ''}
+          <button class="btn btn-outline-secondary" onclick="document.querySelector('[data-tab=preparation]')?.click()">Revisar Preparação</button>
+          <button class="btn btn-outline-secondary" onclick="document.querySelector('[data-tab=campaign]')?.click()">Campanha & Links</button>
+          <button class="btn btn-outline-secondary" onclick="document.querySelector('[data-tab=participation]')?.click()">Ver Participação Real</button>
         </div>
       </section>
 
@@ -325,22 +606,101 @@
     const canSend = data.canManage && !data.readOnly && ['draft', 'scheduled', 'failed'].includes(data.status);
     const canCancel = data.canManage && !data.readOnly && !['closed', 'cancelled'].includes(data.status);
     const channelName = data.channel === 'whatsapp_manual' ? 'WhatsApp manual' : manual ? 'Compartilhamento manual' : 'E-mail';
-    content.innerHTML = `<div class="d-flex justify-content-between gap-3 flex-wrap"><div><h2>Campanha</h2><p>${esc(channelName)}</p></div><span class="valora-status">${esc(label(data.status))}</span></div>
-      <div class="metric-grid"><article class="metric-card"><span>Destinatários por e-mail</span><strong>${data.recipientCount}</strong></article><article class="metric-card"><span>Na fila</span><strong>${data.queuedCount}</strong></article><article class="metric-card"><span>Envios registrados</span><strong>${data.sentCount}</strong></article><article class="metric-card"><span>Falhas</span><strong>${data.failedCount}</strong></article></div>
-      <p class="form-help">Fila não comprova entrega. Compartilhamento manual e cópia de link não são contabilizados como envio.</p>
-      <div class="valora-card mt-3"><h3>${esc(data.name)}</h3><p>${esc(data.message)}</p><label class="form-label" for="campaign-public-link">Link público gerado nesta sessão</label><div class="input-group"><input id="campaign-public-link" class="form-control" readonly value="${esc(campaignLink || '')}" placeholder="Gere um link para compartilhar"><button class="btn btn-outline-primary" data-generate-link ${data.canDistribute && !data.readOnly ? '' : 'disabled'}>Gerar link de participação</button><button class="btn btn-primary" data-copy-link ${campaignLink ? '' : 'disabled'}>Copiar link</button><button class="btn btn-outline-primary" data-copy-message ${campaignLink ? '' : 'disabled'}>Copiar convite</button></div>
-      <p class="form-help">O token é exibido somente na criação do link. Ao reabrir esta página, gere outro link pelo fluxo existente.</p>
-      <div class="d-flex gap-2 mt-3"><button class="btn btn-primary" data-send ${canSend ? '' : 'disabled'}>${manual ? 'Ativar compartilhamento manual' : 'Preparar envio por e-mail'}</button><button class="btn btn-outline-danger" data-cancel ${canCancel ? '' : 'disabled'}>Cancelar pendentes</button></div></div>`;
+
+    let statusDescription = 'Campanha salva';
+    let statusBadgeClass = 'bg-secondary';
+    if (data.status === 'scheduled') {
+      statusDescription = 'Envio solicitado';
+      statusBadgeClass = 'bg-info text-dark';
+    } else if (data.status === 'queued') {
+      statusDescription = 'Mensagem na fila';
+      statusBadgeClass = 'bg-warning text-dark';
+    } else if (data.status === 'sent' || data.status === 'active') {
+      statusDescription = manual ? 'Compartilhamento manual ativo' : 'Envio registrado';
+      statusBadgeClass = 'bg-success';
+    } else if (data.status === 'failed') {
+      statusDescription = 'Falha no envio';
+      statusBadgeClass = 'bg-danger';
+    } else if (data.status === 'draft') {
+      statusDescription = 'Campanha salva (rascunho)';
+      statusBadgeClass = 'bg-secondary';
+    } else if (data.status === 'cancelled') {
+      statusDescription = 'Campanha cancelada';
+      statusBadgeClass = 'bg-dark';
+    } else if (data.status === 'closed') {
+      statusDescription = 'Campanha encerrada';
+      statusBadgeClass = 'bg-dark';
+    }
+
+    content.innerHTML = `<div class="d-flex justify-content-between gap-3 flex-wrap align-items-center mb-3">
+      <div>
+        <h2 class="mb-1">Campanha & Distribuição</h2>
+        <p class="text-muted mb-0">Canal: <strong>${esc(channelName)}</strong></p>
+      </div>
+      <div>
+        <span class="badge ${statusBadgeClass} fs-6">${esc(statusDescription)}</span>
+      </div>
+    </div>
+    <div class="metric-grid">
+      <article class="metric-card"><span>Destinatários por e-mail</span><strong>${data.recipientCount}</strong></article>
+      <article class="metric-card"><span>Mensagens na fila</span><strong>${data.queuedCount}</strong></article>
+      <article class="metric-card"><span>Envios registrados</span><strong>${data.sentCount}</strong></article>
+      <article class="metric-card"><span>Falhas</span><strong>${data.failedCount}</strong></article>
+    </div>
+    <p class="form-help mt-2">Mensagens na fila não comprovam entrega. Compartilhamento manual e cópia de link não são contabilizados como envio por e-mail.</p>
+
+    <div class="valora-card mt-3">
+      <h3>${esc(data.name)}</h3>
+      <p class="mb-3">${esc(data.message)}</p>
+
+      <div class="mb-3">
+        <label class="form-label" for="campaign-public-link"><strong>Link de participação pública</strong></label>
+        <div class="input-group">
+          <input id="campaign-public-link" class="form-control" readonly value="${esc(campaignLink || '')}" placeholder="Gere ou visualize o link de coleta pública">
+          <button class="btn btn-outline-primary" data-generate-link ${data.canDistribute && !data.readOnly ? '' : 'disabled'}>Gerar novo link</button>
+          <button class="btn btn-primary" data-copy-link ${campaignLink ? '' : 'disabled'}>Copiar link</button>
+          <button class="btn btn-outline-secondary" data-copy-message ${campaignLink ? '' : 'disabled'}>Copiar convite com link</button>
+        </div>
+        <div class="form-help mt-2">
+          <strong>Comportamento dos links:</strong> Ao gerar um novo link de participação, um token adicional seguro é registrado mantendo os links anteriores ativos (a menos que revogados individualmente ou o diagnóstico expire). O token bruto é retornado apenas na criação e não é exposto em logs.
+        </div>
+      </div>
+
+      <div class="d-flex gap-2 mt-4 pt-3 border-top flex-wrap">
+        <button class="btn btn-primary" data-send ${canSend ? '' : 'disabled'}>${manual ? 'Confirmar compartilhamento manual' : 'Disparar fila de e-mail'}</button>
+        <button class="btn btn-outline-danger" data-cancel ${canCancel ? '' : 'disabled'}>Cancelar envios pendentes</button>
+      </div>
+    </div>`;
+
     const showCopyResult = async text => {
+      if (!text) return;
       try {
-        await navigator.clipboard.writeText(text);
-        message.textContent = 'Conteúdo copiado. Nenhum envio ou entrega foi registrado por esta cópia.';
-        message.classList.remove('d-none');
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(text);
+          message.textContent = 'Link copiado com sucesso para a área de transferência. Nenhum envio ou entrega foi registrado por esta cópia.';
+          message.classList.remove('d-none');
+        } else {
+          throw new Error('Clipboard API indisponível');
+        }
       } catch {
-        error.textContent = 'Não foi possível copiar. Selecione o link e copie manualmente.';
+        const linkInput = document.getElementById('campaign-public-link');
+        if (linkInput) {
+          linkInput.focus();
+          linkInput.select();
+          try {
+            document.execCommand('copy');
+            message.textContent = 'Link selecionado e copiado via atalho do navegador.';
+            message.classList.remove('d-none');
+            return;
+          } catch {
+            // fallback
+          }
+        }
+        error.textContent = 'Não foi possível copiar automaticamente. O link foi selecionado no campo para cópia manual (Ctrl+C / Cmd+C).';
         error.classList.remove('d-none');
       }
     };
+
     content.querySelector('[data-copy-link]').addEventListener('click', () => showCopyResult(campaignLink));
     content.querySelector('[data-copy-message]').addEventListener('click', () => showCopyResult(`${data.message}\n${campaignLink}`));
     content.querySelector('[data-generate-link]').addEventListener('click', async event => {
@@ -358,7 +718,7 @@
         campaignLink = new URL(result.publicUrl, location.origin).href;
         if (requestId !== activeRequest) return;
         campaignView(data);
-        message.textContent = 'Link gerado. Revise o convite e compartilhe pelo canal escolhido.';
+        message.textContent = 'Link gerado com sucesso. Revise o convite e compartilhe pelo canal escolhido.';
         message.classList.remove('d-none');
       } catch (ex) {
         if (requestId !== activeRequest) return;
@@ -443,7 +803,28 @@
     const requestId = ++activeRequest;
     loading.classList.remove('d-none');
     error.classList.add('d-none');
+
+    host.querySelectorAll('[data-tab]').forEach(btn => {
+      const isActive = btn.dataset.tab === name;
+      btn.classList.toggle('btn-primary', isActive);
+      btn.classList.toggle('active', isActive);
+      btn.classList.toggle('btn-outline-secondary', !isActive);
+      btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+
     try {
+      if (name === 'preparation') {
+        if (!overviewState) {
+          const overview = await api('overview');
+          if (requestId !== activeRequest) return;
+          setOverviewHeader(overview);
+        }
+        const surveyId = overviewState?.cycle?.surveyId || diagnosticId;
+        const review = await getPublicationReview(surveyId);
+        if (requestId !== activeRequest) return;
+        preparationView(overviewState?.cycle || {}, review);
+        return;
+      }
       if (name === 'campaign') {
         try { const data = await campaignApi(); if (requestId === activeRequest) campaignView(data); } catch (ex) { if (requestId !== activeRequest) return; if (ex.code === 'CAMPAIGN_NOT_FOUND') { if (ex.canManage && !ex.readOnly) campaignEmpty(); else content.innerHTML = '<p>Nenhuma campanha registrada. Solicite a configuração a um usuário autorizado.</p>'; } else throw ex; }
         return;

@@ -101,33 +101,174 @@
   }
 
   let currentLoadGeneration = 0;
-  async function load() {
-    const thisGeneration = ++currentLoadGeneration;
-    const error = root.querySelector('[data-error]');
-    error.hidden = true;
-    root.classList.add('is-dashboard-loading');
-    setText('[data-last-update]', 'Verificando contexto…');
 
-    let account = null;
-    try {
-      const contextRes = await fetch('/bff/account/context', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
-      if (contextRes.ok) {
-        account = await contextRes.json();
-      }
-    } catch {
-      // continua caso a consulta falhe
+  function showDashboardError(container, message, correlationId, retryAction) {
+    container.replaceChildren();
+    const alertBox = document.createElement('div');
+    alertBox.className = 'alert alert-danger d-flex flex-column gap-2 p-3 my-3';
+
+    const msg = document.createElement('div');
+    msg.textContent = message;
+    alertBox.append(msg);
+
+    if (correlationId) {
+      const refBox = document.createElement('div');
+      refBox.className = 'd-flex align-items-center gap-2 flex-wrap text-muted small';
+      const refLabel = document.createElement('span');
+      refLabel.textContent = `Código de atendimento: `;
+      const refCode = document.createElement('code');
+      refCode.className = 'user-select-all px-2 py-1 bg-light rounded border';
+      refCode.textContent = correlationId;
+
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'btn btn-sm btn-outline-secondary';
+      copyBtn.textContent = 'Copiar código';
+      copyBtn.onclick = async () => {
+        if (navigator.clipboard?.writeText) {
+          try {
+            await navigator.clipboard.writeText(correlationId);
+            copyBtn.textContent = 'Copiado!';
+            setTimeout(() => { copyBtn.textContent = 'Copiar código'; }, 2000);
+            return;
+          } catch {
+            // Se a permissão for negada, seleciona o texto para cópia manual
+          }
+        }
+        const range = document.createRange();
+        range.selectNodeContents(refCode);
+        const sel = window.getSelection();
+        sel?.removeAllRanges();
+        sel?.addRange(range);
+        copyBtn.textContent = 'Pressione Ctrl+C';
+        setTimeout(() => { copyBtn.textContent = 'Copiar código'; }, 2500);
+      };
+
+      refBox.append(refLabel, refCode, copyBtn);
+      alertBox.append(refBox);
+    } else {
+      const refBox = document.createElement('div');
+      refBox.className = 'text-muted small';
+      refBox.textContent = 'Código de atendimento: não informado pelo servidor.';
+      alertBox.append(refBox);
     }
 
-    if (thisGeneration !== currentLoadGeneration) return;
+    if (retryAction) {
+      const actions = document.createElement('div');
+      actions.className = 'mt-2';
+      const retry = document.createElement('button');
+      retry.type = 'button';
+      retry.className = 'valora-button valora-button--secondary';
+      retry.textContent = 'Tentar novamente';
+      retry.addEventListener('click', retryAction, { once: true });
+      actions.append(retry);
+      alertBox.append(actions);
+    }
 
-    const isPlatformAdmin = account && (account.primaryRole === 'admin_valora' || (Array.isArray(account.roleCodes) && account.roleCodes.map(r => String(r).toLowerCase()).includes('admin_valora')));
-    const hasOrg = Boolean(account?.organizationId);
+    container.append(alertBox);
+    container.hidden = false;
+  }
+
+  async function load() {
+    const thisGeneration = ++currentLoadGeneration;
+    const errorContainer = root.querySelector('[data-error]');
+    if (errorContainer) {
+      errorContainer.hidden = true;
+      errorContainer.replaceChildren();
+    }
+    root.classList.add('is-dashboard-loading');
+    setText('[data-last-update]', 'Verificando contexto…');
 
     const platformPanel = root.querySelector('[data-platform-mode-panel]');
     const summaryCards = root.querySelector('[data-summary-cards]');
     const scorePanel = root.querySelector('[data-score-panel]');
     const emptyScore = root.querySelector('[data-empty-score]');
+    const metricEmpty = root.querySelector('[data-metric-empty]');
+    const strategic = root.querySelector('[data-strategic-reading]');
+    const attention = root.querySelector('[data-dashboard-attention]');
 
+    let account = null;
+    try {
+      const contextRes = await fetch('/bff/account/context', {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' }
+      });
+
+      if (thisGeneration !== currentLoadGeneration) return;
+
+      if (contextRes.status === 401) {
+        root.classList.remove('is-dashboard-loading');
+        setText('[data-last-update]', 'Sessão expirada');
+        if (errorContainer) {
+          const alert = document.createElement('div');
+          alert.className = 'alert alert-warning p-3 my-3';
+          alert.innerHTML = '<strong>Sua sessão expirou.</strong> É necessário entrar novamente para continuar. ' +
+            `<a class="valora-button valora-button--primary btn-sm ms-2" href="/Account/Login?reason=session-expired&returnUrl=${encodeURIComponent(location.pathname + location.search)}">Entrar novamente</a>`;
+          errorContainer.replaceChildren(alert);
+          errorContainer.hidden = false;
+        }
+        return;
+      }
+
+      if (contextRes.status === 403) {
+        root.classList.remove('is-dashboard-loading');
+        const problem = await contextRes.json().catch(() => ({}));
+        const requiresOrg = problem.requiresOrganizationSelection || problem.code === 'ORGANIZATION_REQUIRED';
+        if (requiresOrg) {
+          setText('[data-last-update]', 'Seleção de organização necessária');
+          if (platformPanel) platformPanel.hidden = false;
+          if (summaryCards) summaryCards.hidden = true;
+          if (scorePanel) scorePanel.hidden = true;
+          if (emptyScore) emptyScore.hidden = true;
+          if (strategic) strategic.hidden = true;
+          if (attention) attention.innerHTML = '<div class="valora-empty">Selecione uma organização no menu superior para visualizar o cockpit operacional.</div>';
+          return;
+        }
+
+        setText('[data-last-update]', 'Acesso negado');
+        if (errorContainer) {
+          showDashboardError(errorContainer,
+            problem.detail || problem.message || 'Seu perfil não possui autorização para consultar este painel.',
+            problem.correlationId || problem.traceId,
+            () => load());
+        }
+        return;
+      }
+
+      if (!contextRes.ok) {
+        root.classList.remove('is-dashboard-loading');
+        setText('[data-last-update]', 'Contexto temporariamente indisponível');
+        const problem = await contextRes.json().catch(() => ({}));
+        if (errorContainer) {
+          showDashboardError(errorContainer,
+            'Contexto temporariamente indisponível. Não foi possível validar o perfil ou organização.',
+            problem.correlationId || problem.traceId,
+            () => load());
+        }
+        return;
+      }
+
+      account = await contextRes.json();
+    } catch {
+      if (thisGeneration !== currentLoadGeneration) return;
+      root.classList.remove('is-dashboard-loading');
+      setText('[data-last-update]', 'Contexto temporariamente indisponível');
+      if (errorContainer) {
+        showDashboardError(errorContainer,
+          'Falha de comunicação ao verificar o contexto da sessão. Verifique sua conexão com o servidor.',
+          null,
+          () => load());
+      }
+      return;
+    }
+
+    if (thisGeneration !== currentLoadGeneration) return;
+
+    const isPlatformAdmin = account && (account.primaryRole === 'admin_valora'
+      || (Array.isArray(account.roleCodes) && account.roleCodes.map(r => String(r).toLowerCase()).includes('admin_valora')));
+    const hasOrg = Boolean(account?.organizationId);
+
+    // Estado: MODO PLATAFORMA (Administrador Global sem organização selecionada)
     if (isPlatformAdmin && !hasOrg) {
       root.classList.remove('is-dashboard-loading');
       setText('[data-first-name]', account?.userName ? account.userName.split(' ')[0] : 'Administrador');
@@ -138,15 +279,25 @@
       if (scorePanel) scorePanel.hidden = true;
       if (emptyScore) emptyScore.hidden = true;
       if (summaryCards) summaryCards.hidden = true;
-      const metricEmpty = root.querySelector('[data-metric-empty]');
       if (metricEmpty) metricEmpty.hidden = true;
-      const strategic = root.querySelector('[data-strategic-reading]');
       if (strategic) strategic.hidden = true;
-      const attention = root.querySelector('[data-dashboard-attention]');
       if (attention) attention.innerHTML = '<div class="valora-empty">Selecione uma organização no topo para consultar as prioridades do cliente.</div>';
       return;
     }
 
+    // Estado: SELEÇÃO NECESSÁRIA (Usuário comum sem organização atribuída)
+    if (!hasOrg) {
+      root.classList.remove('is-dashboard-loading');
+      setText('[data-last-update]', 'Seleção de organização necessária');
+      if (summaryCards) summaryCards.hidden = true;
+      if (scorePanel) scorePanel.hidden = true;
+      if (emptyScore) emptyScore.hidden = true;
+      if (strategic) strategic.hidden = true;
+      if (attention) attention.innerHTML = '<div class="valora-empty">Nenhuma organização associada ao seu usuário. Entre em contato com o administrador.</div>';
+      return;
+    }
+
+    // Estado: ORGANIZAÇÃO VÁLIDA SELECIONADA
     if (platformPanel) platformPanel.hidden = true;
     if (account?.organizationName) {
       setText('[data-organization]', account.organizationName);
@@ -190,29 +341,13 @@
         : `Atualização parcial · ${succeeded} de ${results.length} fontes disponíveis`);
     } catch (exception) {
       if (thisGeneration !== currentLoadGeneration) return;
-      const correlationId = exception?.correlationId || exception?.details?.correlationId || exception?.TraceId || exception?.traceId;
-      const reference = correlationId || (typeof window.AjaxClient?.generateCorrelationId === 'function' ? window.AjaxClient.generateCorrelationId() : 'indisponível');
-      error.replaceChildren();
-      const msg = document.createElement('span');
-      msg.textContent = `Não foi possível atualizar a leitura executiva. Código de atendimento: ${reference}. `;
-      const copyBtn = document.createElement('button');
-      copyBtn.type = 'button';
-      copyBtn.className = 'btn btn-sm btn-outline-secondary ms-2 me-2';
-      copyBtn.textContent = 'Copiar código';
-      copyBtn.onclick = () => {
-        if (navigator.clipboard?.writeText) {
-          navigator.clipboard.writeText(reference);
-          copyBtn.textContent = 'Copiado!';
-          setTimeout(() => { copyBtn.textContent = 'Copiar código'; }, 2000);
-        }
-      };
-      const retry = document.createElement('button');
-      retry.type = 'button';
-      retry.className = 'valora-button valora-button--secondary';
-      retry.textContent = 'Tentar novamente';
-      retry.addEventListener('click', load, { once: true });
-      error.append(msg, copyBtn, retry);
-      error.hidden = false;
+      const correlationId = exception?.correlationId || exception?.details?.correlationId || exception?.TraceId || exception?.traceId || null;
+      if (errorContainer) {
+        showDashboardError(errorContainer,
+          'Não foi possível atualizar a leitura executiva.',
+          correlationId,
+          () => load());
+      }
       setText('[data-last-update]', 'Atualização indisponível');
     } finally {
       if (thisGeneration === currentLoadGeneration) {

@@ -160,8 +160,17 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
             updatedOrg = new BffOrganization(orgId, name, name, string.Empty);
         }
         var updatedSafe = current.SafeSession with { Organization = updatedOrg, AccessContext = updatedContext };
-        await sessions.SetAsync(ticket, current with { SafeSession = updatedSafe }, cancellationToken);
-        await RenewCookieAsync(context, ticket, current with { SafeSession = updatedSafe }, cancellationToken);
+        var updatedServerSession = current with { SafeSession = updatedSafe };
+        try {
+            await RenewCookieAsync(context, ticket, updatedServerSession, cancellationToken);
+            await sessions.SetAsync(ticket, updatedServerSession, cancellationToken);
+        }
+        catch (Exception ex) {
+            logger.LogError(ex, "Falha ao renovar cookie durante seleção de organização. Contexto não modificado. SessionId={SessionId} OrganizationId={OrganizationId}",
+                context.User.FindFirstValue("session_id"), organizationId);
+            throw;
+        }
+
         logger.LogInformation("BFF organization context changed. SessionId={SessionId} UserId={UserId} OrganizationId={OrganizationId} CorrelationId={CorrelationId}",
             context.User.FindFirstValue("session_id"), current.SafeSession.User.Id, organizationId, CorrelationId(context));
         return updatedSafe;
@@ -216,23 +225,27 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
         claims.AddRange(result.AccessContext.Capabilities.Select(value => new Claim("capability", value)));
         claims.AddRange(result.AccessContext.Scopes.Select(value => new Claim("scope", value)));
         AddContextClaims(claims, result);
-        if (context.RequestServices?.GetService(typeof(IAuthenticationService)) is null) return;
+        if (context.RequestServices?.GetService(typeof(IAuthenticationService)) is null)
+            throw new InvalidOperationException("Serviço de autenticação não configurado no pipeline (IAuthenticationService ausente).");
         var authentication = await context.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         var wasPersistent = authentication?.Properties?.IsPersistent == true;
-        await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
+        await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
             CookieProperties(result.RefreshTokenExpiresAt, wasPersistent));
+        context.User = principal;
     }
 
     private static async Task RenewCookieAsync(HttpContext context, string ticket, BffServerSession session,
         CancellationToken cancellationToken) {
-        if (context.RequestServices?.GetService(typeof(IAuthenticationService)) is null) return;
+        if (context.RequestServices?.GetService(typeof(IAuthenticationService)) is null)
+            throw new InvalidOperationException("Serviço de autenticação não configurado no pipeline (IAuthenticationService ausente).");
         var claims = BuildClaims(ticket, session.SafeSession.User, session.SafeSession.AccessContext,
             context.User.FindFirstValue("session_id") ?? string.Empty);
         var authentication = await context.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme));
+        await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, principal,
             CookieProperties(session.RefreshTokenExpiresAt, authentication?.Properties?.IsPersistent == true));
+        context.User = principal;
     }
 
     private static AuthenticationProperties CookieProperties(DateTimeOffset expiresAt, bool isPersistent) => new() {

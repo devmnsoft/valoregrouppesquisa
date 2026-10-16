@@ -14,10 +14,10 @@ public sealed class BffDiagnosticWorkspaceController(IBffApiClient api, BffAuthe
             return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou. Entre novamente.", correlationId = HttpContext.TraceIdentifier });
 
         var correlation = Request.Headers["X-Correlation-Id"].FirstOrDefault() ?? HttpContext.TraceIdentifier;
-        var (success, body, error) = await BffBodyReader.ReadJsonBodyAsync(Request, correlation, isBodyRequired: false, cancellationToken: ct);
-        if (!success) return error!;
-
         var suffix = string.IsNullOrWhiteSpace(resource) ? string.Empty : "/" + resource;
+        var isBodyRequired = HttpMethods.IsPut(Request.Method);
+        var (success, body, error) = await BffBodyReader.ReadJsonBodyAsync(Request, correlation, isBodyRequired: isBodyRequired, cancellationToken: ct);
+        if (!success) return error!;
         using var response = await authentication.SendAuthorizedAsync(HttpContext, new HttpMethod(Request.Method),
             $"/api/v1/diagnostics/{id}/workspace{suffix}{Request.QueryString}", body, correlation, ct);
         if (response is null)

@@ -173,19 +173,34 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
                 await authentication.SelectOrganizationAsync(HttpContext, null, cancellationToken);
             }
         }
-        return Ok(organizations);
+        var totalCount = organizations.Count;
+        if (document.RootElement.TryGetProperty("totalCount", out var totalElem) && totalElem.TryGetInt32(out var parsedTotal)) {
+            totalCount = parsedTotal;
+        }
+        var hasMore = page * pageSize < totalCount;
+        return Ok(new {
+            items = organizations,
+            totalCount,
+            page,
+            pageSize,
+            hasMore
+        });
     }
 
     private static void AddOrganization(List<object> organizations, JsonElement item) {
         if (!item.TryGetProperty("organizationId", out var organizationElement) || organizationElement.ValueKind != JsonValueKind.String) return;
         if (!Guid.TryParse(organizationElement.GetString(), out var organizationId)) return;
         if (organizations.Any(existing => (Guid)existing.GetType().GetProperty("organizationId")!.GetValue(existing)! == organizationId)) return;
+        Guid? customerId = null;
+        if (item.TryGetProperty("id", out var idElem) && idElem.ValueKind == JsonValueKind.String && Guid.TryParse(idElem.GetString(), out var parsedCid)) {
+            customerId = parsedCid;
+        }
         var trade = item.TryGetProperty("tradeName", out var tradeName) && tradeName.ValueKind == JsonValueKind.String
             ? tradeName.GetString()?.Trim() ?? "" : "";
         var legal = item.TryGetProperty("legalName", out var legalName) && legalName.ValueKind == JsonValueKind.String
             ? legalName.GetString()?.Trim() ?? "" : "";
         var name = !string.IsNullOrWhiteSpace(trade) ? trade : legal;
-        organizations.Add(new { organizationId, name = string.IsNullOrWhiteSpace(name) ? "Organização sem nome" : name });
+        organizations.Add(new { organizationId, customerId, name = string.IsNullOrWhiteSpace(name) ? "Organização sem nome" : name });
     }
 }
 

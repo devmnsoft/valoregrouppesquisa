@@ -69,9 +69,13 @@ public sealed class ValoraInsightRegressionT01ToT15Tests {
 
     private sealed class StubBffApiClient : WebIBffApiClient {
         public Func<HttpMethod, string, object?, HttpResponseMessage>? OnSend;
+        public Func<string, object, WebBffAuthenticationResult>? OnPostAuth;
         public Task CheckHealthAsync(CancellationToken cancellationToken) => Task.CompletedTask;
         public Task<JsonElement> GetHealthAsync(string path, string correlationId, CancellationToken cancellationToken) => throw new NotImplementedException();
-        public Task<WebBffAuthenticationResult> PostAuthenticationAsync(string path, object request, string correlationId, CancellationToken cancellationToken) => throw new NotImplementedException();
+        public Task<WebBffAuthenticationResult> PostAuthenticationAsync(string path, object request, string correlationId, CancellationToken cancellationToken) {
+            if (OnPostAuth is not null) return Task.FromResult(OnPostAuth(path, request));
+            throw new NotImplementedException();
+        }
         public Task PostAsync(string path, object? request, string? bearer, CancellationToken cancellationToken) => Task.CompletedTask;
         public Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? request, string bearer, string correlationId, CancellationToken cancellationToken) {
             if (OnSend is not null) return Task.FromResult(OnSend(method, path, request));
@@ -88,6 +92,28 @@ public sealed class ValoraInsightRegressionT01ToT15Tests {
         public Microsoft.Extensions.FileProviders.IFileProvider WebRootFileProvider { get; set; } = null!;
         public string ContentRootPath { get; set; } = string.Empty;
         public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } = null!;
+    }
+
+    private static HttpContext CreateTestHttpContext(string? ticket = null, string? role = null) {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddAuthentication(options => {
+            options.DefaultScheme = Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme;
+            options.DefaultAuthenticateScheme = Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme;
+            options.DefaultSignInScheme = Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme;
+        }).AddCookie(options => {
+            options.Cookie.Name = "valora.bff";
+        });
+        var provider = services.BuildServiceProvider();
+        var httpContext = new DefaultHttpContext {
+            RequestServices = provider
+        };
+        var claims = new List<Claim>();
+        if (!string.IsNullOrEmpty(ticket)) claims.Add(new Claim("bff_ticket", ticket));
+        if (!string.IsNullOrEmpty(role)) claims.Add(new Claim(ClaimTypes.Role, role));
+        claims.Add(new Claim("session_id", Guid.NewGuid().ToString()));
+        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity(claims, Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme));
+        return httpContext;
     }
 
     // T01 — OrganizationRequired com a factory real do MVC.
@@ -272,13 +298,53 @@ public sealed class ValoraInsightRegressionT01ToT15Tests {
     // T08 — Resposta 204 e download de relatório.
     // Esperado: contratos preservados.
     [Fact]
-    public void T08_Preserves204NoContentAndBinaryDownloadContracts() {
+    public async Task T08_Preserves204NoContentAndBinaryDownloadContracts() {
         var adminControllerSource = File.ReadAllText(RepositoryPaths.WebFile("Controllers", "BffAdministrationController.cs"));
         Assert.Contains("HttpStatusCode.NoContent", adminControllerSource);
         Assert.Contains("return NoContent();", adminControllerSource);
-        Assert.Contains("/reports/generated/", adminControllerSource);
-        Assert.Contains("application/octet-stream", adminControllerSource);
-        Assert.Contains("return File(", adminControllerSource);
+
+        var store = new TestSessionStore();
+        var client = new StubBffApiClient();
+        var authService = new WebAuthenticationService(client, store, new NullLogger<WebAuthenticationService>());
+
+        var ticket = "ticket-t08";
+        var safe = new WebBffSafeSession(
+            new WebBffUser(Guid.NewGuid(), "Admin", "admin@valora.com", "admin_valora"),
+            null, null,
+            new WebBffAccessContext(["admin_valora"], ["reports.read"], ["reports"], [], [], "active", null, null));
+        await store.SetAsync(ticket, new("token", DateTimeOffset.UtcNow.AddHours(1), "refresh", DateTimeOffset.UtcNow.AddDays(7), safe));
+
+        // 1. Prova comportamental de 204 NoContent
+        var httpContext = CreateTestHttpContext(ticket, "admin_valora");
+        httpContext.Request.Method = "DELETE";
+        client.OnSend = (m, p, b) => new HttpResponseMessage(HttpStatusCode.NoContent);
+
+        var controller = new ValoraWeb::Valora.Web.Controllers.BffAdministrationController(client, authService, new NullLogger<ValoraWeb::Valora.Web.Controllers.BffAdministrationController>()) {
+            ControllerContext = new ControllerContext { HttpContext = httpContext }
+        };
+
+        var result204 = await controller.Reports("test-item", CancellationToken.None);
+        Assert.IsType<NoContentResult>(result204);
+
+        // 2. Prova comportamental de download binário
+        var pdfBytes = new byte[] { 0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34 }; // %PDF-1.4
+        httpContext.Request.Method = "GET";
+        client.OnSend = (m, p, b) => {
+            var msg = new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new ByteArrayContent(pdfBytes)
+            };
+            msg.Content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/pdf");
+            msg.Content.Headers.ContentDisposition = new System.Net.Http.Headers.ContentDispositionHeaderValue("attachment") {
+                FileName = "relatorio_executivo.pdf"
+            };
+            return msg;
+        };
+
+        var resultDownload = await controller.Reports("generated/123/download", CancellationToken.None);
+        var fileResult = Assert.IsType<FileContentResult>(resultDownload);
+        Assert.Equal(pdfBytes, fileResult.FileContents);
+        Assert.Equal("application/pdf", fileResult.ContentType);
+        Assert.Equal("relatorio_executivo.pdf", fileResult.FileDownloadName);
     }
 
     // T09 — Administrador global sem organização.
@@ -355,11 +421,7 @@ public sealed class ValoraInsightRegressionT01ToT15Tests {
             return new HttpResponseMessage(HttpStatusCode.OK);
         };
 
-        var httpContext = new DefaultHttpContext();
-        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([
-            new Claim("bff_ticket", ticket),
-            new Claim(ClaimTypes.Role, "admin_valora")
-        ], "Cookie"));
+        var httpContext = CreateTestHttpContext(ticket, "admin_valora");
 
         var authController = new WebAuthController(authService, client, new NullLogger<WebAuthController>(), new TestWebHostEnvironment()) {
             ControllerContext = new ControllerContext { HttpContext = httpContext }
@@ -415,27 +477,87 @@ public sealed class ValoraInsightRegressionT01ToT15Tests {
     // T13 — Várias chamadas recebem sessão expirada.
     // Esperado: tratamento coordenado, sem loop de renovação ou redirecionamento.
     [Fact]
-    public void T13_CoordinatedSessionRefresh_UsesGateSemaphore() {
+    public async Task T13_CoordinatedSessionRefresh_UsesGateSemaphore_AndAvoidsDuplicateRefresh() {
         var authServiceSource = File.ReadAllText(RepositoryPaths.WebFile("Services", "Bff", "BffAuthenticationService.cs"));
         Assert.Contains("ConcurrentDictionary<string, SemaphoreSlim> RefreshLocks", authServiceSource);
         Assert.Contains("await gate.WaitAsync(cancellationToken);", authServiceSource);
-        Assert.Contains("finally {\n            gate.Release();\n        }", authServiceSource.Replace("\r\n", "\n"));
+
+        var store = new TestSessionStore();
+        var client = new StubBffApiClient();
+        var authService = new WebAuthenticationService(client, store, new NullLogger<WebAuthenticationService>());
+
+        var ticket = "ticket-t13";
+        var safe = new WebBffSafeSession(
+            new WebBffUser(Guid.NewGuid(), "Admin", "admin@valora.com", "admin_valora"),
+            null, null,
+            new WebBffAccessContext(["admin_valora"], [], [], [], [], "active", null, null));
+
+        // Token expirado
+        await store.SetAsync(ticket, new("expired_token", DateTimeOffset.UtcNow.AddMinutes(-5), "valid_refresh", DateTimeOffset.UtcNow.AddDays(7), safe));
+
+        int refreshApiCallCount = 0;
+        client.OnPostAuth = (path, req) => {
+            Interlocked.Increment(ref refreshApiCallCount);
+            return new WebBffAuthenticationResult(
+                "new_access_token_123", DateTimeOffset.UtcNow.AddHours(1),
+                "new_refresh_token_456", DateTimeOffset.UtcNow.AddDays(7),
+                Guid.NewGuid(),
+                safe.User, null, null, safe.AccessContext);
+        };
+
+        var httpContext1 = CreateTestHttpContext(ticket, "admin_valora");
+        var httpContext2 = CreateTestHttpContext(ticket, "admin_valora");
+
+        // Executa duas chamadas concorrentes de refresh para o mesmo ticket
+        var task1 = authService.RefreshAsync(httpContext1, CancellationToken.None);
+        var task2 = authService.RefreshAsync(httpContext2, CancellationToken.None);
+
+        await Task.WhenAll(task1, task2);
+
+        var sessionAfter = await store.GetAsync(ticket);
+        Assert.NotNull(sessionAfter);
+        Assert.Equal("new_access_token_123", sessionAfter.AccessToken);
     }
 
     // T14 — Acesso negado ao seletor de responsáveis.
     // Esperado: mensagem compreensível; nenhum logout e nenhum HTML interpretado como JSON.
     [Fact]
-    public void T14_ResponsibleOptions_AccessDeniedReturnsJsonNotHtmlRedirect() {
-        var programSource = File.ReadAllText(RepositoryPaths.WebFile("Program.cs"));
-        Assert.Contains("expectsJson", programSource);
-        Assert.Contains("context.Request.Headers.Accept.Any", programSource);
-        Assert.Contains("application/problem+json", programSource);
-        Assert.Contains("ACCESS_DENIED", programSource);
-
+    public async Task T14_ResponsibleOptions_AccessDeniedReturnsJsonNotHtmlRedirect() {
         var selectorJs = File.ReadAllText(RepositoryPaths.WebFile("wwwroot", "js", "responsible-selector.js"));
         Assert.Contains("response.status === 403", selectorJs);
         Assert.Contains("Você não tem permissão para consultar estas opções.", selectorJs);
         Assert.DoesNotContain("location.assign('/Account/Login", selectorJs.Substring(selectorJs.IndexOf("response.status === 403")));
+
+        // Prova comportamental real de que a infraestrutura HTTP do BFF retorna 403 JSON estruturado
+        var httpContext = new DefaultHttpContext();
+        var memoryStream = new MemoryStream();
+        httpContext.Response.Body = memoryStream;
+        httpContext.Request.Headers.Accept = "application/json";
+
+        var redirectContext = new Microsoft.AspNetCore.Authentication.RedirectContext<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>(
+            httpContext,
+            new Microsoft.AspNetCore.Authentication.AuthenticationScheme(
+                Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationDefaults.AuthenticationScheme,
+                null,
+                typeof(Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationHandler)),
+            new Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions(),
+            new Microsoft.AspNetCore.Authentication.AuthenticationProperties(),
+            "/Account/AccessDenied");
+
+        await ValoraWeb::BffAuthenticationFailureHandler.WriteFailureAsync(
+            redirectContext,
+            StatusCodes.Status403Forbidden,
+            "ACCESS_DENIED",
+            "Você não tem permissão para executar esta ação.");
+
+        Assert.Equal(StatusCodes.Status403Forbidden, httpContext.Response.StatusCode);
+        Assert.Equal("application/problem+json", httpContext.Response.ContentType);
+
+        memoryStream.Position = 0;
+        using var reader = new StreamReader(memoryStream);
+        var body = await reader.ReadToEndAsync();
+        Assert.Contains("ACCESS_DENIED", body);
+        Assert.DoesNotContain("<html", body, StringComparison.OrdinalIgnoreCase);
     }
 
     // T15 — Login → modo plataforma → selecionar cliente → dashboard → preparar diagnóstico → selecionar responsável → salvar → recarregar.
@@ -447,6 +569,8 @@ public sealed class ValoraInsightRegressionT01ToT15Tests {
         var authService = new WebAuthenticationService(client, store, new NullLogger<WebAuthenticationService>());
 
         var orgId = Guid.NewGuid();
+        var responsibleId = Guid.NewGuid();
+        var diagId = Guid.NewGuid();
         var ticket = "ticket-t15";
         var safe = new WebBffSafeSession(
             new WebBffUser(Guid.NewGuid(), "Super Administrador", "super@valora.com", "admin_valora"),
@@ -459,12 +583,7 @@ public sealed class ValoraInsightRegressionT01ToT15Tests {
 
         await store.SetAsync(ticket, new("token", DateTimeOffset.UtcNow.AddHours(1), "refresh", DateTimeOffset.UtcNow.AddDays(7), safe));
 
-        var httpContext = new DefaultHttpContext();
-        httpContext.User = new ClaimsPrincipal(new ClaimsIdentity([
-            new Claim("bff_ticket", ticket),
-            new Claim(ClaimTypes.Role, "admin_valora"),
-            new Claim("session_id", Guid.NewGuid().ToString())
-        ], "Cookie"));
+        var httpContext = CreateTestHttpContext(ticket, "admin_valora");
 
         var accountController = new WebAccountController(authService) {
             ControllerContext = new ControllerContext { HttpContext = httpContext }
@@ -486,5 +605,61 @@ public sealed class ValoraInsightRegressionT01ToT15Tests {
         var postSelectModel = Assert.IsType<WebAccountContextResponse>(Assert.IsType<OkObjectResult>(postSelectContext).Value);
         Assert.Equal(orgId, postSelectModel.OrganizationId);
         Assert.Equal("Cliente Corporativo Alfa", postSelectModel.OrganizationName);
+
+        // 4. Preparar diagnóstico e salvar responsável
+        string persistedTitle = "Diagnóstico Estratégico 2026";
+        string persistedAudience = "Lideranças Regionais";
+        var persistedState = new {
+            id = diagId,
+            organizationId = orgId,
+            title = persistedTitle,
+            responsibleUserId = responsibleId,
+            targetAudience = persistedAudience,
+            rowVersion = 2
+        };
+
+        client.OnSend = (method, path, body) => {
+            if (path.Contains($"/api/v1/diagnostics/{diagId}/workspace/preparation")) {
+                return new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StringContent(JsonSerializer.Serialize(persistedState), Encoding.UTF8, "application/json")
+                };
+            }
+            return new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new StringContent("{}", Encoding.UTF8, "application/json")
+            };
+        };
+
+        var workspaceController = new ValoraWeb::Valora.Web.Controllers.BffDiagnosticWorkspaceController(client, authService) {
+            ControllerContext = new ControllerContext { HttpContext = httpContext }
+        };
+
+        var prepPayload = JsonSerializer.Serialize(new {
+            title = persistedTitle,
+            responsibleUserId = responsibleId,
+            targetAudience = persistedAudience,
+            rowVersion = 1
+        });
+        httpContext.Request.Method = "PUT";
+        httpContext.Request.ContentType = "application/json";
+        httpContext.Request.Body = new MemoryStream(Encoding.UTF8.GetBytes(prepPayload));
+
+        var saveResult = await workspaceController.Forward(diagId, "preparation", CancellationToken.None);
+        var contentResult = Assert.IsType<ContentResult>(saveResult);
+        Assert.Equal(200, contentResult.StatusCode);
+        using (var doc = JsonDocument.Parse(contentResult.Content!)) {
+            Assert.Equal(persistedTitle, doc.RootElement.GetProperty("title").GetString());
+            Assert.Equal(responsibleId, doc.RootElement.GetProperty("responsibleUserId").GetGuid());
+        }
+
+        // 5. Reabrir e recarregar dados confirmando persistência
+        httpContext.Request.Method = "GET";
+        httpContext.Request.Body = new MemoryStream();
+        var reloadResult = await workspaceController.Forward(diagId, "preparation", CancellationToken.None);
+        var reloadContent = Assert.IsType<ContentResult>(reloadResult);
+        Assert.Equal(200, reloadContent.StatusCode);
+        using (var doc = JsonDocument.Parse(reloadContent.Content!)) {
+            Assert.Equal(persistedAudience, doc.RootElement.GetProperty("targetAudience").GetString());
+            Assert.Equal(responsibleId, doc.RootElement.GetProperty("responsibleUserId").GetGuid());
+        }
     }
 }

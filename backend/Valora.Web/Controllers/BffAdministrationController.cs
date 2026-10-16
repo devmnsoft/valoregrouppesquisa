@@ -140,7 +140,7 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
     public Task<IActionResult> Health(string? resource, CancellationToken cancellationToken) =>
         ForwardAsync($"/health/{resource}", cancellationToken);
 
-    private async Task<IActionResult> ForwardAsync(string path, CancellationToken cancellationToken) {
+    private async Task<IActionResult> ForwardAsync(string path, CancellationToken cancellationToken, bool? isBodyRequired = null) {
         var session = await authentication.GetAsync(HttpContext, cancellationToken);
         if (session is null) return Unauthorized(new {
             code = "SESSION_EXPIRED",
@@ -148,7 +148,13 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
             correlationId = HttpContext.TraceIdentifier
         });
         var correlationId = Request.Headers["X-Correlation-Id"].FirstOrDefault() ?? HttpContext.TraceIdentifier;
-        var (success, body, error) = await BffBodyReader.ReadJsonBodyAsync(Request, correlationId, isBodyRequired: false, cancellationToken: cancellationToken);
+        var required = isBodyRequired ?? ((HttpMethods.IsPost(Request.Method) || HttpMethods.IsPut(Request.Method))
+            && !path.EndsWith("/block", StringComparison.OrdinalIgnoreCase)
+            && !path.EndsWith("/unblock", StringComparison.OrdinalIgnoreCase)
+            && !path.EndsWith("/publish", StringComparison.OrdinalIgnoreCase)
+            && !path.EndsWith("/archive", StringComparison.OrdinalIgnoreCase)
+            && !path.EndsWith("/cancel", StringComparison.OrdinalIgnoreCase));
+        var (success, body, error) = await BffBodyReader.ReadJsonBodyAsync(Request, correlationId, isBodyRequired: required, cancellationToken: cancellationToken);
         if (!success) return error!;
 
         var query = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;

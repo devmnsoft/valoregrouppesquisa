@@ -48,9 +48,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.AccessDeniedPath = "/error/403";
         options.ExpireTimeSpan = TimeSpan.FromMinutes(sessionMinutes);
         options.SlidingExpiration = false;
-        options.Events.OnRedirectToLogin = context => WriteBffAuthenticationFailure(context, StatusCodes.Status401Unauthorized,
+        options.Events.OnRedirectToLogin = context => BffAuthenticationFailureHandler.WriteFailureAsync(context, StatusCodes.Status401Unauthorized,
             "AUTHENTICATION_REQUIRED", "Sua sessão expirou. Entre novamente para continuar.");
-        options.Events.OnRedirectToAccessDenied = context => WriteBffAuthenticationFailure(context, StatusCodes.Status403Forbidden,
+        options.Events.OnRedirectToAccessDenied = context => BffAuthenticationFailureHandler.WriteFailureAsync(context, StatusCodes.Status403Forbidden,
             "ACCESS_DENIED", "Você não tem permissão para executar esta ação.");
     });
 builder.Services.AddValoraPermissionHandler();
@@ -158,23 +158,26 @@ app.MapFallback(static context => {
 
 app.Run();
 
-static Task WriteBffAuthenticationFailure(RedirectContext<CookieAuthenticationOptions> context, int status,
-    string code, string message) {
-    var expectsJson = context.Request.Path.StartsWithSegments("/bff")
-        || context.Request.Headers.Accept.Any(h => h is not null && h.Contains("application/json", StringComparison.OrdinalIgnoreCase))
-        || string.Equals(context.Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
+public static class BffAuthenticationFailureHandler {
+    public static Task WriteFailureAsync(RedirectContext<CookieAuthenticationOptions> context, int status,
+        string code, string message) {
+        var expectsJson = context.Request.Path.StartsWithSegments("/bff")
+            || context.Request.Headers.Accept.Any(h => h is not null && h.Contains("application/json", StringComparison.OrdinalIgnoreCase))
+            || string.Equals(context.Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
 
-    if (!expectsJson) {
-        context.Response.Redirect(context.RedirectUri);
-        return Task.CompletedTask;
+        if (!expectsJson) {
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        }
+
+        context.Response.StatusCode = status;
+        context.Response.ContentType = "application/problem+json";
+        return context.Response.WriteAsync(JsonSerializer.Serialize(new {
+            status,
+            code,
+            message,
+            correlationId = context.HttpContext.TraceIdentifier
+        }));
     }
-
-    context.Response.StatusCode = status;
-    context.Response.ContentType = "application/problem+json";
-    return context.Response.WriteAsync(JsonSerializer.Serialize(new {
-        status,
-        code,
-        message,
-        correlationId = context.HttpContext.TraceIdentifier
-    }));
 }
+

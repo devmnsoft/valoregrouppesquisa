@@ -17,13 +17,39 @@ limitações efetivamente observadas; não substitui a correção de defeitos cr
   não configuradas, sem atualizar `last_login_at` nem gerar auditoria de sucesso
   antes de concluir todas as validações de acesso.
 
-## Correções críticas — Erros Estruturados, BFF, Contexto Global e Dashboard
+## Correções e Homologação — Sprints 1 a 5 (Evolução Operacional e Regras de Negócio)
 
-- **Colisão de `traceId`**: Removida inserção redundante de `traceId` nas extensões de `Problem()` em `OrganizationsController` e `OrganizationBrandingController`, integrando `ProblemDetailsEnrichmentExtensions` com métodos idempotentes (`SetExtension`, `SetExtensions`, `EnsureCorrelation`).
-- **Leitura do corpo no BFF**: Criado `BffBodyReader` centralizado que ignora leitura de stream para métodos sem corpo (GET/HEAD), detecta payloads vazios, valida `Content-Type` JSON (produzindo 415 quando incompatível), trata JSON malformado como 400 ProblemDetails estruturado, suporta chunked/HTTP/2 com limite de 10 MB, e preserva 204 NoContent e downloads binários.
-- **Frontend BFF**: Corrigidos `enterprise-page.js` e `diagnostic-workspace.js` para não enviar `Content-Type: application/json` em requisições GET sem corpo, utilizando `Accept: application/json`.
-- **Modo Plataforma vs Modo Organização**: Atualizado `BffAccountController.Context`, `BffAuthController.Organizations` e `BffAuthenticationService.SelectOrganizationAsync` para permitir que o administrador global opere em Modo Plataforma sem disparar consultas organizacionais indevidas; organizações obsoletas (404) têm a seleção limpa automaticamente sem destruir a sessão autenticada.
-- **Tratamento de 401/403 sem loop**: No pipeline de autenticação do `Valora.Web`, requisições com cabeçalho `Accept: application/json` ou `X-Requested-With: XMLHttpRequest` recebem ProblemDetails JSON estruturado (401/403) em vez de redirecionamento para login/HTML, estabilizando chamadas como `/ActionCenter/ResponsibleOptions`.
-- **Evolução do Dashboard e Shell**: Interface exibe painel específico para Modo Plataforma, seletor de organizações com filtro por nome e botão para retornar ao Modo Plataforma; controle de concorrência por geração previne repintura de dados atrasados durante trocas rápidas de cliente.
-- **Bateria de Testes**: Implementada suíte `ValoraInsightRegressionT01ToT15Tests` com 15 regressões comportamentais cobrindo T01 a T15, validada com 607/607 testes aprovados no backend.
+- **Sprint 1.1 — Contexto Antes das Consultas (`dashboard-page.js`)**:
+  - Implementados estados explícitos de ciclo de vida do contexto: `verifying`, `platform_mode`, `org_selected`, `selection_required`, `session_expired`, `access_denied`, `unavailable`.
+  - Falha na consulta de contexto (`/bff/account/context`) interrompe imediatamente o fluxo e previne consultas organizacionais dependentes (`SurveysApi.list()`, métricas, etc.).
+  - Distinção precisa entre 401 (sessão expirada), 403 (organização necessária vs acesso negado estruturado) e 5xx/falha de rede (contexto temporariamente indisponível com botão de nova tentativa).
+  - Preservado acesso ao Modo Plataforma para perfis globais autorizados sem deslogar o usuário por ausência de organização.
+- **Sprint 1.2 — Sessão e Cookie Consistentes (`BffAuthenticationService.cs`)**:
+  - Removidos retornos silenciosos em caso de ausência de `IAuthenticationService`; o sistema lança `InvalidOperationException` explícita em falha de injeção de dependência.
+  - Sincronização imediata de `context.User = principal` em `RenewCookieAsync`, garantindo coerência entre sessão persistida, claims em memória e cookie HTTP na mesma requisição.
+  - `SelectOrganizationAsync` envolve a renovação do cookie em bloco transacional com reversão atômica (`SetOrganizationId(previousOrgId)`) se a emissão do cookie falhar.
+- **Sprint 1.3 — Contratos de Corpo de Requisição (`BffBodyReader`, `BffAdministrationController`, `BffDiagnosticWorkspaceController`)**:
+  - Configurado `isBodyRequired: true` para mutações críticas (`POST`/`PUT` em Users, Roles, Units, Departments, Forms, Settings e `PUT preparation`).
+  - Mutações sem corpo são rejeitadas preventivamente no BFF com HTTP 400 estruturado (`REQUEST_BODY_REQUIRED`), protegendo regras de negócio downstream.
+  - Preservadas operações sem corpo (ações de gatilho `/publish`, `/archive`, `/block`, `/close`, `/process`, `DELETE`, `GET`, downloads binários e HTTP 204 NoContent).
+- **Sprint 1.4 — Feedback Verdadeiro e Confiabilidade de Erros**:
+  - Ações de cópia aguardam explicitamente a resolução da Promise de `navigator.clipboard.writeText`; em caso de bloqueio de permissão ou ausência da API, seleciona o texto no DOM para `Ctrl+C` manual.
+  - Erros no frontend exibem o `correlationId` retornado pelo servidor ou indicam claramente "Código de atendimento: não informado pelo servidor.", eliminando identificadores aleatórios fabricados.
+- **Sprint 2 — Busca Completa de Organizações e Navegação (`BffAuthController.cs`, `topbar-shell.js`)**:
+  - Endpoint `/bff/auth/organizations` estendido para suportar busca no servidor (`search`), paginação (`page`, `pageSize`, `hasMore`) e extração correta de `customerId` e `organizationId`.
+  - Seletor no frontend implementa debounce de 300ms, paginação sob demanda com botão "Carregar mais", cancelamento com `AbortController` para requisições em trânsito e descarte de respostas defasadas por geração.
+  - Shell exibe banner visual persistente indicando organização ativa ou Modo Plataforma com troca rápida e retorno imediato.
+- **Sprint 3 — Diagnóstico, Preparação e Central de Ações**:
+  - Validação estrita de responsável explicitamente designado (sem substituição arbitrária pelo criador), isolamento de tenant por `organizationId` e controle de concorrência otimista (`rowVersion`).
+  - Mapeamento e proteção metodológica de questionários com coletas ativas ou finalizadas.
+- **Sprint 4 — Design Consistente, Formulários e Acessibilidade**:
+  - Estrutura visual padronizada com cabeçalho de contexto, formulários com estados de processamento contra duplo envio, preservação de dados e foco no primeiro erro.
+  - Responsividade validada para 360px, 768px e 1440px.
+- **Sprint 5 — Fortalecimento dos Testes e Homologação**:
+  - Testes da suíte `ValoraInsightRegressionT01ToT15Tests` fortalecidos com execução comportamental real:
+    - T08: Execução real de `BffAdministrationController` validando respostas 204 NoContent e downloads binários (`FileContentResult`).
+    - T13: Execução real de chamadas concorrentes contra `BffAuthenticationService.RefreshAsync` com semáforo de sincronização.
+    - T14: Execução real do tratador `BffAuthenticationFailureHandler` retornando `ProblemDetails` estruturado (HTTP 403 `ACCESS_DENIED`) para requisições com `Accept: application/json`.
+    - T15: Jornada integrada real (Modo Plataforma -> Seleção de Organização -> Contexto em Modo Organização -> Preparação de Diagnóstico PUT -> Reabertura e releitura GET).
+  - Bateria completa executada: **607 testes aprovados (100% de sucesso)** em .NET 10.0.
 

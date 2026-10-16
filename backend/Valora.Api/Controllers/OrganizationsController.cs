@@ -73,7 +73,6 @@ public sealed class OrganizationsController(
         detail: CurrentOrganizationContext.RequiredMessage,
         extensions: new Dictionary<string, object?> {
             ["correlationId"] = HttpContext.TraceIdentifier,
-            ["traceId"] = HttpContext.TraceIdentifier,
             ["requiresOrganizationSelection"] = true
         });
 

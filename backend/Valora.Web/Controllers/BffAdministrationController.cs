@@ -147,11 +147,11 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
             message = "Sua sessão expirou. Entre novamente para continuar.",
             correlationId = HttpContext.TraceIdentifier
         });
-        object? body = null;
-        if ((Request.ContentLength is > 0 || (Request.ContentLength is null && Request.HasJsonContentType())))
-            body = await JsonSerializer.DeserializeAsync<JsonElement>(Request.Body, cancellationToken: cancellationToken);
-        var query = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
         var correlationId = Request.Headers["X-Correlation-Id"].FirstOrDefault() ?? HttpContext.TraceIdentifier;
+        var (success, body, error) = await BffBodyReader.ReadJsonBodyAsync(Request, correlationId, isBodyRequired: false, cancellationToken: cancellationToken);
+        if (!success) return error!;
+
+        var query = Request.QueryString.HasValue ? Request.QueryString.Value : string.Empty;
         try {
             using var response = await authentication.SendAuthorizedAsync(HttpContext, new HttpMethod(Request.Method),
                 path + query, body, correlationId, cancellationToken);
@@ -160,6 +160,10 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
                 message = "Sua sessão expirou. Entre novamente para continuar.",
                 correlationId
             });
+            if (response.StatusCode == System.Net.HttpStatusCode.NoContent) {
+                Response.Headers["X-Correlation-Id"] = response.Headers.TryGetValues("X-Correlation-Id", out var v) ? v.First() : correlationId;
+                return NoContent();
+            }
             if (path.Contains("/reports/generated/", StringComparison.OrdinalIgnoreCase) && path.EndsWith("/download", StringComparison.OrdinalIgnoreCase)) {
                 var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
                 if (!response.IsSuccessStatusCode) return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/problem+json", Content = System.Text.Encoding.UTF8.GetString(bytes) };

@@ -3,6 +3,21 @@
   <partial name="_PageHeader" model="@(new PageHeaderViewModel("Visão Executiva", "Evidências, riscos e próximas decisões da sua organização em uma leitura segura.", "Cockpit Valora Insight™", "Atualização contínua", new[] { new PageHeaderAction("Novo diagnóstico", "/Surveys", Style: "primary", Icon: "plus"), new PageHeaderAction("Criar formulário", "/Forms", Icon: "file-text"), new PageHeaderAction("Gerar relatório", "/Reports", Icon: "chart-radar") }))" />
   <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar esta visão", "Comece pelas prioridades e alertas, acompanhe diagnósticos recentes e use os atalhos para avançar nas decisões pendentes."))" />
   <partial name="_NextBestActionCard" model="@(new NextBestActionCardViewModel("Prepare o próximo ciclo", "Comece pelo formulário, publique a estrutura e só então abra o diagnóstico para respostas.", "Abrir jornada de formulários", "/Forms", "Selecione uma organização no topo para operar no contexto correto."))" />
+  <div class="valora-card platform-mode-card mb-3" data-platform-mode-panel hidden>
+    <div class="d-flex align-items-center gap-3">
+      <div class="platform-mode-icon" style="font-size: 2.2rem;">🌐</div>
+      <div>
+        <p class="eyebrow m-0 text-primary">Modo Plataforma Ativo</p>
+        <h3 class="m-0">Visão Global de Administração</h3>
+        <p class="text-muted m-0 mt-1">Você está operando como Administrador Global sem nenhuma organização vinculada no momento. Para visualizar o cockpit executivo, indicadores operacionais e pesquisas de um cliente, selecione uma organização no menu superior.</p>
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-3 flex-wrap">
+      <a class="valora-button valora-button--primary" href="/Enterprise">🏢 Carteira de Empresas</a>
+      <a class="valora-button valora-button--secondary" href="/Saas/Customers">👥 Clientes SaaS</a>
+      <a class="valora-button valora-button--ghost" href="/PlatformGovernance">🛡️ Governança da Plataforma</a>
+    </div>
+  </div>
   <header class="executive-hero valora-card">
     <div>
       <p class="eyebrow">Cockpit Executivo Valora</p>

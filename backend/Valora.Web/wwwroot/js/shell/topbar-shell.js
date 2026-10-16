@@ -94,7 +94,7 @@
       const request = ++organizationRequest;
       organizationAbort?.abort();
       organizationAbort = new AbortController();
-      const params = new URLSearchParams({ page: '1', pageSize: '25' });
+      const params = new URLSearchParams({ page: '1', pageSize: '100' });
       if (account.organizationId) params.set('selectedOrganizationId', account.organizationId);
       const response = await fetch(`/bff/auth/organizations?${params}`, { credentials: 'same-origin', headers: { Accept: 'application/json' }, signal: organizationAbort.signal });
       if (!response.ok) throw new Error(`organizations-${response.status}`);
@@ -105,17 +105,54 @@
         container.hidden = false;
         return;
       }
-      organizations.forEach(organization => {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'valora-button valora-button--ghost organization-switcher__option';
-        button.textContent = organization.name;
-        if (organization.organizationId && organization.organizationId === account.organizationId) {
-          button.classList.add('is-current'); button.setAttribute('aria-current', 'true');
+
+      // Search field
+      const searchBox = document.createElement('div');
+      searchBox.className = 'organization-switcher__search mb-2';
+      const searchInput = document.createElement('input');
+      searchInput.type = 'search';
+      searchInput.className = 'form-control form-control-sm';
+      searchInput.placeholder = 'Buscar organização por nome…';
+      searchInput.setAttribute('aria-label', 'Buscar organização');
+      searchBox.append(searchInput);
+      container.append(searchBox);
+
+      // Platform Mode Switcher Button (when an organization is selected)
+      if (account.organizationId) {
+        const platformBtn = document.createElement('button');
+        platformBtn.type = 'button';
+        platformBtn.className = 'valora-button valora-button--outline-secondary valora-button--sm w-100 mb-2';
+        platformBtn.textContent = '🌐 Alternar para Modo Plataforma (Visão Global)';
+        platformBtn.addEventListener('click', () => clearOrganization(platformBtn));
+        container.append(platformBtn);
+      }
+
+      const listContainer = document.createElement('div');
+      listContainer.className = 'organization-switcher__list';
+
+      const renderOrgButtons = filter => {
+        listContainer.replaceChildren();
+        const filtered = organizations.filter(org => !filter || (org.name || '').toLowerCase().includes(filter.toLowerCase()));
+        if (!filtered.length) {
+          listContainer.append(pickerMessage('Nenhuma organização corresponde à busca.'));
+          return;
         }
-        button.addEventListener('click', () => selectOrganization(organization.organizationId, button));
-        container.append(button);
-      });
+        filtered.forEach(organization => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'valora-button valora-button--ghost organization-switcher__option w-100 text-start';
+          button.textContent = organization.name;
+          if (organization.organizationId && organization.organizationId === account.organizationId) {
+            button.classList.add('is-current'); button.setAttribute('aria-current', 'true');
+          }
+          button.addEventListener('click', () => selectOrganization(organization.organizationId, button));
+          listContainer.append(button);
+        });
+      };
+
+      searchInput.addEventListener('input', () => renderOrgButtons(searchInput.value.trim()));
+      renderOrgButtons('');
+      container.append(listContainer);
       container.hidden = false;
     } catch (error) {
       container.append(pickerMessage('Não foi possível carregar as organizações disponíveis.'));
@@ -124,6 +161,26 @@
   }
   function pickerMessage(text) {
     const message = document.createElement('p'); message.textContent = text; return message;
+  }
+  async function clearOrganization(trigger) {
+    trigger.disabled = true;
+    try {
+      const token = document.querySelector('meta[name="csrf-token"]')?.content || '';
+      const response = await fetch('/bff/auth/selected-organization', {
+        method: 'DELETE', credentials: 'same-origin',
+        headers: { 'X-CSRF-TOKEN': token }
+      });
+      if (!response.ok) throw new Error(`clear-organization-${response.status}`);
+      sessionStorage.setItem('valora.context.switching', String(Date.now()));
+      localStorage.removeItem('valora.workspace.cache');
+      localStorage.removeItem('valora.dashboard.cache');
+      window.location.reload();
+    } catch (error) {
+      trigger.disabled = false;
+      const status = containerWithStatus(trigger);
+      status.textContent = 'Não foi possível alternar para o Modo Plataforma.';
+      status.hidden = false;
+    }
   }
   async function selectOrganization(organizationId, trigger) {
     trigger.disabled = true;

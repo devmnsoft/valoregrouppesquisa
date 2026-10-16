@@ -104,14 +104,19 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
 
         var responsePayload = await validation.Content.ReadAsStringAsync(cancellationToken);
         Guid selectedOrganizationId = request.OrganizationId;
+        string? selectedOrganizationName = null;
         using var document = JsonDocument.Parse(responsePayload);
         if (document.RootElement.TryGetProperty("organizationId", out var organizationElement)
             && organizationElement.ValueKind == JsonValueKind.String
             && Guid.TryParse(organizationElement.GetString(), out var parsedOrganizationId)) {
             selectedOrganizationId = parsedOrganizationId;
         }
+        if (document.RootElement.TryGetProperty("name", out var nameElement)
+            && nameElement.ValueKind == JsonValueKind.String) {
+            selectedOrganizationName = nameElement.GetString();
+        }
 
-        var session = await authentication.SelectOrganizationAsync(HttpContext, selectedOrganizationId, cancellationToken);
+        var session = await authentication.SelectOrganizationAsync(HttpContext, selectedOrganizationId, cancellationToken, selectedOrganizationName);
         return session is null ? Forbid() : Ok(session);
     }
 
@@ -162,6 +167,10 @@ public sealed class BffAuthController(BffAuthenticationService authentication, I
             if (selectedResponse?.IsSuccessStatusCode == true) {
                 using var selectedDocument = JsonDocument.Parse(await selectedResponse.Content.ReadAsStringAsync(cancellationToken));
                 AddOrganization(organizations, selectedDocument.RootElement);
+            }
+            else if (selectedResponse?.StatusCode == System.Net.HttpStatusCode.NotFound) {
+                logger.LogWarning("Organização anteriormente selecionada {SelectedOrgId} retornou 404. Limpando seleção obsoleta. CorrelationId={CorrelationId}", selected, correlationId);
+                await authentication.SelectOrganizationAsync(HttpContext, null, cancellationToken);
             }
         }
         return Ok(organizations);

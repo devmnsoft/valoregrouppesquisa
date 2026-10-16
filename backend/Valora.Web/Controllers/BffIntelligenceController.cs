@@ -14,11 +14,10 @@ public sealed class BffIntelligenceController(IBffApiClient api, BffAuthenticati
         var session = await authentication.GetAsync(HttpContext, ct);
         if (session is null) return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou. Entre novamente.", correlationId = HttpContext.TraceIdentifier });
 
-        object? body = null;
-        if (Request.ContentLength > 0)
-            body = await JsonSerializer.DeserializeAsync<JsonElement>(Request.Body, cancellationToken: ct);
-
         var correlationId = Request.Headers["X-Correlation-Id"].FirstOrDefault() ?? HttpContext.TraceIdentifier;
+        var (success, body, error) = await BffBodyReader.ReadJsonBodyAsync(Request, correlationId, isBodyRequired: false, cancellationToken: ct);
+        if (!success) return error!;
+
         HttpResponseMessage? response;
         try {
             response = await authentication.SendAuthorizedAsync(HttpContext, new HttpMethod(Request.Method),
@@ -48,6 +47,10 @@ public sealed class BffIntelligenceController(IBffApiClient api, BffAuthenticati
         }
         if (response is null) return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou. Entre novamente.", correlationId });
         using (response) {
+            if (response.StatusCode == System.Net.HttpStatusCode.NoContent) {
+                Response.Headers["X-Correlation-Id"] = response.Headers.TryGetValues("X-Correlation-Id", out var v) ? v.First() : correlationId;
+                return NoContent();
+            }
             var payload = await response.Content.ReadAsStringAsync(ct);
             Response.Headers["X-Correlation-Id"] = response.Headers.TryGetValues("X-Correlation-Id", out var values) ? values.First() : correlationId;
             return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/json", Content = payload };

@@ -21,11 +21,30 @@ public sealed class BffAccountController(BffAuthenticationService authentication
             .ToArray();
 
         var user = session.SafeSession.User;
+        var isGlobal = session.SafeSession.AccessContext.IsGlobalAdministrator;
+        var selectedOrgId = session.SafeSession.AccessContext.SelectedOrganizationId;
         var organization = session.SafeSession.Organization;
+
+        Guid? effectiveOrgId;
+        string? effectiveOrgName;
+
+        if (isGlobal) {
+            if (selectedOrgId is null || selectedOrgId == Guid.Empty) {
+                effectiveOrgId = null;
+                effectiveOrgName = null;
+            } else {
+                effectiveOrgId = selectedOrgId;
+                effectiveOrgName = organization?.TradeName ?? organization?.Name ?? "Organização selecionada";
+            }
+        } else {
+            effectiveOrgId = organization?.Id ?? session.SafeSession.AccessContext.OrganizationId;
+            effectiveOrgName = organization?.TradeName ?? organization?.Name;
+        }
+
         var plan = session.SafeSession.Plan;
         return Ok(new AccountContextResponse(
             user.Id, user.Name, user.Email, Initials(user.Name), user.Role, [user.Role],
-            organization?.Id, organization?.TradeName ?? organization?.Name, null,
+            effectiveOrgId, effectiveOrgName, null,
             plan?.Id, plan?.Name, User.FindFirst("subscription_status")?.Value ?? (plan is null ? "missing" : "active"),
             permissions, Claims("capability"), Claims("scope")));
     }

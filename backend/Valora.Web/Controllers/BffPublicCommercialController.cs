@@ -53,9 +53,16 @@ public sealed class BffPublicCommercialController(
     [HttpPost("surveys/{surveyId:guid}/responses")]
     public async Task<IActionResult> Submit(Guid surveyId, CancellationToken ct) {
         var token = await publicSessions.ReadAsync(HttpContext, "survey", surveyId, ct);
-        if (token is null) return Unauthorized(Error("PUBLIC_SESSION_EXPIRED", "O acesso expirou. Abra novamente o link da pesquisa."));
-        var body = (Request.ContentLength is > 0 || (Request.ContentLength is null && Request.HasJsonContentType())) ? await JsonNode.ParseAsync(Request.Body, cancellationToken: ct) as JsonObject : new JsonObject();
-        if (body is null) return BadRequest(Error("PUBLIC_REQUEST_INVALID", "Não foi possível interpretar as respostas."));
+        JsonObject? body = null;
+        if (Request.ContentLength > 0 || (Request.ContentLength is null && Request.HasJsonContentType())) {
+            try {
+                body = await JsonNode.ParseAsync(Request.Body, cancellationToken: ct) as JsonObject;
+            }
+            catch (JsonException) {
+                return BadRequest(Error("PUBLIC_REQUEST_INVALID", "Não foi possível interpretar as respostas."));
+            }
+        }
+        body ??= new JsonObject();
         body["token"] = token;
         using var response = await api.SendAsync(HttpMethod.Post, $"/public/surveys/{surveyId}/responses", body,
             string.Empty, HttpContext.TraceIdentifier, ct);

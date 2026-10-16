@@ -51,7 +51,7 @@
       signal,
       headers: {
         Accept: 'application/json',
-        'Content-Type': 'application/json',
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
         ...(method === 'POST' ? { 'X-CSRF-TOKEN': host.querySelector('[name="__RequestVerificationToken"]').value } : {})
       },
       body: body ? JSON.stringify(body) : undefined

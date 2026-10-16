@@ -145,14 +145,21 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
     }
 
     public async Task<BffSafeSession?> SelectOrganizationAsync(HttpContext context, Guid? organizationId,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken, string? organizationName = null) {
         var ticket = context.User.FindFirstValue("bff_ticket");
         if (ticket is null) return null;
         var current = await sessions.GetAsync(ticket, cancellationToken);
         if (current is null || !current.SafeSession.AccessContext.IsGlobalAdministrator) return null;
 
         var updatedContext = current.SafeSession.AccessContext with { SelectedOrganizationId = organizationId };
-        var updatedSafe = current.SafeSession with { AccessContext = updatedContext };
+        BffOrganization? updatedOrg = null;
+        if (organizationId is { } orgId && orgId != Guid.Empty) {
+            var name = !string.IsNullOrWhiteSpace(organizationName)
+                ? organizationName
+                : (current.SafeSession.Organization?.Id == orgId ? current.SafeSession.Organization.Name : "Organização selecionada");
+            updatedOrg = new BffOrganization(orgId, name, name, string.Empty);
+        }
+        var updatedSafe = current.SafeSession with { Organization = updatedOrg, AccessContext = updatedContext };
         await sessions.SetAsync(ticket, current with { SafeSession = updatedSafe }, cancellationToken);
         await RenewCookieAsync(context, ticket, current with { SafeSession = updatedSafe }, cancellationToken);
         logger.LogInformation("BFF organization context changed. SessionId={SessionId} UserId={UserId} OrganizationId={OrganizationId} CorrelationId={CorrelationId}",
@@ -209,8 +216,9 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
         claims.AddRange(result.AccessContext.Capabilities.Select(value => new Claim("capability", value)));
         claims.AddRange(result.AccessContext.Scopes.Select(value => new Claim("scope", value)));
         AddContextClaims(claims, result);
+        if (context.RequestServices?.GetService(typeof(IAuthenticationService)) is null) return;
         var authentication = await context.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-        var wasPersistent = authentication.Properties?.IsPersistent == true;
+        var wasPersistent = authentication?.Properties?.IsPersistent == true;
         await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
             CookieProperties(result.RefreshTokenExpiresAt, wasPersistent));
@@ -218,12 +226,13 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
 
     private static async Task RenewCookieAsync(HttpContext context, string ticket, BffServerSession session,
         CancellationToken cancellationToken) {
+        if (context.RequestServices?.GetService(typeof(IAuthenticationService)) is null) return;
         var claims = BuildClaims(ticket, session.SafeSession.User, session.SafeSession.AccessContext,
             context.User.FindFirstValue("session_id") ?? string.Empty);
         var authentication = await context.AuthenticateAsync(CookieAuthenticationDefaults.AuthenticationScheme);
         await context.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme,
             new ClaimsPrincipal(new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme)),
-            CookieProperties(session.RefreshTokenExpiresAt, authentication.Properties?.IsPersistent == true));
+            CookieProperties(session.RefreshTokenExpiresAt, authentication?.Properties?.IsPersistent == true));
     }
 
     private static AuthenticationProperties CookieProperties(DateTimeOffset expiresAt, bool isPersistent) => new() {

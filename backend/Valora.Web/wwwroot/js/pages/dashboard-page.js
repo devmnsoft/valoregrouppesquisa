@@ -100,17 +100,67 @@
     }));
   }
 
-  let activeLoad = null;
+  let currentLoadGeneration = 0;
   async function load() {
-    if (activeLoad) return activeLoad;
+    const thisGeneration = ++currentLoadGeneration;
     const error = root.querySelector('[data-error]');
     error.hidden = true;
     root.classList.add('is-dashboard-loading');
+    setText('[data-last-update]', 'Verificando contexto…');
+
+    let account = null;
+    try {
+      const contextRes = await fetch('/bff/account/context', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      if (contextRes.ok) {
+        account = await contextRes.json();
+      }
+    } catch {
+      // continua caso a consulta falhe
+    }
+
+    if (thisGeneration !== currentLoadGeneration) return;
+
+    const isPlatformAdmin = account && (account.primaryRole === 'admin_valora' || (Array.isArray(account.roleCodes) && account.roleCodes.map(r => String(r).toLowerCase()).includes('admin_valora')));
+    const hasOrg = Boolean(account?.organizationId);
+
+    const platformPanel = root.querySelector('[data-platform-mode-panel]');
+    const summaryCards = root.querySelector('[data-summary-cards]');
+    const scorePanel = root.querySelector('[data-score-panel]');
+    const emptyScore = root.querySelector('[data-empty-score]');
+
+    if (isPlatformAdmin && !hasOrg) {
+      root.classList.remove('is-dashboard-loading');
+      setText('[data-first-name]', account?.userName ? account.userName.split(' ')[0] : 'Administrador');
+      setText('[data-organization]', 'Modo Plataforma (Visão Global)');
+      setText('[data-last-update]', 'Modo Plataforma · Selecione uma organização para carregar o cockpit');
+
+      if (platformPanel) platformPanel.hidden = false;
+      if (scorePanel) scorePanel.hidden = true;
+      if (emptyScore) emptyScore.hidden = true;
+      if (summaryCards) summaryCards.hidden = true;
+      const metricEmpty = root.querySelector('[data-metric-empty]');
+      if (metricEmpty) metricEmpty.hidden = true;
+      const strategic = root.querySelector('[data-strategic-reading]');
+      if (strategic) strategic.hidden = true;
+      const attention = root.querySelector('[data-dashboard-attention]');
+      if (attention) attention.innerHTML = '<div class="valora-empty">Selecione uma organização no topo para consultar as prioridades do cliente.</div>';
+      return;
+    }
+
+    if (platformPanel) platformPanel.hidden = true;
+    if (account?.organizationName) {
+      setText('[data-organization]', account.organizationName);
+    }
+    setText('[data-first-name]', account?.userName ? account.userName.split(' ')[0] : 'líder');
     setText('[data-last-update]', 'Atualizando leitura…');
-    activeLoad = (async () => { try {
+
+    try {
       const [surveysResult, responsesResult, usageResult, intelligenceResult, actionsResult] = await Promise.allSettled([
         SurveysApi.list(), ResponsesApi.list({}), UsageApi.usage(), IntelligenceApi.dashboard(), IntelligenceApi.actions()
       ]);
+
+      if (thisGeneration !== currentLoadGeneration) return;
+
       const surveys = surveysResult.status === 'fulfilled' ? arrayOf(surveysResult.value) : [];
       const responses = responsesResult.status === 'fulfilled' ? arrayOf(responsesResult.value) : [];
       surveys.__available = surveysResult.status === 'fulfilled';
@@ -119,27 +169,56 @@
       const intelligence = intelligenceResult.status === 'fulfilled' ? { ...unwrap(intelligenceResult.value), __available: true } : { __available: false };
       const actions = actionsResult.status === 'fulfilled' ? arrayOf(actionsResult.value) : [];
       actions.__available = actionsResult.status === 'fulfilled';
+
       renderKpis({ surveys, responses, usage, intelligence, actions });
       renderActivity([...surveys, ...responses]);
+
       const results = [surveysResult, responsesResult, usageResult, intelligenceResult, actionsResult];
       const succeeded = results.filter(item => item.status === 'fulfilled').length;
-      if (!succeeded) throw results.find(item => item.status === 'rejected')?.reason || new Error('Dashboard indisponível');
+      if (!succeeded) {
+        const firstError = results.find(item => item.status === 'rejected')?.reason;
+        if (firstError?.status === 403 || firstError?.statusCode === 403) {
+          setText('[data-last-update]', 'Organização necessária');
+          if (platformPanel) platformPanel.hidden = false;
+          return;
+        }
+        throw firstError || new Error('Dashboard indisponível');
+      }
+
       setText('[data-last-update]', succeeded === results.length
         ? `Atualizado em ${new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' }).format(new Date())}`
         : `Atualização parcial · ${succeeded} de ${results.length} fontes disponíveis`);
     } catch (exception) {
-      const correlationId = exception?.correlationId || exception?.details?.correlationId;
-      const reference = correlationId || window.AjaxClient?.generateCorrelationId?.() || 'indisponível';
-      error.replaceChildren(document.createTextNode(`Não foi possível atualizar a leitura executiva. Referência: ${reference}. `));
-      const retry = document.createElement('button'); retry.type = 'button'; retry.className = 'valora-button valora-button--secondary'; retry.textContent = 'Tentar novamente';
-      retry.addEventListener('click', load, { once: true }); error.append(retry);
+      if (thisGeneration !== currentLoadGeneration) return;
+      const correlationId = exception?.correlationId || exception?.details?.correlationId || exception?.TraceId || exception?.traceId;
+      const reference = correlationId || (typeof window.AjaxClient?.generateCorrelationId === 'function' ? window.AjaxClient.generateCorrelationId() : 'indisponível');
+      error.replaceChildren();
+      const msg = document.createElement('span');
+      msg.textContent = `Não foi possível atualizar a leitura executiva. Código de atendimento: ${reference}. `;
+      const copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'btn btn-sm btn-outline-secondary ms-2 me-2';
+      copyBtn.textContent = 'Copiar código';
+      copyBtn.onclick = () => {
+        if (navigator.clipboard?.writeText) {
+          navigator.clipboard.writeText(reference);
+          copyBtn.textContent = 'Copiado!';
+          setTimeout(() => { copyBtn.textContent = 'Copiar código'; }, 2000);
+        }
+      };
+      const retry = document.createElement('button');
+      retry.type = 'button';
+      retry.className = 'valora-button valora-button--secondary';
+      retry.textContent = 'Tentar novamente';
+      retry.addEventListener('click', load, { once: true });
+      error.append(msg, copyBtn, retry);
       error.hidden = false;
       setText('[data-last-update]', 'Atualização indisponível');
     } finally {
-      root.classList.remove('is-dashboard-loading');
-      activeLoad = null;
-    } })();
-    return activeLoad;
+      if (thisGeneration === currentLoadGeneration) {
+        root.classList.remove('is-dashboard-loading');
+      }
+    }
   }
 
   root.querySelector('[data-hide-onboarding]')?.addEventListener('click', () => { localStorage.setItem('valora.onboarding.hidden','true'); root.querySelector('[data-onboarding]').hidden = true; window.Toast?.success?.('Jornada guiada ocultada.'); });

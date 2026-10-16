@@ -160,7 +160,11 @@ app.Run();
 
 static Task WriteBffAuthenticationFailure(RedirectContext<CookieAuthenticationOptions> context, int status,
     string code, string message) {
-    if (!context.Request.Path.StartsWithSegments("/bff")) {
+    var expectsJson = context.Request.Path.StartsWithSegments("/bff")
+        || context.Request.Headers.Accept.Any(h => h is not null && h.Contains("application/json", StringComparison.OrdinalIgnoreCase))
+        || string.Equals(context.Request.Headers["X-Requested-With"], "XMLHttpRequest", StringComparison.OrdinalIgnoreCase);
+
+    if (!expectsJson) {
         context.Response.Redirect(context.RedirectUri);
         return Task.CompletedTask;
     }

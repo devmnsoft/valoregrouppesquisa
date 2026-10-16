@@ -35,12 +35,15 @@ public sealed class BffDiagnosticOperationsController(IBffApiClient api, BffAuth
         if (session is null)
             return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou. Entre novamente.", correlationId = HttpContext.TraceIdentifier });
 
-        object? body = null;
-        if ((Request.ContentLength is > 0 || (Request.ContentLength is null && Request.HasJsonContentType())))
-            body = await JsonSerializer.DeserializeAsync<JsonElement>(Request.Body, cancellationToken: ct);
-
         var correlation = Request.Headers["X-Correlation-Id"].FirstOrDefault() ?? HttpContext.TraceIdentifier;
+        var (success, body, error) = await BffBodyReader.ReadJsonBodyAsync(Request, correlation, isBodyRequired: false, cancellationToken: ct);
+        if (!success) return error!;
+
         using var response = await api.SendAsync(new HttpMethod(Request.Method), path, body, session.AccessToken, correlation, ct);
+        if (response.StatusCode == System.Net.HttpStatusCode.NoContent) {
+            Response.Headers["X-Correlation-Id"] = response.Headers.TryGetValues("X-Correlation-Id", out var v) ? v.First() : correlation;
+            return NoContent();
+        }
         var payload = await response.Content.ReadAsStringAsync(ct);
         if (response.Headers.TryGetValues("X-Valora-Module-Access", out var moduleAccess))
             Response.Headers["X-Valora-Module-Access"] = moduleAccess.First();

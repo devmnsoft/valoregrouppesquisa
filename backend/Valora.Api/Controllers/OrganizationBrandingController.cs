@@ -73,7 +73,6 @@ public sealed class OrganizationBrandingController(
         error = Problem(statusCode: StatusCodes.Status403Forbidden, title: "Organização necessária",
             detail: CurrentOrganizationContext.RequiredMessage, extensions: new Dictionary<string, object?> {
                 ["correlationId"] = HttpContext.TraceIdentifier,
-                ["traceId"] = HttpContext.TraceIdentifier,
                 ["requiresOrganizationSelection"] = true
             });
         return false;

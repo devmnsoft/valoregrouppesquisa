@@ -537,9 +537,9 @@ public sealed class ValoraInsightFullJourneyIntegrationTests {
                 UPDATE valorapesquisa.surveys
                    SET status='published', token_hash=@tokenHash, public_url='https://valora.test/s/token-alfa-journey',
                        starts_at=now() - interval '1 day', expires_at=now() + interval '30 days',
-                       public_slug='Lideranças Operacionais'
+                       public_slug='Lideranças Operacionais', responsible_user_id=@userA
                  WHERE id=@surveyId;
-                """, ("tokenHash", (object?)tokenHashA), ("surveyId", (object?)surveyIdA));
+                """, ("tokenHash", (object?)tokenHashA), ("surveyId", (object?)surveyIdA), ("userA", (object?)userA));
 
             // 3. CAMPANHA & LINK: Criar campanha na OrgA e validar parâmetros
             var campReq = new CreateCampaignRequest(

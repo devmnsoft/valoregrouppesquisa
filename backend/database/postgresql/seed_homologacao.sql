@@ -1,10 +1,17 @@
 -- ==============================================================================
--- VALORA INSIGHT — SEED OFICIAL DE HOMOLOGAÇÃO POSTGRESQL (IDEMPOTENTE)
--- SPRINT 5: ESTABILIDADE GERAL, CONSISTÊNCIA VISUAL E PORTÃO DE ENTREGA
+-- VALORA INSIGHT — SEED OFICIAL DE HOMOLOGAÇÃO POSTGRESQL (IDEMPOTENTE E NÃO DESTRUTIVO)
+-- SPRINT 1: INTEGRIDADE, PRESERVAÇÃO DE DADOS DO USUÁRIO E PORTÃO DE ENTREGA
 -- Ambientes: Homologação / Demonstração / Validação E2E
 -- Senha de todos os usuários de teste: Admin@123
 -- Hash BCrypt padrão: $2a$11$s6GuFVkm7kQG/5Ko4VqUvO2V1KmWB51Ceqt/ctalZd.xrf/eqgQQ2
 -- ==============================================================================
+
+DO $$
+BEGIN
+  IF current_database() ~* '(prod|production)' THEN
+    RAISE EXCEPTION 'BLOQUEIO DE SEGURANÇA: seed_homologacao.sql não pode ser executado em ambiente de produção (banco atual: %).', current_database();
+  END IF;
+END $$;
 
 BEGIN;
 
@@ -20,7 +27,6 @@ VALUES
   ('33333333-3333-3333-3333-333333333333', 'Cliente Isolamento', 'cliente-isolamento', 'active', now(), now())
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
-  status = EXCLUDED.status,
   updated_at = now();
 
 -- 3. MÓDULOS HABILITADOS POR ORGANIZAÇÃO
@@ -53,8 +59,8 @@ VALUES
   ('a0000000-0000-0000-0000-000000000006', '33333333-3333-3333-3333-333333333333', 'Admin Cliente Isolamento', 'admin.isolamento@valora.local', '$2a$11$s6GuFVkm7kQG/5Ko4VqUvO2V1KmWB51Ceqt/ctalZd.xrf/eqgQQ2', 'active', now(), now())
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name,
-  password_hash = EXCLUDED.password_hash,
-  status = EXCLUDED.status,
+  password_hash = COALESCE(valorapesquisa.users.password_hash, EXCLUDED.password_hash),
+  status = COALESCE(valorapesquisa.users.status, EXCLUDED.status),
   updated_at = now();
 
 -- 5. ATRIBUIÇÃO DE PAPÉIS (RBAC)
@@ -202,22 +208,18 @@ VALUES
   ('ab111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'aa111111-1111-1111-1111-111111111111', 'Definir pauta padrão dos alinhamentos quinzenais', 'Modelo de ata e ata compartilhada com indicadores.', 'manual', 'aa111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-111111111111', 'completed', 'high', 'a0000000-0000-0000-0000-000000000003', now() - interval '1 days', 100, 'Modelo publicado no portal interno.', 'Template padronizado ativo.', now() - interval '2 days', now()),
   ('ab111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'aa111111-1111-1111-1111-111111111111', 'Realizar primeiro ciclo de reuniões com as equipes', 'Aplicação do modelo nas 4 gerências.', 'manual', 'aa111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-111111111111', 'in_progress', 'medium', 'a0000000-0000-0000-0000-000000000002', now() + interval '15 days', 50, 'Registro de 2 reuniões concluídas.', 'Todas as gerências alinhadas.', now() - interval '1 days', now()),
   ('ab111111-1111-1111-1111-111111111113', '11111111-1111-1111-1111-111111111111', 'aa111111-1111-1111-1111-111111111111', 'Publicar diretrizes consolidadas no portal corporativo', 'Ação operacional com prazo expirado para validação de filtros de atraso.', 'manual', 'aa111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-111111111111', 'in_progress', 'critical', 'a0000000-0000-0000-0000-000000000003', now() - interval '5 days', 20, 'Documento inicial em revisão.', 'Diretrizes acessíveis a todos os colaboradores.', now() - interval '10 days', now())
-ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, progress_percent = EXCLUDED.progress_percent, updated_at = now();
+ON CONFLICT (id) DO NOTHING;
 
 -- 12. DIAGNÓSTICO EM RASCUNHO (Cliente Demonstração — Preparação Incompleta para validação de pendências de publicação)
--- Garante que Cliente Início permaneça limpo (0 pesquisas) para validar onboarding
-DELETE FROM valorapesquisa.diagnostic_cycles WHERE survey_id IN (SELECT id FROM valorapesquisa.surveys WHERE organization_id = '22222222-2222-2222-2222-222222222222');
-DELETE FROM valorapesquisa.surveys WHERE organization_id = '22222222-2222-2222-2222-222222222222';
-
 INSERT INTO valorapesquisa.surveys (id, organization_id, form_id, form_version_id, name, title, description, status, starts_at, expires_at, row_version, created_at, updated_at)
 VALUES
   ('fe111111-1111-1111-1111-222222222222', '11111111-1111-1111-1111-111111111111', 'f1111111-1111-1111-1111-111111111111', 'fb111111-1111-1111-1111-111111111111', 'Diagnóstico de Clima em Preparação', 'Diagnóstico de Clima em Preparação', 'Ciclo recém-criado em rascunho com pendências para publicação.', 'draft', null, null, 1, now() - interval '1 days', now())
-ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, status = EXCLUDED.status, updated_at = now();
+ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO valorapesquisa.diagnostic_cycles (id, organization_id, survey_id, form_id, title, description, cycle_number, methodology_version, status, processing_status, row_version, created_at, updated_at)
 VALUES
   ('c1111111-1111-1111-1111-222222222222', '11111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-222222222222', 'f1111111-1111-1111-1111-111111111111', 'Diagnóstico de Clima em Preparação', 'Ciclo recém-criado em rascunho.', 2, '1.0', 'draft', 'pending', 1, now() - interval '1 days', now())
-ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, status = EXCLUDED.status, updated_at = now();
+ON CONFLICT (id) DO NOTHING;
 
 -- 13. CICLOS DE EVOLUÇÃO E REAVALIAÇÃO
 INSERT INTO valorapesquisa.evolution_cycles (id, organization_id, diagnostic_id, title, summary, status, baseline_score, current_score, trend, evidence_summary, metadata_json, created_at, updated_at)

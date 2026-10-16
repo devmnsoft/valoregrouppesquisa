@@ -70,7 +70,7 @@
         <div><dt>Processamento</dt><dd><partial name="_StatusBadge" model="@(new StatusBadgeViewModel(DeliverableStatusLabels.Processing(d.ProcessingStatus), DeliverableStatusLabels.ProcessingTone(d.ProcessingStatus)))" /></dd></div>
         <div><dt>Diagnóstico</dt><dd>@(d.DiagnosticName ?? "—")</dd></div>
         <div><dt>Resultado de origem</dt><dd>@(d.DiagnosticName is not null && d.ResultId is Guid rid ? $"{d.DiagnosticName} ({rid.ToString()[..8]}…)" : d.ResultId?.ToString() ?? "—")</dd></div>
-        <div><dt>Responsável</dt><dd>@(d.ResponsibleName ?? "—")</dd></div>
+        <div><dt>Responsável</dt><dd>@(d.ResponsibleName ?? "Não definido")</dd></div>
         <div><dt>Revisor</dt><dd>@(d.ReviewerName ?? "Não designado")</dd></div>
         <div><dt>Publicado em</dt><dd>@(d.PublishedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</dd></div>
         <div><dt>Publicado por</dt><dd>@(d.PublishedByName ?? "—")</dd></div>

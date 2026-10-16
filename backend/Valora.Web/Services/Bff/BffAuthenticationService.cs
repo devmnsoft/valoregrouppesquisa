@@ -184,17 +184,26 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
                     rollbackSucceeded = true;
                 }
                 catch (Exception rollbackEx) {
-                    logger.LogError(rollbackEx, "Falha crítica ao reverter sessão após erro de emissão do cookie. Sessão e cookie divergentes. Ticket={Ticket} OrganizationId={OrganizationId}",
-                        ticket, organizationId);
+                    logger.LogError(rollbackEx, "Falha crítica ao reverter sessão após erro de emissão do cookie. Sessão e cookie divergentes. SessionId={SessionId} OrganizationId={OrganizationId} CorrelationId={CorrelationId}",
+                        context.User.FindFirstValue("session_id"), organizationId, CorrelationId(context));
+
+                    // Como a recuperação falhou, invalida a sessão local e distribuída para impedir contexto inconsistente
+                    try {
+                        await InvalidateLocalSessionAsync(context, ticket, "session_cookie_inconsistency", CancellationToken.None);
+                    }
+                    catch (Exception invEx) {
+                        logger.LogError(invEx, "Falha ao invalidar sessão após divergência irrecuperável. SessionId={SessionId} CorrelationId={CorrelationId}",
+                            context.User.FindFirstValue("session_id"), CorrelationId(context));
+                    }
                 }
 
                 if (rollbackSucceeded) {
-                    logger.LogError(ex, "Falha ao renovar cookie durante seleção de organização. Sessão revertida ao estado anterior. SessionId={SessionId} OrganizationId={OrganizationId}",
-                        context.User.FindFirstValue("session_id"), organizationId);
+                    logger.LogError(ex, "Falha ao renovar cookie durante seleção de organização. Sessão revertida ao estado anterior. SessionId={SessionId} OrganizationId={OrganizationId} CorrelationId={CorrelationId}",
+                        context.User.FindFirstValue("session_id"), organizationId, CorrelationId(context));
                 }
                 else {
-                    logger.LogError(ex, "Falha ao renovar cookie durante seleção de organização. Sessão persistida com novo contexto mas cookie não atualizado. SessionId={SessionId} OrganizationId={OrganizationId}",
-                        context.User.FindFirstValue("session_id"), organizationId);
+                    logger.LogError(ex, "Falha ao renovar cookie durante seleção de organização e reversão falhou. Sessão invalidada por segurança. SessionId={SessionId} OrganizationId={OrganizationId} CorrelationId={CorrelationId}",
+                        context.User.FindFirstValue("session_id"), organizationId, CorrelationId(context));
                 }
                 throw;
             }

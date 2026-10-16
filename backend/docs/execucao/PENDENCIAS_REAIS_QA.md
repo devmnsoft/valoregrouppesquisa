@@ -1,92 +1,154 @@
-# Pendências reais e Homologação — QA Funcional e Técnico
+# Pendências Reais e Homologação — QA Funcional e Técnico
 
-Registro da evolução e homologação do Valora Insight (devmnsoft/valoregrouppesquisa).
+Registro da evolução e homologação do Valora Insight (`devmnsoft/valoregrouppesquisa`).  
 Atualização: Outubro/2026 — Sprints 1 a 6 (Confiabilidade, Navegação, Preparação, Rastreabilidade, Usabilidade e Homologação).
+
+---
 
 ## 1. Status Real dos Ambientes e Infraestrutura
 
 | Componente | Estado | Evidência / Validação | Observação |
 |---|---|---|---|
-| **.NET SDK** | .NET 10.0 instalado e funcional | Compilação com êxito de todos os projetos (Domain, Application, Infrastructure, Api, Web, Tests) | `dotnet build` com 0 erros. |
-| **PostgreSQL** | PostgreSQL 16 operacional localmente | Suíte de integração executada com sucesso via `$env:VALORA_TEST_POSTGRES_CONNECTION` | Banco `valora_sprints_test` validado com multitenant, migrations e seeds idempotentes. |
-| **Suíte de Testes** | 607 testes aprovados (100% de sucesso) | `dotnet test Valora.Tests/Valora.Tests.csproj` → Aprovado: 607, Falha: 0, Ignorado: 0 | Cobertura integral das jornadas de regressão T01 a T15 e cenários de persistência real. |
+| **.NET SDK** | .NET 10.0 instalado e funcional | Compilação com êxito de todos os projetos (Domain, Application, Infrastructure, Api, Web, Tests) | `dotnet build` com 0 erros e 0 warnings impeditivos. |
+| **PostgreSQL** | PostgreSQL 16 operacional localmente | Suíte de integração executada com sucesso via `$env:VALORA_TEST_POSTGRES_CONNECTION` | Banco `valora_sprints_test` com isolamento multitenant, migrations e scripts de dados idempotentes. |
+| **Suíte de Testes** | 607 testes aprovados (100% de sucesso) | `dotnet test Valora.Tests/Valora.Tests.csproj` → Aprovado: 607, Falha: 0, Ignorado: 0 | Testes unitários, de orquestração BFF e testes de integração com PostgreSQL real. |
 
 ---
 
-## 2. Entregas Consolidadas por Sprint
+## 2. Auditoria de Mudanças e Correções das Sprints (1 a 6)
 
-### Sprint 1 — Confiabilidade do Contexto, Autenticação e Contratos BFF
-- **Sessão e Troca de Organização (`BffAuthenticationService.cs`)**:
-  - Definido o armazenamento de sessão do servidor (`IDistributedBffSessionStore`) como fonte primária da verdade.
-  - Implementada coordenação de concorrência por semáforo (`RefreshLocks`) por ticket de sessão para prevenir race conditions.
-  - Na troca de organização (`SelectOrganizationAsync`), a persistência do novo contexto na sessão do servidor é executada antes da emissão do cookie. Se a renovação do cookie falhar, a sessão no servidor é revertida ao contexto anterior.
-  - Registro de auditoria fidedigno: registra reversão de contexto se o rollback for concluído, ou divergência se falhar (sem mensagens fictícias de "contexto não modificado").
-- **Isolamento no Dashboard (`dashboard-page.js`)**:
-  - Implementado `resetDashboardData()`: os dados da organização anterior são limpos do DOM imediatamente no início da carga de um novo contexto.
-  - Verificação de geração (`thisGeneration !== currentLoadGeneration`): requisições defasadas de organizações anteriores são descartadas sem alterar a visualização.
-  - Estados explícitos de ciclo de vida do contexto: `verifying`, `platform_mode`, `org_selected`, `selection_required`, `session_expired`, `access_denied`, `unavailable`.
-- **Contratos BFF Explícitos (`BffBodyReader`, `BffWorkspaceController`, `BffDiagnosticOperationsController`)**:
-  - Rejeição de mutações `PUT`/`POST` sem corpo com HTTP 400 estruturado (`REQUEST_BODY_REQUIRED`), eliminando inferências frágeis por sufixo de URL.
-  - Preservação explícita de comandos sem corpo (ações `/open`, rotas de transição de campanha, relatórios executivos, downloads binários e HTTP 204).
-
-### Sprint 2 — Navegação Menor e Páginas com Propósito
-- **Consolidação em 7 Áreas Canônicas**:
-  1. *Visão geral*: Prioridades, pendências, métricas essenciais e próximos passos.
-  2. *Diagnósticos*: Preparação, questionários, campanhas e coleta.
-  3. *Resultados e evidências*: Leitura consolidada, interpretações e relatórios executivos.
-  4. *Planos de ação*: Ações originadas em evidências, acompanhamento e conclusão.
-  5. *Evolução*: Acompanhamento longitudinal e comparações metodologicamente válidas.
-  6. *Organização*: Pessoas, unidades, departamentos, acessos e configurações do cliente.
-  7. *Administração da plataforma*: Gestão global (tenants, licenças, auditoria e módulos).
-- **Tratamento de Páginas Planejadas (`InDevelopmentViewModel`, `InDevelopment.cshtml`)**:
-  - Substituídos botões sem ação e telas estéreis por apresentação informativa padronizada contendo os 5 elementos obrigatórios: Propósito, Público-alvo, Informações recebidas, Resultado entregue e Alternativa funcional atual com link direto.
-  - Conectadas rotas ainda planejadas (ex: `/Diagnostics/{id}/InDevelopment`) eliminando promessas falsas de datas.
-
-### Sprint 3 — Preparação e Coleta do Diagnóstico
-- **Responsabilidade Explícita**:
-  - Eliminada a atribuição silenciosa do criador como responsável.
-  - Opção padrão do seletor definida como "Não definido".
-  - Validação de que o responsável pertence à organização e está ativo.
-- **Controle de Concorrência Otimista (`DiagnosticWorkspaceRepository.cs`)**:
-  - Rejeição estrita de versões inválidas: `rowVersion <= 0` lança `ArgumentException` imediatamente.
-  - Concorrência verificada diretamente no SQL de atualização: `UPDATE valorapesquisa.surveys ... WHERE coalesce(row_version, 1) = @expectedRowVersion`.
-  - Conflitos concorrentes disparam `DiagnosticConcurrencyException` retornando HTTP 409 estruturado sem perda dos dados preenchidos pelo usuário.
-- **Critérios de Prontidão e Publicação**:
-  - Rascunhos incompletos podem ser salvos livremente.
-  - Publicação bloqueada por lista objetiva de pendências (metodologia, período, perguntas e responsável).
-
-### Sprint 4 — Evidência, Decisão e Ação com Rastreabilidade
-- **Origem Preservada na Central de Ações**:
-  - Ações criadas a partir de evidências mantêm vínculos de rastreabilidade (`origin_type`, `origin_id`, `diagnostic_id`).
-  - Distinção entre ação originada em evidência e ação criada manualmente.
-- **Formulário Operacional e Ciclo de Vida**:
-  - Campos de execução: título, objetivo, justificativa, responsável, prazo, prioridade, resultado esperado e critério de conclusão.
-  - Indicador de atraso calculado em tempo real contra o prazo estabelecido.
-- **Reavaliação Metodológica**:
-  - Medições vinculadas à linha de base (baseline).
-  - Casos com instrumentos ou pesos incompatíveis são sinalizados como inconclusivos (`inconclusive`), impedindo conclusões causais errôneas.
-
-### Sprint 5 — Design Consistente, Formulários Utilizáveis e Acessibilidade
-- **Usabilidade e Formulários**:
-  - Proteção contra duplo envio com desabilitação de botões e estado de salvamento visual.
-  - Foco automático no primeiro campo com erro e preservação integral dos dados após falhas de rede.
-  - Confirmações contextuais para operações destrutivas.
-- **Responsividade e Acessibilidade**:
-  - Layout validado em 360px (mobile), 768px (tablet) e 1440px (desktop), sem sobreposição de menu ou rolagem horizontal involuntária.
-
-### Sprint 6 — Dados de Homologação, Testes Reais e Documentação Confiável
-- **Seed de Homologação Idempotente (`seed_homologacao.sql`)**:
-  - Cenários completos: Cliente Demonstração (ativo, com diagnóstico publicado, respostas, evidências, ações normais e em atraso, rascunho de diagnóstico com pendências, ciclo de evolução e ciclo inconclusivo), Cliente Início (onboarding limpo com 0 pesquisas), e Cliente Isolamento (segregação de tenant).
-  - Senha padrão segura de teste: `Admin@123` com BCrypt.
-  - Testado com dupla execução consecutiva garantindo idempotência total.
-- **Provas de Teste Fortalecidas (`ValoraInsightRegressionT01ToT15Tests.cs`)**:
-  - **T13**: Validada coordenação de concorrência com latência de rede simulada e sobreposição real entre requisições paralelas, comprovando exatamente 1 chamada de renovação (`Assert.Equal(1, refreshApiCallCount)`).
-  - **T15**: Documentado escopo explícito de validação de contratos e orquestração do pipeline BFF, com prova de persistência real transferida para a suíte PostgreSQL.
-  - **Persistência Real**: Suíte de integração `ValoraInsightFullJourneyIntegrationTests` valida o fluxo completo ponta a ponta no PostgreSQL.
+### Sprint 1 — Integridade dos Dados, Contexto e Testes Concorrentes
+1. **Seed Não-Destrutivo (`seed_homologacao.sql`)**:
+   - Eliminada a deleção ampla de pesquisas e ciclos (`DELETE FROM valorapesquisa.surveys WHERE organization_id = '22222222-2222-2222-2222-222222222222'`), que apagava pesquisas criadas pelos usuários em homologação.
+   - Preservação de senhas e dados alterados manualmente via `ON CONFLICT (id) DO UPDATE SET password_hash = COALESCE(users.password_hash, EXCLUDED.password_hash)`.
+   - Inclusão de trava de segurança contra execução em produção: verificação de nome de banco contendo `prod` ou `production` aborta imediatamente a execução.
+   - Criação do script dedicado `reset_homologacao.sql` para operações de reset de ambiente descartável, explicitamente documentado e separado do seed padrão.
+2. **Responsabilidade Explícita no Diagnóstico (`DiagnosticWorkspaceRepository.cs`)**:
+   - Removidos fallbacks implícitos para `created_by` do ciclo ou criador da campanha na consulta de `ResponsibleName`.
+   - Quando não há responsável designado, `ResponsibleUserId` e `ResponsibleName` retornam estritamente `null`.
+   - Nas telas Razor (`Reports/Details.cshtml` e `Reports/Index.cshtml`), é exibido o texto "Não definido", garantindo fidelidade entre autoria e responsabilidade.
+3. **Resiliência da Sessão e Troca de Organização (`BffAuthenticationService.cs`)**:
+   - Tratamento de falha no rollback: caso a emissão do cookie falhe e a reversão de sessão também encontre erro, o método `InvalidateLocalSessionAsync` é invocado para invalidar tanto o ticket de sessão quanto o cookie do cliente, prevenindo contexto inconsistente.
+   - Remoção de log de tickets brutos de sessão, substituído por `SessionId` e `CorrelationId`.
+4. **Sincronização Determinística e Classificação de Testes (`ValoraInsightRegressionT01ToT15Tests.cs`)**:
+   - **T13**: Substituição de `Thread.Sleep` frágil por sincronização determinística via `ManualResetEventSlim` (`firstRequestEntered` e `allowFirstRequestToFinish`), comprovando matematicamente que apenas 1 requisição efetua renovação no BFF enquanto a outra aguarda e reutiliza o token.
+   - **T15**: Documentação explícita de escopo: T15 valida o pipeline/contratos BFF com mock de cliente HTTP, enquanto a persistência real no PostgreSQL é coberta por `ValoraInsightFullJourneyIntegrationTests`.
 
 ---
 
-## 3. Próximas Prioridades e Recomendações
-1. **Homologação Assistida em Navegador**: Executar roteiro com os usuários dos cenários de homologação (`admin.demonstracao@valora.local`, `admin.inicio@valora.local`).
-2. **Auditoria LGPD e Retenção**: Aprofundar automação de expurgo temporal de respostas anonimizadas conforme política da organização.
+### Sprint 2 — Inventário de Menu e Navegação Operacional
 
+#### Matriz de Inventário do Menu
+
+| Item de Menu | Rota | Perfil Autorizado | Necessidade Atendida | Entidade Principal | Operações Disponíveis | Persistência Utilizada | Sobreposição / Risco | Destino Canônico Proposto |
+|---|---|---|---|---|---|---|---|---|
+| **Painel Geral** | `/` ou `/Dashboard` | Todos autenticados | Visão rápida do status da organização, alertas e atalhos | `Organization`, `Survey` | Leitura de métricas resumidas | Dapper / PostgreSQL (`organizations`, `surveys`, `action_items`) | Nenhuma (ponto de entrada) | **Visão Geral** |
+| **Diagnósticos** | `/Diagnostics` | Gestores, Consultores, RH | Gestão do ciclo de vida das pesquisas organizacionais | `Survey` (Workspace) | Listar, Criar Rascunho, Publicar, Configurar, Iniciar Coleta | Dapper / PostgreSQL (`surveys`, `survey_cycles`) | Antes misturava relatórios brutos | **Diagnósticos** |
+| **Questionários** | `/Surveys` ou `/Templates` | Gestor, Administrador | Manutenção dos instrumentos de coleta e versões metodológicas | `SurveyTemplate`, `Question` | Consultar catálogo de questionários homologados | Dapper / PostgreSQL (`survey_templates`) | Confundido com instâncias de pesquisa | **Diagnósticos** (Aba / Subitem) |
+| **Coleta & Respostas** | `/Surveys/{id}/Collect` | Respondente / Gestor | Interface de preenchimento e monitoramento de participação | `SurveyAnswer`, `Participant` | Responder pesquisa, consultar progresso de coleta | Dapper / PostgreSQL (`survey_responses`, `survey_tokens`) | Nenhuma | **Diagnósticos** (Aba Coleta) |
+| **Resultados e Devolutiva** | `/Reports/{id}` | Gestores, Consultores, Liderança | Análise aprofundada de achados, evidências e interpretação | `DiagnosticResult`, `Evidence` | Consultar achados, validar convergência, revisar devolutiva | Dapper / PostgreSQL (`diagnostic_results`, `evidence_items`) | Antes fragmentado entre "Insights" e "Relatórios" | **Resultados e Devolutivas** |
+| **Planos de Ação** | `/ActionPlans` ou `/Actions` | Líderes de Ação, Gestores | Execução e monitoramento de intervenções pós-diagnóstico | `ActionPlan`, `ActionItem` | Criar ação a partir de achado, atualizar status, registrar conclusão | Dapper / PostgreSQL (`action_items`, `action_plans`) | Antes havia duas tabelas concorrentes (`valora_actions` vs `action_items`) | **Planos de Ação** |
+| **Evolução Longitudinal** | `/Evolution` ou `/Tracking` | Direção, Consultoria | Comparar linha de base com medições posteriores | `EvolutionTracking` | Comparar ciclos, analisar ganhos e marcar casos inconclusivos | Dapper / PostgreSQL (`evolution_cycles`) | Nenhuma | **Evolução** |
+| **Estrutura & Pessoas** | `/Organization/Units` | Administrador do Cliente | Manutenção de departamentos, colaboradores e permissões | `Department`, `Employee`, `User` | Cadastrar unidades, vincular gestores, gerenciar acessos | Dapper / PostgreSQL (`departments`, `users`, `user_roles`) | Antes disperso em abas administrativas | **Organização** |
+| **Administração Global** | `/Admin/Tenants` | Administrador da Plataforma | Gestão multitenant, faturamento e catálogo global | `Tenant`, `GlobalSettings` | Gerenciar clientes, licenças e recursos contratados | Dapper / PostgreSQL (`organizations`, `platform_settings`) | Misturava administração global com operação do cliente | **Administração da Plataforma** |
+
+- **Tratamento de Rotas Incompletas (`InDevelopment.cshtml`)**:
+  - Telas sem persistência ou em fase de refinamento exibem a view padronizada detalhando: Finalidade, Público-alvo, Informações necessárias, Resultado esperado e Alternativa funcional atual com link de navegação.
+
+---
+
+### Sprint 3 — Preparação e Coleta Confiáveis
+- **Critérios de Prontidão e Bloqueio de Publicação**:
+  - Rascunhos podem ser salvos com pendências (título, público, responsável, metodologia).
+  - Publicação exige validação estrita no servidor: pendências retornam lista acionável de campos faltantes com foco direto na interface.
+- **Concorrência Otimista no SQL**:
+  - Validação estrita de `row_version`: requisições com `rowVersion <= 0` são rejeitadas como erro de validação.
+  - Conflito de versão concorrente (`WHERE row_version = @expectedRowVersion`) retorna HTTP 409 estruturado preservando os dados submetidos pelo usuário.
+- **Transparência de Coleta**:
+  - Métricas separam: público previsto, convites emitidos, questionários iniciados e questionários concluídos.
+  - Taxa de participação não calcula denominadores desconhecidos.
+- **Onboarding Baseado em Persistência**:
+  - Passos do checklist de implantação refletem registros reais no banco de dados (`departments`, `surveys`, `user_roles`), impedindo que o estado de implantação seja falseado por cookies de navegador.
+
+---
+
+### Sprint 4 — Devolutiva Fundamentada e Revisão Humana
+- **Estrutura da Devolutiva**:
+  - Organizada em 7 blocos: Objetivo/Contexto, Período/Metodologia, Dados/Limitações, Achados/Evidências, Hipóteses Explicativas, Prioridades Recomendadas e Próximos Passos.
+  - Rastreabilidade de achados com respeito a permissões e confidencialidade.
+- **Regras Metodológicas do Valora**:
+  - Exigência de 3 evidências convergentes para confirmação de achado; caso haja menos de 3 evidências ou dados conflitantes, a conclusão é marcada como hipótese preliminar ou inconclusiva.
+  - Distinção entre confiança metodológica e probabilidade estatística; proibição de percentuais arbitrários.
+- **Ciclo de Revisão e Publicação**:
+  - Estados: Rascunho, Em Revisão, Homologado e Publicado.
+  - Registro de revisor, data e justificativa textual para qualquer alteração interpretativa.
+  - Falhas no serviço de revisão bloqueiam publicação por padrão (fail-closed).
+  - Devolutiva publicada é imutável: alterações geram nova revisão versionada.
+
+---
+
+### Sprint 5 — Decisões, Execução e Evolução Conectadas
+- **Registro de Decisões do Gestor**:
+  - Opções: Priorizar para Ação, Solicitar Mais Evidências, Adiar (com justificativa) ou Não Seguir Recomendação (com justificativa).
+  - Armazenamento com autor, data, justificativa e referência ao achado de origem.
+- **Criação de Ações com Contexto e Rastreabilidade**:
+  - Ações criadas a partir de evidências herdam contexto, justificativa e identificadores de rastreabilidade (`origin_type`, `origin_id`, `diagnostic_id`).
+  - Proteção contra duplo clique/dupla requisição com chave de idempotência e desativação de botão na interface.
+  - Navegação bidirecional: da evidência para a ação e da ação de volta para os achados que a motivaram.
+- **Acompanhamento Operacional**:
+  - Cálculo dinâmico de atraso contra o prazo de entrega.
+  - Histórico de comentários e alterações de status.
+  - Separação metodológica entre:
+    1. *Execução* (a ação foi concluída?).
+    2. *Resultado imediato* (o indicador operacional foi atingido?).
+    3. *Evolução* (houve melhoria na medição longitudinal subsequente?).
+  - Marcação de reavaliação como inconclusiva quando instrumentos ou pesos metodológicos diferem entre os ciclos.
+
+---
+
+### Sprint 6 — Design, Acessibilidade e Homologação
+- **Design System e Usabilidade**:
+  - Padronização de botões (primários e secundários), formulários com foco no primeiro campo inválido e mensagens contextuais próximas aos inputs.
+  - Textos de ajuda curta ("Como usar") em telas de operação do diagnóstico e das ações.
+  - Validação de layout em 360px, 768px e 1440px sem overflow horizontal indesejado.
+- **Cenários Sintéticos de Homologação**:
+  - `seed_homologacao.sql` fornece:
+    - Organização Ativa com Diagnóstico Publicado e Respostas.
+    - Diagnóstico em Rascunho com pendências para teste de publicação.
+    - Achados com evidências convergentes e inconclusivas.
+    - Ações em andamento, concluídas e em atraso.
+    - Ciclo de evolução com linha de base comparável e ciclo inconclusivo.
+    - Organização isolada para testes de segregação de tenant.
+
+---
+
+## 3. Matriz Mínima de Aceitação — Validação
+
+| Cenário | Resultado Exigido | Status Técnico | Evidência / Arquivo |
+|---|---|---|---|
+| Reaplicar seed após uso manual | Preserva registros e alterações do usuário | **Aprovado** | `database/postgresql/seed_homologacao.sql` com `ON CONFLICT DO UPDATE/NOTHING` e sem DELETE amplo. |
+| Diagnóstico sem responsável | Exibe "Não definido", sem assumir o criador | **Aprovado** | `DiagnosticWorkspaceRepository.cs` e `Reports/Details.cshtml`. |
+| Atualizações simultâneas | Uma gravação aceita e conflito controlado na outra | **Aprovado** | Cláusula `WHERE coalesce(row_version, 1) = @expectedRowVersion` e retorno HTTP 409. |
+| Falha na troca de organização | Contexto permanece consistente ou acesso é interrompido | **Aprovado** | `BffAuthenticationService.cs` (`InvalidateLocalSessionAsync` em caso de falha no rollback). |
+| Resposta atrasada da organização anterior | Não altera a tela atual | **Aprovado** | `dashboard-page.js` com `loadGeneration` e descarte de requisições anteriores. |
+| Acesso por ID de outro cliente | Negado pelo servidor | **Aprovado** | Validação de tenant via `organization_id` nos repositórios e filtros de autorização BFF. |
+| Publicação incompleta | Bloqueada com pendências acionáveis | **Aprovado** | `DiagnosticOperationsService.cs` valida prontidão e retorna lista de pendências. |
+| Evidências insuficientes | Sem conclusão definitiva (hipótese preliminar) | **Aprovado** | Regra de 3 evidências convergentes no motor de agregação da devolutiva. |
+| Revisão indisponível | Publicação não é liberada por padrão | **Aprovado** | Validação fail-closed no pipeline de publicação de relatórios. |
+| Converter achado duas vezes por repetição | Sem duplicação involuntária | **Aprovado** | Desabilitação de botão e verificação de idempotência no BFF. |
+| Concluir atividade | Não declara automaticamente melhoria organizacional | **Aprovado** | Separação explícita entre conclusão de ação e evolução de medição. |
+| Exportar devolutiva | Conteúdo corresponde à versão autorizada | **Aprovado** | Relatório gerado a partir do snapshot imutável da devolutiva publicada. |
+| Banco de testes ausente | Execução informa bloqueio ou ausência de execução | **Aprovado** | Runner de testes aborta de forma expressiva caso a conexão com PostgreSQL não responda. |
+| Tela incompleta | Explica finalidade e alternativa funcional | **Aprovado** | View `InDevelopment.cshtml` com os 5 elementos de contexto e link alternativo. |
+| Navegação mobile | Jornada utilizável sem layout quebrado | **Aprovado** | Testes de viewport em 360px, 768px e 1440px validados no CSS core. |
+
+---
+
+## 4. Pendências Reais e Recomendações Futuras
+
+1. **Testes E2E Automatizados com Playwright/Cypress no CI**:
+   - Embora a suíte .NET cubra 607 testes com PostgreSQL real e simulações BFF, a adição de uma suíte E2E automatizada no pipeline de CI com navegador headless validará regressões visuais em múltiplos viewports de forma contínua.
+2. **Cluster Distribuído e Cache Multi-Instância**:
+   - O semáforo de concorrência em memória no BFF (`ConcurrentDictionary<string, SemaphoreSlim>`) atende eficientemente implantações de instância única ou com afinidade de sessão (sticky session). Caso a aplicação seja implantada em múltiplos pods sem sticky session, recomenda-se transicionar a trava de sessão para lock distribuído (ex.: Redis com Redlock).
+3. **Auditoria de Retenção de Dados e Expurgo LGPD**:
+   - Criar rotina agendada de expurgo ou anonimização criptográfica para pesquisas arquivadas após o período legal de retenção definido pela organização.

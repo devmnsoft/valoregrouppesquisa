@@ -495,11 +495,16 @@ public sealed class ValoraInsightRegressionT01ToT15Tests {
         // Token expirado
         await store.SetAsync(ticket, new("expired_token", DateTimeOffset.UtcNow.AddMinutes(-5), "valid_refresh", DateTimeOffset.UtcNow.AddDays(7), safe));
 
+        var firstRequestEntered = new ManualResetEventSlim(false);
+        var allowFirstRequestToFinish = new ManualResetEventSlim(false);
+
         int refreshApiCallCount = 0;
         client.OnPostAuth = (path, req) => {
             Interlocked.Increment(ref refreshApiCallCount);
-            // Simula latência de rede na API para forçar sobreposição real das requisições concorrentes
-            Thread.Sleep(50);
+            // Sinaliza determinísticamente que a primeira requisição está processando dentro do semáforo
+            firstRequestEntered.Set();
+            // Aguarda sinal de sobreposição concorrente antes de liberar o retorno
+            allowFirstRequestToFinish.Wait(TimeSpan.FromSeconds(5));
             return new WebBffAuthenticationResult(
                 "new_access_token_123", DateTimeOffset.UtcNow.AddHours(1),
                 "new_refresh_token_456", DateTimeOffset.UtcNow.AddDays(7),
@@ -510,10 +515,21 @@ public sealed class ValoraInsightRegressionT01ToT15Tests {
         var httpContext1 = CreateTestHttpContext(ticket, "admin_valora");
         var httpContext2 = CreateTestHttpContext(ticket, "admin_valora");
 
-        // Executa duas chamadas concorrentes para o mesmo ticket
-        // GetAsync detecta o token expirado e chama RefreshCoreAsync(context, false) sob controle do SemaphoreSlim
+        // Dispara a primeira requisição
         var task1 = Task.Run(() => authService.GetAsync(httpContext1, CancellationToken.None));
+
+        // Aguarda determinísticamente que a primeira requisição adquira o semáforo de refresh
+        Assert.True(firstRequestEntered.Wait(TimeSpan.FromSeconds(5)), "A primeira requisição deveria ter entrado no bloco protegido.");
+
+        // Dispara a segunda requisição enquanto a primeira ainda segura o semáforo
         var task2 = Task.Run(() => authService.GetAsync(httpContext2, CancellationToken.None));
+
+        // Garante sobreposição real das requisições paralelas
+        await Task.Yield();
+        await Task.Delay(25);
+
+        // Libera a conclusão da primeira requisição
+        allowFirstRequestToFinish.Set();
 
         await Task.WhenAll(task1, task2);
 

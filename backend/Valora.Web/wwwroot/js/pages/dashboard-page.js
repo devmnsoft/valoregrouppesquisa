@@ -169,6 +169,44 @@
     container.hidden = false;
   }
 
+  function resetDashboardData() {
+    setText('[data-kpi="responses"]', '—');
+    setText('[data-kpi="activeSurveys"]', '—');
+    setText('[data-kpi="completionRate"]', '—');
+    setText('[data-kpi="averageLevel"]', '—');
+    setText('[data-kpi="evidence"]', '—');
+    setText('[data-kpi="actions"]', '—');
+    setText('[data-score]', '—');
+    setText('[data-level]', '—');
+    setText('[data-maturity-score]', '—');
+    setText('[data-maturity-level]', '—');
+    setText('[data-maturity-explanation]', '');
+    setText('[data-strongest]', '—');
+    setText('[data-weakest]', '—');
+    setText('[data-blocker]', '—');
+    setText('[data-next-step]', '—');
+    const body = root.querySelector('[data-items]');
+    if (body) body.replaceChildren();
+    const empty = root.querySelector('[data-empty-activities]');
+    if (empty) empty.hidden = false;
+    const table = root.querySelector('[data-activity-table]');
+    if (table) table.hidden = true;
+    const strategic = root.querySelector('[data-strategic-reading]');
+    if (strategic) strategic.hidden = true;
+    const scorePanel = root.querySelector('[data-score-panel]');
+    if (scorePanel) scorePanel.hidden = true;
+    const emptyScore = root.querySelector('[data-empty-score]');
+    if (emptyScore) emptyScore.hidden = false;
+    const summaryCards = root.querySelector('[data-summary-cards]');
+    if (summaryCards) summaryCards.hidden = true;
+    const metricEmpty = root.querySelector('[data-metric-empty]');
+    if (metricEmpty) metricEmpty.hidden = false;
+    const attention = root.querySelector('[data-dashboard-attention]');
+    if (attention) attention.innerHTML = '<div class="valora-empty">Carregando prioridades…</div>';
+    const onboarding = root.querySelector('[data-onboarding]');
+    if (onboarding) onboarding.hidden = true;
+  }
+
   async function load() {
     const thisGeneration = ++currentLoadGeneration;
     const errorContainer = root.querySelector('[data-error]');
@@ -177,6 +215,7 @@
       errorContainer.replaceChildren();
     }
     root.classList.add('is-dashboard-loading');
+    resetDashboardData();
     setText('[data-last-update]', 'Verificando contexto…');
 
     const platformPanel = root.querySelector('[data-platform-mode-panel]');

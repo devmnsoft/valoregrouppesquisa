@@ -451,7 +451,10 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
             if (current.Id == Guid.Empty)
                 throw new KeyNotFoundException("Diagnóstico não encontrado.");
 
-            if (dto.RowVersion > 0 && current.RowVersion != dto.RowVersion)
+            if (dto.RowVersion <= 0)
+                throw new ArgumentException("A versão do registro (rowVersion) é obrigatória e deve ser maior que zero.", nameof(dto.RowVersion));
+
+            if (current.RowVersion != dto.RowVersion)
                 throw new DiagnosticConcurrencyException("O diagnóstico foi modificado por outro usuário ou sessão. Recarregue a página para obter a versão mais recente dos parâmetros.");
 
             if (dto.ResponsibleUserId.HasValue) {
@@ -482,7 +485,7 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
             var cleanDesc = string.IsNullOrWhiteSpace(dto.Description) ? null : dto.Description.Trim();
             var cleanAudience = string.IsNullOrWhiteSpace(dto.TargetAudience) ? null : dto.TargetAudience.Trim();
 
-            await u.Connection.ExecuteAsync(new CommandDefinition(
+            var affectedSurveys = await u.Connection.ExecuteAsync(new CommandDefinition(
                 """
                 UPDATE valorapesquisa.surveys
                 SET title = @cleanTitle,
@@ -494,12 +497,16 @@ public sealed class DiagnosticWorkspaceRepository(IDbConnectionFactory connectio
                     expires_at = @expiresAt,
                     row_version = coalesce(row_version, 1) + 1,
                     updated_at = now()
-                WHERE id = @surveyId AND organization_id = @organizationId;
+                WHERE id = @surveyId AND organization_id = @organizationId AND coalesce(row_version, 1) = @expectedRowVersion;
                 """, new {
                     surveyId, organizationId, cleanTitle, cleanDesc, cleanAudience,
                     responsibleUserId = dto.ResponsibleUserId, targetVersionId,
-                    startsAt = dto.StartsAt, expiresAt = dto.ExpiresAt
+                    startsAt = dto.StartsAt, expiresAt = dto.ExpiresAt,
+                    expectedRowVersion = dto.RowVersion
                 }, u.Transaction, cancellationToken: ct));
+
+            if (affectedSurveys == 0)
+                throw new DiagnosticConcurrencyException("O diagnóstico foi modificado por outro usuário ou sessão durante a gravação. Recarregue a página.");
 
             await u.Connection.ExecuteAsync(new CommandDefinition(
                 """

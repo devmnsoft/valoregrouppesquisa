@@ -148,32 +148,64 @@ public sealed class BffAuthenticationService(IBffApiClient api, IDistributedBffS
         CancellationToken cancellationToken, string? organizationName = null) {
         var ticket = context.User.FindFirstValue("bff_ticket");
         if (ticket is null) return null;
-        var current = await sessions.GetAsync(ticket, cancellationToken);
-        if (current is null || !current.SafeSession.AccessContext.IsGlobalAdministrator) return null;
 
-        var updatedContext = current.SafeSession.AccessContext with { SelectedOrganizationId = organizationId };
-        BffOrganization? updatedOrg = null;
-        if (organizationId is { } orgId && orgId != Guid.Empty) {
-            var name = !string.IsNullOrWhiteSpace(organizationName)
-                ? organizationName
-                : (current.SafeSession.Organization?.Id == orgId ? current.SafeSession.Organization.Name : "Organização selecionada");
-            updatedOrg = new BffOrganization(orgId, name, name, string.Empty);
-        }
-        var updatedSafe = current.SafeSession with { Organization = updatedOrg, AccessContext = updatedContext };
-        var updatedServerSession = current with { SafeSession = updatedSafe };
+        var gate = RefreshLocks.GetOrAdd(ticket, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync(cancellationToken);
         try {
-            await RenewCookieAsync(context, ticket, updatedServerSession, cancellationToken);
-            await sessions.SetAsync(ticket, updatedServerSession, cancellationToken);
-        }
-        catch (Exception ex) {
-            logger.LogError(ex, "Falha ao renovar cookie durante seleção de organização. Contexto não modificado. SessionId={SessionId} OrganizationId={OrganizationId}",
-                context.User.FindFirstValue("session_id"), organizationId);
-            throw;
-        }
+            var current = await sessions.GetAsync(ticket, cancellationToken);
+            if (current is null || !current.SafeSession.AccessContext.IsGlobalAdministrator) return null;
 
-        logger.LogInformation("BFF organization context changed. SessionId={SessionId} UserId={UserId} OrganizationId={OrganizationId} CorrelationId={CorrelationId}",
-            context.User.FindFirstValue("session_id"), current.SafeSession.User.Id, organizationId, CorrelationId(context));
-        return updatedSafe;
+            if (current.SafeSession.AccessContext.SelectedOrganizationId == organizationId)
+                return current.SafeSession;
+
+            var updatedContext = current.SafeSession.AccessContext with { SelectedOrganizationId = organizationId };
+            BffOrganization? updatedOrg = null;
+            if (organizationId is { } orgId && orgId != Guid.Empty) {
+                var name = !string.IsNullOrWhiteSpace(organizationName)
+                    ? organizationName
+                    : (current.SafeSession.Organization?.Id == orgId ? current.SafeSession.Organization.Name : "Organização selecionada");
+                updatedOrg = new BffOrganization(orgId, name, name, string.Empty);
+            }
+            var updatedSafe = current.SafeSession with { Organization = updatedOrg, AccessContext = updatedContext };
+            var updatedServerSession = current with { SafeSession = updatedSafe };
+
+            // 1. Fonte de verdade primária: persistência no repositório de sessão do servidor
+            await sessions.SetAsync(ticket, updatedServerSession, cancellationToken);
+
+            // 2. Sincronização do cookie HTTP e claims em memória
+            try {
+                await RenewCookieAsync(context, ticket, updatedServerSession, cancellationToken);
+            }
+            catch (Exception ex) {
+                // Falha na sincronização do cookie: tenta reverter a sessão para evitar divergência
+                var rollbackSucceeded = false;
+                try {
+                    await sessions.SetAsync(ticket, current, CancellationToken.None);
+                    rollbackSucceeded = true;
+                }
+                catch (Exception rollbackEx) {
+                    logger.LogError(rollbackEx, "Falha crítica ao reverter sessão após erro de emissão do cookie. Sessão e cookie divergentes. Ticket={Ticket} OrganizationId={OrganizationId}",
+                        ticket, organizationId);
+                }
+
+                if (rollbackSucceeded) {
+                    logger.LogError(ex, "Falha ao renovar cookie durante seleção de organização. Sessão revertida ao estado anterior. SessionId={SessionId} OrganizationId={OrganizationId}",
+                        context.User.FindFirstValue("session_id"), organizationId);
+                }
+                else {
+                    logger.LogError(ex, "Falha ao renovar cookie durante seleção de organização. Sessão persistida com novo contexto mas cookie não atualizado. SessionId={SessionId} OrganizationId={OrganizationId}",
+                        context.User.FindFirstValue("session_id"), organizationId);
+                }
+                throw;
+            }
+
+            logger.LogInformation("BFF organization context changed. SessionId={SessionId} UserId={UserId} OrganizationId={OrganizationId} CorrelationId={CorrelationId}",
+                context.User.FindFirstValue("session_id"), current.SafeSession.User.Id, organizationId, CorrelationId(context));
+            return updatedSafe;
+        }
+        finally {
+            gate.Release();
+        }
     }
 
     public async Task SignOutAsync(HttpContext context, CancellationToken cancellationToken) {

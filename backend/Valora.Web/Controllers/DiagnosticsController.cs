@@ -16,6 +16,17 @@ public sealed class DiagnosticsController : Controller {
     public IActionResult Details(Guid id) => RedirectToAction(nameof(Workspace), new { id });
     [HttpGet("Diagnostics/{id:guid}/Workspace")]
     public IActionResult Workspace(Guid id) { ViewData["DiagnosticId"] = id; return View(); }
+    [HttpGet("Diagnostics/{id:guid}/InDevelopment")]
+    public IActionResult InDevelopment(Guid id) => View("InDevelopment", new Valora.Web.Models.ViewModels.InDevelopmentViewModel(
+        "Módulo de Diagnóstico Avançado",
+        "Configuração e enriquecimento avançado do ciclo diagnóstico.",
+        "Permitirá configurar parâmetros estendidos de amostragem, recortes dinâmicos e integrações de escuta contínua.",
+        "Gestores de Pesquisa, Consultores e Administradores da Organização.",
+        "Parâmetros de amostragem, públicos-alvo, questionários homologados e datas de coleta.",
+        "Ciclo de escuta preparado, com critérios de prontidão e links públicos seguros para coleta.",
+        "Utilize a aba 'Preparação' no Workspace do Diagnóstico para configurar título, responsável, datas e metodologia.",
+        $"/Diagnostics/{id}/Workspace?tab=preparation",
+        $"/Diagnostics/{id}/Workspace"));
     [HttpGet("Diagnostics/Details/{id:guid}")]
     public IActionResult DetailsCanonical(Guid id) => RedirectToAction(nameof(Workspace), new { id });
     [HttpGet("Diagnostics/Collect/{id:guid}")]

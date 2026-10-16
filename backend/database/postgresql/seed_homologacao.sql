@@ -196,11 +196,34 @@ VALUES
   ('aa111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Plano de Ação: Cadência de Alinhamento da Liderança', 'Estruturação dos fóruns de alinhamento quinzenais conforme achado analítico.', 'ai_insight', 'ba111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-111111111111', 'in_execution', 'high', 'a0000000-0000-0000-0000-000000000002', now() + interval '30 days', '5 respostas com média 85% de maturidade convergente.', 'Atingir 95% de clareza nas metas de liderança no próximo ciclo.', now() - interval '2 days', now())
 ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, updated_at = now();
 
--- Atividades do Plano
+-- Atividades do Plano (inclui atividade concluída, em andamento e ação vencida)
 INSERT INTO valorapesquisa.action_items (id, organization_id, action_plan_id, title, description, origin_type, origin_id, diagnostic_id, status, priority, responsible_user_id, due_at, progress_percent, evidence_summary, expected_outcome, created_at, updated_at)
 VALUES
   ('ab111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'aa111111-1111-1111-1111-111111111111', 'Definir pauta padrão dos alinhamentos quinzenais', 'Modelo de ata e ata compartilhada com indicadores.', 'manual', 'aa111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-111111111111', 'completed', 'high', 'a0000000-0000-0000-0000-000000000003', now() - interval '1 days', 100, 'Modelo publicado no portal interno.', 'Template padronizado ativo.', now() - interval '2 days', now()),
-  ('ab111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'aa111111-1111-1111-1111-111111111111', 'Realizar primeiro ciclo de reuniões com as equipes', 'Aplicação do modelo nas 4 gerências.', 'manual', 'aa111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-111111111111', 'in_progress', 'medium', 'a0000000-0000-0000-0000-000000000002', now() + interval '15 days', 50, 'Registro de 2 reuniões concluídas.', 'Todas as gerências alinhadas.', now() - interval '1 days', now())
+  ('ab111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'aa111111-1111-1111-1111-111111111111', 'Realizar primeiro ciclo de reuniões com as equipes', 'Aplicação do modelo nas 4 gerências.', 'manual', 'aa111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-111111111111', 'in_progress', 'medium', 'a0000000-0000-0000-0000-000000000002', now() + interval '15 days', 50, 'Registro de 2 reuniões concluídas.', 'Todas as gerências alinhadas.', now() - interval '1 days', now()),
+  ('ab111111-1111-1111-1111-111111111113', '11111111-1111-1111-1111-111111111111', 'aa111111-1111-1111-1111-111111111111', 'Publicar diretrizes consolidadas no portal corporativo', 'Ação operacional com prazo expirado para validação de filtros de atraso.', 'manual', 'aa111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-111111111111', 'in_progress', 'critical', 'a0000000-0000-0000-0000-000000000003', now() - interval '5 days', 20, 'Documento inicial em revisão.', 'Diretrizes acessíveis a todos os colaboradores.', now() - interval '10 days', now())
 ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status, progress_percent = EXCLUDED.progress_percent, updated_at = now();
+
+-- 12. DIAGNÓSTICO EM RASCUNHO (Cliente Demonstração — Preparação Incompleta para validação de pendências de publicação)
+-- Garante que Cliente Início permaneça limpo (0 pesquisas) para validar onboarding
+DELETE FROM valorapesquisa.diagnostic_cycles WHERE survey_id IN (SELECT id FROM valorapesquisa.surveys WHERE organization_id = '22222222-2222-2222-2222-222222222222');
+DELETE FROM valorapesquisa.surveys WHERE organization_id = '22222222-2222-2222-2222-222222222222';
+
+INSERT INTO valorapesquisa.surveys (id, organization_id, form_id, form_version_id, name, title, description, status, starts_at, expires_at, row_version, created_at, updated_at)
+VALUES
+  ('fe111111-1111-1111-1111-222222222222', '11111111-1111-1111-1111-111111111111', 'f1111111-1111-1111-1111-111111111111', 'fb111111-1111-1111-1111-111111111111', 'Diagnóstico de Clima em Preparação', 'Diagnóstico de Clima em Preparação', 'Ciclo recém-criado em rascunho com pendências para publicação.', 'draft', null, null, 1, now() - interval '1 days', now())
+ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, status = EXCLUDED.status, updated_at = now();
+
+INSERT INTO valorapesquisa.diagnostic_cycles (id, organization_id, survey_id, form_id, title, description, cycle_number, methodology_version, status, processing_status, row_version, created_at, updated_at)
+VALUES
+  ('c1111111-1111-1111-1111-222222222222', '11111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-222222222222', 'f1111111-1111-1111-1111-111111111111', 'Diagnóstico de Clima em Preparação', 'Ciclo recém-criado em rascunho.', 2, '1.0', 'draft', 'pending', 1, now() - interval '1 days', now())
+ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, status = EXCLUDED.status, updated_at = now();
+
+-- 13. CICLOS DE EVOLUÇÃO E REAVALIAÇÃO
+INSERT INTO valorapesquisa.evolution_cycles (id, organization_id, diagnostic_id, title, summary, status, baseline_score, current_score, trend, evidence_summary, metadata_json, created_at, updated_at)
+VALUES
+  ('ec111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-111111111111', 'Evolução da Maturidade Organizacional 2026', 'Acompanhamento longitudinal de maturidade a partir do ciclo oficial.', 'open', 84.0, 84.0, 'stable', 'Baseline apurado no Diagnóstico de Maturidade 2026 com 5 respostas completas.', '{"methodologyVersion":"1.0","baselineSource":"organizational_measurement"}'::jsonb, now() - interval '3 days', now()),
+  ('ec111111-1111-1111-1111-222222222222', '11111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-111111111111', 'Ciclo Comparativo Experimental', 'Medição de controle com instrumentação metodológica distinta.', 'open', 70.0, null, 'inconclusive', 'Diferenças de escalas e pesos metodológicos tornam a variação inconclusiva.', '{"methodologyVersion":"experimental","inconclusiveReason":"metodologia incompativel"}'::jsonb, now() - interval '1 days', now())
+ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, status = EXCLUDED.status, updated_at = now();
 
 COMMIT;

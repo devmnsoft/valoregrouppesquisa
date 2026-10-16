@@ -14,7 +14,11 @@ public sealed class BffWorkspaceController(IBffApiClient api, BffAuthenticationS
             return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou. Entre novamente.", correlationId = HttpContext.TraceIdentifier });
 
         var correlation = Request.Headers["X-Correlation-Id"].FirstOrDefault() ?? HttpContext.TraceIdentifier;
-        var (success, body, error) = await BffBodyReader.ReadJsonBodyAsync(Request, correlation, isBodyRequired: false, cancellationToken: ct);
+        var isBodyRequired = HttpMethods.IsPut(Request.Method)
+            || (HttpMethods.IsPost(Request.Method)
+                && resource?.EndsWith("/open", StringComparison.OrdinalIgnoreCase) != true
+                && resource?.StartsWith("quick-actions", StringComparison.OrdinalIgnoreCase) != true);
+        var (success, body, error) = await BffBodyReader.ReadJsonBodyAsync(Request, correlation, isBodyRequired: isBodyRequired, cancellationToken: ct);
         if (!success) return error!;
 
         var path = resource?.StartsWith("search/global", StringComparison.OrdinalIgnoreCase) == true

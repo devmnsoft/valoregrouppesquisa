@@ -7,48 +7,60 @@
         Model.Title,
         Model.Description,
         "Valora Insight™",
-        "Em desenvolvimento",
-        new[] { new PageHeaderAction("Voltar", Model.ReturnUrl ?? "/Diagnostics", Style: "secondary", Icon: "arrow-left") }
+        "Funcionalidade Planejada",
+        new[] { new PageHeaderAction("Voltar", Model.ReturnUrl ?? "/Dashboard", Style: "secondary", Icon: "arrow-left") }
     ))" />
 
     <section class="valora-card mb-4">
-        <h2>Sobre esta funcionalidade</h2>
-        <p class="fs-5 text-muted">@Model.DetailedDescription</p>
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <h2 class="h4 mb-0">Planejamento e Escopo da Funcionalidade</h2>
+                <small class="text-muted">Esclarecimento transparente sobre objetivos, público e operação alternativa disponível.</small>
+            </div>
+            <span class="badge bg-warning text-dark border">Em Planejamento de Engenharia</span>
+        </div>
 
-        <div class="alert alert-info d-flex align-items-start gap-3 my-4">
+        <div class="alert alert-info d-flex align-items-start gap-3 my-3">
             <span class="fs-4">ℹ️</span>
             <div>
-                <strong>Integração com a Jornada Diagnóstica:</strong>
-                <p class="mb-0 mt-1">@Model.DiagnosticJourneyRelation</p>
+                <strong>Para que servirá:</strong>
+                <p class="mb-0 mt-1">@Model.Purpose</p>
             </div>
         </div>
 
-        <div class="row g-3 my-3">
-            <div class="col-12 col-md-4">
-                <div class="metric-card h-100">
-                    <span class="text-muted small">Etapa Relacionada</span>
-                    <div class="h5 mt-2 mb-1"><strong>@Model.JourneyStage</strong></div>
-                    <small class="text-muted">Jornada de escuta, interpretação e evolução</small>
+        <div class="row g-3 my-2">
+            <div class="col-12 col-md-6">
+                <div class="metric-card h-100 p-3">
+                    <span class="text-muted small fw-bold text-uppercase">👥 Quem a utilizará</span>
+                    <div class="mt-2 text-dark">@Model.TargetAudience</div>
                 </div>
             </div>
-            <div class="col-12 col-md-4">
-                <div class="metric-card h-100">
-                    <span class="text-muted small">Estado da Funcionalidade</span>
-                    <div class="h5 mt-2 mb-1"><span class="badge bg-warning text-dark">Em Desenvolvimento</span></div>
-                    <small class="text-muted">Roadmap oficial de engenharia</small>
+            <div class="col-12 col-md-6">
+                <div class="metric-card h-100 p-3">
+                    <span class="text-muted small fw-bold text-uppercase">📥 Informações que receberá</span>
+                    <div class="mt-2 text-dark">@Model.InputInformation</div>
                 </div>
             </div>
-            <div class="col-12 col-md-4">
-                <div class="metric-card h-100">
-                    <span class="text-muted small">Acesso Alternativo</span>
-                    <div class="h5 mt-2 mb-1"><strong>Workspace Diagnóstico</strong></div>
-                    <small class="text-muted">Acompanhe dados e evidências atuais</small>
+            <div class="col-12 col-md-6">
+                <div class="metric-card h-100 p-3">
+                    <span class="text-muted small fw-bold text-uppercase">🎯 Resultado que entregará</span>
+                    <div class="mt-2 text-dark">@Model.ExpectedOutcome</div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6">
+                <div class="metric-card h-100 p-3 bg-light border-primary">
+                    <span class="text-primary small fw-bold text-uppercase">🔄 Alternativa funcional atual</span>
+                    <div class="mt-2 text-dark">@Model.CurrentAlternative</div>
                 </div>
             </div>
         </div>
 
         <div class="d-flex gap-2 flex-wrap mt-4 pt-3 border-top">
-            <a class="valora-button valora-button--primary" href="@(Model.ReturnUrl ?? "/Diagnostics")">Voltar ao Workspace Diagnóstico</a>
+            @if (!string.IsNullOrWhiteSpace(Model.AlternativeUrl))
+            {
+                <a class="valora-button valora-button--primary" href="@Model.AlternativeUrl">Acessar Alternativa Atual</a>
+            }
+            <a class="valora-button valora-button--secondary" href="@(Model.ReturnUrl ?? "/Dashboard")">Voltar</a>
             <a class="valora-button valora-button--secondary" href="/Dashboard">Ir para o Dashboard</a>
         </div>
     </section>

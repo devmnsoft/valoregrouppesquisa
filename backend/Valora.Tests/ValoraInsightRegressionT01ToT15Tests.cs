@@ -498,6 +498,8 @@ public sealed class ValoraInsightRegressionT01ToT15Tests {
         int refreshApiCallCount = 0;
         client.OnPostAuth = (path, req) => {
             Interlocked.Increment(ref refreshApiCallCount);
+            // Simula latência de rede na API para forçar sobreposição real das requisições concorrentes
+            Thread.Sleep(50);
             return new WebBffAuthenticationResult(
                 "new_access_token_123", DateTimeOffset.UtcNow.AddHours(1),
                 "new_refresh_token_456", DateTimeOffset.UtcNow.AddDays(7),
@@ -508,11 +510,15 @@ public sealed class ValoraInsightRegressionT01ToT15Tests {
         var httpContext1 = CreateTestHttpContext(ticket, "admin_valora");
         var httpContext2 = CreateTestHttpContext(ticket, "admin_valora");
 
-        // Executa duas chamadas concorrentes de refresh para o mesmo ticket
-        var task1 = authService.RefreshAsync(httpContext1, CancellationToken.None);
-        var task2 = authService.RefreshAsync(httpContext2, CancellationToken.None);
+        // Executa duas chamadas concorrentes para o mesmo ticket
+        // GetAsync detecta o token expirado e chama RefreshCoreAsync(context, false) sob controle do SemaphoreSlim
+        var task1 = Task.Run(() => authService.GetAsync(httpContext1, CancellationToken.None));
+        var task2 = Task.Run(() => authService.GetAsync(httpContext2, CancellationToken.None));
 
         await Task.WhenAll(task1, task2);
+
+        // Comprova que apenas UMA chamada de renovação alcançou o backend de autenticação
+        Assert.Equal(1, refreshApiCallCount);
 
         var sessionAfter = await store.GetAsync(ticket);
         Assert.NotNull(sessionAfter);
@@ -561,7 +567,9 @@ public sealed class ValoraInsightRegressionT01ToT15Tests {
     }
 
     // T15 — Login → modo plataforma → selecionar cliente → dashboard → preparar diagnóstico → selecionar responsável → salvar → recarregar.
-    // Esperado: jornada completa, com dados persistidos e contexto correto.
+    // NOTA DE ESCOPO: Este teste valida a orquestração do pipeline BFF (WebAuthenticationService + BffDiagnosticWorkspaceController)
+    // e os contratos de DTO com cliente simulado (StubBffApiClient). Ele NÃO substitui a prova de persistência real,
+    // que é comprovada de ponta a ponta no banco PostgreSQL pelos testes em ValoraInsightFullJourneyIntegrationTests.
     [Fact]
     public async Task T15_CompleteJourney_PlatformMode_SelectOrganization_Propagation() {
         var store = new TestSessionStore();

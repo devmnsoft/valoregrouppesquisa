@@ -711,7 +711,7 @@
             <div class="col-12 col-md-4">
               <label class="form-label" for="prep-responsible"><strong>Responsável Designado</strong></label>
               <select class="form-select" id="prep-responsible" name="responsibleUserId" ${isReadOnly ? 'disabled' : ''}>
-                <option value="">Não atribuído</option>
+                <option value="">Não definido</option>
                 ${eligibleUsers.map(u => `
                   <option value="${esc(u.id)}" ${u.id === cycle.responsibleUserId ? 'selected' : ''}>
                     ${esc(u.name)} (${esc(u.email)})${u.department ? ` - ${esc(u.department)}` : ''}

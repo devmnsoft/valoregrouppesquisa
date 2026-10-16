@@ -1,0 +1,26 @@
+name: Atualizar briefing Valora
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: valora-project-status
+  cancel-in-progress: false
+jobs:
+  publish-status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Gerar inventário e sinalizar alterações
+        run: python3 project-status/generate.py /tmp/valora-project-status.json
+      - name: Publicar somente dados de acompanhamento
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 project-status/publish.py /tmp/valora-project-status.json

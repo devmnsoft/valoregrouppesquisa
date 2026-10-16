@@ -11,7 +11,7 @@ Atualização: Outubro/2026 — Sprints 1 a 6 (Confiabilidade, Navegação, Prep
 |---|---|---|---|
 | **.NET SDK** | .NET 10.0 instalado e funcional | Compilação com êxito de todos os projetos (Domain, Application, Infrastructure, Api, Web, Tests) | `dotnet build` com 0 erros e 0 warnings impeditivos. |
 | **PostgreSQL** | PostgreSQL 16 operacional localmente | Suíte de integração executada com sucesso via `$env:VALORA_TEST_POSTGRES_CONNECTION` | Banco `valora_sprints_test` com isolamento multitenant, migrations e scripts de dados idempotentes. |
-| **Suíte de Testes** | 607 testes aprovados (100% de sucesso) | `dotnet test Valora.Tests/Valora.Tests.csproj` → Aprovado: 607, Falha: 0, Ignorado: 0 | Testes unitários, de orquestração BFF e testes de integração com PostgreSQL real. |
+| **Suíte de Testes** | 615 testes aprovados (100% de sucesso) | `dotnet test Valora.Tests/Valora.Tests.csproj` → Aprovado: 615, Falha: 0, Ignorado: 0 | Testes unitários, de orquestração BFF, integração com PostgreSQL e ciclo de vida de campanhas V10. |
 
 ---
 
@@ -119,6 +119,28 @@ Atualização: Outubro/2026 — Sprints 1 a 6 (Confiabilidade, Navegação, Prep
     - Ações em andamento, concluídas e em atraso.
     - Ciclo de evolução com linha de base comparável e ciclo inconclusivo.
     - Organização isolada para testes de segregação de tenant.
+
+---
+
+### Módulo Canônico de Campanhas V10 — Distribuição, Metas e Unidades
+- **Entidade Canônica e Desvinculação de Surveys (`Campaign.cs`, `CampaignContracts.cs`)**:
+  - Implementada a entidade de domínio `Campaign` mapeada para a tabela canônica `valorapesquisa.campaigns`.
+  - Desvinculação da relação 1:1 estrita com pesquisas: uma mesma pesquisa pode agora possuir múltiplas campanhas ativas simultâneas (ex.: por unidade fabril, diretoria ou coorte temporal).
+  - Suporte a metadados operacionais: público-alvo (`audience`), meta quantitativa de respostas (`response_goal`), vinculação a Unidade (`unit_id`) e Departamento/Setor (`department_id`), além de janela temporal de coleta (`starts_at`, `ends_at`).
+- **Repositório Dapper com Cálculo Real (`CampaignRepository.cs`)**:
+  - Consultas com agregações reais de respostas da tabela `valorapesquisa.responses` filtradas pelo escopo da campanha (unidade, setor, janela de datas e status concluído/submetido).
+  - Cálculo dinâmico de taxa de atingimento da meta (`completion_rate`).
+- **Serviço e Regras de Transição de Estado (`CampaignService.cs`)**:
+  - Validação estrita de ciclos permitidos (`draft` -> `scheduled`/`active`/`cancelled`, `active` -> `paused`/`closed`/`cancelled`, etc.).
+  - Validação de datas (`ends_at > starts_at`) e exigência de data futura para agendamento.
+- **Camada API e BFF (`CampaignsController.cs`, `BffCampaignsController.cs`)**:
+  - Endpoints RESTful completos: `GET /api/v1/campaigns`, `GET /api/v1/campaigns/{id}`, `POST /api/v1/campaigns`, `PUT /api/v1/campaigns/{id}`, `POST /api/v1/campaigns/{id}/{action}`, `DELETE /api/v1/campaigns/{id}`.
+  - Proxy seguro BFF em `/bff/campaigns` com validação de sessão, correlação e antiforgery.
+- **Frontend Operacional (`campaigns-api.js`, `Campaigns.cshtml`, `experience-v9.js`)**:
+  - Interface atualizada com seletores dinâmicos de Unidades e Setores via `/bff/admin/units` e `/bff/admin/departments`.
+  - Apresentação em cards com chips de Unidade/Setor, barra de progresso em direção à meta de respostas e controles de ação (Ativar, Pausar, Retomar, Encerrar, Cancelar).
+- **Cobertura de Testes Automatizados (`CampaignsV10Tests.cs`)**:
+  - 8 novos testes unitários e de integração cobrindo validações de entrada, transições permitidas e bloqueadas, ciclo de vida e exclusão lógica, elevando a suíte para **615 testes aprovados**.
 
 ---
 

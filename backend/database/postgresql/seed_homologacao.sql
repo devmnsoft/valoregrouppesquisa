@@ -228,4 +228,11 @@ VALUES
   ('ec111111-1111-1111-1111-222222222222', '11111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-111111111111', 'Ciclo Comparativo Experimental', 'Medição de controle com instrumentação metodológica distinta.', 'open', 70.0, null, 'inconclusive', 'Diferenças de escalas e pesos metodológicos tornam a variação inconclusiva.', '{"methodologyVersion":"experimental","inconclusiveReason":"metodologia incompativel"}'::jsonb, now() - interval '1 days', now())
 ON CONFLICT (id) DO UPDATE SET title = EXCLUDED.title, status = EXCLUDED.status, updated_at = now();
 
+-- 14. CAMPANHAS CANÔNICAS V10 (Distribuição, Adesão e Metas de Resposta)
+INSERT INTO valorapesquisa.campaigns (id, organization_id, survey_id, unit_id, department_id, name, audience, response_goal, starts_at, ends_at, status, created_by, created_at, updated_at)
+VALUES
+  ('ca111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-111111111111', null, null, 'Campanha Geral de Maturidade 2026', 'Toda a organização', 50, now() - interval '5 days', now() + interval '25 days', 'active', 'a0000000-0000-0000-0000-000000000002', now() - interval '5 days', now()),
+  ('ca111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'fe111111-1111-1111-1111-222222222222', null, null, 'Campanha Piloto de Clima (Rascunho)', 'Equipes de Operação', 30, now() + interval '2 days', now() + interval '30 days', 'draft', 'a0000000-0000-0000-0000-000000000002', now() - interval '1 days', now())
+ON CONFLICT (id) DO NOTHING;
+
 COMMIT;

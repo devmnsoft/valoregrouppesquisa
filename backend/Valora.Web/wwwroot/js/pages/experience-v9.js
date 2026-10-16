@@ -30,28 +30,159 @@
 
   async function campaigns(root) {
     const host = $one('[data-campaigns]', root); let items = [];
-    const actions = status => ({ draft:['schedule','send','cancel'], scheduled:['send','cancel'], sending:['pause','close','cancel'], active:['pause','close','cancel'], paused:['resume','close','cancel'], failed:['send','cancel'] }[status] ?? []);
-    const labels = { schedule:'Agendar', send:'Enviar', pause:'Pausar', resume:'Retomar', close:'Encerrar', cancel:'Cancelar' };
+    const actions = status => ({
+      draft: ['start', 'cancel'],
+      scheduled: ['start', 'cancel'],
+      active: ['pause', 'close', 'cancel'],
+      paused: ['resume', 'close', 'cancel']
+    }[status] ?? []);
+    const labels = { schedule:'Agendar', start:'Ativar', pause:'Pausar', resume:'Retomar', close:'Encerrar', cancel:'Cancelar' };
+
     const render = () => {
-      const active = items.filter(x => ['sending','active','scheduled'].includes(String(x.status).toLowerCase()));
-      const responses = items.reduce((sum, x) => sum + Number(x.responseCount || 0), 0);
-      const recipients = items.reduce((sum, x) => sum + Number(x.recipientCount || 0), 0);
+      const active = items.filter(x => ['active','scheduled','sending'].includes(String(x.status).toLowerCase()));
+      const responses = items.reduce((sum, x) => sum + Number(x.actualResponses ?? x.responseCount ?? 0), 0);
+      const totalGoal = items.reduce((sum, x) => sum + Number(x.responseGoal ?? 0), 0);
       root.querySelector('[data-campaign-kpi="total"]').textContent = items.length;
       root.querySelector('[data-campaign-kpi="active"]').textContent = active.length;
       root.querySelector('[data-campaign-kpi="responses"]').textContent = responses;
-      root.querySelector('[data-campaign-kpi="rate"]').textContent = recipients ? `${Math.round(responses / recipients * 100)}%` : 'Dados insuficientes';
-      host.innerHTML = items.map(item => { const status = String(item.status).toLowerCase(); return `<article class="v9-campaign"><div class="v9-campaign__main"><span class="v9-status v9-status--${escape(status)}">${escape(statusLabel(status))}</span><h3>${escape(item.name)}</h3><p>${escape(item.message)}</p><small>${escape(item.channel)} · ${item.sentCount}/${item.recipientCount} enviados · ${item.failedCount} falhas</small></div><div class="v9-campaign__metric"><strong>${item.responseCount}</strong><span>respostas (${Number(item.completionRate || 0).toFixed(1)}%)</span></div><div class="v9-campaign__actions">${item.publicUrl ? `<button data-share="${item.surveyId}">Compartilhar</button>` : ''}${actions(status).map(action => `<button data-action="${action}" data-id="${item.surveyId}">${labels[action]}</button>`).join('')}${item.failedCount ? `<button data-action="resendFailures" data-id="${item.surveyId}">Reenviar falhas</button>` : ''}</div></article>`; }).join('') || '<div class="valora-empty"><h3>Crie sua primeira campanha</h3><p>Escolha uma pesquisa publicada e prepare a distribuição.</p></div>';
+      root.querySelector('[data-campaign-kpi="rate"]').textContent = totalGoal > 0 ? `${Math.round(responses / totalGoal * 100)}%` : (responses > 0 ? `${responses} respostas` : 'Dados insuficientes');
+
+      host.innerHTML = items.map(item => {
+        const status = String(item.status).toLowerCase();
+        const goal = Number(item.responseGoal || 0);
+        const actual = Number(item.actualResponses ?? item.responseCount ?? 0);
+        const rate = Number(item.completionRate || 0).toFixed(1);
+        const unitChip = item.unitName ? `<span class="valora-badge" style="font-size:0.75rem; background:#f1f5f9; padding:2px 8px; border-radius:4px; margin-right:4px;">🏢 ${escape(item.unitName)}</span>` : '';
+        const deptChip = item.departmentName ? `<span class="valora-badge" style="font-size:0.75rem; background:#f1f5f9; padding:2px 8px; border-radius:4px; margin-right:4px;">📁 ${escape(item.departmentName)}</span>` : '';
+        const audienceInfo = item.audience ? `<small style="color:#64748b; display:block; margin-top:2px;">Público: ${escape(item.audience)}</small>` : '';
+        const isV10 = Boolean(item.id);
+        const campaignKey = isV10 ? item.id : item.surveyId;
+
+        return `<article class="v9-campaign" data-campaign-id="${campaignKey}">
+          <div class="v9-campaign__main">
+            <span class="v9-status v9-status--${escape(status)}">${escape(statusLabel(status))}</span>
+            <h3 style="margin:4px 0 2px;">${escape(item.name)}</h3>
+            <div style="margin:2px 0;">${unitChip}${deptChip}</div>
+            <p style="margin:2px 0; color:#475569; font-size:0.9rem;">Pesquisa: ${escape(item.surveyTitle || item.name)}</p>
+            ${audienceInfo}
+          </div>
+          <div class="v9-campaign__metric" style="min-width:140px;">
+            <strong>${actual}${goal > 0 ? ' / ' + goal : ''}</strong>
+            <span>respostas (${rate}%)</span>
+            ${goal > 0 ? `<div style="height:6px; background:#e2e8f0; border-radius:3px; margin-top:6px; overflow:hidden;"><div style="height:100%; width:${Math.min(100, Math.round(actual/goal*100))}%; background:var(--valora-primary,#0070f3);"></div></div>` : ''}
+          </div>
+          <div class="v9-campaign__actions">
+            ${item.publicUrl ? `<button class="valora-button valora-button--secondary" data-share="${campaignKey}">Compartilhar</button>` : ''}
+            ${actions(status).map(action => `<button class="valora-button valora-button--ghost" data-action="${action}" data-id="${campaignKey}" data-v10="${isV10}">${labels[action]}</button>`).join('')}
+          </div>
+        </article>`;
+      }).join('') || '<div class="valora-empty"><h3>Crie sua primeira campanha</h3><p>Defina o público, metas e unidades para iniciar a coleta.</p></div>';
     };
-    const load = async () => { try { items = list(await DiagnosticCampaignsApi.list()); render(); } catch (error) { showError(root, error); } };
-    async function loadSurveys() { const surveys = list(await SurveysApi.list()).filter(x => String(x.status).toLowerCase() === 'published'); $one('[data-survey-options]', root).innerHTML = '<option value="">Selecione uma pesquisa publicada</option>' + surveys.map(x => `<option value="${x.id}">${escape(x.title ?? x.name)}</option>`).join(''); }
-    $one('[data-new-campaign]', root).addEventListener('click', async () => { try { await loadSurveys(); $one('[data-campaign-dialog]', root).showModal(); } catch (error) { showError(root, error); } });
-    $one('[data-refresh]', root).addEventListener('click', load);
-    $one('[data-campaign-form]', root).addEventListener('submit', async event => { event.preventDefault(); const data = new FormData(event.target); const emails = String(data.get('recipients') || '').split(/[\n,;]+/).map(x => x.trim()).filter(Boolean); const payload = { name:data.get('name'), message:data.get('message'), audience:data.get('audience') || null, channel:data.get('channel'), subject:data.get('subject') || null, startsAt:data.get('startsAt') || null, endsAt:data.get('endsAt') || null, targetParticipationRate:data.get('targetParticipationRate') ? Number(data.get('targetParticipationRate')) : null, recipients:emails.map(email => ({ email, hasConsent:data.has('hasConsent'), hasLegalBasis:data.has('hasLegalBasis') })) }; try { await DiagnosticCampaignsApi.create(data.get('surveyId'), payload); event.target.closest('dialog').close(); event.target.reset(); toast('success', 'Campanha salva como rascunho.'); await load(); } catch (error) { showError(root, error); } });
-    host.addEventListener('click', async event => {
-      const action = event.target.closest('[data-action]'); const share = event.target.closest('[data-share]');
-      if (action) { const critical = ['pause','close','cancel'].includes(action.dataset.action); if (critical && !await window.ConfirmModal.ask(`${labels[action.dataset.action]} esta campanha? Os dados já coletados serão preservados; campanhas encerradas ou canceladas não podem ser reativadas.`, { title:labels[action.dataset.action], confirmText:labels[action.dataset.action] })) return; action.disabled = true; try { await DiagnosticCampaignsApi[action.dataset.action](action.dataset.id); toast('success', 'Campanha atualizada.'); await load(); } catch (error) { showError(root, error); action.disabled = false; } }
-      if (share) { const item = items.find(x => String(x.surveyId) === share.dataset.share); const url = item?.publicUrl && new URL(item.publicUrl, location.origin).href; if (!url) return; $one('[data-share-body]', root).innerHTML = `<p class="eyebrow">Link compartilhável</p><h2>Campanha pronta para circular</h2><label>Link público<input readonly value="${escape(url)}"></label><div class="v9-share-actions"><button class="valora-button valora-button--primary" data-copy-link>Copiar link</button><a class="valora-button valora-button--secondary" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('Participe da nossa pesquisa Valora Insight™: ' + url)}">Abrir WhatsApp</a></div>`; const dialog = $one('[data-share-dialog]', root); dialog.showModal(); $one('[data-copy-link]', dialog).addEventListener('click', async () => { await navigator.clipboard.writeText(url); toast('success', 'Link copiado.'); }, { once:true }); }
+
+    const load = async () => {
+      try {
+        let v10Items = [];
+        try { v10Items = list(await CampaignsApi.list()); } catch (_) {}
+        if (v10Items && v10Items.length > 0) {
+          items = v10Items;
+        } else {
+          try { items = list(await DiagnosticCampaignsApi.list()); } catch (_) { items = []; }
+        }
+        render();
+      } catch (error) { showError(root, error); }
+    };
+
+    async function loadSelectOptions() {
+      try {
+        const surveys = list(await SurveysApi.list()).filter(x => String(x.status).toLowerCase() !== 'archived');
+        $one('[data-survey-options]', root).innerHTML = '<option value="">Selecione uma pesquisa</option>' + surveys.map(x => `<option value="${x.id}">${escape(x.title ?? x.name)}</option>`).join('');
+      } catch (_) {}
+
+      try {
+        const unitsRes = await AjaxClient.get('/bff/admin/units');
+        const units = list(unitsRes);
+        const unitSelect = $one('[data-unit-options]', root);
+        if (unitSelect) unitSelect.innerHTML = '<option value="">Todas as unidades</option>' + units.map(u => `<option value="${u.id}">${escape(u.name)}</option>`).join('');
+      } catch (_) {}
+
+      try {
+        const deptRes = await AjaxClient.get('/bff/admin/departments');
+        const depts = list(deptRes);
+        const deptSelect = $one('[data-department-options]', root);
+        if (deptSelect) deptSelect.innerHTML = '<option value="">Todos os setores</option>' + depts.map(d => `<option value="${d.id}">${escape(d.name)}</option>`).join('');
+      } catch (_) {}
+    }
+
+    $one('[data-new-campaign]', root).addEventListener('click', async () => {
+      try {
+        await loadSelectOptions();
+        $one('[data-campaign-dialog]', root).showModal();
+      } catch (error) { showError(root, error); }
     });
+
+    $one('[data-refresh]', root).addEventListener('click', load);
+
+    $one('[data-campaign-form]', root).addEventListener('submit', async event => {
+      event.preventDefault();
+      const data = new FormData(event.target);
+      const payload = {
+        surveyId: data.get('surveyId'),
+        name: data.get('name'),
+        unitId: data.get('unitId') || null,
+        departmentId: data.get('departmentId') || null,
+        audience: data.get('audience') || null,
+        responseGoal: Number(data.get('responseGoal')) || 0,
+        startsAt: data.get('startsAt') || null,
+        endsAt: data.get('endsAt') || null
+      };
+
+      try {
+        await CampaignsApi.create(payload);
+        event.target.closest('dialog').close();
+        event.target.reset();
+        toast('success', 'Campanha criada com sucesso.');
+        await load();
+      } catch (error) { showError(root, error); }
+    });
+
+    host.addEventListener('click', async event => {
+      const action = event.target.closest('[data-action]');
+      const share = event.target.closest('[data-share]');
+
+      if (action) {
+        const actName = action.dataset.action;
+        const critical = ['pause', 'close', 'cancel'].includes(actName);
+        if (critical && !await window.ConfirmModal.ask(`${labels[actName]} esta campanha?`, { title: labels[actName], confirmText: labels[actName] })) return;
+        action.disabled = true;
+
+        try {
+          if (action.dataset.v10 === 'true') {
+            await CampaignsApi[actName](action.dataset.id);
+          } else {
+            await DiagnosticCampaignsApi[actName](action.dataset.id);
+          }
+          toast('success', 'Campanha atualizada.');
+          await load();
+        } catch (error) {
+          showError(root, error);
+          action.disabled = false;
+        }
+      }
+
+      if (share) {
+        const item = items.find(x => String(x.id || x.surveyId) === share.dataset.share);
+        const url = item?.publicUrl && new URL(item.publicUrl, location.origin).href;
+        if (!url) return;
+        $one('[data-share-body]', root).innerHTML = `<p class="eyebrow">Link compartilhável</p><h2>Campanha pronta para circular</h2><label>Link público<input readonly value="${escape(url)}"></label><div class="v9-share-actions" style="margin-top:12px; display:flex; gap:8px;"><button class="valora-button valora-button--primary" data-copy-link>Copiar link</button><a class="valora-button valora-button--secondary" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent('Participe da pesquisa Valora Insight™: ' + url)}">Abrir WhatsApp</a></div>`;
+        const dialog = $one('[data-share-dialog]', root);
+        dialog.showModal();
+        $one('[data-copy-link]', dialog).addEventListener('click', async () => {
+          await navigator.clipboard.writeText(url);
+          toast('success', 'Link copiado.');
+        }, { once: true });
+      }
+    });
+
     await load();
   }
 

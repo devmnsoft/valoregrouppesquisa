@@ -179,6 +179,7 @@ public static class InfrastructureServiceCollectionExtensions {
         services.AddScoped<IQuickActionRepository, QuickActionRepository>();
         services.AddScoped<IExecutivePriorityRepository, ExecutivePriorityRepository>();
         services.AddScoped<IDiagnosticCampaignRepository, DiagnosticCampaignRepository>();
+        services.AddScoped<Valora.Application.Campaigns.ICampaignRepository, CampaignRepository>();
         services.AddScoped<IAssistedOperationsRepository, AssistedOperationsRepository>();
         services.AddScoped<ISuccessCenterRepository, SuccessCenterRepository>();
         services.AddScoped<IPublicCommercialRepository, PublicCommercialRepository>();

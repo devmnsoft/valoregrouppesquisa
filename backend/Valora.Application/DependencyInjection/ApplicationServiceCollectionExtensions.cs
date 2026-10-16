@@ -286,6 +286,7 @@ public static class ApplicationServiceCollectionExtensions {
         services.AddScoped<ValidateMethodologyConsistencyUseCase>();
         services.AddScoped<IDiagnosticWorkspaceService, DiagnosticWorkspaceService>();
         services.AddScoped<IDiagnosticCampaignService, DiagnosticCampaignService>();
+        services.AddScoped<Valora.Application.Campaigns.ICampaignService, Valora.Application.Campaigns.CampaignService>();
         services.AddSingleton<ValoraInferenceEngine>();
         services.AddSingleton<IValoraEvidencePackBuilder, ValoraEvidencePackBuilder>();
         services.AddSingleton<IValoraPromptRenderer, ValoraPromptRenderer>();

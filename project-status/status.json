@@ -591,18 +591,17 @@
   ],
   "calendarStatus": "Proposta não aprovada; estimativas dependem de equipe, ambiente e aceite.",
   "schemaVersion": 1,
-  "sourceCommit": "c8c412c8f4b033bd751f80a91d63e087507568af",
-  "generatedAt": "2026-10-18T13:03:26.020706+00:00",
+  "sourceCommit": "8d23c144fa7c66f7c4f36eef291ec6c4b6654229",
+  "generatedAt": "2026-10-18T20:55:05.120236+00:00",
   "baselineAvailable": true,
   "sprintDocuments": [
     {
       "path": "backend/docs/execucao/EVOLUCAO_30_SPRINTS_2026-10-18.md",
       "title": "Evolução Valora Insight — Plano Reconciliado de 30 Sprints",
       "headings": [
-        "Evolução Valora Insight — Plano Reconciliado de 30 Sprints",
-        "Evolução Valora — 30 sprints"
+        "Evolução Valora Insight — Plano Reconciliado de 30 Sprints"
       ],
-      "updatedAt": "2026-10-18T10:01:05-03:00",
+      "updatedAt": "2026-10-18T10:55:22-03:00",
       "state": "Documentada · aceite a conferir"
     },
     {
@@ -2410,6 +2409,11 @@
   ],
   "recentCommits": [
     {
+      "sha": "8d23c144fa7c66f7c4f36eef291ec6c4b6654229",
+      "date": "2026-10-18T10:55:22-03:00",
+      "title": "Merge branch 'main' of https://github.com/devmnsoft/valoregrouppesquisa"
+    },
+    {
       "sha": "c8c412c8f4b033bd751f80a91d63e087507568af",
       "date": "2026-10-18T10:01:05-03:00",
       "title": "ok"
@@ -2903,11 +2907,6 @@
       "sha": "e780666da4fb42c87f7ed39d29cd0092ecf1f2c5",
       "date": "2026-09-15T11:58:45-03:00",
       "title": "Merge pull request #575 from devmnsoft/codex/concluir-experiencia-do-ciclo-dos-planos"
-    },
-    {
-      "sha": "cca167b0949cab17825965737e1e1905514efeb6",
-      "date": "2026-09-15T11:58:30-03:00",
-      "title": "feat: concluir revisão e resumo dos planos"
     }
   ],
   "changedFileCount": 76,

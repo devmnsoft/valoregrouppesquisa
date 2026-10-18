@@ -124,6 +124,8 @@
         "Comprovar regras de evidência e permissões nos perfis de teste."
       ],
       "changedFiles": [
+        "backend/Valora.Application/ActionCenter/ActionCenterContracts.cs",
+        "backend/Valora.Infrastructure/Repositories/ActionPlanRepository.cs",
         "backend/Valora.Web/Views/ActionCenter/CreatePlan.cshtml",
         "backend/Valora.Web/Views/ActionCenter/PlanDetails.cshtml",
         "backend/Valora.Web/Views/ActionCenter/Plans.cshtml"
@@ -589,17 +591,18 @@
   ],
   "calendarStatus": "Proposta não aprovada; estimativas dependem de equipe, ambiente e aceite.",
   "schemaVersion": 1,
-  "sourceCommit": "fb507c2b772e175cc76a61dc7b85b26da78c3981",
-  "generatedAt": "2026-10-18T11:05:38.458579+00:00",
+  "sourceCommit": "c8c412c8f4b033bd751f80a91d63e087507568af",
+  "generatedAt": "2026-10-18T13:03:26.020706+00:00",
   "baselineAvailable": true,
   "sprintDocuments": [
     {
       "path": "backend/docs/execucao/EVOLUCAO_30_SPRINTS_2026-10-18.md",
-      "title": "Evolução Valora — 30 sprints",
+      "title": "Evolução Valora Insight — Plano Reconciliado de 30 Sprints",
       "headings": [
+        "Evolução Valora Insight — Plano Reconciliado de 30 Sprints",
         "Evolução Valora — 30 sprints"
       ],
-      "updatedAt": "2026-10-18T08:02:17-03:00",
+      "updatedAt": "2026-10-18T10:01:05-03:00",
       "state": "Documentada · aceite a conferir"
     },
     {
@@ -2407,6 +2410,16 @@
   ],
   "recentCommits": [
     {
+      "sha": "c8c412c8f4b033bd751f80a91d63e087507568af",
+      "date": "2026-10-18T10:01:05-03:00",
+      "title": "ok"
+    },
+    {
+      "sha": "6b33b6532f1963048cab81e5aa8f9da0f777a8bf",
+      "date": "2026-10-18T09:36:22-03:00",
+      "title": "novositens"
+    },
+    {
       "sha": "fb507c2b772e175cc76a61dc7b85b26da78c3981",
       "date": "2026-10-18T08:05:25-03:00",
       "title": "Merge pull request #604 from devmnsoft/portal-status-integration"
@@ -2895,19 +2908,9 @@
       "sha": "cca167b0949cab17825965737e1e1905514efeb6",
       "date": "2026-09-15T11:58:30-03:00",
       "title": "feat: concluir revisão e resumo dos planos"
-    },
-    {
-      "sha": "77bb19bcbbfee945f3b56857bfe9218d08d6f7e4",
-      "date": "2026-09-15T11:01:04-03:00",
-      "title": "Merge pull request #574 from devmnsoft/codex/corrigir-cs8115-em-actionplanrepository"
-    },
-    {
-      "sha": "84fc25041d04c156863f9d1722b91c415f7dd0f6",
-      "date": "2026-09-15T11:00:22-03:00",
-      "title": "fix: consolidar ciclo de vida dos planos"
     }
   ],
-  "changedFileCount": 73,
+  "changedFileCount": 76,
   "automation": {
     "mode": "push-main",
     "acceptanceAutomatic": false

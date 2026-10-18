@@ -91,17 +91,28 @@
         </label>
         <div class="action-field--full">
           <p class="eyebrow">Seções incluídas</p>
-          <div class="section-checkboxes" role="group" aria-label="Seções do entregável">
-            @foreach (var option in sectionOptions) {
-              <label class="section-check">
-                @if (selectedSections.Contains(option.Code)) {
-                  <input type="checkbox" name="Sections" value="@option.Code" checked="checked" />
-                } else {
-                  <input type="checkbox" name="Sections" value="@option.Code" />
-                }
-                <span>@option.Label</span>
-              </label>
-            }
+          <div class="valora-checkbox-list" data-checkbox-list role="group" aria-label="Seções do entregável">
+            <div class="valora-checkbox-list__toolbar">
+              <div class="valora-checkbox-list__actions">
+                <button type="button" class="valora-checkbox-list__btn" data-action="select-all">Selecionar todas</button>
+                <button type="button" class="valora-checkbox-list__btn" data-action="clear-all">Desmarcar todas</button>
+              </div>
+              <span class="valora-checkbox-list__count" data-checkbox-count>0 de @sectionOptions.Length selecionada(s)</span>
+            </div>
+            <div class="valora-checkbox-list__items">
+              @for (var i = 0; i < sectionOptions.Length; i++) {
+                var option = sectionOptions[i];
+                var isChecked = selectedSections.Contains(option.Code);
+                <label class="valora-checkbox-item @(isChecked ? "is-selected" : "")">
+                  <span class="valora-checkbox-item__idx">#@(i + 1)</span>
+                  <input type="checkbox" name="Sections" value="@option.Code" @(isChecked ? "checked=\"checked\"" : "") />
+                  <div class="valora-checkbox-item__content">
+                    <span class="valora-checkbox-item__name">@option.Label</span>
+                    <small class="valora-checkbox-item__description text-muted">Identificador técnico: @option.Code</small>
+                  </div>
+                </label>
+              }
+            </div>
           </div>
         </div>
         <label class="action-field--full" for="ExecutiveNotes">Notas executivas

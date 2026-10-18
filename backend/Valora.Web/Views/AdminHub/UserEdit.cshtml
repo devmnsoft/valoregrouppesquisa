@@ -27,15 +27,36 @@
                 <span asp-validation-for="Status" class="text-danger"></span>
             </div>
             <div class="col-12">
-                <fieldset>
-                    <legend>Papéis</legend>
+                <fieldset class="valora-field">
+                    <legend class="fw-bold fs-6 mb-2">Papéis e perfis de acesso</legend>
                     @if (Model.Roles.Count == 0) {
                         <p class="text-muted mb-0">Nenhum papel disponível para exibir.</p>
-                    }
-                    @foreach (var role in Model.Roles) {
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="RoleCodes" value="@role.Value" id="role-@role.Value" @(Array.IndexOf(Model.RoleCodes, role.Value) >= 0 ? "checked" : "") />
-                            <label class="form-check-label" for="role-@role.Value">@role.Text</label>
+                    } else {
+                        <div class="valora-checkbox-list" data-checkbox-list>
+                            <div class="valora-checkbox-list__toolbar">
+                                <div class="valora-checkbox-list__actions">
+                                    <button type="button" class="valora-checkbox-list__btn" data-action="select-all">Selecionar todos</button>
+                                    <button type="button" class="valora-checkbox-list__btn" data-action="clear-all">Desmarcar todos</button>
+                                </div>
+                                <span class="valora-checkbox-list__count" data-checkbox-count>0 de @Model.Roles.Count selecionado(s)</span>
+                                @if (Model.Roles.Count > 4) {
+                                    <input type="search" class="valora-checkbox-list__filter" data-checkbox-filter placeholder="Filtrar papéis…" aria-label="Filtrar papéis por nome" />
+                                }
+                            </div>
+                            <div class="valora-checkbox-list__items">
+                                @for (var i = 0; i < Model.Roles.Count; i++) {
+                                    var role = Model.Roles[i];
+                                    var isChecked = Array.IndexOf(Model.RoleCodes, role.Value) >= 0;
+                                    <label class="valora-checkbox-item @(isChecked ? "is-selected" : "")" for="role-@role.Value">
+                                        <span class="valora-checkbox-item__idx">#@(i + 1)</span>
+                                        <input class="form-check-input" type="checkbox" name="RoleCodes" value="@role.Value" id="role-@role.Value" @(isChecked ? "checked" : "") />
+                                        <div class="valora-checkbox-item__content">
+                                            <span class="valora-checkbox-item__name">@role.Text</span>
+                                            <small class="valora-checkbox-item__description text-muted">Código identificador: @role.Value</small>
+                                        </div>
+                                    </label>
+                                }
+                            </div>
                         </div>
                     }
                 </fieldset>

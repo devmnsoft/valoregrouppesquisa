@@ -86,7 +86,7 @@ public sealed class CampaignsV10Tests {
         var service = new CampaignService(repo, surveys);
         var created = await service.CreateAsync(_organizationId, _userId, new CreateCampaignDto(_surveyId, "Campanha"), CancellationToken.None);
 
-        var result = await service.TransitionAsync(_organizationId, created.Id, CanonicalCampaignStatus.Active, null, CancellationToken.None);
+        var result = await service.TransitionAsync(_organizationId, created.Id, CanonicalCampaignStatus.Active, ct: CancellationToken.None);
 
         Assert.NotNull(result);
         Assert.Equal(CanonicalCampaignStatus.Active, result.Status);
@@ -102,7 +102,7 @@ public sealed class CampaignsV10Tests {
         var created = await service.CreateAsync(_organizationId, _userId, new CreateCampaignDto(_surveyId, "Campanha"), CancellationToken.None);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.TransitionAsync(_organizationId, created.Id, CanonicalCampaignStatus.Closed, null, CancellationToken.None));
+            service.TransitionAsync(_organizationId, created.Id, CanonicalCampaignStatus.Closed, ct: CancellationToken.None));
 
         Assert.Contains("não é permitida", ex.Message);
     }
@@ -117,7 +117,7 @@ public sealed class CampaignsV10Tests {
         var created = await service.CreateAsync(_organizationId, _userId, new CreateCampaignDto(_surveyId, "Campanha"), CancellationToken.None);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            service.TransitionAsync(_organizationId, created.Id, CanonicalCampaignStatus.Scheduled, null, CancellationToken.None));
+            service.TransitionAsync(_organizationId, created.Id, CanonicalCampaignStatus.Scheduled, ct: CancellationToken.None));
 
         Assert.Contains("Defina a data de início", ex.Message);
     }
@@ -185,8 +185,19 @@ public sealed class CampaignsV10Tests {
                 campaign.CreatedBy, "Admin", campaign.CreatedAt, DateTime.UtcNow));
         }
 
-        public Task<bool> TransitionStatusAsync(Guid organizationId, Guid id, string newStatus, CancellationToken ct) {
+        public Task<bool> TransitionStatusAsync(
+            Guid organizationId,
+            Guid id,
+            string expectedStatus,
+            string newStatus,
+            Guid? userId = null,
+            string? justification = null,
+            string? correlationId = null,
+            CancellationToken ct = default) {
             if (!_items.TryGetValue(id, out var item) || item.OrganizationId != organizationId)
+                return Task.FromResult(false);
+
+            if (!string.Equals(item.Status, expectedStatus, StringComparison.OrdinalIgnoreCase))
                 return Task.FromResult(false);
 
             _items[id] = item with { Status = newStatus, UpdatedAt = DateTime.UtcNow };
@@ -204,8 +215,8 @@ public sealed class CampaignsV10Tests {
     private sealed class FakeSurveyRepository : ISurveyRepository {
         private readonly Dictionary<(Guid OrgId, Guid SurveyId), dynamic> _surveys = new();
 
-        public void AddSurvey(Guid orgId, Guid surveyId, string title) {
-            _surveys[(orgId, surveyId)] = new { id = surveyId, title };
+        public void AddSurvey(Guid orgId, Guid surveyId, string title, string status = "active") {
+            _surveys[(orgId, surveyId)] = new { id = surveyId, title, status };
         }
 
         public Task<dynamic?> GetAdminAsync(Guid organizationId, Guid surveyId) {

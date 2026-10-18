@@ -5,7 +5,53 @@
   const escape = value => { const node = document.createElement('span'); node.textContent = value ?? ''; return node.innerHTML; };
   const statusLabel = value => ({ draft:'Rascunho', scheduled:'Agendada', active:'Ativa', paused:'Pausada', closed:'Encerrada', cancelled:'Cancelada', published:'Publicada' }[String(value).toLowerCase()] ?? value ?? 'Rascunho');
   const toast = (type, message) => window.Toast?.[type]?.(message);
-  const showError = (root, error) => { const box = $one('[data-error]', root); if (box) { box.textContent = error?.message ?? 'Não foi possível concluir. Tente novamente.'; box.hidden = false; } };
+  const showError = (root, error, onRetry = null) => {
+    const box = $one('[data-error]', root);
+    if (box) {
+      const correlation = error?.correlationId || error?.traceId || error?.CorrelationId || error?.TraceId || '';
+      const correlationHtml = correlation ? `<small style="display:block; margin-top:4px; font-family:monospace; opacity:0.85;">ID de correlação: ${escape(correlation)}</small>` : '';
+      const retryHtml = onRetry ? `<button type="button" class="valora-button valora-button--ghost" style="margin-top:8px; font-size:0.85rem;" data-retry-action>Tentar novamente</button>` : '';
+
+      box.innerHTML = `<div><strong>Não foi possível concluir a operação:</strong> <span>${escape(error?.message ?? 'Ocorreu uma falha inesperada. Tente novamente.')}</span>${correlationHtml}</div>${retryHtml}`;
+      box.hidden = false;
+
+      if (onRetry) {
+        const retryBtn = box.querySelector('[data-retry-action]');
+        if (retryBtn) {
+          retryBtn.onclick = () => {
+            box.hidden = true;
+            onRetry();
+          };
+        }
+      }
+    }
+  };
+
+  const hideError = (root) => {
+    const box = $one('[data-error]', root);
+    if (box) {
+      box.hidden = true;
+      box.innerHTML = '';
+    }
+  };
+
+  const formatLocalDateTimeToIso = (value) => {
+    if (!value) return null;
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return null;
+    return date.toISOString();
+  };
+
+  const formatDateDisplay = (value) => {
+    if (!value) return '';
+    try {
+      const date = new Date(value);
+      return isNaN(date.getTime()) ? '' : date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+    } catch (_) {
+      return '';
+    }
+  };
+
   const dialogClose = root => root.querySelectorAll('dialog [data-close]').forEach(button => button.addEventListener('click', () => button.closest('dialog').close()));
 
   async function templates(root) {
@@ -42,12 +88,29 @@
       const active = items.filter(x => ['active','scheduled','sending'].includes(String(x.status).toLowerCase()));
       const responses = items.reduce((sum, x) => sum + Number(x.actualResponses ?? x.responseCount ?? 0), 0);
       const totalGoal = items.reduce((sum, x) => sum + Number(x.responseGoal ?? 0), 0);
-      root.querySelector('[data-campaign-kpi="total"]').textContent = items.length;
-      root.querySelector('[data-campaign-kpi="active"]').textContent = active.length;
-      root.querySelector('[data-campaign-kpi="responses"]').textContent = responses;
-      root.querySelector('[data-campaign-kpi="rate"]').textContent = totalGoal > 0 ? `${Math.round(responses / totalGoal * 100)}%` : (responses > 0 ? `${responses} respostas` : 'Dados insuficientes');
 
-      host.innerHTML = items.map(item => {
+      const totalKpi = root.querySelector('[data-campaign-kpi="total"]');
+      if (totalKpi) totalKpi.textContent = items.length;
+
+      const activeKpi = root.querySelector('[data-campaign-kpi="active"]');
+      if (activeKpi) activeKpi.textContent = active.length;
+
+      const responsesKpi = root.querySelector('[data-campaign-kpi="responses"]');
+      if (responsesKpi) responsesKpi.textContent = responses;
+
+      const rateKpi = root.querySelector('[data-campaign-kpi="rate"]');
+      if (rateKpi) {
+        if (totalGoal > 0) {
+          const overallRate = ((responses / totalGoal) * 100).toFixed(1);
+          rateKpi.textContent = `${overallRate}% (${responses}/${totalGoal})`;
+        } else if (responses > 0) {
+          rateKpi.textContent = `${responses} respostas (Meta não definida)`;
+        } else {
+          rateKpi.textContent = 'Meta não definida';
+        }
+      }
+
+      host.innerHTML = items.map((item, index) => {
         const status = String(item.status).toLowerCase();
         const goal = Number(item.responseGoal || 0);
         const actual = Number(item.actualResponses ?? item.responseCount ?? 0);
@@ -55,66 +118,129 @@
         const unitChip = item.unitName ? `<span class="valora-badge" style="font-size:0.75rem; background:#f1f5f9; padding:2px 8px; border-radius:4px; margin-right:4px;">🏢 ${escape(item.unitName)}</span>` : '';
         const deptChip = item.departmentName ? `<span class="valora-badge" style="font-size:0.75rem; background:#f1f5f9; padding:2px 8px; border-radius:4px; margin-right:4px;">📁 ${escape(item.departmentName)}</span>` : '';
         const audienceInfo = item.audience ? `<small style="color:#64748b; display:block; margin-top:2px;">Público: ${escape(item.audience)}</small>` : '';
+
+        const startText = formatDateDisplay(item.startsAt);
+        const endText = formatDateDisplay(item.endsAt);
+        const datesInfo = (startText || endText) ? `<small style="color:#64748b; display:block; margin-top:2px;">Período: ${startText || 'Imediato'} até ${endText || 'Indeterminado'}</small>` : '';
+
         const isV10 = Boolean(item.id);
         const campaignKey = isV10 ? item.id : item.surveyId;
 
+        const shareOrReason = item.publicUrl
+          ? `<button class="valora-button valora-button--secondary" data-share="${campaignKey}">Compartilhar link</button>`
+          : `<span class="valora-badge" style="font-size:0.75rem; background:#fff7ed; color:#c2410c; border:1px solid #fed7aa; padding:4px 8px; border-radius:4px; display:inline-block;" title="${escape(item.linkReason || 'Link indisponível')}">⚠️ ${escape(item.linkReason || 'Link público indisponível')}</span>`;
+
         return `<article class="v9-campaign" data-campaign-id="${campaignKey}">
           <div class="v9-campaign__main">
-            <span class="v9-status v9-status--${escape(status)}">${escape(statusLabel(status))}</span>
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+              <span class="valora-idx-badge">#${index + 1}</span>
+              <span class="v9-status v9-status--${escape(status)}">${escape(statusLabel(status))}</span>
+            </div>
             <h3 style="margin:4px 0 2px;">${escape(item.name)}</h3>
             <div style="margin:2px 0;">${unitChip}${deptChip}</div>
             <p style="margin:2px 0; color:#475569; font-size:0.9rem;">Pesquisa: ${escape(item.surveyTitle || item.name)}</p>
             ${audienceInfo}
+            ${datesInfo}
           </div>
-          <div class="v9-campaign__metric" style="min-width:140px;">
-            <strong>${actual}${goal > 0 ? ' / ' + goal : ''}</strong>
-            <span>respostas (${rate}%)</span>
-            ${goal > 0 ? `<div style="height:6px; background:#e2e8f0; border-radius:3px; margin-top:6px; overflow:hidden;"><div style="height:100%; width:${Math.min(100, Math.round(actual/goal*100))}%; background:var(--valora-primary,#0070f3);"></div></div>` : ''}
+          <div class="v9-campaign__metric" style="min-width:160px;">
+            ${goal > 0
+              ? `<strong>${actual} / ${goal}</strong><span>respostas (${rate}% da meta)</span><div style="height:6px; background:#e2e8f0; border-radius:3px; margin-top:6px; overflow:hidden;"><div style="height:100%; width:${Math.min(100, Math.round(actual / goal * 100))}%; background:var(--valora-primary,#0070f3);"></div></div>`
+              : `<strong>${actual}</strong><span>respostas coletadas</span><small style="color:#64748b; display:block; margin-top:4px;">Meta não definida</small>`}
           </div>
-          <div class="v9-campaign__actions">
-            ${item.publicUrl ? `<button class="valora-button valora-button--secondary" data-share="${campaignKey}">Compartilhar</button>` : ''}
-            ${actions(status).map(action => `<button class="valora-button valora-button--ghost" data-action="${action}" data-id="${campaignKey}" data-v10="${isV10}">${labels[action]}</button>`).join('')}
+          <div class="v9-campaign__actions" style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">
+            ${shareOrReason}
+            <div style="display:flex; gap:4px; flex-wrap:wrap;">
+              ${actions(status).map(action => `<button class="valora-button valora-button--ghost" data-action="${action}" data-id="${campaignKey}" data-v10="${isV10}">${labels[action]}</button>`).join('')}
+            </div>
           </div>
         </article>`;
       }).join('') || '<div class="valora-empty"><h3>Crie sua primeira campanha</h3><p>Defina o público, metas e unidades para iniciar a coleta.</p></div>';
     };
 
     const load = async () => {
+      hideError(root);
       try {
-        let v10Items = [];
-        try { v10Items = list(await CampaignsApi.list()); } catch (_) {}
-        if (v10Items && v10Items.length > 0) {
-          items = v10Items;
-        } else {
-          try { items = list(await DiagnosticCampaignsApi.list()); } catch (_) { items = []; }
+        let v10Items = null;
+        let v10Error = null;
+        try {
+          const res = await CampaignsApi.list();
+          v10Items = list(res);
+        } catch (err) {
+          v10Error = err;
         }
-        render();
-      } catch (error) { showError(root, error); }
+
+        if (v10Items !== null) {
+          items = v10Items;
+          render();
+        } else {
+          try {
+            const legacyRes = await DiagnosticCampaignsApi.list();
+            items = list(legacyRes);
+            render();
+          } catch (legacyErr) {
+            const errorToReport = v10Error || legacyErr;
+            showError(root, errorToReport, load);
+            host.innerHTML = `<div class="valora-empty valora-empty--danger">
+              <h3>Falha ao carregar campanhas</h3>
+              <p>${escape(errorToReport?.message || 'Não foi possível consultar as campanhas da organização. Tente novamente.')}</p>
+              <button class="valora-button valora-button--secondary mt-2" data-retry-load>Tentar novamente</button>
+            </div>`;
+            const retryBtn = host.querySelector('[data-retry-load]');
+            if (retryBtn) retryBtn.onclick = load;
+          }
+        }
+      } catch (error) {
+        showError(root, error, load);
+      }
     };
 
     async function loadSelectOptions() {
+      const surveySelect = $one('[data-survey-options]', root);
+      const unitSelect = $one('[data-unit-options]', root);
+      const deptSelect = $one('[data-department-options]', root);
+
+      const errors = [];
+
       try {
         const surveys = list(await SurveysApi.list()).filter(x => String(x.status).toLowerCase() !== 'archived');
-        $one('[data-survey-options]', root).innerHTML = '<option value="">Selecione uma pesquisa</option>' + surveys.map(x => `<option value="${x.id}">${escape(x.title ?? x.name)}</option>`).join('');
-      } catch (_) {}
+        if (surveySelect) {
+          surveySelect.innerHTML = '<option value="">Selecione uma pesquisa</option>' + surveys.map((x, idx) => `<option value="${x.id}">#${idx + 1} — ${escape(x.title ?? x.name)}</option>`).join('');
+        }
+      } catch (err) {
+        errors.push(`Pesquisas: ${err?.message || 'Falha ao consultar'}`);
+        if (surveySelect) surveySelect.innerHTML = '<option value="">Erro ao carregar pesquisas</option>';
+      }
 
       try {
         const unitsRes = await AjaxClient.get('/bff/admin/units');
         const units = list(unitsRes);
-        const unitSelect = $one('[data-unit-options]', root);
-        if (unitSelect) unitSelect.innerHTML = '<option value="">Todas as unidades</option>' + units.map(u => `<option value="${u.id}">${escape(u.name)}</option>`).join('');
-      } catch (_) {}
+        if (unitSelect) {
+          unitSelect.innerHTML = '<option value="">Todas as unidades</option>' + units.map((u, idx) => `<option value="${u.id}">#${idx + 1} — ${escape(u.name)}</option>`).join('');
+        }
+      } catch (err) {
+        errors.push(`Unidades: ${err?.message || 'Falha ao consultar'}`);
+        if (unitSelect) unitSelect.innerHTML = '<option value="">Erro ao carregar unidades</option>';
+      }
 
       try {
         const deptRes = await AjaxClient.get('/bff/admin/departments');
         const depts = list(deptRes);
-        const deptSelect = $one('[data-department-options]', root);
-        if (deptSelect) deptSelect.innerHTML = '<option value="">Todos os setores</option>' + depts.map(d => `<option value="${d.id}">${escape(d.name)}</option>`).join('');
-      } catch (_) {}
+        if (deptSelect) {
+          deptSelect.innerHTML = '<option value="">Todos os setores</option>' + depts.map((d, idx) => `<option value="${d.id}">#${idx + 1} — ${escape(d.name)}</option>`).join('');
+        }
+      } catch (err) {
+        errors.push(`Setores: ${err?.message || 'Falha ao consultar'}`);
+        if (deptSelect) deptSelect.innerHTML = '<option value="">Erro ao carregar setores</option>';
+      }
+
+      if (errors.length > 0) {
+        toast('warning', `Atenção: ${errors.join('; ')}`);
+      }
     }
 
     $one('[data-new-campaign]', root).addEventListener('click', async () => {
       try {
+        hideError(root);
         await loadSelectOptions();
         $one('[data-campaign-dialog]', root).showModal();
       } catch (error) { showError(root, error); }
@@ -124,25 +250,44 @@
 
     $one('[data-campaign-form]', root).addEventListener('submit', async event => {
       event.preventDefault();
-      const data = new FormData(event.target);
+      const form = event.target;
+      const submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.setAttribute('data-original-text', submitBtn.textContent);
+        submitBtn.textContent = 'Salvando campanha…';
+      }
+
+      const data = new FormData(form);
+      const startsAtRaw = data.get('startsAt');
+      const endsAtRaw = data.get('endsAt');
+
       const payload = {
         surveyId: data.get('surveyId'),
-        name: data.get('name'),
+        name: (data.get('name') || '').trim(),
         unitId: data.get('unitId') || null,
         departmentId: data.get('departmentId') || null,
-        audience: data.get('audience') || null,
+        audience: (data.get('audience') || '').trim() || null,
         responseGoal: Number(data.get('responseGoal')) || 0,
-        startsAt: data.get('startsAt') || null,
-        endsAt: data.get('endsAt') || null
+        startsAt: formatLocalDateTimeToIso(startsAtRaw),
+        endsAt: formatLocalDateTimeToIso(endsAtRaw)
       };
 
       try {
         await CampaignsApi.create(payload);
-        event.target.closest('dialog').close();
-        event.target.reset();
+        form.closest('dialog').close();
+        form.reset();
         toast('success', 'Campanha criada com sucesso.');
         await load();
-      } catch (error) { showError(root, error); }
+      } catch (error) {
+        showError(root, error);
+        toast('danger', error?.message || 'Falha ao salvar campanha. Os dados foram mantidos no formulário.');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = submitBtn.getAttribute('data-original-text') || 'Salvar campanha';
+        }
+      }
     });
 
     host.addEventListener('click', async event => {
@@ -165,6 +310,7 @@
           await load();
         } catch (error) {
           showError(root, error);
+          toast('danger', error?.message || 'Não foi possível atualizar a campanha.');
           action.disabled = false;
         }
       }

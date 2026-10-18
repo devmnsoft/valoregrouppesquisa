@@ -96,7 +96,7 @@ public sealed class CampaignsController(
         };
 
         try {
-            var result = await campaigns.TransitionAsync(access.OrganizationId, id, targetStatus, body?.Justification, ct);
+            var result = await campaigns.TransitionAsync(access.OrganizationId, id, targetStatus, body?.Justification, HttpContext.TraceIdentifier, ct);
             return result is null
                 ? NotFound(Error("CAMPAIGN_NOT_FOUND", "Campanha não encontrada."))
                 : Ok(result);
@@ -115,8 +115,13 @@ public sealed class CampaignsController(
         var access = Access();
         if (access.Error is not null) return access.Error;
 
-        var deleted = await campaigns.DeleteAsync(access.OrganizationId, id, ct);
-        return deleted ? NoContent() : NotFound(Error("CAMPAIGN_NOT_FOUND", "Campanha não encontrada."));
+        try {
+            var deleted = await campaigns.DeleteAsync(access.OrganizationId, id, ct);
+            return deleted ? NoContent() : NotFound(Error("CAMPAIGN_NOT_FOUND", "Campanha não encontrada."));
+        }
+        catch (InvalidOperationException exception) {
+            return UnprocessableEntity(Error("CAMPAIGN_DELETE_NOT_ALLOWED", exception.Message));
+        }
     }
 
     private (Guid OrganizationId, IActionResult? Error) Access() {

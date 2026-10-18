@@ -16,8 +16,8 @@
       if (type === 'long_text') return `<textarea ${base} maxlength="5000"></textarea>`;
       if (type === 'number') return `<input ${base} type="number" min="0" max="${safe(question.maxScore, 100)}" step="any">`;
       if (type === 'yes_no') return `<select ${base}><option value="">Selecione</option><option value="true">Sim</option><option value="false">Não</option></select>`;
-      if (type === 'multiple_choice') return `<div class="public-options">${(question.options || []).map(option => `<label><input type="checkbox" ${base} value="${safe(option.id)}"> ${safe(option.text)}</label>`).join('')}</div>`;
-      if (type === 'single_choice') return `<select ${base}><option value="">Selecione</option>${(question.options || []).map(option => `<option value="${safe(option.id)}">${safe(option.text)}</option>`).join('')}</select>`;
+      if (type === 'multiple_choice') return `<div class="public-options">${(question.options || []).map((option, optIdx) => `<label class="public-option-item"><span class="valora-idx-badge me-1">#${optIdx + 1}</span><input type="checkbox" ${base} value="${safe(option.id)}"> <span>${safe(option.text)}</span></label>`).join('')}</div>`;
+      if (type === 'single_choice') return `<select ${base}><option value="">Selecione</option>${(question.options || []).map((option, optIdx) => `<option value="${safe(option.id)}">#${optIdx + 1} — ${safe(option.text)}</option>`).join('')}</select>`;
       return `<select ${base}><option value="">Selecione</option>${[1, 2, 3, 4, 5].map(value => `<option value="${value}">${value}</option>`).join('')}</select>`;
     };
     const answerFor = question => {

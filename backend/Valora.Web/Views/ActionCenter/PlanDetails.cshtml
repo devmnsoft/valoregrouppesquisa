@@ -63,8 +63,12 @@
                 <div class="valora-empty"><h3>@(planActivitiesPage.CurrentPage > 1 ? "Página sem resultados" : "Nenhuma atividade cadastrada")</h3><p>@(planActivitiesPage.CurrentPage > 1 ? "Volte à primeira página para continuar a navegação." : plan.Status is "completed" or "canceled" ? "O plano foi encerrado sem atividades visíveis no seu escopo." : "Crie a primeira atividade para acompanhar a execução deste plano.")</p></div>
             } else {
                 <div class="table-responsive"><table class="valora-table">
-                    <thead><tr><th>Atividade</th><th>Situação</th><th>Prioridade</th><th>Responsável</th><th>Progresso</th><th>Prazo</th></tr></thead>
-                    <tbody>@foreach (var item in planActivitiesPage.Items) { <tr><td><a asp-action="ItemDetails" asp-route-id="@item.Id" asp-route-returnUrl="@planCurrentUrl">@item.Title</a></td><td>@ActionStatuses.Label(item.Status)</td><td>@ActionStatuses.Label(item.Priority)</td><td>@(item.ResponsibleName ?? "Sem responsável")</td><td>@item.ProgressPercent%</td><td>@(item.DueAt?.ToString("dd/MM/yyyy") ?? "A definir")</td></tr> }</tbody>
+                    <thead><tr><th style="width: 50px;">#</th><th>Atividade</th><th>Situação</th><th>Prioridade</th><th>Responsável</th><th>Progresso</th><th>Prazo</th></tr></thead>
+                    <tbody>@for (var i = 0; i < planActivitiesPage.Items.Count; i++) {
+                        var item = planActivitiesPage.Items[i];
+                        var itemIndex = ((planActivitiesPage.CurrentPage - 1) * planActivitiesPage.PageSize) + i + 1;
+                        <tr><td><span class="valora-idx-badge">#@itemIndex</span></td><td><a asp-action="ItemDetails" asp-route-id="@item.Id" asp-route-returnUrl="@planCurrentUrl">@item.Title</a></td><td>@ActionStatuses.Label(item.Status)</td><td>@ActionStatuses.Label(item.Priority)</td><td>@(item.ResponsibleName ?? "Sem responsável")</td><td>@item.ProgressPercent%</td><td>@(item.DueAt?.ToString("dd/MM/yyyy") ?? "A definir")</td></tr>
+                    }</tbody>
                 </table></div>
                 <nav class="pagination" aria-label="Páginas das atividades">
                     @if (planActivitiesPage.HasPrevious) { <a asp-action="PlanDetails" asp-route-id="@plan.Id" asp-route-itemPage="@(planActivitiesPage.CurrentPage - 1)" asp-route-returnUrl="@Model.ReturnUrl">Anterior</a> } else { <span class="disabled" aria-disabled="true">Anterior</span> }

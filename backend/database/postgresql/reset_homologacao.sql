@@ -8,6 +8,10 @@ BEGIN
   IF current_database() ~* '(prod|production)' THEN
     RAISE EXCEPTION 'BLOQUEIO DE SEGURANÇA: reset_homologacao.sql JAMAIS pode ser executado em ambiente de produção (banco atual: %).', current_database();
   END IF;
+
+  IF NOT (current_database() ~* '(test|teste|homolog|qa|dev|valora)') THEN
+    RAISE EXCEPTION 'BLOQUEIO DE SEGURANÇA: reset_homologacao.sql exige identificação explícita do ambiente permitido (test/homolog/qa/dev). Banco atual: %', current_database();
+  END IF;
 END $$;
 
 BEGIN;
@@ -76,6 +80,12 @@ DELETE FROM valorapesquisa.diagnostic_cycles WHERE organization_id IN (
 );
 
 DELETE FROM valorapesquisa.campaigns WHERE organization_id IN (
+  '11111111-1111-1111-1111-111111111111',
+  '22222222-2222-2222-2222-222222222222',
+  '33333333-3333-3333-3333-333333333333'
+);
+
+DELETE FROM valorapesquisa.survey_links WHERE organization_id IN (
   '11111111-1111-1111-1111-111111111111',
   '22222222-2222-2222-2222-222222222222',
   '33333333-3333-3333-3333-333333333333'

@@ -27,20 +27,21 @@
   }
 
   function questionMarkup(question, index, questions) {
-    const choices = (question.options || []).map((option, optionIndex, options) => `<div class="builder-option-row"><button type="button" class="builder-option${selected('option', option.id)}" data-select="option" data-id="${option.id}"><span>${escapeHtml(option.label)}</span><small>${escapeHtml(option.value)}${option.score == null ? '' : ` · ${option.score} ponto(s)`}</small></button><div class="builder-inline-actions">${movementButtons('option', option, optionIndex, options.length)}<button type="button" class="builder-option-delete" data-delete="option" data-id="${option.id}" aria-label="Excluir opção ${escapeHtml(option.label)}">Excluir</button></div></div>`).join('');
+    const choices = (question.options || []).map((option, optionIndex, options) => `<div class="builder-option-row"><button type="button" class="builder-option${selected('option', option.id)}" data-select="option" data-id="${option.id}"><span class="valora-idx-badge me-2">#${optionIndex + 1}</span><span>${escapeHtml(option.label)}</span><small class="ms-auto">${escapeHtml(option.value)}${option.score == null ? '' : ` · ${option.score} ponto(s)`}</small></button><div class="builder-inline-actions">${movementButtons('option', option, optionIndex, options.length)}<button type="button" class="builder-option-delete" data-delete="option" data-id="${option.id}" aria-label="Excluir opção ${escapeHtml(option.label)}">Excluir</button></div></div>`).join('');
     const sample = question.type === 'long_text' ? '<textarea disabled aria-label="Exemplo de resposta"></textarea>' : question.type === 'short_text' ? '<input disabled aria-label="Exemplo de resposta">' : choices;
     const addOption = optionTypes.has(question.type) ? `<button type="button" data-add-option="${question.id}">Adicionar opção</button>` : '';
-    return `<article class="builder-question${selected('question', question.id)}" tabindex="0" role="button" data-select="question" data-id="${question.id}"><div><span>${escapeHtml(question.code)}</span><strong>${escapeHtml(question.title)}</strong></div><small>${escapeHtml(typeLabels[question.type] || question.type)}${question.required ? ' · obrigatória' : ''}</small>${sample}<div class="builder-inline-actions">${addOption}${movementButtons('question', question, index, questions.length)}<button type="button" data-delete="question" data-id="${question.id}">Excluir</button></div></article>`;
+    return `<article class="builder-question${selected('question', question.id)}" tabindex="0" role="button" data-select="question" data-id="${question.id}"><div><span class="valora-idx-badge me-2">#${index + 1}</span><span>${escapeHtml(question.code)}</span><strong>${escapeHtml(question.title)}</strong></div><small>${escapeHtml(typeLabels[question.type] || question.type)}${question.required ? ' · obrigatória' : ''}</small>${sample}<div class="builder-inline-actions">${addOption}${movementButtons('question', question, index, questions.length)}<button type="button" data-delete="question" data-id="${question.id}">Excluir</button></div></article>`;
   }
 
-  function responseQuestionMarkup(question) {
+  function responseQuestionMarkup(question, qIndex) {
     if (question.type === 'heading') return `<h3>${escapeHtml(question.title)}</h3>`;
     if (question.type === 'description') return `<p>${escapeHtml(question.description || question.title)}</p>`;
     if (question.type === 'separator') return '<hr aria-hidden="true">';
     const name = `preview-${question.id}`;
-    const choices = (question.options || []).map(option => `<label class="builder-preview-choice"><input name="${name}" type="${question.type === 'multiple_choice' ? 'checkbox' : 'radio'}" value="${escapeHtml(option.value)}"> <span>${escapeHtml(option.label)}</span></label>`).join('');
+    const choices = (question.options || []).map((option, optIndex) => `<label class="builder-preview-choice d-flex align-items-center gap-2"><span class="valora-idx-badge">#${optIndex + 1}</span><input name="${name}" type="${question.type === 'multiple_choice' ? 'checkbox' : 'radio'}" value="${escapeHtml(option.value)}"> <span>${escapeHtml(option.label)}</span></label>`).join('');
     const input = question.type === 'long_text' ? `<textarea class="form-control" name="${name}" rows="4"></textarea>` : question.type === 'short_text' ? `<input class="form-control" name="${name}" type="text">` : choices;
-    return `<fieldset class="builder-preview-question"><legend>${escapeHtml(question.title)}${question.required ? ' <span aria-label="obrigatória">*</span>' : ''}</legend>${question.description ? `<p>${escapeHtml(question.description)}</p>` : ''}${input}</fieldset>`;
+    const prefix = qIndex != null ? `Questão #${qIndex + 1}: ` : '';
+    return `<fieldset class="builder-preview-question"><legend>${prefix}${escapeHtml(question.title)}${question.required ? ' <span aria-label="obrigatória">*</span>' : ''}</legend>${question.description ? `<p>${escapeHtml(question.description)}</p>` : ''}${input}</fieldset>`;
   }
 
   function render() {

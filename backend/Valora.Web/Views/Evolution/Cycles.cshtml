@@ -19,8 +19,11 @@
     @if (ViewData["EvolutionWriteLimitation"] is string limitation) { <p class="valora-alert" role="status">@limitation</p> }
     @if (Model.Count == 0) { <partial name="_EmptyState" model="@(new EmptyStateViewModel("Nenhum ciclo cadastrado", "Ainda não há ciclos de evolução neste contexto."))" /> }
     else {
-        <div class="table-responsive"><table class="valora-table"><thead><tr><th>Ciclo</th><th>Início</th><th>Situação</th><th>Referência inicial</th><th>Valor na base inicial</th></tr></thead><tbody>
-            @foreach (var cycle in Model) { <tr><td><a href="/Evolution/Cycles/Details/@cycle.Id?returnUrl=@Uri.EscapeDataString(returnUrl)">@(string.IsNullOrWhiteSpace(cycle.Title) ? "Ciclo histórico sem título" : cycle.Title)</a><small class="d-block">@(cycle.BaselineSource == "legacy_review_required" ? "Referência pendente de revisão" : cycle.BaselineSource == "manual_informed" ? "Referência manual" : "Medição organizacional preservada")</small></td><td>@cycle.PeriodStart.ToString("dd/MM/yyyy")</td><td>@Status(cycle.Status)</td><td>@(cycle.BaselineScore?.ToString("0.00") ?? "Sem medição")</td><td>@(cycle.CurrentScore?.ToString("0.00") ?? "Sem medição")</td></tr> }
+        <div class="table-responsive"><table class="valora-table"><thead><tr><th style="width: 50px;">#</th><th>Ciclo</th><th>Início</th><th>Situação</th><th>Referência inicial</th><th>Valor na base inicial</th></tr></thead><tbody>
+            @for (var i = 0; i < Model.Count; i++) {
+                var cycle = Model[i];
+                <tr><td><span class="valora-idx-badge">#@(i + 1)</span></td><td><a href="/Evolution/Cycles/Details/@cycle.Id?returnUrl=@Uri.EscapeDataString(returnUrl)">@(string.IsNullOrWhiteSpace(cycle.Title) ? "Ciclo histórico sem título" : cycle.Title)</a><small class="d-block">@(cycle.BaselineSource == "legacy_review_required" ? "Referência pendente de revisão" : cycle.BaselineSource == "manual_informed" ? "Referência manual" : "Medição organizacional preservada")</small></td><td>@cycle.PeriodStart.ToString("dd/MM/yyyy")</td><td>@Status(cycle.Status)</td><td>@(cycle.BaselineScore?.ToString("0.00") ?? "Sem medição")</td><td>@(cycle.CurrentScore?.ToString("0.00") ?? "Sem medição")</td></tr>
+            }
         </tbody></table></div>
     }
     @if (canManage) {

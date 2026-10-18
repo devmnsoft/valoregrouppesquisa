@@ -34,10 +34,13 @@ button[aria-busy="true"] .button-spinner { display: inline-block; }
   .form-grid > * { grid-column: 1 / -1; }
   .form-actions > * { justify-content: center; width: 100%; }
 }
+
 /* Validation feedback shared by server-rendered and progressively enhanced forms. */
-:where(.form-control, .form-select, .valora-input)[aria-invalid="true"] {
-  border-color: var(--valora-danger, #b42318);
-  box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--valora-danger, #b42318) 16%, transparent);
+:where(.form-control, .form-select, .valora-input)[aria-invalid="true"],
+.is-invalid {
+  border-color: var(--valora-danger, #b42318) !important;
+  box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--valora-danger, #b42318) 16%, transparent) !important;
+  background-color: #fffafa !important;
 }
 
 :where(.form-control, .form-select, .valora-input):focus-visible {
@@ -48,4 +51,210 @@ button[aria-busy="true"] .button-spinner { display: inline-block; }
 form :where(button, input, select, textarea):disabled {
   cursor: not-allowed;
   opacity: .68;
+}
+
+/* Universal Inline Field Error */
+.valora-field-error,
+.invalid-feedback {
+  color: var(--valora-danger, #b42318);
+  font-size: .8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: .35rem;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+}
+.valora-field-error::before,
+.invalid-feedback::before {
+  content: "⚠";
+  font-size: .85rem;
+  line-height: 1;
+}
+
+/* Standardized Checkbox List Component */
+.valora-checkbox-list {
+  background: #ffffff;
+  border: 1px solid var(--valora-line, #dce7e6);
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgb(16 47 67 / 4%);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+
+.valora-checkbox-list:focus-within {
+  border-color: var(--valora-primary, #0b6973);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--valora-primary, #0b6973) 14%, transparent);
+}
+
+.valora-checkbox-list__toolbar {
+  align-items: center;
+  background: #f8fafb;
+  border-bottom: 1px solid var(--valora-line, #dce7e6);
+  display: flex;
+  flex-wrap: wrap;
+  gap: .65rem;
+  justify-content: space-between;
+  padding: .65rem .85rem;
+}
+
+.valora-checkbox-list__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .45rem;
+}
+
+.valora-checkbox-list__btn {
+  background: #ffffff;
+  border: 1px solid var(--valora-line, #dce7e6);
+  border-radius: 8px;
+  color: var(--valora-ink, #15363d);
+  cursor: pointer;
+  font-size: .78rem;
+  font-weight: 600;
+  padding: .3rem .65rem;
+  transition: all .15s ease;
+}
+
+.valora-checkbox-list__btn:hover {
+  background: #eef5f4;
+  border-color: #b8d4d1;
+  color: var(--valora-primary, #0b6973);
+}
+
+.valora-checkbox-list__count {
+  background: #e7eff0;
+  border-radius: 999px;
+  color: var(--valora-ink, #15363d);
+  font-size: .75rem;
+  font-weight: 700;
+  padding: .2rem .65rem;
+}
+
+.valora-checkbox-list__filter {
+  background: #ffffff;
+  border: 1px solid var(--valora-line, #dce7e6);
+  border-radius: 8px;
+  font-size: .8rem;
+  max-width: 14rem;
+  min-height: 32px;
+  padding: .25rem .65rem;
+  width: 100%;
+}
+
+.valora-checkbox-list__items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--valora-line, #eaf0ef);
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.valora-checkbox-item {
+  align-items: flex-start;
+  background: #ffffff;
+  cursor: pointer;
+  display: flex;
+  gap: .75rem;
+  margin: 0;
+  padding: .75rem .95rem;
+  position: relative;
+  transition: background-color .15s ease, color .15s ease;
+  user-select: none;
+}
+
+.valora-checkbox-item:hover {
+  background: #f7faf9;
+}
+
+.valora-checkbox-item.is-selected {
+  background: #f0f7f6;
+}
+
+.valora-checkbox-item input[type="checkbox"],
+.valora-checkbox-item input[type="radio"] {
+  accent-color: var(--valora-primary, #0b6973);
+  cursor: pointer;
+  height: 1.15rem;
+  margin-top: .15rem;
+  width: 1.15rem;
+  flex-shrink: 0;
+}
+
+.valora-checkbox-item__idx {
+  background: #ecf3f2;
+  border: 1px solid #d4e3e1;
+  border-radius: 6px;
+  color: var(--valora-ink, #102f43);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .74rem;
+  font-weight: 750;
+  min-width: 2rem;
+  padding: .15rem .35rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.valora-checkbox-item.is-selected .valora-checkbox-item__idx {
+  background: #0b6973;
+  border-color: #0b6973;
+  color: #ffffff;
+}
+
+.valora-checkbox-item__content {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.valora-checkbox-item__name {
+  color: var(--valora-ink, #15363d);
+  font-size: .88rem;
+  font-weight: 650;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.valora-checkbox-item__description {
+  color: var(--valora-muted, #60767b);
+  font-size: .78rem;
+  line-height: 1.4;
+}
+
+.valora-checkbox-item__badge {
+  background: #eef2f6;
+  border-radius: 6px;
+  color: #334e68;
+  display: inline-block;
+  font-size: .7rem;
+  font-weight: 600;
+  margin-top: .25rem;
+  padding: .1rem .45rem;
+  width: fit-content;
+}
+
+/* Subtle badge for incremental indices in tables and lists */
+.valora-idx-badge {
+  background: #f1f5f5;
+  border: 1px solid #dce7e6;
+  border-radius: 6px;
+  color: var(--valora-ink, #102f43);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: .74rem;
+  font-weight: 750;
+  min-width: 1.85rem;
+  padding: .12rem .35rem;
+  text-align: center;
 }

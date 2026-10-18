@@ -42,8 +42,12 @@
         @if (planPage.Items.Count == 0) {
             <div class="valora-empty"><h2>@(hasFilters ? "Nenhum resultado para os filtros" : planPage.CurrentPage > 1 ? "Página sem resultados" : "Nenhum plano cadastrado")</h2><p>@(planPage.CurrentPage > 1 ? "Volte à primeira página ou ajuste os filtros." : hasFilters ? "Ajuste ou limpe os filtros para ampliar a busca." : "Crie o primeiro plano quando tiver permissão para gerenciar ações.")</p></div>
         } else {
-            <div class="table-responsive"><table class="valora-table"><thead><tr><th>Plano</th><th>Responsável</th><th>Situação</th><th>Prioridade</th><th>Progresso</th><th>Prazo</th></tr></thead><tbody>
-            @foreach (var plan in planPage.Items) { <tr><td><a asp-action="PlanDetails" asp-route-id="@plan.Id" asp-route-returnUrl="@Model.CurrentUrl">@plan.Title</a></td><td>@(plan.OwnerName ?? "Não definido")</td><td>@ActionStatuses.Label(plan.Status)</td><td>@ActionStatuses.Label(plan.Priority)</td><td>@plan.ProgressPercent%</td><td>@(plan.DueAt?.ToString("dd/MM/yyyy") ?? "—")</td></tr> }
+            <div class="table-responsive"><table class="valora-table"><thead><tr><th style="width: 50px;">#</th><th>Plano</th><th>Responsável</th><th>Situação</th><th>Prioridade</th><th>Progresso</th><th>Prazo</th></tr></thead><tbody>
+            @for (var i = 0; i < planPage.Items.Count; i++) {
+                var plan = planPage.Items[i];
+                var planIndex = ((planPage.CurrentPage - 1) * planPage.PageSize) + i + 1;
+                <tr><td><span class="valora-idx-badge">#@planIndex</span></td><td><a asp-action="PlanDetails" asp-route-id="@plan.Id" asp-route-returnUrl="@Model.CurrentUrl">@plan.Title</a></td><td>@(plan.OwnerName ?? "Não definido")</td><td>@ActionStatuses.Label(plan.Status)</td><td>@ActionStatuses.Label(plan.Priority)</td><td>@plan.ProgressPercent%</td><td>@(plan.DueAt?.ToString("dd/MM/yyyy") ?? "—")</td></tr>
+            }
             </tbody></table></div>
             <nav class="pagination" aria-label="Páginas dos planos">@if (planPage.HasPrevious) { <a asp-action="Plans" asp-all-route-data="@PageRoute(planPage.CurrentPage - 1)">Anterior</a> } else { <span class="disabled" aria-disabled="true">Anterior</span> }<span>Página @(planPage.CurrentPage) de @(planPage.TotalPages)</span>@if (planPage.HasNext) { <a asp-action="Plans" asp-all-route-data="@PageRoute(planPage.CurrentPage + 1)">Próxima</a> } else { <span class="disabled" aria-disabled="true">Próxima</span> }</nav>
         }

@@ -34,7 +34,10 @@ public sealed record CampaignSummaryDto(
     string Status,
     string? PublicUrl,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    string? LinkStatus = null,
+    string? LinkReason = null,
+    string? LinkAction = null);
 
 public sealed record CampaignDetailDto(
     Guid Id,
@@ -57,7 +60,10 @@ public sealed record CampaignDetailDto(
     Guid? CreatedBy,
     string? CreatedByName,
     DateTime CreatedAt,
-    DateTime UpdatedAt);
+    DateTime UpdatedAt,
+    string? LinkStatus = null,
+    string? LinkReason = null,
+    string? LinkAction = null);
 
 public sealed record CreateCampaignDto(
     Guid SurveyId,
@@ -93,7 +99,7 @@ public interface ICampaignRepository {
     Task<CampaignDetailDto?> GetByIdAsync(Guid organizationId, Guid id, CancellationToken ct);
     Task<CampaignDetailDto> CreateAsync(Campaign campaign, CancellationToken ct);
     Task<CampaignDetailDto?> UpdateAsync(Campaign campaign, CancellationToken ct);
-    Task<bool> TransitionStatusAsync(Guid organizationId, Guid id, string newStatus, CancellationToken ct);
+    Task<bool> TransitionStatusAsync(Guid organizationId, Guid id, string expectedStatus, string newStatus, Guid? userId = null, string? justification = null, string? correlationId = null, CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid organizationId, Guid id, CancellationToken ct);
 }
 
@@ -102,6 +108,6 @@ public interface ICampaignService {
     Task<CampaignDetailDto?> GetByIdAsync(Guid organizationId, Guid id, CancellationToken ct);
     Task<CampaignDetailDto> CreateAsync(Guid organizationId, Guid userId, CreateCampaignDto request, CancellationToken ct);
     Task<CampaignDetailDto?> UpdateAsync(Guid organizationId, Guid id, UpdateCampaignDto request, CancellationToken ct);
-    Task<CampaignDetailDto?> TransitionAsync(Guid organizationId, Guid id, string targetStatus, string? justification, CancellationToken ct);
+    Task<CampaignDetailDto?> TransitionAsync(Guid organizationId, Guid id, string targetStatus, string? justification = null, string? correlationId = null, CancellationToken ct = default);
     Task<bool> DeleteAsync(Guid organizationId, Guid id, CancellationToken ct);
 }

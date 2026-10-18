@@ -16,6 +16,7 @@
   <link rel="stylesheet" href="~/css/design-system/forms.css" asp-append-version="true">
   <link rel="stylesheet" href="~/css/design-system/feedback.css" asp-append-version="true">
   <link rel="stylesheet" href="~/css/valora-auth.css" asp-append-version="true">
+<link rel="stylesheet" href="~/css/valora-readability.css" asp-append-version="true">
 </head>
 <body class="valora-auth">
   <a class="skip-link" href="#auth-content">Ir para o formulário de acesso</a>
@@ -37,6 +38,7 @@
       <ul class="auth-trust" aria-label="Compromissos Valora"><li>LGPD</li><li>Auditoria</li><li>Decisão baseada em evidências</li></ul>
     </aside>
     <section class="auth-content">
+      @await Component.InvokeAsync("PageExperience")
       @RenderBody()
       <footer><span>Ambiente seguro Valora Insight™</span><a href="/privacy">Privacidade</a><a href="/contato">Suporte</a></footer>
     </section>

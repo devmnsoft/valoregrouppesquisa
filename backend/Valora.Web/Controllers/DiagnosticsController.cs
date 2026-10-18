@@ -22,7 +22,7 @@ public sealed class DiagnosticsController : Controller {
         "Configuração e enriquecimento avançado do ciclo diagnóstico.",
         "Permitirá configurar parâmetros estendidos de amostragem, recortes dinâmicos e integrações de escuta contínua.",
         "Gestores de Pesquisa, Consultores e Administradores da Organização.",
-        "Parâmetros de amostragem, públicos-alvo, questionários homologados e datas de coleta.",
+        "Parâmetros de amostragem, públicos-alvo, questionários revisados e datas de coleta.",
         "Ciclo de escuta preparado, com critérios de prontidão e links públicos seguros para coleta.",
         "Utilize a aba 'Preparação' no Workspace do Diagnóstico para configurar título, responsável, datas e metodologia.",
         $"/Diagnostics/{id}/Workspace?tab=preparation",

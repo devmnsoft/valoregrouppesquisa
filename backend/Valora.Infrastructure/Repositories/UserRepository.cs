@@ -81,6 +81,7 @@ public sealed class UserRepository(IDbConnectionFactory factory, ILogger<UserRep
     public async Task<UserAuthenticationRecord?> GetByLoginAsync(string identifierType, string normalizedIdentifier) {
         using var connection = factory.Create();
         const string sql = """
+            WITH candidates AS (
             SELECT u.id AS Id,u.organization_id AS OrganizationId,u.name AS Name,u.email AS Email,
                    u.password_hash AS PasswordHash,u.status AS Status,u.phone AS Phone,
                    COALESCE((SELECT string_agg(r.code, ',' ORDER BY r.code)
@@ -94,9 +95,11 @@ public sealed class UserRepository(IDbConnectionFactory factory, ILogger<UserRep
                        JOIN valorapesquisa.saas_login_identifiers sli ON sli.customer_user_id=scu.id
                        WHERE scu.user_id=u.id AND scu.status='active'
                          AND sli.identifier_type=@IdentifierType AND sli.normalized_value=@NormalizedIdentifier))
-             ORDER BY u.updated_at DESC NULLS LAST LIMIT 1;
+             ORDER BY u.id LIMIT 2
+            ) SELECT * FROM candidates WHERE (SELECT count(*) FROM candidates) = 1;
             """;
         try {
+            // Ambiguous identifiers never select an arbitrary organization.
             var row = await connection.QuerySingleOrDefaultAsync<AuthUserRow>(new CommandDefinition(sql,
                 new { IdentifierType = identifierType, NormalizedIdentifier = normalizedIdentifier }));
             return row is null ? null : new UserAuthenticationRecord(row.Id, row.OrganizationId, row.Name, row.Email,

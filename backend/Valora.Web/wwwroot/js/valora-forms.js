@@ -174,7 +174,7 @@
         items.forEach(item => {
           if (!item.hidden) {
             const checkbox = item.querySelector('input[type="checkbox"]');
-            if (checkbox && !checkbox.disabled) checkbox.checked = true;
+            if (checkbox && !checkbox.disabled && !checkbox.checked) { checkbox.checked = true; checkbox.dispatchEvent(new Event('change', { bubbles: true })); }
           }
         });
         updateState();
@@ -188,7 +188,7 @@
         e.preventDefault();
         items.forEach(item => {
           const checkbox = item.querySelector('input[type="checkbox"]');
-          if (checkbox && !checkbox.disabled) checkbox.checked = false;
+          if (checkbox && !checkbox.disabled && checkbox.checked) { checkbox.checked = false; checkbox.dispatchEvent(new Event('change', { bubbles: true })); }
         });
         updateState();
         container.dispatchEvent(new CustomEvent('valora:checkbox-list:changed', { bubbles: true }));
@@ -198,9 +198,9 @@
     // Search / filter by name action
     if (filterInput) {
       filterInput.addEventListener('input', () => {
-        const query = filterInput.value.trim().toLowerCase();
+        const query = filterInput.value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
         items.forEach(item => {
-          const text = (item.textContent || '').toLowerCase();
+          const text = (item.dataset.searchName || item.querySelector('label')?.textContent || item.textContent || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
           const matches = !query || text.includes(query);
           item.hidden = !matches;
         });
@@ -215,6 +215,7 @@
   function getSelectedIds(container) {
     if (!container) return [];
     return [...container.querySelectorAll('input[type="checkbox"]:checked, input[type="radio"]:checked')]
+      .filter(cb => !cb.disabled)
       .map(cb => cb.value)
       .filter(Boolean);
   }

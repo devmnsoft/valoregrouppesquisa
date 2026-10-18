@@ -1,0 +1,524 @@
+{
+  "reviewedCommit": "b7fb18a4561685c4e966e87899316c5cbfabb216",
+  "reviewedAt": "2026-10-15",
+  "areas": [
+    {
+      "name": "Formulários e questionários",
+      "reviewedState": "base",
+      "pathPatterns": [
+        "/Forms",
+        "/forms",
+        "PublicAnswer"
+      ],
+      "pending": [
+        "Validar edição e publicação no navegador com perfis distintos.",
+        "Homologar os limites comerciais e os diferentes tipos de pergunta."
+      ]
+    },
+    {
+      "name": "Preparação do diagnóstico",
+      "reviewedState": "partial",
+      "pathPatterns": [
+        "DiagnosticWorkspace"
+      ],
+      "pending": [
+        "Eliminar a atribuição implícita do nome do criador quando não houver responsável designado.",
+        "Exigir versão de concorrência válida: o comando ainda aceita RowVersion não positivo.",
+        "Validar gravação, conflito, datas e publicação pela jornada real."
+      ]
+    },
+    {
+      "name": "Coleta e campanhas",
+      "reviewedState": "base",
+      "pathPatterns": [
+        "Campaign",
+        "PublicSurvey",
+        "PublicAnswer"
+      ],
+      "pending": [
+        "Validar a cadeia navegador → BFF → API → banco na entrega atual.",
+        "Homologar entrega real de e-mail em ambiente controlado.",
+        "Exercitar retomada de operações e limites de volume contratados."
+      ]
+    },
+    {
+      "name": "Participação e processamento",
+      "reviewedState": "base",
+      "pathPatterns": [
+        "DiagnosticWorkspace",
+        "Processing"
+      ],
+      "pending": [
+        "Executar os cenários com dois diagnósticos da mesma organização.",
+        "Validar deduplicação dos destinatários e estados dos jobs.",
+        "Conferir os números contra a base de homologação."
+      ]
+    },
+    {
+      "name": "Metodologia e evidências",
+      "reviewedState": "base",
+      "pathPatterns": [
+        "Methodology",
+        "Evidence",
+        "Intelligence"
+      ],
+      "pending": [
+        "Homologar a aderência semântica aos documentos metodológicos.",
+        "Validar cobertura e limitações com dados representativos.",
+        "Não apresentar ausência de dados como zero ou certeza."
+      ]
+    },
+    {
+      "name": "Insights e revisão humana",
+      "reviewedState": "partial",
+      "pathPatterns": [
+        "Insights",
+        "ValoraAi"
+      ],
+      "pending": [
+        "Completar rastreabilidade individual dos achados não originados da fila de IA.",
+        "Remover textos que afirmam convergência sem evidência disponível.",
+        "Validar autorização, concorrência e retorno ao contexto."
+      ]
+    },
+    {
+      "name": "Central de Ações",
+      "reviewedState": "base",
+      "pathPatterns": [
+        "ActionCenter",
+        "ActionPlan"
+      ],
+      "pending": [
+        "Validar a jornada completa de criação, replanejamento e conclusão.",
+        "Comprovar regras de evidência e permissões nos perfis de teste."
+      ]
+    },
+    {
+      "name": "Evolução e reavaliação",
+      "reviewedState": "base",
+      "pathPatterns": [
+        "Evolution"
+      ],
+      "pending": [
+        "Reexecutar a regressão no estado atual.",
+        "Homologar a experiência visual e a interpretação executiva.",
+        "Não atribuir causalidade a uma variação observada."
+      ]
+    },
+    {
+      "name": "Organizações e acesso",
+      "reviewedState": "base",
+      "pathPatterns": [
+        "Access",
+        "Security",
+        "SaasAdmin",
+        "Identity"
+      ],
+      "pending": [
+        "Validar a matriz integral de perfis e planos.",
+        "Revisar cada rota administrativa e operações sensíveis.",
+        "Confirmar login real de todas as contas de homologação."
+      ]
+    },
+    {
+      "name": "Relatórios e devolutivas",
+      "reviewedState": "partial",
+      "pathPatterns": [
+        "Reports",
+        "FormalDeliverable",
+        "ExecutiveDelivery"
+      ],
+      "pending": [
+        "Homologar geração, download, compartilhamento e revogação.",
+        "Validar conteúdo, versão e consistência com as evidências.",
+        "Testar apresentação e impressão com dados reais de teste."
+      ]
+    },
+    {
+      "name": "Navegação e onboarding",
+      "reviewedState": "partial",
+      "pathPatterns": [
+        "Navigation",
+        "Onboarding",
+        "InDevelopment"
+      ],
+      "pending": [
+        "Consolidar 165 entradas do catálogo; nem todas são exibidas ao mesmo perfil.",
+        "Ligar o componente de desenvolvimento às páginas apropriadas: não foram encontradas referências além do modelo e da view.",
+        "O checklist de onboarding usa marcação em cookie; falta comprovar etapas por registros do sistema."
+      ]
+    },
+    {
+      "name": "Base de homologação",
+      "reviewedState": "partial",
+      "pathPatterns": [
+        "seed_homologacao",
+        "FullJourneyIntegration"
+      ],
+      "pending": [
+        "Remover credencial fixa e impedir redefinição silenciosa na reaplicação.",
+        "Preservar alterações de homologação: o seed atual atualiza estados e permissões.",
+        "Separar perfis e planos; executar login HTTP e uso pelo navegador.",
+        "Um teste retorna sem executar quando falta conexão: não confundir isso com aprovação."
+      ]
+    },
+    {
+      "name": "Pessoas e One-on-One",
+      "reviewedState": "review",
+      "pathPatterns": [
+        "People",
+        "OneOnOne"
+      ],
+      "pending": [
+        "Auditar toda a jornada, acesso a notas privadas e vínculo com ações.",
+        "Definir o conjunto mínimo a oferecer no lançamento."
+      ]
+    },
+    {
+      "name": "Processos e arquitetura",
+      "reviewedState": "review",
+      "pathPatterns": [
+        "Processes",
+        "Architecture"
+      ],
+      "pending": [
+        "Verificar formulários e transições de ponta a ponta.",
+        "Consolidar sobreposições com execução e governança."
+      ]
+    },
+    {
+      "name": "Conhecimento e Advisor",
+      "reviewedState": "review",
+      "pathPatterns": [
+        "Knowledge",
+        "Advisor"
+      ],
+      "pending": [
+        "Homologar provedores, limites, fundamentação e proteção do contexto.",
+        "Demonstrar respostas com fontes e tratamento de informação insuficiente."
+      ]
+    },
+    {
+      "name": "Governança e operação comercial",
+      "reviewedState": "review",
+      "pathPatterns": [
+        "Saas",
+        "Governance",
+        "RiskCompliance",
+        "Subscription"
+      ],
+      "pending": [
+        "Homologar contratação, cobrança e integrações realmente utilizadas.",
+        "Validar restauração, monitoramento e procedimentos de lançamento.",
+        "Não prometer operação comercial completa a partir da existência de telas."
+      ]
+    }
+  ],
+  "rules": [
+    {
+      "id": "RN01",
+      "title": "Isolamento entre clientes",
+      "rule": "Consultar e gravar no contexto autorizado da organização.",
+      "state": "Base implementada; validar matriz integral",
+      "acceptance": "Acesso cruzado negado por URL e API."
+    },
+    {
+      "id": "RN02",
+      "title": "Perfil e contratação",
+      "rule": "Permissão e funcionalidade contratada são verificações distintas.",
+      "state": "Implementação identificada nos fluxos centrais",
+      "acceptance": "Perfil de consulta não grava; contratação bloqueada impede comando."
+    },
+    {
+      "id": "RN03",
+      "title": "Preparação explícita",
+      "rule": "Objetivo, público e responsável devem refletir dados persistidos.",
+      "state": "Parcial: nome ainda possui fallback",
+      "acceptance": "Sem designação, mostrar ausência de responsável."
+    },
+    {
+      "id": "RN04",
+      "title": "Publicação validada",
+      "rule": "Falha da revisão não significa aprovação.",
+      "state": "Correção identificada; validar jornada",
+      "acceptance": "Interface bloqueia e servidor revalida requisitos."
+    },
+    {
+      "id": "RN05",
+      "title": "Versão metodológica",
+      "rule": "Preservar o instrumento das respostas já coletadas.",
+      "state": "Base implementada",
+      "acceptance": "Mudança incompatível é rejeitada e histórico preservado."
+    },
+    {
+      "id": "RN06",
+      "title": "Consentimento e respostas",
+      "rule": "Validar consentimento, obrigatoriedade, tipos e limites.",
+      "state": "Código e testes identificados",
+      "acceptance": "Rejeitar inválidas e permitir opcionais vazias."
+    },
+    {
+      "id": "RN07",
+      "title": "Repetição e concorrência",
+      "rule": "Evitar duplicidade e sobrescrita silenciosa.",
+      "state": "Parcial: versão não positiva ainda aceita",
+      "acceptance": "Comando repetido não duplica; versão inválida é recusada."
+    },
+    {
+      "id": "RN08",
+      "title": "Indicadores por diagnóstico",
+      "rule": "Separar destinatários, mensagens, respostas e tarefas.",
+      "state": "Correção identificada",
+      "acceptance": "Duas pesquisas mantêm indicadores independentes."
+    },
+    {
+      "id": "RN09",
+      "title": "Ausência não é zero",
+      "rule": "Não inventar score qualitativo nem taxa sem denominador.",
+      "state": "Base implementada",
+      "acceptance": "Exibir não aplicável ou informação insuficiente."
+    },
+    {
+      "id": "RN10",
+      "title": "Evidência e revisão",
+      "rule": "Distinguir fato, hipótese, sugestão e decisão revisada.",
+      "state": "Parcial: origens e textos exigem refinamento",
+      "acceptance": "Conclusão tem fonte, limitação e revisão aplicável."
+    },
+    {
+      "id": "RN11",
+      "title": "Ação rastreável",
+      "rule": "Plano com origem correta, responsável, prazo e conclusão verificável.",
+      "state": "Base implementada; validar jornada",
+      "acceptance": "Outro insight não herda vínculo pelo mesmo diagnóstico."
+    },
+    {
+      "id": "RN12",
+      "title": "Comparabilidade",
+      "rule": "Calcular variação somente entre medições comparáveis.",
+      "state": "Base implementada",
+      "acceptance": "Método incompatível não produz delta enganoso."
+    },
+    {
+      "id": "RN13",
+      "title": "Privacidade da escuta",
+      "rule": "Não inferir identidade de resposta anônima.",
+      "state": "Critério obrigatório de homologação",
+      "acceptance": "Listas e relatórios respeitam anonimato."
+    },
+    {
+      "id": "RN14",
+      "title": "Homologação repetível",
+      "rule": "Reaplicar dados fictícios sem redefinir credenciais ou estados.",
+      "state": "Correção pendente",
+      "acceptance": "Preservar alterações de teste e acessos por perfil."
+    },
+    {
+      "id": "RN15",
+      "title": "Menu honesto",
+      "rule": "Página futura explica finalidade sem simular operações.",
+      "state": "Componente criado; ligação pendente",
+      "acceptance": "Sem botão fictício; destino canônico por operação."
+    },
+    {
+      "id": "RN16",
+      "title": "Onboarding comprovável",
+      "rule": "Concluir etapas com base em registros reais.",
+      "state": "Parcial: checklist em cookie",
+      "acceptance": "Estado operacional não depende apenas da marcação no navegador."
+    }
+  ],
+  "blockers": [
+    {
+      "id": "IT01",
+      "severity": "Alta",
+      "title": "Concorrência na preparação",
+      "evidence": "RowVersion não positivo contorna comparação.",
+      "ownerRole": "Backend",
+      "resolution": "Recusar versão inválida e testar conflito."
+    },
+    {
+      "id": "IT02",
+      "severity": "Alta",
+      "title": "Seed de homologação",
+      "evidence": "Reaplicação redefine credenciais e estados.",
+      "ownerRole": "Backend e banco",
+      "resolution": "Retirar senha fixa e preservar dados editados."
+    },
+    {
+      "id": "IT03",
+      "severity": "Alta",
+      "title": "Ambiente de validação",
+      "evidence": "Sem execução nesta revisão de .NET, PostgreSQL, login e navegador da aplicação.",
+      "ownerRole": "QA / infraestrutura",
+      "resolution": "Disponibilizar ambiente e registrar resultados por versão."
+    },
+    {
+      "id": "IT04",
+      "severity": "Média",
+      "title": "Responsável implícito",
+      "evidence": "Nome pode vir do criador sem designação.",
+      "ownerRole": "Backend",
+      "resolution": "Mostrar ausência e validar associação."
+    },
+    {
+      "id": "IT05",
+      "severity": "Média",
+      "title": "Página futura desconectada",
+      "evidence": "View criada, sem referências de uso encontradas.",
+      "ownerRole": "Frontend",
+      "resolution": "Ligar páginas planejadas ao componente."
+    },
+    {
+      "id": "IT06",
+      "severity": "Média",
+      "title": "Teste com saída silenciosa",
+      "evidence": "Um teste retorna se falta conexão.",
+      "ownerRole": "QA",
+      "resolution": "Registrar como não executado, nunca aceite."
+    },
+    {
+      "id": "IT07",
+      "severity": "Média",
+      "title": "Menu amplo",
+      "evidence": "165 entradas; consolidação integral não demonstrada.",
+      "ownerRole": "Produto / frontend",
+      "resolution": "Inventariar por perfil e unificar equivalências."
+    },
+    {
+      "id": "IT08",
+      "severity": "Média",
+      "title": "Entrega de e-mail",
+      "evidence": "Envio real não homologado nesta análise.",
+      "ownerRole": "Integrações / QA",
+      "resolution": "Validar entrega e falhas em ambiente controlado."
+    }
+  ],
+  "questions": [
+    {
+      "id": "D01",
+      "question": "Qual o escopo mínimo da versão comercial?",
+      "ownerRole": "Produto e cliente",
+      "decisionNeeded": "Definir módulos do aceite e os que ficam em desenvolvimento."
+    },
+    {
+      "id": "D02",
+      "question": "Quem aprova a metodologia e as interpretações?",
+      "ownerRole": "Responsável metodológico",
+      "decisionNeeded": "Definir papel e evidências de aprovação."
+    },
+    {
+      "id": "D03",
+      "question": "Quais regras de anonimato e recorte mínimo?",
+      "ownerRole": "Produto / privacidade",
+      "decisionNeeded": "Aprovar política dos relatórios segmentados."
+    },
+    {
+      "id": "D04",
+      "question": "Quais planos e limites entram na demonstração?",
+      "ownerRole": "Comercial",
+      "decisionNeeded": "Confirmar configuração vigente, sem inventar preços."
+    },
+    {
+      "id": "D05",
+      "question": "Quem homologa e em qual ambiente?",
+      "ownerRole": "Cliente / QA",
+      "decisionNeeded": "Definir responsáveis, contas e roteiro de aceite."
+    },
+    {
+      "id": "D06",
+      "question": "Qual capacidade de equipe sustenta o calendário?",
+      "ownerRole": "Gestão do projeto",
+      "decisionNeeded": "Aprovar estimativas; datas atuais são propostas."
+    },
+    {
+      "id": "D07",
+      "question": "Quais integrações são obrigatórias para lançar?",
+      "ownerRole": "Produto / operações",
+      "decisionNeeded": "Priorizar e-mail, IA e contratação conforme escopo."
+    }
+  ],
+  "nextSprints": [
+    {
+      "title": "Confiabilidade e regressão",
+      "outcome": "As telas mostram somente dados sustentados e os comandos preservam integridade.",
+      "tasks": [
+        "Corrigir responsável implícito e versão de concorrência opcional.",
+        "Remover afirmações de evidência sem suporte.",
+        "Executar banco limpo, reaplicação e testes da versão atual."
+      ],
+      "accept": "Preparar, publicar e consultar diagnósticos distintos sem mistura de dados.",
+      "dependency": "Primeira prioridade",
+      "id": "P1",
+      "status": "Planejada · execução não comprovada",
+      "start": "2026-10-19",
+      "end": "2026-10-23",
+      "ownerRole": "Backend e QA"
+    },
+    {
+      "title": "Menu e formulários completos",
+      "outcome": "Uma operação tem um destino claro; páginas futuras explicam seu propósito.",
+      "tasks": [
+        "Consolidar entradas equivalentes com compatibilidade de rotas.",
+        "Aplicar a tela “Em desenvolvimento” onde o recurso ainda não existe.",
+        "Validar salvar, editar, consultar e inativar conforme cada regra."
+      ],
+      "accept": "Nenhum botão sem função e nenhuma página vazia na jornada homologada.",
+      "dependency": "Após estabilizar os fluxos envolvidos",
+      "id": "P2",
+      "status": "Planejada · execução não comprovada",
+      "start": "2026-10-26",
+      "end": "2026-10-30",
+      "ownerRole": "Frontend e produto"
+    },
+    {
+      "title": "Homologação por cliente e perfil",
+      "outcome": "Demonstração repetível com acesso e dados seguros.",
+      "tasks": [
+        "Corrigir o seed e preservar dados já editados.",
+        "Testar organizações, perfis, planos e isolamento.",
+        "Comprovar login e tarefas reais pelo navegador."
+      ],
+      "accept": "Cada conta executa somente as operações permitidas; o seed não desfaz a homologação.",
+      "dependency": "Depende de estabilidade e formulários",
+      "id": "P3",
+      "status": "Planejada · execução não comprovada",
+      "start": "2026-11-02",
+      "end": "2026-11-06",
+      "ownerRole": "QA e banco"
+    },
+    {
+      "title": "Devolutiva e experiência executiva",
+      "outcome": "O cliente recebe uma leitura compreensível e transforma prioridades em ações.",
+      "tasks": [
+        "Completar origem do achado até o plano.",
+        "Homologar relatório, exportação e compartilhamento.",
+        "Testar responsividade, acessibilidade e onboarding verificável."
+      ],
+      "accept": "Diagnóstico → decisão → plano → relatório, com contexto preservado.",
+      "dependency": "Depende da jornada validada",
+      "id": "P4",
+      "status": "Planejada · execução não comprovada",
+      "start": "2026-11-09",
+      "end": "2026-11-13",
+      "ownerRole": "Produto e metodologia"
+    },
+    {
+      "title": "Liberação comercial controlada",
+      "outcome": "Uma versão com escopo definido e evidências de operação.",
+      "tasks": [
+        "Validar integrações habilitadas e contratação.",
+        "Exercitar backup e restauração em ambiente de teste.",
+        "Aprovar roteiro de aceite e registrar limitações de lançamento."
+      ],
+      "accept": "Aceite técnico e do cliente para a versão e o escopo liberados.",
+      "dependency": "Depende dos quatro marcos anteriores",
+      "id": "P5",
+      "status": "Planejada · execução não comprovada",
+      "start": "2026-11-16",
+      "end": "2026-11-20",
+      "ownerRole": "Operações e cliente"
+    }
+  ],
+  "calendarStatus": "Proposta não aprovada; estimativas dependem de equipe, ambiente e aceite."
+}

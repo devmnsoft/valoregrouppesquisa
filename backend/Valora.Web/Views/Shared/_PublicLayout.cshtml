@@ -18,11 +18,13 @@
   <link rel="stylesheet" href="~/css/valora-commercial.css" asp-append-version="true">
   <link rel="stylesheet" href="~/css/valora-print.css" media="print" asp-append-version="true">
   @await RenderSectionAsync("Styles", required: false)
+<link rel="stylesheet" href="~/css/valora-readability.css" asp-append-version="true">
 </head>
 <body class="public-body">
   <a class="skip-link" href="#app">Ir para o conteúdo principal</a>
   @await Html.PartialAsync("Public/_PublicTopbar")
-  <main id="app" class="public-main" tabindex="-1">@RenderBody()</main>
+  <main id="app" class="public-main" tabindex="-1">@await Component.InvokeAsync("PageExperience")
+      @RenderBody()</main>
   @await Html.PartialAsync("Public/_PublicFooter")
   @await Html.PartialAsync("Public/_PublicModalLayer")
   @await Html.PartialAsync("Public/_PublicToastZone")

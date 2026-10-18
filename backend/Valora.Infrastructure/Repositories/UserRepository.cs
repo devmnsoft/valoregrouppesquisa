@@ -96,12 +96,17 @@ public sealed class UserRepository(IDbConnectionFactory factory, ILogger<UserRep
                        WHERE scu.user_id=u.id AND scu.status='active'
                          AND sli.identifier_type=@IdentifierType AND sli.normalized_value=@NormalizedIdentifier))
              ORDER BY u.id LIMIT 2
+<<<<<<< HEAD
             )
             SELECT c.Id, c.OrganizationId, c.Name, c.Email, c.PasswordHash, c.Status, c.Phone, c.RoleCodesCsv
               FROM candidates c
              WHERE (SELECT count(1) FROM candidates) = 1;
+=======
+            ) SELECT * FROM candidates WHERE (SELECT count(*) FROM candidates) = 1;
+>>>>>>> fb507c2b772e175cc76a61dc7b85b26da78c3981
             """;
         try {
+            // Ambiguous identifiers never select an arbitrary organization.
             var row = await connection.QuerySingleOrDefaultAsync<AuthUserRow>(new CommandDefinition(sql,
                 new { IdentifierType = identifierType, NormalizedIdentifier = normalizedIdentifier }));
             return row is null ? null : new UserAuthenticationRecord(row.Id, row.OrganizationId, row.Name, row.Email,

@@ -174,10 +174,14 @@
         items.forEach(item => {
           if (!item.hidden) {
             const checkbox = item.querySelector('input[type="checkbox"]');
+<<<<<<< HEAD
             if (checkbox && !checkbox.disabled && !checkbox.checked) {
               checkbox.checked = true;
               checkbox.dispatchEvent(new Event('change', { bubbles: true }));
             }
+=======
+            if (checkbox && !checkbox.disabled && !checkbox.checked) { checkbox.checked = true; checkbox.dispatchEvent(new Event('change', { bubbles: true })); }
+>>>>>>> fb507c2b772e175cc76a61dc7b85b26da78c3981
           }
         });
         updateState();
@@ -191,10 +195,14 @@
         e.preventDefault();
         items.forEach(item => {
           const checkbox = item.querySelector('input[type="checkbox"]');
+<<<<<<< HEAD
           if (checkbox && !checkbox.disabled && checkbox.checked) {
             checkbox.checked = false;
             checkbox.dispatchEvent(new Event('change', { bubbles: true }));
           }
+=======
+          if (checkbox && !checkbox.disabled && checkbox.checked) { checkbox.checked = false; checkbox.dispatchEvent(new Event('change', { bubbles: true })); }
+>>>>>>> fb507c2b772e175cc76a61dc7b85b26da78c3981
         });
         updateState();
         container.dispatchEvent(new CustomEvent('valora:checkbox-list:changed', { bubbles: true }));
@@ -206,8 +214,12 @@
       filterInput.addEventListener('input', () => {
         const query = filterInput.value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
         items.forEach(item => {
+<<<<<<< HEAD
           const text = (item.dataset.searchName || item.querySelector('.valora-checkbox-item__name')?.textContent || item.textContent || '')
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+=======
+          const text = (item.dataset.searchName || item.querySelector('label')?.textContent || item.textContent || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+>>>>>>> fb507c2b772e175cc76a61dc7b85b26da78c3981
           const matches = !query || text.includes(query);
           item.hidden = !matches;
         });

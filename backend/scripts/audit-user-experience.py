@@ -4,7 +4,11 @@ import json,re
 root=Path(__file__).resolve().parents[1]/'Valora.Web'
 rows=[]
 for p in sorted((root/'Views').rglob('*.cshtml')):
+<<<<<<< HEAD
  text=p.read_text(encoding='utf-8', errors='ignore')
+=======
+ text=p.read_text()
+>>>>>>> fb507c2b772e175cc76a61dc7b85b26da78c3981
  if '<form' not in text: continue
  rows.append({'page':str(p.relative_to(root)), 'forms':len(re.findall(r'<form\b',text)), 'required_fields':len(re.findall(r'\brequired\b',text)), 'validation_helpers':len(re.findall(r'asp-validation-for|asp-validation-summary',text)), 'manual_id_labels':re.findall(r'<label[^>]*>[^<]*(?:\bID\b|\bUUID\b)[^<]*',text), 'review':'Inspect API rules, rendered selectors, dynamic forms and actual persistence; HTML alone does not prove validation.'})
 print(json.dumps({'scope':'Razor forms only; dynamic JavaScript forms also require review','pages':rows},ensure_ascii=False,indent=2))

@@ -170,60 +170,60 @@
     // Select all action
     if (selectAllBtn) {
       selectAllBtn.addEventListener('click', e => {
-        e.preventDefault();
-        items.forEach(item => {
-          if (!item.hidden) {
-            const checkbox = item.querySelector('input[type="checkbox"]');
-<<<<<<< HEAD
-            if (checkbox && !checkbox.disabled && !checkbox.checked) {
-              checkbox.checked = true;
-              checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+        try {
+          e.preventDefault();
+          items.forEach(item => {
+            if (!item.hidden) {
+              const checkbox = item.querySelector('input[type="checkbox"]');
+              if (checkbox && !checkbox.disabled && !checkbox.checked) {
+                checkbox.checked = true;
+                checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+              }
             }
-=======
-            if (checkbox && !checkbox.disabled && !checkbox.checked) { checkbox.checked = true; checkbox.dispatchEvent(new Event('change', { bubbles: true })); }
->>>>>>> fb507c2b772e175cc76a61dc7b85b26da78c3981
-          }
-        });
-        updateState();
-        container.dispatchEvent(new CustomEvent('valora:checkbox-list:changed', { bubbles: true }));
+          });
+          updateState();
+          container.dispatchEvent(new CustomEvent('valora:checkbox-list:changed', { bubbles: true }));
+        } catch (err) {
+          console.error('[ValoraForms] Erro ao selecionar todos os itens:', err);
+        }
       });
     }
 
     // Clear all action
     if (clearAllBtn) {
       clearAllBtn.addEventListener('click', e => {
-        e.preventDefault();
-        items.forEach(item => {
-          const checkbox = item.querySelector('input[type="checkbox"]');
-<<<<<<< HEAD
-          if (checkbox && !checkbox.disabled && checkbox.checked) {
-            checkbox.checked = false;
-            checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-=======
-          if (checkbox && !checkbox.disabled && checkbox.checked) { checkbox.checked = false; checkbox.dispatchEvent(new Event('change', { bubbles: true })); }
->>>>>>> fb507c2b772e175cc76a61dc7b85b26da78c3981
-        });
-        updateState();
-        container.dispatchEvent(new CustomEvent('valora:checkbox-list:changed', { bubbles: true }));
+        try {
+          e.preventDefault();
+          items.forEach(item => {
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            if (checkbox && !checkbox.disabled && checkbox.checked) {
+              checkbox.checked = false;
+              checkbox.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+          });
+          updateState();
+          container.dispatchEvent(new CustomEvent('valora:checkbox-list:changed', { bubbles: true }));
+        } catch (err) {
+          console.error('[ValoraForms] Erro ao desmarcar todos os itens:', err);
+        }
       });
     }
 
     // Search / filter by name action
     if (filterInput) {
       filterInput.addEventListener('input', () => {
-        const query = filterInput.value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
-        items.forEach(item => {
-<<<<<<< HEAD
-          const text = (item.dataset.searchName || item.querySelector('.valora-checkbox-item__name')?.textContent || item.textContent || '')
-            .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
-=======
-          const text = (item.dataset.searchName || item.querySelector('label')?.textContent || item.textContent || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
->>>>>>> fb507c2b772e175cc76a61dc7b85b26da78c3981
-          const matches = !query || text.includes(query);
-          item.hidden = !matches;
-        });
-        updateState();
+        try {
+          const query = filterInput.value.trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+          items.forEach(item => {
+            const text = (item.dataset.searchName || item.querySelector('.valora-checkbox-item__name')?.textContent || item.querySelector('label')?.textContent || item.textContent || '')
+              .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR');
+            const matches = !query || text.includes(query);
+            item.hidden = !matches;
+          });
+          updateState();
+        } catch (err) {
+          console.error('[ValoraForms] Erro ao filtrar itens:', err);
+        }
       });
     }
 

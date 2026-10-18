@@ -1,51 +1,824 @@
 (() => {
-  const root=document.querySelector('[data-enterprise-console]'); if(!root)return;
-  const content=root.querySelector('[data-content]'),loading=root.querySelector('[data-loading]'),error=root.querySelector('[data-error]');
-  const token=document.querySelector('meta[name="csrf-token"]')?.content;
-  const safe=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  async function api(path,options={}){loading.hidden=false;error.classList.add('d-none');try{const hasBody=Boolean(options.body);const headers={Accept:'application/json',...(token?{'X-CSRF-TOKEN':token}:{}),...(hasBody?{'Content-Type':'application/json'}:{}),...options.headers};const response=await fetch('/bff/enterprise/'+path,{...options,headers});if(!response.ok)throw new Error();return response.status===204?null:await response.json();}catch{error.classList.remove('d-none');throw new Error('friendly');}finally{loading.hidden=true;}}
-  const empty=()=>document.querySelector('#enterprise-empty').innerHTML;
-  const badge=x=>`<span class="enterprise-badge enterprise-badge--${safe(x)}">${safe(x).replaceAll('_',' ')}</span>`;
-  async function releaseInfo(){const x=await api('release-info');const pill=root.querySelector('[data-environment]');pill.textContent=x.isHomologation?'Área de configuração':`${x.environment} · v${x.version}`;pill.classList.toggle('is-homologation',x.isHomologation);return x;}
-  async function overview(){const x=await api('summary');content.innerHTML=`<div class="metric-grid">${[['Empresas',x.companies],['Em risco',x.atRisk],['Trials vencendo',x.trialsEnding],['Próximas do limite',x.nearLimit],['Leads ativos',x.activeLeads],['Receita recorrente',Number(x.monthlyRecurringRevenue).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})]].map(([a,b])=>`<article class="enterprise-metric"><span>${a}</span><strong>${b}</strong></article>`).join('')}</div><section class="enterprise-panel"><h2>Inteligência da Carteira</h2><p>Priorize contas em risco, trials e oportunidades de expansão usando os indicadores consolidados acima.</p></section>`;}
-  const companyFilterState={search:'',status:'',plan:'',from:'',to:'',page:1,pageSize:25};
-  const companyStatusLabels={active:'Ativa',onboarding:'Em implantação',at_risk:'Em risco',blocked:'Bloqueada',cancelled:'Cancelada',trial:'Trial',delinquent:'Inadimplente'};
-  const companyHealthLabels={healthy:'Saudável',attention:'Atenção',critical:'Crítica'};
-  const formatDate=value=>value?new Intl.DateTimeFormat('pt-BR').format(new Date(value)):'Sem atividade';
-  const queryString=state=>{const q=new URLSearchParams();Object.entries(state).forEach(([key,value])=>{if(value!==''&&value!=null)q.set(key,value);});return q.toString();};
-  async function companies(){
-    const x=await api(`companies?${queryString(companyFilterState)}`), pages=Math.max(1,Math.ceil(x.total/x.pageSize));
-    const active=x.items.filter(i=>i.status==='active').length,attention=x.items.filter(i=>i.health==='attention'||i.health==='critical'||i.status==='at_risk').length,nearLimit=x.items.filter(i=>i.usagePercent>=80).length;
-    content.innerHTML=`<section class="company-workspace">
-      <div class="company-intro"><div><p class="eyebrow">Gestão de carteira</p><h2>Empresas e clientes</h2><p>Acompanhe saúde, assinatura e consumo. Use os filtros para priorizar contas e selecione uma empresa para consultar sua operação.</p></div><a class="btn btn-primary" href="/Admin/Organizations/Create">＋ Nova empresa</a></div>
-      <div class="company-summary" aria-label="Resumo da página"><article><span>Resultados</span><strong>${x.total}</strong><small>empresas na carteira</small></article><article><span>Ativas nesta página</span><strong>${active}</strong><small>operação disponível</small></article><article><span>Pedem atenção</span><strong>${attention}</strong><small>saúde ou risco comercial</small></article><article><span>Próximas do limite</span><strong>${nearLimit}</strong><small>80% ou mais de consumo</small></article></div>
-      <form class="company-filters enterprise-panel" data-company-filters>
-        <label class="company-search"><span>Nome, CNPJ ou e-mail</span><input class="form-control" name="search" type="search" value="${safe(companyFilterState.search)}" placeholder="Busque uma empresa"></label>
-        <label><span>Status</span><select class="form-select" name="status"><option value="">Todos</option>${Object.entries(companyStatusLabels).map(([v,l])=>`<option value="${v}" ${companyFilterState.status===v?'selected':''}>${l}</option>`).join('')}</select></label>
-        <label><span>Plano</span><select class="form-select" name="plan"><option value="">Todos</option>${[['free','Free'],['start','Start'],['growth','Growth'],['enterprise','Enterprise']].map(([v,l])=>`<option value="${v}" ${companyFilterState.plan===v?'selected':''}>${l}</option>`).join('')}</select></label>
-        <label><span>De</span><input class="form-control" name="from" type="date" value="${safe(companyFilterState.from)}"></label><label><span>Até</span><input class="form-control" name="to" type="date" value="${safe(companyFilterState.to)}"></label>
-        <div class="company-filter-actions"><button class="btn btn-primary">Aplicar filtros</button><button class="btn btn-light" type="button" data-clear-filters>Limpar</button></div>
-      </form>
-      <section class="enterprise-panel company-list"><div class="panel-heading"><div><h3>Carteira de empresas</h3><p>${x.total?`Exibindo ${((x.page-1)*x.pageSize)+1}–${Math.min(x.page*x.pageSize,x.total)} de ${x.total}`:'Nenhuma empresa corresponde aos filtros.'}</p></div></div>
-      ${x.items.length?`<div class="table-responsive"><table class="table company-table"><thead><tr><th>Empresa</th><th>Plano</th><th>Saúde</th><th>Consumo</th><th>Status</th><th>Última atividade</th><th><span class="visually-hidden">Ações</span></th></tr></thead><tbody>${x.items.map(i=>`<tr><td><strong>${safe(i.name)}</strong><small>${safe(i.cnpj||i.email||'Cadastro sem CNPJ')}</small></td><td><span class="plan-chip plan-chip--${safe(i.planCode||'none')}">${safe(i.planName||'Sem plano')}</span></td><td>${badge(companyHealthLabels[i.health]||i.health)}</td><td><div class="usage-cell"><span><i style="width:${Math.min(100,Math.max(0,i.usagePercent))}%"></i></span><b>${i.usagePercent}%</b></div></td><td>${badge(companyStatusLabels[i.status]||i.status)}</td><td>${formatDate(i.lastActivityAt)}</td><td><div class="company-actions"><a class="btn btn-sm btn-light" href="/Admin/Organizations/Details/${i.id}">Visualizar</a><button class="btn btn-sm ${i.status==='blocked'?'btn-outline-success':'btn-outline-danger'}" data-company="${i.id}" data-status="${i.status==='blocked'?'active':'blocked'}" data-company-name="${safe(i.name)}">${i.status==='blocked'?'Desbloquear':'Bloquear'}</button></div></td></tr>`).join('')}</tbody></table></div>`:`<div class="enterprise-empty"><strong>Nenhuma empresa encontrada</strong><p>Revise os filtros ou cadastre uma nova empresa para iniciar a gestão da carteira.</p><a class="btn btn-primary" href="/Admin/Organizations/Create">Nova empresa</a></div>`}
-      ${pages>1?`<nav class="company-pagination" aria-label="Paginação"><button class="btn btn-light" data-page="${x.page-1}" ${x.page<=1?'disabled':''}>← Anterior</button><span>Página <strong>${x.page}</strong> de ${pages}</span><button class="btn btn-light" data-page="${x.page+1}" ${x.page>=pages?'disabled':''}>Próxima →</button></nav>`:''}</section></section>`;
-    content.querySelector('[data-company-filters]').onsubmit=e=>{e.preventDefault();const f=new FormData(e.currentTarget);Object.assign(companyFilterState,{search:f.get('search').trim(),status:f.get('status'),plan:f.get('plan'),from:f.get('from'),to:f.get('to'),page:1});companies();};
-    content.querySelector('[data-clear-filters]').onclick=()=>{Object.assign(companyFilterState,{search:'',status:'',plan:'',from:'',to:'',page:1});companies();};
-    content.querySelectorAll('[data-page]').forEach(b=>b.onclick=()=>{companyFilterState.page=Number(b.dataset.page);companies();});
-    content.querySelectorAll('[data-company]').forEach(b=>b.onclick=async()=>{if(!await window.ValoraUI.confirm(`${b.dataset.status==='blocked'?'Bloquear':'Desbloquear'} ${b.dataset.companyName}?`))return;b.disabled=true;await api(`companies/${b.dataset.company}/status`,{method:'PATCH',body:JSON.stringify({status:b.dataset.status})});companies();});
+  'use strict';
+
+  const root = document.querySelector('[data-enterprise-console]');
+  if (!root) return;
+
+  const content = root.querySelector('[data-content]');
+  const loading = root.querySelector('[data-loading]');
+  const error = root.querySelector('[data-error]');
+  const token = document.querySelector('meta[name="csrf-token"]')?.content;
+
+  const safe = s => String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[c]));
+
+  async function api(path, options = {}) {
+    if (loading) loading.hidden = false;
+    if (error) error.classList.add('d-none');
+    try {
+      const hasBody = Boolean(options.body);
+      const headers = {
+        Accept: 'application/json',
+        ...(token ? { 'X-CSRF-TOKEN': token } : {}),
+        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+        ...options.headers
+      };
+      const response = await fetch('/bff/enterprise/' + path, { ...options, headers });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      return response.status === 204 ? null : await response.json();
+    } catch (err) {
+      if (error) error.classList.remove('d-none');
+      console.error('[EnterpriseConsole] Erro na requisição API:', err);
+      throw new Error('friendly');
+    } finally {
+      if (loading) loading.hidden = true;
+    }
   }
-  async function crm(){const x=await api('crm/leads?pageSize=50');content.innerHTML=`<section class="enterprise-panel"><div class="panel-heading"><div><h2>CRM comercial</h2><p>Funil simples, próxima ação e responsável.</p></div><button class="btn btn-primary" data-new-lead>Novo lead</button></div><div class="funnel">${['new','contact','meeting','proposal','negotiation','won'].map(s=>`<span>${safe(s)} <b>${x.items.filter(i=>i.status===s).length}</b></span>`).join('')}</div>${x.items.length?`<div class="table-responsive"><table class="table"><tbody>${x.items.map(i=>`<tr><td><strong>${safe(i.name)}</strong><small>${safe(i.companyName)}</small></td><td>${badge(i.status)}</td><td>${safe(i.intendedPlan||'A definir')}</td><td>${safe(i.owner||'Sem responsável')}</td><td><a href="https://wa.me/${safe((i.phone||'').replace(/\D/g,''))}" target="_blank" rel="noopener">WhatsApp</a></td></tr>`).join('')}</tbody></table></div>`:empty()}</section>`;content.querySelector('[data-new-lead]').onclick=()=>leadForm();}
-  function leadForm(){content.innerHTML=`<form class="enterprise-panel enterprise-form" data-lead><h2>Novo lead</h2><label>Nome<input name="name" required maxlength="160"></label><label>Empresa<input name="companyName"></label><label>E-mail<input name="email" type="email"></label><label>WhatsApp<input name="phone"></label><label>Plano pretendido<select name="intendedPlan"><option>Essencial</option><option>Profissional</option><option>Enterprise</option></select></label><label>Responsável<input name="owner"></label><label class="span-2">Observações<textarea name="notes"></textarea></label><div class="span-2"><button class="btn btn-primary">Salvar lead</button> <button type="button" class="btn btn-light" data-cancel>Cancelar</button></div></form>`;content.querySelector('[data-cancel]').onclick=crm;content.querySelector('form').onsubmit=async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.target));await api('crm/leads',{method:'POST',body:JSON.stringify(data)});crm();};}
-  async function items(kind){const rows=await api('items/'+kind);content.innerHTML=`<section class="enterprise-panel"><div class="panel-heading"><div><h2>${safe(kind[0].toUpperCase()+kind.slice(1))}</h2><p>Configuração operacional com status, detalhes protegidos e histórico de alteração.</p></div><button class="btn btn-primary" data-new>Novo registro</button></div>${rows.length?`<div class="enterprise-card-grid">${rows.map(i=>`<article class="enterprise-item"><div>${badge(i.status)}<h3>${safe(i.name)}</h3></div><button class="btn btn-sm btn-outline-primary" data-edit='${safe(JSON.stringify(i))}'>Editar</button></article>`).join('')}</div>`:empty()}</section>`;content.querySelector('[data-new]').onclick=()=>itemForm(kind);content.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>itemForm(kind,JSON.parse(b.dataset.edit)));}
-  const steps=['Cadastro da empresa','Validação de CNPJ e dados','Configuração de plano','Cadastro de unidade principal','Cadastro de setores','Convite dos gestores','Configuração de identidade visual','Escolha do template de pesquisa','Publicação da primeira pesquisa','Validação do link público','Teste de resultado','Teste de relatório','Teste de certificado','Treinamento do cliente','Go-live'];
-  const checks=['Empresa cadastrada','Plano ativo','Assinatura configurada','Unidade principal criada','Setores cadastrados','Usuários administradores convidados','Permissões revisadas','Pesquisa de teste publicada','Resposta de teste realizada','Resultado gerado','Relatório testado','Certificado testado','LGPD configurada','Identidade visual revisada','Canais de suporte configurados','Backup ativo','Auditoria ativa','Logs sem erro crítico','Mobile validado','E-mail validado','WhatsApp validado'];
-  async function workflow(kind){const rows=await api('items/'+kind),title=kind==='implementation'?'Implantação assistida':'Checklist de Produção';content.innerHTML=`<section class="enterprise-panel"><div class="panel-heading"><div><p class="eyebrow">Governança operacional</p><h2>${title}</h2><p>${kind==='implementation'?'Conduza cada cliente até o go-live com responsáveis, prazos e evidências.':'Confirme a prontidão real antes de liberar a empresa em produção.'}</p></div><button class="btn btn-primary" data-new>${kind==='implementation'?'Nova implantação':'Novo checklist'}</button></div>${rows.length?`<div class="workflow-grid">${rows.map(i=>`<article class="workflow-card"><div>${badge(i.status)}<h3>${safe(i.name)}</h3><p>${safe(i.configuration.internalOwner||i.configuration.responsible||'Responsável não definido')}</p></div><div class="workflow-progress"><span style="width:${progress(i.configuration.steps||i.configuration.items)}%"></span></div><small>${progress(i.configuration.steps||i.configuration.items)}% concluído</small><button class="btn btn-outline-primary" data-edit='${safe(JSON.stringify(i))}'>Acompanhar</button></article>`).join('')}</div>`:empty()}</section>`;content.querySelector('[data-new]').onclick=()=>workflowForm(kind);content.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>workflowForm(kind,JSON.parse(b.dataset.edit)));}
-  const progress=list=>!list?.length?0:Math.round(list.filter(x=>x.status==='completed').length/list.length*100);
-  function workflowForm(kind,item){const implementation=kind==='implementation',list=item?.configuration?.[implementation?'steps':'items']||(implementation?steps:checks).map((name,index)=>({name,status:'pending',responsible:'',completedAt:null,note:'',actionUrl:implementation?'?module=implementation':'?module=production-checklist',order:index+1}));const cfg=item?.configuration||{};content.innerHTML=`<form class="enterprise-panel" data-workflow><div class="panel-heading"><div><h2>${item?'Acompanhar':'Criar'} ${implementation?'implantação':'checklist'}</h2><p>Alterações ficam persistidas e são registradas na auditoria.</p></div>${badge(item?.status||'planned')}</div><div class="enterprise-form"><label>Nome<input name="name" value="${safe(item?.name)}" required></label><label>Empresa (ID)<input name="organizationId" value="${safe(cfg.organizationId)}" required></label><label>Responsável Valora<input name="internalOwner" value="${safe(cfg.internalOwner||cfg.responsible)}" required></label><label>Responsável cliente<input name="clientOwner" value="${safe(cfg.clientOwner)}" ${implementation?'required':''}></label><label>Plano<input name="plan" value="${safe(cfg.plan)}" ${implementation?'required':''}></label><label>Início<input name="startDate" type="date" value="${safe(cfg.startDate)}" required></label><label>Previsão<input name="targetDate" type="date" value="${safe(cfg.targetDate)}" required></label><label>Status<select name="status">${(implementation?['planned','in_progress','blocked','homologation','completed','cancelled']:['pending','in_progress','completed','blocked','waived']).map(x=>`<option ${item?.status===x?'selected':''} value="${x}">${({planned:'Planejado',in_progress:'Em andamento',blocked:'Bloqueado',homologation:'Em revisão',completed:'Concluído',cancelled:'Cancelado',pending:'Pendente',waived:'Dispensado'}[x]||x)}</option>`).join('')}</select></label><label class="span-2">Observações<textarea name="notes">${safe(cfg.notes)}</textarea></label></div><ol class="workflow-timeline">${list.map((x,i)=>`<li><input type="checkbox" id="step-${i}" ${x.status==='completed'?'checked':''} data-step="${i}"><label for="step-${i}"><strong>${safe(x.name)}</strong><span>${x.status==='completed'?'Concluído':'Pendente'} · ${safe(x.responsible||'defina ao salvar')}</span></label><input aria-label="Responsável por ${safe(x.name)}" data-owner="${i}" value="${safe(x.responsible)}" placeholder="Responsável"><input aria-label="Observação de ${safe(x.name)}" data-note="${i}" value="${safe(x.note)}" placeholder="Observação"></li>`).join('')}</ol><div class="workflow-actions"><button class="btn btn-primary">Salvar e auditar</button><button type="button" class="btn btn-light" data-cancel>Cancelar</button></div></form>`;content.querySelector('[data-cancel]').onclick=()=>workflow(kind);content.querySelector('form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),updated=list.map((x,i)=>({...x,status:content.querySelector(`[data-step="${i}"]`).checked?'completed':'pending',responsible:content.querySelector(`[data-owner="${i}"]`).value,note:content.querySelector(`[data-note="${i}"]`).value,completedAt:content.querySelector(`[data-step="${i}"]`).checked?(x.completedAt||new Date().toISOString()):null}));const configuration={organizationId:f.get('organizationId'),internalOwner:f.get('internalOwner'),clientOwner:f.get('clientOwner'),plan:f.get('plan'),startDate:f.get('startDate'),targetDate:f.get('targetDate'),notes:f.get('notes'),[implementation?'steps':'items']:updated};await api(item?`items/${item.id}`:'items',{method:item?'PUT':'POST',body:JSON.stringify({kind,name:f.get('name'),status:f.get('status'),configuration})});workflow(kind);};}
-  async function releases(){const [rows,info]=await Promise.all([api('items/release-note'),releaseInfo()]);content.innerHTML=`<section class="enterprise-panel"><div class="panel-heading"><div><p class="eyebrow">Valora Insight™</p><h2>Novidades da Versão</h2><p>Versão ${safe(info.version)} · ${safe(info.releaseDate)} · build ${safe(info.build)}</p></div><button class="btn btn-primary" data-new>Publicar release note</button></div><div class="release-list">${rows.map(i=>`<article><div>${badge(i.status)}<h3>${safe(i.configuration.version)} · ${safe(i.name)}</h3></div><p>${safe(i.configuration.improvements||'Melhorias operacionais e de experiência.')}</p><small>${safe(i.configuration.impact||'Sem ação obrigatória.')}</small></article>`).join('')||empty()}</div></section>`;content.querySelector('[data-new]').onclick=()=>itemForm('release-note');}
-  function itemForm(kind,item){const statusByKind={backup:['current','delayed','failed','not_configured','validating'],'lgpd-request':['received','under_review','processing','completed','justifiably_refused']},statuses=statusByKind[kind]||['active','inactive','draft'];content.innerHTML=`<form class="enterprise-panel enterprise-form" data-item><h2>${item?'Editar':'Novo'} registro</h2><label>Nome<input name="name" value="${safe(item?.name)}" required></label><label>Status<select name="status">${statuses.map(x=>`<option value="${x}" ${item?.status===x?'selected':''}>${({planned:'Planejado',in_progress:'Em andamento',blocked:'Bloqueado',homologation:'Em revisão',completed:'Concluído',cancelled:'Cancelado',pending:'Pendente',waived:'Dispensado'}[x]||x)}</option>`).join('')}</select></label><label class="span-2">Configuração operacional (JSON sem segredos)<textarea name="configuration" rows="8">${safe(JSON.stringify(item?.configuration||(kind==='release-note'?{version:'8.0.0',improvements:'',fixes:'',modules:'',impact:'',recommendedActions:''}:{}),null,2))}</textarea></label><p class="span-2 text-muted">Segredos SMTP, webhook e tokens devem ser fornecidos exclusivamente por variáveis de ambiente. Informe somente evidências retornadas pelo provedor.</p><div class="span-2"><button class="btn btn-primary">Salvar e auditar</button> <button type="button" class="btn btn-light" data-cancel>Cancelar</button></div></form>`;content.querySelector('[data-cancel]').onclick=()=>kind==='release-note'?releases():items(kind);content.querySelector('form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);let configuration;try{configuration=JSON.parse(f.get('configuration'));}catch{toast?.error?.('A configuração precisa ser um JSON válido.'); return;}await api(item?`items/${item.id}`:'items',{method:item?'PUT':'POST',body:JSON.stringify({kind,name:f.get('name'),status:f.get('status'),configuration})});kind==='release-note'?releases():items(kind);};}
-  function imports(){content.innerHTML=`<section class="enterprise-panel"><h2>Migração assistida</h2><p>Simule e valide o CSV antes de qualquer execução. Nenhuma linha inválida será importada silenciosamente e a confirmação fica vinculada ao hash da prévia.</p><div class="enterprise-form"><label>Tipo<select data-import-type><option value="companies">Empresas</option><option value="users">Usuários</option><option value="units">Unidades</option><option value="departments">Setores</option><option value="surveys">Pesquisas</option><option value="responses">Respostas</option><option value="members">Membros</option><option value="respondents">Respondentes</option><option value="organization-structure">Estrutura organizacional</option></select></label><label>Arquivo CSV<input type="file" accept=".csv,text/csv" data-file></label><button class="btn btn-primary" data-preview>Simular e validar</button></div><div data-preview-result></div></section>`;content.querySelector('[data-preview]').onclick=async()=>{const file=content.querySelector('[data-file]').files[0];if(!file)return;const x=await api(`imports/${content.querySelector('[data-import-type]').value}/preview`,{method:'POST',body:JSON.stringify({content:await file.text()})});content.querySelector('[data-preview-result]').innerHTML=`<div class="alert ${x.invalid?'alert-warning':'alert-success'} mt-3">${x.valid} linhas válidas · ${x.invalid} linhas com apontamentos</div><ol>${x.rows.filter(r=>r.errors.length).map(r=>`<li>Linha ${r.line}: ${safe(r.errors.join(' '))}</li>`).join('')}</ol><p><small>Token da simulação: ${safe(x.confirmationToken)}</small></p>`;};}
-  function apiKeys(){content.innerHTML=`<form class="enterprise-panel enterprise-form" data-key><h2>API pública controlada</h2><p class="span-2">A chave é exibida somente uma vez. O banco mantém apenas hash SHA-256 e prefixo.</p><label>Nome da chave<input name="name" required></label><fieldset><legend>Escopos</legend>${['surveys','results','reports','certificates','units','departments'].map(x=>`<label><input type="checkbox" name="scope" value="${x}:read"> ${x}:read</label>`).join('')}</fieldset><button class="btn btn-primary">Criar chave</button><output class="span-2" data-secret></output></form>`;content.querySelector('form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),x=await api('api-keys',{method:'POST',body:JSON.stringify({name:f.get('name'),scopes:f.getAll('scope')})});content.querySelector('[data-secret]').innerHTML=`<div class="alert alert-warning"><strong>Copie agora:</strong><code>${safe(x.secret)}</code></div>`;};}
-  const render={overview,companies,implementation:()=>workflow('implementation'),'production-checklist':()=>workflow('production-checklist'),crm,imports,'release-note':releases,api:apiKeys};async function go(module){root.querySelectorAll('[data-module]').forEach(x=>x.classList.toggle('active',x.dataset.module===module));history.replaceState({},'',`?module=${module}`);try{await (render[module]||(()=>items(module)))();}catch{content.innerHTML=empty();}}
-  root.querySelectorAll('nav [data-module]').forEach(b=>b.onclick=()=>go(b.dataset.module));releaseInfo().catch(()=>{});go(new URLSearchParams(location.search).get('module')||root.dataset.module||'overview');
+
+  const empty = () => document.querySelector('#enterprise-empty')?.innerHTML || '<div class="enterprise-empty">Nenhum registro encontrado.</div>';
+  const badge = x => `<span class="enterprise-badge enterprise-badge--${safe(x)}">${safe(x).replaceAll('_', ' ')}</span>`;
+
+  async function releaseInfo() {
+    try {
+      const x = await api('release-info');
+      const pill = root.querySelector('[data-environment]');
+      if (pill) {
+        pill.textContent = x.isHomologation ? 'Área de configuração' : `${x.environment} · v${x.version}`;
+        pill.classList.toggle('is-homologation', x.isHomologation);
+      }
+      return x;
+    } catch (err) {
+      console.error('[EnterpriseConsole] Erro ao obter informações de release:', err);
+      return null;
+    }
+  }
+
+  async function overview() {
+    try {
+      const x = await api('summary');
+      content.innerHTML = `
+        <div class="metric-grid">
+          ${[
+            ['Empresas', x.companies],
+            ['Em risco', x.atRisk],
+            ['Trials vencendo', x.trialsEnding],
+            ['Próximas do limite', x.nearLimit],
+            ['Leads ativos', x.activeLeads],
+            ['Receita recorrente', Number(x.monthlyRecurringRevenue).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })]
+          ].map(([a, b]) => `<article class="enterprise-metric"><span>${a}</span><strong>${b}</strong></article>`).join('')}
+        </div>
+        <section class="enterprise-panel">
+          <h2>Inteligência da Carteira</h2>
+          <p>Priorize contas em risco, trials e oportunidades de expansão usando os indicadores consolidados acima.</p>
+        </section>`;
+    } catch (err) {
+      console.error('[EnterpriseConsole] Erro ao carregar visão geral:', err);
+      content.innerHTML = empty();
+    }
+  }
+
+  const companyFilterState = { search: '', status: '', plan: '', from: '', to: '', page: 1, pageSize: 25 };
+  const companyStatusLabels = {
+    active: 'Ativa',
+    onboarding: 'Em implantação',
+    at_risk: 'Em risco',
+    blocked: 'Bloqueada',
+    cancelled: 'Cancelada',
+    trial: 'Trial',
+    delinquent: 'Inadimplente'
+  };
+  const companyHealthLabels = { healthy: 'Saudável', attention: 'Atenção', critical: 'Crítica' };
+  const formatDate = value => value ? new Intl.DateTimeFormat('pt-BR').format(new Date(value)) : 'Sem atividade';
+  const queryString = state => {
+    const q = new URLSearchParams();
+    Object.entries(state).forEach(([key, value]) => {
+      if (value !== '' && value != null) q.set(key, value);
+    });
+    return q.toString();
+  };
+
+  async function companies() {
+    try {
+      const x = await api(`companies?${queryString(companyFilterState)}`);
+      const pages = Math.max(1, Math.ceil(x.total / x.pageSize));
+      const active = x.items.filter(i => i.status === 'active').length;
+      const attention = x.items.filter(i => i.health === 'attention' || i.health === 'critical' || i.status === 'at_risk').length;
+      const nearLimit = x.items.filter(i => i.usagePercent >= 80).length;
+
+      content.innerHTML = `
+        <section class="company-workspace">
+          <div class="company-intro">
+            <div>
+              <p class="eyebrow">Gestão de carteira</p>
+              <h2>Empresas e clientes</h2>
+              <p>Acompanhe saúde, assinatura e consumo. Use os filtros para priorizar contas e selecione uma empresa para consultar sua operação.</p>
+            </div>
+            <a class="btn btn-primary" href="/Admin/Organizations/Create">＋ Nova empresa</a>
+          </div>
+          <div class="company-summary" aria-label="Resumo da página">
+            <article><span>Resultados</span><strong>${x.total}</strong><small>empresas na carteira</small></article>
+            <article><span>Ativas nesta página</span><strong>${active}</strong><small>operação disponível</small></article>
+            <article><span>Pedem atenção</span><strong>${attention}</strong><small>saúde ou risco comercial</small></article>
+            <article><span>Próximas do limite</span><strong>${nearLimit}</strong><small>80% ou mais de consumo</small></article>
+          </div>
+          <form class="company-filters enterprise-panel" data-company-filters>
+            <label class="company-search">
+              <span>Nome, CNPJ ou e-mail</span>
+              <input class="form-control" name="search" type="search" value="${safe(companyFilterState.search)}" placeholder="Busque uma empresa">
+            </label>
+            <label>
+              <span>Status</span>
+              <select class="form-select" name="status">
+                <option value="">Todos</option>
+                ${Object.entries(companyStatusLabels).map(([v, l]) => `<option value="${v}" ${companyFilterState.status === v ? 'selected' : ''}>${l}</option>`).join('')}
+              </select>
+            </label>
+            <label>
+              <span>Plano</span>
+              <select class="form-select" name="plan">
+                <option value="">Todos</option>
+                ${[['free', 'Free'], ['start', 'Start'], ['growth', 'Growth'], ['enterprise', 'Enterprise']].map(([v, l]) => `<option value="${v}" ${companyFilterState.plan === v ? 'selected' : ''}>${l}</option>`).join('')}
+              </select>
+            </label>
+            <label><span>De</span><input class="form-control" name="from" type="date" value="${safe(companyFilterState.from)}"></label>
+            <label><span>Até</span><input class="form-control" name="to" type="date" value="${safe(companyFilterState.to)}"></label>
+            <div class="company-filter-actions">
+              <button class="btn btn-primary">Aplicar filtros</button>
+              <button class="btn btn-light" type="button" data-clear-filters>Limpar</button>
+            </div>
+          </form>
+          <section class="enterprise-panel company-list">
+            <div class="panel-heading">
+              <div>
+                <h3>Carteira de empresas</h3>
+                <p>${x.total ? `Exibindo ${((x.page - 1) * x.pageSize) + 1}–${Math.min(x.page * x.pageSize, x.total)} de ${x.total}` : 'Nenhuma empresa corresponde aos filtros.'}</p>
+              </div>
+            </div>
+            ${x.items.length ? `
+              <div class="table-responsive">
+                <table class="table company-table">
+                  <thead>
+                    <tr>
+                      <th>Empresa</th>
+                      <th>Plano</th>
+                      <th>Saúde</th>
+                      <th>Consumo</th>
+                      <th>Status</th>
+                      <th>Última atividade</th>
+                      <th><span class="visually-hidden">Ações</span></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${x.items.map(i => `
+                      <tr>
+                        <td><strong>${safe(i.name)}</strong><small>${safe(i.cnpj || i.email || 'Cadastro sem CNPJ')}</small></td>
+                        <td><span class="plan-chip plan-chip--${safe(i.planCode || 'none')}">${safe(i.planName || 'Sem plano')}</span></td>
+                        <td>${badge(companyHealthLabels[i.health] || i.health)}</td>
+                        <td><div class="usage-cell"><span><i style="width:${Math.min(100, Math.max(0, i.usagePercent))}%"></i></span><b>${i.usagePercent}%</b></div></td>
+                        <td>${badge(companyStatusLabels[i.status] || i.status)}</td>
+                        <td>${formatDate(i.lastActivityAt)}</td>
+                        <td>
+                          <div class="company-actions">
+                            <a class="btn btn-sm btn-light" href="/Admin/Organizations/Details/${i.id}">Visualizar</a>
+                            <button class="btn btn-sm ${i.status === 'blocked' ? 'btn-outline-success' : 'btn-outline-danger'}" data-company="${i.id}" data-status="${i.status === 'blocked' ? 'active' : 'blocked'}" data-company-name="${safe(i.name)}">${i.status === 'blocked' ? 'Desbloquear' : 'Bloquear'}</button>
+                          </div>
+                        </td>
+                      </tr>`).join('')}
+                  </tbody>
+                </table>
+              </div>` : `
+              <div class="enterprise-empty">
+                <strong>Nenhuma empresa encontrada</strong>
+                <p>Revise os filtros ou cadastre uma nova empresa para iniciar a gestão da carteira.</p>
+                <a class="btn btn-primary" href="/Admin/Organizations/Create">Nova empresa</a>
+              </div>`}
+            ${pages > 1 ? `
+              <nav class="company-pagination" aria-label="Paginação">
+                <button class="btn btn-light" data-page="${x.page - 1}" ${x.page <= 1 ? 'disabled' : ''}>← Anterior</button>
+                <span>Página <strong>${x.page}</strong> de ${pages}</span>
+                <button class="btn btn-light" data-page="${x.page + 1}" ${x.page >= pages ? 'disabled' : ''}>Próxima →</button>
+              </nav>` : ''}
+          </section>
+        </section>`;
+
+      const filterForm = content.querySelector('[data-company-filters]');
+      if (filterForm) {
+        filterForm.onsubmit = e => {
+          try {
+            e.preventDefault();
+            const f = new FormData(e.currentTarget);
+            Object.assign(companyFilterState, {
+              search: (f.get('search') || '').trim(),
+              status: f.get('status') || '',
+              plan: f.get('plan') || '',
+              from: f.get('from') || '',
+              to: f.get('to') || '',
+              page: 1
+            });
+            companies();
+          } catch (err) {
+            console.error('[EnterpriseConsole] Erro ao aplicar filtros:', err);
+          }
+        };
+      }
+
+      const clearBtn = content.querySelector('[data-clear-filters]');
+      if (clearBtn) {
+        clearBtn.onclick = () => {
+          try {
+            Object.assign(companyFilterState, { search: '', status: '', plan: '', from: '', to: '', page: 1 });
+            companies();
+          } catch (err) {
+            console.error('[EnterpriseConsole] Erro ao limpar filtros:', err);
+          }
+        };
+      }
+
+      content.querySelectorAll('[data-page]').forEach(b => {
+        b.onclick = () => {
+          try {
+            companyFilterState.page = Number(b.dataset.page);
+            companies();
+          } catch (err) {
+            console.error('[EnterpriseConsole] Erro ao paginar:', err);
+          }
+        };
+      });
+
+      content.querySelectorAll('[data-company]').forEach(b => {
+        b.onclick = async () => {
+          try {
+            const confirmed = window.ValoraUI?.confirm
+              ? await window.ValoraUI.confirm(`${b.dataset.status === 'blocked' ? 'Bloquear' : 'Desbloquear'} ${b.dataset.companyName}?`)
+              : confirm(`${b.dataset.status === 'blocked' ? 'Bloquear' : 'Desbloquear'} ${b.dataset.companyName}?`);
+            if (!confirmed) return;
+
+            b.disabled = true;
+            await api(`companies/${b.dataset.company}/status`, {
+              method: 'PATCH',
+              body: JSON.stringify({ status: b.dataset.status })
+            });
+            companies();
+          } catch (err) {
+            console.error('[EnterpriseConsole] Erro ao alterar status da empresa:', err);
+            b.disabled = false;
+          }
+        };
+      });
+    } catch (err) {
+      console.error('[EnterpriseConsole] Erro ao carregar carteira de empresas:', err);
+      content.innerHTML = empty();
+    }
+  }
+
+  async function crm() {
+    try {
+      const x = await api('crm/leads?pageSize=50');
+      content.innerHTML = `
+        <section class="enterprise-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>CRM comercial</h2>
+              <p>Funil simples, próxima ação e responsável.</p>
+            </div>
+            <button class="btn btn-primary" data-new-lead>Novo lead</button>
+          </div>
+          <div class="funnel">
+            ${['new', 'contact', 'meeting', 'proposal', 'negotiation', 'won'].map(s => `
+              <span>${safe(s)} <b>${x.items.filter(i => i.status === s).length}</b></span>
+            `).join('')}
+          </div>
+          ${x.items.length ? `
+            <div class="table-responsive">
+              <table class="table">
+                <tbody>
+                  ${x.items.map(i => `
+                    <tr>
+                      <td><strong>${safe(i.name)}</strong><small>${safe(i.companyName)}</small></td>
+                      <td>${badge(i.status)}</td>
+                      <td>${safe(i.intendedPlan || 'A definir')}</td>
+                      <td>${safe(i.owner || 'Sem responsável')}</td>
+                      <td><a href="https://wa.me/${safe((i.phone || '').replace(/\D/g, ''))}" target="_blank" rel="noopener">WhatsApp</a></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>` : empty()}
+        </section>`;
+      const newLeadBtn = content.querySelector('[data-new-lead]');
+      if (newLeadBtn) newLeadBtn.onclick = () => leadForm();
+    } catch (err) {
+      console.error('[EnterpriseConsole] Erro ao carregar CRM:', err);
+      content.innerHTML = empty();
+    }
+  }
+
+  function leadForm() {
+    try {
+      content.innerHTML = `
+        <form class="enterprise-panel enterprise-form" data-lead>
+          <h2>Novo lead</h2>
+          <label>Nome<input name="name" required maxlength="160"></label>
+          <label>Empresa<input name="companyName"></label>
+          <label>E-mail<input name="email" type="email"></label>
+          <label>WhatsApp<input name="phone"></label>
+          <label>Plano pretendido
+            <select name="intendedPlan">
+              <option>Essencial</option>
+              <option>Profissional</option>
+              <option>Enterprise</option>
+            </select>
+          </label>
+          <label>Responsável<input name="owner"></label>
+          <label class="span-2">Observações<textarea name="notes"></textarea></label>
+          <div class="span-2">
+            <button class="btn btn-primary">Salvar lead</button>
+            <button type="button" class="btn btn-light" data-cancel>Cancelar</button>
+          </div>
+        </form>`;
+      const cancelBtn = content.querySelector('[data-cancel]');
+      if (cancelBtn) cancelBtn.onclick = crm;
+
+      const form = content.querySelector('form');
+      if (form) {
+        form.onsubmit = async e => {
+          try {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(e.target));
+            await api('crm/leads', { method: 'POST', body: JSON.stringify(data) });
+            crm();
+          } catch (err) {
+            console.error('[EnterpriseConsole] Erro ao salvar lead:', err);
+          }
+        };
+      }
+    } catch (err) {
+      console.error('[EnterpriseConsole] Erro ao renderizar formulário de lead:', err);
+    }
+  }
+
+  async function items(kind) {
+    try {
+      const rows = await api('items/' + kind);
+      content.innerHTML = `
+        <section class="enterprise-panel">
+          <div class="panel-heading">
+            <div>
+              <h2>${safe(kind[0].toUpperCase() + kind.slice(1))}</h2>
+              <p>Configuração operacional com status, detalhes protegidos e histórico de alteração.</p>
+            </div>
+            <button class="btn btn-primary" data-new>Novo registro</button>
+          </div>
+          ${rows.length ? `
+            <div class="enterprise-card-grid">
+              ${rows.map(i => `
+                <article class="enterprise-item">
+                  <div>${badge(i.status)}<h3>${safe(i.name)}</h3></div>
+                  <button class="btn btn-sm btn-outline-primary" data-edit='${safe(JSON.stringify(i))}'>Editar</button>
+                </article>
+              `).join('')}
+            </div>` : empty()}
+        </section>`;
+
+      const newBtn = content.querySelector('[data-new]');
+      if (newBtn) newBtn.onclick = () => itemForm(kind);
+
+      content.querySelectorAll('[data-edit]').forEach(b => {
+        b.onclick = () => {
+          try {
+            itemForm(kind, JSON.parse(b.dataset.edit));
+          } catch (err) {
+            console.error('[EnterpriseConsole] Erro ao editar registro:', err);
+          }
+        };
+      });
+    } catch (err) {
+      console.error(`[EnterpriseConsole] Erro ao carregar itens de tipo ${kind}:`, err);
+      content.innerHTML = empty();
+    }
+  }
+
+  const steps = [
+    'Cadastro da empresa', 'Validação de CNPJ e dados', 'Configuração de plano',
+    'Cadastro de unidade principal', 'Cadastro de setores', 'Convite dos gestores',
+    'Configuração de identidade visual', 'Escolha do template de pesquisa',
+    'Publicação da primeira pesquisa', 'Validação do link público', 'Teste de resultado',
+    'Teste de relatório', 'Teste de certificado', 'Treinamento do cliente', 'Go-live'
+  ];
+
+  const checks = [
+    'Empresa cadastrada', 'Plano ativo', 'Assinatura configurada',
+    'Unidade principal criada', 'Setores cadastrados', 'Usuários administradores convidados',
+    'Permissões revisadas', 'Pesquisa de teste publicada', 'Resposta de teste realizada',
+    'Resultado gerado', 'Relatório testado', 'Certificado testado', 'LGPD configurada',
+    'Identidade visual revisada', 'Canais de suporte configurados', 'Backup ativo',
+    'Auditoria ativa', 'Logs sem erro crítico', 'Mobile validado', 'E-mail validado', 'WhatsApp validado'
+  ];
+
+  const progress = list => !list?.length ? 0 : Math.round(list.filter(x => x.status === 'completed').length / list.length * 100);
+
+  async function workflow(kind) {
+    try {
+      const rows = await api('items/' + kind);
+      const title = kind === 'implementation' ? 'Implantação assistida' : 'Checklist de Produção';
+
+      content.innerHTML = `
+        <section class="enterprise-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Governança operacional</p>
+              <h2>${title}</h2>
+              <p>${kind === 'implementation' ? 'Conduza cada cliente até o go-live com responsáveis, prazos e evidências.' : 'Confirme a prontidão real antes de liberar a empresa em produção.'}</p>
+            </div>
+            <button class="btn btn-primary" data-new>${kind === 'implementation' ? 'Nova implantação' : 'Novo checklist'}</button>
+          </div>
+          ${rows.length ? `
+            <div class="workflow-grid">
+              ${rows.map(i => `
+                <article class="workflow-card">
+                  <div>
+                    ${badge(i.status)}
+                    <h3>${safe(i.name)}</h3>
+                    <p>${safe(i.configuration.internalOwner || i.configuration.responsible || 'Responsável não definido')}</p>
+                  </div>
+                  <div class="workflow-progress">
+                    <span style="width:${progress(i.configuration.steps || i.configuration.items)}%"></span>
+                  </div>
+                  <small>${progress(i.configuration.steps || i.configuration.items)}% concluído</small>
+                  <button class="btn btn-outline-primary" data-edit='${safe(JSON.stringify(i))}'>Acompanhar</button>
+                </article>
+              `).join('')}
+            </div>` : empty()}
+        </section>`;
+
+      const newBtn = content.querySelector('[data-new]');
+      if (newBtn) newBtn.onclick = () => workflowForm(kind);
+
+      content.querySelectorAll('[data-edit]').forEach(b => {
+        b.onclick = () => {
+          try {
+            workflowForm(kind, JSON.parse(b.dataset.edit));
+          } catch (err) {
+            console.error('[EnterpriseConsole] Erro ao acompanhar workflow:', err);
+          }
+        };
+      });
+    } catch (err) {
+      console.error(`[EnterpriseConsole] Erro ao carregar workflow de tipo ${kind}:`, err);
+      content.innerHTML = empty();
+    }
+  }
+
+  function workflowForm(kind, item) {
+    try {
+      const implementation = kind === 'implementation';
+      const list = item?.configuration?.[implementation ? 'steps' : 'items'] ||
+        (implementation ? steps : checks).map((name, index) => ({
+          name,
+          status: 'pending',
+          responsible: '',
+          completedAt: null,
+          note: '',
+          actionUrl: implementation ? '?module=implementation' : '?module=production-checklist',
+          order: index + 1
+        }));
+      const cfg = item?.configuration || {};
+
+      content.innerHTML = `
+        <form class="enterprise-panel" data-workflow>
+          <div class="panel-heading">
+            <div>
+              <h2>${item ? 'Acompanhar' : 'Criar'} ${implementation ? 'implantação' : 'checklist'}</h2>
+              <p>Alterações ficam persistidas e são registradas na auditoria.</p>
+            </div>
+            ${badge(item?.status || 'planned')}
+          </div>
+          <div class="enterprise-form">
+            <label>Nome<input name="name" value="${safe(item?.name)}" required></label>
+            <label>Empresa (ID)<input name="organizationId" value="${safe(cfg.organizationId)}" required></label>
+            <label>Responsável Valora<input name="internalOwner" value="${safe(cfg.internalOwner || cfg.responsible)}" required></label>
+            <label>Responsável cliente<input name="clientOwner" value="${safe(cfg.clientOwner)}" ${implementation ? 'required' : ''}></label>
+            <label>Plano<input name="plan" value="${safe(cfg.plan)}" ${implementation ? 'required' : ''}></label>
+            <label>Início<input name="startDate" type="date" value="${safe(cfg.startDate)}" required></label>
+            <label>Previsão<input name="targetDate" type="date" value="${safe(cfg.targetDate)}" required></label>
+            <label>Status
+              <select name="status">
+                ${(implementation
+                  ? ['planned', 'in_progress', 'blocked', 'homologation', 'completed', 'cancelled']
+                  : ['pending', 'in_progress', 'completed', 'blocked', 'waived']).map(x => `
+                  <option ${item?.status === x ? 'selected' : ''} value="${x}">${({
+                    planned: 'Planejado',
+                    in_progress: 'Em andamento',
+                    blocked: 'Bloqueado',
+                    homologation: 'Em revisão',
+                    completed: 'Concluído',
+                    cancelled: 'Cancelado',
+                    pending: 'Pendente',
+                    waived: 'Dispensado'
+                  }[x] || x)}</option>`).join('')}
+              </select>
+            </label>
+            <label class="span-2">Observações<textarea name="notes">${safe(cfg.notes)}</textarea></label>
+          </div>
+          <ol class="workflow-timeline">
+            ${list.map((x, i) => `
+              <li>
+                <input type="checkbox" id="step-${i}" ${x.status === 'completed' ? 'checked' : ''} data-step="${i}">
+                <label for="step-${i}">
+                  <strong>${safe(x.name)}</strong>
+                  <span>${x.status === 'completed' ? 'Concluído' : 'Pendente'} · ${safe(x.responsible || 'defina ao salvar')}</span>
+                </label>
+                <input aria-label="Responsável por ${safe(x.name)}" data-owner="${i}" value="${safe(x.responsible)}" placeholder="Responsável">
+                <input aria-label="Observação de ${safe(x.name)}" data-note="${i}" value="${safe(x.note)}" placeholder="Observação">
+              </li>`).join('')}
+          </ol>
+          <div class="workflow-actions">
+            <button class="btn btn-primary">Salvar e auditar</button>
+            <button type="button" class="btn btn-light" data-cancel>Cancelar</button>
+          </div>
+        </form>`;
+
+      const cancelBtn = content.querySelector('[data-cancel]');
+      if (cancelBtn) cancelBtn.onclick = () => workflow(kind);
+
+      const form = content.querySelector('form');
+      if (form) {
+        form.onsubmit = async e => {
+          try {
+            e.preventDefault();
+            const f = new FormData(e.target);
+            const updated = list.map((x, i) => ({
+              ...x,
+              status: content.querySelector(`[data-step="${i}"]`)?.checked ? 'completed' : 'pending',
+              responsible: content.querySelector(`[data-owner="${i}"]`)?.value || '',
+              note: content.querySelector(`[data-note="${i}"]`)?.value || '',
+              completedAt: content.querySelector(`[data-step="${i}"]`)?.checked
+                ? (x.completedAt || new Date().toISOString())
+                : null
+            }));
+            const configuration = {
+              organizationId: f.get('organizationId'),
+              internalOwner: f.get('internalOwner'),
+              clientOwner: f.get('clientOwner'),
+              plan: f.get('plan'),
+              startDate: f.get('startDate'),
+              targetDate: f.get('targetDate'),
+              notes: f.get('notes'),
+              [implementation ? 'steps' : 'items']: updated
+            };
+            await api(item ? `items/${item.id}` : 'items', {
+              method: item ? 'PUT' : 'POST',
+              body: JSON.stringify({ kind, name: f.get('name'), status: f.get('status'), configuration })
+            });
+            workflow(kind);
+          } catch (err) {
+            console.error('[EnterpriseConsole] Erro ao salvar workflow:', err);
+          }
+        };
+      }
+    } catch (err) {
+      console.error('[EnterpriseConsole] Erro ao renderizar formulário de workflow:', err);
+    }
+  }
+
+  async function releases() {
+    try {
+      const [rows, info] = await Promise.all([api('items/release-note'), releaseInfo()]);
+      content.innerHTML = `
+        <section class="enterprise-panel">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">Valora Insight™</p>
+              <h2>Novidades da Versão</h2>
+              <p>Versão ${safe(info?.version || 'Atual')} · ${safe(info?.releaseDate || '')} · build ${safe(info?.build || '')}</p>
+            </div>
+            <button class="btn btn-primary" data-new>Publicar release note</button>
+          </div>
+          <div class="release-list">
+            ${rows.map(i => `
+              <article>
+                <div>${badge(i.status)}<h3>${safe(i.configuration?.version || '')} · ${safe(i.name)}</h3></div>
+                <p>${safe(i.configuration?.improvements || 'Melhorias operacionais e de experiência.')}</p>
+                <small>${safe(i.configuration?.impact || 'Sem ação obrigatória.')}</small>
+              </article>`).join('') || empty()}
+          </div>
+        </section>`;
+      const newBtn = content.querySelector('[data-new]');
+      if (newBtn) newBtn.onclick = () => itemForm('release-note');
+    } catch (err) {
+      console.error('[EnterpriseConsole] Erro ao carregar release notes:', err);
+      content.innerHTML = empty();
+    }
+  }
+
+  function itemForm(kind, item) {
+    try {
+      const statusByKind = {
+        backup: ['current', 'delayed', 'failed', 'not_configured', 'validating'],
+        'lgpd-request': ['received', 'under_review', 'processing', 'completed', 'justifiably_refused']
+      };
+      const statuses = statusByKind[kind] || ['active', 'inactive', 'draft'];
+
+      content.innerHTML = `
+        <form class="enterprise-panel enterprise-form" data-item>
+          <h2>${item ? 'Editar' : 'Novo'} registro</h2>
+          <label>Nome<input name="name" value="${safe(item?.name)}" required></label>
+          <label>Status
+            <select name="status">
+              ${statuses.map(x => `<option value="${x}" ${item?.status === x ? 'selected' : ''}>${({
+                planned: 'Planejado',
+                in_progress: 'Em andamento',
+                blocked: 'Bloqueado',
+                homologation: 'Em revisão',
+                completed: 'Concluído',
+                cancelled: 'Cancelado',
+                pending: 'Pendente',
+                waived: 'Dispensado'
+              }[x] || x)}</option>`).join('')}
+            </select>
+          </label>
+          <label class="span-2">Configuração operacional (JSON sem segredos)
+            <textarea name="configuration" rows="8">${safe(JSON.stringify(item?.configuration || (kind === 'release-note' ? {
+              version: '8.0.0',
+              improvements: '',
+              fixes: '',
+              modules: '',
+              impact: '',
+              recommendedActions: ''
+            } : {}), null, 2))}</textarea>
+          </label>
+          <p class="span-2 text-muted">Segredos SMTP, webhook e tokens devem ser fornecidos exclusivamente por variáveis de ambiente. Informe somente evidências retornadas pelo provedor.</p>
+          <div class="span-2">
+            <button class="btn btn-primary">Salvar e auditar</button>
+            <button type="button" class="btn btn-light" data-cancel>Cancelar</button>
+          </div>
+        </form>`;
+
+      const cancelBtn = content.querySelector('[data-cancel]');
+      if (cancelBtn) cancelBtn.onclick = () => kind === 'release-note' ? releases() : items(kind);
+
+      const form = content.querySelector('form');
+      if (form) {
+        form.onsubmit = async e => {
+          try {
+            e.preventDefault();
+            const f = new FormData(e.target);
+            let configuration;
+            try {
+              configuration = JSON.parse(f.get('configuration'));
+            } catch {
+              window.toast?.error?.('A configuração precisa ser um JSON válido.');
+              return;
+            }
+            await api(item ? `items/${item.id}` : 'items', {
+              method: item ? 'PUT' : 'POST',
+              body: JSON.stringify({ kind, name: f.get('name'), status: f.get('status'), configuration })
+            });
+            kind === 'release-note' ? releases() : items(kind);
+          } catch (err) {
+            console.error('[EnterpriseConsole] Erro ao salvar registro:', err);
+          }
+        };
+      }
+    } catch (err) {
+      console.error('[EnterpriseConsole] Erro ao renderizar itemForm:', err);
+    }
+  }
+
+  function imports() {
+    try {
+      content.innerHTML = `
+        <section class="enterprise-panel">
+          <h2>Migração assistida</h2>
+          <p>Simule e valide o CSV antes de qualquer execução. Nenhuma linha inválida será importada silenciosamente e a confirmação fica vinculada ao hash da prévia.</p>
+          <div class="enterprise-form">
+            <label>Tipo
+              <select data-import-type>
+                <option value="companies">Empresas</option>
+                <option value="users">Usuários</option>
+                <option value="units">Unidades</option>
+                <option value="departments">Setores</option>
+                <option value="surveys">Pesquisas</option>
+                <option value="responses">Respostas</option>
+                <option value="members">Membros</option>
+                <option value="respondents">Respondentes</option>
+                <option value="organization-structure">Estrutura organizacional</option>
+              </select>
+            </label>
+            <label>Arquivo CSV<input type="file" accept=".csv,text/csv" data-file></label>
+            <button class="btn btn-primary" data-preview>Simular e validar</button>
+          </div>
+          <div data-preview-result></div>
+        </section>`;
+
+      const previewBtn = content.querySelector('[data-preview]');
+      if (previewBtn) {
+        previewBtn.onclick = async () => {
+          try {
+            const file = content.querySelector('[data-file]')?.files[0];
+            if (!file) return;
+            const x = await api(`imports/${content.querySelector('[data-import-type]').value}/preview`, {
+              method: 'POST',
+              body: JSON.stringify({ content: await file.text() })
+            });
+            content.querySelector('[data-preview-result]').innerHTML = `
+              <div class="alert ${x.invalid ? 'alert-warning' : 'alert-success'} mt-3">
+                ${x.valid} linhas válidas · ${x.invalid} linhas com apontamentos
+              </div>
+              <ol>
+                ${x.rows.filter(r => r.errors.length).map(r => `<li>Linha ${r.line}: ${safe(r.errors.join(' '))}</li>`).join('')}
+              </ol>
+              <p><small>Token da simulação: ${safe(x.confirmationToken)}</small></p>`;
+          } catch (err) {
+            console.error('[EnterpriseConsole] Erro na prévia da importação:', err);
+          }
+        };
+      }
+    } catch (err) {
+      console.error('[EnterpriseConsole] Erro ao renderizar seção de importação:', err);
+    }
+  }
+
+  function apiKeys() {
+    try {
+      content.innerHTML = `
+        <form class="enterprise-panel enterprise-form" data-key>
+          <h2>API pública controlada</h2>
+          <p class="span-2">A chave é exibida somente uma vez. O banco mantém apenas hash SHA-256 e prefixo.</p>
+          <label>Nome da chave<input name="name" required></label>
+          <fieldset>
+            <legend>Escopos</legend>
+            ${['surveys', 'results', 'reports', 'certificates', 'units', 'departments'].map(x => `
+              <label><input type="checkbox" name="scope" value="${x}:read"> ${x}:read</label>
+            `).join('')}
+          </fieldset>
+          <button class="btn btn-primary">Criar chave</button>
+          <output class="span-2" data-secret></output>
+        </form>`;
+
+      const form = content.querySelector('form');
+      if (form) {
+        form.onsubmit = async e => {
+          try {
+            e.preventDefault();
+            const f = new FormData(e.target);
+            const x = await api('api-keys', {
+              method: 'POST',
+              body: JSON.stringify({ name: f.get('name'), scopes: f.getAll('scope') })
+            });
+            content.querySelector('[data-secret]').innerHTML = `
+              <div class="alert alert-warning">
+                <strong>Copie agora:</strong><code>${safe(x.secret)}</code>
+              </div>`;
+          } catch (err) {
+            console.error('[EnterpriseConsole] Erro ao gerar chave API:', err);
+          }
+        };
+      }
+    } catch (err) {
+      console.error('[EnterpriseConsole] Erro ao renderizar tela de chaves API:', err);
+    }
+  }
+
+  const render = {
+    overview,
+    companies,
+    implementation: () => workflow('implementation'),
+    'production-checklist': () => workflow('production-checklist'),
+    crm,
+    imports,
+    'release-note': releases,
+    api: apiKeys
+  };
+
+  async function go(module) {
+    try {
+      root.querySelectorAll('[data-module]').forEach(x => x.classList.toggle('active', x.dataset.module === module));
+      history.replaceState({}, '', `?module=${module}`);
+      await (render[module] || (() => items(module)))();
+    } catch (err) {
+      console.error(`[EnterpriseConsole] Erro ao navegar para módulo ${module}:`, err);
+      content.innerHTML = empty();
+    }
+  }
+
+  root.querySelectorAll('nav [data-module]').forEach(b => {
+    b.onclick = () => {
+      try {
+        go(b.dataset.module);
+      } catch (err) {
+        console.error('[EnterpriseConsole] Erro no clique de navegação:', err);
+      }
+    };
+  });
+
+  releaseInfo().catch(() => {});
+  go(new URLSearchParams(location.search).get('module') || root.dataset.module || 'overview');
 })();

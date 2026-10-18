@@ -1,0 +1,2915 @@
+{
+  "reviewedCommit": "b7fb18a4561685c4e966e87899316c5cbfabb216",
+  "reviewedAt": "2026-10-15",
+  "areas": [
+    {
+      "name": "Formulários e questionários",
+      "reviewedState": "base",
+      "pathPatterns": [
+        "/Forms",
+        "/forms",
+        "PublicAnswer"
+      ],
+      "pending": [
+        "Validar edição e publicação no navegador com perfis distintos.",
+        "Homologar os limites comerciais e os diferentes tipos de pergunta."
+      ],
+      "changedFiles": [],
+      "updateState": "Sem alteração detectada desde a revisão"
+    },
+    {
+      "name": "Preparação do diagnóstico",
+      "reviewedState": "partial",
+      "pathPatterns": [
+        "DiagnosticWorkspace"
+      ],
+      "pending": [
+        "Eliminar a atribuição implícita do nome do criador quando não houver responsável designado.",
+        "Exigir versão de concorrência válida: o comando ainda aceita RowVersion não positivo.",
+        "Validar gravação, conflito, datas e publicação pela jornada real."
+      ],
+      "changedFiles": [
+        "backend/Valora.Infrastructure/Repositories/DiagnosticWorkspaceRepository.cs",
+        "backend/Valora.Web/Controllers/BffDiagnosticWorkspaceController.cs"
+      ],
+      "updateState": "Revisão necessária"
+    },
+    {
+      "name": "Coleta e campanhas",
+      "reviewedState": "base",
+      "pathPatterns": [
+        "Campaign",
+        "PublicSurvey",
+        "PublicAnswer"
+      ],
+      "pending": [
+        "Validar a cadeia navegador → BFF → API → banco na entrega atual.",
+        "Homologar entrega real de e-mail em ambiente controlado.",
+        "Exercitar retomada de operações e limites de volume contratados."
+      ],
+      "changedFiles": [
+        "backend/Valora.Api/Controllers/CampaignsController.cs",
+        "backend/Valora.Application/Campaigns/CampaignContracts.cs",
+        "backend/Valora.Application/Campaigns/CampaignService.cs",
+        "backend/Valora.Domain/Entities/Campaign.cs",
+        "backend/Valora.Infrastructure/Repositories/CampaignRepository.cs",
+        "backend/Valora.Tests/CampaignsV10Tests.cs",
+        "backend/Valora.Web/Controllers/BffCampaignsController.cs",
+        "backend/Valora.Web/Views/Experience/Campaigns.cshtml",
+        "backend/Valora.Web/wwwroot/js/api/campaigns-api.js"
+      ],
+      "updateState": "Revisão necessária"
+    },
+    {
+      "name": "Participação e processamento",
+      "reviewedState": "base",
+      "pathPatterns": [
+        "DiagnosticWorkspace",
+        "Processing"
+      ],
+      "pending": [
+        "Executar os cenários com dois diagnósticos da mesma organização.",
+        "Validar deduplicação dos destinatários e estados dos jobs.",
+        "Conferir os números contra a base de homologação."
+      ],
+      "changedFiles": [
+        "backend/Valora.Infrastructure/Repositories/DiagnosticWorkspaceRepository.cs",
+        "backend/Valora.Web/Controllers/BffDiagnosticWorkspaceController.cs"
+      ],
+      "updateState": "Revisão necessária"
+    },
+    {
+      "name": "Metodologia e evidências",
+      "reviewedState": "base",
+      "pathPatterns": [
+        "Methodology",
+        "Evidence",
+        "Intelligence"
+      ],
+      "pending": [
+        "Homologar a aderência semântica aos documentos metodológicos.",
+        "Validar cobertura e limitações com dados representativos.",
+        "Não apresentar ausência de dados como zero ou certeza."
+      ],
+      "changedFiles": [
+        "backend/Valora.Web/Controllers/BffIntelligenceController.cs",
+        "backend/Valora.Web/Controllers/BffMethodologyController.cs"
+      ],
+      "updateState": "Revisão necessária"
+    },
+    {
+      "name": "Insights e revisão humana",
+      "reviewedState": "partial",
+      "pathPatterns": [
+        "Insights",
+        "ValoraAi"
+      ],
+      "pending": [
+        "Completar rastreabilidade individual dos achados não originados da fila de IA.",
+        "Remover textos que afirmam convergência sem evidência disponível.",
+        "Validar autorização, concorrência e retorno ao contexto."
+      ],
+      "changedFiles": [],
+      "updateState": "Sem alteração detectada desde a revisão"
+    },
+    {
+      "name": "Central de Ações",
+      "reviewedState": "base",
+      "pathPatterns": [
+        "ActionCenter",
+        "ActionPlan"
+      ],
+      "pending": [
+        "Validar a jornada completa de criação, replanejamento e conclusão.",
+        "Comprovar regras de evidência e permissões nos perfis de teste."
+      ],
+      "changedFiles": [
+        "backend/Valora.Web/Views/ActionCenter/CreatePlan.cshtml",
+        "backend/Valora.Web/Views/ActionCenter/PlanDetails.cshtml",
+        "backend/Valora.Web/Views/ActionCenter/Plans.cshtml"
+      ],
+      "updateState": "Revisão necessária"
+    },
+    {
+      "name": "Evolução e reavaliação",
+      "reviewedState": "base",
+      "pathPatterns": [
+        "Evolution"
+      ],
+      "pending": [
+        "Reexecutar a regressão no estado atual.",
+        "Homologar a experiência visual e a interpretação executiva.",
+        "Não atribuir causalidade a uma variação observada."
+      ],
+      "changedFiles": [
+        "backend/Valora.Web/Views/Evolution/Cycles.cshtml"
+      ],
+      "updateState": "Revisão necessária"
+    },
+    {
+      "name": "Organizações e acesso",
+      "reviewedState": "base",
+      "pathPatterns": [
+        "Access",
+        "Security",
+        "SaasAdmin",
+        "Identity"
+      ],
+      "pending": [
+        "Validar a matriz integral de perfis e planos.",
+        "Revisar cada rota administrativa e operações sensíveis.",
+        "Confirmar login real de todas as contas de homologação."
+      ],
+      "changedFiles": [],
+      "updateState": "Sem alteração detectada desde a revisão"
+    },
+    {
+      "name": "Relatórios e devolutivas",
+      "reviewedState": "partial",
+      "pathPatterns": [
+        "Reports",
+        "FormalDeliverable",
+        "ExecutiveDelivery"
+      ],
+      "pending": [
+        "Homologar geração, download, compartilhamento e revogação.",
+        "Validar conteúdo, versão e consistência com as evidências.",
+        "Testar apresentação e impressão com dados reais de teste."
+      ],
+      "changedFiles": [
+        "backend/Valora.Web/Views/Reports/Details.cshtml",
+        "backend/Valora.Web/Views/Reports/Index.cshtml",
+        "backend/Valora.Web/Views/Reports/Prepare.cshtml"
+      ],
+      "updateState": "Revisão necessária"
+    },
+    {
+      "name": "Navegação e onboarding",
+      "reviewedState": "partial",
+      "pathPatterns": [
+        "Navigation",
+        "Onboarding",
+        "InDevelopment"
+      ],
+      "pending": [
+        "Consolidar 165 entradas do catálogo; nem todas são exibidas ao mesmo perfil.",
+        "Ligar o componente de desenvolvimento às páginas apropriadas: não foram encontradas referências além do modelo e da view.",
+        "O checklist de onboarding usa marcação em cookie; falta comprovar etapas por registros do sistema."
+      ],
+      "changedFiles": [
+        "backend/Valora.Web/Models/ViewModels/InDevelopmentViewModel.cs",
+        "backend/Valora.Web/Views/Shared/InDevelopment.cshtml"
+      ],
+      "updateState": "Revisão necessária"
+    },
+    {
+      "name": "Base de homologação",
+      "reviewedState": "partial",
+      "pathPatterns": [
+        "seed_homologacao",
+        "FullJourneyIntegration"
+      ],
+      "pending": [
+        "Remover credencial fixa e impedir redefinição silenciosa na reaplicação.",
+        "Preservar alterações de homologação: o seed atual atualiza estados e permissões.",
+        "Separar perfis e planos; executar login HTTP e uso pelo navegador.",
+        "Um teste retorna sem executar quando falta conexão: não confundir isso com aprovação."
+      ],
+      "changedFiles": [
+        "backend/Valora.Tests/ValoraInsightFullJourneyIntegrationTests.cs",
+        "backend/database/postgresql/seed_homologacao.sql"
+      ],
+      "updateState": "Revisão necessária"
+    },
+    {
+      "name": "Pessoas e One-on-One",
+      "reviewedState": "review",
+      "pathPatterns": [
+        "People",
+        "OneOnOne"
+      ],
+      "pending": [
+        "Auditar toda a jornada, acesso a notas privadas e vínculo com ações.",
+        "Definir o conjunto mínimo a oferecer no lançamento."
+      ],
+      "changedFiles": [],
+      "updateState": "Sem alteração detectada desde a revisão"
+    },
+    {
+      "name": "Processos e arquitetura",
+      "reviewedState": "review",
+      "pathPatterns": [
+        "Processes",
+        "Architecture"
+      ],
+      "pending": [
+        "Verificar formulários e transições de ponta a ponta.",
+        "Consolidar sobreposições com execução e governança."
+      ],
+      "changedFiles": [],
+      "updateState": "Sem alteração detectada desde a revisão"
+    },
+    {
+      "name": "Conhecimento e Advisor",
+      "reviewedState": "review",
+      "pathPatterns": [
+        "Knowledge",
+        "Advisor"
+      ],
+      "pending": [
+        "Homologar provedores, limites, fundamentação e proteção do contexto.",
+        "Demonstrar respostas com fontes e tratamento de informação insuficiente."
+      ],
+      "changedFiles": [],
+      "updateState": "Sem alteração detectada desde a revisão"
+    },
+    {
+      "name": "Governança e operação comercial",
+      "reviewedState": "review",
+      "pathPatterns": [
+        "Saas",
+        "Governance",
+        "RiskCompliance",
+        "Subscription"
+      ],
+      "pending": [
+        "Homologar contratação, cobrança e integrações realmente utilizadas.",
+        "Validar restauração, monitoramento e procedimentos de lançamento.",
+        "Não prometer operação comercial completa a partir da existência de telas."
+      ],
+      "changedFiles": [],
+      "updateState": "Sem alteração detectada desde a revisão"
+    }
+  ],
+  "rules": [
+    {
+      "id": "RN01",
+      "title": "Isolamento entre clientes",
+      "rule": "Consultar e gravar no contexto autorizado da organização.",
+      "state": "Base implementada; validar matriz integral",
+      "acceptance": "Acesso cruzado negado por URL e API."
+    },
+    {
+      "id": "RN02",
+      "title": "Perfil e contratação",
+      "rule": "Permissão e funcionalidade contratada são verificações distintas.",
+      "state": "Implementação identificada nos fluxos centrais",
+      "acceptance": "Perfil de consulta não grava; contratação bloqueada impede comando."
+    },
+    {
+      "id": "RN03",
+      "title": "Preparação explícita",
+      "rule": "Objetivo, público e responsável devem refletir dados persistidos.",
+      "state": "Parcial: nome ainda possui fallback",
+      "acceptance": "Sem designação, mostrar ausência de responsável."
+    },
+    {
+      "id": "RN04",
+      "title": "Publicação validada",
+      "rule": "Falha da revisão não significa aprovação.",
+      "state": "Correção identificada; validar jornada",
+      "acceptance": "Interface bloqueia e servidor revalida requisitos."
+    },
+    {
+      "id": "RN05",
+      "title": "Versão metodológica",
+      "rule": "Preservar o instrumento das respostas já coletadas.",
+      "state": "Base implementada",
+      "acceptance": "Mudança incompatível é rejeitada e histórico preservado."
+    },
+    {
+      "id": "RN06",
+      "title": "Consentimento e respostas",
+      "rule": "Validar consentimento, obrigatoriedade, tipos e limites.",
+      "state": "Código e testes identificados",
+      "acceptance": "Rejeitar inválidas e permitir opcionais vazias."
+    },
+    {
+      "id": "RN07",
+      "title": "Repetição e concorrência",
+      "rule": "Evitar duplicidade e sobrescrita silenciosa.",
+      "state": "Parcial: versão não positiva ainda aceita",
+      "acceptance": "Comando repetido não duplica; versão inválida é recusada."
+    },
+    {
+      "id": "RN08",
+      "title": "Indicadores por diagnóstico",
+      "rule": "Separar destinatários, mensagens, respostas e tarefas.",
+      "state": "Correção identificada",
+      "acceptance": "Duas pesquisas mantêm indicadores independentes."
+    },
+    {
+      "id": "RN09",
+      "title": "Ausência não é zero",
+      "rule": "Não inventar score qualitativo nem taxa sem denominador.",
+      "state": "Base implementada",
+      "acceptance": "Exibir não aplicável ou informação insuficiente."
+    },
+    {
+      "id": "RN10",
+      "title": "Evidência e revisão",
+      "rule": "Distinguir fato, hipótese, sugestão e decisão revisada.",
+      "state": "Parcial: origens e textos exigem refinamento",
+      "acceptance": "Conclusão tem fonte, limitação e revisão aplicável."
+    },
+    {
+      "id": "RN11",
+      "title": "Ação rastreável",
+      "rule": "Plano com origem correta, responsável, prazo e conclusão verificável.",
+      "state": "Base implementada; validar jornada",
+      "acceptance": "Outro insight não herda vínculo pelo mesmo diagnóstico."
+    },
+    {
+      "id": "RN12",
+      "title": "Comparabilidade",
+      "rule": "Calcular variação somente entre medições comparáveis.",
+      "state": "Base implementada",
+      "acceptance": "Método incompatível não produz delta enganoso."
+    },
+    {
+      "id": "RN13",
+      "title": "Privacidade da escuta",
+      "rule": "Não inferir identidade de resposta anônima.",
+      "state": "Critério obrigatório de homologação",
+      "acceptance": "Listas e relatórios respeitam anonimato."
+    },
+    {
+      "id": "RN14",
+      "title": "Homologação repetível",
+      "rule": "Reaplicar dados fictícios sem redefinir credenciais ou estados.",
+      "state": "Correção pendente",
+      "acceptance": "Preservar alterações de teste e acessos por perfil."
+    },
+    {
+      "id": "RN15",
+      "title": "Menu honesto",
+      "rule": "Página futura explica finalidade sem simular operações.",
+      "state": "Componente criado; ligação pendente",
+      "acceptance": "Sem botão fictício; destino canônico por operação."
+    },
+    {
+      "id": "RN16",
+      "title": "Onboarding comprovável",
+      "rule": "Concluir etapas com base em registros reais.",
+      "state": "Parcial: checklist em cookie",
+      "acceptance": "Estado operacional não depende apenas da marcação no navegador."
+    }
+  ],
+  "blockers": [
+    {
+      "id": "IT01",
+      "severity": "Alta",
+      "title": "Concorrência na preparação",
+      "evidence": "RowVersion não positivo contorna comparação.",
+      "ownerRole": "Backend",
+      "resolution": "Recusar versão inválida e testar conflito."
+    },
+    {
+      "id": "IT02",
+      "severity": "Alta",
+      "title": "Seed de homologação",
+      "evidence": "Reaplicação redefine credenciais e estados.",
+      "ownerRole": "Backend e banco",
+      "resolution": "Retirar senha fixa e preservar dados editados."
+    },
+    {
+      "id": "IT03",
+      "severity": "Alta",
+      "title": "Ambiente de validação",
+      "evidence": "Sem execução nesta revisão de .NET, PostgreSQL, login e navegador da aplicação.",
+      "ownerRole": "QA / infraestrutura",
+      "resolution": "Disponibilizar ambiente e registrar resultados por versão."
+    },
+    {
+      "id": "IT04",
+      "severity": "Média",
+      "title": "Responsável implícito",
+      "evidence": "Nome pode vir do criador sem designação.",
+      "ownerRole": "Backend",
+      "resolution": "Mostrar ausência e validar associação."
+    },
+    {
+      "id": "IT05",
+      "severity": "Média",
+      "title": "Página futura desconectada",
+      "evidence": "View criada, sem referências de uso encontradas.",
+      "ownerRole": "Frontend",
+      "resolution": "Ligar páginas planejadas ao componente."
+    },
+    {
+      "id": "IT06",
+      "severity": "Média",
+      "title": "Teste com saída silenciosa",
+      "evidence": "Um teste retorna se falta conexão.",
+      "ownerRole": "QA",
+      "resolution": "Registrar como não executado, nunca aceite."
+    },
+    {
+      "id": "IT07",
+      "severity": "Média",
+      "title": "Menu amplo",
+      "evidence": "165 entradas; consolidação integral não demonstrada.",
+      "ownerRole": "Produto / frontend",
+      "resolution": "Inventariar por perfil e unificar equivalências."
+    },
+    {
+      "id": "IT08",
+      "severity": "Média",
+      "title": "Entrega de e-mail",
+      "evidence": "Envio real não homologado nesta análise.",
+      "ownerRole": "Integrações / QA",
+      "resolution": "Validar entrega e falhas em ambiente controlado."
+    }
+  ],
+  "questions": [
+    {
+      "id": "D01",
+      "question": "Qual o escopo mínimo da versão comercial?",
+      "ownerRole": "Produto e cliente",
+      "decisionNeeded": "Definir módulos do aceite e os que ficam em desenvolvimento."
+    },
+    {
+      "id": "D02",
+      "question": "Quem aprova a metodologia e as interpretações?",
+      "ownerRole": "Responsável metodológico",
+      "decisionNeeded": "Definir papel e evidências de aprovação."
+    },
+    {
+      "id": "D03",
+      "question": "Quais regras de anonimato e recorte mínimo?",
+      "ownerRole": "Produto / privacidade",
+      "decisionNeeded": "Aprovar política dos relatórios segmentados."
+    },
+    {
+      "id": "D04",
+      "question": "Quais planos e limites entram na demonstração?",
+      "ownerRole": "Comercial",
+      "decisionNeeded": "Confirmar configuração vigente, sem inventar preços."
+    },
+    {
+      "id": "D05",
+      "question": "Quem homologa e em qual ambiente?",
+      "ownerRole": "Cliente / QA",
+      "decisionNeeded": "Definir responsáveis, contas e roteiro de aceite."
+    },
+    {
+      "id": "D06",
+      "question": "Qual capacidade de equipe sustenta o calendário?",
+      "ownerRole": "Gestão do projeto",
+      "decisionNeeded": "Aprovar estimativas; datas atuais são propostas."
+    },
+    {
+      "id": "D07",
+      "question": "Quais integrações são obrigatórias para lançar?",
+      "ownerRole": "Produto / operações",
+      "decisionNeeded": "Priorizar e-mail, IA e contratação conforme escopo."
+    }
+  ],
+  "nextSprints": [
+    {
+      "title": "Confiabilidade e regressão",
+      "outcome": "As telas mostram somente dados sustentados e os comandos preservam integridade.",
+      "tasks": [
+        "Corrigir responsável implícito e versão de concorrência opcional.",
+        "Remover afirmações de evidência sem suporte.",
+        "Executar banco limpo, reaplicação e testes da versão atual."
+      ],
+      "accept": "Preparar, publicar e consultar diagnósticos distintos sem mistura de dados.",
+      "dependency": "Primeira prioridade",
+      "id": "P1",
+      "status": "Planejada · execução não comprovada",
+      "start": "2026-10-19",
+      "end": "2026-10-23",
+      "ownerRole": "Backend e QA"
+    },
+    {
+      "title": "Menu e formulários completos",
+      "outcome": "Uma operação tem um destino claro; páginas futuras explicam seu propósito.",
+      "tasks": [
+        "Consolidar entradas equivalentes com compatibilidade de rotas.",
+        "Aplicar a tela “Em desenvolvimento” onde o recurso ainda não existe.",
+        "Validar salvar, editar, consultar e inativar conforme cada regra."
+      ],
+      "accept": "Nenhum botão sem função e nenhuma página vazia na jornada homologada.",
+      "dependency": "Após estabilizar os fluxos envolvidos",
+      "id": "P2",
+      "status": "Planejada · execução não comprovada",
+      "start": "2026-10-26",
+      "end": "2026-10-30",
+      "ownerRole": "Frontend e produto"
+    },
+    {
+      "title": "Homologação por cliente e perfil",
+      "outcome": "Demonstração repetível com acesso e dados seguros.",
+      "tasks": [
+        "Corrigir o seed e preservar dados já editados.",
+        "Testar organizações, perfis, planos e isolamento.",
+        "Comprovar login e tarefas reais pelo navegador."
+      ],
+      "accept": "Cada conta executa somente as operações permitidas; o seed não desfaz a homologação.",
+      "dependency": "Depende de estabilidade e formulários",
+      "id": "P3",
+      "status": "Planejada · execução não comprovada",
+      "start": "2026-11-02",
+      "end": "2026-11-06",
+      "ownerRole": "QA e banco"
+    },
+    {
+      "title": "Devolutiva e experiência executiva",
+      "outcome": "O cliente recebe uma leitura compreensível e transforma prioridades em ações.",
+      "tasks": [
+        "Completar origem do achado até o plano.",
+        "Homologar relatório, exportação e compartilhamento.",
+        "Testar responsividade, acessibilidade e onboarding verificável."
+      ],
+      "accept": "Diagnóstico → decisão → plano → relatório, com contexto preservado.",
+      "dependency": "Depende da jornada validada",
+      "id": "P4",
+      "status": "Planejada · execução não comprovada",
+      "start": "2026-11-09",
+      "end": "2026-11-13",
+      "ownerRole": "Produto e metodologia"
+    },
+    {
+      "title": "Liberação comercial controlada",
+      "outcome": "Uma versão com escopo definido e evidências de operação.",
+      "tasks": [
+        "Validar integrações habilitadas e contratação.",
+        "Exercitar backup e restauração em ambiente de teste.",
+        "Aprovar roteiro de aceite e registrar limitações de lançamento."
+      ],
+      "accept": "Aceite técnico e do cliente para a versão e o escopo liberados.",
+      "dependency": "Depende dos quatro marcos anteriores",
+      "id": "P5",
+      "status": "Planejada · execução não comprovada",
+      "start": "2026-11-16",
+      "end": "2026-11-20",
+      "ownerRole": "Operações e cliente"
+    }
+  ],
+  "calendarStatus": "Proposta não aprovada; estimativas dependem de equipe, ambiente e aceite.",
+  "schemaVersion": 1,
+  "sourceCommit": "fb507c2b772e175cc76a61dc7b85b26da78c3981",
+  "generatedAt": "2026-10-18T11:05:38.458579+00:00",
+  "baselineAvailable": true,
+  "sprintDocuments": [
+    {
+      "path": "backend/docs/execucao/EVOLUCAO_30_SPRINTS_2026-10-18.md",
+      "title": "Evolução Valora — 30 sprints",
+      "headings": [
+        "Evolução Valora — 30 sprints"
+      ],
+      "updatedAt": "2026-10-18T08:02:17-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/execucao/PENDENCIAS_REAIS_QA.md",
+      "title": "Pendências Reais e Homologação — QA Funcional e Técnico",
+      "headings": [
+        "2. Auditoria de Mudanças e Correções das Sprints (1 a 6)",
+        "Sprint 1 — Integridade dos Dados, Contexto e Testes Concorrentes",
+        "Sprint 2 — Inventário de Menu e Navegação Operacional",
+        "Sprint 3 — Preparação e Coleta Confiáveis",
+        "Sprint 4 — Devolutiva Fundamentada e Revisão Humana",
+        "Sprint 5 — Decisões, Execução e Evolução Conectadas",
+        "Sprint 6 — Design, Acessibilidade e Homologação"
+      ],
+      "updatedAt": "2026-10-16T16:51:35-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/CICLO_SEIS_SPRINTS_2026-10-15.md",
+      "title": "Ciclo de evolução — registro de execução de 15/10/2026",
+      "headings": [
+        "Sprint 1 — robustez dos metadados",
+        "Sprint 2 — correção independente do envio de comandos",
+        "Continuação — perfis restantes e publicação/coleta da Sprint 2",
+        "Sprint 1 — administrador global e acompanhamento exclusivo",
+        "Sprint 2 — entrega incremental"
+      ],
+      "updatedAt": "2026-10-15T12:18:15-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/auditorias/CONSOLIDACAO_JORNADA_2026_09.md",
+      "title": "Consolidação da jornada — auditoria de 2026-09",
+      "headings": [
+        "Backlog de próximas sprints"
+      ],
+      "updatedAt": "2026-09-23T16:04:23-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "ACTION_CENTER_SPRINT_CONTINUITY.md",
+      "title": "Continuidade — ActionCenter operacional",
+      "headings": [],
+      "updatedAt": "2026-09-16T15:34:38-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_CONTINUIDADE_PRIORIDADE_EXECUCAO.md",
+      "title": "Continuidade — prioridade e execução",
+      "headings": [
+        "Sprint — histórico confiável e detalhes operacionais (2026-09-14)",
+        "Sprint — consolidação comercial do ActionCenter (2026-09-14)",
+        "Sprint — execução consistente, criação segura e listagem comercial (2026-09-14)",
+        "Sprint — correção Razor e resiliência do ActionCenter (2026-09-14)",
+        "Sprint — versão única entre diagnóstico, coleta e resultado (2026-09-15)"
+      ],
+      "updatedAt": "2026-09-15T19:20:43-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "docs/execucao/SPRINT_HOMOLOGACAO_COMERCIAL.md",
+      "title": "Continuidade — Sprint de homologação comercial",
+      "headings": [
+        "Continuidade — Sprint de homologação comercial",
+        "Sprint — consolidação funcional, navegação e suporte persistido (2026-09-10)",
+        "Sprint — execução integrada e suporte consistente (2026-09-10)"
+      ],
+      "updatedAt": "2026-09-10T19:46:54-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_DEEP_UI_AUDIT.md",
+      "title": "Auditoria automatizada das views internas",
+      "headings": [],
+      "updatedAt": "2026-09-03T08:59:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_DESIGN_SYSTEM_INTERNAL_AUDIT.md",
+      "title": "Auditoria interna de design — Valora Insight™",
+      "headings": [],
+      "updatedAt": "2026-09-02T16:32:47-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "docs/INTERNAL_PAGES_UX_AUDIT.md",
+      "title": "Auditoria UX das páginas internas",
+      "headings": [
+        "Correções transversais desta sprint"
+      ],
+      "updatedAt": "2026-09-02T16:20:03-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "EMAIL_RESULT_TEMPLATE.md",
+      "title": "Template de Resultado por E-mail",
+      "headings": [
+        "Evidências Sprint 46"
+      ],
+      "updatedAt": "2026-08-04T15:57:34-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/archive/ASPNET_WEB_API_GAPS.md",
+      "title": "ASP.NET Web API Gaps",
+      "headings": [
+        "Sprint 44",
+        "Sprint SaaS + Reports/Certificates/LGPD/E-mail",
+        "Sprint homologação/cutover backend oficial (2026-07-02)",
+        "Sprint backend oficial — reality check SQL/schema (2026-07-06)",
+        "Sprint Web Legacy Public Parity",
+        "Sprint Backend Centralização Valora Insight™"
+      ],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/archive/ASPNET_WEB_ROUTES.md",
+      "title": "ASPNET WEB ROUTES.md",
+      "headings": [
+        "Sprint homologação/cutover backend oficial (2026-07-02)",
+        "Sprint Web Legacy Public Parity",
+        "Sprint Backend Centralização Valora Insight™",
+        "Sprint Visual Homologation — assets da marca",
+        "Sprint Valora Insight™ — correções de feedback do cliente"
+      ],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_03_DOTNET_V2_STABILIZATION_AUDIT.md",
+      "title": "Sprint 03 — Auditoria final da estabilização .NET v2",
+      "headings": [
+        "Sprint 03 — Auditoria final da estabilização .NET v2"
+      ],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_CONSOLIDATION_AUDIT.md",
+      "title": "Auditoria Final — Sprint Backend Oficial Consolidation",
+      "headings": [
+        "Auditoria Final — Sprint Backend Oficial Consolidation"
+      ],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_CONSOLIDATION_DIAGNOSTIC.md",
+      "title": "Diagnóstico — Sprint Backend Oficial Consolidation",
+      "headings": [
+        "Diagnóstico — Sprint Backend Oficial Consolidation",
+        "13. Plano objetivo da sprint"
+      ],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_LEGACY_IMPORT_CUTOVER_AUDIT.md",
+      "title": "Auditoria Final — Sprint Backend Oficial Importação Legado/Firebase/localStorage",
+      "headings": [
+        "Auditoria Final — Sprint Backend Oficial Importação Legado/Firebase/localStorage"
+      ],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_MIGRATION_REALITY_CHECK_DIAGNOSTIC.md",
+      "title": "Sprint Backend Oficial — Migration Reality Check Diagnostic",
+      "headings": [
+        "Sprint Backend Oficial — Migration Reality Check Diagnostic",
+        "19. Plano objetivo da sprint"
+      ],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_RC2_REAL_HOMOLOGATION_DIAGNOSTIC.md",
+      "title": "Diagnóstico Inicial — Sprint Backend Oficial RC2 Real Homologation",
+      "headings": [
+        "Diagnóstico Inicial — Sprint Backend Oficial RC2 Real Homologation"
+      ],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_RELEASE_CANDIDATE_DIAGNOSTIC.md",
+      "title": "Diagnóstico inicial — Release Candidate Backend Oficial",
+      "headings": [
+        "16. Plano objetivo da sprint"
+      ],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_FASE_01_ASPNET10_BANCO_CANONICO_AUDITORIA.md",
+      "title": "Auditoria — Fase 1 ASP.NET Core 10 e Banco Canônico",
+      "headings": [],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_FASE_01_ASPNET10_BANCO_CANONICO_DIAGNOSTICO.md",
+      "title": "Diagnóstico — Fase 1 ASP.NET Core 10 e Banco Canônico",
+      "headings": [],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_XX_NOVO_PROJETO_DOTNET_MIGRACAO_AUDIT.md",
+      "title": "Sprint XX — Novo Projeto .NET Migração Audit",
+      "headings": [
+        "Sprint XX — Novo Projeto .NET Migração Audit"
+      ],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/migration/BACKEND_OFICIAL_MIGRATION_GUIDE.md",
+      "title": "Guia de Migração — Backend Oficial Valora",
+      "headings": [
+        "Sprint SaaS + relatórios + certificados + LGPD + e-mail",
+        "Sprint homologação/cutover backend oficial (2026-07-02)",
+        "Sprint backend oficial — reality check SQL/schema (2026-07-06)",
+        "Sprint Web Legacy Public Parity",
+        "Sprint Backend Centralização Valora Insight™",
+        "Sprint Visual Homologation — assets da marca"
+      ],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/operations/RELEASE_CANDIDATE_NOTES.md",
+      "title": "Release Candidate Notes — Valora Backend Oficial",
+      "headings": [
+        "Sprint backend oficial — reality check SQL/schema (2026-07-06)",
+        "Sprint Web Legacy Public Parity",
+        "Sprint Backend Centralização Valora Insight™",
+        "Sprint Visual Homologation — assets da marca",
+        "Sprint Valora Insight™ — correções de feedback do cliente"
+      ],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/security/SAAS_FINAL_ACCEPTANCE_CHECKLIST.md",
+      "title": "SAAS FINAL ACCEPTANCE CHECKLIST.md",
+      "headings": [
+        "Sprint operacional oficial",
+        "Sprint homologação/cutover backend oficial (2026-07-02)",
+        "Sprint backend oficial — reality check SQL/schema (2026-07-06)",
+        "Sprint fix domain duplicate entities",
+        "Sprint Web Legacy Public Parity",
+        "Sprint Backend Centralização Valora Insight™",
+        "Sprint Visual Homologation — assets da marca",
+        "Sprint Valora Insight™ — correções de feedback do cliente"
+      ],
+      "updatedAt": "2026-07-30T08:46:32-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "CSP_LOCAL_ASSETS_OPTION.md",
+      "title": "Sprint 44 — CSP e SMTP Valora",
+      "headings": [
+        "Sprint 44 — CSP e SMTP Valora"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "EMAIL_QUEUE_PROCESSING.md",
+      "title": "Sprint 44 — CSP e SMTP Valora",
+      "headings": [
+        "Sprint 44 — CSP e SMTP Valora"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_13_REAL_IMPLEMENTATION_AUDIT.md",
+      "title": "Sprint 13 — Auditoria objetiva da implementação real",
+      "headings": [
+        "Sprint 13 — Auditoria objetiva da implementação real",
+        "Correções Sprint 13 aplicadas"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_17_CLEAN_API_FIX_AUDIT.md",
+      "title": "Sprint 17 — Auditoria da correção Clean API/PostgreSQL",
+      "headings": [
+        "Sprint 17 — Auditoria da correção Clean API/PostgreSQL"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_19_REAL_PUBLIC_JOURNEY_AUDIT.md",
+      "title": "Sprint 19 — Auditoria da jornada pública real API/PostgreSQL",
+      "headings": [
+        "Sprint 19 — Auditoria da jornada pública real API/PostgreSQL"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_20_REAL_PUBLIC_API_POSTGRES_AUDIT.md",
+      "title": "Sprint 20 — Auditoria da Jornada Pública Real API/PostgreSQL",
+      "headings": [
+        "Sprint 20 — Auditoria da Jornada Pública Real API/PostgreSQL"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_24_OPERATIONAL_LOGGING_AUDIT.md",
+      "title": "Sprint 24 — Auditoria de Logging Operacional",
+      "headings": [
+        "Sprint 24 — Auditoria de Logging Operacional"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_30_EXECUTABLE_PRODUCTION_GATES_AUDIT.md",
+      "title": "Sprint 30 — Auditoria de Gates Executáveis de Produção",
+      "headings": [
+        "Sprint 30 — Auditoria de Gates Executáveis de Produção"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_32_LIVE_RC_FINAL_AUDIT.md",
+      "title": "Sprint 32 — Auditoria Live RC Final",
+      "headings": [
+        "Sprint 32 — Auditoria Live RC Final"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_37_VALORA_WEB_AUTHENTICATED_AREA_AUDIT.md",
+      "title": "Sprint 37.1 — Auditoria da Área Autenticada Valora.Web",
+      "headings": [
+        "Sprint 37.1 — Auditoria da Área Autenticada Valora.Web"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_39_VALORA_WEB_ASPNET_FINAL_AUDIT.md",
+      "title": "Sprint 39 — Auditoria final Valora.Web ASP.NET",
+      "headings": [
+        "Sprint 39 — Auditoria final Valora.Web ASP.NET"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_3_VERTICAL_MVP_AUDIT.md",
+      "title": "Sprint 3 — Auditoria do MVP Vertical PostgreSQL + Jornada Pública via API",
+      "headings": [
+        "Sprint 3 — Auditoria do MVP Vertical PostgreSQL + Jornada Pública via API"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_47_FREE_SURVEY_OPERATION_AUDIT.md",
+      "title": "Sprint 47 — Auditoria operacional da pesquisa gratuita",
+      "headings": [
+        "Sprint 47 — Auditoria operacional da pesquisa gratuita"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_47_MIGRATION_PROGRESS.md",
+      "title": "Sprint 47 — Progresso de migração",
+      "headings": [
+        "Sprint 47 — Progresso de migração"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_48_FINAL_HOMOLOGATION_AUDIT.md",
+      "title": "Sprint 48 — Auditoria Final de Homologação",
+      "headings": [
+        "Sprint 48 — Auditoria Final de Homologação"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_4_MIGRATION_EXECUTION_AUDIT.md",
+      "title": "Sprint 4 — Auditoria de Execução da Migração Controlada",
+      "headings": [
+        "Sprint 4 — Auditoria de Execução da Migração Controlada"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_5_HYBRID_MIGRATION_AUDIT.md",
+      "title": "Sprint 5 — Auditoria de Arquitetura Híbrida e Migração",
+      "headings": [
+        "Sprint 5 — Auditoria de Arquitetura Híbrida e Migração"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_64_MIGRATION_FULL_PARITY_AUDIT.md",
+      "title": "Auditoria Sprint 64 — Paridade completa legado para Web/API",
+      "headings": [
+        "Auditoria Sprint 64 — Paridade completa legado para Web/API"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_6_HYBRID_CUTOVER_AUDIT.md",
+      "title": "Sprint 6 — Auditoria da Arquitetura Híbrida e Cutover Firebase → PostgreSQL",
+      "headings": [
+        "Sprint 6 — Auditoria da Arquitetura Híbrida e Cutover Firebase → PostgreSQL",
+        "Estado final da sprint"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_9_PRODUCTION_REHEARSAL_AUDIT.md",
+      "title": "Sprint 9 — Auditoria real de ensaio de produção API/PostgreSQL",
+      "headings": [
+        "Sprint 9 — Auditoria real de ensaio de produção API/PostgreSQL"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_FIX_DOMAIN_DUPLICATE_ENTITIES_DIAGNOSTIC.md",
+      "title": "Sprint Fix Domain Duplicate Entities — Diagnóstico inicial",
+      "headings": [
+        "Sprint Fix Domain Duplicate Entities — Diagnóstico inicial"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_FIX_SCRIPTBD_COMPLETO_SCHEMA_COMPAT_AUDIT.md",
+      "title": "Auditoria — Sprint `scriptbd_completo.sql` compatível",
+      "headings": [
+        "Auditoria — Sprint `scriptbd_completo.sql` compatível"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_FIX_SCRIPTBD_COMPLETO_SCHEMA_COMPAT_DIAGNOSTIC.md",
+      "title": "Diagnóstico — Compatibilidade `scriptbd_completo.sql`",
+      "headings": [],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_FIX_SQL_PLANS_COLUMNS_AUDIT.md",
+      "title": "Sprint Fix — Auditoria de colunas SQL de `valorapesquisa.plans`",
+      "headings": [
+        "Sprint Fix — Auditoria de colunas SQL de `valorapesquisa.plans`"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_FIX_SQL_PLANS_SCHEMA_AUDIT.md",
+      "title": "Sprint Fix SQL Plans Schema Audit",
+      "headings": [
+        "Sprint Fix SQL Plans Schema Audit"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_FIX_SQL_PLANS_SCHEMA_DIAGNOSTIC.md",
+      "title": "Sprint Fix SQL Plans Schema Diagnostic",
+      "headings": [
+        "Sprint Fix SQL Plans Schema Diagnostic"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_XX_ADMIN_REAL_REPOSITORIES_AUDIT.md",
+      "title": "Sprint XX — Auditoria Final de Repositories Administrativos Reais",
+      "headings": [
+        "Sprint XX — Auditoria Final de Repositories Administrativos Reais"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_XX_ADMIN_REAL_REPOSITORIES_DIAGNOSTIC.md",
+      "title": "Sprint XX — Diagnóstico de Repositories Administrativos Reais",
+      "headings": [
+        "Sprint XX — Diagnóstico de Repositories Administrativos Reais"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/archive/ASPNET_WEB_CSP_POLICY.md",
+      "title": "Sprint 44 — CSP e SMTP Valora",
+      "headings": [
+        "Sprint 44 — CSP e SMTP Valora"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/archive/ASPNET_WEB_DOCKER_RUNTIME.md",
+      "title": "Docker Runtime Valora.Web",
+      "headings": [
+        "Diagnóstico Sprint 41"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/archive/ASPNET_WEB_FREE_SURVEY_PARITY.md",
+      "title": "Paridade Valora.Web ASP.NET — Pesquisa Gratuita",
+      "headings": [
+        "Evidências Sprint 46"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/archive/ASPNET_WEB_MOBILE_MENU_RUNTIME_FIX.md",
+      "title": "Correção runtime menu mobile Valora.Web",
+      "headings": [
+        "Status Sprint 53"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/archive/ASPNET_WEB_NO_BINARY_ASSETS_POLICY.md",
+      "title": "Política sem Binários Valora.Web",
+      "headings": [
+        "Diagnóstico Sprint 41"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_01_DOTNET_V2_FOUNDATION_AUDIT.md",
+      "title": "Sprint 01 — Auditoria da Fundação .NET v2",
+      "headings": [
+        "Sprint 01 — Auditoria da Fundação .NET v2"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_01_DOTNET_V2_FOUNDATION_PLAN.md",
+      "title": "Sprint 01 — Plano da Fundação .NET v2",
+      "headings": [
+        "Sprint 01 — Plano da Fundação .NET v2",
+        "9. Fora desta sprint"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_02_DOTNET_V2_VERTICAL_COMPLETION_AUDIT.md",
+      "title": "Sprint 02 — Auditoria da conclusão vertical .NET v2",
+      "headings": [
+        "Sprint 02 — Auditoria da conclusão vertical .NET v2",
+        "1. Resumo da sprint"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_02_DOTNET_V2_VERTICAL_COMPLETION_DIAGNOSTIC.md",
+      "title": "Sprint 02 — Diagnóstico da conclusão vertical .NET v2",
+      "headings": [
+        "Sprint 02 — Diagnóstico da conclusão vertical .NET v2",
+        "9. Riscos para concluir Sprint 01"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_03_DOTNET_V2_STABILIZATION_DIAGNOSTIC.md",
+      "title": "Sprint 03 — Diagnóstico inicial da estabilização .NET v2",
+      "headings": [
+        "Sprint 03 — Diagnóstico inicial da estabilização .NET v2"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_04_DOTNET_V2_SAAS_PLANS_MODULES_AUDIT.md",
+      "title": "Sprint 04 — Auditoria Final SaaS Planos, Módulos e Permissões",
+      "headings": [
+        "Sprint 04 — Auditoria Final SaaS Planos, Módulos e Permissões"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_04_DOTNET_V2_SAAS_PLANS_MODULES_DIAGNOSTIC.md",
+      "title": "Sprint 04 — Diagnóstico SaaS Planos, Módulos e Permissões",
+      "headings": [
+        "Sprint 04 — Diagnóstico SaaS Planos, Módulos e Permissões"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_11_BACKEND_POSTGRES_OPERATIONAL_AUDIT.md",
+      "title": "Sprint 11 — Auditoria Operacional Backend/PostgreSQL",
+      "headings": [
+        "Sprint 11 — Auditoria Operacional Backend/PostgreSQL"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_12_BACKEND_API_POSTGRES_EXECUTION_AUDIT.md",
+      "title": "Sprint 12 — Backend/API/PostgreSQL Operational Execution Audit",
+      "headings": [
+        "Sprint 12 — Backend/API/PostgreSQL Operational Execution Audit"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_14_BACKEND_REAL_AUDIT.md",
+      "title": "Sprint 14 — Auditoria Backend Real, PostgreSQL e Migração Executável",
+      "headings": [
+        "Sprint 14 — Auditoria Backend Real, PostgreSQL e Migração Executável"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_15_CLEAN_BACKEND_POSTGRES_SCHEMA_AUDIT.md",
+      "title": "Sprint 15 — Auditoria backend limpo e schema único valorapesquisa",
+      "headings": [
+        "Sprint 15 — Auditoria backend limpo e schema único valorapesquisa"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_16_CLEAN_BACKEND_SCHEMA_VALORAPESQUISA_AUDIT.md",
+      "title": "Sprint 16 — Auditoria Backend Limpo e Schema Único `valorapesquisa`",
+      "headings": [
+        "Sprint 16 — Auditoria Backend Limpo e Schema Único `valorapesquisa`"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_18_BACKEND_FIX_PUBLIC_API_AUDIT.md",
+      "title": "Sprint 18 — Auditoria Backend, API Pública e PostgreSQL valorapesquisa",
+      "headings": [
+        "Sprint 18 — Auditoria Backend, API Pública e PostgreSQL valorapesquisa",
+        "Problemas corrigidos nesta sprint"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_44_MIGRACAO_DOTNET_ADMIN_REPOSITORIES_AUDIT.md",
+      "title": "Sprint 44 — Migração .NET de repositories administrativos",
+      "headings": [
+        "Sprint 44 — Migração .NET de repositories administrativos",
+        "Endpoints que deixaram de retornar 501 nesta sprint"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_CENTRALIZACAO_VALORA_INSIGHT_AUDIT.md",
+      "title": "Auditoria final — Sprint Backend Centralização Valora Insight",
+      "headings": [
+        "Auditoria final — Sprint Backend Centralização Valora Insight"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_CENTRALIZACAO_VALORA_INSIGHT_DIAGNOSTIC.md",
+      "title": "Diagnóstico inicial — Sprint Backend Centralização Valora Insight",
+      "headings": [
+        "Diagnóstico inicial — Sprint Backend Centralização Valora Insight"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_HOMOLOGACAO_CUTOVER_HARDENING_AUDIT.md",
+      "title": "Auditoria final — Sprint Homologação, Cutover, Hardening, Backup e Monitoramento",
+      "headings": [
+        "Auditoria final — Sprint Homologação, Cutover, Hardening, Backup e Monitoramento"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_HOMOLOGACAO_CUTOVER_HARDENING_DIAGNOSTIC.md",
+      "title": "Diagnóstico inicial — Homologação, cutover e hardening do backend oficial",
+      "headings": [
+        "15. Plano objetivo da sprint"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_LEGACY_IMPORT_DIAGNOSTIC.md",
+      "title": "Diagnóstico — Importação Controlada Legado/Firebase/localStorage → PostgreSQL Oficial",
+      "headings": [],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_MIGRATION_REALITY_CHECK_AUDIT.md",
+      "title": "Sprint Backend Oficial — Migration Reality Check Audit",
+      "headings": [
+        "Sprint Backend Oficial — Migration Reality Check Audit"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_RC2_REAL_HOMOLOGATION_AUDIT.md",
+      "title": "Auditoria Final — Sprint Backend Oficial RC2 Real Homologation",
+      "headings": [
+        "Auditoria Final — Sprint Backend Oficial RC2 Real Homologation"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_RELEASE_CANDIDATE_AUDIT.md",
+      "title": "Auditoria — Release Candidate Backend Oficial",
+      "headings": [],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_REPORTS_CERTIFICATES_LGPD_EMAIL_AUDIT.md",
+      "title": "Auditoria final — Sprint Backend Oficial Reports/Certificates/LGPD/E-mail",
+      "headings": [
+        "Auditoria final — Sprint Backend Oficial Reports/Certificates/LGPD/E-mail"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_REPORTS_CERTIFICATES_LGPD_EMAIL_DIAGNOSTIC.md",
+      "title": "Diagnóstico inicial — Sprint Backend Oficial Reports/Certificates/LGPD/E-mail",
+      "headings": [
+        "Diagnóstico inicial — Sprint Backend Oficial Reports/Certificates/LGPD/E-mail",
+        "18. Plano objetivo da sprint"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/audits/SPRINT_BACKEND_OFICIAL_SAAS_REPORTS_EMAIL_DIAGNOSTIC.md",
+      "title": "Diagnóstico inicial — Sprint Backend Oficial SaaS + Relatórios + Certificados + LGPD + E-mail",
+      "headings": [
+        "Diagnóstico inicial — Sprint Backend Oficial SaaS + Relatórios + Certificados + LGPD + E-mail",
+        "12. Regras do legado migradas nesta sprint"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/migration/FIREBASE_TO_POSTGRESQL.md",
+      "title": "FIREBASE TO POSTGRES FINAL MAPPING",
+      "headings": [
+        "Sprint 28 - Homologação funcional SaaS"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/migration/FIREBASE_TO_POSTGRES_FINAL_MAPPING.md",
+      "title": "FIREBASE TO POSTGRES FINAL MAPPING",
+      "headings": [
+        "Sprint 28 - Homologação funcional SaaS"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/migration/ROLLBACK_PLAN_FIREBASE.md",
+      "title": "ROLLBACK_PLAN_FIREBASE",
+      "headings": [
+        "Sprint 29 - Rollback operacional"
+      ],
+      "updatedAt": "2026-07-26T13:06:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_VALORA_PREMIUM_SAAS_REDESIGN_AUDIT.md",
+      "title": "Sprint Valora Premium SaaS Redesign — Audit",
+      "headings": [
+        "Sprint Valora Premium SaaS Redesign — Audit"
+      ],
+      "updatedAt": "2026-07-07T17:20:22-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_VALORA_PREMIUM_SAAS_REDESIGN_DIAGNOSTIC.md",
+      "title": "Sprint Valora Premium SaaS Redesign — Diagnóstico inicial",
+      "headings": [
+        "Sprint Valora Premium SaaS Redesign — Diagnóstico inicial",
+        "16. Plano objetivo da sprint"
+      ],
+      "updatedAt": "2026-07-07T17:20:22-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_VALORA_CLIENT_FEEDBACK_FIXES_AUDIT.md",
+      "title": "Sprint Valora Client Feedback Fixes — Audit",
+      "headings": [
+        "Sprint Valora Client Feedback Fixes — Audit"
+      ],
+      "updatedAt": "2026-07-07T15:44:29-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_VALORA_INSIGHT_MOBILE_POLISH_DIAGNOSTIC.md",
+      "title": "Sprint Valora Insight™ — Diagnóstico inicial de correção fina mobile",
+      "headings": [
+        "Sprint Valora Insight™ — Diagnóstico inicial de correção fina mobile"
+      ],
+      "updatedAt": "2026-07-07T15:44:29-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "VALORA_INSIGHT_FEEDBACK_ENGINE.md",
+      "title": "Motor de devolutiva Valora Insight™",
+      "headings": [
+        "Sprint Valora Insight™ — correções de feedback do cliente"
+      ],
+      "updatedAt": "2026-07-07T15:44:29-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "VALORA_VISUAL_HOMOLOGATION_CHECKLIST.md",
+      "title": "Checklist de homologação visual Valora",
+      "headings": [
+        "Sprint Valora Insight™ — correções de feedback do cliente"
+      ],
+      "updatedAt": "2026-07-07T15:44:29-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_VALORA_RC2_VISUAL_BRAND_DIAGNOSTIC.md",
+      "title": "Sprint Valora RC2 — Diagnóstico Visual da Marca",
+      "headings": [
+        "Sprint Valora RC2 — Diagnóstico Visual da Marca",
+        "Estado dos validadores antes da sprint",
+        "Plano objetivo da sprint"
+      ],
+      "updatedAt": "2026-07-07T15:06:00-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_VALORA_RC2_VISUAL_READINESS_AUDIT.md",
+      "title": "Sprint Valora RC2 — Visual Readiness Audit",
+      "headings": [
+        "Sprint Valora RC2 — Visual Readiness Audit"
+      ],
+      "updatedAt": "2026-07-07T15:06:00-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_VALORA_VISUAL_HOMOLOGATION_AUDIT.md",
+      "title": "Auditoria final — Sprint Valora Visual Homologation",
+      "headings": [
+        "Auditoria final — Sprint Valora Visual Homologation"
+      ],
+      "updatedAt": "2026-07-07T14:19:09-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_VALORA_VISUAL_HOMOLOGATION_DIAGNOSTIC.md",
+      "title": "Diagnóstico inicial — Sprint Valora Visual Homologation",
+      "headings": [
+        "Diagnóstico inicial — Sprint Valora Visual Homologation"
+      ],
+      "updatedAt": "2026-07-07T14:19:09-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_VALORA_BRAND_ASSETS_APPLIED_AUDIT.md",
+      "title": "Sprint Valora Brand Assets Applied Audit",
+      "headings": [
+        "Sprint Valora Brand Assets Applied Audit"
+      ],
+      "updatedAt": "2026-07-07T07:37:08-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_WEB_LEGACY_PARITY_DIAGNOSTIC.md",
+      "title": "Diagnóstico inicial — Sprint Web Legacy Parity",
+      "headings": [
+        "Diagnóstico inicial — Sprint Web Legacy Parity",
+        "13. Plano objetivo da sprint"
+      ],
+      "updatedAt": "2026-07-06T18:43:52-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_WEB_LEGACY_PUBLIC_PARITY_AUDIT.md",
+      "title": "Auditoria final — Sprint Web Legacy Public Parity",
+      "headings": [
+        "Auditoria final — Sprint Web Legacy Public Parity"
+      ],
+      "updatedAt": "2026-07-06T18:43:52-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_FIX_LEGACY_MIGRATION_SERIALIZE_TO_ELEMENT_AUDIT.md",
+      "title": "Sprint Fix — Legacy Migration SerializeToElement Audit",
+      "headings": [
+        "Sprint Fix — Legacy Migration SerializeToElement Audit"
+      ],
+      "updatedAt": "2026-07-06T18:16:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_FIX_DOMAIN_DUPLICATE_ENTITIES_AUDIT.md",
+      "title": "Sprint Fix Domain Duplicate Entities — Auditoria final",
+      "headings": [
+        "Sprint Fix Domain Duplicate Entities — Auditoria final"
+      ],
+      "updatedAt": "2026-07-06T17:44:01-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_75_FUNCTIONS_TELEGRAM_SECRET_OPTIONAL_AUDIT.md",
+      "title": "Sprint 75 — Auditoria Functions Telegram Secret Optional",
+      "headings": [
+        "Sprint 75 — Auditoria Functions Telegram Secret Optional"
+      ],
+      "updatedAt": "2026-06-30T13:04:27-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_74_LEGACY_CLIENT_USER_AND_DIST_FIX_AUDIT.md",
+      "title": "Sprint 74 — Auditoria cadastro cliente/usuário legado e dist",
+      "headings": [
+        "Sprint 74 — Auditoria cadastro cliente/usuário legado e dist"
+      ],
+      "updatedAt": "2026-06-30T12:50:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_73_DEMO_LINK_OFFICIAL_SURVEY_FIX_AUDIT.md",
+      "title": "Sprint 73 — Auditoria link demo, pesquisa oficial e provider",
+      "headings": [
+        "Sprint 73 — Auditoria link demo, pesquisa oficial e provider"
+      ],
+      "updatedAt": "2026-06-30T12:27:27-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_72_DEMO_LINK_PROVIDER_HOTFIX_AUDIT.md",
+      "title": "Sprint 72 — Auditoria do hotfix demo/provider_unavailable",
+      "headings": [
+        "Sprint 72 — Auditoria do hotfix demo/provider_unavailable"
+      ],
+      "updatedAt": "2026-06-30T12:19:05-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_71_FUNCTIONS_WINDOWS_PROVIDER_FIX_AUDIT.md",
+      "title": "Sprint 71 — Functions Windows, Node 22, Hosting Dist e Provider Fallback",
+      "headings": [
+        "Sprint 71 — Functions Windows, Node 22, Hosting Dist e Provider Fallback"
+      ],
+      "updatedAt": "2026-06-30T12:08:50-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_69_PROVIDER_UNAVAILABLE_FINAL_HOTFIX_AUDIT.md",
+      "title": "Sprint 69 — Auditoria do hotfix final provider_unavailable",
+      "headings": [
+        "Sprint 69 — Auditoria do hotfix final provider_unavailable"
+      ],
+      "updatedAt": "2026-06-30T11:56:10-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_68_PROVIDER_UNAVAILABLE_HOTFIX_AUDIT.md",
+      "title": "Sprint 68 — Provider Unavailable Hotfix Audit",
+      "headings": [
+        "Sprint 68 — Provider Unavailable Hotfix Audit"
+      ],
+      "updatedAt": "2026-06-30T11:17:42-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "FIREBASE_DEPLOY_RUNBOOK.md",
+      "title": "FIREBASE_DEPLOY_RUNBOOK",
+      "headings": [
+        "Validações Sprint 67"
+      ],
+      "updatedAt": "2026-06-30T11:08:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "GOOGLE_SMTP_PRODUCTION_SETUP.md",
+      "title": "GOOGLE_SMTP_PRODUCTION_SETUP",
+      "headings": [
+        "Validações Sprint 67"
+      ],
+      "updatedAt": "2026-06-30T11:08:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "LEGACY_ADMIN_MOBILE_FINAL_FIX.md",
+      "title": "LEGACY_ADMIN_MOBILE_FINAL_FIX",
+      "headings": [
+        "Validações Sprint 67"
+      ],
+      "updatedAt": "2026-06-30T11:08:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "LEGACY_FREE_TOKEN_NEVER_EXPIRES.md",
+      "title": "LEGACY_FREE_TOKEN_NEVER_EXPIRES",
+      "headings": [
+        "Validações Sprint 67"
+      ],
+      "updatedAt": "2026-06-30T11:08:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SMTP_SECRET_ROTATION_REQUIRED.md",
+      "title": "SMTP_SECRET_ROTATION_REQUIRED",
+      "headings": [
+        "Validações Sprint 67"
+      ],
+      "updatedAt": "2026-06-30T11:08:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_67_DEPLOY_AND_LEGACY_FULL_FIX_AUDIT.md",
+      "title": "SPRINT_67_DEPLOY_AND_LEGACY_FULL_FIX_AUDIT",
+      "headings": [
+        "Validações Sprint 67"
+      ],
+      "updatedAt": "2026-06-30T11:08:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "LEGACY_ENVIRONMENT_DIAGNOSTICS.md",
+      "title": "Sprint 66 — Documento operacional legado",
+      "headings": [
+        "Sprint 66 — Documento operacional legado"
+      ],
+      "updatedAt": "2026-06-30T10:55:39-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "PRODUCTION_LEGACY_SMOKE_RUNBOOK.md",
+      "title": "Sprint 66 — Documento operacional legado",
+      "headings": [
+        "Sprint 66 — Documento operacional legado"
+      ],
+      "updatedAt": "2026-06-30T10:55:39-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_66_LEGACY_PUBLIC_FLOW_FULL_FIX_AUDIT.md",
+      "title": "Sprint 66 — Auditoria do fluxo legado",
+      "headings": [
+        "Sprint 66 — Auditoria do fluxo legado"
+      ],
+      "updatedAt": "2026-06-30T10:55:39-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_63_LEGACY_FULL_RUNTIME_FIX_AUDIT.md",
+      "title": "Sprint 63 — Auditoria objetiva",
+      "headings": [
+        "Sprint 63 — Auditoria objetiva"
+      ],
+      "updatedAt": "2026-06-30T10:09:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_62_LEGACY_MOBILE_MENU_BRIDGE_AUDIT.md",
+      "title": "Sprint 62 — Auditoria da bridge do menu administrativo mobile legado",
+      "headings": [
+        "Sprint 62 — Auditoria da bridge do menu administrativo mobile legado"
+      ],
+      "updatedAt": "2026-06-30T09:49:49-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_60_ASSISTED_OPERATION_AUDIT.md",
+      "title": "Sprint 60 — Auditoria de Operação Assistida",
+      "headings": [
+        "Sprint 60 — Auditoria de Operação Assistida"
+      ],
+      "updatedAt": "2026-06-30T09:36:59-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_58_POST_BLAZE_PRODUCTION_AUDIT.md",
+      "title": "Sprint 58 — Auditoria Pós-Blaze e Produção Real",
+      "headings": [
+        "Sprint 58 — Auditoria Pós-Blaze e Produção Real"
+      ],
+      "updatedAt": "2026-06-30T09:28:09-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_57_BLAZE_EMAIL_MOBILE_FINAL_AUDIT.md",
+      "title": "Sprint 57 — Auditoria Blaze, e-mail e menu mobile",
+      "headings": [
+        "Sprint 57 — Auditoria Blaze, e-mail e menu mobile"
+      ],
+      "updatedAt": "2026-06-30T09:09:29-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_55_LEGACY_MOBILE_MENU_FINAL_AUDIT.md",
+      "title": "Sprint 55 — Auditoria final do menu mobile legado",
+      "headings": [
+        "Sprint 55 — Auditoria final do menu mobile legado"
+      ],
+      "updatedAt": "2026-06-30T08:46:43-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_54_LEGACY_INDEX_RUNTIME_FIX_AUDIT.md",
+      "title": "Sprint 54 — Auditoria do index legado",
+      "headings": [
+        "Sprint 54 — Auditoria do index legado"
+      ],
+      "updatedAt": "2026-06-30T07:37:06-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "FIREBASE_ADMIN_CREDENTIALS_WINDOWS.md",
+      "title": "Credenciais Firebase Admin no Windows",
+      "headings": [
+        "Status Sprint 53"
+      ],
+      "updatedAt": "2026-06-30T07:21:48-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "FIREBASE_AUTH_USER_FRIENDLY_ERRORS.md",
+      "title": "Erros amigáveis Firebase Auth",
+      "headings": [
+        "Status Sprint 53"
+      ],
+      "updatedAt": "2026-06-30T07:21:48-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "NO_DEMO_RESPONSE_POLICY.md",
+      "title": "Política sem resposta demonstrativa em produção",
+      "headings": [
+        "Status Sprint 53"
+      ],
+      "updatedAt": "2026-06-30T07:21:48-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_53_LEGACY_INDEX_FULL_FIX_AUDIT.md",
+      "title": "Sprint 53 — Auditoria completa do index legado",
+      "headings": [
+        "Sprint 53 — Auditoria completa do index legado",
+        "Status Sprint 53"
+      ],
+      "updatedAt": "2026-06-30T07:21:48-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_52_FIREBASE_CREDENTIALS_LINK_MOBILE_AUDIT.md",
+      "title": "Sprint 52 — Auditoria Firebase Credentials, Link Público e Menu Mobile",
+      "headings": [
+        "Sprint 52 — Auditoria Firebase Credentials, Link Público e Menu Mobile"
+      ],
+      "updatedAt": "2026-06-30T07:14:42-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_50_LINK_AUTH_MOBILE_AUDIT.md",
+      "title": "Sprint 50 — Auditoria Link/Auth/Menu Mobile",
+      "headings": [
+        "Sprint 50 — Auditoria Link/Auth/Menu Mobile"
+      ],
+      "updatedAt": "2026-06-30T06:48:24-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_49_CSP_DEPLOY_EMAIL_AUDIT.md",
+      "title": "Auditoria Sprint 49 — CSP, deploy Firebase e e-mail real",
+      "headings": [
+        "Auditoria Sprint 49 — CSP, deploy Firebase e e-mail real"
+      ],
+      "updatedAt": "2026-06-29T12:58:30-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "CERTIFICATE_RICH_CONTENT.md",
+      "title": "Certificado Enriquecido",
+      "headings": [
+        "Evidências Sprint 46"
+      ],
+      "updatedAt": "2026-06-29T11:06:51-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "COMMUNICATION_ENDPOINT_CONTRACT.md",
+      "title": "Contrato de Endpoint de Comunicação",
+      "headings": [
+        "Evidências Sprint 46"
+      ],
+      "updatedAt": "2026-06-29T11:06:51-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "CSP_PRODUCTION_POLICY.md",
+      "title": "CSP de Produção",
+      "headings": [
+        "Evidências Sprint 46"
+      ],
+      "updatedAt": "2026-06-29T11:06:51-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "EMAIL_DELIVERY_OPERATION.md",
+      "title": "Operação de Entrega de E-mail",
+      "headings": [
+        "Evidências Sprint 46"
+      ],
+      "updatedAt": "2026-06-29T11:06:51-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "EMAIL_SMTP_CONFIGURATION.md",
+      "title": "Configuração SMTP",
+      "headings": [
+        "Evidências Sprint 46"
+      ],
+      "updatedAt": "2026-06-29T11:06:51-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "FREE_SURVEY_RESULT_EMAIL_RULE.md",
+      "title": "Regra de E-mail Obrigatório do Resultado",
+      "headings": [
+        "Evidências Sprint 46"
+      ],
+      "updatedAt": "2026-06-29T11:06:51-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "FREE_SURVEY_SHAREABLE_LINK.md",
+      "title": "Link Compartilhável da Pesquisa Gratuita",
+      "headings": [
+        "Evidências Sprint 46"
+      ],
+      "updatedAt": "2026-06-29T11:06:51-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "HOME_FREE_SURVEY_COMMERCIAL_FLOW.md",
+      "title": "Fluxo Comercial da Pesquisa Gratuita",
+      "headings": [
+        "Evidências Sprint 46"
+      ],
+      "updatedAt": "2026-06-29T11:06:51-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_46_FREE_DIAGNOSTIC_E2E_AUDIT.md",
+      "title": "Sprint 46 — Auditoria E2E do Diagnóstico Gratuito",
+      "headings": [
+        "Sprint 46 — Auditoria E2E do Diagnóstico Gratuito",
+        "Evidências Sprint 46"
+      ],
+      "updatedAt": "2026-06-29T11:06:51-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_46_MIGRATION_PROGRESS.md",
+      "title": "Sprint 46 — Progresso de Migração",
+      "headings": [
+        "Sprint 46 — Progresso de Migração",
+        "Evidências Sprint 46"
+      ],
+      "updatedAt": "2026-06-29T11:06:51-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_44_CSP_EMAIL_SMTP_AUDIT.md",
+      "title": "SPRINT 44 — Auditoria CSP, Endpoint e SMTP",
+      "headings": [
+        "SPRINT 44 — Auditoria CSP, Endpoint e SMTP"
+      ],
+      "updatedAt": "2026-06-29T10:42:08-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_43_VALORA_WEB_MIGRATION_PARITY_AUDIT.md",
+      "title": "Sprint 43 — Auditoria de Paridade Valora.Web",
+      "headings": [
+        "Sprint 43 — Auditoria de Paridade Valora.Web",
+        "Gaps para próxima sprint"
+      ],
+      "updatedAt": "2026-06-29T09:56:37-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_42_VALORA_WEB_PRODUCTION_HOMOLOGATION_AUDIT.md",
+      "title": "Sprint 42 — Auditoria de Homologação Final",
+      "headings": [
+        "Sprint 42 — Auditoria de Homologação Final"
+      ],
+      "updatedAt": "2026-06-29T09:39:07-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SAAS_PRODUCT_COMPLETION_STATUS.md",
+      "title": "Status de Conclusão SaaS",
+      "headings": [
+        "Diagnóstico Sprint 41"
+      ],
+      "updatedAt": "2026-06-29T09:22:34-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_41_VALORA_WEB_FINAL_PRODUCTION_AUDIT.md",
+      "title": "Sprint 41 — Auditoria Final Valora.Web ASP.NET",
+      "headings": [
+        "Sprint 41 — Auditoria Final Valora.Web ASP.NET",
+        "Diagnóstico Sprint 41"
+      ],
+      "updatedAt": "2026-06-29T09:22:34-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_38_VALORA_WEB_OFFICIAL_FRONT_AUDIT.md",
+      "title": "Auditoria Sprint 38 — Valora.Web oficial",
+      "headings": [
+        "Auditoria Sprint 38 — Valora.Web oficial"
+      ],
+      "updatedAt": "2026-06-29T08:03:22-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_37_VALORA_WEB_AUTHENTICATED_MODULES_AUDIT.md",
+      "title": "Sprint 37 — Valora.Web Área Autenticada SaaS",
+      "headings": [
+        "Sprint 37 — Valora.Web Área Autenticada SaaS"
+      ],
+      "updatedAt": "2026-06-28T16:33:52-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_36_VALORA_WEB_REAL_UX_AUDIT.md",
+      "title": "Sprint 36 — Auditoria Valora.Web UX Real",
+      "headings": [
+        "Sprint 36 — Auditoria Valora.Web UX Real"
+      ],
+      "updatedAt": "2026-06-28T11:38:58-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_35_VALORA_WEB_FUNCTIONAL_AUDIT.md",
+      "title": "Sprint 35 — Auditoria funcional do Valora.Web",
+      "headings": [
+        "Sprint 35 — Auditoria funcional do Valora.Web"
+      ],
+      "updatedAt": "2026-06-28T11:07:48-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_33_ASPNET_WEB_FRONTEND_AUDIT.md",
+      "title": "SPRINT_33_ASPNET_WEB_FRONTEND_AUDIT.md",
+      "headings": [],
+      "updatedAt": "2026-06-28T09:17:49-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_31_LIVE_HOMOLOGATION_AUDIT.md",
+      "title": "Sprint 31 — Live Homologation Audit",
+      "headings": [
+        "Sprint 31 — Live Homologation Audit"
+      ],
+      "updatedAt": "2026-06-27T21:52:20-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_29_FUNCTIONAL_PRODUCTION_GATES_AUDIT.md",
+      "title": "Sprint 29 — Auditoria de Gates Funcionais Reais",
+      "headings": [
+        "Sprint 29 — Auditoria de Gates Funcionais Reais",
+        "Próxima sprint recomendada"
+      ],
+      "updatedAt": "2026-06-27T20:12:03-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "AUDIT_LOG_POLICY.md",
+      "title": "AUDIT LOG POLICY",
+      "headings": [
+        "Sprint 28 - Homologação funcional SaaS"
+      ],
+      "updatedAt": "2026-06-27T20:03:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "FRONTEND_API_ERROR_HANDLING.md",
+      "title": "FRONTEND API ERROR HANDLING",
+      "headings": [
+        "Sprint 28 - Homologação funcional SaaS"
+      ],
+      "updatedAt": "2026-06-27T20:03:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "HEALTHCHECKS_AND_DIAGNOSTICS.md",
+      "title": "HEALTHCHECKS AND DIAGNOSTICS",
+      "headings": [
+        "Sprint 28 - Homologação funcional SaaS"
+      ],
+      "updatedAt": "2026-06-27T20:03:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "LOGGING_AND_OBSERVABILITY.md",
+      "title": "LOGGING AND OBSERVABILITY",
+      "headings": [
+        "Sprint 28 - Homologação funcional SaaS"
+      ],
+      "updatedAt": "2026-06-27T20:03:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SAAS_PLANS_AND_BILLING_READINESS.md",
+      "title": "SAAS PLANS AND BILLING READINESS",
+      "headings": [
+        "Sprint 28 - Homologação funcional SaaS"
+      ],
+      "updatedAt": "2026-06-27T20:03:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_28_FINAL_SAAS_PRODUCT_AUDIT.md",
+      "title": "Sprint 28 — Auditoria final do produto SaaS",
+      "headings": [
+        "Sprint 28 — Auditoria final do produto SaaS"
+      ],
+      "updatedAt": "2026-06-27T20:03:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_27_SAAS_PRODUCTION_READINESS_AUDIT.md",
+      "title": "SPRINT 27 SAAS PRODUCTION READINESS AUDIT",
+      "headings": [
+        "SPRINT 27 SAAS PRODUCTION READINESS AUDIT"
+      ],
+      "updatedAt": "2026-06-27T19:18:21-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_26_REAL_LOGGING_REPOSITORIES_AUDIT.md",
+      "title": "Sprint 26 — Auditoria de logging real em repositories e validadores",
+      "headings": [
+        "Sprint 26 — Auditoria de logging real em repositories e validadores"
+      ],
+      "updatedAt": "2026-06-27T18:57:45-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "CHECKLIST_HOMOLOGACAO_OPERACIONAL.md",
+      "title": "Política Sprint 25",
+      "headings": [
+        "Política Sprint 25"
+      ],
+      "updatedAt": "2026-06-27T18:00:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "CORRELATION_ID_POLICY.md",
+      "title": "Política Sprint 25",
+      "headings": [
+        "Política Sprint 25"
+      ],
+      "updatedAt": "2026-06-27T18:00:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "ERROR_HANDLING_POLICY.md",
+      "title": "Política Sprint 25",
+      "headings": [
+        "Política Sprint 25"
+      ],
+      "updatedAt": "2026-06-27T18:00:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "MIGRATION_LOGGING_POLICY.md",
+      "title": "Política Sprint 25",
+      "headings": [
+        "Política Sprint 25"
+      ],
+      "updatedAt": "2026-06-27T18:00:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "REPOSITORY_LOGGING_POLICY.md",
+      "title": "Política Sprint 25",
+      "headings": [
+        "Política Sprint 25"
+      ],
+      "updatedAt": "2026-06-27T18:00:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SENSITIVE_LOG_DATA_POLICY.md",
+      "title": "Política Sprint 25",
+      "headings": [
+        "Política Sprint 25"
+      ],
+      "updatedAt": "2026-06-27T18:00:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_25_REAL_LOGGING_NO_FALSE_POSITIVES_AUDIT.md",
+      "title": "Sprint 25 — Auditoria de logging real sem falso positivo",
+      "headings": [
+        "Sprint 25 — Auditoria de logging real sem falso positivo"
+      ],
+      "updatedAt": "2026-06-27T18:00:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "VALIDATOR_NO_FALSE_POSITIVES_POLICY.md",
+      "title": "Política Sprint 25",
+      "headings": [
+        "Política Sprint 25"
+      ],
+      "updatedAt": "2026-06-27T18:00:28-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_23_LOGGING_ERROR_HANDLING_AUDIT.md",
+      "title": "Sprint 23 — Auditoria de Logging, Erros e Observabilidade",
+      "headings": [
+        "Sprint 23 — Auditoria de Logging, Erros e Observabilidade"
+      ],
+      "updatedAt": "2026-06-27T05:53:55-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_22_TYPED_PUBLIC_JOURNEY_AUDIT.md",
+      "title": "Sprint 22 — Auditoria da Jornada Pública Tipada",
+      "headings": [
+        "Sprint 22 — Auditoria da Jornada Pública Tipada"
+      ],
+      "updatedAt": "2026-06-26T22:56:03-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "API_ENDPOINTS.md",
+      "title": "API_ENDPOINTS",
+      "headings": [
+        "Sprint 21"
+      ],
+      "updatedAt": "2026-06-26T22:48:37-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "BOOTSTRAP_FRONTEND_GUIDE.md",
+      "title": "BOOTSTRAP_FRONTEND_GUIDE",
+      "headings": [
+        "Sprint 21"
+      ],
+      "updatedAt": "2026-06-26T22:48:37-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "CHECKLIST_HOMOLOGACAO_PRD.md",
+      "title": "CHECKLIST_HOMOLOGACAO_PRD",
+      "headings": [
+        "Sprint 21"
+      ],
+      "updatedAt": "2026-06-26T22:48:37-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "MIGRATION_FIELD_MAPPING.md",
+      "title": "MIGRATION_FIELD_MAPPING",
+      "headings": [
+        "Sprint 21"
+      ],
+      "updatedAt": "2026-06-26T22:48:37-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "MIGRATION_FIREBASE_TO_POSTGRESQL_PLAN.md",
+      "title": "MIGRATION_FIREBASE_TO_POSTGRESQL_PLAN",
+      "headings": [
+        "Sprint 21"
+      ],
+      "updatedAt": "2026-06-26T22:48:37-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "POSTGRES_SINGLE_SCHEMA_VALORAPESQUISA.md",
+      "title": "POSTGRES_SINGLE_SCHEMA_VALORAPESQUISA",
+      "headings": [
+        "Sprint 21"
+      ],
+      "updatedAt": "2026-06-26T22:48:37-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "PUBLIC_JOURNEY_PROVIDER.md",
+      "title": "PUBLIC_JOURNEY_PROVIDER",
+      "headings": [
+        "Sprint 21"
+      ],
+      "updatedAt": "2026-06-26T22:48:37-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_21_PUBLIC_JOURNEY_REFACTOR_AUDIT.md",
+      "title": "Sprint 21 — Auditoria da jornada pública",
+      "headings": [
+        "Sprint 21 — Auditoria da jornada pública"
+      ],
+      "updatedAt": "2026-06-26T22:48:37-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_10_OPERATIONAL_API_POSTGRES_AUDIT.md",
+      "title": "Sprint 10 — Auditoria operacional API/PostgreSQL",
+      "headings": [
+        "Sprint 10 — Auditoria operacional API/PostgreSQL"
+      ],
+      "updatedAt": "2026-06-26T16:59:12-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "COMMUNICATION_GATEWAY_DECISION.md",
+      "title": "Decisão do Communication Gateway",
+      "headings": [
+        "Recomendação Sprint 8",
+        "Estado Sprint 8"
+      ],
+      "updatedAt": "2026-06-26T13:48:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_8_OPERATIONAL_CUTOVER_AUDIT.md",
+      "title": "Sprint 8 — Auditoria Operacional de Cutover",
+      "headings": [
+        "Sprint 8 — Auditoria Operacional de Cutover",
+        "Estado Sprint 8"
+      ],
+      "updatedAt": "2026-06-26T13:48:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "TARGET_ARCHITECTURE_VALORA_API_POSTGRESQL.md",
+      "title": "Arquitetura Alvo Valora API/PostgreSQL",
+      "headings": [
+        "Complemento Sprint 8",
+        "Estado Sprint 8"
+      ],
+      "updatedAt": "2026-06-26T13:48:53-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_7_END_TO_END_CUTOVER_AUDIT.md",
+      "title": "Sprint 7 — Homologação End-to-End e Cutover Firebase → PostgreSQL",
+      "headings": [
+        "Sprint 7 — Homologação End-to-End e Cutover Firebase → PostgreSQL"
+      ],
+      "updatedAt": "2026-06-26T13:42:59-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "CERTIFICADOS_VALORA_PREMIUM.md",
+      "title": "Sprint de Integração Real da Jornada Pública com Gateway",
+      "headings": [
+        "Sprint de Integração Real da Jornada Pública com Gateway"
+      ],
+      "updatedAt": "2026-06-26T10:06:18-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "FEATURED_HOME_SURVEY.md",
+      "title": "Sprint de Integração Real da Jornada Pública com Gateway",
+      "headings": [
+        "Sprint de Integração Real da Jornada Pública com Gateway"
+      ],
+      "updatedAt": "2026-06-26T10:06:18-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "MOBILE_PUBLIC_JOURNEY_QA.md",
+      "title": "Sprint de Integração Real da Jornada Pública com Gateway",
+      "headings": [
+        "Sprint de Integração Real da Jornada Pública com Gateway"
+      ],
+      "updatedAt": "2026-06-26T10:06:18-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "PUBLIC_JOURNEY_GATEWAY.md",
+      "title": "Sprint de Integração Real da Jornada Pública com Gateway",
+      "headings": [
+        "Sprint de Integração Real da Jornada Pública com Gateway"
+      ],
+      "updatedAt": "2026-06-26T10:06:18-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "RESULT_EMAIL_FLOW.md",
+      "title": "Sprint de Integração Real da Jornada Pública com Gateway",
+      "headings": [
+        "Sprint de Integração Real da Jornada Pública com Gateway"
+      ],
+      "updatedAt": "2026-06-26T10:06:18-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SIGNUP_LOGIN_FIREBASE.md",
+      "title": "Sprint de Integração Real da Jornada Pública com Gateway",
+      "headings": [
+        "Sprint de Integração Real da Jornada Pública com Gateway"
+      ],
+      "updatedAt": "2026-06-26T10:06:18-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPARK_WITHOUT_CLOUD_FUNCTIONS.md",
+      "title": "Sprint de Integração Real da Jornada Pública com Gateway",
+      "headings": [
+        "Sprint de Integração Real da Jornada Pública com Gateway"
+      ],
+      "updatedAt": "2026-06-26T10:06:18-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_GATEWAY_PUBLIC_JOURNEY_AUDIT.md",
+      "title": "Sprint Gateway Public Journey — Auditoria",
+      "headings": [
+        "Sprint Gateway Public Journey — Auditoria"
+      ],
+      "updatedAt": "2026-06-26T10:06:18-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "MOBILE_MENU_QA.md",
+      "title": "Sprint de Estabilização da Jornada Principal",
+      "headings": [
+        "Sprint de Estabilização da Jornada Principal"
+      ],
+      "updatedAt": "2026-06-26T09:40:30-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "PUBLIC_SURVEY_FLOW.md",
+      "title": "Sprint de Estabilização da Jornada Principal",
+      "headings": [
+        "Sprint de Estabilização da Jornada Principal"
+      ],
+      "updatedAt": "2026-06-26T09:40:30-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "SPRINT_JORNADA_PRINCIPAL_AUDIT.md",
+      "title": "Sprint Jornada Principal — Auditoria Técnica",
+      "headings": [
+        "Sprint Jornada Principal — Auditoria Técnica"
+      ],
+      "updatedAt": "2026-06-26T09:40:30-03:00",
+      "state": "Documentada · aceite a conferir"
+    }
+  ],
+  "recentCommits": [
+    {
+      "sha": "fb507c2b772e175cc76a61dc7b85b26da78c3981",
+      "date": "2026-10-18T08:05:25-03:00",
+      "title": "Merge pull request #604 from devmnsoft/portal-status-integration"
+    },
+    {
+      "sha": "e76e2358058b6978e1c0ac98b38d20e38e8fafe9",
+      "date": "2026-10-18T08:05:09-03:00",
+      "title": "Merge pull request #605 from devmnsoft/improve/clear-experience-20261018"
+    },
+    {
+      "sha": "e20bc21ff7c159eee758582f98a00eae23efc900",
+      "date": "2026-10-18T08:02:17-03:00",
+      "title": "Melhora orientação, legibilidade e seleção; protege login ambíguo e organiza 30 sprints"
+    },
+    {
+      "sha": "5012efb444f7b328a8a8a8c5dca0f623e82ebf2a",
+      "date": "2026-10-18T07:51:50-03:00",
+      "title": "novos itens"
+    },
+    {
+      "sha": "fd4454e4d191d83ab8a7398d06af05222ddc35d9",
+      "date": "2026-10-16T16:51:35-03:00",
+      "title": "itens"
+    },
+    {
+      "sha": "c562ab5fd93ffad22d50ecf817a32ef18e42b04d",
+      "date": "2026-10-16T10:40:53-03:00",
+      "title": "novos itens"
+    },
+    {
+      "sha": "0ca7450a37e9cd8f2eb9a57cd30344fd1fc1a8b9",
+      "date": "2026-10-16T08:37:40-03:00",
+      "title": "novos itens"
+    },
+    {
+      "sha": "b87a11d4b4a7eced87f6fbe33c79567ebe9de719",
+      "date": "2026-10-16T06:21:05-03:00",
+      "title": "novos itens"
+    },
+    {
+      "sha": "89b3fc874df56f0441aad9b2276222878fe4fd9f",
+      "date": "2026-10-15T22:22:28-03:00",
+      "title": "novos itens"
+    },
+    {
+      "sha": "75777eb39284a85c4e805aa1496ddb3e6c5c1936",
+      "date": "2026-10-15T20:31:05-03:00",
+      "title": "feat: prepare Valora portal status integration"
+    },
+    {
+      "sha": "6aa645a3792a0a2bf4dcb2d0ac2045e0b8963f5a",
+      "date": "2026-10-15T20:31:03-03:00",
+      "title": "feat: prepare Valora portal status integration"
+    },
+    {
+      "sha": "8edfd475a96cd05bf62e5855aaee21449bcd7a10",
+      "date": "2026-10-15T20:31:02-03:00",
+      "title": "feat: prepare Valora portal status integration"
+    },
+    {
+      "sha": "ba7aa6553fab9d6176864c806aa6a3d2194e69c1",
+      "date": "2026-10-15T20:31:01-03:00",
+      "title": "feat: prepare Valora portal status integration"
+    },
+    {
+      "sha": "4798fb22c7be1216c012780aebb6567343836b85",
+      "date": "2026-10-15T20:31:00-03:00",
+      "title": "feat: prepare Valora portal status integration"
+    },
+    {
+      "sha": "b7fb18a4561685c4e966e87899316c5cbfabb216",
+      "date": "2026-10-15T20:03:08-03:00",
+      "title": "tens"
+    },
+    {
+      "sha": "b245f0782ae93c5cd1f82b0e0bf8058730180b0d",
+      "date": "2026-10-15T17:29:23-03:00",
+      "title": "novos itens"
+    },
+    {
+      "sha": "04f6455d0726dc40d4871e1cc4b9342f1c7a8fc3",
+      "date": "2026-10-15T14:17:28-03:00",
+      "title": "novos itens"
+    },
+    {
+      "sha": "2ba77b40cb196cd404cb292b9c7a6c8c273d5e2c",
+      "date": "2026-10-15T12:18:15-03:00",
+      "title": "novos itens"
+    },
+    {
+      "sha": "c02d28c772a5417c69eac18627a94d52e7f7eca9",
+      "date": "2026-10-15T06:10:38-03:00",
+      "title": "novos ites"
+    },
+    {
+      "sha": "04004362a2ae0b1248f244cdd2d62e8a87f07630",
+      "date": "2026-10-12T09:13:29-03:00",
+      "title": "novos itens"
+    },
+    {
+      "sha": "0be0eaebdd3d2a87080ff53795f251bfebac99a4",
+      "date": "2026-10-12T07:10:51-03:00",
+      "title": "novos itens"
+    },
+    {
+      "sha": "4ba5b90948c766088437249c7ce4f1ab99bef218",
+      "date": "2026-10-12T06:44:19-03:00",
+      "title": "novos itens"
+    },
+    {
+      "sha": "46ab6289fb7b3a50d90a825fb4232c5083b1773e",
+      "date": "2026-10-11T21:11:31-03:00",
+      "title": "novos ajustes"
+    },
+    {
+      "sha": "0e943738f3475297a704a4ccec9f517c0cdf64ab",
+      "date": "2026-10-11T16:08:59-03:00",
+      "title": "novas"
+    },
+    {
+      "sha": "359d253002d18e64300024a306c9de4706248464",
+      "date": "2026-10-11T13:13:52-03:00",
+      "title": "novos ajustes"
+    },
+    {
+      "sha": "14fa9e09ec2e5d809da56a29fbf34488ec4455f2",
+      "date": "2026-10-11T11:21:01-03:00",
+      "title": "novos ajustes"
+    },
+    {
+      "sha": "0f3173ebbc57f29427d04e986436f190aa19bb24",
+      "date": "2026-10-11T10:57:18-03:00",
+      "title": "novos ajustes"
+    },
+    {
+      "sha": "e08bbae80e5ec2cc5aa86e291f317f16a6de036d",
+      "date": "2026-10-11T10:08:18-03:00",
+      "title": "novas funcionalidades"
+    },
+    {
+      "sha": "8006b0b3c0fd16f964e7ec0595088069e5ba4509",
+      "date": "2026-10-11T08:57:46-03:00",
+      "title": "novos ajustes"
+    },
+    {
+      "sha": "773189ea32fddbd0eb53d61e90debf81e8ef7d69",
+      "date": "2026-10-11T08:02:38-03:00",
+      "title": "novos itens"
+    },
+    {
+      "sha": "ab936861727f6c016735896b3edb1d9a62aa973e",
+      "date": "2026-10-08T11:34:15-03:00",
+      "title": "ajustes"
+    },
+    {
+      "sha": "03cc1ef7243db36f49a9de6b2a0ac919ed7f0082",
+      "date": "2026-10-07T17:43:34-03:00",
+      "title": "novos ajustes"
+    },
+    {
+      "sha": "aeb31bfe93e89484a77d88326850fbd34a7e49ef",
+      "date": "2026-10-07T08:02:35-03:00",
+      "title": "NOVOS AJUSTES"
+    },
+    {
+      "sha": "f39d5a7591c332bc0fa39bd8600ac9adb784566f",
+      "date": "2026-09-24T11:42:12-03:00",
+      "title": "Merge pull request #603 from devmnsoft/codex/implementar-avanco-valora-insight"
+    },
+    {
+      "sha": "be4d791f9c7c0a95c39ad5b3aa0877c4eda15c35",
+      "date": "2026-09-24T11:41:52-03:00",
+      "title": "feat: version diagnosis methodology processing"
+    },
+    {
+      "sha": "2c8941f701876fa301d7958c6a968508a154d0f9",
+      "date": "2026-09-24T08:52:17-03:00",
+      "title": "Merge pull request #602 from devmnsoft/codex/implementar-ciclo-do-valora-insight"
+    },
+    {
+      "sha": "ce96190875c08353513d42a7ebdd9aee7962e887",
+      "date": "2026-09-24T08:52:04-03:00",
+      "title": "Fix workspace materialization and trend applicability"
+    },
+    {
+      "sha": "ef7c78209e5b3e0e43b2b502f9b516c0ba3e141d",
+      "date": "2026-09-23T16:14:32-03:00",
+      "title": "Merge pull request #601 from devmnsoft/codex/consolide-ciclo-do-valora-insight"
+    },
+    {
+      "sha": "eee4c1305416445601fdf0be361e0d339295f190",
+      "date": "2026-09-23T16:04:23-03:00",
+      "title": "Consolidate durable insight journey contracts"
+    },
+    {
+      "sha": "d66686b806fd8cfef28376cb3c8aabcd66fc33cd",
+      "date": "2026-09-23T15:08:58-03:00",
+      "title": "Merge pull request #600 from devmnsoft/codex/corrigir-erros-de-compilacao-razor-p1r4ix"
+    },
+    {
+      "sha": "163a28137f8c9e11a71fde711af24185fd912621",
+      "date": "2026-09-23T15:08:33-03:00",
+      "title": "Fix Razor parsing in insight views"
+    },
+    {
+      "sha": "2883dcb256e0b63c08775152ea3963467f21b319",
+      "date": "2026-09-22T18:17:18-03:00",
+      "title": "Merge pull request #599 from devmnsoft/codex/corrigir-erros-de-compilacao-no-backend-.net"
+    },
+    {
+      "sha": "a8b2bfa612442855e0d2cf623d30c348ecadb4bd",
+      "date": "2026-09-22T18:17:01-03:00",
+      "title": "fix: map insight queue rows explicitly"
+    },
+    {
+      "sha": "2eae1d7a6c0a89ab66dccc4c5f47fce8d7ea317a",
+      "date": "2026-09-22T17:42:22-03:00",
+      "title": "Merge pull request #598 from devmnsoft/codex/evoluir-valora-insight-no-backend"
+    },
+    {
+      "sha": "5529782bf31530ef222421089e2c05c4348a356e",
+      "date": "2026-09-22T17:42:01-03:00",
+      "title": "fix: strengthen insight queue and evidence reliability"
+    },
+    {
+      "sha": "735bfac642af0c8177af5aad2a6e86ce9e092506",
+      "date": "2026-09-22T17:30:04-03:00",
+      "title": "Merge pull request #597 from devmnsoft/codex/evoluir-o-sistema-valora-insight"
+    },
+    {
+      "sha": "389f3c21942b6f64c823e950358267a73132929c",
+      "date": "2026-09-22T17:29:46-03:00",
+      "title": "feat: complete insight to action workflow"
+    },
+    {
+      "sha": "331a3e555913c9acca483a68dd816401046615e8",
+      "date": "2026-09-22T16:40:28-03:00",
+      "title": "Merge pull request #596 from devmnsoft/codex/concluir-evolucao-do-valora-insight"
+    },
+    {
+      "sha": "805a97bc5a717ca31f17c9afd9871ff94bb1b9da",
+      "date": "2026-09-22T16:37:37-03:00",
+      "title": "feat: link reviewed insights to real action plans"
+    },
+    {
+      "sha": "6812ea5f2cc71e3b74ae37eb22f45f4ad337f4a3",
+      "date": "2026-09-22T16:12:37-03:00",
+      "title": "Merge pull request #595 from devmnsoft/codex/implementar-evolucao-do-valora-insight-c92fil"
+    },
+    {
+      "sha": "85b32dc02f7b18bdab7b269baf0d1deec71f3d4c",
+      "date": "2026-09-22T16:12:18-03:00",
+      "title": "fix: protect human insight reviews"
+    },
+    {
+      "sha": "ea040cc1ca8b842778e12393e0c74c49409094f3",
+      "date": "2026-09-22T15:40:59-03:00",
+      "title": "Merge pull request #594 from devmnsoft/codex/implementar-evolucao-do-valora-insight"
+    },
+    {
+      "sha": "7a91ac32e357dd25d5e042154e372a5bac677321",
+      "date": "2026-09-22T15:40:40-03:00",
+      "title": "fix: preserve intelligence pipeline results on retry"
+    },
+    {
+      "sha": "f273fa15aae680b21ce4eb20e340bc2df853538e",
+      "date": "2026-09-22T15:07:04-03:00",
+      "title": "Merge pull request #593 from devmnsoft/codex/evoluir-valora-insight-em-asp.net-core"
+    },
+    {
+      "sha": "a92bdf7ddfad98de5df1b12e3226051589637ee7",
+      "date": "2026-09-22T15:06:37-03:00",
+      "title": "fix: consolidate diagnostic journey safeguards"
+    },
+    {
+      "sha": "cac78b5632ab43bca6fe2a944b9fb5444db4d692",
+      "date": "2026-09-22T14:42:23-03:00",
+      "title": "Merge pull request #592 from devmnsoft/codex/auditar-backend-do-valora-insight"
+    },
+    {
+      "sha": "76de6996b963935f72ba50096bc867c5d8bf55e9",
+      "date": "2026-09-22T14:41:58-03:00",
+      "title": "fix: isolate intelligence snapshots and preserve missing scores"
+    },
+    {
+      "sha": "e6605d89b77a1a11a1c79ebea75105a1a4e13a6e",
+      "date": "2026-09-17T10:23:56-03:00",
+      "title": "Merge pull request #589 from devmnsoft/codex/jornada-entrega-executiva"
+    },
+    {
+      "sha": "5ca5e4cbe76973c9922a11cbcce82e9545ae0397",
+      "date": "2026-09-16T21:25:16-03:00",
+      "title": "feat: restantes da jornada de entrega executiva (service, DI, catalog, reports UI, navigation)"
+    },
+    {
+      "sha": "1d43811d87daa50a4a9804f234c9b00590716674",
+      "date": "2026-09-16T21:23:43-03:00",
+      "title": "feat(web): Prepare.cshtml da Central de Entregas (batch 8a)"
+    },
+    {
+      "sha": "01bb5ecf546173855442d08350fffd47ae5b2799",
+      "date": "2026-09-16T21:22:33-03:00",
+      "title": "test: ExecutiveDeliveryTests cobertura da jornada (batch 7c)"
+    },
+    {
+      "sha": "18866781150556233ea70a1e7613a723c02b40e0",
+      "date": "2026-09-16T21:21:50-03:00",
+      "title": "feat(infra): FormalDeliverableRepositories (batch 7b)"
+    },
+    {
+      "sha": "f36c14923d79e69c1067bf6a801d339fa76925c6",
+      "date": "2026-09-16T21:20:58-03:00",
+      "title": "feat(web): Central de Entregas Index.cshtml (batch 7a)"
+    },
+    {
+      "sha": "164c4e0f4f558cc4eb294955a0a280184d3fa55b",
+      "date": "2026-09-16T21:19:37-03:00",
+      "title": "feat(api,web): FormalDeliverablesController e Public.cshtml (batch 6b)"
+    },
+    {
+      "sha": "494bb7cdd5e32696fccdf3acf562d0bd02760b26",
+      "date": "2026-09-16T21:18:34-03:00",
+      "title": "feat(web): Program.cs com permissões da entrega executiva (batch 6a)"
+    },
+    {
+      "sha": "57e4ed44f6cae0cd44618ed29a3da753d58a8db4",
+      "date": "2026-09-16T21:16:09-03:00",
+      "title": "feat(web,db): página pública, layout app e migration lifecycle (batch 5)"
+    },
+    {
+      "sha": "276b982bad658406e583b196bb717c66864ab6a4",
+      "date": "2026-09-16T21:15:07-03:00",
+      "title": "feat(web): certificado e layout público (batch 4)"
+    },
+    {
+      "sha": "469112d52f905649af3bafaa9187633ec898ca32",
+      "date": "2026-09-16T21:14:41-03:00",
+      "title": "feat(web): CSS, layouts públicos, certificados e testes DI (batch 3)"
+    },
+    {
+      "sha": "756111509f7443edde6bb2c354f2bcbb3f3a799f",
+      "date": "2026-09-16T21:12:21-03:00",
+      "title": "feat(application): modelos e contratos da entrega executiva (batch 2)"
+    },
+    {
+      "sha": "c4c282d5dee59d7d1787c9f75da55e9f76f023c9",
+      "date": "2026-09-16T21:10:49-03:00",
+      "title": "feat(application): contratos e serviços da jornada de entrega executiva (batch 1)"
+    },
+    {
+      "sha": "5db626b3e47159bd4ba8e705f223e4b3733cd0c7",
+      "date": "2026-09-16T15:54:19-03:00",
+      "title": "Merge pull request #588 from devmnsoft/codex/implementar-administracao-saas-do-valora"
+    },
+    {
+      "sha": "e5aa1522e2af4ce77f343a2ad846a81725f2772e",
+      "date": "2026-09-16T15:53:55-03:00",
+      "title": "feat: complete global SaaS customer listing"
+    },
+    {
+      "sha": "239e21fdfed833265ed34a9f73c58bb1a13a60b9",
+      "date": "2026-09-16T15:34:52-03:00",
+      "title": "Merge pull request #587 from devmnsoft/codex/implementar-fluxo-de-acompanhamento-organizacional"
+    },
+    {
+      "sha": "05ad2e1a3f38124481d50e4570d0ac6f3cca7071",
+      "date": "2026-09-16T15:34:38-03:00",
+      "title": "feat: tornar acompanhamento de evolução verificável"
+    },
+    {
+      "sha": "1fbbd900a31dee50a8c307860702898acd8d7a1b",
+      "date": "2026-09-16T15:07:15-03:00",
+      "title": "Merge pull request #586 from devmnsoft/codex/estabelecer-integracao-entre-formularios-e-diagnosticos"
+    },
+    {
+      "sha": "75f69bcf3e88ec71bd8d7813fc633918f735ac0d",
+      "date": "2026-09-16T15:06:48-03:00",
+      "title": "fix: guard MVC views against Razor page conflicts"
+    },
+    {
+      "sha": "541e4bb4a31b3c28790f7c9f640ecedf0336da03",
+      "date": "2026-09-16T08:05:15-03:00",
+      "title": "Merge pull request #585 from devmnsoft/codex/evoluir-template-interno-e-navegacao"
+    },
+    {
+      "sha": "b5557b74ed1840d0103f760a324785ea5c97d79d",
+      "date": "2026-09-16T08:05:01-03:00",
+      "title": "feat: integrate authorized workspace actions"
+    },
+    {
+      "sha": "f1ee42d11ec82580710876989073a7298eded6ad",
+      "date": "2026-09-15T19:36:49-03:00",
+      "title": "Merge pull request #584 from devmnsoft/codex/implementar-fluxo-completo-de-diagnostico-afbqk6"
+    },
+    {
+      "sha": "cf1bd096219f276224f7f814f761bef72d679c17",
+      "date": "2026-09-15T19:36:29-03:00",
+      "title": "feat(results): complete executive follow-up journey"
+    },
+    {
+      "sha": "05ea816e1bb23f3a56b07fe0b4c3675850b19179",
+      "date": "2026-09-15T19:21:01-03:00",
+      "title": "Merge pull request #583 from devmnsoft/codex/implementar-fluxo-completo-de-diagnostico"
+    },
+    {
+      "sha": "6519ace8a1448c1aa1a69ea30af3dd9018553939",
+      "date": "2026-09-15T19:20:43-03:00",
+      "title": "fix(surveys): pin collection to published form version"
+    },
+    {
+      "sha": "e03a8a31e68f0fdd6d44dd2f4101b492b9b437bb",
+      "date": "2026-09-15T18:55:58-03:00",
+      "title": "Merge pull request #582 from devmnsoft/codex/completar-integracao-de-formularios-e-diagnosticos"
+    },
+    {
+      "sha": "5b7d812bc68f1dd10f3bacaeca767ea52b6906e0",
+      "date": "2026-09-15T18:53:59-03:00",
+      "title": "fix: integrate published forms into survey workflow"
+    },
+    {
+      "sha": "996a4d11a9c2f4a8aaf9e56025c667ed4e0a49d3",
+      "date": "2026-09-15T18:28:47-03:00",
+      "title": "Merge pull request #581 from devmnsoft/codex/completar-gestao-do-ciclo-de-vida-dos-formularios-ex76bb"
+    },
+    {
+      "sha": "e07803aa3dbf6ed15a8b384c6610a1b49a1e6dce",
+      "date": "2026-09-15T18:28:34-03:00",
+      "title": "feat(forms): complete builder review and ordering"
+    },
+    {
+      "sha": "fb17c495b449289a50debd283656ce66187a37fe",
+      "date": "2026-09-15T18:09:41-03:00",
+      "title": "Merge pull request #580 from devmnsoft/codex/completar-gestao-do-ciclo-de-vida-dos-formularios"
+    },
+    {
+      "sha": "d25d6fcb4627652f6ff9207426a2356a2b7cfd24",
+      "date": "2026-09-15T18:09:26-03:00",
+      "title": "feat(forms): complete library lifecycle operations"
+    },
+    {
+      "sha": "aafd9e59c1237c0676a4d42a3ff2810cb7c97e14",
+      "date": "2026-09-15T16:46:18-03:00",
+      "title": "Merge pull request #579 from devmnsoft/codex/completar-biblioteca-e-construtor-de-formularios"
+    },
+    {
+      "sha": "1606d75ce87cd5cd02c0c45ff446c5eaca88d9e4",
+      "date": "2026-09-15T16:45:50-03:00",
+      "title": "fix(forms): stabilize asynchronous form actions"
+    },
+    {
+      "sha": "1bd48f2b7341a829e8cf3310f754d03ead5dc34f",
+      "date": "2026-09-15T16:32:45-03:00",
+      "title": "Merge pull request #578 from devmnsoft/codex/evoluir-funcionalidades-e-templates-dos-formularios"
+    },
+    {
+      "sha": "b9b45eb5f752db551eb9082554ec0483505f4663",
+      "date": "2026-09-15T16:32:14-03:00",
+      "title": "fix(forms): tornar criação e builder confiáveis"
+    },
+    {
+      "sha": "9b1dbc9fb7ab7c877b339b10f173f6beb96b53fb",
+      "date": "2026-09-15T16:21:25-03:00",
+      "title": "Merge pull request #577 from devmnsoft/codex/corrigir-erros-razor-em-reviewclosure.cshtml"
+    },
+    {
+      "sha": "d86c411a39dc857cdd007feb1b2748f641f1df8d",
+      "date": "2026-09-15T16:21:08-03:00",
+      "title": "fix(action-center): preserve closure review drafts"
+    },
+    {
+      "sha": "8a1deff756c4597d2cf4f04ad7537e9b5776d310",
+      "date": "2026-09-15T15:58:35-03:00",
+      "title": "Merge pull request #576 from devmnsoft/codex/corrigir-regressoes-e-aprimorar-impressao"
+    },
+    {
+      "sha": "4b272694ed27b0bbaa5eaa218d5e8baac8b79ef0",
+      "date": "2026-09-15T15:57:52-03:00",
+      "title": "feat: concluir revisão e impressão dos planos"
+    },
+    {
+      "sha": "e780666da4fb42c87f7ed39d29cd0092ecf1f2c5",
+      "date": "2026-09-15T11:58:45-03:00",
+      "title": "Merge pull request #575 from devmnsoft/codex/concluir-experiencia-do-ciclo-dos-planos"
+    },
+    {
+      "sha": "cca167b0949cab17825965737e1e1905514efeb6",
+      "date": "2026-09-15T11:58:30-03:00",
+      "title": "feat: concluir revisão e resumo dos planos"
+    },
+    {
+      "sha": "77bb19bcbbfee945f3b56857bfe9218d08d6f7e4",
+      "date": "2026-09-15T11:01:04-03:00",
+      "title": "Merge pull request #574 from devmnsoft/codex/corrigir-cs8115-em-actionplanrepository"
+    },
+    {
+      "sha": "84fc25041d04c156863f9d1722b91c415f7dd0f6",
+      "date": "2026-09-15T11:00:22-03:00",
+      "title": "fix: consolidar ciclo de vida dos planos"
+    }
+  ],
+  "changedFileCount": 73,
+  "automation": {
+    "mode": "push-main",
+    "acceptanceAutomatic": false
+  }
+}

@@ -28,6 +28,7 @@
   <link rel="stylesheet" href="/css/design-system/responsive.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/valora-responsive.css" asp-append-version="true">
   <link rel="stylesheet" href="/css/print.css" asp-append-version="true">
+  <link rel="stylesheet" href="~/css/valora-readability.css" asp-append-version="true">
   @await RenderSectionAsync("Styles", required: false)
 </head>
 <body class="valora-shell admin-body" data-authenticated="@(User.Identity?.IsAuthenticated == true ? "true" : "false")">

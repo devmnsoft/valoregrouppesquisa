@@ -17,13 +17,13 @@ public sealed class PageExperienceCatalog {
         ["Journey"] = ["consultar a linha do tempo de eventos relevantes da organização", "em revisões, auditorias e acompanhamento de marcos", "filtre o período ou abra um evento para verificar sua origem", "eventos apoiam a análise, mas não substituem a decisão humana"],
         ["Governance"] = ["organizar ciclos, reuniões, decisões e responsáveis de governança", "antes e depois de fóruns decisórios", "registre pauta, decisão, responsável e evidência", "aprove apenas conteúdo revisado pelas pessoas autorizadas"],
         ["Indicators"] = ["monitorar indicadores, metas, medições e alertas", "nas rotinas de acompanhamento de desempenho", "revise alertas e registre a medição mais recente", "confirme fonte, período e unidade antes de comparar valores"],
-        ["Administration"] = ["administrar configurações e acessos da organização", "quando houver mudança operacional autorizada", "selecione o módulo que precisa ser configurado", "aplique o menor privilégio e confirme ações críticas"],
-        ["Saas"] = ["administrar clientes, planos e operação global da plataforma", "somente em atividades de administração SaaS", "selecione uma organização antes de alterar sua configuração", "ações globais exigem perfil Super Admin e ficam auditadas"],
+        ["Administration"] = ["administrar configurações e acessos da organização", "quando houver mudança operacional autorizada", "selecione o módulo que precisa ser configurado", "conceda apenas as permissões necessárias e confirme ações críticas"],
+        ["Saas"] = ["administrar clientes, planos e operação global da plataforma", "somente em atividades de administração da plataforma", "selecione uma organização antes de alterar sua configuração", "ações globais exigem perfil super administrador e ficam auditadas"],
         ["Onboarding"] = ["conduzir a implantação com etapas, responsáveis e evidências", "durante a ativação de uma organização", "continue pela próxima etapa pendente", "marque uma etapa como concluída somente após validar sua evidência"],
         ["Help"] = ["encontrar orientações objetivas sobre a operação do Valora Insight™", "quando precisar entender uma etapa ou regra", "abra o guia do módulo em que está trabalhando", "as orientações respeitam seu perfil, plano e organização selecionada"],
         ["SuccessCenter"] = ["acompanhar adoção, saúde e próximos passos do cliente", "nas rotinas de sucesso do cliente", "revise sinais de risco e combine uma ação com o cliente", "sinais automáticos exigem contexto e validação humana"],
         ["Plans"] = ["comparar recursos e escolher o plano adequado à operação", "quando os limites atuais não atenderem à necessidade", "compare limites e solicite a alteração do plano", "nenhum upgrade é aplicado sem confirmação"],
-        ["Benchmarks"] = ["comparar resultados com coortes elegíveis sem expor organizações", "quando houver amostra suficiente para uma comparação responsável", "defina os filtros e confira a composição da amostra", "amostras abaixo do mínimo de privacidade não são exibidas"],
+        ["Benchmarks"] = ["comparar resultados com grupos comparáveis sem expor organizações", "quando houver amostra suficiente para uma comparação responsável", "defina os filtros e confira a composição da amostra", "amostras abaixo do mínimo de privacidade não são exibidas"],
         ["Methodology"] = ["administrar conceitos, escalas e vínculos que sustentam as análises", "ao revisar ou evoluir a metodologia institucional", "valide o impacto e documente a justificativa antes de publicar", "mudanças metodológicas devem preservar a rastreabilidade histórica"],
         ["AdminHub"] = ["gerenciar organizações, usuários, papéis e configurações da plataforma", "em atividades administrativas autorizadas", "escolha o cadastro ou controle que precisa de revisão", "privilégios elevados e alterações críticas devem seguir o menor acesso necessário"],
         ["Organization"] = ["manter a identidade, a marca e os dados operacionais da organização", "quando houver uma alteração institucional validada", "revise os dados e salve somente as mudanças confirmadas", "a organização ativa define o contexto das informações e permissões exibidas"],
@@ -34,8 +34,9 @@ public sealed class PageExperienceCatalog {
         ["Account"] = ["acessar sua conta Valora Insight™ com segurança", "para iniciar ou recuperar uma sessão", "informe suas credenciais ou use a recuperação de acesso", "não compartilhe sua senha; confirme o endereço antes de entrar"]
     };
 
-    public PageExperienceViewModel Create(string controller, ITempDataDictionary tempData) {
-        var copy = Guidance.TryGetValue(controller, out var found) ? found :
+    public PageExperienceViewModel Create(string controller, ITempDataDictionary tempData, string? action = null) {
+        var key = $"{controller}/{action}";
+        var copy = Guidance.TryGetValue(key, out var specific) ? specific : Guidance.TryGetValue(controller, out var found) ? found :
             ["realizar as atividades desta área com contexto e rastreabilidade", "quando esta etapa fizer parte da sua rotina", "revise as informações disponíveis e escolha a próxima ação", "confirme dados, permissões e evidências antes de concluir"];
         return new($"Use esta página para {copy[0]}.", $"Quando usar: {copy[1]}.",
             $"Próximo passo recomendado: {copy[2]}.", $"Cuidado: {copy[3]}.",

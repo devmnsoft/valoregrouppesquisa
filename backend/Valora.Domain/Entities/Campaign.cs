@@ -14,6 +14,7 @@ public sealed record Campaign {
     public string? PublicTokenHash { get; init; }
     public string Status { get; init; } = "draft";
     public Guid? CreatedBy { get; init; }
+    public long? ReferenceCode { get; init; }
     public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; init; } = DateTime.UtcNow;
     public DateTime? DeletedAt { get; init; }

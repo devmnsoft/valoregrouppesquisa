@@ -7333,4 +7333,24 @@ ALTER TABLE valorapesquisa.diagnostic_cycles ADD COLUMN IF NOT EXISTS row_versio
 INSERT INTO valorapesquisa.schema_migrations(version,checksum)
 VALUES('2026_10_diagnostic_preparation_optimistic_concurrency','sha256:diagnostic-preparation-optimistic-concurrency-v1')
 ON CONFLICT(version) DO NOTHING;
+
+-- Sequências incrementais complementares para identificação legível (preservando chaves primárias e relacionamentos UUID)
+CREATE SEQUENCE IF NOT EXISTS valorapesquisa.seq_diagnostic_code START WITH 1001 INCREMENT BY 1;
+CREATE SEQUENCE IF NOT EXISTS valorapesquisa.seq_campaign_code START WITH 1001 INCREMENT BY 1;
+CREATE SEQUENCE IF NOT EXISTS valorapesquisa.seq_action_plan_code START WITH 1001 INCREMENT BY 1;
+
+ALTER TABLE valorapesquisa.diagnostics ADD COLUMN IF NOT EXISTS reference_code BIGINT DEFAULT nextval('valorapesquisa.seq_diagnostic_code');
+ALTER TABLE valorapesquisa.surveys ADD COLUMN IF NOT EXISTS reference_code BIGINT DEFAULT nextval('valorapesquisa.seq_diagnostic_code');
+ALTER TABLE valorapesquisa.campaigns ADD COLUMN IF NOT EXISTS reference_code BIGINT DEFAULT nextval('valorapesquisa.seq_campaign_code');
+ALTER TABLE valorapesquisa.action_plans ADD COLUMN IF NOT EXISTS reference_code BIGINT DEFAULT nextval('valorapesquisa.seq_action_plan_code');
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_diagnostics_reference_code ON valorapesquisa.diagnostics(reference_code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_surveys_reference_code ON valorapesquisa.surveys(reference_code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_campaigns_reference_code ON valorapesquisa.campaigns(reference_code);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_action_plans_reference_code ON valorapesquisa.action_plans(reference_code);
+
+INSERT INTO valorapesquisa.schema_migrations(version,checksum)
+VALUES('2026_10_sequential_reference_numbers','sha256:sequential-reference-numbers-v1')
+ON CONFLICT(version) DO NOTHING;
+
 COMMIT;

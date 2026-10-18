@@ -58,6 +58,7 @@ public sealed class CampaignRepository(IDbConnectionFactory connections) : ICamp
                ) AS "LatestLinkStatus",
                c.created_by AS "CreatedBy",
                usr.name AS "CreatedByName",
+               c.reference_code AS "ReferenceCode",
                c.created_at AS "CreatedAt",
                c.updated_at AS "UpdatedAt"
           FROM valorapesquisa.campaigns c
@@ -309,7 +310,8 @@ public sealed class CampaignRepository(IDbConnectionFactory connections) : ICamp
             r.DepartmentId, r.DepartmentName, r.Name, r.Audience, r.ResponseGoal,
             r.ActualResponses, CalculateRate(r.ActualResponses, r.ResponseGoal),
             r.StartsAt, r.EndsAt, r.Status, link.Url,
-            r.CreatedAt, r.UpdatedAt, link.Status, link.Reason, link.Action);
+            r.CreatedAt, r.UpdatedAt, link.Status, link.Reason, link.Action,
+            r.ReferenceCode);
     }
 
     private static CampaignDetailDto MapToDetail(CampaignRow r) {
@@ -319,7 +321,8 @@ public sealed class CampaignRepository(IDbConnectionFactory connections) : ICamp
             r.ActualResponses, CalculateRate(r.ActualResponses, r.ResponseGoal),
             r.StartsAt, r.EndsAt, r.Status, link.Url,
             r.CreatedBy, r.CreatedByName, r.CreatedAt, r.UpdatedAt,
-            link.Status, link.Reason, link.Action);
+            link.Status, link.Reason, link.Action,
+            r.ReferenceCode);
     }
 
     private sealed record CampaignRow {
@@ -344,6 +347,7 @@ public sealed class CampaignRepository(IDbConnectionFactory connections) : ICamp
         public string? LatestLinkStatus { get; init; }
         public Guid? CreatedBy { get; init; }
         public string? CreatedByName { get; init; }
+        public long? ReferenceCode { get; init; }
         public DateTime CreatedAt { get; init; }
         public DateTime UpdatedAt { get; init; }
     }

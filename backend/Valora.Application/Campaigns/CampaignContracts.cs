@@ -37,7 +37,8 @@ public sealed record CampaignSummaryDto(
     DateTime UpdatedAt,
     string? LinkStatus = null,
     string? LinkReason = null,
-    string? LinkAction = null);
+    string? LinkAction = null,
+    long? ReferenceCode = null);
 
 public sealed record CampaignDetailDto(
     Guid Id,
@@ -63,7 +64,8 @@ public sealed record CampaignDetailDto(
     DateTime UpdatedAt,
     string? LinkStatus = null,
     string? LinkReason = null,
-    string? LinkAction = null);
+    string? LinkAction = null,
+    long? ReferenceCode = null);
 
 public sealed record CreateCampaignDto(
     Guid SurveyId,

@@ -1,2 +1,111 @@
 @model Valora.Application.OneOnOne.CreateOneOnOneSessionRequest
-@{ViewData["Title"]="Nova sessão";}<main class="valora-page narrow"><header class="leadership-hero"><div><p class="eyebrow">Nova conversa</p><h1>Preparar One-on-One</h1><p>Defina contexto; a pauta continuará aberta à escuta humana.</p></div></header><form method="post" class="valora-card ooo-form"><div asp-validation-summary="All" class="text-danger"></div><label>Líder<input asp-for="LeaderUserId" required/></label><label>Participante<input asp-for="ParticipantUserId" required/></label><label>Data e hora<input asp-for="ScheduledAt" type="datetime-local"/></label><label class="wide">Objetivo<input asp-for="Title" required maxlength="200" placeholder="Ex.: acompanhar evolução e remover impedimentos"/></label><label>Diagnóstico relacionado (opcional)<input asp-for="DiagnosticId"/></label><label>Resultado relacionado (opcional)<input asp-for="ResultId"/></label><label class="wide">Evidência inicial<textarea asp-for="EvidenceSummary" rows="3" placeholder="Fatos observáveis que contextualizam a conversa"></textarea></label><div class="wide form-actions"><a href="/OneOnOne/Sessions" class="btn btn-outline-secondary">Cancelar</a><button class="btn btn-primary">Criar sessão</button></div></form></main>
+@using Valora.Application.Contracts
+@using Valora.Application.ReadModels
+@{
+    ViewData["Title"] = "Nova Sessão One-on-One";
+    var users = ViewBag.Users as IReadOnlyList<UserRecord> ?? [];
+}
+
+<main class="valora-page narrow" data-page="one-on-one-create">
+    <nav class="v9-breadcrumb" aria-label="Navegação estrutural">
+        <a href="/Dashboard">Início</a>
+        <span>/</span>
+        <a href="/OneOnOne">One-on-One™</a>
+        <span>/</span>
+        <span>Nova Sessão</span>
+    </nav>
+
+    <header class="leadership-hero valora-card">
+        <div>
+            <p class="eyebrow text-white-50">Desenvolvimento de Liderança</p>
+            <h1 class="text-white">Preparar Sessão One-on-One</h1>
+            <p class="text-white-50 m-0">
+                Defina os participantes, a data e o contexto de partida. A pauta e os feedbacks permanecem abertos à escuta ativa e validação mútua.
+            </p>
+        </div>
+    </header>
+
+    <div class="valora-card mt-3">
+        <form method="post" class="needs-validation">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="leader-select">
+                        Líder facilitador <span class="text-danger">*</span>
+                    </label>
+                    @if (users.Count > 0)
+                    {
+                        <select class="form-select" id="leader-select" asp-for="LeaderUserId" required>
+                            <option value="">Selecione o líder facilitador...</option>
+                            @foreach (var user in users)
+                            {
+                                <option value="@user.Id" selected="@(Model?.LeaderUserId == user.Id)">
+                                    @user.Name (@string.Join(", ", user.RoleCodes))
+                                </option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <input class="form-control" id="leader-select" asp-for="LeaderUserId" required placeholder="GUID do usuário líder" />
+                        <small class="form-text text-muted">Usuários cadastrados na organização serão listados automaticamente aqui.</small>
+                    }
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="participant-select">
+                        Participante liderado <span class="text-danger">*</span>
+                    </label>
+                    @if (users.Count > 0)
+                    {
+                        <select class="form-select" id="participant-select" asp-for="ParticipantUserId" required>
+                            <option value="">Selecione o liderado participante...</option>
+                            @foreach (var user in users)
+                            {
+                                <option value="@user.Id" selected="@(Model?.ParticipantUserId == user.Id)">
+                                    @user.Name (@string.Join(", ", user.RoleCodes))
+                                </option>
+                            }
+                        </select>
+                    }
+                    else
+                    {
+                        <input class="form-control" id="participant-select" asp-for="ParticipantUserId" required placeholder="GUID do usuário participante" />
+                        <small class="form-text text-muted">Selecione o membro da equipe que participará do alinhamento.</small>
+                    }
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="scheduled-at">
+                        Data e horário previstos
+                    </label>
+                    <input class="form-control" id="scheduled-at" asp-for="ScheduledAt" type="datetime-local" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="session-title">
+                        Objetivo central da conversa <span class="text-danger">*</span>
+                    </label>
+                    <input class="form-control" id="session-title" asp-for="Title" required maxlength="200" placeholder="Ex.: Acompanhamento quinzenal de projetos e desenvolvimento" />
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label" for="evidence-summary">
+                        Evidência de partida ou fatos observáveis
+                    </label>
+                    <textarea class="form-control" id="evidence-summary" asp-for="EvidenceSummary" rows="3" placeholder="Ex.: Resultados do último ciclo apontaram sobrecarga em entregas prioritárias; objetivo é reorganizar prioridades e mapear bloqueios operacionais."></textarea>
+                    <small class="form-text text-muted">
+                        Fatos observados e dados agregados evitam julgamentos subjetivos e orientam a conversa para soluções concretas.
+                    </small>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                <a href="/OneOnOne" class="valora-button valora-button--ghost">Cancelar</a>
+                <button type="submit" class="valora-button valora-button--primary">Criar Sessão</button>
+            </div>
+        </form>
+    </div>
+</main>

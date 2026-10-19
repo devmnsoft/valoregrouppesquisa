@@ -80,7 +80,8 @@ public sealed class ResultsController : Controller {
                 DateTimeOffset completedAt = DateTimeOffset.UtcNow;
                 if (dict.TryGetValue("completed_at", out var cdtVal) && cdtVal is DateTime cdt) {
                     completedAt = new DateTimeOffset(cdt, TimeSpan.Zero);
-                } else if (dict.TryGetValue("created_at", out var dtVal) && dtVal is DateTime dt) {
+                }
+                else if (dict.TryGetValue("created_at", out var dtVal) && dtVal is DateTime dt) {
                     completedAt = new DateTimeOffset(dt, TimeSpan.Zero);
                 }
 
@@ -137,7 +138,8 @@ public sealed class ResultsController : Controller {
             int readyCount = items.Count(i => i.Percentage.HasValue && i.HasSufficiency);
 
             return View(new ResultsIndexViewModel(items, totalCount, avg, sufficientCount, readyCount, search, maturity));
-        } catch (Exception ex) {
+        }
+        catch (Exception ex) {
             _logger.LogError(ex, "Falha ao carregar lista de resultados consolidados.");
             return View(new ResultsIndexViewModel([], 0, 0, 0, 0, search, maturity));
         }

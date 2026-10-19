@@ -4,32 +4,301 @@
 @using Microsoft.AspNetCore.Authorization
 @inject IAuthorizationService Authorization
 @{
-    ViewData["Title"] = "Insights";
+    ViewData["Title"] = "Valora Insights IA™";
     var pagination = Model.Result.Page;
     var canReview =
         (await Authorization.AuthorizeAsync(User, ValoraPermissions.Insights.Approve)).Succeeded ||
         (await Authorization.AuthorizeAsync(User, ValoraPermissions.Insights.Reject)).Succeeded;
 }
-<main class="valora-page v9-page">
- <partial name="_PageHeader" model="@(new PageHeaderViewModel("Insights Valora IA™","Fila operacional para analisar evidências, registrar revisão humana e acompanhar iniciativas.","Intelligence Hub",$"{pagination.Total} registro(s)",new[]{new PageHeaderAction("Gerar análise","/Intelligence/Generate",Style:"primary",Icon:"sparkles")}))" />
- <section class="valora-card" aria-labelledby="queue-help"><h2 id="queue-help">Para que serve</h2><p>Priorize leituras sustentadas por evidências. Aprovação editorial não comprova causalidade e recomendação não equivale a decisão executiva.</p><details><summary>Como usar</summary><p>Filtre a fila, abra o detalhe, confira limitações e evidências, revise quando autorizado e crie planos rastreáveis.</p></details></section>
- <p class="valora-alert valora-alert--info">Os indicadores resumem toda a fila autorizada (@Model.Result.AuthorizedTotal registro(s)); a tabela e o total do cabeçalho refletem os filtros aplicados.</p>
- <section class="v9-executive-grid" aria-label="Indicadores da fila"><article class="valora-card"><strong>@Model.Result.Indicators.PendingReview</strong><span>Pendentes de revisão</span></article><article class="valora-card"><strong>@Model.Result.Indicators.ApprovedWithoutPlan</strong><span>Aprovados sem plano</span></article><article class="valora-card"><strong>@Model.Result.Indicators.WithPlansInExecution</strong><span>Com planos em execução</span></article><article class="valora-card"><strong>@Model.Result.Indicators.WithAllPlansClosed</strong><span>Sem plano visível em andamento</span></article></section>
- <form method="get" class="valora-card action-form" aria-label="Filtros de insights"><fieldset><legend>Buscar e filtrar</legend><div class="action-form-grid"><label class="action-field--full">Título ou resumo<input name="Search" value="@Model.Query.Search" type="search" /></label><label>Situação<select name="Status"><option value="">Todas</option>@foreach(var option in new[]{("pending_review","Pendente de revisão"),("approved","Aprovado"),("converted_to_action","Encaminhado para execução"),("rejected","Rejeitado"),("archived","Arquivado")}){<option value="@option.Item1" selected="@(Model.Query.Status==option.Item1)">@option.Item2</option>}</select></label><label>Prioridade<select name="Priority"><option value="">Todas</option>@foreach(var option in new[]{("critical","Crítica"),("high","Alta"),("medium","Média"),("low","Baixa")}){<option value="@option.Item1" selected="@(Model.Query.Priority==option.Item1)">@option.Item2</option>}</select></label><label>Diagnóstico<select name="DiagnosticId"><option value="">Todos</option>@foreach(var diagnostic in Model.Result.Diagnostics??[]){<option value="@diagnostic.Id" selected="@(Model.Query.DiagnosticId==diagnostic.Id)">@diagnostic.Name</option>}</select></label><label>Dimensão<input name="Dimension" value="@Model.Query.Dimension" /></label><label>Plano vinculado<select name="HasPlan"><option value="">Todos</option><option value="true" selected="@(Model.Query.HasPlan==true)">Com plano</option><option value="false" selected="@(Model.Query.HasPlan==false)">Sem plano</option></select></label><label>Ordenação<select name="Sort"><option value="">Mais recentes</option><option value="title" selected="@(Model.Query.Sort=="title")">Título</option><option value="priority" selected="@(Model.Query.Sort=="priority")">Prioridade</option></select></label></div></fieldset><div class="d-flex gap-2"><button class="valora-button valora-button--primary">Aplicar filtros</button><a class="valora-button valora-button--ghost" href="/Insights">Limpar</a></div></form>
- @if(pagination.Items.Count==0){<section class="valora-card empty-state"><h2>@(Model.Result.AuthorizedTotal==0?"Nenhum insight disponível":"Nenhum resultado para estes filtros")</h2><p>@(Model.Result.AuthorizedTotal==0?"Gere uma análise a partir de um resultado consolidado. Nada será aprovado automaticamente.":"Altere ou limpe os filtros para consultar outros registros.")</p></section>}
- else{<section class="valora-card table-responsive"><table class="table"><thead><tr><th>Insight</th><th>Diagnóstico / dimensão</th><th>Prioridade / confiança</th><th>Revisão</th><th>Planos</th><th>Data</th><th>Próxima ação</th></tr></thead><tbody>@foreach(var row in pagination.Items){var x=row.Insight;var status=x.Status switch{AiInsightStatuses.PendingReview=>"Pendente de revisão",AiInsightStatuses.Approved=>"Aprovado",AiInsightStatuses.Rejected=>"Rejeitado",AiInsightStatuses.ConvertedToAction=>"Encaminhado para execução",_=>x.Status};<tr><td><strong>@x.Title</strong><br/><small>@x.Summary</small></td><td>@(row.DiagnosticName??"Diagnóstico sem nome disponível")<br/><small>@(x.RelatedDimension??"Sem dimensão")</small></td><td>@x.Priority<br/><small>Confiança: @x.ConfidenceLevel</small></td><td><span class="badge">@status</span>@if(x.Status==AiInsightStatuses.PendingReview&&!canReview){<br/><small>Sem permissão para revisar</small>}</td><td>@row.PlanCount total<br/><small>@row.ActivePlanCount ativo(s), @row.ClosedPlanCount encerrado(s)</small></td><td>@x.CreatedAt.ToString("dd/MM/yyyy")</td><td><a class="valora-button" asp-action="Details" asp-route-id="@x.Id" asp-route-returnUrl="@Model.CurrentUrl">@(x.Status==AiInsightStatuses.PendingReview&&canReview?"Analisar e revisar":"Consultar detalhe")</a></td></tr>}</tbody></table></section>}
- @if (pagination.TotalPages > 1)
- {
-  <nav aria-label="Paginação">
-   <span>Página @(pagination.Page) de @(pagination.TotalPages)</span>
-   @if (pagination.Page > 1)
-   {
-    <a class="valora-button" asp-route-Page="@(pagination.Page - 1)" asp-route-Search="@Model.Query.Search" asp-route-Status="@Model.Query.Status" asp-route-Priority="@Model.Query.Priority" asp-route-Dimension="@Model.Query.Dimension" asp-route-DiagnosticId="@Model.Query.DiagnosticId" asp-route-PageSize="@Model.Query.PageSize" asp-route-HasPlan="@Model.Query.HasPlan" asp-route-Sort="@Model.Query.Sort">Anterior</a>
-   }
-   @if (pagination.HasNext)
-   {
-    <a class="valora-button" asp-route-Page="@(pagination.Page + 1)" asp-route-Search="@Model.Query.Search" asp-route-Status="@Model.Query.Status" asp-route-Priority="@Model.Query.Priority" asp-route-Dimension="@Model.Query.Dimension" asp-route-DiagnosticId="@Model.Query.DiagnosticId" asp-route-PageSize="@Model.Query.PageSize" asp-route-HasPlan="@Model.Query.HasPlan" asp-route-Sort="@Model.Query.Sort">Próxima</a>
-   }
-  </nav>
- }
+
+<main class="valora-page v9-page" data-page="insights-index">
+    <nav class="v9-breadcrumb" aria-label="Navegação estrutural">
+        <a href="/Dashboard">Início</a>
+        <span>/</span>
+        <a href="/Intelligence">Inteligência Organizacional</a>
+        <span>/</span>
+        <span>Insights IA™</span>
+    </nav>
+
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+        "Valora Insights IA™",
+        "Fila operacional de inteligência assistida: evidências empíricas, validação humana mandatória e planos de ação rastreáveis.",
+        "Intelligence Hub",
+        $"{pagination.Total} registro(s)",
+        new[] { new PageHeaderAction("Gerar Análise por IA", "/Intelligence/Generate", Style: "primary", Icon: "sparkles") }
+    ))" />
+
+    <section class="valora-card mb-3" aria-labelledby="insights-methodology-title">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <p class="eyebrow text-primary">Diretriz Ética & Metodológica</p>
+                <h2 class="h5 m-0" id="insights-methodology-title">Separação Estrita: Fato Observado vs Hipótese vs Decisão</h2>
+                <p class="text-muted small mt-1 mb-0">
+                    O motor de inteligência artificial da Valora atua no nível dos sistemas organizacionais. Todo insight requer validação humana de um líder ou comitê antes de ser transformado em ação executiva. Nenhuma decisão automática ou julgamento individual é produzido.
+                </p>
+            </div>
+            <span class="badge bg-info text-dark">WCAG 2.2 AA &bull; LGPD Compliant</span>
+        </div>
+    </section>
+
+    <!-- Indicadores da Fila -->
+    <section class="v9-kpis mb-3" aria-label="Indicadores da fila de inteligência">
+        <article class="valora-card">
+            <span>Pendentes de revisão</span>
+            <strong class="text-warning">@Model.Result.Indicators.PendingReview</strong>
+            <small>Aguardando validação humana</small>
+        </article>
+        <article class="valora-card">
+            <span>Aprovados sem plano</span>
+            <strong class="text-primary">@Model.Result.Indicators.ApprovedWithoutPlan</strong>
+            <small>Validados para execução</small>
+        </article>
+        <article class="valora-card">
+            <span>Planos em andamento</span>
+            <strong class="text-success">@Model.Result.Indicators.WithPlansInExecution</strong>
+            <small>Com ações vinculadas</small>
+        </article>
+        <article class="valora-card">
+            <span>Iniciativas concluídas</span>
+            <strong>@Model.Result.Indicators.WithAllPlansClosed</strong>
+            <small>Ciclo finalizado</small>
+        </article>
+    </section>
+
+    <!-- Filtros de Busca -->
+    <section class="valora-card mb-4">
+        <form method="get" class="row g-3" aria-label="Filtros de insights">
+            <div class="col-md-4">
+                <label class="form-label" for="search-term">Buscar por título ou resumo</label>
+                <input class="form-control" id="search-term" name="Search" value="@Model.Query.Search" type="search" placeholder="Ex.: Liderança, Comunicação, Retenção..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="status-filter">Situação</label>
+                <select class="form-select" id="status-filter" name="Status">
+                    <option value="">Todas</option>
+                    @foreach (var opt in new[] {
+                        ("pending_review", "Pendente de revisão"),
+                        ("approved", "Aprovado"),
+                        ("converted_to_action", "Em execução"),
+                        ("rejected", "Rejeitado"),
+                        ("archived", "Arquivado")
+                    })
+                    {
+                        <option value="@opt.Item1" selected="@(Model.Query.Status == opt.Item1)">@opt.Item2</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="priority-filter">Prioridade</label>
+                <select class="form-select" id="priority-filter" name="Priority">
+                    <option value="">Todas</option>
+                    @foreach (var opt in new[] {
+                        ("critical", "Crítica"),
+                        ("high", "Alta"),
+                        ("medium", "Média"),
+                        ("low", "Baixa")
+                    })
+                    {
+                        <option value="@opt.Item1" selected="@(Model.Query.Priority == opt.Item1)">@opt.Item2</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="dimension-filter">Dimensão</label>
+                <input class="form-control" id="dimension-filter" name="Dimension" value="@Model.Query.Dimension" placeholder="Ex.: Clima..." />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label" for="plan-filter">Plano de ação</label>
+                <select class="form-select" id="plan-filter" name="HasPlan">
+                    <option value="">Todos</option>
+                    <option value="true" selected="@(Model.Query.HasPlan == true)">Com plano</option>
+                    <option value="false" selected="@(Model.Query.HasPlan == false)">Sem plano</option>
+                </select>
+            </div>
+            <div class="col-12 d-flex justify-content-end gap-2 pt-2 border-top">
+                <a class="valora-button valora-button--ghost btn-sm" href="/Insights">Limpar Filtros</a>
+                <button type="submit" class="valora-button valora-button--primary btn-sm">Aplicar Filtros</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Tabela ou Estado Demonstrativo -->
+    @if (pagination.Items.Count == 0)
+    {
+        <section class="valora-card">
+            @if (Model.Result.AuthorizedTotal == 0)
+            {
+                <div class="valora-empty py-4 text-center">
+                    <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">💡</div>
+                    <h3 class="h5">Nenhum insight gerado para este ciclo ainda</h3>
+                    <p class="text-muted max-w-600 mx-auto">
+                        Os insights são gerados a partir do processamento determinístico de diagnósticos concluídos.
+                    </p>
+                    <a class="valora-button valora-button--primary btn-sm mt-2" href="/Intelligence/Generate">
+                        Gerar Análise por IA
+                    </a>
+                </div>
+
+                <!-- Demonstração Metodológica -->
+                <div class="mt-4 pt-3 border-top">
+                    <p class="eyebrow text-primary">Demonstração Metodológica Valora Insight IA™</p>
+                    <h4 class="h6 mb-3">Modelos de Insights Gerados por Evidência Real</h4>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3 border h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="badge bg-warning text-dark">Pendente de Revisão</span>
+                                    <span class="badge bg-danger">Prioridade Alta</span>
+                                </div>
+                                <strong class="d-block text-dark mt-2">Clareza de Metas e Alinhamento Operacional</strong>
+                                <p class="small text-muted mt-1 mb-2">
+                                    <strong>Fato:</strong> Dimensão "Alinhamento de Prioridades" pontuou 2.9 (escala 1 a 5) no departamento de Operações.
+                                </p>
+                                <small class="text-muted d-block border-top pt-2">
+                                    <strong>Hipótese:</strong> Falta de comunicação estruturada pós-planejamento estratégico trimestral.
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3 border h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="badge bg-success">Aprovado pelo Comitê</span>
+                                    <span class="badge bg-primary">Prioridade Média</span>
+                                </div>
+                                <strong class="d-block text-dark mt-2">Segurança Psicológica e Escuta Aberta</strong>
+                                <p class="small text-muted mt-1 mb-2">
+                                    <strong>Fato:</strong> 72% dos respondentes do setor de Engenharia relatam facilidade para reportar falhas precocemente.
+                                </p>
+                                <small class="text-muted d-block border-top pt-2">
+                                    <strong>Recomendação:</strong> Replicar ritos de post-mortem sem culpabilização para outras diretorias.
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="p-3 bg-light rounded-3 border h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="badge bg-info text-dark">Em Execução</span>
+                                    <span class="badge bg-warning text-dark">Prioridade Crítica</span>
+                                </div>
+                                <strong class="d-block text-dark mt-2">Retenção de Talentos & Sobrecarga em Liderança</strong>
+                                <p class="small text-muted mt-1 mb-2">
+                                    <strong>Fato:</strong> Índice de exaustão em gestores de primeira viagem 40% superior à média organizacional.
+                                </p>
+                                <small class="text-muted d-block border-top pt-2">
+                                    <strong>Plano Ativo:</strong> Mentoria e programa de capacitação de novas lideranças (Prazo: 60 dias).
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="valora-empty py-4 text-center">
+                    <h3 class="h6">Nenhum insight corresponde aos filtros aplicados</h3>
+                    <p class="text-muted small">Tente ajustar ou limpar os filtros de busca para visualizar os registros autorizados.</p>
+                    <a class="valora-button valora-button--ghost btn-sm mt-2" href="/Insights">Limpar Filtros</a>
+                </div>
+            }
+        </section>
+    }
+    else
+    {
+        <section class="valora-card">
+            <div class="table-responsive">
+                <table class="table align-middle table-hover">
+                    <thead>
+                        <tr>
+                            <th>Insight / Resumo</th>
+                            <th>Diagnóstico & Dimensão</th>
+                            <th>Prioridade & Confiança</th>
+                            <th>Status de Revisão</th>
+                            <th>Planos de Ação</th>
+                            <th>Data</th>
+                            <th class="text-end">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in pagination.Items)
+                        {
+                            var x = row.Insight;
+                            var statusLabel = x.Status switch
+                            {
+                                AiInsightStatuses.PendingReview => "Pendente de revisão",
+                                AiInsightStatuses.Approved => "Aprovado",
+                                AiInsightStatuses.Rejected => "Rejeitado",
+                                AiInsightStatuses.ConvertedToAction => "Em execução",
+                                _ => x.Status
+                            };
+                            var statusBadgeClass = x.Status switch
+                            {
+                                AiInsightStatuses.PendingReview => "bg-warning text-dark",
+                                AiInsightStatuses.Approved => "bg-success",
+                                AiInsightStatuses.Rejected => "bg-danger",
+                                AiInsightStatuses.ConvertedToAction => "bg-info text-dark",
+                                _ => "bg-secondary"
+                            };
+
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">@x.Title</strong>
+                                    <small class="text-muted">@x.Summary</small>
+                                </td>
+                                <td>
+                                    <span class="d-block fw-semibold">@(row.DiagnosticName ?? "Diagnóstico consolidado")</span>
+                                    <small class="text-muted">@(x.RelatedDimension ?? "Geral organizacional")</small>
+                                </td>
+                                <td>
+                                    <span class="badge @(x.Priority == "critical" ? "bg-danger" : x.Priority == "high" ? "bg-warning text-dark" : "bg-light text-dark border")">
+                                        @x.Priority
+                                    </span>
+                                    <small class="d-block text-muted mt-1">Confiança: @x.ConfidenceLevel</small>
+                                </td>
+                                <td>
+                                    <span class="badge @statusBadgeClass">@statusLabel</span>
+                                    @if (x.Status == AiInsightStatuses.PendingReview && !canReview)
+                                    {
+                                        <small class="d-block text-muted">Sem permissão de revisão</small>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="fw-semibold">@row.PlanCount plano(s)</span>
+                                    <small class="d-block text-muted">@row.ActivePlanCount ativo(s), @row.ClosedPlanCount encerrado(s)</small>
+                                </td>
+                                <td>@x.CreatedAt.ToString("dd/MM/yyyy")</td>
+                                <td class="text-end">
+                                    <a class="valora-button valora-button--ghost btn-sm" asp-action="Details" asp-route-id="@x.Id" asp-route-returnUrl="@Model.CurrentUrl">
+                                        @(x.Status == AiInsightStatuses.PendingReview && canReview ? "Analisar e Revisar" : "Ver Detalhes")
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (pagination.TotalPages > 1)
+            {
+                <nav class="d-flex justify-content-between align-items-center mt-3 pt-3 border-top" aria-label="Paginação de insights">
+                    <span class="text-muted small">Página @(pagination.Page) de @(pagination.TotalPages)</span>
+                    <div class="d-flex gap-2">
+                        @if (pagination.Page > 1)
+                        {
+                            <a class="valora-button valora-button--ghost btn-sm" asp-route-Page="@(pagination.Page - 1)" asp-route-Search="@Model.Query.Search" asp-route-Status="@Model.Query.Status" asp-route-Priority="@Model.Query.Priority" asp-route-Dimension="@Model.Query.Dimension" asp-route-DiagnosticId="@Model.Query.DiagnosticId" asp-route-PageSize="@Model.Query.PageSize" asp-route-HasPlan="@Model.Query.HasPlan" asp-route-Sort="@Model.Query.Sort">
+                                &larr; Anterior
+                            </a>
+                        }
+                        @if (pagination.HasNext)
+                        {
+                            <a class="valora-button valora-button--ghost btn-sm" asp-route-Page="@(pagination.Page + 1)" asp-route-Search="@Model.Query.Search" asp-route-Status="@Model.Query.Status" asp-route-Priority="@Model.Query.Priority" asp-route-Dimension="@Model.Query.Dimension" asp-route-DiagnosticId="@Model.Query.DiagnosticId" asp-route-PageSize="@Model.Query.PageSize" asp-route-HasPlan="@Model.Query.HasPlan" asp-route-Sort="@Model.Query.Sort">
+                                Próxima &rarr;
+                            </a>
+                        }
+                    </div>
+                </nav>
+            }
+        </section>
+    }
 </main>

@@ -18,20 +18,23 @@
     const activeSurveys = surveys.filter(item => ['active', 'scheduled'].includes(String(item.status).toLowerCase())).length;
     const completed = responses.filter(item => ['completed', 'submitted'].includes(String(item.status).toLowerCase())).length;
     const completionRate = responses.length ? Math.round((completed / responses.length) * 100) : 0;
-    setText('[data-kpi="responses"]', responses.length ? number(responses.length) : '—');
+    setText('[data-kpi="responses"]', responses.length ? number(responses.length) : '0');
     setText('[data-kpi="activeSurveys"]', number(activeSurveys));
-    setText('[data-kpi="completionRate"]', responses.length ? `${completionRate}%` : '—');
+    setText('[data-kpi="completionRate"]', responses.length ? `${completionRate}%` : '0%');
     const run = intelligence.latestRun;
-    setText('[data-kpi="averageLevel"]', run?.maturityIndex == null ? 'Não avaliado' : `${number(run.maturityIndex)} pontos`);
-    setText('[data-kpi="evidence"]', intelligence.evidence?.total == null ? '—' : number(intelligence.evidence.total));
+    setText('[data-kpi="averageLevel"]', run?.maturityIndex == null ? 'Em calibração' : `${number(run.maturityIndex)} pts`);
+    setText('[data-kpi="evidence"]', intelligence.evidence?.total == null ? '0' : number(intelligence.evidence.total));
     setText('[data-kpi="actions"]', number(actions.filter(item => !['completed', 'cancelled', 'reviewed'].includes(String(item.status).toLowerCase())).length));
-    root.querySelector('[data-metric-empty]').hidden = responses.length > 0;
+    const metricEmpty = root.querySelector('[data-metric-empty]');
+    if (metricEmpty) metricEmpty.hidden = true;
+    const summaryCards = root.querySelector('[data-summary-cards]');
+    if (summaryCards) summaryCards.hidden = false;
     renderJourney(surveys, responses, usage, actions);
     renderAttention(surveys, responses, completionRate);
-    renderStrategicReading(intelligence, actions);
+    renderStrategicReading(intelligence, actions, surveys, responses);
   }
 
-  function renderStrategicReading(intelligence, actions) {
+  function renderStrategicReading(intelligence, actions, surveys = [], responses = []) {
     const panel = root.querySelector('[data-strategic-reading]');
     if (!panel) return;
     const run = intelligence.latestRun;
@@ -39,8 +42,18 @@
     panel.hidden = !enoughEvidence;
     root.querySelector('[data-score-panel]').hidden = !enoughEvidence;
     root.querySelector('[data-empty-score]').hidden = enoughEvidence;
-    root.querySelector('[data-summary-cards]').hidden = !enoughEvidence;
-    if (!enoughEvidence) return;
+    const summaryCards = root.querySelector('[data-summary-cards]');
+    if (summaryCards) summaryCards.hidden = false;
+    if (!enoughEvidence) {
+      const emptyHost = root.querySelector('[data-empty-score]');
+      if (emptyHost && (surveys.length > 0 || responses.length > 0)) {
+        const title = emptyHost.querySelector('h2');
+        if (title) title.textContent = 'Diagnóstico em andamento · Calibração de evidências';
+        const p = emptyHost.querySelector('p');
+        if (p) p.textContent = `${responses.length} resposta(s) registrada(s) em ${surveys.length} diagnóstico(s). O Score de Maturidade e as dimensões serão consolidados com o avanço da amostragem mínima.`;
+      }
+      return;
+    }
     const score = Number(run.maturityIndex);
     const level = run.maturityClassification || 'Não avaliado';
     setText('[data-score]', `${number(score)} pontos`);

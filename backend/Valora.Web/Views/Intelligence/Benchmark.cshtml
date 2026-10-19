@@ -1,13 +1,155 @@
 @model Valora.Web.Models.ViewModels.IntelligenceWorkspaceViewModel
-@{ ViewData["Title"] = Model.Title; var id = ViewData["BenchmarkId"]?.ToString(); var compare = ViewData["CompareMode"] is true; var admin = ViewData["AdminMode"] is true; }
+@{
+    ViewData["Title"] = Model.Title;
+    var id = ViewData["BenchmarkId"]?.ToString();
+    var compare = ViewData["CompareMode"] is true;
+    var admin = ViewData["AdminMode"] is true;
+}
+
 <main class="valora-page v9-page benchmark-premium" data-benchmark data-id="@id" data-compare="@compare.ToString().ToLowerInvariant()" data-admin="@admin.ToString().ToLowerInvariant()">
- <nav class="v9-breadcrumb"><a href="/Intelligence">Inteligência Organizacional</a><span>/</span><a href="/Benchmark">Benchmark</a></nav>
- <header class="v9-hero v9-hero--executive"><div><p class="eyebrow">Valora Benchmark™</p><h1>Posicionamento organizacional</h1><p>Compare ciclos e recortes internos com evidência, privacidade e limitações explícitas.</p></div><div><a class="valora-button valora-button--ghost" href="/Benchmark/Compare">Comparar diagnósticos</a></div></header>
- <div class="valora-alert" data-external><strong>Referência externa.</strong> Benchmark externo indisponível por amostra insuficiente.</div>
- <section class="v9-kpis"><article><span>Maturidade atual</span><strong data-score>—</strong><small data-level>Sem snapshot</small></article><article><span>Evolução</span><strong data-delta>—</strong><small>Último ciclo comparável</small></article><article><span>Respostas</span><strong data-responses>—</strong><small>Amostra agregada</small></article><article><span>Dimensões críticas</span><strong data-critical>—</strong><small>Prioridade por evidência</small></article></section>
- <section class="valora-card" data-comparison hidden><div class="v9-section-title"><div><p class="eyebrow">Comparação controlada</p><h2>Selecione snapshots reais</h2></div></div><form data-compare-form><label>Diagnóstico atual<select class="valora-input" name="baseSnapshotId" required></select></label><label>Diagnóstico anterior<select class="valora-input" name="comparedSnapshotId"><option value="">Anterior automático</option></select></label><button class="valora-button valora-button--primary">Comparar</button></form><div data-compare-result></div></section>
- <section class="valora-card" data-admin-panel hidden><div class="v9-section-title"><div><p class="eyebrow">Governança</p><h2>Amostra e anonimização</h2></div></div><form data-settings><label>Mínimo de organizações<input class="valora-input" type="number" name="minimumOrganizations" min="2" /></label><label>Mínimo de respostas<input class="valora-input" type="number" name="minimumResponses" min="5" /></label><label><input type="checkbox" name="externalEnabled" /> Benchmark externo habilitado</label><label><input type="checkbox" name="requireAnonymization" checked /> Anonimização obrigatória</label><button class="valora-button valora-button--primary">Salvar regras</button></form></section>
- <section class="valora-card"><div class="v9-section-title"><div><p class="eyebrow">Leitura multidimensional</p><h2>Atual × referência disponível</h2></div></div><div class="valora-skeleton" data-loading>Consultando snapshots autorizados…</div><div class="valora-alert valora-alert--danger" data-error hidden></div><div class="benchmark-dimensions" data-dimensions></div><div class="valora-empty" data-empty hidden><h3>Primeiro benchmark ainda não gerado</h3><p>Gere um snapshot a partir de um diagnóstico concluído. Nenhuma média externa será estimada.</p></div></section>
- <section class="valora-card"><div class="v9-section-title"><div><p class="eyebrow">Histórico</p><h2>Snapshots gerados</h2></div></div><div data-snapshots></div></section>
+    <nav class="v9-breadcrumb" aria-label="Navegação estrutural">
+        <a href="/Dashboard">Início</a>
+        <span>/</span>
+        <a href="/Intelligence">Inteligência Organizacional</a>
+        <span>/</span>
+        <span>Benchmark™</span>
+    </nav>
+
+    <header class="v9-hero v9-hero--executive valora-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <p class="eyebrow text-white-50">Valora Benchmark™</p>
+                <h1 class="text-white">Posicionamento e Calibração Comparativa</h1>
+                <p class="text-white-50 m-0">
+                    Compare ciclos históricos e recortes de mercado com evidência empírica, anonimização mandatória e limitações declaradas.
+                </p>
+            </div>
+            <a class="valora-button valora-button--ghost text-white border-white btn-sm" href="/Benchmark/Compare">
+                Comparar Diagnósticos
+            </a>
+        </div>
+    </header>
+
+    <div class="valora-alert mt-3" data-external>
+        <strong>Referência de Mercado:</strong> O benchmark externo só é exibido quando a amostra agregada atinge os critérios de confidencialidade mínima do segmento.
+    </div>
+
+    <!-- KPIs do Benchmark -->
+    <section class="v9-kpis mt-3" aria-label="Indicadores de Benchmark">
+        <article class="valora-card">
+            <span>Maturidade atual</span>
+            <strong data-score class="text-primary">—</strong>
+            <small data-level>Sem snapshot ativo</small>
+        </article>
+        <article class="valora-card">
+            <span>Evolução</span>
+            <strong data-delta>—</strong>
+            <small>Último ciclo comparável</small>
+        </article>
+        <article class="valora-card">
+            <span>Respostas</span>
+            <strong data-responses>—</strong>
+            <small>Amostra agregada</small>
+        </article>
+        <article class="valora-card">
+            <span>Dimensões críticas</span>
+            <strong data-critical class="text-danger">—</strong>
+            <small>Prioridade por evidência</small>
+        </article>
+    </section>
+
+    <!-- Comparação Controlada -->
+    <section class="valora-card mt-3" data-comparison hidden>
+        <div class="mb-3">
+            <p class="eyebrow">Comparação Controlada</p>
+            <h2 class="h5 m-0">Selecione Snapshots Reais para Confronto</h2>
+        </div>
+        <form data-compare-form class="row g-3">
+            <div class="col-md-5">
+                <label class="form-label" for="base-snapshot-select">Diagnóstico de referência atual <span class="text-danger">*</span></label>
+                <select class="form-select" id="base-snapshot-select" name="baseSnapshotId" required></select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label" for="compare-snapshot-select">Diagnóstico anterior ou de linha de base</label>
+                <select class="form-select" id="compare-snapshot-select" name="comparedSnapshotId">
+                    <option value="">Anterior automático mais recente</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="valora-button valora-button--primary w-100">Comparar</button>
+            </div>
+        </form>
+        <div data-compare-result class="mt-3"></div>
+    </section>
+
+    <!-- Governança e Anonimização -->
+    <section class="valora-card mt-3" data-admin-panel hidden>
+        <div class="mb-3">
+            <p class="eyebrow">Governança dos Dados</p>
+            <h2 class="h5 m-0">Regras de Amostragem e Anonimização</h2>
+        </div>
+        <form data-settings class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label" for="min-orgs">Mínimo de organizações no cohort</label>
+                <input class="form-control" id="min-orgs" type="number" name="minimumOrganizations" min="2" value="3" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="min-resp">Mínimo de respostas no cohort</label>
+                <input class="form-control" id="min-resp" type="number" name="minimumResponses" min="5" value="10" />
+            </div>
+            <div class="col-md-3 d-flex align-items-center pt-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="ext-bench-cb" name="externalEnabled" />
+                    <label class="form-check-label" for="ext-bench-cb">Benchmark externo ativado</label>
+                </div>
+            </div>
+            <div class="col-md-3 d-flex align-items-center pt-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="anon-cb" name="requireAnonymization" checked />
+                    <label class="form-check-label" for="anon-cb">Anonimização obrigatória</label>
+                </div>
+            </div>
+            <div class="col-12 text-end">
+                <button type="submit" class="valora-button valora-button--primary btn-sm">Salvar Regras de Governança</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Leitura Multidimensional -->
+    <section class="valora-card mt-3">
+        <div class="mb-3">
+            <p class="eyebrow">Leitura Multidimensional</p>
+            <h2 class="h5 m-0">Posicionamento da Organização &times; Referência de Mercado</h2>
+        </div>
+
+        <div class="valora-skeleton py-4 text-center" data-loading>
+            Consultando snapshots autorizados…
+        </div>
+
+        <div class="valora-alert valora-alert--danger" data-error hidden></div>
+
+        <div class="benchmark-dimensions" data-dimensions></div>
+
+        <div class="valora-empty py-5 text-center" data-empty hidden>
+            <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">📊</div>
+            <h3 class="h6">Primeiro benchmark ainda não gerado</h3>
+            <p class="text-muted max-w-600 mx-auto">
+                Gere um snapshot a partir de um diagnóstico concluído. Nenhuma média externa ou comparativo de mercado será artificialmente simulado.
+            </p>
+        </div>
+    </section>
+
+    <!-- Histórico de Snapshots -->
+    <section class="valora-card mt-3">
+        <div class="mb-3">
+            <p class="eyebrow">Rastreabilidade</p>
+            <h2 class="h5 m-0">Snapshots Históricos Gerados</h2>
+        </div>
+        <div data-snapshots></div>
+    </section>
 </main>
-@section Scripts { <script src="/js/pages/intelligence-benchmark.js" asp-append-version="true"></script><script src="/js/pages/intelligence-workspace.js" asp-append-version="true"></script> }
+
+@section Scripts {
+    <script src="/js/pages/intelligence-benchmark.js" asp-append-version="true"></script>
+    <script src="/js/pages/intelligence-workspace.js" asp-append-version="true"></script>
+}

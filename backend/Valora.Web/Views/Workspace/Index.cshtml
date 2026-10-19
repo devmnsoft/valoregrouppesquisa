@@ -2,23 +2,321 @@
 @using Microsoft.AspNetCore.Authorization
 @using Valora.Application.Access
 @inject IAuthorizationService AuthorizationService
-@{ ViewData["Title"] = Model.Title; var canManagePriorities = (await AuthorizationService.AuthorizeAsync(User, ValoraPermissions.Priorities.Manage)).Succeeded; var canManageActions = (await AuthorizationService.AuthorizeAsync(User, "action.manage")).Succeeded; }
+@{
+    ViewData["Title"] = Model.Title;
+    var canManagePriorities = (await AuthorizationService.AuthorizeAsync(User, ValoraPermissions.Priorities.Manage)).Succeeded;
+    var canManageActions = (await AuthorizationService.AuthorizeAsync(User, "action.manage")).Succeeded;
+}
+
 <link rel="stylesheet" href="~/css/executive-workspace.css" asp-append-version="true" />
+
 <main class="executive-workspace" data-mode="@Model.Mode">
- @Html.AntiForgeryToken()
- <header class="workspace-hero"><div><span class="workspace-eyebrow">Valora Insight™ · entrada de trabalho</span><h1>@Model.Title</h1><p>@Model.Subtitle</p></div><div class="workspace-primary-actions">@if (canManagePriorities) { <button id="new-priority" class="button primary" type="button">+ Nova prioridade</button> }<a class="workspace-search-link" href="/Search">⌕ <span>Buscar</span><kbd>Ctrl K</kbd></a></div></header>
- <nav class="workspace-tabs" aria-label="Áreas de trabalho"><a href="/Workspace">Trabalho diário</a><a href="/Workspace/MyDay">Minhas pendências</a><a href="/Workspace/Priorities">Prioridades</a><a href="/Dashboard">Análise executiva</a><a href="/Search">Busca global</a></nav>
- <details class="workspace-help"><summary>Como usar este painel</summary><p>Comece pelas pendências, avance para diagnósticos e resultados autorizados e acompanhe os compromissos no plano de ação. A análise executiva permanece separada para leituras detalhadas.</p></details>
- @if (Model.Mode == "priorities") { <form id="priority-filters" class="workspace-filters"><label>Situação<select name="status"><option value="">Todas</option><option value="active">Ativas</option><option value="completed">Concluídas</option><option value="cancelled">Canceladas</option></select></label><label>Nível<select name="priority"><option value="">Todos</option><option value="critical">Crítica</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></label><label>Prazo<select name="due"><option value="">Todos</option><option value="overdue">Atrasadas</option><option value="today">Hoje</option><option value="none">Sem prazo</option></select></label><button class="button" type="submit">Aplicar filtros</button></form> }
- <div id="workspace-feedback" class="workspace-feedback" role="status" aria-live="polite" hidden></div>
- <section id="workspace-loading" class="workspace-grid" aria-label="Carregando"><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div></section>
- <section id="workspace-content" class="workspace-grid" hidden></section>
- <section id="workspace-empty" class="workspace-empty" hidden><span>✦</span><h2>Seu foco está em dia</h2><p>Nenhum registro corresponde a esta seção.</p><button class="button retry" type="button" hidden>Tentar novamente</button></section>
- <dialog id="priority-dialog" class="priority-dialog"><form id="priority-form"><header><h2 id="priority-form-title">Nova prioridade</h2><button type="button" class="icon-button dialog-close" aria-label="Fechar">×</button></header><div class="form-errors" tabindex="-1" hidden></div><input type="hidden" name="id"><input type="hidden" name="expectedUpdatedAt"><label>Título <span aria-hidden="true">*</span><input name="title" required minlength="3" maxlength="180"><small>Resuma o resultado que precisa de atenção.</small><span class="field-error"></span></label><label>Descrição<textarea name="description" maxlength="2000" rows="4"></textarea><span class="field-error"></span></label><div class="form-row"><label>Prioridade <span aria-hidden="true">*</span><select name="priority" required><option value="critical">Crítica</option><option value="high">Alta</option><option value="medium" selected>Média</option><option value="low">Baixa</option></select><span class="field-error"></span></label><label>Responsável<input name="ownerSearch" type="search" placeholder="Buscar responsável" autocomplete="off"><select name="ownerUserId"><option value="">Compartilhada</option></select><span class="field-error"></span></label></div><label>Origem opcional<input name="sourceSearch" type="search" placeholder="Buscar recurso" autocomplete="off"><select name="source"><option value="">Sem recurso vinculado</option></select><small>Somente recursos que você pode consultar são exibidos.</small><span class="field-error"></span></label><label>Prazo<input name="dueAt" type="datetime-local"><small>O horário usa o fuso atual do navegador; uma data ausente permanece ausente.</small><span class="field-error"></span></label><footer><button type="button" class="button dialog-close">Cancelar</button><button class="button primary" type="submit">Salvar prioridade</button></footer></form></dialog>
- <dialog id="priority-details" class="priority-dialog details-dialog"><div class="details-content"></div></dialog>
- <dialog id="priority-command" class="priority-dialog"><form id="priority-command-form"><header><div><span class="workspace-eyebrow">Atualizar prioridade</span><h2 id="priority-command-title"></h2></div><button type="button" class="icon-button command-close" aria-label="Fechar">×</button></header><p id="priority-command-consequence"></p><p class="priority-name"></p><div class="form-errors" tabindex="-1" hidden></div><label class="progress-field">Progresso (%)<input name="progressPercent" type="number" min="0" max="99" step="1"><span class="field-error"></span></label><label><span class="note-label">Justificativa</span> <span aria-hidden="true">*</span><textarea name="note" required minlength="2" maxlength="1000" rows="4"></textarea><span class="field-error"></span></label><footer><button type="button" class="button command-close">Cancelar</button><button class="button primary" type="submit">Confirmar</button></footer></form></dialog>
- <dialog id="activity-dialog" class="priority-dialog"><form id="activity-form"><header><div><span class="workspace-eyebrow">Prioridade → execução</span><h2>Preparar execução</h2><p>Escolha um percurso e revise os dados antes de confirmar.</p></div><button type="button" class="icon-button activity-close" aria-label="Fechar">×</button></header><details class="workspace-help"><summary>Como usar</summary><p>Busque por título, carregue outras páginas se necessário e selecione somente recursos aos quais você tem acesso.</p></details><div class="form-errors" tabindex="-1" hidden></div><fieldset><legend>Como deseja continuar?</legend><label><input type="radio" name="mode" value="existing" checked> A. Vincular atividade existente</label><label><input type="radio" name="mode" value="existing-plan"> B. Criar atividade em plano existente</label><label><input type="radio" name="mode" value="new-plan"> C. Criar plano e primeira atividade</label></fieldset><section data-activity-mode="existing"><label>Buscar atividade<input name="actionSearch" type="search" autocomplete="off" placeholder="Digite o título"></label><label>Atividade autorizada <span aria-hidden="true">*</span><select name="actionId" required></select><span class="field-error"></span></label><div class="option-pagination" data-options="items" aria-live="polite"><span class="option-status"></span><button type="button" class="button option-more">Carregar mais</button></div></section><section data-activity-mode="create" hidden><div class="existing-plan"><label>Buscar plano<input name="planSearch" type="search" autocomplete="off" placeholder="Digite o título"></label><label>Plano autorizado <span aria-hidden="true">*</span><select name="planId"></select><span class="field-error"></span></label><div class="option-pagination" data-options="plans" aria-live="polite"><span class="option-status"></span><button type="button" class="button option-more">Carregar mais</button></div></div><label class="new-plan" hidden>Nome do novo plano <span aria-hidden="true">*</span><input name="planTitle" maxlength="180"></label><label>Título da atividade <span aria-hidden="true">*</span><input name="title" minlength="3" maxlength="180"></label><label>Contexto<textarea name="description" maxlength="2000" rows="3"></textarea></label><div data-responsible-selector><label for="workspace-responsible-search">Buscar responsável</label><input id="workspace-responsible-search" name="responsibleSearch" type="search" autocomplete="off" placeholder="Digite o nome" aria-describedby="workspace-responsible-status" data-responsible-search><label for="workspace-responsible">Responsável</label><select id="workspace-responsible" name="responsibleUserId" aria-describedby="workspace-responsible-status" data-responsible-select data-empty-label="Sem responsável"><option value="">Sem responsável</option></select><small>Somente pessoas ativas desta organização são exibidas.</small><span id="workspace-responsible-status" class="option-status" role="status" aria-live="polite" data-responsible-status></span><button type="button" class="button" data-responsible-more>Carregar mais</button></div><label>Resultado esperado <span aria-hidden="true">*</span><textarea name="expectedOutcome" minlength="3" maxlength="2000" rows="3"></textarea></label><label>Evidência de partida <span aria-hidden="true">*</span><textarea name="evidenceSummary" minlength="3" maxlength="2000" rows="3"></textarea></label><div class="form-row"><label>Prioridade<select name="priority"><option value="critical">Crítica</option><option value="high">Alta</option><option value="medium" selected>Média</option><option value="low">Baixa</option></select></label><label>Prazo<input name="dueAt" type="datetime-local"></label></div><aside class="review-note" aria-live="polite"><strong>Resumo para confirmação</strong><span data-activity-summary>Revise plano, resultado, evidência e prazo. Nenhum conteúdo sensível será copiado da prioridade.</span></aside></section><footer><button type="button" class="button activity-close">Cancelar</button><button class="button primary" type="submit">Confirmar e abrir atividade</button></footer></form></dialog>
+    @Html.AntiForgeryToken()
+
+    <header class="workspace-hero">
+        <div>
+            <span class="workspace-eyebrow">Valora Insight™ · Entrada de Trabalho</span>
+            <h1>@Model.Title</h1>
+            <p>@Model.Subtitle</p>
+        </div>
+        <div class="workspace-primary-actions">
+            @if (canManagePriorities)
+            {
+                <button id="new-priority" class="button primary" type="button">+ Nova prioridade</button>
+            }
+            <a class="workspace-search-link" href="/Search">⌕ <span>Buscar</span><kbd>Ctrl K</kbd></a>
+        </div>
+    </header>
+
+    <nav class="workspace-tabs" aria-label="Áreas de trabalho">
+        <a href="/Workspace">Trabalho diário</a>
+        <a href="/Workspace/MyDay">Minhas pendências</a>
+        <a href="/Workspace/Priorities">Prioridades</a>
+        <a href="/Dashboard">Análise executiva</a>
+        <a href="/Search">Busca global</a>
+    </nav>
+
+    <details class="workspace-help">
+        <summary>Como usar este painel</summary>
+        <p>Comece pelas pendências, avance para diagnósticos e resultados autorizados e acompanhe os compromissos no plano de ação. A análise executiva permanece separada para leituras detalhadas.</p>
+    </details>
+
+    @if (Model.Mode == "priorities")
+    {
+        <form id="priority-filters" class="workspace-filters">
+            <label>
+                Situação
+                <select name="status">
+                    <option value="">Todas</option>
+                    <option value="active">Ativas</option>
+                    <option value="completed">Concluídas</option>
+                    <option value="cancelled">Canceladas</option>
+                </select>
+            </label>
+            <label>
+                Nível
+                <select name="priority">
+                    <option value="">Todos</option>
+                    <option value="critical">Crítica</option>
+                    <option value="high">Alta</option>
+                    <option value="medium">Média</option>
+                    <option value="low">Baixa</option>
+                </select>
+            </label>
+            <label>
+                Prazo
+                <select name="due">
+                    <option value="">Todos</option>
+                    <option value="overdue">Atrasadas</option>
+                    <option value="today">Hoje</option>
+                    <option value="none">Sem prazo</option>
+                </select>
+            </label>
+            <button class="button" type="submit">Aplicar filtros</button>
+        </form>
+    }
+
+    <div id="workspace-feedback" class="workspace-feedback" role="status" aria-live="polite" hidden></div>
+
+    <section id="workspace-loading" class="workspace-grid" aria-label="Carregando">
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+        <div class="skeleton"></div>
+    </section>
+
+    <section id="workspace-content" class="workspace-grid" hidden></section>
+
+    <section id="workspace-empty" class="workspace-empty" hidden>
+        <span>✦</span>
+        <h2>Seu foco está em dia</h2>
+        <p>Nenhum registro corresponde a esta seção.</p>
+        <button class="button retry" type="button" hidden>Tentar novamente</button>
+    </section>
+
+    <!-- Dialog Nova Prioridade -->
+    <dialog id="priority-dialog" class="priority-dialog">
+        <form id="priority-form">
+            <header>
+                <h2 id="priority-form-title">Nova prioridade</h2>
+                <button type="button" class="icon-button dialog-close" aria-label="Fechar">×</button>
+            </header>
+            <div class="form-errors" tabindex="-1" hidden></div>
+            <input type="hidden" name="id">
+            <input type="hidden" name="expectedUpdatedAt">
+            <label>
+                Título <span aria-hidden="true">*</span>
+                <input name="title" required minlength="3" maxlength="180">
+                <small>Resuma o resultado que precisa de atenção.</small>
+                <span class="field-error"></span>
+            </label>
+            <label>
+                Descrição
+                <textarea name="description" maxlength="2000" rows="4"></textarea>
+                <span class="field-error"></span>
+            </label>
+            <div class="form-row">
+                <label>
+                    Prioridade <span aria-hidden="true">*</span>
+                    <select name="priority" required>
+                        <option value="critical">Crítica</option>
+                        <option value="high">Alta</option>
+                        <option value="medium" selected>Média</option>
+                        <option value="low">Baixa</option>
+                    </select>
+                    <span class="field-error"></span>
+                </label>
+                <label>
+                    Responsável
+                    <input name="ownerSearch" type="search" placeholder="Buscar responsável" autocomplete="off">
+                    <select name="ownerUserId">
+                        <option value="">Compartilhada</option>
+                    </select>
+                    <span class="field-error"></span>
+                </label>
+            </div>
+            <label>
+                Origem opcional
+                <input name="sourceSearch" type="search" placeholder="Buscar recurso" autocomplete="off">
+                <select name="source">
+                    <option value="">Sem recurso vinculado</option>
+                </select>
+                <small>Somente recursos que você pode consultar são exibidos.</small>
+                <span class="field-error"></span>
+            </label>
+            <label>
+                Prazo
+                <input name="dueAt" type="datetime-local">
+                <small>O horário usa o fuso atual do navegador; uma data ausente permanece ausente.</small>
+                <span class="field-error"></span>
+            </label>
+            <footer>
+                <button type="button" class="button dialog-close">Cancelar</button>
+                <button class="button primary" type="submit">Salvar prioridade</button>
+            </footer>
+        </form>
+    </dialog>
+
+    <!-- Dialog Detalhes da Prioridade -->
+    <dialog id="priority-details" class="priority-dialog details-dialog">
+        <div class="details-content"></div>
+    </dialog>
+
+    <!-- Dialog Atualizar Prioridade -->
+    <dialog id="priority-command" class="priority-dialog">
+        <form id="priority-command-form">
+            <header>
+                <div>
+                    <span class="workspace-eyebrow">Atualizar prioridade</span>
+                    <h2 id="priority-command-title"></h2>
+                </div>
+                <button type="button" class="icon-button command-close" aria-label="Fechar">×</button>
+            </header>
+            <p id="priority-command-consequence"></p>
+            <p class="priority-name"></p>
+            <div class="form-errors" tabindex="-1" hidden></div>
+            <label class="progress-field">
+                Progresso (%)
+                <input name="progressPercent" type="number" min="0" max="99" step="1">
+                <span class="field-error"></span>
+            </label>
+            <label>
+                <span class="note-label">Justificativa</span> <span aria-hidden="true">*</span>
+                <textarea name="note" required minlength="2" maxlength="1000" rows="4"></textarea>
+                <span class="field-error"></span>
+            </label>
+            <footer>
+                <button type="button" class="button command-close">Cancelar</button>
+                <button class="button primary" type="submit">Confirmar</button>
+            </footer>
+        </form>
+    </dialog>
+
+    <!-- Dialog Atividade / Execução -->
+    <dialog id="activity-dialog" class="priority-dialog">
+        <form id="activity-form">
+            <header>
+                <div>
+                    <span class="workspace-eyebrow">Prioridade → Execução</span>
+                    <h2>Preparar Execução</h2>
+                    <p>Escolha um percurso e revise os dados antes de confirmar.</p>
+                </div>
+                <button type="button" class="icon-button activity-close" aria-label="Fechar">×</button>
+            </header>
+            <details class="workspace-help">
+                <summary>Como usar</summary>
+                <p>Busque por título, carregue outras páginas se necessário e selecione somente recursos aos quais você tem acesso.</p>
+            </details>
+            <div class="form-errors" tabindex="-1" hidden></div>
+            <fieldset>
+                <legend>Como deseja continuar?</legend>
+                <label><input type="radio" name="mode" value="existing" checked> A. Vincular atividade existente</label>
+                <label><input type="radio" name="mode" value="existing-plan"> B. Criar atividade em plano existente</label>
+                <label><input type="radio" name="mode" value="new-plan"> C. Criar plano e primeira atividade</label>
+            </fieldset>
+
+            <section data-activity-mode="existing">
+                <label>
+                    Buscar atividade
+                    <input name="actionSearch" type="search" autocomplete="off" placeholder="Digite o título">
+                </label>
+                <label>
+                    Atividade autorizada <span aria-hidden="true">*</span>
+                    <select name="actionId" required></select>
+                    <span class="field-error"></span>
+                </label>
+                <div class="option-pagination" data-options="items" aria-live="polite">
+                    <span class="option-status"></span>
+                    <button type="button" class="button option-more">Carregar mais</button>
+                </div>
+            </section>
+
+            <section data-activity-mode="create" hidden>
+                <div class="existing-plan">
+                    <label>
+                        Buscar plano
+                        <input name="planSearch" type="search" autocomplete="off" placeholder="Digite o título">
+                    </label>
+                    <label>
+                        Plano autorizado <span aria-hidden="true">*</span>
+                        <select name="planId"></select>
+                        <span class="field-error"></span>
+                    </label>
+                    <div class="option-pagination" data-options="plans" aria-live="polite">
+                        <span class="option-status"></span>
+                        <button type="button" class="button option-more">Carregar mais</button>
+                    </div>
+                </div>
+
+                <label class="new-plan" hidden>
+                    Nome do novo plano <span aria-hidden="true">*</span>
+                    <input name="planTitle" maxlength="180">
+                </label>
+
+                <label>
+                    Título da atividade <span aria-hidden="true">*</span>
+                    <input name="title" minlength="3" maxlength="180">
+                </label>
+
+                <label>
+                    Contexto
+                    <textarea name="description" maxlength="2000" rows="3"></textarea>
+                </label>
+
+                <div data-responsible-selector>
+                    <label for="workspace-responsible-search">Buscar responsável</label>
+                    <input id="workspace-responsible-search" name="responsibleSearch" type="search" autocomplete="off" placeholder="Digite o nome" aria-describedby="workspace-responsible-status" data-responsible-search>
+                    <label for="workspace-responsible">Responsável</label>
+                    <select id="workspace-responsible" name="responsibleUserId" aria-describedby="workspace-responsible-status" data-responsible-select data-empty-label="Sem responsável">
+                        <option value="">Sem responsável</option>
+                    </select>
+                    <small>Somente pessoas ativas desta organização são exibidas.</small>
+                    <span id="workspace-responsible-status" class="option-status" role="status" aria-live="polite" data-responsible-status></span>
+                    <button type="button" class="button" data-responsible-more>Carregar mais</button>
+                </div>
+
+                <label>
+                    Resultado esperado <span aria-hidden="true">*</span>
+                    <textarea name="expectedOutcome" minlength="3" maxlength="2000" rows="3"></textarea>
+                </label>
+
+                <label>
+                    Evidência de partida <span aria-hidden="true">*</span>
+                    <textarea name="evidenceSummary" minlength="3" maxlength="2000" rows="3"></textarea>
+                </label>
+
+                <div class="form-row">
+                    <label>
+                        Prioridade
+                        <select name="priority">
+                            <option value="critical">Crítica</option>
+                            <option value="high">Alta</option>
+                            <option value="medium" selected>Média</option>
+                            <option value="low">Baixa</option>
+                        </select>
+                    </label>
+                    <label>
+                        Prazo
+                        <input name="dueAt" type="datetime-local">
+                    </label>
+                </div>
+
+                <aside class="review-note" aria-live="polite">
+                    <strong>Resumo para confirmação</strong>
+                    <span data-activity-summary>Revise plano, resultado, evidência e prazo. Nenhum conteúdo sensível será copiado da prioridade.</span>
+                </aside>
+            </section>
+
+            <footer>
+                <button type="button" class="button activity-close">Cancelar</button>
+                <button class="button primary" type="submit">Confirmar e abrir atividade</button>
+            </footer>
+        </form>
+    </dialog>
 </main>
-<script nonce="@Context.Items["CspNonce"]">window.valoraWorkspaceMode='@Model.Mode';window.valoraCanManageActions=@canManageActions.ToString().ToLowerInvariant();</script>
+
+<script nonce="@Context.Items["CspNonce"]">
+    window.valoraWorkspaceMode = '@Model.Mode';
+    window.valoraCanManageActions = @canManageActions.ToString().ToLowerInvariant();
+</script>
 <script src="~/js/responsible-selector.js" asp-append-version="true"></script>
 <script src="~/js/executive-workspace.js" asp-append-version="true"></script>

@@ -9,7 +9,8 @@ using Valora.Application.Security;
 
 namespace Valora.Api.Middleware;
 
-public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger, IHostEnvironment environment) {
+public sealed class ErrorHandlingMiddleware(RequestDelegate next, ILogger<ErrorHandlingMiddleware> logger, IHostEnvironment? environment = null) {
+    private readonly IHostEnvironment? _environment = environment;
     public async Task InvokeAsync(HttpContext context, IApplicationErrorEventRepository? errorEvents = null,
         ICurrentRequestContext? currentRequest = null) {
         try { await next(context); }

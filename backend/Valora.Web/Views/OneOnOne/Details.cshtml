@@ -1,2 +1,262 @@
 @model Valora.Application.OneOnOne.OneOnOneDetailsDto
-@{ViewData["Title"]=Model.Session.Title;}<main class="valora-page one-on-one"><header class="leadership-hero"><div><p class="eyebrow">@Model.Session.LeaderName &amp; @Model.Session.ParticipantName</p><h1>@Model.Session.Title</h1><p>@(Model.Session.ScheduledAt?.ToString("dd/MM/yyyy 'às' HH:mm")??"Data a definir") <span class="badge status-@Model.Session.Status">@Model.Session.Status</span></p></div></header><div class="ooo-layout"><div><section class="valora-card"><div class="section-heading"><h2>Pauta</h2>@if(Model.Agenda.Count==0){<form method="post" action="/OneOnOne/Sessions/@Model.Session.Id/Agenda"><input type="hidden" name="evidence" value="@Model.Session.EvidenceSummary"/><button class="btn btn-primary">Gerar pauta sugerida</button></form>}</div>@if(Model.Agenda.Count==0){<div class="valora-empty"><h3>Pauta aberta à escuta</h3><p>A IA pode propor perguntas, nunca conclusões sobre pessoas.</p></div>}@foreach(var x in Model.Agenda){<article class="agenda-item"><span>@x.SortOrder</span><div><strong>@x.Title</strong><p>@x.Description</p><small>Evidência: @x.Evidence</small></div></article>}</section><section class="valora-card"><h2>Feedbacks construtivos</h2>@foreach(var x in Model.Feedbacks){<blockquote><p>@x.Feedback</p><small>Evidência: @x.Evidence</small></blockquote>}<form method="post" action="/OneOnOne/Sessions/@Model.Session.Id/Feedback" class="ooo-form"><label>Destinatário<input name="toUserId" value="@Model.Session.ParticipantUserId" required/></label><label class="wide">Feedback<textarea name="feedbackText" required></textarea></label><label class="wide">Evidência<textarea name="evidence" required></textarea></label><button class="btn btn-primary">Registrar feedback</button></form></section><section class="valora-card private-card"><div class="section-heading"><h2>Notas privadas</h2><span class="privacy-mark">🔒 Visível apenas ao autor ou perfil autorizado</span></div>@foreach(var x in Model.PrivateNotes){<p>@x.Note <small>@x.CreatedAt.ToString("dd/MM HH:mm")</small></p>}<form method="post" action="/OneOnOne/Sessions/@Model.Session.Id/PrivateNote"><textarea name="note" required placeholder="Nota privada — não entra em relatórios nem sugestões de IA"></textarea><button class="btn btn-outline-secondary">Salvar nota privada</button></form></section></div><aside><section class="valora-card"><h2>Compromissos</h2>@foreach(var x in Model.Commitments){<article class="commitment"><strong>@x.Title</strong><span class="badge">@x.Status</span><small>Prazo @x.DueAt.ToString("dd/MM/yyyy")</small></article>}<form method="post" action="/OneOnOne/Sessions/@Model.Session.Id/Commitment" class="stack-form"><input name="title" required placeholder="Compromisso"/><textarea name="description" placeholder="Resultado esperado"></textarea><input name="responsibleUserId" value="@Model.Session.LeaderUserId" required/><input name="dueAt" type="date" required/><label><input type="checkbox" name="createAction" value="true"/> Vincular ao Action Center</label><button class="btn btn-primary">Adicionar</button></form></section>@if(Model.Session.Status!="completed"){<section class="valora-card"><h2>Concluir sessão</h2><form method="post" action="/OneOnOne/Sessions/@Model.Session.Id/Complete" class="stack-form"><textarea name="Summary" minlength="20" required placeholder="Resumo da conversa (mínimo de 20 caracteres)"></textarea><textarea name="EvidenceSummary" required placeholder="Evidências consideradas"></textarea><button class="btn btn-primary">Concluir e registrar evolução</button></form></section>}else{<section class="valora-card"><h2>Resumo</h2><p>@Model.Session.Summary</p><small>Evidência: @Model.Session.EvidenceSummary</small></section>}</aside></div></main>
+@{
+    ViewData["Title"] = Model.Session.Title;
+}
+
+<main class="valora-page one-on-one" data-page="one-on-one-details">
+    <nav class="v9-breadcrumb" aria-label="Navegação estrutural">
+        <a href="/Dashboard">Início</a>
+        <span>/</span>
+        <a href="/OneOnOne">One-on-One™</a>
+        <span>/</span>
+        <a href="/OneOnOne/Sessions">Sessões</a>
+        <span>/</span>
+        <span>@Model.Session.Title</span>
+    </nav>
+
+    <header class="leadership-hero valora-card">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <p class="eyebrow text-white-50">
+                    Líder: <strong>@Model.Session.LeaderName</strong> &bull; Participante: <strong>@Model.Session.ParticipantName</strong>
+                </p>
+                <h1 class="text-white">@Model.Session.Title</h1>
+                <p class="text-white-50 m-0">
+                    @(Model.Session.ScheduledAt?.ToString("dd/MM/yyyy 'às' HH:mm") ?? "Data a definir")
+                    <span class="badge @(Model.Session.Status == "completed" ? "bg-success" : "bg-primary") ms-2">
+                        @(Model.Session.Status == "completed" ? "Concluída" : Model.Session.Status == "scheduled" ? "Agendada" : Model.Session.Status)
+                    </span>
+                </p>
+            </div>
+            <a class="valora-button valora-button--ghost text-white border-white btn-sm" href="/OneOnOne/Sessions">
+                &larr; Voltar às Sessões
+            </a>
+        </div>
+    </header>
+
+    <div class="row g-4 mt-2">
+        <div class="col-lg-8 d-flex flex-column gap-4">
+            <!-- Pauta -->
+            <section class="valora-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <p class="eyebrow">Tópicos e Perguntas Orientadoras</p>
+                        <h2 class="h5 m-0">Pauta da Conversa</h2>
+                    </div>
+                    @if (Model.Agenda.Count == 0 && Model.Session.Status != "completed")
+                    {
+                        <form method="post" action="/OneOnOne/Sessions/@Model.Session.Id/Agenda">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="evidence" value="@Model.Session.EvidenceSummary" />
+                            <button type="submit" class="valora-button valora-button--primary btn-sm">
+                                Sugerir Pauta por IA
+                            </button>
+                        </form>
+                    }
+                </div>
+
+                @if (Model.Agenda.Count == 0)
+                {
+                    <div class="valora-empty py-4 text-center">
+                        <h3 class="h6">Pauta aberta à escuta ativa</h3>
+                        <p class="text-muted small max-w-500 mx-auto">
+                            A IA pode sugerir perguntas orientadoras a partir dos diagnósticos organizacionais, mantendo sempre o protagonismo humano na condução da conversa.
+                        </p>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-3">
+                        @foreach (var x in Model.Agenda)
+                        {
+                            <div class="d-flex gap-3 p-3 bg-light rounded-3 border">
+                                <div class="badge bg-teal rounded-circle d-flex align-items-center justify-content-center" style="width: 2rem; height: 2rem; flex-shrink: 0; font-size: 0.9rem;">
+                                    @x.SortOrder
+                                </div>
+                                <div class="flex-grow-1">
+                                    <strong class="d-block text-dark">@x.Title</strong>
+                                    <p class="text-muted small m-0 mt-1">@x.Description</p>
+                                    @if (!string.IsNullOrWhiteSpace(x.Evidence))
+                                    {
+                                        <small class="text-muted d-block mt-1">
+                                            <strong>Evidência:</strong> @x.Evidence
+                                        </small>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </section>
+
+            <!-- Feedbacks Construtivos -->
+            <section class="valora-card">
+                <div class="mb-3">
+                    <p class="eyebrow">Desenvolvimento & Alinhamento</p>
+                    <h2 class="h5 m-0">Feedbacks Construtivos Baseados em Evidências</h2>
+                </div>
+
+                @if (Model.Feedbacks.Count > 0)
+                {
+                    <div class="d-flex flex-column gap-3 mb-4">
+                        @foreach (var x in Model.Feedbacks)
+                        {
+                            <blockquote class="p-3 bg-light rounded-3 border-start border-4 border-info m-0">
+                                <p class="m-0 text-dark">@x.Feedback</p>
+                                <small class="text-muted d-block mt-2">
+                                    <strong>Fatos observáveis:</strong> @x.Evidence
+                                </small>
+                            </blockquote>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted small">Nenhum feedback registrado nesta sessão até o momento.</p>
+                }
+
+                @if (Model.Session.Status != "completed")
+                {
+                    <div class="pt-3 border-top">
+                        <h3 class="h6 mb-2">Registrar Novo Feedback</h3>
+                        <form method="post" action="/OneOnOne/Sessions/@Model.Session.Id/Feedback" class="row g-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="toUserId" value="@Model.Session.ParticipantUserId" />
+                            <div class="col-12">
+                                <label class="form-label small" for="feedback-text">Conteúdo do feedback construtivo</label>
+                                <textarea class="form-control" id="feedback-text" name="feedbackText" rows="3" required placeholder="Descreva o alinhamento de forma clara e orientada ao aprendizado..."></textarea>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small" for="feedback-evidence">Fatos observados e evidências concretas</label>
+                                <textarea class="form-control" id="feedback-evidence" name="evidence" rows="2" required placeholder="Ex.: Atraso na entrega das sprints 12 e 13 decorrente de bloqueios de dependência externa..."></textarea>
+                            </div>
+                            <div class="col-12 text-end">
+                                <button type="submit" class="valora-button valora-button--primary btn-sm">Registrar Feedback</button>
+                            </div>
+                        </form>
+                    </div>
+                }
+            </section>
+
+            <!-- Notas Privadas -->
+            <section class="valora-card border-start border-4 border-primary">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <p class="eyebrow">Confidencialidade LGPD</p>
+                        <h2 class="h5 m-0">Notas Privadas do Conducente</h2>
+                    </div>
+                    <span class="privacy-mark">🔒 Visível apenas para você</span>
+                </div>
+
+                @if (Model.PrivateNotes.Count > 0)
+                {
+                    <div class="d-flex flex-column gap-2 mb-3">
+                        @foreach (var x in Model.PrivateNotes)
+                        {
+                            <div class="p-3 bg-light rounded-3 border">
+                                <p class="m-0 text-dark">@x.Note</p>
+                                <small class="text-muted d-block mt-1">Registrado em @x.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                            </div>
+                        }
+                    </div>
+                }
+
+                <form method="post" action="/OneOnOne/Sessions/@Model.Session.Id/PrivateNote" class="d-flex flex-column gap-2">
+                    @Html.AntiForgeryToken()
+                    <textarea class="form-control" name="note" rows="2" required placeholder="Anotação pessoal confidencial — estas notas nunca entram em relatórios executivos ou sugestões de IA."></textarea>
+                    <div class="text-end">
+                        <button type="submit" class="valora-button valora-button--secondary btn-sm">Salvar Nota Privada</button>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        <!-- Sidebar Direita -->
+        <div class="col-lg-4 d-flex flex-column gap-4">
+            <!-- Compromissos -->
+            <section class="valora-card">
+                <div class="mb-3">
+                    <p class="eyebrow">Plano de Evolução</p>
+                    <h2 class="h5 m-0">Compromissos Acordados</h2>
+                </div>
+
+                @if (Model.Commitments.Count > 0)
+                {
+                    <div class="d-flex flex-column gap-2 mb-3">
+                        @foreach (var x in Model.Commitments)
+                        {
+                            <div class="p-2 bg-light rounded-3 border">
+                                <strong class="d-block small text-dark">@x.Title</strong>
+                                <div class="d-flex justify-content-between align-items-center mt-1">
+                                    <span class="badge bg-secondary" style="font-size: 0.75rem;">@x.Status</span>
+                                    <small class="text-muted">Prazo: @x.DueAt.ToString("dd/MM/yyyy")</small>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted small">Nenhum compromisso pendente no momento.</p>
+                }
+
+                @if (Model.Session.Status != "completed")
+                {
+                    <div class="pt-3 border-top">
+                        <h3 class="h6 mb-2">Adicionar Compromisso</h3>
+                        <form method="post" action="/OneOnOne/Sessions/@Model.Session.Id/Commitment" class="d-flex flex-column gap-2">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="responsibleUserId" value="@Model.Session.LeaderUserId" />
+                            <input class="form-control form-control-sm" name="title" required placeholder="Título do compromisso" />
+                            <textarea class="form-control form-control-sm" name="description" rows="2" placeholder="Resultado esperado"></textarea>
+                            <label class="form-label small m-0" for="commitment-due">Prazo acordado</label>
+                            <input class="form-control form-control-sm" id="commitment-due" name="dueAt" type="date" required />
+                            <div class="form-check mt-1">
+                                <input class="form-check-input" type="checkbox" id="create-action-cb" name="createAction" value="true" />
+                                <label class="form-check-label small" for="create-action-cb">
+                                    Vincular ao Action Center
+                                </label>
+                            </div>
+                            <button type="submit" class="valora-button valora-button--primary btn-sm mt-2">
+                                Salvar Compromisso
+                            </button>
+                        </form>
+                    </div>
+                }
+            </section>
+
+            <!-- Concluir Sessão / Resumo -->
+            <section class="valora-card">
+                @if (Model.Session.Status != "completed")
+                {
+                    <p class="eyebrow">Encerramento</p>
+                    <h2 class="h5 mb-2">Concluir Sessão 1:1</h2>
+                    <p class="text-muted small mb-3">
+                        Sintetize os pontos principais discutidos e as evidências consideradas antes de encerrar o ciclo.
+                    </p>
+                    <form method="post" action="/OneOnOne/Sessions/@Model.Session.Id/Complete" class="d-flex flex-column gap-2">
+                        @Html.AntiForgeryToken()
+                        <label class="form-label small m-0" for="session-summary">Síntese executiva (mínimo 20 caracteres)</label>
+                        <textarea class="form-control form-control-sm" id="session-summary" name="Summary" minlength="20" required rows="3" placeholder="Resumo do alinhamento realizado..."></textarea>
+                        
+                        <label class="form-label small m-0" for="session-evidence">Evidências consideradas</label>
+                        <textarea class="form-control form-control-sm" id="session-evidence" name="EvidenceSummary" required rows="2" placeholder="Evidências e métricas avaliadas..."></textarea>
+                        
+                        <button type="submit" class="valora-button valora-button--primary btn-sm mt-2">
+                            Concluir e Registrar Evolução
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <p class="eyebrow text-success">Sessão Concluída</p>
+                    <h2 class="h5 mb-2">Síntese Registrada</h2>
+                    <p class="text-dark small">@Model.Session.Summary</p>
+                    <small class="text-muted d-block border-top pt-2">
+                        <strong>Evidências consideradas:</strong> @Model.Session.EvidenceSummary
+                    </small>
+                }
+            </section>
+        </div>
+    </div>
+</main>

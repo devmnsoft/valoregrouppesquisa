@@ -22,7 +22,7 @@ public sealed class BenchmarkRepository(IDbConnectionFactory connections) : IBen
     public async Task<IReadOnlyList<BenchmarkSnapshotDto>> ListAsync(Guid organizationId, CancellationToken ct) {
         using var c = connections.Create();
         var rows = await c.QueryAsync<Row>(new CommandDefinition(Select + " ORDER BY generated_at DESC LIMIT 100", new { organizationId }, cancellationToken: ct));
-        return rows.Select(Map).ToList();
+        return rows.Select(Map).Where(x => x is not null).Select(x => x!).ToList();
     }
     public async Task<BenchmarkSnapshotDto?> GetAsync(Guid organizationId, Guid id, CancellationToken ct) {
         using var c = connections.Create();

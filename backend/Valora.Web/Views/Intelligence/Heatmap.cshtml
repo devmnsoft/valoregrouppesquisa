@@ -1,12 +1,148 @@
 @model Valora.Web.Models.ViewModels.IntelligenceWorkspaceViewModel
-@{ ViewData["Title"] = Model.Title; var id=ViewData["HeatmapId"]?.ToString(); }
+@{
+    ViewData["Title"] = Model.Title;
+    var id = ViewData["HeatmapId"]?.ToString();
+}
+
 <main class="valora-page v9-page benchmark-premium" data-heatmap data-id="@id">
- <nav class="v9-breadcrumb"><a href="/Intelligence">Inteligência Organizacional</a><span>/</span><a href="/Heatmap">Heatmap</a></nav>
- <header class="v9-hero v9-hero--executive"><div><p class="eyebrow">Valora Heatmap™</p><h1>Concentração organizacional</h1><p>Encontre forças, fragilidades, riscos e oportunidades sem individualizar pessoas ou presumir causas.</p></div></header>
- <section class="valora-card"><div class="v9-section-title"><div><p class="eyebrow">Filtros</p><h2>Gerar mapa com evidência real</h2></div></div><form data-generate><label for="heatmap-diagnostic">Diagnóstico<select class="valora-input" id="heatmap-diagnostic" name="diagnosticId" required><option value="">Carregando diagnósticos…</option></select><small class="form-text">Somente diagnósticos disponíveis para a organização ativa são listados.</small></label><label for="heatmap-view">Visão<select class="valora-input" id="heatmap-view" name="viewBy"><option value="dimension">Dimensão</option><option value="index">Índice</option><option value="area">Área</option><option value="unit">Unidade</option><option value="leadership">Liderança agregada</option><option value="period">Período</option></select></label><button class="valora-button valora-button--primary">Gerar Heatmap</button></form></section>
- <section class="v9-kpis"><article><span>Células críticas</span><strong data-critical>—</strong><small>Com amostra suficiente</small></article><article><span>Forças</span><strong data-strengths>—</strong><small>Faixas saudável e excelente</small></article><article><span>Amostra insuficiente</span><strong data-insufficient>—</strong><small>Sem inferência</small></article><article><span>Evidências</span><strong data-evidence>—</strong><small>Respostas agregadas</small></article></section>
- <section class="valora-card"><div class="v9-section-title"><div><p class="eyebrow">Mapa por intensidade</p><h2>Dimensões e recortes autorizados</h2></div></div><div class="valora-skeleton" data-loading>Consultando mapas autorizados…</div><div class="valora-alert valora-alert--danger" data-error hidden></div><div class="benchmark-dimensions" data-cells></div><div class="valora-empty" data-empty hidden><h3>Nenhum Heatmap gerado</h3><p>Selecione um diagnóstico concluído. Scores não serão simulados e grupos pequenos serão protegidos.</p></div></section>
- <section class="valora-card"><p class="eyebrow">Interpretação responsável</p><h2>Leitura assistida</h2><p data-ai>Todo sinal precisa de evidência; score baixo não atribui culpa nem determina causa.</p></section>
- <section class="valora-card"><p class="eyebrow">Histórico</p><h2>Snapshots recentes</h2><div data-snapshots></div></section>
+    <nav class="v9-breadcrumb" aria-label="Navegação estrutural">
+        <a href="/Dashboard">Início</a>
+        <span>/</span>
+        <a href="/Intelligence">Inteligência Organizacional</a>
+        <span>/</span>
+        <span>Heatmap™</span>
+    </nav>
+
+    <header class="v9-hero v9-hero--executive valora-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <p class="eyebrow text-white-50">Valora Heatmap™</p>
+                <h1 class="text-white">Concentração e Intensidade Organizacional</h1>
+                <p class="text-white-50 m-0">
+                    Mapeie forças, fragilidades, riscos e oportunidades em matriz visual agregada, sem individualizar pessoas nem presumir intenções.
+                </p>
+            </div>
+            <a class="valora-button valora-button--ghost text-white border-white btn-sm" href="/Intelligence">
+                &larr; Voltar à Inteligência
+            </a>
+        </div>
+    </header>
+
+    <!-- Filtros de Geração -->
+    <section class="valora-card mt-3">
+        <div class="mb-3">
+            <p class="eyebrow">Parâmetros de Análise</p>
+            <h2 class="h5 m-0">Gerar Mapa Térmico com Evidência Real</h2>
+        </div>
+        <form data-generate class="row g-3">
+            <div class="col-md-7">
+                <label class="form-label" for="heatmap-diagnostic">
+                    Diagnóstico de referência <span class="text-danger">*</span>
+                </label>
+                <select class="form-select" id="heatmap-diagnostic" name="diagnosticId" required>
+                    <option value="">Carregando diagnósticos da organização…</option>
+                </select>
+                <small class="form-text text-muted">Somente diagnósticos concluídos ou em campo com amostra válida são exibidos.</small>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="heatmap-view">Visão / Segmentação</label>
+                <select class="form-select" id="heatmap-view" name="viewBy">
+                    <option value="dimension">Por Dimensão Organizacional</option>
+                    <option value="index">Por Índice Metodológico</option>
+                    <option value="area">Por Área / Departamento</option>
+                    <option value="unit">Por Unidade de Negócio</option>
+                    <option value="leadership">Por Liderança Agregada</option>
+                    <option value="period">Por Período Histórico</option>
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="valora-button valora-button--primary w-100">
+                    Gerar Heatmap
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Legenda de Intensidade -->
+    <section class="valora-card mt-3 py-2 bg-light">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 small">
+            <span class="fw-semibold text-dark">Legenda de Escores:</span>
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+                <span class="d-flex align-items-center gap-1"><span class="d-inline-block rounded-circle" style="width: 12px; height: 12px; background: #dc3545;"></span> Crítico (&lt; 2.5)</span>
+                <span class="d-flex align-items-center gap-1"><span class="d-inline-block rounded-circle" style="width: 12px; height: 12px; background: #ffc107;"></span> Atenção (2.5 &ndash; 3.4)</span>
+                <span class="d-flex align-items-center gap-1"><span class="d-inline-block rounded-circle" style="width: 12px; height: 12px; background: #0dcaf0;"></span> Saudável (3.5 &ndash; 4.2)</span>
+                <span class="d-flex align-items-center gap-1"><span class="d-inline-block rounded-circle" style="width: 12px; height: 12px; background: #198754;"></span> Excelente (&gt; 4.2)</span>
+                <span class="d-flex align-items-center gap-1 text-muted"><span class="d-inline-block rounded-circle" style="width: 12px; height: 12px; background: #6c757d;"></span> Amostra Insuficiente (&lt; 5 resp.)</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- KPIs de Resumo -->
+    <section class="v9-kpis mt-3" aria-label="Resumo do Mapa">
+        <article class="valora-card">
+            <span>Células críticas</span>
+            <strong data-critical class="text-danger">—</strong>
+            <small>Com amostra suficiente</small>
+        </article>
+        <article class="valora-card">
+            <span>Forças organizacionais</span>
+            <strong data-strengths class="text-success">—</strong>
+            <small>Faixas saudável e excelente</small>
+        </article>
+        <article class="valora-card">
+            <span>Amostra insuficiente</span>
+            <strong data-insufficient class="text-muted">—</strong>
+            <small>Protegidas por privacidade</small>
+        </article>
+        <article class="valora-card">
+            <span>Evidências totais</span>
+            <strong data-evidence class="text-primary">—</strong>
+            <small>Respostas consolidadas</small>
+        </article>
+    </section>
+
+    <!-- Área de Exibição das Células -->
+    <section class="valora-card mt-3">
+        <div class="mb-3">
+            <p class="eyebrow">Matriz de Intensidade</p>
+            <h2 class="h5 m-0">Dimensões e Recortes Autorizados</h2>
+        </div>
+
+        <div class="valora-skeleton py-4 text-center" data-loading>
+            Consultando mapas térmicos autorizados…
+        </div>
+
+        <div class="valora-alert valora-alert--danger" data-error hidden></div>
+
+        <div class="benchmark-dimensions" data-cells></div>
+
+        <div class="valora-empty py-5 text-center" data-empty hidden>
+            <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🗺️</div>
+            <h3 class="h6">Nenhum Heatmap gerado para os parâmetros selecionados</h3>
+            <p class="text-muted max-w-600 mx-auto">
+                Selecione um diagnóstico concluído para calcular a intensidade térmica. Grupos com menos de 5 respondentes são automaticamente mascarados para preservar o sigilo.
+            </p>
+        </div>
+    </section>
+
+    <!-- Interpretação Responsável -->
+    <section class="valora-card mt-3">
+        <p class="eyebrow text-primary">Interpretação Responsável & Ética</p>
+        <h2 class="h5 mb-2">Leitura Assistida por IA</h2>
+        <p class="text-muted small m-0" data-ai>
+            Todo sinal térmico necessita de evidências contextuais; escore baixo aponta oportunidade de melhoria em processos e relações sistêmicas, não constituindo atribuição de culpa individual.
+        </p>
+    </section>
+
+    <!-- Histórico de Snapshots -->
+    <section class="valora-card mt-3">
+        <p class="eyebrow">Histórico de Snapshots</p>
+        <h2 class="h5 mb-3">Mapas Gerados Recentemente</h2>
+        <div data-snapshots></div>
+    </section>
 </main>
-@section Scripts { <script src="/js/pages/intelligence-heatmap.js" asp-append-version="true"></script><script src="/js/pages/intelligence-workspace.js" asp-append-version="true"></script> }
+
+@section Scripts {
+    <script src="/js/pages/intelligence-heatmap.js" asp-append-version="true"></script>
+    <script src="/js/pages/intelligence-workspace.js" asp-append-version="true"></script>
+}

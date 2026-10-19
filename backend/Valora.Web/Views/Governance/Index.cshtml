@@ -1,4 +1,67 @@
 @model Valora.Web.Controllers.GovernanceViewModel
-@{ ViewData["Title"]="Governança Organizacional"; }
+@{
+    ViewData["Title"] = "Governança Organizacional";
+}
 
-<main class="dc-page"><header class="dc-hero"><small>SISTEMA VIVO</small><h1>Governança organizacional</h1><p>Diagnóstico → evidências → prioridades → decisões → execução → monitoramento → aprendizagem.</p></header><section class="dc-grid"><a class="dc-card" href="/Governance/Cycles"><h2>Ciclos</h2><strong>@Model.Cycles.Count</strong><p>Registre como a organização evoluiu a partir do diagnóstico.</p></a><a class="dc-card" href="/Governance/Meetings"><h2>Reuniões</h2><strong>@Model.Meetings.Count</strong><p>Pautas, evidências discutidas, decisões e próximos passos.</p></a><a class="dc-card" href="/Decisions"><h2>Decisões</h2><p>Acompanhe decisões humanas e sua rastreabilidade.</p></a><a class="dc-card" href="/DecisionCenter/Alerts"><h2>Alertas</h2><p>Revise sinais sustentados por evidências.</p></a></section></main>
+<main class="valora-page v9-page" data-page="governance-index">
+    <nav class="v9-breadcrumb" aria-label="Navegação estrutural">
+        <a href="/Dashboard">Início</a>
+        <span>/</span>
+        <a href="/DecisionCenter">Central de Decisões</a>
+        <span>/</span>
+        <span>Governança Organizacional</span>
+    </nav>
+
+    <header class="v9-hero v9-hero--executive valora-card">
+        <div>
+            <p class="eyebrow text-white-50">Sistema Vivo &bull; Ciclos de Aprendizagem</p>
+            <h1 class="text-white">Governança Organizacional Contínua</h1>
+            <p class="text-white-50 m-0">
+                Diagnóstico &rarr; Evidências &rarr; Prioridades &rarr; Decisões &rarr; Execução &rarr; Monitoramento &rarr; Aprendizagem contínua.
+            </p>
+        </div>
+    </header>
+
+    <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel(
+        "Como funciona a governança no Valora Insight™",
+        "A governança conecta a escuta de diagnósticos aos ritos executivos de decisão. Reuniões de comitê são pautadas por evidências e geram compromissos rastreáveis, garantindo que as ações saiam do papel e produzam evolução mensurável."
+    ))" />
+
+    <section class="row g-4 mt-1" aria-label="Módulos de Governança">
+        <div class="col-md-6 col-lg-3">
+            <a class="valora-card d-block text-decoration-none h-100 text-dark border-start border-4 border-primary" href="/Governance/Cycles">
+                <p class="eyebrow text-primary">Evolução Contínua</p>
+                <h2 class="h5 mb-2">Ciclos de Gestão</h2>
+                <strong class="display-6 fw-bold text-dark d-block mb-1">@Model.Cycles.Count</strong>
+                <p class="text-muted small m-0">Acompanhe a maturidade ao longo do tempo através dos ciclos de escuta e planos de evolução.</p>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <a class="valora-card d-block text-decoration-none h-100 text-dark border-start border-4 border-info" href="/Governance/Meetings">
+                <p class="eyebrow text-info">Ritos Executivos</p>
+                <h2 class="h5 mb-2">Reuniões de Comitê</h2>
+                <strong class="display-6 fw-bold text-dark d-block mb-1">@Model.Meetings.Count</strong>
+                <p class="text-muted small m-0">Pautas baseadas em evidências, atas executivas, decisões colegiadas e próximos passos.</p>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <a class="valora-card d-block text-decoration-none h-100 text-dark border-start border-4 border-success" href="/Decisions">
+                <p class="eyebrow text-success">Tomada de Decisão</p>
+                <h2 class="h5 mb-2">Painel de Decisões</h2>
+                <span class="badge bg-success mb-2">Rastreável</span>
+                <p class="text-muted small m-0">Consulte decisões colegiadas registradas com justificativas fundamentadas em evidências.</p>
+            </a>
+        </div>
+
+        <div class="col-md-6 col-lg-3">
+            <a class="valora-card d-block text-decoration-none h-100 text-dark border-start border-4 border-warning" href="/DecisionCenter/Alerts">
+                <p class="eyebrow text-warning">Sinais de Risco</p>
+                <h2 class="h5 mb-2">Alertas e Regressão</h2>
+                <span class="badge bg-warning text-dark mb-2">Monitoramento</span>
+                <p class="text-muted small m-0">Monitore dimensões em queda e indicadores críticos que requerem atenção da diretoria.</p>
+            </a>
+        </div>
+    </section>
+</main>

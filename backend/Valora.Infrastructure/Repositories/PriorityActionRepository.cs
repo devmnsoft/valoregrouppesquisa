@@ -150,7 +150,7 @@ public sealed class PriorityActionRepository(IDbConnectionFactory db, IDbTransac
         if (priority == Guid.Empty) throw new ArgumentException("Prioridade inválida.", nameof(priority));
     }
 
-    private static void EnsureAccessible(ResourceAccess? resource, Guid user, bool wide, string name) {
+    private static void EnsureAccessible([System.Diagnostics.CodeAnalysis.NotNull] ResourceAccess? resource, Guid user, bool wide, string name) {
         if (resource is null || resource.Status == "canceled" || (!wide && resource.ResponsibleUserId is not null && resource.ResponsibleUserId != user && resource.PlanOwnerUserId != user))
             throw new KeyNotFoundException($"{name} não encontrado, cancelado ou sem acesso.");
     }

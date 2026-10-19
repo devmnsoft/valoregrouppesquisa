@@ -1,4 +1,103 @@
 @model IReadOnlyList<Valora.Application.DecisionCenter.GovernanceMeetingDto>
-@{ ViewData["Title"]="Reuniões de Governança"; }
+@{
+    ViewData["Title"] = "Reuniões de Governança";
+}
 
-<main class="dc-page"><header class="dc-hero"><h1>Reuniões de governança</h1><p>Pautas e encaminhamentos vinculados ao acompanhamento real.</p><a class="btn btn-light" href="/Governance/Meetings/Create">Cadastrar reunião</a></header><section class="dc-card dc-list">@if(Model.Count==0){<div class="dc-empty">Nenhuma reunião cadastrada.</div>}else foreach(var x in Model){<article class="dc-row"><div><span class="dc-badge">@x.Status</span><h2><a href="/Governance/Meetings/Details/@x.Id">@x.Title</a></h2><p>@x.Agenda</p></div><time>@x.ScheduledAt.ToString("dd/MM/yyyy HH:mm")</time></article>}</section></main>
+<main class="valora-page v9-page" data-page="governance-meetings">
+    <nav class="v9-breadcrumb" aria-label="Navegação estrutural">
+        <a href="/Dashboard">Início</a>
+        <span>/</span>
+        <a href="/Governance">Governança</a>
+        <span>/</span>
+        <span>Reuniões</span>
+    </nav>
+
+    <header class="v9-hero v9-hero--executive valora-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <p class="eyebrow text-white-50">Ritos Executivos & Decisão Colegiada</p>
+                <h1 class="text-white">Reuniões de Governança</h1>
+                <p class="text-white-50 m-0">Pautas estruturadas por evidências diagnósticas, atas formais e encaminhamentos com prazos.</p>
+            </div>
+            <a class="valora-button valora-button--primary" href="/Governance/Meetings/Create">
+                + Cadastrar Reunião
+            </a>
+        </div>
+    </header>
+
+    <section class="valora-card mt-3">
+        @if (Model.Count == 0)
+        {
+            <div class="valora-empty py-5 text-center">
+                <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🏛️</div>
+                <h3 class="h6">Nenhuma reunião de governança registrada</h3>
+                <p class="text-muted max-w-600 mx-auto">
+                    Cadastre a primeira reunião de comitê executivo para discutir os resultados do diagnóstico e deliberar sobre as prioridades estratégicas da organização.
+                </p>
+                <a class="valora-button valora-button--primary btn-sm mt-2" href="/Governance/Meetings/Create">
+                    Agendar Primeira Reunião
+                </a>
+            </div>
+
+            <!-- Demonstração Metodológica -->
+            <div class="mt-4 pt-3 border-top">
+                <p class="eyebrow text-primary">Demonstração Metodológica de Rito de Governança</p>
+                <h4 class="h6 mb-2">Exemplo de Pauta de Alinhamento Executivo</h4>
+                <div class="p-3 bg-light rounded-3 border">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <strong class="text-dark">Comitê de Gente & Gestão · Apresentação dos Resultados do Ciclo</strong>
+                        <span class="badge bg-success">Modelo de Referência</span>
+                    </div>
+                    <p class="text-muted small mt-2 mb-2">
+                        <strong>Pauta:</strong> 1. Apresentação do Score de Maturidade e taxas de adesão por setor; 2. Análise aprofundada dos alertas críticos em Operações; 3. Aprovação do plano de ação para liderança; 4. Próximos passos e prazos.
+                    </p>
+                    <small class="text-muted">
+                        Participantes previstos: Diretoria Executiva, Gerência de RH, Líderes de Departamento e Comitê de Clima.
+                    </small>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table align-middle table-hover">
+                    <thead>
+                        <tr>
+                            <th>Título da Reunião</th>
+                            <th>Pauta & Evidências Discutidas</th>
+                            <th>Data e Horário</th>
+                            <th>Status</th>
+                            <th class="text-end">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var x in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <a class="fw-semibold text-decoration-none text-dark" href="/Governance/Meetings/Details/@x.Id">
+                                        @x.Title
+                                    </a>
+                                </td>
+                                <td>
+                                    <small class="text-muted">@x.Agenda</small>
+                                </td>
+                                <td>@x.ScheduledAt.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    <span class="badge @(x.Status == "completed" ? "bg-success" : x.Status == "cancelled" ? "bg-secondary" : "bg-primary")">
+                                        @(x.Status == "completed" ? "Realizada" : x.Status == "scheduled" ? "Agendada" : x.Status)
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <a class="valora-button valora-button--ghost btn-sm" href="/Governance/Meetings/Details/@x.Id">
+                                        Ver Ata
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</main>

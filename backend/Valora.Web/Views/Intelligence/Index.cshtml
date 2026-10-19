@@ -1,15 +1,306 @@
-@{ ViewData["Title"] = "Inteligência Organizacional"; }
+@{
+    ViewData["Title"] = "Inteligência Organizacional";
+}
+
 <main class="valora-page v9-page" data-intelligence-page>
-  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Inteligência Organizacional", "Leitura determinística, agregada e segura para orientar a evolução.", "Evidências que orientam decisões", "Método Valora", new[] { new PageHeaderAction("Gerar nova leitura", DataAction: "generate-insight", Style: "primary", Icon: "brain") }))" />
-  <nav class="v9-intelligence-nav" aria-label="Central de inteligência"><a href="/Intelligence/dashboard">Dashboard™</a><a href="/Intelligence/evidence">Evidências</a><a href="/Intelligence/CausalMap">Mapa causal</a><a href="/Intelligence/Recommendations">Recomendações</a><a href="/Intelligence/Decisions">Decisões</a><a href="/Intelligence/methodology">Núcleo Metodológico</a><a href="/Intelligence/dictionary">Dicionário Cognitivo</a><a href="/Intelligence/cognitive-map">Mapa Cognitivo</a><a href="/Intelligence/inference">Motor de Inferência</a><a href="/Intelligence/metrics">Metrics™</a><a href="/Intelligence/indices">Índices Valora™</a><a href="/Intelligence/radar">Radar™</a><a href="/Intelligence/heatmap">Heatmap™</a><a href="/Intelligence/benchmark">Benchmark™</a><a href="/Intelligence/insights">Insights IA™</a><a href="/Intelligence/action">Action™</a><a href="/Intelligence/evolution">Evolution™</a><a href="/Intelligence/journey">Journey™</a><a href="/Intelligence/executive-report">Executive Report™</a><a href="/Intelligence/one-on-one">One-on-One™</a><a href="/Intelligence/integrations">Power BI™</a><a href="/Intelligence/platform-governance">Governança da Plataforma</a></nav>
-  <div class="valora-alert valora-alert--danger" data-error hidden></div><div class="valora-alert" data-warning hidden></div>
-  <section id="dashboard" class="v9-kpis" aria-label="Indicadores executivos"><article><span>Maturidade</span><strong data-kpi="maturity">—</strong><small>Índice consolidado</small></article><article><span>Confiança</span><strong data-kpi="confidence">—</strong><small>Robustez da evidência</small></article><article><span>Gap estrutural</span><strong data-kpi="gap">—</strong><small>Distância entre dimensões</small></article><article><span>Evidências</span><strong data-kpi="evidence">—</strong><small>Registros agregados</small></article></section>
-  <div class="v9-executive-grid"><section id="heatmap" class="valora-card"><p class="eyebrow">Heatmap Valora™</p><h2>Dimensões organizacionais</h2><div data-heatmap class="v9-attention"></div></section><section class="valora-card"><p class="eyebrow">Método Valora</p><h2>Da evidência à evolução</h2><p>Observação → Evidências → Correlação → Causa provável → Impacto → Prioridade → Plano de evolução</p><small>Hipóteses são explicitadas e nenhuma resposta individual ou dado pessoal é exibido.</small></section></div>
-  <section><p class="eyebrow">Leitura executiva</p><div class="v9-section-title"><h2>Insights estratégicos</h2><div class="insight-filters" aria-label="Filtros de insights"><label>Dimensão<select class="form-select" data-insight-dimension><option value="">Todas</option></select></label><label>Prioridade<select class="form-select" data-insight-priority><option value="">Todas</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></label><label>Confiança<select class="form-select" data-insight-confidence><option value="">Todas</option><option value="high">Alta</option><option value="moderate">Média</option><option value="low">Baixa</option></select></label></div></div><div data-insights class="v9-executive-grid" aria-live="polite"></div></section>
-  <div class="v9-executive-grid"><section id="evolution" class="valora-card"><p class="eyebrow">Valora Evolution™</p><h2>Evolução longitudinal</h2><div class="v9-evolution" data-evolution></div><div data-evolution-comparison><h3>Comparação entre leituras</h3><p>Como usar: escolha uma linha de base e uma leitura atual e clique em Comparar. A variação absoluta só é exibida quando as leituras são comparáveis (mesma metodologia, dimensões, escala e população); caso contrário, os resultados aparecem separadamente, com o motivo.</p><div class="d-flex gap-2 flex-wrap align-items-end"><label>Linha de base<select class="form-select" data-baseline-select disabled></select></label><label>Leitura atual<select class="form-select" data-current-select disabled></select></label><button type="button" class="valora-button valora-button--primary" data-evolution-compare disabled>Comparar</button></div><div data-evolution-comparison-result hidden></div></div></section><section id="action" class="valora-card"><div class="v9-section-title"><div><p class="eyebrow">Valora Action™</p><h2>Prioridades em execução</h2></div><button class="valora-button" data-open-action>Nova ação</button></div><div data-actions class="v9-action-list"></div></section></div>
-  <section id="journey" class="valora-card"><div class="d-flex justify-content-between align-items-center"><div><p class="eyebrow">Valora Journey™</p><h2>Marcos de evolução</h2></div><button class="valora-button" data-open-journey>Novo marco</button></div><ol class="v9-timeline" data-journey></ol></section>
-  <section id="report" class="valora-card v9-report"><div><p class="eyebrow">Executive Report™</p><h2>Leitura executiva rastreável</h2><p>O relatório consolida exclusivamente indicadores e evidências disponíveis, com alertas explícitos de insuficiência.</p></div><a class="valora-button" href="/Reports">Acessar relatórios</a></section>
-  <dialog data-journey-modal class="valora-card"><form data-journey-form><h2>Registrar marco</h2><label>Título<input class="form-control" name="title" maxlength="160" required></label><label>Descrição<textarea class="form-control" name="description" maxlength="1000" required></textarea></label><label>Tipo<select class="form-select" name="eventType"><option value="milestone">Marco</option><option value="action">Ação</option><option value="cycle">Novo ciclo</option></select></label><div class="d-flex gap-2 mt-3"><button class="valora-button valora-button--primary">Salvar</button><button type="button" class="valora-button" data-close-journey>Cancelar</button></div></form></dialog>
-  <dialog data-action-modal class="v9-dialog"><button type="button" class="v9-dialog__close" data-close-action aria-label="Fechar">×</button><form data-action-form><input type="hidden" name="insightId"><input type="hidden" name="sourceType"><p class="eyebrow">Valora Action™</p><h2>Ação baseada em evidências</h2><div class="v9-form-grid"><label>Título<input name="title" required maxlength="180"></label><label>Capacidade afetada<input name="capability" required maxlength="120"></label></div><label>Descrição<textarea name="description" required maxlength="1500"></textarea></label><label>Justificativa baseada em evidências<textarea name="evidenceJustification" required minlength="20" maxlength="2000"></textarea></label><div class="v9-form-grid"><label>Prioridade<select name="priority"><option value="critical">Crítica</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></label><label>Complexidade<select name="complexity"><option value="low">Baixa</option><option value="medium">Média</option><option value="high">Alta</option></select></label><label>Responsável<input name="owner"></label><label>Patrocinador executivo<input name="executiveSponsor"></label><label>Prazo<input name="dueAt" type="date"></label><label>Indicadores vinculados<input name="indicators" required></label></div><label>Resultado esperado<textarea name="expectedResult" required></textarea></label><label>Critério de conclusão<textarea name="completionCriteria" required></textarea></label><button class="valora-button valora-button--primary">Criar ação rastreável</button></form></dialog>
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+        "Inteligência Organizacional",
+        "Leitura determinística, agregada e segura para orientar a evolução baseada em evidências reais.",
+        "Cockpit Metodológico",
+        "Método Valora",
+        new[] { new PageHeaderAction("Gerar Leitura por IA", DataAction: "generate-insight", Style: "primary", Icon: "brain") }
+    ))" />
+
+    <!-- Barra de navegação em abas e módulos de inteligência -->
+    <nav class="v9-intelligence-nav mb-3" aria-label="Central de inteligência organizacional">
+        <a href="/Intelligence/dashboard">Dashboard™</a>
+        <a href="/Intelligence/evidence">Evidências</a>
+        <a href="/Intelligence/CausalMap">Mapa Causal</a>
+        <a href="/Intelligence/Recommendations">Recomendações</a>
+        <a href="/Intelligence/Decisions">Decisões</a>
+        <a href="/Intelligence/methodology">Núcleo Metodológico</a>
+        <a href="/Intelligence/dictionary">Dicionário Cognitivo</a>
+        <a href="/Intelligence/cognitive-map">Mapa Cognitivo</a>
+        <a href="/Intelligence/inference">Motor de Inferência</a>
+        <a href="/Intelligence/metrics">Metrics™</a>
+        <a href="/Intelligence/indices">Índices Valora™</a>
+        <a href="/Intelligence/radar">Radar™</a>
+        <a href="/Intelligence/heatmap">Heatmap™</a>
+        <a href="/Intelligence/benchmark">Benchmark™</a>
+        <a href="/Intelligence/insights">Insights IA™</a>
+        <a href="/Intelligence/action">Action™</a>
+        <a href="/Intelligence/evolution">Evolution™</a>
+        <a href="/Intelligence/journey">Journey™</a>
+        <a href="/Intelligence/executive-report">Executive Report™</a>
+        <a href="/Intelligence/one-on-one">One-on-One™</a>
+        <a href="/Intelligence/integrations">Power BI™</a>
+        <a href="/Intelligence/platform-governance">Governança</a>
+    </nav>
+
+    <div class="valora-alert valora-alert--danger" data-error hidden></div>
+    <div class="valora-alert" data-warning hidden></div>
+
+    <!-- Indicadores Executivos -->
+    <section id="dashboard" class="v9-kpis mb-3" aria-label="Indicadores executivos">
+        <article class="valora-card">
+            <span>Maturidade</span>
+            <strong data-kpi="maturity">—</strong>
+            <small>Índice consolidado</small>
+        </article>
+        <article class="valora-card">
+            <span>Confiança</span>
+            <strong data-kpi="confidence">—</strong>
+            <small>Robustez da evidência</small>
+        </article>
+        <article class="valora-card">
+            <span>Gap estrutural</span>
+            <strong data-kpi="gap">—</strong>
+            <small>Distância entre dimensões</small>
+        </article>
+        <article class="valora-card">
+            <span>Evidências</span>
+            <strong data-kpi="evidence">—</strong>
+            <small>Registros agregados</small>
+        </article>
+    </section>
+
+    <!-- Heatmap & Princípios Metodológicos -->
+    <div class="v9-executive-grid mb-3">
+        <section id="heatmap" class="valora-card">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <p class="eyebrow">Valora Heatmap™</p>
+                    <h2 class="h5 m-0">Dimensões Organizacionais</h2>
+                </div>
+                <a class="valora-button valora-button--ghost btn-sm" href="/Intelligence/heatmap">Explorar Heatmap</a>
+            </div>
+            <div data-heatmap class="v9-attention"></div>
+        </section>
+
+        <section class="valora-card">
+            <p class="eyebrow">Método Valora</p>
+            <h2 class="h5 mb-2">Da Evidência à Evolução</h2>
+            <p class="text-muted small">
+                Observação &rarr; Evidências &rarr; Correlação &rarr; Causa provável &rarr; Impacto &rarr; Prioridade &rarr; Plano de evolução
+            </p>
+            <div class="p-3 bg-light rounded-3 mt-3 border">
+                <strong class="d-block small text-dark mb-1">Garantia Ética & Governança</strong>
+                <p class="text-muted small m-0">
+                    Hipóteses são explicitadas e nenhuma resposta individual ou dado pessoal é exibido. Anonimização com coortes mínimas garante a segurança dos respondentes.
+                </p>
+            </div>
+        </section>
+    </div>
+
+    <!-- Insights Estratégicos -->
+    <section class="valora-card mb-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <p class="eyebrow">Leitura Executiva</p>
+                <h2 class="h5 m-0">Insights Estratégicos</h2>
+            </div>
+            <div class="insight-filters d-flex gap-2 flex-wrap" aria-label="Filtros de insights">
+                <label class="d-flex align-items-center gap-1 small text-muted">
+                    Dimensão
+                    <select class="form-select form-select-sm" data-insight-dimension>
+                        <option value="">Todas</option>
+                    </select>
+                </label>
+                <label class="d-flex align-items-center gap-1 small text-muted">
+                    Prioridade
+                    <select class="form-select form-select-sm" data-insight-priority>
+                        <option value="">Todas</option>
+                        <option value="high">Alta</option>
+                        <option value="medium">Média</option>
+                        <option value="low">Baixa</option>
+                    </select>
+                </label>
+                <label class="d-flex align-items-center gap-1 small text-muted">
+                    Confiança
+                    <select class="form-select form-select-sm" data-insight-confidence>
+                        <option value="">Todas</option>
+                        <option value="high">Alta</option>
+                        <option value="moderate">Média</option>
+                        <option value="low">Baixa</option>
+                    </select>
+                </label>
+            </div>
+        </div>
+        <div data-insights class="v9-executive-grid" aria-live="polite"></div>
+    </section>
+
+    <!-- Evolution & Actions -->
+    <div class="v9-executive-grid mb-3">
+        <section id="evolution" class="valora-card">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div>
+                    <p class="eyebrow">Valora Evolution™</p>
+                    <h2 class="h5 m-0">Evolução Longitudinal</h2>
+                </div>
+                <a class="valora-button valora-button--ghost btn-sm" href="/Intelligence/evolution">Ver Detalhes</a>
+            </div>
+            <div class="v9-evolution mb-3" data-evolution></div>
+            <div data-evolution-comparison class="pt-3 border-top">
+                <h3 class="h6 mb-1">Comparação Entre Leituras</h3>
+                <p class="text-muted small mb-2">
+                    Escolha uma linha de base e uma leitura atual para comparar. Variações absolutas só são exibidas para metodologias compatíveis.
+                </p>
+                <div class="d-flex gap-2 flex-wrap align-items-end">
+                    <label class="small text-muted">
+                        Linha de base
+                        <select class="form-select form-select-sm" data-baseline-select disabled></select>
+                    </label>
+                    <label class="small text-muted">
+                        Leitura atual
+                        <select class="form-select form-select-sm" data-current-select disabled></select>
+                    </label>
+                    <button type="button" class="valora-button valora-button--primary btn-sm" data-evolution-compare disabled>
+                        Comparar
+                    </button>
+                </div>
+                <div data-evolution-comparison-result hidden class="mt-2"></div>
+            </div>
+        </section>
+
+        <section id="action" class="valora-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <p class="eyebrow">Valora Action™</p>
+                    <h2 class="h5 m-0">Prioridades em Execução</h2>
+                </div>
+                <button class="valora-button valora-button--primary btn-sm" data-open-action>+ Nova Ação</button>
+            </div>
+            <div data-actions class="v9-action-list"></div>
+        </section>
+    </div>
+
+    <!-- Journey Timeline -->
+    <section id="journey" class="valora-card mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <p class="eyebrow">Valora Journey™</p>
+                <h2 class="h5 m-0">Marcos de Evolução</h2>
+            </div>
+            <button class="valora-button valora-button--secondary btn-sm" data-open-journey>+ Novo Marco</button>
+        </div>
+        <ol class="v9-timeline" data-journey></ol>
+    </section>
+
+    <!-- Executive Report Shortcut -->
+    <section id="report" class="valora-card v9-report p-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <p class="eyebrow m-0 text-primary">Executive Report™</p>
+            <h2 class="h5 m-0">Relatório Executivo Rastreável</h2>
+            <p class="text-muted small m-0 mt-1">Consolidação de indicadores, evidências e recomendações em documento oficial homologado.</p>
+        </div>
+        <a class="valora-button valora-button--primary" href="/Reports">Acessar Relatórios</a>
+    </section>
+
+    <!-- Modal Novo Marco Journey -->
+    <dialog data-journey-modal class="valora-card">
+        <form data-journey-form class="p-2">
+            <h2 class="h5 mb-3">Registrar Marco de Evolução</h2>
+            <div class="mb-3">
+                <label class="form-label" for="journey-title-input">Título do marco</label>
+                <input class="form-control" id="journey-title-input" name="title" maxlength="160" required placeholder="Ex.: Implementação do novo canal de escuta contínua" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="journey-desc-input">Descrição do marco</label>
+                <textarea class="form-control" id="journey-desc-input" name="description" maxlength="1000" rows="3" required placeholder="Descreva os resultados e o impacto alcançado..."></textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="journey-type-input">Tipo do marco</label>
+                <select class="form-select" id="journey-type-input" name="eventType">
+                    <option value="milestone">Marco</option>
+                    <option value="action">Ação</option>
+                    <option value="cycle">Novo ciclo</option>
+                </select>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-4 pt-2 border-top">
+                <button type="button" class="valora-button valora-button--ghost btn-sm" data-close-journey>Cancelar</button>
+                <button type="submit" class="valora-button valora-button--primary btn-sm">Salvar Marco</button>
+            </div>
+        </form>
+    </dialog>
+
+    <!-- Modal Nova Ação Action -->
+    <dialog data-action-modal class="v9-dialog">
+        <button type="button" class="v9-dialog__close" data-close-action aria-label="Fechar">×</button>
+        <form data-action-form class="p-3">
+            <input type="hidden" name="insightId" />
+            <input type="hidden" name="sourceType" />
+            <p class="eyebrow">Valora Action™</p>
+            <h2 class="h5 mb-3">Criar Ação Baseada em Evidências</h2>
+
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label" for="action-title-input">Título da ação</label>
+                    <input class="form-control" id="action-title-input" name="title" required maxlength="180" placeholder="Ex.: Estruturação de comitê de liderança" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="action-cap-input">Capacidade afetada</label>
+                    <input class="form-control" id="action-cap-input" name="capability" required maxlength="120" placeholder="Ex.: Comunicação" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="action-desc-input">Descrição detalhada</label>
+                    <textarea class="form-control" id="action-desc-input" name="description" required maxlength="1500" rows="2"></textarea>
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="action-evidence-input">Justificativa baseada em evidências</label>
+                    <textarea class="form-control" id="action-evidence-input" name="evidenceJustification" required minlength="20" maxlength="2000" rows="2" placeholder="Fatos observáveis que justificam esta priorização..."></textarea>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="action-prio-input">Prioridade</label>
+                    <select class="form-select" id="action-prio-input" name="priority">
+                        <option value="critical">Crítica</option>
+                        <option value="high">Alta</option>
+                        <option value="medium">Média</option>
+                        <option value="low">Baixa</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="action-comp-input">Complexidade</label>
+                    <select class="form-select" id="action-comp-input" name="complexity">
+                        <option value="low">Baixa</option>
+                        <option value="medium">Média</option>
+                        <option value="high">Alta</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="action-owner-input">Responsável</label>
+                    <input class="form-control" id="action-owner-input" name="owner" placeholder="Nome do responsável" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="action-sponsor-input">Patrocinador executivo</label>
+                    <input class="form-control" id="action-sponsor-input" name="executiveSponsor" placeholder="Diretor/VP patrocinador" />
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="action-due-input">Prazo previsto</label>
+                    <input class="form-control" id="action-due-input" name="dueAt" type="date" />
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label" for="action-ind-input">Indicadores vinculados</label>
+                    <input class="form-control" id="action-ind-input" name="indicators" required placeholder="Ex.: Taxa de adesão, Score de liderança" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="action-exp-input">Resultado esperado</label>
+                    <textarea class="form-control" id="action-exp-input" name="expectedResult" required rows="2"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="action-crit-input">Critério de conclusão</label>
+                    <textarea class="form-control" id="action-crit-input" name="completionCriteria" required rows="2"></textarea>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4 pt-2 border-top">
+                <button type="button" class="valora-button valora-button--ghost btn-sm" data-close-action>Cancelar</button>
+                <button type="submit" class="valora-button valora-button--primary btn-sm">Criar Ação Rastreável</button>
+            </div>
+        </form>
+    </dialog>
 </main>
-@section Scripts { <script src="/js/api/intelligence-api.js" asp-append-version="true"></script><script src="/js/pages/intelligence-page.js" asp-append-version="true"></script> }
+
+@section Scripts {
+    <script src="/js/api/intelligence-api.js" asp-append-version="true"></script>
+    <script src="/js/pages/intelligence-page.js" asp-append-version="true"></script>
+}

@@ -1,7 +1,9 @@
 namespace Valora.Application.OneOnOne;
 
 public sealed record OneOnOneSessionDto(Guid Id, Guid OrganizationId, Guid LeaderUserId, Guid ParticipantUserId, string LeaderName, string ParticipantName, Guid? DiagnosticId, Guid? ResultId, string Title, string Status, DateTime? ScheduledAt, DateTime? StartedAt, DateTime? CompletedAt, string? Summary, string? EvidenceSummary, string? AiSummary, Guid CreatedByUserId, DateTime CreatedAt, int PendingCommitments = 0);
-public sealed record CreateOneOnOneSessionRequest(Guid LeaderUserId, Guid ParticipantUserId, DateTime? ScheduledAt, string Title, Guid? DiagnosticId, Guid? ResultId, string? EvidenceSummary);
+public sealed record CreateOneOnOneSessionRequest(Guid LeaderUserId, Guid ParticipantUserId, DateTime? ScheduledAt, string Title, Guid? DiagnosticId, Guid? ResultId, string? EvidenceSummary) {
+    public CreateOneOnOneSessionRequest() : this(Guid.Empty, Guid.Empty, null, string.Empty, null, null, null) { }
+}
 public sealed record CompleteOneOnOneSessionRequest(string Summary, string EvidenceSummary);
 public sealed record OneOnOneAgendaItemDto(Guid Id, Guid SessionId, string Title, string? Description, string SourceType, string? Evidence, int SortOrder, bool Discussed);
 public sealed record OneOnOneCommitmentDto(Guid Id, Guid SessionId, Guid ResponsibleUserId, string Title, string? Description, DateTime DueAt, string Status, Guid? ActionItemId, DateTime CreatedAt);

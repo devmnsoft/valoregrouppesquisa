@@ -1,4 +1,152 @@
 @model Valora.Application.DecisionCenter.DecisionCenterOverviewDto
-@{ ViewData["Title"]="Valora Decision Center™"; }
+@{
+    ViewData["Title"] = "Valora Decision Center™";
+}
 
-<main class="dc-page"><header class="dc-hero"><small>GOVERNANÇA E DECISÃO</small><h1>Valora Decision Center™</h1><p>Transforme evidências em prioridades acompanháveis. A plataforma organiza o contexto; a decisão permanece humana.</p></header><section class="dc-grid"><article class="dc-card dc-kpi"><span>Alertas críticos abertos</span><strong>@Model.CriticalAlerts</strong><a href="/DecisionCenter/Alerts">Revisar alertas</a></article><article class="dc-card dc-kpi"><span>Decisões pendentes</span><strong>@Model.PendingDecisions</strong><a href="/Decisions">Acompanhar decisões</a></article><article class="dc-card dc-kpi"><span>Indicadores em regressão</span><strong>@Model.RegressingMetrics</strong><a href="/Indicators">Ver evidências</a></article><article class="dc-card dc-kpi"><span>Ações atrasadas</span><strong>@Model.OverdueActions</strong><a href="/Intelligence/Action">Abrir Valora Action™</a></article></section><section class="dc-grid"><article class="dc-card"><h2>Alertas prioritários</h2>@if(Model.Alerts.Count==0){<div class="dc-empty">Nenhum alerta sustentado por evidências está aberto.</div>}else foreach(var x in Model.Alerts){<div class="dc-row"><div><span class="dc-badge @x.Severity">@x.Severity</span><strong>@x.Title</strong><p>@x.EvidenceSummary</p></div></div>}</article><article class="dc-card"><h2>Ciclos ativos</h2>@if(Model.Cycles.Count==0){<div class="dc-empty">Inicie um ciclo para conectar diagnóstico, decisão e aprendizagem.</div>}else foreach(var x in Model.Cycles){<div class="dc-row"><a href="/Governance/Cycles/Details/@x.Id">@x.Name</a><span>@x.PeriodLabel</span></div>}</article></section></main>
+<main class="valora-page decision-center-page" data-decision-center>
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+        "Valora Decision Center™",
+        "Conecte evidências diagnósticas, alertas inteligentes e planos de mitigação em uma governança contínua.",
+        "Governança & Rastreabilidade",
+        $"{Model.CriticalAlerts} alerta(s) crítico(s)",
+        new[] {
+            new PageHeaderAction("Registrar decisão", "/Decisions/Create", Style: "primary", Icon: "plus"),
+            new PageHeaderAction("Ver todas as decisões", "/Decisions", Icon: "shield"),
+            new PageHeaderAction("Central de ações", "/ActionCenter", Icon: "check-circle")
+        }))" />
+
+    <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel(
+        "Como usar o Decision Center",
+        "O Decision Center atua como o cockpit de governança executiva da organização. Alertas são levantados a partir de desvios identificados nos diagnósticos e exigem deliberação humana com registro de evidências.",
+        new[] {
+            "Revise alertas críticos: entenda a causa-raiz apontada pelo motor de inferência antes de deliberar.",
+            "Acompanhe indicadores em regressão: priorize planos de ação preventivos.",
+            "Monitore ciclos ativos: garanta o alinhamento das reuniões de governança aos prazos acordados."
+        }))" />
+
+    <!-- Grid de KPIs Interativos -->
+    <section class="metric-grid" aria-label="Indicadores executivos do Decision Center">
+        <a href="/DecisionCenter/Alerts" class="metric-card text-decoration-none">
+            <span class="text-danger fw-bold">Alertas Críticos</span>
+            <strong class="text-danger">@Model.CriticalAlerts</strong>
+            <small>Requerem atenção imediata</small>
+        </a>
+        <a href="/Decisions" class="metric-card text-decoration-none">
+            <span class="text-warning fw-bold">Decisões Pendentes</span>
+            <strong>@Model.PendingDecisions</strong>
+            <small>Aguardam deliberação</small>
+        </a>
+        <a href="/Indicators" class="metric-card text-decoration-none">
+            <span class="text-secondary fw-bold">Indicadores em Regressão</span>
+            <strong>@Model.RegressingMetrics</strong>
+            <small>Sinais de desvio metodológico</small>
+        </a>
+        <a href="/ActionCenter/Items?Due=overdue" class="metric-card text-decoration-none">
+            <span class="text-primary fw-bold">Ações Atrasadas</span>
+            <strong>@Model.OverdueActions</strong>
+            <small>Compromissos fora do prazo</small>
+        </a>
+    </section>
+
+    <!-- Painéis Operacionais em Grid Responsivo -->
+    <div class="row g-4">
+        <!-- Alertas Prioritários -->
+        <div class="col-12 col-lg-7">
+            <section class="valora-card h-100">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow text-danger">Atenção Executiva</p>
+                        <h2 class="h5 mb-1">Alertas Prioritários Sustentados por Evidências</h2>
+                        <p class="small text-muted">Sinais críticos detectados nos diagnósticos e indicadores.</p>
+                    </div>
+                    <a href="/DecisionCenter/Alerts" class="valora-button valora-button--sm valora-button--ghost">Ver todos</a>
+                </div>
+
+                @if (Model.Alerts.Count == 0)
+                {
+                    <div class="text-center py-4 text-muted">
+                        <valora-icon name="check-circle" size="36" decorative="true" class="text-success mb-2" />
+                        <p class="mb-0">Nenhum alerta crítico ativo no momento. A governança está em dia.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-3 mt-3">
+                        @foreach (var alert in Model.Alerts)
+                        {
+                            <article class="p-3 border rounded-3 bg-light">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <strong class="text-dark">@alert.Title</strong>
+                                    <span class="status-badge" data-tone="@(alert.Severity is "critical" or "critico" ? "danger" : "warning")">
+                                        @alert.Severity
+                                    </span>
+                                </div>
+                                <p class="small text-secondary mb-2">@alert.EvidenceSummary</p>
+                                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                                    <small class="text-muted">Detectado em: @alert.CreatedAt.ToString("dd/MM/yyyy")</small>
+                                    <a href="/Decisions/Create?sourceAlertId=@alert.Id" class="valora-button valora-button--sm valora-button--primary">
+                                        Transformar em Decisão
+                                    </a>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        </div>
+
+        <!-- Ciclos Ativos & Próximos Passos -->
+        <div class="col-12 col-lg-5">
+            <section class="valora-card h-100">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">Governança</p>
+                        <h2 class="h5 mb-1">Ciclos de Governança</h2>
+                        <p class="small text-muted">Acompanhamento contínuo dos períodos acordados.</p>
+                    </div>
+                    <a href="/Governance/Cycles" class="valora-button valora-button--sm valora-button--ghost">Ver todos</a>
+                </div>
+
+                @if (Model.Cycles.Count == 0)
+                {
+                    <div class="text-center py-4 text-muted">
+                        <valora-icon name="layers" size="36" decorative="true" class="mb-2" />
+                        <p class="mb-2">Nenhum ciclo formal aberto.</p>
+                        <a href="/Governance/Cycles/Create" class="valora-button valora-button--sm valora-button--primary">
+                            Abrir Novo Ciclo
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-2 mt-3">
+                        @foreach (var cycle in Model.Cycles)
+                        {
+                            <a href="/Governance/Cycles/Details/@cycle.Id" class="p-3 border rounded-3 bg-white text-decoration-none d-flex justify-content-between align-items-center hover-shadow transition">
+                                <div>
+                                    <strong class="text-dark d-block">@cycle.Name</strong>
+                                    <small class="text-muted">@cycle.PeriodLabel</small>
+                                </div>
+                                <span class="status-badge" data-tone="@(cycle.Status is "active" or "aberto" ? "success" : "neutral")">
+                                    @cycle.Status
+                                </span>
+                            </a>
+                        }
+                    </div>
+                }
+
+                <div class="mt-4 pt-3 border-top">
+                    <p class="eyebrow mb-2">Ações Rápidas</p>
+                    <div class="d-grid gap-2">
+                        <a href="/Indicators" class="valora-button valora-button--secondary text-center">
+                            Revisar Indicadores Estratégicos
+                        </a>
+                        <a href="/ActionCenter" class="valora-button valora-button--ghost text-center">
+                            Central de Planos de Ação
+                        </a>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>

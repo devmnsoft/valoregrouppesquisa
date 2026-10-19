@@ -1,2 +1,160 @@
 @model Valora.Web.Models.ViewModels.PeopleViewModel
-@{Layout="_Layout";}<partial name="_PeopleShell" model="Model"/><div class="people-grid">@foreach(var x in Model.Teams){<article class="people-card"><h2>@x.Name</h2><p>Liderança: @x.ResponsibleName</p><p>@x.MemberCount membros ativos</p></article>}</div><section class="people-card"><h2>Novo time</h2><form asp-action="CreateTeam" method="post">@Html.AntiForgeryToken()<label>Nome<input name="Name" required minlength="2" maxlength="120"/></label><label>Liderança responsável<select name="ResponsibleProfileId" required><option value="">Selecione</option>@foreach(var p in Model.Profiles.Where(x=>x.Status=="active")){<option value="@p.Id">@p.DisplayName</option>}</select></label><button type="submit">Criar time</button></form></section>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Times & Lideranças";
+}
+
+<main class="valora-page people-teams-page" data-people-teams>
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+        "Times & Lideranças Responsáveis",
+        "Estruture equipes, vincule lideranças e acompanhe o clima e o desenvolvimento por área.",
+        "People & Organização",
+        $"{Model.Teams.Count} time(s) cadastrado(s)",
+        new[] {
+            new PageHeaderAction("Perfis de liderança", "/People", Icon: "users"),
+            new PageHeaderAction("Matriz de competências", "/People/Competencies", Icon: "layers"),
+            new PageHeaderAction("Planos de ação", "/ActionCenter", Icon: "check-circle")
+        }))" />
+
+    <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel(
+        "Como funciona a gestão de times no People Intelligence",
+        "Times permitem agregar evidências e diagnósticos sem expor respostas individuais. Toda leitura de clima, competência ou risco pode ser analisada por equipe respeitando o limiar mínimo de respondentes para proteção do anonimato.",
+        new[] {
+            "Liderança formal: cada time deve ter um perfil de liderança designado.",
+            "Anonimização de coorte: equipes com menos de 5 respondentes têm suas notas agregadas à organização.",
+            "Rastreabilidade de melhoria: vincule planos de desenvolvimento diretamente aos times."
+        }))" />
+
+    <partial name="_PeopleShell" model="Model" />
+
+    <div class="row g-4">
+        <!-- Lista de Times -->
+        <div class="col-12 col-lg-7">
+            <section class="valora-card h-100">
+                <div class="section-heading mb-3">
+                    <div>
+                        <p class="eyebrow mb-1">Equipes Ativas</p>
+                        <h2 class="h5 mb-0">Times Estruturados</h2>
+                    </div>
+                    <span class="badge bg-light text-dark border">@Model.Teams.Count time(s)</span>
+                </div>
+
+                @if (Model.Teams.Count == 0)
+                {
+                    <div class="p-4 border rounded-3 bg-light text-center my-3">
+                        <valora-icon name="building" size="40" decorative="true" class="text-muted mb-2" />
+                        <h3 class="h6 fw-bold text-dark">Nenhum time estruturado nesta organização</h3>
+                        <p class="text-muted small mb-3">
+                            Cadastre a primeira equipe no formulário ao lado para começar a mapear o clima por área.
+                        </p>
+                    </div>
+
+                    <!-- Demonstração Metodológica com Dados Reais de Exemplo -->
+                    <div class="border rounded-3 p-3 bg-white mt-3">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-info text-dark">Exemplo Metodológico</span>
+                            <small class="text-muted">Como suas equipes aparecerão após a criação:</small>
+                        </div>
+                        <div class="d-flex flex-column gap-2">
+                            <div class="p-3 rounded border bg-light">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong class="text-dark d-block">Equipe de Operações & Logística</strong>
+                                        <small class="text-muted">Liderança: Diretoria de Operações</small>
+                                    </div>
+                                    <span class="badge bg-success bg-opacity-10 text-success">18 membros ativos</span>
+                                </div>
+                            </div>
+                            <div class="p-3 rounded border bg-light">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong class="text-dark d-block">Time de Atendimento & Sucesso do Cliente</strong>
+                                        <small class="text-muted">Liderança: Coordenação de Gente & Cultura</small>
+                                    </div>
+                                    <span class="badge bg-success bg-opacity-10 text-success">12 membros ativos</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-flex flex-column gap-3">
+                        @foreach (var team in Model.Teams)
+                        {
+                            <article class="p-3 border rounded-3 bg-white shadow-sm hover-shadow transition">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div>
+                                        <h3 class="h6 mb-1 text-dark fw-bold">@team.Name</h3>
+                                        <small class="text-muted">Liderança: <strong class="text-dark">@team.ResponsibleName</strong></small>
+                                    </div>
+                                    <span class="badge bg-primary bg-opacity-10 text-primary">
+                                        @team.MemberCount membro(s)
+                                    </span>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center pt-2 border-top small text-muted">
+                                    <span>Criado em @team.CreatedAt.ToString("dd/MM/yyyy")</span>
+                                    <a href="/People/Competencies" class="small fw-semibold text-teal text-decoration-none">
+                                        Ver competências &rarr;
+                                    </a>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
+            </section>
+        </div>
+
+        <!-- Formulário para Criar Novo Time -->
+        <div class="col-12 col-lg-5">
+            <section class="valora-card h-100">
+                <div class="section-heading mb-3">
+                    <div>
+                        <p class="eyebrow mb-1">Novo Cadastro</p>
+                        <h2 class="h5 mb-0">Criar Time Organizacional</h2>
+                        <small class="text-muted">Vincule a equipe a uma liderança responsável já cadastrada.</small>
+                    </div>
+                </div>
+
+                <form asp-action="CreateTeam" method="post" class="d-flex flex-column gap-3">
+                    @Html.AntiForgeryToken()
+
+                    <div>
+                        <label for="time-nome" class="form-label fw-semibold">Nome da equipe <span class="text-danger">*</span></label>
+                        <input id="time-nome" name="Name" class="form-control" required minlength="2" maxlength="120" placeholder="Ex: Engenharia de Software ou Finanças" />
+                    </div>
+
+                    <div>
+                        <label for="time-lideranca" class="form-label fw-semibold">Liderança responsável <span class="text-danger">*</span></label>
+                        <select id="time-lideranca" name="ResponsibleProfileId" class="form-select" required>
+                            <option value="">Selecione um perfil de liderança...</option>
+                            @foreach (var p in Model.Profiles.Where(x => x.Status == "active"))
+                            {
+                                <option value="@p.Id">@p.DisplayName @(!string.IsNullOrWhiteSpace(p.RoleTitle) ? $"({p.RoleTitle})" : "")</option>
+                            }
+                        </select>
+                        @if (!Model.Profiles.Any(x => x.Status == "active"))
+                        {
+                            <small class="text-danger d-block mt-1">
+                                Não há perfis ativos cadastrados. <a href="/People">Cadastre um perfil primeiro</a>.
+                            </small>
+                        }
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" class="valora-button valora-button--primary w-100" @(!Model.Profiles.Any(x => x.Status == "active") ? "disabled" : "")>
+                            <valora-icon name="plus" size="14" decorative="true" /> Criar Time
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-4 p-3 border rounded-3 bg-light">
+                    <strong class="d-block small text-dark mb-1">Privacidade & Conformidade:</strong>
+                    <p class="small text-muted mb-0">
+                        Os diagnósticos aplicados aos times garantem que nenhuma resposta seja exposta individualmente. Somente agregações estatísticas com amostra suficiente são exibidas nos relatórios.
+                    </p>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>

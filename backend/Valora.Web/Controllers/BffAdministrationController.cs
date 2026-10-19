@@ -9,7 +9,16 @@ namespace Valora.Web.Controllers;
 [AutoValidateAntiforgeryToken]
 [ApiController]
 [Route("bff")]
-public sealed class BffAdministrationController(BffAuthenticationService authentication, ILogger<BffAdministrationController> logger) : ControllerBase {
+public sealed class BffAdministrationController : ControllerBase {
+    private readonly BffAuthenticationService authentication;
+    private readonly ILogger<BffAdministrationController> logger;
+
+    [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
+    public BffAdministrationController(BffAuthenticationService authentication, ILogger<BffAdministrationController> logger) {
+        this.authentication = authentication;
+        this.logger = logger;
+    }
+
     public BffAdministrationController(IBffApiClient api, BffAuthenticationService authentication, ILogger<BffAdministrationController> logger)
         : this(authentication, logger) { _ = api; }
     [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]

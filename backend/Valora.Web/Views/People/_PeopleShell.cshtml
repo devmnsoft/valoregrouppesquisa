@@ -1,5 +1,44 @@
 @model Valora.Web.Models.ViewModels.PeopleViewModel
 
-<header><p>People, Culture &amp; Leadership Intelligence Center™</p><h1>@Model.Section</h1><p class="people-note">@Model.Dashboard.ResponsibleUseNotice Evidências, fontes, confiança e limitações devem acompanhar toda leitura. Dados pessoais seguem acesso autorizado e LGPD.</p></header>
-@if(TempData["PeopleMessage"] is string ok){<div class="alert alert-success">@ok</div>}@if(TempData["PeopleError"] is string error){<div class="alert alert-danger">@error</div>}
-<nav aria-label="People"><a asp-action="Index">People</a> · <a asp-action="Teams">Teams</a> · <a asp-action="Culture">Culture</a> · <a asp-action="Engagement">Engagement</a> · <a asp-action="Competencies">Competencies</a> · <a asp-action="DevelopmentPlans">Development Plans</a> · <a asp-action="Risks">Risks</a></nav>
+@if (TempData["PeopleMessage"] is string ok)
+{
+    <div class="valora-alert valora-alert--success mb-3" role="status">
+        <strong>Sucesso:</strong> <span>@ok</span>
+    </div>
+}
+@if (TempData["PeopleError"] is string error)
+{
+    <div class="valora-alert valora-alert--danger mb-3" role="alert">
+        <strong>Atenção:</strong> <span>@error</span>
+    </div>
+}
+
+<!-- Navegação em Abas do Módulo People -->
+<nav class="d-flex flex-wrap gap-2 mb-4 p-2 bg-white rounded-3 border shadow-sm" aria-label="Navegação People & Culture">
+    <a asp-action="Index" class="valora-button valora-button--sm @(Model.Section is "Index" or "People" ? "valora-button--primary" : "valora-button--ghost")">
+        <valora-icon name="users" size="14" decorative="true" /> Visão Geral & Perfis
+    </a>
+    <a asp-action="Teams" class="valora-button valora-button--sm @(Model.Section is "Teams" ? "valora-button--primary" : "valora-button--ghost")">
+        <valora-icon name="building" size="14" decorative="true" /> Times & Lideranças
+    </a>
+    <a asp-action="Culture" class="valora-button valora-button--sm @(Model.Section is "Culture" ? "valora-button--primary" : "valora-button--ghost")">
+        <valora-icon name="activity" size="14" decorative="true" /> Cultura Organizacional
+    </a>
+    <a asp-action="Engagement" class="valora-button valora-button--sm @(Model.Section is "Engagement" ? "valora-button--primary" : "valora-button--ghost")">
+        <valora-icon name="chart-radar" size="14" decorative="true" /> Sinais de Engajamento
+    </a>
+    <a asp-action="Competencies" class="valora-button valora-button--sm @(Model.Section is "Competencies" ? "valora-button--primary" : "valora-button--ghost")">
+        <valora-icon name="layers" size="14" decorative="true" /> Matriz de Competências
+    </a>
+    <a asp-action="DevelopmentPlans" class="valora-button valora-button--sm @(Model.Section is "DevelopmentPlans" ? "valora-button--primary" : "valora-button--ghost")">
+        <valora-icon name="check-circle" size="14" decorative="true" /> Planos de Desenvolvimento
+    </a>
+    <a asp-action="Risks" class="valora-button valora-button--sm @(Model.Section is "Risks" ? "valora-button--primary" : "valora-button--ghost")">
+        <valora-icon name="shield" size="14" decorative="true" /> Riscos Preventivos
+    </a>
+</nav>
+
+<div class="valora-alert valora-alert--info mb-3">
+    <strong>Uso Responsável & LGPD:</strong>
+    <span>@Model.Dashboard.ResponsibleUseNotice Leituras são agregadas e requerem validação humana.</span>
+</div>

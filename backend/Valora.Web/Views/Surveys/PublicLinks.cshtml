@@ -1,12 +1,407 @@
-@{ ViewData["Title"] = "Links públicos"; }
-<section class="page-card official-module" data-page="public-links-page">
-  <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-    <div><p class="eyebrow">Valora.Web oficial</p><h1>Links públicos</h1><p class="text-muted">Links públicos de coleta por pesquisa.</p></div>
-    <button class="btn btn-primary" data-refresh>Atualizar</button>
-  </div>
-  <div class="row g-3 mt-2" data-summary-cards><div class="col-md-4"><div class="metric-card"><span>Links</span><strong data-card="links">Carregando…</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Validade</span><strong data-card="validade">Carregando…</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Status</span><strong data-card="status">Carregando…</strong></div></div></div>
-  <div class="alert alert-warning d-none mt-3" data-gap-controlled="true" data-gap-card>Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.</div>
-  <div class="alert alert-danger d-none mt-3" role="alert" data-error></div>
-  <div class="table-responsive mt-3"><table class="table table-sm align-middle"><thead><tr><th>Nome</th><th>Status</th><th>Detalhes</th><th>Ação</th></tr></thead><tbody data-items></tbody></table></div>
-</section>
-@section Scripts { <script src="/js/pages/public-links-page.js"></script> }
+@model Valora.Web.Models.ViewModels.SurveysPublicLinksViewModel
+@{
+    ViewData["Title"] = "Links públicos de coleta";
+}
+
+<div class="container-fluid px-0 py-2">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-2 py-1">
+                    <i class="bi bi-share me-1"></i>Operação &amp; Campo
+                </span>
+                <span class="text-muted small">Canal Seguro de Coleta</span>
+            </div>
+            <h1 class="h3 fw-bold text-dark mb-1">Links Públicos de Coleta</h1>
+            <p class="text-muted mb-0">
+                Gerencie links criptografados e parâmetros de validade para aplicação de diagnósticos corporativos.
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a asp-action="Index" asp-controller="Surveys" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i>Estúdio de Diagnósticos
+            </a>
+            <a href="?@(Model.SelectedSurveyId.HasValue ? $"surveyId={Model.SelectedSurveyId.Value}" : "")" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-clockwise me-1"></i>Atualizar
+            </a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] is string successMsg)
+    {
+        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-check-circle-fill fs-5 me-2"></i>
+            <div>@successMsg</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] is string errorMsg)
+    {
+        <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center mb-4" role="alert">
+            <i class="bi bi-exclamation-triangle-fill fs-5 me-2"></i>
+            <div>@errorMsg</div>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+    }
+
+    <!-- Metric Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-medium">Pesquisas Disponíveis</span>
+                    <span class="badge bg-info bg-opacity-10 text-info p-2 rounded-circle">
+                        <i class="bi bi-card-checklist fs-6"></i>
+                    </span>
+                </div>
+                <div class="fs-3 fw-bold text-dark">@Model.TotalSurveys</div>
+                <span class="text-muted small">ciclos registrados na organização</span>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-medium">Links da Pesquisa</span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary p-2 rounded-circle">
+                        <i class="bi bi-link-45deg fs-6"></i>
+                    </span>
+                </div>
+                <div class="fs-3 fw-bold text-dark">@Model.TotalLinks</div>
+                <span class="text-muted small">links gerados no ciclo selecionado</span>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-medium">Links Ativos</span>
+                    <span class="badge bg-success bg-opacity-10 text-success p-2 rounded-circle">
+                        <i class="bi bi-broadcast fs-6"></i>
+                    </span>
+                </div>
+                <div class="fs-3 fw-bold text-success">@Model.ActiveLinks</div>
+                <span class="text-muted small">recebendo submissões ativas</span>
+            </div>
+        </div>
+
+        <div class="col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-3 h-100 p-3 bg-white">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="text-muted small fw-medium">Expirados / Revogados</span>
+                    <span class="badge bg-warning bg-opacity-10 text-warning p-2 rounded-circle">
+                        <i class="bi bi-clock-history fs-6"></i>
+                    </span>
+                </div>
+                <div class="fs-3 fw-bold text-secondary">@Model.ExpiredOrRevokedLinks</div>
+                <span class="text-muted small">bloqueados com segurança</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Survey Selection & Link Creation Area -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h2 class="h5 fw-bold text-dark mb-0">
+                        <i class="bi bi-clipboard2-check text-primary me-2"></i>Seleção do Ciclo
+                    </h2>
+                </div>
+                <div class="card-body p-4">
+                    @if (Model.AvailableSurveys.Count == 0)
+                    {
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-journal-x fs-1 text-secondary mb-2 d-block"></i>
+                            <p class="fw-semibold mb-1">Nenhuma pesquisa encontrada</p>
+                            <p class="small text-muted mb-3">Cadastre uma pesquisa no Estúdio antes de gerar links de coleta.</p>
+                            <a asp-action="Index" asp-controller="Surveys" class="btn btn-sm btn-primary">
+                                Ir para Estúdio de Diagnósticos
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <form method="get" asp-action="PublicLinks" class="mb-3">
+                            <label for="surveyPicker" class="form-label fw-semibold small text-muted">
+                                Pesquisa para gerenciamento de links
+                            </label>
+                            <div class="input-group">
+                                <select id="surveyPicker" name="surveyId" class="form-select" onchange="this.form.submit()">
+                                    @foreach (var s in Model.AvailableSurveys)
+                                    {
+                                        var isSelected = Model.SelectedSurveyId == s.Id;
+                                        <option value="@s.Id" selected="@isSelected">
+                                            @s.Title (@(s.Status == "active" ? "Ativa" : s.Status == "published" ? "Publicada" : "Rascunho"))
+                                        </option>
+                                    }
+                                </select>
+                                <button type="submit" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-right"></i>
+                                </button>
+                            </div>
+                        </form>
+
+                        @if (Model.SelectedSurveyId.HasValue)
+                        {
+                            <div class="border rounded-3 p-3 bg-light bg-opacity-50">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="text-muted small fw-medium">Situação do ciclo</span>
+                                    <span class="badge @(Model.SelectedSurveyStatus is "active" or "published" ? "bg-success" : "bg-warning text-dark")">
+                                        @(Model.SelectedSurveyStatus is "active" ? "Ativa para coleta" : Model.SelectedSurveyStatus is "published" ? "Publicada" : "Rascunho")
+                                    </span>
+                                </div>
+                                <h3 class="h6 fw-bold text-dark mb-1">@Model.SelectedSurveyTitle</h3>
+                                <p class="small text-muted mb-0">
+                                    Total de respostas registradas no ciclo: <strong>@Model.AvailableSurveys.FirstOrDefault(s => s.Id == Model.SelectedSurveyId)?.CompletedResponses</strong>
+                                </p>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h2 class="h5 fw-bold text-dark mb-0">
+                        <i class="bi bi-shield-plus text-primary me-2"></i>Gerar Novo Link Seguro
+                    </h2>
+                </div>
+                <div class="card-body p-4">
+                    @if (!Model.SelectedSurveyId.HasValue)
+                    {
+                        <div class="alert alert-info mb-0 small">
+                            Selecione uma pesquisa ao lado para habilitar a geração de novos links de coleta.
+                        </div>
+                    }
+                    else if (Model.SelectedSurveyStatus is not ("active" or "published" or "open"))
+                    {
+                        <div class="alert alert-warning mb-0 small">
+                            <i class="bi bi-exclamation-circle-fill me-1"></i>
+                            A pesquisa selecionada está em situação de <strong>rascunho</strong>. Para gerar links que recebam respostas, publique o diagnóstico no Estúdio.
+                        </div>
+                    }
+                    else
+                    {
+                        <form method="post" asp-action="CreateLink" asp-controller="Surveys">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="surveyId" value="@Model.SelectedSurveyId.Value" />
+
+                            <div class="mb-3">
+                                <label for="validityDaysSelect" class="form-label fw-semibold small text-muted">
+                                    Prazo de validade do link
+                                </label>
+                                <select id="validityDaysSelect" name="expiresInDays" class="form-select">
+                                    <option value="7">7 dias (coleta rápida ou evento)</option>
+                                    <option value="15">15 dias (ciclo quinzenal)</option>
+                                    <option value="30" selected>30 dias (recomendado para diagnósticos gerais)</option>
+                                    <option value="60">60 dias (estudos trimestrais)</option>
+                                    <option value="90">90 dias (pesquisas contínuas)</option>
+                                    <option value="0">Sem expiração automática (ativo até encerramento do ciclo)</option>
+                                </select>
+                                <div class="form-text small">
+                                    Cada link gerado utiliza um token criptográfico pseudo-aleatório seguro de 256 bits, garantindo unicidade e proteção anti-adivinhação.
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end">
+                                <button type="submit" class="btn btn-primary px-3">
+                                    <i class="bi bi-link-45deg me-1"></i>Gerar link criptografado
+                                </button>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Links Table Card -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4">
+        <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+            <h2 class="h5 fw-bold text-dark mb-0">
+                <i class="bi bi-link text-primary me-2"></i>Links Públicos Ativos e Histórico
+            </h2>
+            <span class="badge bg-secondary bg-opacity-10 text-secondary">
+                @Model.Links.Count @(Model.Links.Count == 1 ? "link cadastrado" : "links cadastrados")
+            </span>
+        </div>
+
+        <div class="card-body p-0">
+            @if (Model.Links.Count == 0)
+            {
+                <div class="p-5 text-center text-muted">
+                    <i class="bi bi-link-45deg fs-1 text-secondary mb-2 d-block"></i>
+                    <h3 class="h6 fw-semibold text-dark mb-1">Nenhum link gerado para esta pesquisa</h3>
+                    <p class="small text-muted mb-0">
+                        Utilize o painel acima para gerar o primeiro link seguro de participação.
+                    </p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light text-muted small text-uppercase">
+                            <tr>
+                                <th scope="col" class="ps-4">Endereço de Coleta</th>
+                                <th scope="col">Situação</th>
+                                <th scope="col">Expiração</th>
+                                <th scope="col">Criado em</th>
+                                <th scope="col" class="text-end pe-4">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var link in Model.Links)
+                            {
+                                var fullUrl = link.PublicUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                                    ? link.PublicUrl
+                                    : $"{Context.Request.Scheme}://{Context.Request.Host}{link.PublicUrl}";
+
+                                <tr>
+                                    <td class="ps-4 py-3">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <code class="text-primary bg-light px-2 py-1 rounded small user-select-all">
+                                                @link.PublicUrl
+                                            </code>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Copiar link completo" onclick="copyLinkToClipboard('@fullUrl')">
+                                                <i class="bi bi-clipboard"></i>
+                                            </button>
+                                            <a href="@fullUrl" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary py-0 px-2" title="Testar abertura do formulário">
+                                                <i class="bi bi-box-arrow-up-right"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge @link.StatusBadgeClass">
+                                            @link.StatusDisplayName
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (link.ExpiresAt.HasValue)
+                                        {
+                                            <span class="small @(link.IsExpired ? "text-danger fw-semibold" : "text-muted")">
+                                                @link.ExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="small text-muted">Sem expiração</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="small text-muted">
+                                            @link.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        <div class="btn-group btn-group-sm">
+                                            @if (link.Status == "active")
+                                            {
+                                                <form method="post" asp-action="UpdateLinkStatus" asp-controller="Surveys" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="linkId" value="@link.Id" />
+                                                    <input type="hidden" name="surveyId" value="@link.SurveyId" />
+                                                    <input type="hidden" name="status" value="inactive" />
+                                                    <button type="submit" class="btn btn-outline-warning" title="Pausar aceitação de respostas">
+                                                        <i class="bi bi-pause-circle me-1"></i>Pausar
+                                                    </button>
+                                                </form>
+                                                <form method="post" asp-action="UpdateLinkStatus" asp-controller="Surveys" class="d-inline ms-1">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="linkId" value="@link.Id" />
+                                                    <input type="hidden" name="surveyId" value="@link.SurveyId" />
+                                                    <input type="hidden" name="status" value="revoked" />
+                                                    <button type="submit" class="btn btn-outline-danger" title="Revogar definitivamente" onclick="return confirm('Deseja realmente revogar este link? Nenhuma resposta adicional poderá ser enviada por ele.');">
+                                                        <i class="bi bi-x-circle me-1"></i>Revogar
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (link.Status == "inactive")
+                                            {
+                                                <form method="post" asp-action="UpdateLinkStatus" asp-controller="Surveys" class="d-inline">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="linkId" value="@link.Id" />
+                                                    <input type="hidden" name="surveyId" value="@link.SurveyId" />
+                                                    <input type="hidden" name="status" value="active" />
+                                                    <button type="submit" class="btn btn-outline-success" title="Reativar aceitação de respostas">
+                                                        <i class="bi bi-play-circle me-1"></i>Reativar
+                                                    </button>
+                                                </form>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">Sem ações</span>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Security & Best Practices Footer Guide -->
+    <div class="card border-0 shadow-sm rounded-3">
+        <div class="card-body p-4">
+            <h3 class="h6 fw-bold text-dark mb-3">
+                <i class="bi bi-shield-lock-fill text-primary me-2"></i>Diretrizes de Segurança e LGPD para Coleta Pública
+            </h3>
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <div class="border rounded-3 p-3 bg-light bg-opacity-25 h-100">
+                        <div class="fw-semibold text-dark small mb-1">
+                            <i class="bi bi-fingerprint text-primary me-1"></i>Tokens Criptografados
+                        </div>
+                        <p class="text-muted small mb-0">
+                            Os tokens são associados à pesquisa e armazenados como hashes criptográficos SHA-256 no banco de dados, protegendo contra adulteração.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="border rounded-3 p-3 bg-light bg-opacity-25 h-100">
+                        <div class="fw-semibold text-dark small mb-1">
+                            <i class="bi bi-hourglass-split text-success me-1"></i>Ciclo de Vida Controlado
+                        </div>
+                        <p class="text-muted small mb-0">
+                            Ao encerrar um ciclo ou revogar um link, qualquer tentativa de submissão subsequente é imediatamente rejeitada com registro em trilha de auditoria.
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="border rounded-3 p-3 bg-light bg-opacity-25 h-100">
+                        <div class="fw-semibold text-dark small mb-1">
+                            <i class="bi bi-incognito text-info me-1"></i>Privacidade do Respondente
+                        </div>
+                        <p class="text-muted small mb-0">
+                            A interface oculta dados sensíveis de contato do participante, em conformidade com as diretrizes da LGPD vigentes.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copyLinkToClipboard(url) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(function() {
+                    alert('Link de coleta copiado com sucesso para a área de transferência!');
+                }).catch(function() {
+                    prompt('Copie o endereço abaixo:', url);
+                });
+            } else {
+                prompt('Copie o endereço abaixo:', url);
+            }
+        }
+    </script>
+}

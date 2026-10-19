@@ -1,2 +1,180 @@
 @model Valora.Web.Models.ViewModels.PeopleViewModel
-@{Layout="_Layout";}<partial name="_PeopleShell" model="Model"/><div class="people-grid"><section class="people-card"><h2>Perfis</h2><strong>@Model.Dashboard.Profiles</strong></section><section class="people-card"><h2>Times</h2><strong>@Model.Dashboard.Teams</strong></section><section class="people-card"><h2>Cultura</h2><strong>@Model.Dashboard.Culture.Count leituras agregadas</strong></section><section class="people-card"><h2>Engajamento</h2><strong>@Model.Dashboard.Engagement.Count sinais</strong></section><section class="people-card"><h2>Desenvolvimento</h2><strong>@Model.Dashboard.DevelopmentPlans.Count planos</strong></section><section class="people-card"><h2>Riscos</h2><strong>@Model.Dashboard.Risks.Count sinais para acompanhamento</strong></section></div><section class="people-card"><h2>Novo perfil</h2><form asp-action="CreateProfile" method="post">@Html.AntiForgeryToken()<label>Nome de exibição<input name="DisplayName" required minlength="2" maxlength="120"/></label><label>Função<input name="RoleTitle" maxlength="120"/></label><button type="submit">Criar perfil</button></form></section>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "People & Leadership Intelligence";
+}
+
+<main class="valora-page people-page" data-people-index>
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+        "People & Leadership Intelligence",
+        "Centro de inteligência de cultura, liderança e desenvolvimento de equipes baseado em evidências.",
+        "People & Cultura",
+        $"{Model.Dashboard.Profiles} perfil(is) · {Model.Dashboard.Teams} time(s)",
+        new[] {
+            new PageHeaderAction("Novo time", "/People/Teams", Icon: "users"),
+            new PageHeaderAction("Matriz de competências", "/People/Competencies", Style: "primary", Icon: "layers"),
+            new PageHeaderAction("Planos de desenvolvimento", "/People/DevelopmentPlans", Icon: "check-circle")
+        }))" />
+
+    <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel(
+        "Para que serve e como funciona o People Intelligence",
+        "Esta área consolida os sinais de pessoas e liderança extraídos dos diagnósticos organizacionais, respeitando os princípios de anonimização e conformidade com a LGPD. As leituras orientam decisões de desenvolvimento e clima corporativo.",
+        new[] {
+            "Mapeamento de liderança: organize pessoas-chave e seus papéis para acompanhamento contínuo.",
+            "Evidências culturais: analise a aderência aos valores e práticas da organização a partir de dados reais de campo.",
+            "Planos de ação humana: converta lacunas identificadas em planos de desenvolvimento acompanháveis."
+        }))" />
+
+    <partial name="_PeopleShell" model="Model" />
+
+    <!-- KPIs Executivos do Módulo People -->
+    <section class="metric-grid mb-4" aria-label="Indicadores de People">
+        <article class="metric-card">
+            <span>Perfis Mapeados</span>
+            <strong>@Model.Dashboard.Profiles</strong>
+            <small>Lideranças e membros-chave</small>
+        </article>
+        <article class="metric-card">
+            <span>Times Estruturados</span>
+            <strong>@Model.Dashboard.Teams</strong>
+            <small>Equipes com liderança definida</small>
+        </article>
+        <article class="metric-card">
+            <span>Dimensões Culturais</span>
+            <strong>@Model.Dashboard.Culture.Count</strong>
+            <small>Leituras agregadas ativas</small>
+        </article>
+        <article class="metric-card">
+            <span>Planos de Desenvolvimento</span>
+            <strong>@Model.Dashboard.DevelopmentPlans.Count</strong>
+            <small>Planos de ação em curso</small>
+        </article>
+    </section>
+
+    <div class="row g-4">
+        <!-- Lista de Perfis Mapeados -->
+        <div class="col-12 col-lg-7">
+            <section class="valora-card h-100">
+                <div class="section-heading mb-3">
+                    <div>
+                        <p class="eyebrow mb-1">Estrutura Organizacional</p>
+                        <h2 class="h5 mb-0">Perfis de Pessoas & Lideranças</h2>
+                    </div>
+                    <span class="badge bg-light text-dark border">@Model.Profiles.Count registro(s)</span>
+                </div>
+
+                @if (Model.Profiles.Count == 0)
+                {
+                    <div class="p-4 border rounded-3 bg-light text-center my-3">
+                        <valora-icon name="users" size="40" decorative="true" class="text-muted mb-2" />
+                        <h3 class="h6 fw-bold text-dark">Nenhum perfil cadastrado nesta organização</h3>
+                        <p class="text-muted small mb-3">
+                            Cadastre as primeiras lideranças no formulário ao lado para começar a estruturar times, matriz de competências e planos de desenvolvimento.
+                        </p>
+                    </div>
+
+                    <!-- Demonstração Metodológica com Dados Reais de Exemplo -->
+                    <div class="border rounded-3 p-3 bg-white mt-3">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="badge bg-info text-dark">Exemplo Metodológico</span>
+                            <small class="text-muted">Como seus perfis aparecerão após o cadastro:</small>
+                        </div>
+                        <div class="d-flex flex-column gap-2">
+                            <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light">
+                                <div>
+                                    <strong class="text-dark d-block">Diretoria de Operações & Logística</strong>
+                                    <small class="text-muted">Função: Liderança Executiva</small>
+                                </div>
+                                <span class="status-badge" data-tone="success">Ativo</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center p-2 rounded bg-light">
+                                <div>
+                                    <strong class="text-dark d-block">Coordenação de Gente & Cultura</strong>
+                                    <small class="text-muted">Função: Gestão de Pessoas</small>
+                                </div>
+                                <span class="status-badge" data-tone="success">Ativo</span>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="valora-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Nome de Exibição</th>
+                                    <th scope="col">Função / Papel</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col">Cadastrado em</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var profile in Model.Profiles)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong class="text-dark">@profile.DisplayName</strong>
+                                        </td>
+                                        <td>
+                                            <span>@(string.IsNullOrWhiteSpace(profile.RoleTitle) ? "Função não informada" : profile.RoleTitle)</span>
+                                        </td>
+                                        <td>
+                                            <span class="status-badge" data-tone="@(profile.Status is "active" or "ativo" ? "success" : "neutral")">
+                                                @profile.Status
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">@profile.CreatedAt.ToString("dd/MM/yyyy")</small>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </section>
+        </div>
+
+        <!-- Formulário para Criar Perfil -->
+        <div class="col-12 col-lg-5">
+            <section class="valora-card h-100">
+                <div class="section-heading mb-3">
+                    <div>
+                        <p class="eyebrow mb-1">Novo Cadastro</p>
+                        <h2 class="h5 mb-0">Adicionar Perfil Organizacional</h2>
+                        <small class="text-muted">Cadastre o nome público e o cargo da liderança ou colaborador.</small>
+                    </div>
+                </div>
+
+                <form asp-action="CreateProfile" method="post" class="d-flex flex-column gap-3">
+                    @Html.AntiForgeryToken()
+
+                    <div>
+                        <label for="perfil-nome" class="form-label fw-semibold">Nome de exibição <span class="text-danger">*</span></label>
+                        <input id="perfil-nome" name="DisplayName" class="form-control" required minlength="2" maxlength="120" placeholder="Ex: Mariana Silva ou Liderança de Operações" />
+                        <small class="text-muted">Como a pessoa ou função será referenciada em avaliações e times.</small>
+                    </div>
+
+                    <div>
+                        <label for="perfil-funcao" class="form-label fw-semibold">Cargo ou função</label>
+                        <input id="perfil-funcao" name="RoleTitle" class="form-control" maxlength="120" placeholder="Ex: Gerente Geral ou Coordenador de Projetos" />
+                    </div>
+
+                    <div class="pt-2">
+                        <button type="submit" class="valora-button valora-button--primary w-100">
+                            <valora-icon name="plus" size="14" decorative="true" /> Salvar Perfil
+                        </button>
+                    </div>
+                </form>
+
+                <div class="mt-4 p-3 border rounded-3 bg-light">
+                    <strong class="d-block small text-dark mb-1">Privacidade Garantida:</strong>
+                    <p class="small text-muted mb-0">
+                        O cadastro de perfis não exige nem armazena CPF, dados bancários ou endereços pessoais. Todos os dados permanecem estritamente isolados no escopo desta organização.
+                    </p>
+                </div>
+            </section>
+        </div>
+    </div>
+</main>

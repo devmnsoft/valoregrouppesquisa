@@ -1210,6 +1210,7 @@
           <button class="btn btn-outline-primary" data-generate-link ${data.canDistribute && !data.readOnly ? '' : 'disabled'}>Gerar novo link</button>
           <button class="btn btn-primary" data-copy-link ${campaignLink ? '' : 'disabled'}>Copiar link</button>
           <button class="btn btn-outline-secondary" data-copy-message ${campaignLink ? '' : 'disabled'}>Copiar convite com link</button>
+          <a class="btn btn-outline-secondary" href="/Surveys/PublicLinks?surveyId=${encodeURIComponent(overviewState?.cycle?.surveyId || diagnosticId)}" title="Ver todos os links gerados, validades e revogações">Painel de Links</a>
         </div>
         <div class="form-help mt-2">
           <strong>Comportamento dos links:</strong> Ao gerar um novo link de participação, um token adicional seguro é registrado mantendo os links anteriores ativos (a menos que revogados individualmente ou o diagnóstico expire). O token bruto é retornado apenas na criação e não é exposto em logs.
@@ -1354,13 +1355,29 @@
     loading.classList.remove('d-none');
     error.classList.add('d-none');
 
+    host.querySelectorAll('.workspace-tab-cluster').forEach(c => c.classList.remove('is-active-cluster'));
     host.querySelectorAll('[data-tab]').forEach(btn => {
       const isActive = btn.dataset.tab === name;
       btn.classList.toggle('btn-primary', isActive);
       btn.classList.toggle('active', isActive);
       btn.classList.toggle('btn-outline-secondary', !isActive);
       btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      if (isActive) {
+        const cluster = btn.closest('.workspace-tab-cluster');
+        if (cluster) {
+          cluster.classList.add('is-active-cluster');
+          cluster.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      }
     });
+
+    try {
+      const currentUrl = new URL(location.href);
+      if (currentUrl.searchParams.get('tab') !== name) {
+        currentUrl.searchParams.set('tab', name);
+        history.replaceState({ tab: name }, '', currentUrl.toString());
+      }
+    } catch (_) {}
 
     try {
       if (name === 'preparation') {
@@ -1473,6 +1490,11 @@
       if (!isReadOnly) button.disabled = false;
     }
   }));
+
+  window.addEventListener('popstate', () => {
+    const t = new URLSearchParams(location.search).get('tab') || 'overview';
+    if (allowedTabs.has(t)) tab(t);
+  });
 
   const initialTab = new URLSearchParams(location.search).get('tab') || 'overview';
   tab(allowedTabs.has(initialTab) ? initialTab : 'overview');

@@ -1,11 +1,151 @@
 @model Valora.Web.Controllers.OnboardingChecklistViewModel
-@{ ViewData["Title"] = "Onboarding · Checklist"; var percentage = Model.Total == 0 ? 0 : Model.Completed * 100 / Model.Total; }
-<section class="onboarding-checklist" aria-labelledby="onboarding-title">
-  <header class="onboarding-hero"><div><span class="eyebrow">Implantação Valora Insight™</span><h1 id="onboarding-title">Sua operação, passo a passo</h1><p>Conclua cada etapa no contexto correto. O progresso fica salvo neste navegador.</p></div><div class="progress-ring" style="--progress:@percentage"><strong>@percentage%</strong><span>@Model.Completed de @Model.Total</span></div></header>
-  <div class="journey-progress" role="progressbar" aria-label="Progresso do onboarding" aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"><span style="width:@percentage%"></span></div>
-  @if (Model.Next is not null) { <aside class="next-best-action"><div><strong>Próximo passo recomendado</strong><p>@Model.Next.Title — @Model.Next.Description</p></div><a class="valora-button valora-button--primary" href="@Model.Next.Url">Começar agora</a></aside> }
-  <ol class="checklist-list">
-  @{ var index = 0; }
-  @foreach (var item in Model.Items) { index++; <li class="@(item.Completed ? "is-complete" : null)"><span class="checklist-index">@(item.Completed ? "✓" : index)</span><div><strong>@item.Title</strong><p>@item.Description</p><a href="@item.Url">Abrir etapa</a></div><form method="post" action="/Onboarding/Progress">@Html.AntiForgeryToken()<input type="hidden" name="code" value="@item.Code"><input type="hidden" name="completed" value="@(!item.Completed ? "true" : "false")"><button type="submit" class="valora-button valora-button--@(item.Completed ? "ghost" : "secondary")" data-confirm="@(item.Completed ? "Reabrir esta etapa para revisão?" : "Confirmar que esta etapa foi revisada e concluída?")">@(item.Completed ? "Reabrir" : "Concluir")</button></form></li> }
-  </ol>
-</section>
+@{
+    ViewData["Title"] = "Checklist de Implantação";
+    var percentage = Model.Total == 0 ? 0 : Model.Completed * 100 / Model.Total;
+}
+
+<main class="valora-page onboarding-page" data-onboarding-checklist>
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+        "Checklist de Implantação & Onboarding",
+        "Sua jornada operacional estruturada passo a passo para configurar a organização, coletar evidências e gerar entregáveis de valor.",
+        "Implantação Valora Insight™",
+        $"{percentage}% concluído ({Model.Completed} de {Model.Total} etapas)",
+        new[] {
+            new PageHeaderAction("Novo diagnóstico", "/Diagnostics/New", Style: "primary", Icon: "plus"),
+            new PageHeaderAction("Formulários", "/Forms", Icon: "file-text"),
+            new PageHeaderAction("Relatórios", "/Reports", Icon: "chart-radar")
+        }))" />
+
+    <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel(
+        "Como funciona o onboarding passo a passo",
+        "Este checklist guia a ativação de um ciclo de governança e inteligência organizacional de ponta a ponta. Cada etapa possui um link direto para a tela de execução correspondente e seu progresso é preservado com segurança.",
+        new[] {
+            "Fase 1 - Configuração: defina a identidade da organização, capacitações do plano e usuários autorizados.",
+            "Fase 2 - Instrumentação: crie e publique formulários com perguntas e dimensões, disparando coletas com prazos seguros.",
+            "Fase 3 - Inteligência e Ação: valide a suficiência das respostas, consolide os scores e gere relatórios e planos de ação."
+        }))" />
+
+    @if (TempData["Success"] is string successMsg)
+    {
+        <div class="valora-alert valora-alert--success" role="status">
+            <strong>Sucesso:</strong> <span>@successMsg</span>
+        </div>
+    }
+    @if (TempData["Error"] is string errorMsg)
+    {
+        <div class="valora-alert valora-alert--danger" role="alert">
+            <strong>Atenção:</strong> <span>@errorMsg</span>
+        </div>
+    }
+
+    <!-- Hero Card de Progresso Geral -->
+    <section class="valora-card shadow-sm border p-4 mb-4" style="background: linear-gradient(135deg, #092f3b, #134e5e); color: #fff; border-radius: 20px;">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <span class="eyebrow text-warning mb-1" style="font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 700;">Status da Ativação</span>
+                <h2 class="h3 text-white fw-bold mb-1">Progresso Geral da Operação</h2>
+                <p class="text-light mb-0" style="max-width: 580px; font-size: 0.95rem; opacity: 0.9;">
+                    Conclua cada etapa para garantir a maturidade do processo de coleta, análise e governança executiva.
+                </p>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <div class="text-end">
+                    <span class="display-6 fw-bold text-white">@percentage%</span>
+                    <small class="d-block text-warning fw-semibold">@Model.Completed de @Model.Total concluídas</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="progress mt-3" style="height: 10px; background: rgba(255,255,255,0.2); border-radius: 8px;">
+            <div class="progress-bar bg-warning" role="progressbar" style="width: @percentage%;" aria-valuenow="@percentage" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+
+        @if (Model.Next is not null)
+        {
+            <div class="mt-4 p-3 rounded-3 d-flex flex-wrap justify-content-between align-items-center gap-2" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);">
+                <div>
+                    <span class="badge bg-warning text-dark mb-1">Próximo Passo Recomendado</span>
+                    <strong class="d-block text-white">@Model.Next.Title</strong>
+                    <small class="text-light opacity-75">@Model.Next.Description</small>
+                </div>
+                <a href="@Model.Next.Url" class="valora-button valora-button--primary">
+                    Iniciar Esta Etapa <valora-icon name="arrow-right" size="14" decorative="true" />
+                </a>
+            </div>
+        }
+    </section>
+
+    <!-- Lista de Etapas em Fases Estratégicas -->
+    <div class="d-flex flex-column gap-3">
+        @{
+            var stepIndex = 0;
+            var groups = new[] {
+                new { Title = "1. Configuração e Governança Organizacional", Subtitle = "Definição do contexto de atuação, limites e acessos.", Codes = new[] { "organization", "plan", "branding", "users" } },
+                new { Title = "2. Coleta de Dados e Pesquisas em Campo", Subtitle = "Estruturação de formulários, lançamento de diagnósticos e adesão.", Codes = new[] { "form", "publish", "diagnostic", "invites", "responses" } },
+                new { Title = "3. Inteligência, Decisões e Planos de Ação", Subtitle = "Cálculo de maturidade, leitura executiva e acompanhamento de melhorias.", Codes = new[] { "result", "report", "action" } }
+            };
+        }
+
+        @foreach (var grp in groups)
+        {
+            <section class="valora-card p-4">
+                <div class="border-bottom pb-2 mb-3">
+                    <h3 class="h5 text-dark fw-bold mb-1">@grp.Title</h3>
+                    <p class="text-muted small mb-0">@grp.Subtitle</p>
+                </div>
+
+                <div class="d-flex flex-column gap-3">
+                    @foreach (var code in grp.Codes)
+                    {
+                        var item = Model.Items.FirstOrDefault(i => i.Code.Equals(code, StringComparison.OrdinalIgnoreCase));
+                        if (item is null) continue;
+                        stepIndex++;
+
+                        <div class="p-3 border rounded-3 @(item.Completed ? "bg-light border-success" : "bg-white") transition hover-shadow">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                <div class="d-flex align-items-start gap-3 flex-grow-1" style="min-width: 260px;">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
+                                         style="width: 36px; height: 36px; background: @(item.Completed ? "#0f766e" : "#64748b"); font-size: 0.95rem;">
+                                        @(item.Completed ? "✓" : stepIndex.ToString())
+                                    </div>
+                                    <div>
+                                        <div class="d-flex align-items-center gap-2 mb-1">
+                                            <h4 class="h6 mb-0 text-dark fw-bold">@item.Title</h4>
+                                            @if (item.Completed)
+                                            {
+                                                <span class="status-badge" data-tone="success">Concluída</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="status-badge" data-tone="neutral">Pendente</span>
+                                            }
+                                        </div>
+                                        <p class="text-muted small mb-1">@item.Description</p>
+                                        <a href="@item.Url" class="small fw-semibold text-teal text-decoration-none d-inline-flex align-items-center gap-1">
+                                            Executar configuração nesta tela <valora-icon name="arrow-right" size="12" decorative="true" />
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center gap-2">
+                                    <a href="@item.Url" class="valora-button valora-button--sm valora-button--ghost">
+                                        Abrir Tela
+                                    </a>
+                                    <form method="post" action="/Onboarding/Progress" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="code" value="@item.Code" />
+                                        <input type="hidden" name="completed" value="@(!item.Completed ? "true" : "false")" />
+                                        <button type="submit" class="valora-button valora-button--sm valora-button--@(item.Completed ? "ghost text-muted" : "primary")"
+                                                title="@(item.Completed ? "Reabrir etapa para nova revisão" : "Marcar etapa como concluída")">
+                                            @(item.Completed ? "Reabrir Etapa" : "Marcar Concluída")
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+    </div>
+</main>

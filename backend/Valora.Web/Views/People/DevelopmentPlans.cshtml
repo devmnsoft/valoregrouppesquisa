@@ -1,2 +1,159 @@
 @model Valora.Web.Models.ViewModels.PeopleViewModel
-@{Layout="_Layout";}<partial name="_PeopleShell" model="Model"/><div class="people-grid">@foreach(var x in Model.Dashboard.DevelopmentPlans){<article class="people-card"><h2>@x.SubjectName</h2><p>@x.Objective</p><p>Responsável @x.ResponsibleName · prazo @x.DueDate.ToString("dd/MM/yyyy")</p><p>@x.OpenItems ações abertas · @x.Status</p></article>}</div>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Planos de Desenvolvimento";
+    var plans = Model.Dashboard.DevelopmentPlans;
+}
+
+<main class="valora-page people-plans-page" data-people-plans>
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+        "Planos de Desenvolvimento & Capacitação",
+        "Converta lacunas de competências e oportunidades culturais em ações estruturadas com responsáveis e prazos.",
+        "People & Crescimento",
+        $"{plans.Count} plano(s) ativo(s)",
+        new[] {
+            new PageHeaderAction("Novo plano no Action Center", "/ActionCenter/Plans/Create", Style: "primary", Icon: "plus"),
+            new PageHeaderAction("Matriz de competências", "/People/Competencies", Icon: "layers")
+        }))" />
+
+    <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel(
+        "Como funcionam os Planos de Desenvolvimento",
+        "Planos de Desenvolvimento conectam diagnósticos e matrizes de competência a ações práticas e acompanháveis no tempo. Todo plano possui um responsável formal, prazo de conclusão e metas claras de melhoria.",
+        new[] {
+            "Alinhamento a evidências: todo plano decorre de uma necessidade observada em campo.",
+            "Acompanhamento no Action Center: atividades desdobradas podem ser monitoradas no painel diário de execução.",
+            "Revisão periódica: o status é atualizado conforme as ações são concluídas."
+        }))" />
+
+    <partial name="_PeopleShell" model="Model" />
+
+    @if (plans.Count == 0)
+    {
+        <!-- Demonstração Metodológica com Dados Reais de Exemplo -->
+        <section class="valora-card mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <span class="badge bg-info text-dark mb-1">Demonstração Metodológica</span>
+                    <h2 class="h5 mb-0 text-dark fw-bold">Modelos de Planos de Desenvolvimento Valora™</h2>
+                    <p class="text-muted small mb-0">
+                        Como os planos de capacitação e desenvolvimento são estruturados e acompanhados:
+                    </p>
+                </div>
+                <a href="/ActionCenter/Plans/Create" class="valora-button valora-button--primary">
+                    <valora-icon name="plus" size="14" decorative="true" /> Criar Primeiro Plano
+                </a>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <article class="p-3 border rounded-3 bg-light shadow-sm h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="eyebrow" style="font-size: 0.72rem;">Time de Liderança</span>
+                                <h3 class="h6 mb-0 text-dark fw-bold">Capacitação em Liderança Situacional & Feedback</h3>
+                            </div>
+                            <span class="status-badge" data-tone="success">Em Execução</span>
+                        </div>
+                        <p class="small text-muted mb-2">
+                            <b>Objetivo:</b> Elevar a consistência das reuniões 1-on-1 e a segurança psicológica das equipes através de treinamento de escuta ativa e planos de carreira.
+                        </p>
+                        <div class="bg-white p-2 rounded border mb-2 small">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Responsável:</span>
+                                <strong>Coordenação de Gente & Cultura</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Prazo:</span>
+                                <span>30/11/2026</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Ações Abertas:</span>
+                                <strong class="text-teal">3 atividades em andamento</strong>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <a href="/ActionCenter" class="small fw-semibold text-teal text-decoration-none">
+                                Acompanhar no Action Center &rarr;
+                            </a>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <article class="p-3 border rounded-3 bg-light shadow-sm h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="eyebrow" style="font-size: 0.72rem;">Área de Operações</span>
+                                <h3 class="h6 mb-0 text-dark fw-bold">Upskilling em Resolução de Problemas & SLAs</h3>
+                            </div>
+                            <span class="status-badge" data-tone="warning">Planejado</span>
+                        </div>
+                        <p class="small text-muted mb-2">
+                            <b>Objetivo:</b> Reduzir o tempo médio de atendimento a incidentes críticos e padronizar o fluxo de comunicação entre equipes técnicas e clientes.
+                        </p>
+                        <div class="bg-white p-2 rounded border mb-2 small">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Responsável:</span>
+                                <strong>Diretoria de Operações</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Prazo:</span>
+                                <span>15/12/2026</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Ações Abertas:</span>
+                                <strong class="text-warning">4 atividades planejadas</strong>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <a href="/ActionCenter" class="small fw-semibold text-teal text-decoration-none">
+                                Acompanhar no Action Center &rarr;
+                            </a>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var x in plans)
+            {
+                <div class="col-12 col-md-6">
+                    <article class="valora-card p-3 shadow-sm border h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="eyebrow" style="font-size: 0.72rem;">@x.SubjectType</span>
+                                <h3 class="h6 mb-0 text-dark fw-bold">@x.SubjectName</h3>
+                            </div>
+                            <span class="status-badge" data-tone="@(x.Status is "completed" or "concluido" ? "success" : "warning")">
+                                @x.Status
+                            </span>
+                        </div>
+                        <p class="small text-muted mb-2">@x.Objective</p>
+                        <div class="bg-light p-2 rounded border mb-2 small">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Responsável:</span>
+                                <strong>@x.ResponsibleName</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="text-muted">Prazo:</span>
+                                <span>@x.DueDate.ToString("dd/MM/yyyy")</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">Atividades:</span>
+                                <strong>@x.OpenItems aberta(s)</strong>
+                            </div>
+                        </div>
+                        <div class="text-end pt-2 border-top">
+                            <a href="/ActionCenter" class="small fw-semibold text-teal text-decoration-none">
+                                Ver atividades no Action Center &rarr;
+                            </a>
+                        </div>
+                    </article>
+                </div>
+            }
+        </div>
+    }
+</main>

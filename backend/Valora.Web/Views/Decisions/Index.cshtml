@@ -1,4 +1,165 @@
 @model IReadOnlyList<Valora.Application.DecisionCenter.OrganizationalDecisionDto>
-@{ ViewData["Title"]="Decisões Organizacionais"; }
+@{
+    ViewData["Title"] = "Decisões Organizacionais";
+}
 
-<main class="dc-page"><header class="dc-hero"><small>RASTREABILIDADE EXECUTIVA</small><h1>Decisões organizacionais</h1><p>Contexto, evidências, responsável, prazo e resultado esperado em uma trilha auditável.</p></header><section class="dc-card">@if(Model.Count==0){<div class="dc-empty"><h2>Ainda não há decisões registradas</h2><p>Registre uma decisão somente quando houver evidência suficiente e responsabilidade definida.</p></div>}else{<table class="dc-table"><thead><tr><th>Decisão</th><th>Status</th><th>Prioridade</th><th>Impacto</th><th>Prazo</th></tr></thead><tbody>@foreach(var x in Model){<tr><td><a href="/Decisions/Details/@x.Id">@x.Title</a><small class="d-block">@x.EvidenceSummary</small></td><td><span class="dc-badge">@x.Status</span></td><td>@x.Priority</td><td>@x.ImpactLevel</td><td>@(x.DueAt?.ToString("dd/MM/yyyy")??"—")</td></tr>}</tbody></table>}</section></main>
+<main class="valora-page decisions-page" data-decisions-index>
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+        "Decisões Organizacionais",
+        "Trilha auditável de decisões executivas vinculadas a evidências, responsáveis e resultados esperados.",
+        "Governança & Rastreabilidade",
+        $"{Model.Count} decisão(ões) registrada(s)",
+        new[] {
+            new PageHeaderAction("Nova decisão", "/Decisions/Create", Style: "primary", Icon: "plus"),
+            new PageHeaderAction("Decision Center", "/DecisionCenter", Icon: "layout-dashboard"),
+            new PageHeaderAction("Ciclos de governança", "/Governance/Cycles", Icon: "layers")
+        }))" />
+
+    <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel(
+        "Como funciona a governança de decisões",
+        "Cada decisão registrada nesta plataforma deve possuir evidência de origem (diagnósticos, alertas ou métricas), um responsável formalmente designado e critérios claros de acompanhamento.",
+        new[] {
+            "Evidência obrigatória: nenhuma decisão executiva é registrada no escuro.",
+            "Impacto e prioridade: orientam a alocação de recursos e planos de ação.",
+            "Ciclo de vida: proposta → em análise → aprovada → implementada → avaliada."
+        }))" />
+
+    <!-- Métricas Executivas -->
+    <section class="metric-grid" aria-label="Resumo das decisões">
+        <article class="metric-card">
+            <span>Total de Decisões</span>
+            <strong>@Model.Count</strong>
+            <small>Registros no escopo</small>
+        </article>
+        <article class="metric-card">
+            <span>Pendentes</span>
+            <strong>@Model.Count(d => d.Status is "pending" or "proposta" or "em_analise")</strong>
+            <small>Aguardam deliberação</small>
+        </article>
+        <article class="metric-card">
+            <span>Aprovadas / Em Curso</span>
+            <strong>@Model.Count(d => d.Status is "approved" or "aprovada" or "em_execucao")</strong>
+            <small>Em fase de implementação</small>
+        </article>
+        <article class="metric-card">
+            <span>Alta Prioridade</span>
+            <strong>@Model.Count(d => d.Priority is "high" or "critical" or "alta" or "critica")</strong>
+            <small>Impacto estratégico direto</small>
+        </article>
+    </section>
+
+    @if (Model.Count == 0)
+    {
+        <div class="valora-card text-center py-5">
+            <valora-icon name="shield" size="48" decorative="true" class="text-muted mb-3" />
+            <h3>Nenhuma decisão registrada ainda</h3>
+            <p class="text-muted mx-auto" style="max-width: 520px;">
+                Registre uma decisão executiva quando houver evidências suficientes geradas a partir de um ciclo diagnóstico ou alerta do Decision Center.
+            </p>
+            <div class="d-flex justify-content-center gap-2 mt-3">
+                <a href="/Decisions/Create" class="valora-button valora-button--primary">Registrar Primeira Decisão</a>
+                <a href="/DecisionCenter" class="valora-button valora-button--ghost">Abrir Decision Center</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Tabela para Telas Médias e Grandes -->
+        <section class="valora-card p-0 d-none d-md-block overflow-hidden" aria-label="Tabela de decisões">
+            <div class="table-responsive">
+                <table class="valora-table mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Título da Deliberação</th>
+                            <th scope="col">Evidência de Origem</th>
+                            <th scope="col">Situação</th>
+                            <th scope="col">Prioridade</th>
+                            <th scope="col">Impacto</th>
+                            <th scope="col">Prazo de Entrega</th>
+                            <th scope="col" class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var decision in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <a href="/Decisions/Details/@decision.Id" class="fw-bold text-dark text-decoration-none d-block">
+                                        @decision.Title
+                                    </a>
+                                    <small class="text-muted">@(string.IsNullOrWhiteSpace(decision.Summary) ? "Sem resumo adicional" : decision.Summary)</small>
+                                </td>
+                                <td>
+                                    <small class="text-secondary d-inline-block" style="max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="@decision.EvidenceSummary">
+                                        @(string.IsNullOrWhiteSpace(decision.EvidenceSummary) ? "Evidência preliminar" : decision.EvidenceSummary)
+                                    </small>
+                                </td>
+                                <td>
+                                    <span class="status-badge" data-tone="@(decision.Status is "approved" or "aprovada" ? "success" : decision.Status is "rejected" ? "danger" : "warning")">
+                                        @decision.Status
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold">@decision.Priority</span>
+                                </td>
+                                <td>
+                                    <span>@decision.ImpactLevel</span>
+                                </td>
+                                <td>
+                                    <span>@(decision.DueAt?.ToString("dd/MM/yyyy") ?? "Sem prazo fixado")</span>
+                                </td>
+                                <td class="text-end">
+                                    <a href="/Decisions/Details/@decision.Id" class="valora-button valora-button--sm valora-button--secondary">
+                                        Ver Detalhes
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Cartões para Smartphones e Dispositivos Móveis -->
+        <div class="d-flex flex-column gap-3 d-md-none" aria-label="Lista móvel de decisões">
+            @foreach (var decision in Model)
+            {
+                <article class="valora-card p-3 shadow-sm border">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                            <span class="eyebrow" style="font-size: 0.72rem;">@decision.ImpactLevel</span>
+                            <h3 class="h6 mb-0 text-dark fw-bold">@decision.Title</h3>
+                        </div>
+                        <span class="status-badge" data-tone="@(decision.Status is "approved" or "aprovada" ? "success" : "warning")">
+                            @decision.Status
+                        </span>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(decision.Summary))
+                    {
+                        <p class="small text-muted mb-2">@decision.Summary</p>
+                    }
+
+                    <div class="bg-light p-2 rounded-3 my-2 small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Prioridade:</span>
+                            <strong>@decision.Priority</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Prazo:</span>
+                            <span>@(decision.DueAt?.ToString("dd/MM/yyyy") ?? "Sem prazo")</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Evidência:</span>
+                            <span class="text-truncate text-end ms-2" style="max-width: 180px;">@decision.EvidenceSummary</span>
+                        </div>
+                    </div>
+
+                    <a href="/Decisions/Details/@decision.Id" class="valora-button valora-button--primary w-100 text-center">
+                        Consultar Trilha de Decisão
+                    </a>
+                </article>
+            }
+        </div>
+    }
+</main>

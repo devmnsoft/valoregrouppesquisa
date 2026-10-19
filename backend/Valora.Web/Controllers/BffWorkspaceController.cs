@@ -1,14 +1,23 @@
 using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 using Valora.Web.Services.Bff;
 
 namespace Valora.Web.Controllers;
 
 [Authorize, ApiController, AutoValidateAntiforgeryToken, Route("bff/workspace")]
-public sealed class BffWorkspaceController(BffAuthenticationService authentication) : ControllerBase {
+public sealed class BffWorkspaceController : ControllerBase {
+    private readonly BffAuthenticationService authentication;
+
+    [ActivatorUtilitiesConstructor]
+    public BffWorkspaceController(BffAuthenticationService authentication) {
+        this.authentication = authentication;
+    }
+
     public BffWorkspaceController(IBffApiClient api, BffAuthenticationService authentication)
         : this(authentication) { _ = api; }
+
     [AcceptVerbs("GET", "POST", "PUT", "DELETE"), Route("{**resource}")]
     public async Task<IActionResult> Forward(string? resource, CancellationToken ct) {
         var session = await authentication.GetAsync(HttpContext, ct);

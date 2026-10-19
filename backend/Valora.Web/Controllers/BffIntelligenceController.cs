@@ -7,9 +7,19 @@ namespace Valora.Web.Controllers;
 
 /// <summary>Typed same-origin gateway for every dedicated intelligence workspace.</summary>
 [Authorize, ApiController, AutoValidateAntiforgeryToken, Route("bff/intelligence")]
-public sealed class BffIntelligenceController(BffAuthenticationService authentication, ILogger<BffIntelligenceController> logger) : ControllerBase {
+public sealed class BffIntelligenceController : ControllerBase {
+    private readonly BffAuthenticationService authentication;
+    private readonly ILogger<BffIntelligenceController> logger;
+
+    [Microsoft.Extensions.DependencyInjection.ActivatorUtilitiesConstructor]
+    public BffIntelligenceController(BffAuthenticationService authentication, ILogger<BffIntelligenceController> logger) {
+        this.authentication = authentication;
+        this.logger = logger;
+    }
+
     public BffIntelligenceController(IBffApiClient api, BffAuthenticationService authentication, ILogger<BffIntelligenceController> logger)
         : this(authentication, logger) { _ = api; }
+
     [AcceptVerbs("GET", "POST", "PATCH", "DELETE")]
     [Route("{**resource}")]
     public async Task<IActionResult> Forward(string? resource, CancellationToken ct) {

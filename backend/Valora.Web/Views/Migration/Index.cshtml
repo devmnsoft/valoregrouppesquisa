@@ -1,25 +1,173 @@
+@model Valora.Web.Models.ViewModels.MigrationIndexViewModel
 @{
-    ViewData["Title"] = "Migração controlada";
-    var batchId = ViewData["BatchId"]?.ToString() ?? "";
+    ViewData["Title"] = "Migração Controlada";
+    var selected = Model.SelectedBatch;
+    var batchId = selected?.Id.ToString() ?? "";
 }
-<div class="container-fluid py-4 migration-page" data-batch-id="@batchId">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div><h1 class="h3">Migração controlada legado → PostgreSQL</h1><p class="text-muted">Dry-run obrigatório, conciliação, apply explícito, rollback por batch e payload sensível mascarado.</p></div>
-        <a class="btn btn-outline-primary" href="/Migration/Batches">Ver batches</a>
-    </div>
-    <div class="row g-3 mb-3">
-        <div class="col-md-3"><div class="card"><div class="card-body"><span class="text-muted">Status</span><h2 id="migrationStatus">Aguardando</h2></div></div></div>
-        <div class="col-md-3"><div class="card"><div class="card-body"><span class="text-muted">Válidos</span><h2 id="validRecords">0</h2></div></div></div>
-        <div class="col-md-3"><div class="card"><div class="card-body"><span class="text-muted">Conflitos</span><h2 id="conflictRecords">0</h2></div></div></div>
-        <div class="col-md-3"><div class="card"><div class="card-body"><span class="text-muted">Sensíveis</span><h2>Mascarados</h2></div></div></div>
-    </div>
-    <div class="alert alert-info">Nenhum JSON bruto, senha, hash, token, segredo, cadeia de conexão ou detalhes técnicos internos é exibido nesta tela.</div>
-    <div class="btn-group mb-3">
-        <a class="btn btn-secondary" href="/Migration/Upload">Upload</a><a class="btn btn-secondary" href="/Migration/DryRun/@batchId">Dry-run</a><a class="btn btn-secondary" href="/Migration/Conflicts/@batchId">Conflitos</a><a class="btn btn-secondary" href="/Migration/Reconciliation/@batchId">Conciliação</a><a class="btn btn-secondary" href="/Migration/Rollback/@batchId">Rollback</a><a class="btn btn-secondary" href="/Migration/CutoverReadiness/@batchId">Cutover readiness</a>
-    </div>
-    <div class="card"><div class="card-header">Divergências</div><div class="card-body"><div class="row g-2 mb-2"><div class="col"><input class="form-control" placeholder="Filtrar entidade" /></div><div class="col"><input class="form-control" placeholder="Filtrar status/severidade" /></div></div><table class="table table-sm"><thead><tr><th>Entidade</th><th>Status</th><th>Severidade</th><th>Mensagem</th></tr></thead><tbody id="migrationRows"><tr><td colspan="4" class="text-muted">Estado vazio: execute um dry-run para carregar divergências mascaradas.</td></tr></tbody></table></div></div>
-    <div class="mt-3"><button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#applyModal">Aplicar com confirmação explícita</button> <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#rollbackModal">Rollback com confirmação explícita</button></div>
-</div>
-<div class="modal" id="applyModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Confirmar apply</h5></div><div class="modal-body">Digite a confirmação operacional no backend. A ação exige dry-run prévio e admin_valora.</div></div></div></div>
-<div class="modal" id="rollbackModal"><div class="modal-dialog"><div class="modal-content"><div class="modal-header"><h5>Confirmar rollback</h5></div><div class="modal-body">Rollback por batch; casos inseguros ficam como revisão manual.</div></div></div></div>
-<script src="/js/migration.js"></script>
+
+<main class="valora-page migration-page" data-batch-id="@batchId">
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+        "Migração Controlada",
+        "Importação, validação e conciliação segura de dados legado para o banco PostgreSQL oficial.",
+        "Governança & Dados",
+        $"{Model.TotalBatches} lote(s) registrado(s)",
+        new[] {
+            new PageHeaderAction("Novo upload", "/Migration/Upload", Style: "primary", Icon: "plus"),
+            new PageHeaderAction("Histórico de lotes", "/Migration/Batches", Icon: "layers")
+        }))" />
+
+    <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel(
+        "Como funciona a migração controlada",
+        "A importação de dados históricos segue o protocolo estrito de três etapas: validação inicial, simulação (dry-run) e conciliação com confirmação explícita. Nenhum dado sensível (senhas, hashes ou segredos) é exposto na interface.",
+        new[] {
+            "Dry-run obrigatório: detecta divergências e conflitos antes de qualquer escrita definitiva.",
+            "Rollback por lote: reverte alterações com segurança em caso de inconsistência.",
+            "Máscara LGPD: dados pessoais e credenciais permanecem sempre protegidos."
+        }))" />
+
+    <!-- Métricas Executivas dos Lotes -->
+    <section class="metric-grid" aria-label="Resumo dos lotes de migração">
+        <article class="metric-card">
+            <span>Total de Lotes</span>
+            <strong>@Model.TotalBatches</strong>
+            <small>Importações processadas</small>
+        </article>
+        <article class="metric-card">
+            <span>Registros Válidos</span>
+            <strong class="text-success">@Model.TotalValid</strong>
+            <small>Validados sem inconformidade</small>
+        </article>
+        <article class="metric-card">
+            <span>Conflitos Mapeados</span>
+            <strong class="@(Model.TotalConflicts > 0 ? "text-warning" : "text-dark")">@Model.TotalConflicts</strong>
+            <small>Requerem conciliação</small>
+        </article>
+        <article class="metric-card">
+            <span>Proteção Ativa</span>
+            <strong class="text-teal">100%</strong>
+            <small>Payloads mascarados</small>
+        </article>
+    </section>
+
+    <!-- Contexto do Lote Selecionado -->
+    <section class="valora-card">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
+            <div>
+                <p class="eyebrow mb-1">Lote Operacional em Foco</p>
+                <h2 class="h5 mb-0">
+                    @(selected is not null ? $"{selected.SourceName} ({selected.SourceType})" : "Nenhum lote selecionado")
+                </h2>
+                <small class="text-muted">
+                    @(selected is not null ? $"Iniciado em {selected.StartedAt?.ToString("dd/MM/yyyy HH:mm") ?? "Pendente"} por {selected.RequestedBy ?? "Sistema"}" : "Faça upload de um arquivo ou selecione um lote na lista abaixo.")
+                </small>
+            </div>
+            @if (Model.Batches.Count > 1)
+            {
+                <form method="get" action="/Migration" class="d-flex align-items-center gap-2">
+                    <label for="seletor-lote" class="small text-muted text-nowrap mb-0">Alternar lote:</label>
+                    <select id="seletor-lote" name="batchId" class="form-select form-select-sm" onchange="this.form.submit()">
+                        @foreach (var b in Model.Batches)
+                        {
+                            <option value="@b.Id" selected="@(selected?.Id == b.Id)">
+                                @b.SourceName (@b.Status) - @b.TotalRecords reg.
+                            </option>
+                        }
+                    </select>
+                </form>
+            }
+        </div>
+
+        <div class="valora-alert valora-alert--info mb-3">
+            <strong>Proteção de dados ativos:</strong> Nenhum JSON bruto, senha, token ou detalhe interno confidencial é exposto nesta visão.
+        </div>
+
+        <!-- Ações do Lote -->
+        <div class="d-flex flex-wrap gap-2 mb-2">
+            <a class="valora-button valora-button--secondary" href="/Migration/Upload">
+                <valora-icon name="plus" size="14" decorative="true" /> Novo Upload
+            </a>
+
+            @if (selected is not null)
+            {
+                <a class="valora-button valora-button--ghost" href="/Migration/DryRun/@selected.Id">
+                    <valora-icon name="activity" size="14" decorative="true" /> Executar Dry-run
+                </a>
+                <a class="valora-button valora-button--ghost" href="/Migration/Conflicts/@selected.Id">
+                    <valora-icon name="alert-triangle" size="14" decorative="true" /> Conflitos (@selected.ConflictRecords)
+                </a>
+                <a class="valora-button valora-button--ghost" href="/Migration/Reconciliation/@selected.Id">
+                    <valora-icon name="check-circle" size="14" decorative="true" /> Conciliação
+                </a>
+                <a class="valora-button valora-button--ghost" href="/Migration/CutoverReadiness/@selected.Id">
+                    <valora-icon name="shield" size="14" decorative="true" /> Cutover Readiness
+                </a>
+                <a class="valora-button valora-button--ghost text-danger" href="/Migration/Rollback/@selected.Id">
+                    <valora-icon name="rotate-ccw" size="14" decorative="true" /> Rollback
+                </a>
+            }
+            else
+            {
+                <button class="valora-button valora-button--ghost" disabled title="Selecione ou carregue um lote para simular dry-run">
+                    Executar Dry-run
+                </button>
+                <button class="valora-button valora-button--ghost" disabled title="Selecione um lote para verificar conflitos">
+                    Conflitos
+                </button>
+            }
+        </div>
+    </section>
+
+    <!-- Lista de Lotes Cadastrados -->
+    @if (Model.Batches.Count > 0)
+    {
+        <section class="valora-card p-0 overflow-hidden mt-3">
+            <div class="p-3 border-bottom bg-light">
+                <h3 class="h6 mb-0 text-dark fw-bold">Lotes de Importação Registrados</h3>
+            </div>
+            <div class="table-responsive">
+                <table class="valora-table mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Origem</th>
+                            <th scope="col">Modo</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Válidos</th>
+                            <th scope="col">Conflitos</th>
+                            <th scope="col">Data</th>
+                            <th scope="col" class="text-end">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var b in Model.Batches)
+                        {
+                            <tr class="@(selected?.Id == b.Id ? "bg-light" : "")">
+                                <td>
+                                    <strong class="d-block text-dark">@b.SourceName</strong>
+                                    <small class="text-muted">Tipo: @b.SourceType</small>
+                                </td>
+                                <td><span class="badge bg-secondary">@b.Mode</span></td>
+                                <td>
+                                    <span class="status-badge" data-tone="@(b.Status is "completed" or "applied" ? "success" : b.Status is "failed" ? "danger" : "warning")">
+                                        @b.Status
+                                    </span>
+                                </td>
+                                <td><span class="text-success fw-bold">@b.ValidRecords</span>/@b.TotalRecords</td>
+                                <td>
+                                    <span class="@(b.ConflictRecords > 0 ? "text-warning fw-bold" : "text-muted")">
+                                        @b.ConflictRecords
+                                    </span>
+                                </td>
+                                <td>@(b.StartedAt?.ToString("dd/MM/yyyy HH:mm") ?? "—")</td>
+                                <td class="text-end">
+                                    <a href="/Migration?batchId=@b.Id" class="valora-button valora-button--sm valora-button--secondary">
+                                        Selecionar
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    }
+</main>

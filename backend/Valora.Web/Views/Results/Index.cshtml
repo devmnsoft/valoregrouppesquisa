@@ -1,22 +1,254 @@
-@{ ViewData["Title"] = "Resultados"; }
-<section class="valora-page operational-page" data-results-index>
-  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Resultados", "Consulte devolutivas e análises consolidadas dos diagnósticos autorizados.", "Inteligência Valora", "Resultados", new[] { new PageHeaderAction("Abrir diagnósticos", "/Surveys", Style: "primary", Icon: "search"), new PageHeaderAction("Gerar relatório", "/Reports", Icon: "file-text") }))" />
-  <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar os resultados", "Localize uma coleta válida, revise evidências e limitações e só então gere o relatório executivo ou o plano de ação."))" />
-  <partial name="_PageProgressChecklist" model="@(new PageProgressChecklistViewModel("Da resposta à decisão", "Resultados só avançam quando a amostra sustenta uma leitura responsável.", new[] { new GuidedStepCardViewModel("Suficiência validada", "Confirme o mínimo de respostas.", "current"), new GuidedStepCardViewModel("Índices calculados", "Processe dimensões e indicadores."), new GuidedStepCardViewModel("Evidências e limitações", "Revise fontes, confiança e ressalvas."), new GuidedStepCardViewModel("Recomendações", "Valide prioridades sugeridas."), new GuidedStepCardViewModel("Resultado publicado", "Libere relatório e plano de ação.") }))" />
-  <section class="metric-grid" aria-label="Fluxo dos resultados">
-    <article class="metric-card"><span>1. Coleta</span><strong>Diagnóstico</strong><small>Confirme prazo, público e participação.</small></article>
-    <article class="metric-card"><span>2. Leitura</span><strong>Evidências</strong><small>Valide suficiência, limitações e contexto.</small></article>
-    <article class="metric-card"><span>3. Decisão</span><strong>Próxima ação</strong><small>Gere relatório ou plano somente após revisão.</small></article>
-  </section>
-  <div class="operational-grid">
-    <section class="valora-card operational-panel" aria-labelledby="find-result-title">
-      <div><p class="eyebrow">Consulta segura</p><h2 id="find-result-title">Localize a coleta de origem</h2><p>Os resultados disponíveis ficam vinculados às respostas do diagnóstico e respeitam o escopo da organização selecionada.</p></div>
-      <form method="get" action="/Responses" class="valora-filter-bar compact-filter" role="search">
-        <div class="valora-field"><label for="result-search">Buscar participante ou diagnóstico</label><input class="form-control" id="result-search" name="search" type="search" maxlength="160" placeholder="Digite nome, e-mail ou diagnóstico"></div>
-        <button class="valora-button valora-button--primary" type="submit">Consultar respostas</button>
-      </form>
-      <div class="valora-alert valora-alert--info" role="status"><strong>Leitura responsável.</strong><span>Sem respostas suficientes, o sistema não apresenta conclusão e orienta uma nova coleta.</span></div>
+@model Valora.Web.Models.ViewModels.ResultsIndexViewModel
+@{
+    ViewData["Title"] = "Resultados Consolidados";
+}
+
+<main class="valora-page results-page" data-results-index>
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+        "Resultados Consolidados",
+        "Consulte devolutivas analíticas, pontuações de maturidade e evidências calculadas para a organização.",
+        "Inteligência Valora™",
+        $"{Model.TotalResults} resultado(s)",
+        new[] {
+            new PageHeaderAction("Novo diagnóstico", "/Surveys", Style: "primary", Icon: "plus"),
+            new PageHeaderAction("Central de relatórios", "/Reports", Icon: "file-text"),
+            new PageHeaderAction("Planos de ação", "/ActionCenter", Icon: "check-circle")
+        }))" />
+
+    <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel(
+        "Como funciona a consolidação de resultados",
+        "Os resultados são gerados a partir do processamento das respostas completas de cada ciclo diagnóstico. Apenas amostras que atendem aos critérios de suficiência metodológica permitem a publicação formal de relatórios executivos e certificações.",
+        new[] {
+            "Suficiência amostral: garante confiabilidade estatística e evita conclusões precipitadas.",
+            "Nível de maturidade: categoriza a organização em Inicial, Em Desenvolvimento, Consolidado ou Excelente.",
+            "Rastreabilidade: cada índice aponta para dimensões, perguntas e evidências auditáveis."
+        }))" />
+
+    <!-- Métricas Executivas -->
+    <section class="metric-grid" aria-label="Indicadores dos resultados">
+        <article class="metric-card">
+            <span>Resultados Processados</span>
+            <strong>@Model.TotalResults</strong>
+            <small>Devolutivas registradas</small>
+        </article>
+        <article class="metric-card">
+            <span>Maturidade Média</span>
+            <strong>@(Model.AveragePercentage > 0 ? $"{Model.AveragePercentage}%" : "—")</strong>
+            <small>Score geral ponderado</small>
+        </article>
+        <article class="metric-card">
+            <span>Amostras Suficientes</span>
+            <strong>@Model.SufficientCount</strong>
+            <small>Aptas para decisão executiva</small>
+        </article>
+        <article class="metric-card">
+            <span>Prontos para Relatório</span>
+            <strong>@Model.ReadyForReportCount</strong>
+            <small>Com leitura completa</small>
+        </article>
     </section>
-    <aside class="valora-card operational-panel"><p class="eyebrow">Próximos passos</p><h2>Transforme evidência em decisão</h2><div class="action-link-list"><a href="/Reports"><strong>Gerar relatório executivo</strong><span>Escolha um diagnóstico e o formato de saída.</span></a><a href="/ActionCenter"><strong>Criar plano de ação</strong><span>Defina responsáveis, prioridade e prazo.</span></a><a href="/Intelligence/Evidence"><strong>Revisar evidências</strong><span>Confira fonte, limitações e confiança.</span></a></div></aside>
-  </div>
-</section>
+
+    <!-- Barra de Filtros Responsiva -->
+    <section class="valora-card">
+        <form method="get" action="/Results" class="valora-filter-bar" role="search">
+            <div class="valora-field">
+                <label for="filtro-busca">Pesquisar diagnóstico ou participante</label>
+                <input class="form-control" id="filtro-busca" name="search" type="search" value="@Model.Search" placeholder="Digite o título da pesquisa, nome ou status">
+            </div>
+            <div class="valora-field">
+                <label for="filtro-maturidade">Nível de maturidade</label>
+                <select class="form-select" id="filtro-maturidade" name="maturity">
+                    <option value="all">Todos os níveis</option>
+                    <option value="Excelente" selected="@(string.Equals(Model.MaturityFilter, "Excelente", StringComparison.OrdinalIgnoreCase))">Excelente</option>
+                    <option value="Consolidado" selected="@(string.Equals(Model.MaturityFilter, "Consolidado", StringComparison.OrdinalIgnoreCase))">Consolidado</option>
+                    <option value="Em Desenvolvimento" selected="@(string.Equals(Model.MaturityFilter, "Em Desenvolvimento", StringComparison.OrdinalIgnoreCase))">Em Desenvolvimento</option>
+                    <option value="Inicial" selected="@(string.Equals(Model.MaturityFilter, "Inicial", StringComparison.OrdinalIgnoreCase))">Inicial</option>
+                </select>
+            </div>
+            <div class="d-flex align-items-end gap-2">
+                <button class="valora-button valora-button--primary" type="submit">Filtrar</button>
+                @if (!string.IsNullOrWhiteSpace(Model.Search) || !string.IsNullOrWhiteSpace(Model.MaturityFilter))
+                {
+                    <a href="/Results" class="valora-button valora-button--ghost">Limpar</a>
+                }
+            </div>
+        </form>
+    </section>
+
+    <!-- Lista de Resultados -->
+    @if (Model.Items.Count == 0)
+    {
+        <div class="valora-card text-center py-5">
+            <valora-icon name="chart-radar" size="48" decorative="true" class="text-muted mb-3" />
+            <h3>Nenhum resultado localizado</h3>
+            <p class="text-muted mx-auto" style="max-width: 520px;">
+                @(string.IsNullOrWhiteSpace(Model.Search) && string.IsNullOrWhiteSpace(Model.MaturityFilter)
+                    ? "Para que os resultados consolidados apareçam aqui, inicie uma coleta de diagnóstico e obtenha participações concluídas."
+                    : "Nenhum resultado corresponde aos critérios de pesquisa informados.")
+            </p>
+            <div class="d-flex justify-content-center gap-2 mt-3">
+                <a href="/Surveys" class="valora-button valora-button--primary">Ir para Diagnósticos</a>
+                <a href="/Responses" class="valora-button valora-button--ghost">Ver Respostas Brutas</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Visão Tabela Desktop / Tablet -->
+        <section class="valora-card p-0 d-none d-md-block overflow-hidden" aria-label="Tabela de resultados">
+            <div class="table-responsive">
+                <table class="valora-table mb-0">
+                    <thead>
+                        <tr>
+                            <th scope="col">Diagnóstico de Origem</th>
+                            <th scope="col">Participante</th>
+                            <th scope="col">Score / Índice</th>
+                            <th scope="col">Nível de Maturidade</th>
+                            <th scope="col">Suficiência</th>
+                            <th scope="col">Concluído em</th>
+                            <th scope="col" class="text-end">Ações Executivas</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <strong class="d-block text-dark">@item.SurveyTitle</strong>
+                                    <small class="text-muted">ID de resposta: @item.ResponseId.ToString()[..8]…</small>
+                                </td>
+                                <td>
+                                    <span class="d-block fw-semibold">@item.ParticipantMasked</span>
+                                    <small class="text-muted">@item.ParticipantEmailMasked</small>
+                                </td>
+                                <td>
+                                    @if (item.Percentage.HasValue)
+                                    {
+                                        <div class="d-flex align-items-center gap-2">
+                                            <strong>@item.Percentage.Value.ToString("F1")%</strong>
+                                            <small class="text-muted">(@(item.TotalScore?.ToString("F0") ?? "0")/@(item.MaxScore?.ToString("F0") ?? "0") pts)</small>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">Não calculado</span>
+                                    }
+                                </td>
+                                <td>
+                                    @{
+                                        var tone = item.MaturityLabel.ToLowerInvariant() switch {
+                                            "excelente" => "success",
+                                            "consolidado" => "success",
+                                            "em desenvolvimento" => "warning",
+                                            "inicial" => "danger",
+                                            _ => "neutral"
+                                        };
+                                    }
+                                    <span class="status-badge" data-tone="@tone">@item.MaturityLabel</span>
+                                </td>
+                                <td>
+                                    @if (item.HasSufficiency)
+                                    {
+                                        <span class="text-success fw-semibold"><valora-icon name="check-circle" size="14" decorative="true" /> Suficiente</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-warning fw-semibold"><valora-icon name="alert-triangle" size="14" decorative="true" /> Requer revisão</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span>@item.CompletedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-1">
+                                        <a href="/Results/Details/@item.ResponseId" class="valora-button valora-button--sm valora-button--secondary" title="Ver detalhes do resultado executivo">
+                                            <valora-icon name="eye" size="14" decorative="true" /> Visualizar
+                                        </a>
+                                        @if (item.SurveyId.HasValue)
+                                        {
+                                            <a href="/Reports/Prepare?diagnosticId=@item.SurveyId" class="valora-button valora-button--sm valora-button--ghost" title="Gerar relatório formal">
+                                                <valora-icon name="file-text" size="14" decorative="true" /> Relatório
+                                            </a>
+                                        }
+                                        <a href="/ActionCenter/Plans/Create" class="valora-button valora-button--sm valora-button--ghost" title="Criar plano de ação a partir deste resultado">
+                                            <valora-icon name="check-circle" size="14" decorative="true" /> Ação
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Visão Cards Mobile (Adaptada a Smartphones) -->
+        <div class="d-flex flex-column gap-3 d-md-none" aria-label="Lista móvel de resultados">
+            @foreach (var item in Model.Items)
+            {
+                <article class="valora-card p-3 shadow-sm border">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                            <span class="eyebrow" style="font-size: 0.72rem;">Diagnóstico</span>
+                            <h3 class="h6 mb-0 text-dark fw-bold">@item.SurveyTitle</h3>
+                        </div>
+                        @{
+                            var toneM = item.MaturityLabel.ToLowerInvariant() switch {
+                                "excelente" => "success",
+                                "consolidado" => "success",
+                                "em desenvolvimento" => "warning",
+                                "inicial" => "danger",
+                                _ => "neutral"
+                            };
+                        }
+                        <span class="status-badge" data-tone="@toneM">@item.MaturityLabel</span>
+                    </div>
+
+                    <div class="bg-light p-2 rounded-3 my-2">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">Participante:</small>
+                            <small class="fw-semibold text-dark">@item.ParticipantMasked</small>
+                        </div>
+                        <div class="d-flex justify-content-between mb-1">
+                            <small class="text-muted">E-mail protegido:</small>
+                            <small class="text-muted">@item.ParticipantEmailMasked</small>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small class="text-muted">Pontuação:</small>
+                            <strong class="text-teal">@(item.Percentage.HasValue ? $"{item.Percentage.Value:F1}%" : "—")</strong>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center text-muted small mb-3">
+                        <span><valora-icon name="calendar" size="14" decorative="true" /> @item.CompletedAt.ToString("dd/MM/yyyy")</span>
+                        @if (item.HasSufficiency)
+                        {
+                            <span class="text-success"><valora-icon name="check" size="14" decorative="true" /> Amostra válida</span>
+                        }
+                        else
+                        {
+                            <span class="text-warning"><valora-icon name="alert-triangle" size="14" decorative="true" /> Sob revisão</span>
+                        }
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <a href="/Results/Details/@item.ResponseId" class="valora-button valora-button--primary text-center">
+                            Ver Resultado Completo
+                        </a>
+                        <div class="d-flex gap-2">
+                            @if (item.SurveyId.HasValue)
+                            {
+                                <a href="/Reports/Prepare?diagnosticId=@item.SurveyId" class="valora-button valora-button--secondary flex-fill text-center">
+                                    Relatório
+                                </a>
+                            }
+                            <a href="/ActionCenter/Plans/Create" class="valora-button valora-button--ghost flex-fill text-center">
+                                Plano de Ação
+                            </a>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</main>

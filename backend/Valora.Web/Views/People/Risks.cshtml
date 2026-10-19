@@ -1,2 +1,131 @@
 @model Valora.Web.Models.ViewModels.PeopleViewModel
-@{Layout="_Layout";}<partial name="_PeopleShell" model="Model"/><p class="people-note">Riscos são sinais preventivos, nunca sentenças. Qualquer decisão sensível exige revisão e confirmação humana.</p><div class="people-grid">@foreach(var x in Model.Dashboard.Risks){<article class="people-card"><h2>@x.SignalType</h2><p>Confiança @x.Confidence · @x.Status</p><p><b>Evidência:</b> @x.EvidenceSummary</p><p><b>Limitações:</b> @x.Limitations</p><p>Revisão humana: @(x.HumanReviewed?"realizada":"obrigatória")</p></article>}</div>
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Riscos & Alertas de Pessoas";
+    var risks = Model.Dashboard.Risks;
+}
+
+<main class="valora-page people-risks-page" data-people-risks>
+    <partial name="_PageHeader" model="@(new PageHeaderViewModel(
+        "Riscos & Alertas Preventivos de Pessoas",
+        "Detecção antecipada de fatores de risco de retenção, clima e sobrecarga com validação humana obrigatória.",
+        "People & Riscos",
+        $"{risks.Count} risco(s) monitorado(s)",
+        new[] {
+            new PageHeaderAction("Planos de mitigação", "/RiskCompliance", Icon: "shield"),
+            new PageHeaderAction("Central de ações", "/ActionCenter", Style: "primary", Icon: "check-circle")
+        }))" />
+
+    <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel(
+        "Princípios de Gestão de Riscos de Pessoas",
+        "Riscos são sinais preventivos de apoio à gestão, nunca rótulos ou sentenças contra indivíduos. Nenhuma ação restritiva ou decisão sensível pode ser tomada sem validação e confirmação humana formal.",
+        new[] {
+            "Foco sistêmico: investiga causas operacionais, sobrecarga de processos e dinâmicas de equipe.",
+            "Confirmação humana explícita: alertas de risco exigem revisão de liderança antes de qualquer deliberação.",
+            "LGPD e ética: dados preservam a dignidade e a privacidade de todos os envolvidos."
+        }))" />
+
+    <partial name="_PeopleShell" model="Model" />
+
+    @if (risks.Count == 0)
+    {
+        <!-- Demonstração Metodológica com Dados Reais de Exemplo -->
+        <section class="valora-card mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <span class="badge bg-info text-dark mb-1">Demonstração Metodológica</span>
+                    <h2 class="h5 mb-0 text-dark fw-bold">Matriz de Riscos Preventivos Valora™</h2>
+                    <p class="text-muted small mb-0">
+                        Como os riscos operacionais e comportamentais são mapeados preventivamente:
+                    </p>
+                </div>
+                <a href="/RiskCompliance" class="valora-button valora-button--primary">
+                    <valora-icon name="shield" size="14" decorative="true" /> Abrir Risk & Compliance
+                </a>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-12 col-md-6">
+                    <article class="p-3 border rounded-3 bg-light shadow-sm h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="eyebrow text-warning" style="font-size: 0.72rem;">Risco de Retenção</span>
+                                <h3 class="h6 mb-0 text-dark fw-bold">Concentração de Conhecimento Crítico</h3>
+                            </div>
+                            <span class="status-badge" data-tone="warning">Em Acompanhamento</span>
+                        </div>
+                        <p class="small text-muted mb-2">
+                            <b>Evidência:</b> Três processos essenciais dependem exclusivamente de um único colaborador sem documentação ou substituto mapeado.
+                        </p>
+                        <div class="bg-white p-2 rounded border mb-2 small">
+                            <div class="d-flex justify-content-between text-muted mb-1">
+                                <span>Confiança: <strong>Alta</strong></span>
+                                <span>Revisão Humana: <strong class="text-success">Confirmada ✓</strong></span>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <a href="/ActionCenter/Plans/Create" class="small fw-semibold text-teal text-decoration-none">
+                                Criar plano de mitigação &rarr;
+                            </a>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <article class="p-3 border rounded-3 bg-light shadow-sm h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="eyebrow text-danger" style="font-size: 0.72rem;">Risco de Clima</span>
+                                <h3 class="h6 mb-0 text-dark fw-bold">Desalinhamento de Carga de Trabalho em Sprint</h3>
+                            </div>
+                            <span class="status-badge" data-tone="danger">Atenção Prioritária</span>
+                        </div>
+                        <p class="small text-muted mb-2">
+                            <b>Evidência:</b> Reincidência de horas excedentes nos últimos 45 dias apontada no diagnóstico de saúde operacional.
+                        </p>
+                        <div class="bg-white p-2 rounded border mb-2 small">
+                            <div class="d-flex justify-content-between text-muted mb-1">
+                                <span>Confiança: <strong>Alta</strong></span>
+                                <span>Revisão Humana: <strong class="text-success">Confirmada ✓</strong></span>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <a href="/ActionCenter/Plans/Create" class="small fw-semibold text-teal text-decoration-none">
+                                Criar plano de mitigação &rarr;
+                            </a>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </section>
+    }
+    else
+    {
+        <div class="row g-3">
+            @foreach (var x in risks)
+            {
+                <div class="col-12 col-md-6">
+                    <article class="valora-card p-3 shadow-sm border h-100">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h3 class="h6 mb-0 text-dark fw-bold">@x.SignalType</h3>
+                            <span class="status-badge" data-tone="@(x.HumanReviewed ? "success" : "danger")">
+                                @(x.HumanReviewed ? "Revisão Confirmada" : "Pendente de Revisão")
+                            </span>
+                        </div>
+                        <p class="small text-muted mb-2">@x.EvidenceSummary</p>
+                        <div class="bg-light p-2 rounded border mb-2 small">
+                            <div class="d-flex justify-content-between text-muted mb-1">
+                                <span>Confiança: <strong>@x.Confidence</strong></span>
+                                <span>Status: <strong>@x.Status</strong></span>
+                            </div>
+                        </div>
+                        @if (!string.IsNullOrWhiteSpace(x.Limitations))
+                        {
+                            <p class="small text-secondary mb-0"><b>Limitações:</b> @x.Limitations</p>
+                        }
+                    </article>
+                </div>
+            }
+        </div>
+    }
+</main>

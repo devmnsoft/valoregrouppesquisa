@@ -1,9 +1,293 @@
-@{ ViewData["Title"] = "Auditoria"; }
-<section class="valora-page page-card official-module" data-page="audit-page">
-  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Auditoria", "Eventos de negócio, contexto e rastreabilidade sem exposição de dados sensíveis.", "Governança · Evidências", Actions: new[] { new PageHeaderAction("Atualizar", DataAction: "refresh", Style: "primary", Icon: "refresh") }))" />
-  <div class="row g-3 mt-2" data-summary-cards><div class="col-md-4"><div class="metric-card"><span>Eventos</span><strong data-card="eventos">Carregando…</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Filtros</span><strong data-card="filtros">Carregando…</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Recursos</span><strong data-card="recursos">Carregando…</strong></div></div></div>
-  <div class="alert alert-warning d-none mt-3" data-gap-controlled="true" data-gap-card>Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.</div>
-  <div class="alert alert-danger d-none mt-3" role="alert" data-error></div>
-  <div class="table-responsive mt-3"><table class="table table-sm align-middle"><thead><tr><th>Nome</th><th>Status</th><th>Detalhes</th><th>Ação</th></tr></thead><tbody data-items></tbody></table></div>
-</section>
-@section Scripts { <script src="/js/pages/audit-page.js"></script> }
+@model Valora.Web.Models.ViewModels.AuditIndexViewModel
+@{
+    ViewData["Title"] = "Trilha de Auditoria & Governança";
+}
+
+<div class="container-fluid py-4" data-module="Audit">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Início</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Auditoria & Governança</li>
+                </ol>
+            </nav>
+            <h1 class="h2 fw-bold text-dark mb-1">Trilha de Auditoria & Integridade</h1>
+            <p class="text-muted mb-0">Registro imutável de eventos de negócio, acessos, exportações e decisões com isolamento de contexto organizacional.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="/Exports" class="btn btn-outline-secondary">
+                <i class="bi bi-download me-1"></i> Central de Exportações
+            </a>
+            <button type="button" class="btn btn-primary" onclick="location.reload()">
+                <i class="bi bi-arrow-clockwise me-1"></i> Atualizar
+            </button>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] is not null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+    }
+
+    <!-- Métricas Superiores -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary me-3">
+                        <i class="bi bi-shield-check fs-3"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted small fw-medium d-block">Total de Eventos</span>
+                        <strong class="fs-4 text-dark">@Model.TotalCount</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-info bg-opacity-10 p-3 text-info me-3">
+                        <i class="bi bi-clock-history fs-3"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted small fw-medium d-block">Últimas 24 Horas</span>
+                        <strong class="fs-4 text-dark">@Model.Last24HoursCount</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-warning bg-opacity-10 p-3 text-warning me-3">
+                        <i class="bi bi-exclamation-diamond fs-3"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted small fw-medium d-block">Alertas / Críticos</span>
+                        <strong class="fs-4 text-dark">@Model.CriticalCount</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success me-3">
+                        <i class="bi bi-lock-fill fs-3"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted small fw-medium d-block">Integridade</span>
+                        <strong class="fs-4 text-dark">100% Imutável</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de Filtros -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-3">
+            <form method="get" action="/Audit" class="row g-2 align-items-end">
+                <div class="col-12 col-md-4">
+                    <label class="form-label small fw-semibold text-muted mb-1" for="inputSearch">Busca Textual</label>
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                        <input type="text" class="form-control" id="inputSearch" name="search" value="@Model.Search" placeholder="Ação, mensagem ou correlação..." />
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <label class="form-label small fw-semibold text-muted mb-1" for="selectSeverity">Severidade</label>
+                    <select class="form-select form-select-sm" id="selectSeverity" name="severityFilter">
+                        <option value="">Todas as severidades</option>
+                        <option value="info" selected="@(Model.SeverityFilter == "info")">Info (Operações comuns)</option>
+                        <option value="warning" selected="@(Model.SeverityFilter == "warning")">Warning (Alertas operacionais)</option>
+                        <option value="error" selected="@(Model.SeverityFilter == "error")">Error (Falhas de execução)</option>
+                        <option value="critical" selected="@(Model.SeverityFilter == "critical")">Critical (Segurança & Crítico)</option>
+                    </select>
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <label class="form-label small fw-semibold text-muted mb-1" for="selectEntity">Entidade</label>
+                    <select class="form-select form-select-sm" id="selectEntity" name="entityFilter">
+                        <option value="">Todas as entidades</option>
+                        <option value="export" selected="@(Model.EntityFilter == "export")">Exportação</option>
+                        <option value="survey" selected="@(Model.EntityFilter == "survey")">Pesquisa</option>
+                        <option value="user" selected="@(Model.EntityFilter == "user")">Usuário</option>
+                        <option value="organization" selected="@(Model.EntityFilter == "organization")">Organização</option>
+                        <option value="process" selected="@(Model.EntityFilter == "process")">Processo</option>
+                        <option value="auth" selected="@(Model.EntityFilter == "auth")">Autenticação</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-2 d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-primary flex-grow-1">
+                        <i class="bi bi-funnel me-1"></i> Filtrar
+                    </button>
+                    @if (!string.IsNullOrWhiteSpace(Model.Search) || !string.IsNullOrWhiteSpace(Model.SeverityFilter) || !string.IsNullOrWhiteSpace(Model.EntityFilter))
+                    {
+                        <a href="/Audit" class="btn btn-sm btn-outline-secondary" title="Limpar filtros">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabela de Auditoria -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0 fw-bold text-dark">Eventos Registrados (@Model.TotalCount)</h2>
+            <span class="badge bg-secondary-subtle text-secondary">Isolamento Multi-tenant Ativo</span>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Items.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <div class="text-muted mb-3"><i class="bi bi-shield-slash fs-1"></i></div>
+                    <h3 class="h5 text-secondary">Nenhum evento localizado</h3>
+                    <p class="text-muted small mb-0">Não foram encontrados registros para os filtros selecionados ou a organização ainda não possui eventos históricos.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" class="ps-3">Data e Hora</th>
+                                <th scope="col">Severidade</th>
+                                <th scope="col">Ação / Operação</th>
+                                <th scope="col">Entidade</th>
+                                <th scope="col">Mensagem Descritiva</th>
+                                <th scope="col">Ator / Origem</th>
+                                <th scope="col" class="text-end pe-3">Metadados</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ev in Model.Items)
+                            {
+                                <tr>
+                                    <td class="ps-3 text-nowrap small text-muted">
+                                        <i class="bi bi-calendar3 me-1"></i>
+                                        @ev.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")
+                                    </td>
+                                    <td>
+                                        <span class="badge @ev.SeverityBadgeClass text-uppercase font-monospace" style="font-size: 0.7rem;">
+                                            @ev.Severity
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi @ev.ActionIcon fs-6"></i>
+                                            <span class="fw-semibold text-dark">@ev.Action</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge text-bg-light border text-capitalize">@ev.EntityType</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-dark">@(string.IsNullOrWhiteSpace(ev.Message) ? "-" : ev.Message)</span>
+                                    </td>
+                                    <td class="small text-muted text-nowrap">
+                                        <i class="bi bi-person-circle me-1"></i> @(ev.UserDisplay ?? "Sistema")
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                onclick="exibirMetadados('@ev.Action', '@ev.EntityType', @(Html.Raw(System.Text.Json.JsonSerializer.Serialize(ev.MetadataJson ?? "{}"))))">
+                                            <i class="bi bi-code-slash me-1"></i> Inspecionar
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginação -->
+                @if (Model.TotalPages > 1)
+                {
+                    <div class="card-footer bg-white border-top py-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <span class="small text-muted">Página @Model.Page de @Model.TotalPages (Total: @Model.TotalCount registros)</span>
+                        <nav aria-label="Navegação da paginação">
+                            <ul class="pagination pagination-sm mb-0">
+                                <li class="page-item @(!Model.HasPreviousPage ? "disabled" : "")">
+                                    <a class="page-link" href="/Audit?page=@(Model.Page - 1)&search=@Model.Search&severityFilter=@Model.SeverityFilter&entityFilter=@Model.EntityFilter">Anterior</a>
+                                </li>
+                                @for (var p = Math.Max(1, Model.Page - 2); p <= Math.Min(Model.TotalPages, Model.Page + 2); p++)
+                                {
+                                    <li class="page-item @(p == Model.Page ? "active" : "")">
+                                        <a class="page-link" href="/Audit?page=@p&search=@Model.Search&severityFilter=@Model.SeverityFilter&entityFilter=@Model.EntityFilter">@p</a>
+                                    </li>
+                                }
+                                <li class="page-item @(!Model.HasNextPage ? "disabled" : "")">
+                                    <a class="page-link" href="/Audit?page=@(Model.Page + 1)&search=@Model.Search&severityFilter=@Model.SeverityFilter&entityFilter=@Model.EntityFilter">Próxima</a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal Inspeção de Metadados -->
+<div class="modal fade" id="modalAuditMetadata" tabindex="-1" aria-labelledby="modalAuditMetadataLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="modalAuditMetadataLabel">
+                    <i class="bi bi-file-earmark-code me-2 text-primary"></i>Metadados do Evento de Auditoria
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3 d-flex gap-2">
+                    <span class="badge text-bg-primary" id="modalMetaAction">Ação</span>
+                    <span class="badge text-bg-secondary" id="modalMetaEntity">Entidade</span>
+                </div>
+                <label class="form-label small fw-semibold text-muted" for="modalMetaJson">Payload de Metadados (JSON Sanitizado)</label>
+                <textarea class="form-control font-monospace small bg-light" id="modalMetaJson" rows="10" readonly></textarea>
+                <div class="form-text mt-2 small text-muted">
+                    <i class="bi bi-shield-lock me-1"></i> Segredos, hashes e credenciais confidenciais são excluídos por desenho na origem.
+                </div>
+            </div>
+            <div class="modal-footer border-top bg-light">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function exibirMetadados(action, entity, rawJson) {
+            document.getElementById('modalMetaAction').textContent = action;
+            document.getElementById('modalMetaEntity').textContent = entity;
+
+            let formatted = rawJson;
+            try {
+                const parsed = typeof rawJson === 'string' ? JSON.parse(rawJson) : rawJson;
+                formatted = JSON.stringify(parsed, null, 2);
+            } catch (e) {
+                formatted = rawJson;
+            }
+
+            document.getElementById('modalMetaJson').value = formatted;
+
+            const modalEl = document.getElementById('modalAuditMetadata');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            }
+        }
+    </script>
+}

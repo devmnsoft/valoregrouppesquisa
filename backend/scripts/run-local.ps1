@@ -1,3 +1,8 @@
+[CmdletBinding()]
+param(
+    [switch]$KillExisting = $false
+)
+
 $ErrorActionPreference = "Stop"
 
 $Root = Split-Path -Parent $PSScriptRoot
@@ -39,8 +44,18 @@ function Assert-PortFree {
     $listeners = @(Get-PortListeners -Port $Port)
     if ($listeners.Count -eq 0) { return }
 
+    if ($KillExisting) {
+        Write-Host "Porta $Port ocupada. Encerrando processo ouvinte anterior com -KillExisting..." -ForegroundColor Yellow
+        foreach ($listener in $listeners) {
+            Stop-ProcessTree -ProcessId $listener.PID
+        }
+        Start-Sleep -Seconds 1
+        $listeners = @(Get-PortListeners -Port $Port)
+        if ($listeners.Count -eq 0) { return }
+    }
+
     Write-Error @"
-Nao foi possivel iniciar o ${ServiceName}: a porta $Port esta ocupada. Encerre a instancia anterior ou revise a configuracao de inicializacao.
+Nao foi possivel iniciar o ${ServiceName}: a porta $Port esta ocupada. Encerre a instancia anterior ou execute com -KillExisting.
 Listeners encontrados:
 $(Format-PortListeners -Listeners $listeners | Out-String)
 "@

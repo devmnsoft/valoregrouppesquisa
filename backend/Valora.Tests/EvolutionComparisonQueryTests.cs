@@ -181,7 +181,7 @@ public sealed class EvolutionComparisonQueryTests {
     }
 
     private async System.Threading.Tasks.Task<EvolutionComparisonDto> CreateComparableResult() =>
-        await Service(FirstSurvey(), SecondSurvey()).EvolutionComparisonAsync(Org, null, null, default)!;
+        (await Service(FirstSurvey(), SecondSurvey()).EvolutionComparisonAsync(Org, null, null, default))!;
 
     private sealed class ComparisonRepository(IReadOnlyList<EvolutionSurveyComparisonDto> surveys) : IOrganizationalIntelligenceRepository {
         public Task<EvidenceSummaryDto> GetEvidenceAsync(Guid organizationId, CancellationToken ct) => throw new NotImplementedException();

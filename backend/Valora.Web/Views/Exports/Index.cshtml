@@ -1,6 +1,395 @@
-@{ ViewData["Title"] = "Exports"; }
-<div class="container-fluid py-3" data-module="Exports">
-  <div class="d-flex justify-content-between align-items-center mb-3"><h1 class="h3">Exports</h1><span class="badge text-bg-info">Backend oficial</span></div>
-  <div class="card shadow-sm"><div class="card-body"><p class="text-muted">Tela MVC/Razor oficial com Bootstrap 5 e AJAX seguro. Dados sensíveis como senha, hash, token e segredo SMTP não são exibidos.</p><div class="alert alert-secondary empty-state">Use as ações disponíveis para carregar dados reais da API oficial.</div><button class="btn btn-primary" data-load-operational>Carregar</button><div class="mt-3 d-none text-break small bg-light border rounded p-3" data-result></div></div></div>
+@model Valora.Web.Models.ViewModels.ExportsIndexViewModel
+@{
+    ViewData["Title"] = "Central de Exportações";
+}
+
+<div class="container-fluid py-4" data-module="Exports">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Início</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Central de Exportações</li>
+                </ol>
+            </nav>
+            <h1 class="h2 fw-bold text-dark mb-1">Central de Exportações de Dados</h1>
+            <p class="text-muted mb-0">Exporte conjuntos de dados oficiais, respostas de diagnóstico, indicadores e trilha de auditoria em formatos abertos e estruturados.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">
+                <i class="bi bi-arrow-clockwise me-1"></i> Atualizar
+            </button>
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovaExportacao">
+                <i class="bi bi-download me-1"></i> Nova Exportação
+            </button>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] is not null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] is not null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+    }
+
+    <!-- Métricas Executivas -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-primary bg-opacity-10 p-3 text-primary me-3">
+                        <i class="bi bi-cloud-arrow-down fs-3"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted small fw-medium d-block">Total de Exportações</span>
+                        <strong class="fs-4 text-dark">@Model.TotalCount</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-success bg-opacity-10 p-3 text-success me-3">
+                        <i class="bi bi-check2-circle fs-3"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted small fw-medium d-block">Prontas para Download</span>
+                        <strong class="fs-4 text-dark">@Model.CompletedCount</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-warning bg-opacity-10 p-3 text-warning me-3">
+                        <i class="bi bi-hourglass-split fs-3"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted small fw-medium d-block">Na Fila ou Gerando</span>
+                        <strong class="fs-4 text-dark">@Model.ProcessingCount</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-danger bg-opacity-10 p-3 text-danger me-3">
+                        <i class="bi bi-x-circle fs-3"></i>
+                    </div>
+                    <div>
+                        <span class="text-muted small fw-medium d-block">Falhas / Canceladas</span>
+                        <strong class="fs-4 text-dark">@Model.FailedCount</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Catálogo de Datasets -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0 fw-bold text-dark">Catálogo de Conjuntos de Dados Disponíveis</h2>
+            <span class="badge text-bg-light border text-muted">Extração Segura e Isolada</span>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-3">
+                @foreach (var entity in Model.AvailableEntities)
+                {
+                    <div class="col-md-6 col-xl-4">
+                        <div class="card h-100 border rounded-3 p-3 transition-card bg-light bg-opacity-25">
+                            <div class="d-flex align-items-start gap-3">
+                                <div class="p-2 rounded bg-white shadow-sm text-primary">
+                                    <i class="bi @entity.Icon fs-4"></i>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h3 class="h6 fw-bold mb-1 text-dark">@entity.Title</h3>
+                                    <p class="text-muted small mb-2">@entity.Description</p>
+                                    <div class="d-flex align-items-center justify-content-between mt-auto">
+                                        <div class="d-flex gap-1">
+                                            @foreach (var fmt in entity.Formats)
+                                            {
+                                                <span class="badge text-bg-secondary text-uppercase font-monospace" style="font-size: 0.7rem;">@fmt</span>
+                                            }
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                onclick="abrirModalExportacao('@entity.Key')">
+                                            Exportar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Histórico de Exportações -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0 fw-bold text-dark">Histórico de Arquivos Exportados</h2>
+            <span class="badge bg-secondary-subtle text-secondary">Retenção de 7 dias</span>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Jobs.Count == 0)
+            {
+                <div class="text-center py-5">
+                    <div class="text-muted mb-3"><i class="bi bi-inbox fs-1"></i></div>
+                    <h3 class="h5 text-secondary">Nenhuma exportação solicitada ainda</h3>
+                    <p class="text-muted small mb-3">Utilize o botão "Nova Exportação" para gerar arquivos tabulares ou relatórios executivos sob demanda.</p>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalNovaExportacao">
+                        <i class="bi bi-download me-1"></i> Solicitar Primeira Exportação
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th scope="col" class="ps-3">Conjunto de Dados</th>
+                                <th scope="col">Formato</th>
+                                <th scope="col">Data da Solicitação</th>
+                                <th scope="col">Status</th>
+                                <th scope="col">Expira em</th>
+                                <th scope="col" class="text-end pe-3">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var job in Model.Jobs)
+                            {
+                                var isPending = job.Status == "pending" || job.Status == "processing";
+                                var isCompleted = job.Status == "completed";
+                                var isFailed = job.Status == "failed";
+                                var isExpired = isCompleted && job.ExpiresAt <= DateTimeOffset.UtcNow;
+
+                                <tr id="export-row-@job.Id" data-job-id="@job.Id" data-status="@job.Status">
+                                    <td class="ps-3">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="bi bi-file-earmark-bar-graph text-primary fs-5"></i>
+                                            <div>
+                                                <strong class="d-block text-dark text-capitalize">@job.Entity</strong>
+                                                <span class="text-muted font-monospace small">@(job.ResultFileName ?? "Processando...")</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge text-bg-light border text-uppercase font-monospace">@job.Format</span>
+                                    </td>
+                                    <td class="text-nowrap small text-muted">
+                                        @job.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                    </td>
+                                    <td class="status-cell">
+                                        @if (job.Status == "pending")
+                                        {
+                                            <span class="badge text-bg-warning"><i class="spinner-border spinner-border-sm me-1" role="status"></i> Na fila</span>
+                                        }
+                                        else if (job.Status == "processing")
+                                        {
+                                            <span class="badge text-bg-info text-white"><i class="spinner-border spinner-border-sm me-1" role="status"></i> Processando</span>
+                                        }
+                                        else if (isExpired)
+                                        {
+                                            <span class="badge text-bg-secondary"><i class="bi bi-clock-history me-1"></i> Expirado</span>
+                                        }
+                                        else if (isCompleted)
+                                        {
+                                            <span class="badge text-bg-success"><i class="bi bi-check-circle me-1"></i> Pronto</span>
+                                        }
+                                        else if (isFailed)
+                                        {
+                                            <span class="badge text-bg-danger" title="@job.ErrorMessage"><i class="bi bi-exclamation-octagon me-1"></i> Falha</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge text-bg-light">@job.Status</span>
+                                        }
+                                    </td>
+                                    <td class="text-nowrap small text-muted">
+                                        @(job.ExpiresAt.HasValue ? job.ExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-")
+                                    </td>
+                                    <td class="text-end pe-3 action-cell">
+                                        @if (isCompleted && !isExpired)
+                                        {
+                                            <a href="/Exports/@job.Id/download" class="btn btn-sm btn-success">
+                                                <i class="bi bi-cloud-arrow-down-fill me-1"></i> Baixar Arquivo
+                                            </a>
+                                        }
+                                        else if (isPending)
+                                        {
+                                            <button class="btn btn-sm btn-outline-secondary" disabled>
+                                                <i class="spinner-border spinner-border-sm me-1" role="status"></i> Gerando...
+                                            </button>
+                                        }
+                                        else if (isFailed)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="abrirModalExportacao('@job.Entity')">
+                                                <i class="bi bi-arrow-repeat me-1"></i> Tentar Novamente
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">-</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
 </div>
-@section Scripts { <script src="/js/api/operational-api.js"></script> }
+
+<!-- Modal Nova Exportação -->
+<div class="modal fade" id="modalNovaExportacao" tabindex="-1" aria-labelledby="modalNovaExportacaoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post" action="/Exports/Request">
+                @Html.AntiForgeryToken()
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold" id="modalNovaExportacaoLabel">
+                        <i class="bi bi-cloud-download me-2 text-primary"></i>Solicitar Nova Exportação
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="selectEntity">Conjunto de Dados</label>
+                        <select class="form-select" id="selectEntity" name="entity" required onchange="ajustarFormatos()">
+                            <option value="" disabled selected>Selecione os dados desejados...</option>
+                            @foreach (var opt in Model.AvailableEntities)
+                            {
+                                <option value="@opt.Key" data-formats="@string.Join(",", opt.Formats)">@opt.Title</option>
+                            }
+                        </select>
+                        <div class="form-text">Os dados são filtrados exclusivamente para o escopo da sua organização.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="selectFormat">Formato de Saída</label>
+                        <select class="form-select" id="selectFormat" name="format" required>
+                            <option value="csv" selected>CSV (Planilhas e ferramentas analíticas)</option>
+                            <option value="xlsx">XLSX (Microsoft Excel formatado)</option>
+                            <option value="json">JSON (Estruturado para integrações)</option>
+                            <option value="pdf">PDF (Relatório executivo)</option>
+                        </select>
+                    </div>
+
+                    <div class="alert alert-light border small text-muted mb-0">
+                        <i class="bi bi-info-circle me-1 text-primary"></i> O processamento ocorre de forma assíncrona. O arquivo gerado fica disponível para download por até 7 dias corridos.
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check2-circle me-1"></i> Gerar Exportação
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function abrirModalExportacao(entidadeKey) {
+            const selectEntity = document.getElementById('selectEntity');
+            if (selectEntity) {
+                selectEntity.value = entidadeKey;
+                ajustarFormatos();
+            }
+            const modalEl = document.getElementById('modalNovaExportacao');
+            if (modalEl && typeof bootstrap !== 'undefined') {
+                const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                modal.show();
+            }
+        }
+
+        function ajustarFormatos() {
+            const selectEntity = document.getElementById('selectEntity');
+            const selectFormat = document.getElementById('selectFormat');
+            if (!selectEntity || !selectFormat) return;
+
+            const selectedOption = selectEntity.options[selectEntity.selectedIndex];
+            const formatsAttr = selectedOption ? selectedOption.getAttribute('data-formats') : '';
+            const formats = formatsAttr ? formatsAttr.split(',') : ['csv', 'xlsx', 'json', 'pdf'];
+
+            Array.from(selectFormat.options).forEach(opt => {
+                const isSupported = formats.includes(opt.value);
+                opt.disabled = !isSupported;
+                if (!isSupported && opt.selected) {
+                    opt.selected = false;
+                }
+            });
+
+            if (!selectFormat.value || selectFormat.selectedOptions[0]?.disabled) {
+                const firstEnabled = Array.from(selectFormat.options).find(o => !o.disabled);
+                if (firstEnabled) firstEnabled.selected = true;
+            }
+        }
+
+        // Polling para exportações em andamento
+        (function () {
+            const pendingRows = document.querySelectorAll('tr[data-status="pending"], tr[data-status="processing"]');
+            if (pendingRows.length === 0) return;
+
+            const pollInterval = setInterval(async () => {
+                let stillPending = 0;
+                for (const row of pendingRows) {
+                    const currentStatus = row.getAttribute('data-status');
+                    if (currentStatus !== 'pending' && currentStatus !== 'processing') continue;
+
+                    const jobId = row.getAttribute('data-job-id');
+                    try {
+                        const response = await fetch('/Exports/' + jobId + '/status', {
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        if (!response.ok) continue;
+
+                        const data = await response.json();
+                        if (data && data.ok) {
+                            if (data.status !== currentStatus) {
+                                row.setAttribute('data-status', data.status);
+                                const statusCell = row.querySelector('.status-cell');
+                                const actionCell = row.querySelector('.action-cell');
+
+                                if (data.status === 'completed') {
+                                    if (statusCell) statusCell.innerHTML = '<span class="badge text-bg-success"><i class="bi bi-check-circle me-1"></i> Pronto</span>';
+                                    if (actionCell) actionCell.innerHTML = '<a href="/Exports/' + jobId + '/download" class="btn btn-sm btn-success"><i class="bi bi-cloud-arrow-down-fill me-1"></i> Baixar Arquivo</a>';
+                                } else if (data.status === 'failed') {
+                                    if (statusCell) statusCell.innerHTML = '<span class="badge text-bg-danger" title="' + (data.errorMessage || '') + '"><i class="bi bi-exclamation-octagon me-1"></i> Falha</span>';
+                                    if (actionCell) actionCell.innerHTML = '<button type="button" class="btn btn-sm btn-outline-danger" onclick="location.reload()"><i class="bi bi-arrow-repeat me-1"></i> Atualizar</button>';
+                                }
+                            }
+                            if (data.status === 'pending' || data.status === 'processing') {
+                                stillPending++;
+                            }
+                        }
+                    } catch (e) {
+                        // Silêncio em caso de intermitência de rede
+                    }
+                }
+                if (stillPending === 0) {
+                    clearInterval(pollInterval);
+                }
+            }, 4000);
+        })();
+    </script>
+}

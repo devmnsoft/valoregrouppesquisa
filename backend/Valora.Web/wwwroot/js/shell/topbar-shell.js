@@ -15,19 +15,22 @@
   // Keep this catalog deliberately small: every destination is backed by an MVC
   // endpoint. Module-specific results continue to be discovered by the server search.
   const commands = [
+    ['Visão executiva', 'Indicadores e prioridades da organização', '/Dashboard'],
     ['Criar novo diagnóstico', 'Configure o próximo ciclo de escuta', '/Diagnostics/New'],
-    ['Criar formulário', 'Abra o estúdio de diagnósticos', '/Forms/Create'],
-    ['Visão executiva', 'Indicadores e prioridades', '/Dashboard'],
-    ['Diagnósticos', 'Coletas, públicos e campanhas', '/Surveys'],
-    ['Formulários', 'Biblioteca e versões', '/Forms'],
-    ['Resultados', 'Evidências e devolutivas', '/Results'],
-    ['Relatórios', 'Geração e histórico', '/Reports'],
-    ['Certificados', 'Emissão e validação', '/Certificates'],
+    ['Workspace do diagnóstico', 'Gestão integrada do ciclo ativo', '/Diagnostics'],
+    ['Formulários e questionários', 'Biblioteca oficial e versões', '/Forms'],
+    ['Criar formulário', 'Estruture novas perguntas e dimensões', '/Forms/Create'],
+    ['Pesquisas e coletas', 'Campanhas, públicos e links seguros', '/Surveys'],
+    ['Resultados e evidências', 'Devolutivas e leitura executiva', '/Results'],
+    ['Relatórios executivos', 'Central de relatórios e exportações', '/Reports'],
     ['Planos de ação', 'Responsáveis, prazos e progresso', '/ActionCenter'],
-    ['Evolução', 'Ciclos e linha do tempo', '/Evolution'],
-    ['Administração', 'Usuários, organizações e auditoria', '/Administration'],
-    ['Configurações', 'Preferências da plataforma', '/Settings'],
-    ['Sair', 'Encerrar a sessão com segurança', '/Account/Logout']
+    ['Criar plano de ação', 'Defina compromissos e entregáveis', '/ActionCenter/Plans/Create'],
+    ['Evolução temporal', 'Ciclos sucessivos e baseline', '/Evolution'],
+    ['Empresa e estrutura', 'Marca, unidades e departamentos', '/Organization'],
+    ['Gestão de equipe', 'Usuários, perfis e permissões', '/Users'],
+    ['Segurança e privacidade', 'Conformidade LGPD e auditoria', '/SecurityCompliance'],
+    ['Central de ajuda', 'Guias rápidos e atendimento', '/Help'],
+    ['Sair da conta', 'Encerrar a sessão com segurança', '/Account/Logout']
   ];
   const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const setText = (selector, value) => document.querySelectorAll(selector).forEach(node => { node.textContent = value || 'Não informado'; });

@@ -268,59 +268,147 @@
   font-weight: 500;
 }
 
-/* Workspace Tabs Bar */
-.intelligence-workspace .workspace-tabs {
-  background: #ffffff;
-  border: 1px solid var(--dw-slate-200);
-  border-radius: 16px;
-  padding: 8px;
-  box-shadow: var(--dw-shadow-sm);
+/* Workspace Tabs & Journey Clusters */
+.intelligence-workspace .workspace-tabs,
+.intelligence-workspace .workspace-tabs-bar {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 4px 2px 14px 2px;
+  box-shadow: none;
   display: flex;
-  gap: 6px;
+  gap: 12px;
   overflow-x: auto;
   scrollbar-width: thin;
   margin-bottom: 1.5rem;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
-.intelligence-workspace .workspace-tabs::-webkit-scrollbar {
-  height: 4px;
+.intelligence-workspace .workspace-tabs::-webkit-scrollbar,
+.intelligence-workspace .workspace-tabs-bar::-webkit-scrollbar {
+  height: 5px;
 }
 
-.intelligence-workspace .workspace-tabs::-webkit-scrollbar-thumb {
+.intelligence-workspace .workspace-tabs::-webkit-scrollbar-thumb,
+.intelligence-workspace .workspace-tabs-bar::-webkit-scrollbar-thumb {
   background: var(--dw-slate-300);
   border-radius: 4px;
 }
 
-.intelligence-workspace .workspace-tabs button {
-  white-space: nowrap;
-  font-size: 0.84rem;
-  font-weight: 600;
-  padding: 0.55rem 0.95rem;
-  border-radius: 10px;
-  border: 1px solid transparent;
-  transition: all 0.16s ease;
-  cursor: pointer;
+.intelligence-workspace .workspace-tab-cluster {
+  background: #ffffff;
+  border: 1px solid var(--dw-slate-200);
+  border-radius: 14px;
+  padding: 6px 8px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: max-content;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.intelligence-workspace .workspace-tabs button.btn-outline-secondary {
+.intelligence-workspace .workspace-tab-cluster:hover {
+  border-color: var(--dw-slate-300);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.intelligence-workspace .workspace-tab-cluster:has(button.active),
+.intelligence-workspace .workspace-tab-cluster:has(button.btn-primary) {
+  border-color: rgba(15, 118, 110, 0.4);
+  background: linear-gradient(180deg, #ffffff 0%, rgba(240, 253, 250, 0.45) 100%);
+  box-shadow: 0 4px 14px rgba(15, 118, 110, 0.09);
+}
+
+.intelligence-workspace .cluster-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 6px;
+}
+
+.intelligence-workspace .cluster-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--dw-slate-100);
+  color: var(--dw-slate-600);
+  font-size: 0.68rem;
+  font-weight: 700;
+  transition: all 0.2s;
+}
+
+.intelligence-workspace .workspace-tab-cluster:has(button.active) .cluster-num,
+.intelligence-workspace .workspace-tab-cluster:has(button.btn-primary) .cluster-num {
+  background: var(--dw-teal);
+  color: #ffffff;
+}
+
+.intelligence-workspace .cluster-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dw-slate-500);
+  transition: color 0.2s;
+}
+
+.intelligence-workspace .workspace-tab-cluster:has(button.active) .cluster-title,
+.intelligence-workspace .workspace-tab-cluster:has(button.btn-primary) .cluster-title {
+  color: var(--dw-teal);
+}
+
+.intelligence-workspace .cluster-actions {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.intelligence-workspace .workspace-tabs button,
+.intelligence-workspace .cluster-actions button {
+  white-space: nowrap;
+  font-size: 0.81rem;
+  font-weight: 600;
+  padding: 0.45rem 0.88rem;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  user-select: none;
+}
+
+.intelligence-workspace .workspace-tabs button.btn-outline-secondary,
+.intelligence-workspace .cluster-actions button.btn-outline-secondary {
   background: transparent;
   color: var(--dw-slate-600);
   border-color: transparent;
 }
 
-.intelligence-workspace .workspace-tabs button.btn-outline-secondary:hover {
+.intelligence-workspace .workspace-tabs button.btn-outline-secondary:hover,
+.intelligence-workspace .cluster-actions button.btn-outline-secondary:hover {
   background: var(--dw-slate-100);
   color: var(--dw-slate-900);
   border-color: var(--dw-slate-200);
+  transform: translateY(-1px);
 }
 
 .intelligence-workspace .workspace-tabs button.btn-primary,
-.intelligence-workspace .workspace-tabs button.active {
-  background: var(--dw-teal);
+.intelligence-workspace .workspace-tabs button.active,
+.intelligence-workspace .cluster-actions button.btn-primary,
+.intelligence-workspace .cluster-actions button.active {
+  background: linear-gradient(135deg, var(--dw-navy-card) 0%, var(--dw-teal) 100%);
   color: #ffffff;
   border-color: var(--dw-teal);
   box-shadow: 0 4px 12px rgba(15, 118, 110, 0.28);
   font-weight: 700;
+  transform: translateY(-1px);
 }
 
 /* Content Section & Cards */

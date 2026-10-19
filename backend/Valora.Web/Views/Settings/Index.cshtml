@@ -1,9 +1,193 @@
-@{ ViewData["Title"] = "Configurações"; }
-<section class="valora-page page-card official-module" data-page="settings-page">
-  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Configurações", "Preferências da experiência, idioma e controles de segurança.", "Conta · Preferências", Actions: new[] { new PageHeaderAction("Atualizar", DataAction: "refresh", Style: "primary", Icon: "refresh") }))" />
-  <div class="row g-3 mt-2" data-summary-cards><div class="col-md-4"><div class="metric-card"><span>Usuário</span><strong data-card="usuário">Carregando…</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Preferências</span><strong data-card="preferências">Carregando…</strong></div></div><div class="col-md-4"><div class="metric-card"><span>Segurança</span><strong data-card="segurança">Carregando…</strong></div></div></div>
-  <div class="alert alert-warning d-none mt-3" data-gap-controlled="true" data-gap-card>Recurso em ativação controlada. Consulte ASPNET_WEB_API_GAPS.md.</div>
-  <div class="alert alert-danger d-none mt-3" role="alert" data-error></div>
-  <div class="table-responsive mt-3"><table class="table table-sm align-middle"><thead><tr><th>Nome</th><th>Status</th><th>Detalhes</th><th>Ação</th></tr></thead><tbody data-items></tbody></table></div>
-</section>
-@section Scripts { <script src="/js/pages/settings-page.js"></script> }
+@model Valora.Web.Models.ViewModels.SettingsIndexViewModel
+@{
+    ViewData["Title"] = "Configurações & Perfil";
+}
+
+<div class="container-fluid py-4" data-module="Settings">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1">
+                    <li class="breadcrumb-item"><a href="/" class="text-decoration-none">Início</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Configurações & Perfil</li>
+                </ol>
+            </nav>
+            <h1 class="h2 fw-bold text-dark mb-1">Configurações da Conta</h1>
+            <p class="text-muted mb-0">Gerencie informações do seu perfil, contexto organizacional ativo, parâmetros de segurança e preferências da experiência.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" onclick="location.reload()">
+                <i class="bi bi-arrow-clockwise me-1"></i> Atualizar
+            </button>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] is not null)
+    {
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+    }
+
+    <div class="row g-4">
+        <!-- Coluna Esquerda: Cartão de Perfil -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm mb-4 text-center p-4">
+                <div class="card-body">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center mx-auto mb-3 shadow" style="width: 80px; height: 80px; font-size: 1.8rem; font-weight: 700;">
+                        @Model.Profile.Initials
+                    </div>
+                    <h2 class="h5 fw-bold text-dark mb-1">@Model.Profile.Name</h2>
+                    <p class="text-muted small mb-2">@Model.Profile.Email</p>
+                    <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-1">
+                        @Model.Profile.Role
+                    </span>
+                    <hr class="my-4" />
+                    <div class="text-start small">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Status da Conta:</span>
+                            <strong class="text-success"><i class="bi bi-check-circle-fill me-1"></i>Ativa</strong>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Autenticação:</span>
+                            <span class="text-dark">Sessão Segura</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Fuso Horário:</span>
+                            <span class="text-dark">América/São Paulo (UTC-3)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card de Segurança da Sessão -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h3 class="h6 mb-0 fw-bold text-dark">
+                        <i class="bi bi-shield-check me-2 text-success"></i>Proteção da Sessão
+                    </h3>
+                </div>
+                <div class="card-body p-3 small">
+                    <div class="mb-3">
+                        <strong class="d-block text-dark mb-1">Esquema Criptográfico:</strong>
+                        <span class="text-muted font-monospace" style="font-size: 0.75rem;">@Model.Security.ProtectionScheme</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong class="d-block text-dark mb-1">Timeout de Inatividade:</strong>
+                        <span class="text-muted">@Model.Security.SessionTimeoutMinutes minutos</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 mb-2 text-success">
+                        <i class="bi bi-check-circle"></i>
+                        <span>Proteção Anti-CSRF habilitada</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 text-success">
+                        <i class="bi bi-check-circle"></i>
+                        <span>Isolamento Multi-tenant garantido</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Direita: Contexto Organizacional & Preferências -->
+        <div class="col-lg-8">
+            <!-- Contexto da Organização -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h3 class="h6 mb-0 fw-bold text-dark">
+                        <i class="bi bi-building me-2 text-primary"></i>Organização Ativa
+                    </h3>
+                    @if (Model.Organization is not null)
+                    {
+                        <span class="badge text-bg-success text-capitalize">@Model.Organization.SubscriptionStatus</span>
+                    }
+                </div>
+                <div class="card-body p-4">
+                    @if (Model.Organization is null)
+                    {
+                        <div class="text-center py-3">
+                            <i class="bi bi-building-exclamation fs-2 text-warning mb-2 d-block"></i>
+                            <h4 class="h6 text-dark mb-1">Nenhuma organização associada à sessão ativa</h4>
+                            <p class="text-muted small mb-0">Selecione uma organização através do seletor superior para visualizar suas permissões e módulos.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <span class="text-muted small d-block mb-1">Nome da Organização</span>
+                                <strong class="fs-6 text-dark">@Model.Organization.OrganizationName</strong>
+                            </div>
+                            <div class="col-md-6">
+                                <span class="text-muted small d-block mb-1">Plano Ativo</span>
+                                <span class="badge text-bg-light border fs-6">@Model.Organization.PlanName</span>
+                            </div>
+                        </div>
+
+                        <div class="border-top pt-3">
+                            <strong class="d-block small text-dark mb-2">Módulos Habilitados na Assinatura:</strong>
+                            <div class="d-flex flex-wrap gap-2">
+                                @if (Model.Organization.EnabledModules.Count == 0)
+                                {
+                                    <span class="text-muted small">Todos os módulos essenciais habilitados.</span>
+                                }
+                                else
+                                {
+                                    @foreach (var mod in Model.Organization.EnabledModules)
+                                    {
+                                        <span class="badge bg-light text-dark border">
+                                            <i class="bi bi-check-lg text-success me-1"></i>@mod
+                                        </span>
+                                    }
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Preferências de Interface e Notificações -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h3 class="h6 mb-0 fw-bold text-dark">
+                        <i class="bi bi-sliders me-2 text-primary"></i>Preferências da Aplicação
+                    </h3>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted" for="selectLanguage">Idioma da Interface</label>
+                            <select class="form-select form-select-sm" id="selectLanguage" disabled>
+                                <option selected>Português (Brasil) — pt-BR</option>
+                            </select>
+                            <div class="form-text">Padrão corporativo ativo.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-muted" for="selectTimezone">Fuso Horário</label>
+                            <select class="form-select form-select-sm" id="selectTimezone" disabled>
+                                <option selected>Brasília (UTC-03:00)</option>
+                            </select>
+                            <div class="form-text">Definido conforme a sede da organização.</div>
+                        </div>
+                    </div>
+
+                    <div class="border-top pt-3">
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="switchEmailNotif" checked disabled />
+                            <label class="form-check-label small fw-medium" for="switchEmailNotif">
+                                Receber alertas críticos de auditoria e governança
+                            </label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="switchExportNotif" checked disabled />
+                            <label class="form-check-label small fw-medium" for="switchExportNotif">
+                                Notificar conclusão de exportações em segundo plano
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

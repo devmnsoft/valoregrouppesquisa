@@ -433,6 +433,136 @@
       }).join('')}</div>`;
   }
 
+  function responsesView(items) {
+    if (!items?.length) {
+      content.innerHTML = `<h2>Respostas Coletadas & Participação</h2>
+        <p class="form-help">Registros individuais anônimos ou identificados submetidos no ciclo vigente.</p>
+        <div class="empty-state">
+          <h3>Nenhuma resposta concluída até o momento</h3>
+          <p>O ciclo está pronto para receber participações. Compartilhe o link de coleta para iniciar a apuração dos dados.</p>
+          <button type="button" class="btn btn-primary" onclick="document.querySelector('[data-tab=campaign]')?.click()">Ver links de coleta na aba Campanha</button>
+        </div>`;
+      return;
+    }
+    const completedCount = items.filter(x => (x.data || x).status === 'completed').length;
+    const withQualitative = items.filter(x => (x.data || x).hasQualitativeAnswer).length;
+    content.innerHTML = `<h2>Respostas Coletadas (${items.length})</h2>
+      <p class="form-help">Registros individuais protegidos por isolamento estrito. Apenas respostas concluídas são elegíveis para score metodológico.</p>
+      <div class="row g-3 mb-3">
+        <div class="col-md-4"><div class="metric-card p-3"><span>Total Registrado</span><strong class="fs-3 my-1">${items.length}</strong><small>submissões</small></div></div>
+        <div class="col-md-4"><div class="metric-card p-3"><span>Concluídas</span><strong class="fs-3 my-1">${completedCount}</strong><small>elegíveis para score</small></div></div>
+        <div class="col-md-4"><div class="metric-card p-3"><span>Com Relato Qualitativo</span><strong class="fs-3 my-1">${withQualitative}</strong><small>comentários abertos</small></div></div>
+      </div>
+      <div class="table-responsive">
+        <table class="valora-table">
+          <thead>
+            <tr><th>Protocolo / ID</th><th>Situação</th><th>Início / Envio</th><th>Conclusão</th><th>Perguntas Respondidas</th><th>Qualitativo</th><th></th></tr>
+          </thead>
+          <tbody>
+            ${items.map(item => {
+              const data = item.data || item;
+              const isComp = data.status === 'completed';
+              return `<tr>
+                <td><code>${esc(data.id ? data.id.substring(0, 8) + '…' : '—')}</code></td>
+                <td><span class="valora-status ${isComp ? 'valora-status--success' : ''}">${esc(label(data.status))}</span></td>
+                <td><small>${esc(date(data.submittedAt || data.createdAt))}</small></td>
+                <td><small>${esc(data.completedAt ? date(data.completedAt) : 'Em andamento')}</small></td>
+                <td><strong>${esc(data.answerCount || 0)}</strong> respondida(s)</td>
+                <td>${data.hasQualitativeAnswer ? '<span class="badge bg-info text-dark">Sim</span>' : '<span class="text-muted">Não</span>'}</td>
+                <td><a class="btn btn-sm btn-outline-secondary" href="/Responses?surveyId=${encodeURIComponent(overviewState?.cycle?.surveyId || diagnosticId)}">Inspecionar</a></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  }
+
+  function heatmapView(items) {
+    const surveyId = overviewState?.cycle?.surveyId || diagnosticId;
+    const hasItems = items?.length > 0;
+    content.innerHTML = `<h2>Heatmap™ — Matriz de Calor & Dispersão</h2>
+      <p class="form-help">Mapeamento multidimensional de atenção por área, dimensão ou liderança com limites seguros de anonimato.</p>
+      <div class="d-flex gap-2 flex-wrap mb-4">
+        <a class="btn btn-primary" href="/Intelligence/Heatmap?diagnosticId=${encodeURIComponent(surveyId)}">Abrir Estúdio Heatmap™ Completo</a>
+        <button type="button" class="btn btn-outline-secondary" onclick="document.querySelector('[data-command=process]')?.click()">Recalcular Matriz de Calor</button>
+      </div>
+      ${hasItems ? cards(items) : `
+        <div class="valora-card">
+          <h3>Prontidão do Heatmap™</h3>
+          <p class="text-muted">O Heatmap organizacional exige um volume mínimo de respostas para gerar a dispersão por dimensões e unidades sem desanonimizar respondentes.</p>
+          <dl class="small mb-3">
+            <div><dt>Metodologia</dt><dd>Cálculo de médias ponderadas e dispersão por escala de Likert</dd></div>
+            <div><dt>Proteção de Privacidade</dt><dd>Grupos com menos de 3 respondentes são agrupados ou omitidos (k-anonymity)</dd></div>
+            <div><dt>Próxima Ação</dt><dd>Conclua a coleta e processe a inteligência para visualizar o mapa interativo</dd></div>
+          </dl>
+        </div>
+      `}`;
+  }
+
+  function radarView(items) {
+    const surveyId = overviewState?.cycle?.surveyId || diagnosticId;
+    const hasItems = items?.length > 0;
+    content.innerHTML = `<h2>Radar™ — Equilíbrio Sistêmico</h2>
+      <p class="form-help">Visualização dos eixos metodológicos de maturidade e harmonia organizacional entre dimensões.</p>
+      <div class="d-flex gap-2 flex-wrap mb-4">
+        <a class="btn btn-primary" href="/Intelligence/Radar?diagnosticId=${encodeURIComponent(surveyId)}">Abrir Radar™ Interativo</a>
+        <button type="button" class="btn btn-outline-secondary" onclick="document.querySelector('[data-command=process]')?.click()">Atualizar Cálculos do Radar</button>
+      </div>
+      ${hasItems ? cards(items) : `
+        <div class="valora-card">
+          <h3>Equilíbrio entre Dimensões</h3>
+          <p class="text-muted">O Radar consolida os índices gerais de maturidade nas dimensões avaliadas, permitindo identificar equilíbrios ou distorções estruturais.</p>
+          <dl class="small mb-3">
+            <div><dt>Eixos Apurados</dt><dd>Índices normalizados de 0 a 100 pontos por dimensão metodológica</dd></div>
+            <div><dt>Origem</dt><dd>Agregação das evidências com pesos validados no pipeline</dd></div>
+          </dl>
+        </div>
+      `}`;
+  }
+
+  function benchmarkView(items) {
+    const surveyId = overviewState?.cycle?.surveyId || diagnosticId;
+    const hasItems = items?.length > 0;
+    content.innerHTML = `<h2>Benchmark™ — Posicionamento Relativo</h2>
+      <p class="form-help">Comparação segura, anônima e auditável da maturidade organizacional frente a coortes setoriais e de mercado.</p>
+      <div class="d-flex gap-2 flex-wrap mb-4">
+        <a class="btn btn-primary" href="/Intelligence/Benchmark?diagnosticId=${encodeURIComponent(surveyId)}">Explorar Benchmarks de Mercado</a>
+        <a class="btn btn-outline-secondary" href="/Benchmarks">Central de Coortes</a>
+      </div>
+      ${hasItems ? cards(items) : `
+        <div class="valora-card">
+          <h3>Comparação com Coortes Anônimas</h3>
+          <p class="text-muted">O Benchmark Valora compara a maturidade apurada com empresas do mesmo setor e porte econômico, preservando integralmente o sigilo de dados.</p>
+          <dl class="small mb-3">
+            <div><dt>Critério de Anonimato</dt><dd>Coortes protegidas com amostras agregadas mínimas</dd></div>
+            <div><dt>Indicadores Comparados</dt><dd>Média setorial, mediana de mercado e quartis de maturidade</dd></div>
+          </dl>
+        </div>
+      `}`;
+  }
+
+  function reportView(items) {
+    const surveyId = overviewState?.cycle?.surveyId || diagnosticId;
+    const hasItems = items?.length > 0;
+    content.innerHTML = `<h2>Executive Report™ — Devolutiva Executiva</h2>
+      <p class="form-help">Síntese de alto nível para conselhos e lideranças, conectando achados, indicadores e planos de ação.</p>
+      <div class="d-flex gap-2 flex-wrap mb-4">
+        <button type="button" class="btn btn-primary" onclick="document.querySelector('[data-command=\\'report/preview\\']')?.click()">Gerar Prévia do Executive Report™</button>
+        <a class="btn btn-outline-secondary" href="/Reports/Prepare?surveyId=${encodeURIComponent(surveyId)}">Central de Preparação de Relatórios</a>
+        <a class="btn btn-outline-secondary" href="/Reports">Todos os Relatórios da Organização</a>
+      </div>
+      ${hasItems ? cards(items) : `
+        <div class="valora-card">
+          <h3>Prontidão do Relatório Executivo</h3>
+          <p class="text-muted">O Executive Report consolida o diagnóstico completo com sumário executivo, matriz de evidências e plano de ação rastreável.</p>
+          <dl class="small mb-3">
+            <div><dt>Conteúdo Estruturado</dt><dd>Visão geral do ciclo, taxa de adesão, radar de maturidade, achados revisados e prioridades</dd></div>
+            <div><dt>Formatos de Saída</dt><dd>Visualização online executiva e download em PDF oficial auditável</dd></div>
+          </dl>
+        </div>
+      `}`;
+  }
+
   function setOverviewHeader(data) {
     const cycle = data.cycle;
     overviewState = data;
@@ -1278,11 +1408,16 @@
       if (requestId !== activeRequest) return;
       if (name === 'overview') overview(data);
       else if (name === 'participation') participationView(data);
+      else if (name === 'responses') responsesView(data);
       else if (name === 'evidence') evidenceView(data);
       else if (name === 'insights') insightsView(data);
       else if (name === 'inferences') content.innerHTML = inferencesView(data);
       else if (name === 'metrics') content.innerHTML = metricsIndicesView('metrics', data);
       else if (name === 'indices') content.innerHTML = metricsIndicesView('indices', data);
+      else if (name === 'heatmap') heatmapView(data);
+      else if (name === 'radar') radarView(data);
+      else if (name === 'benchmark') benchmarkView(data);
+      else if (name === 'report') reportView(data);
       else if (name === 'evolution') {
         const back = `/Diagnostics/${diagnosticId}/Workspace?tab=evolution`;
         const records = Array.isArray(data) ? data : data.items || [];

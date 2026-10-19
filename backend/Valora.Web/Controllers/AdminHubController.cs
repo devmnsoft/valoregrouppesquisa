@@ -24,7 +24,6 @@ public sealed class AdminHubController(
     RegisterCompanyHandler companyRegistration,
     IOrganizationRepository organizations,
     IUserAdministrationService userAdministration,
-    IUserRepository users,
     IPasswordHasher passwordHasher,
     IPasswordPolicy passwordPolicy,
     IAccessAdministrationService access,

@@ -6,7 +6,9 @@ using Valora.Web.Services.Bff;
 namespace Valora.Web.Controllers;
 
 [Authorize, ApiController, AutoValidateAntiforgeryToken]
-public sealed class BffAssistedOperationsController(IBffApiClient api, BffAuthenticationService authentication) : ControllerBase {
+public sealed class BffAssistedOperationsController(BffAuthenticationService authentication) : ControllerBase {
+    public BffAssistedOperationsController(IBffApiClient api, BffAuthenticationService authentication)
+        : this(authentication) { _ = api; }
     [Route("bff/support/{**path}"), Route("bff/feedback/{**path}"), Route("bff/customer-success/{**path}"), Route("bff/usage-analytics/{**path}"), Route("bff/onboarding/{**path}"), Route("bff/upgrade-requests/{**path}"), Route("bff/incidents/{**path}"), Route("bff/release-notes/{**path}"), Route("bff/data-quality/{**path}"), Route("bff/product-backlog/{**path}"), Route("bff/operations/{**path}")]
     [AcceptVerbs("GET", "POST", "PATCH")]
     public async Task<IActionResult> Forward(string? path, CancellationToken ct) {
@@ -19,15 +21,24 @@ public sealed class BffAssistedOperationsController(IBffApiClient api, BffAuthen
         if (!success) return error!;
 
         var prefix = Request.Path.Value!.Split('/', StringSplitOptions.RemoveEmptyEntries)[1];
-        using var response = await authentication.SendAuthorizedAsync(HttpContext, new HttpMethod(Request.Method), $"/api/v1/{prefix}/{path}{Request.QueryString}", body, correlation, ct);
-        if (response is null)
-            return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou. Entre novamente.", correlationId = correlation });
+        try {
+            using var response = await authentication.SendAuthorizedAsync(HttpContext, new HttpMethod(Request.Method), $"/api/v1/{prefix}/{path}{Request.QueryString}", body, correlation, ct);
+            if (response is null)
+                return Unauthorized(new { code = "SESSION_EXPIRED", message = "Sua sessão expirou. Entre novamente.", correlationId = correlation });
 
-        if (response.StatusCode == HttpStatusCode.NoContent) {
-            Response.Headers["X-Correlation-Id"] = response.Headers.TryGetValues("X-Correlation-Id", out var v) ? v.First() : correlation;
-            return NoContent();
+            if (response.StatusCode == HttpStatusCode.NoContent) {
+                Response.Headers["X-Correlation-Id"] = response.Headers.TryGetValues("X-Correlation-Id", out var v) ? v.First() : correlation;
+                return NoContent();
+            }
+
+            return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/json", Content = await response.Content.ReadAsStringAsync(ct) };
         }
-
-        return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/json", Content = await response.Content.ReadAsStringAsync(ct) };
+        catch (OperationCanceledException) {
+            if (ct.IsCancellationRequested) return new EmptyResult();
+            return StatusCode(504, new { message = "A operação assistida está levando mais tempo que o esperado.", correlationId = correlation });
+        }
+        catch (BffApiUnavailableException) {
+            return StatusCode(503, new { message = "Serviço de operações temporariamente indisponível.", correlationId = correlation });
+        }
     }
 }

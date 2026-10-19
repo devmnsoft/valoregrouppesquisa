@@ -26,7 +26,7 @@
     setText('[data-kpi="evidence"]', intelligence.evidence?.total == null ? '—' : number(intelligence.evidence.total));
     setText('[data-kpi="actions"]', number(actions.filter(item => !['completed', 'cancelled', 'reviewed'].includes(String(item.status).toLowerCase())).length));
     root.querySelector('[data-metric-empty]').hidden = responses.length > 0;
-    renderJourney(surveys, responses, usage);
+    renderJourney(surveys, responses, usage, actions);
     renderAttention(surveys, responses, completionRate);
     renderStrategicReading(intelligence, actions);
   }
@@ -55,9 +55,17 @@
     setText('[data-next-step]', openCritical ? 'Definir responsável e prazo para a ação crítica.' : `Criar uma ação mensurável para ${run.weakestDimension || 'a principal fragilidade'}.`);
   }
 
-  function renderJourney(surveys, responses, usage) {
+  function renderJourney(surveys, responses, usage, actions = []) {
     const host = root.querySelector('[data-onboarding]');
-    if (!host || localStorage.getItem('valora.onboarding.hidden') === 'true') { if (host) host.hidden = true; return; }
+    const restoreBtn = root.querySelector('[data-restore-onboarding]');
+    if (!host) return;
+    const isHidden = localStorage.getItem('valora.onboarding.hidden') === 'true';
+    if (isHidden) {
+      host.hidden = true;
+      if (restoreBtn) restoreBtn.hidden = false;
+      return;
+    }
+    if (restoreBtn) restoreBtn.hidden = true;
     const steps = [
       ['Configurar empresa', true, '/Organization', 'Revise marca e dados institucionais.'],
       ['Cadastrar unidades e setores', Boolean(usage.units || usage.departments), '/Organization#org-structure', 'Estruture análises com escopo seguro.'],
@@ -66,10 +74,10 @@
       ['Publicar pesquisa', surveys.some(x => ['active','published'].includes(String(x.status).toLowerCase())), '/Forms', 'Revise e publique a versão.'],
       ['Acompanhar respostas', responses.length > 0, '/Responses', 'Monitore a adesão do ciclo.'],
       ['Gerar relatório', responses.length > 0, '/Reports', 'Compartilhe a leitura executiva.'],
-      ['Criar plano de ação', false, '/Intelligence#action', 'Transforme evidências em execução.']
+      ['Criar plano de ação', (actions?.length || 0) > 0, '/ActionCenter/Plans/Create', 'Transforme evidências em compromissos com responsáveis e prazos.']
     ];
     const progress = Math.round(steps.filter(x => x[1]).length / steps.length * 100);
-    host.hidden = surveys.length === 0;
+    host.hidden = false;
     root.querySelector('[data-onboarding-progress]').textContent = `${progress}% concluído`; root.querySelector('[data-onboarding-bar]').style.width = `${progress}%`;
     root.querySelector('[data-onboarding-items]').innerHTML = steps.map(step => `<a class="${step[1] ? 'is-complete' : ''}" href="${step[2]}"><span>${step[1] ? '✓' : '○'}</span><div><strong>${step[0]}</strong><small>${step[3]}</small></div></a>`).join('');
   }
@@ -395,6 +403,18 @@
     }
   }
 
-  root.querySelector('[data-hide-onboarding]')?.addEventListener('click', () => { localStorage.setItem('valora.onboarding.hidden','true'); root.querySelector('[data-onboarding]').hidden = true; window.Toast?.success?.('Jornada guiada ocultada.'); });
+  root.querySelector('[data-hide-onboarding]')?.addEventListener('click', () => {
+    localStorage.setItem('valora.onboarding.hidden', 'true');
+    const host = root.querySelector('[data-onboarding]');
+    if (host) host.hidden = true;
+    const restoreBtn = root.querySelector('[data-restore-onboarding]');
+    if (restoreBtn) restoreBtn.hidden = false;
+    window.Toast?.success?.('Jornada guiada ocultada.');
+  });
+  root.querySelector('[data-restore-onboarding]')?.addEventListener('click', () => {
+    localStorage.removeItem('valora.onboarding.hidden');
+    load();
+    window.Toast?.success?.('Jornada guiada restaurada.');
+  });
   load();
 })();

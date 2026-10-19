@@ -6,7 +6,9 @@ using Valora.Web.Services.Bff;
 namespace Valora.Web.Controllers;
 
 [Authorize, ApiController, AutoValidateAntiforgeryToken, Route("bff/workspace")]
-public sealed class BffWorkspaceController(IBffApiClient api, BffAuthenticationService authentication) : ControllerBase {
+public sealed class BffWorkspaceController(BffAuthenticationService authentication) : ControllerBase {
+    public BffWorkspaceController(IBffApiClient api, BffAuthenticationService authentication)
+        : this(authentication) { _ = api; }
     [AcceptVerbs("GET", "POST", "PUT", "DELETE"), Route("{**resource}")]
     public async Task<IActionResult> Forward(string? resource, CancellationToken ct) {
         var session = await authentication.GetAsync(HttpContext, ct);
@@ -40,7 +42,8 @@ public sealed class BffWorkspaceController(IBffApiClient api, BffAuthenticationS
             Response.Headers["X-Correlation-Id"] = correlation;
             return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = "application/json", Content = payload };
         }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested) {
+        catch (OperationCanceledException) {
+            if (ct.IsCancellationRequested) return new EmptyResult();
             return StatusCode(504, new { message = "O Workspace está levando mais tempo que o esperado. Tente novamente em instantes.", correlationId = correlation });
         }
         catch (BffApiUnavailableException) {

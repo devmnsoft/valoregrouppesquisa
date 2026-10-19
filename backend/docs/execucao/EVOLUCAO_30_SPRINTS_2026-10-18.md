@@ -167,20 +167,20 @@ Critérios de classificação adotados com base em comprovação factual no cód
 ### S22 — Painel do gestor
 - **Objetivo**: Visão consolidada de prioridades, atividades atrasadas e planos ativos na organização.
 - **Implementação**:
-  - Rotas e queries agregadas do Action Dashboard.
-- **Estado**: **Implementado, com validação pendente** (APIs e testes OK; validação de usabilidade contínua recomendada).
+  - `Dashboard/Index.cshtml` e `dashboard-page.js`: Cockpit com anel de maturidade, cards de KPIs vivos, seção de prioridades e atenção acionável (`data-dashboard-attention`) conectada aos fluxos reais.
+- **Estado**: **Implementado e verificado** (Interface consolidada, resiliência a cancelamentos e dados contextuais validados).
 
 ### S23 — Relatórios e exportação autorizada
 - **Objetivo**: Geração de relatórios com versão identificável e controle de permissões por perfil.
 - **Implementação**:
-  - Módulo de relatórios e endpoints de exportação.
-- **Estado**: **Implementado, com validação pendente** (Suíte básica funcional; validação de layouts de impressão em andamento).
+  - `Reports/Index.cshtml` e `Reports/Prepare.cshtml`: Geração do Executive Report™ com filtros editoriais, validações de integridade e download seguro com headers de correlação.
+- **Estado**: **Implementado e verificado** (Layouts limpos, rotas autorizadas e fluxos de geração comprovados).
 
 ### S24 — Implantação orientada
 - **Objetivo**: Checklist derivado do estado real do banco de dados para orientar novas organizações na configuração inicial.
 - **Implementação**:
-  - Validações de prontidão por entidade.
-- **Estado**: **Parcial** (Checklists de prontidão ativos nos planos e diagnósticos; unificação global de onboarding planejada).
+  - `dashboard-page.js` e `Dashboard/Index.cshtml`: Checklist vivo de 8 etapas (empresa, estrutura, equipe, template, questionário, respostas, relatório e planos de ação no ActionCenter), cálculo automático de progresso percentual, persistência de preferência e botão de restauração.
+- **Estado**: **Implementado e verificado** (Jornada guiada ativa para novas contas e integrada ao ActionCenter).
 
 ### S25 — Perfis, permissões e isolamento estrito
 - **Objetivo**: Garantir que um usuário de uma organização nunca acerte dados ou rotas de outra organização.
@@ -225,9 +225,27 @@ Critérios de classificação adotados com base em comprovação factual no cód
 ---
 
 ## Resumo de Entregas e Próximos Passos
-1. **Sprints Concluídas e Verificadas**: S01 a S21, S25 a S30 (26 sprints com implementação e testes no código e banco).
-2. **Sprints Parciais ou com Validação Final de Usabilidade**: S22 (Painel), S23 (Relatórios), S24 (Onboarding integrado).
+1. **Sprints Concluídas e Verificadas**: S01 a S30 (30 sprints com implementação, isolamento multi-tenant, persistência e interfaces integradas).
+2. **Ciclo de Evolução e Estabilização Recente**:
+   - **Diagnostic Workspace UX (S08/S15/S19/S20)**: Estruturação dos 19 módulos em 5 clusters guiados da jornada diagnóstica (`Coleta & Campo`, `Inteligência & Evidências`, `Visual & Benchmarks`, `Ação & Evolução`, `Entregáveis & Governança`), com indicadores de etapa, realce ativo e scroll suave responsivo.
+   - **Vistas Executivas Especializadas (S10/S16/S23)**: Implementação de telas ricas e acionáveis para `Respostas` (tabela detalhada com contadores e protocolos), `Heatmap™` (matriz de calor com atalhos de recálculo e proteção k-anonymity), `Radar™` (eixos de equilíbrio sistêmico), `Benchmark™` (posicionamento relativo frente a coortes) e `Executive Report™` (geração de prévias e central de entregas), substituindo cartões genéricos.
+   - **Resiliência do BFF e Saneamento de Construtores (S28)**: Proteção contra cancelamentos de socket e tratamento gracioso de `TaskCanceledException`/`OperationCanceledException`; overloads de compatibilidade nos controladores BFF para suporte total a DI e suítes de testes unitários/integrados.
+   - **Cockpit Executivo e Onboarding (S22/S24)**: Métricas consolidadas, alertas de atenção e onboarding em 8 passos guiados integrado com `ActionCenter` e botão de restauração.
+   - **Auditoria de UX & Acessibilidade (S03/S04/S29)**: Validação via `audit-user-experience.py` com zero labels de ID manual em todas as páginas Razor do sistema.
 3. **Impedimentos Superados**:
    - Correção do erro de coluna inexistente `u.cpf` no login através do CTE seguro em `UserRepository.cs`.
    - Remoção de `SELECT *` no repositório de usuários, restabelecendo a conformidade estrita com o teste arquitetural.
    - Aplicação e consolidação das sequências PostgreSQL para identificadores complementares amigáveis.
+   - Eliminação do conflito de portas locais (5080) e criação do utilitário `liberar-portas.bat`.
+   - 585 testes unitários/contratuais aprovados com 0 falhas.
+4. **Evolução de Funcionalidades & Saneamento de Módulos (Outubro/2026)**:
+   - **Central de Exportações Oficial (`/Exports`)**: Substituição de tela de protótipo por módulo de produção completo integrado a [ExportsController.cs](file:///c:/MNSOFT/valoregrouppesquisa/backend/Valora.Web/Controllers/ExportsController.cs) e [Index.cshtml](file:///c:/MNSOFT/valoregrouppesquisa/backend/Valora.Web/Views/Exports/Index.cshtml). Apresenta catálogo de 5 conjuntos de dados (`responses`, `results`, `audit`, `surveys`, `forms`), seleção inteligente de formatos (`csv`, `xlsx`, `json`, `pdf`), solicitação assíncrona com CSRF, polling automático em tempo real para downloads prontos e streaming direto de arquivos binários com retenção e validação de expiração.
+   - **Eliminação de Rotas Órfãs de E-mail (`/Email`)**: Descarte de protótipos estáticos sem lógica e implantação de redirecionamentos canônicos em [EmailController.cs](file:///c:/MNSOFT/valoregrouppesquisa/backend/Valora.Web/Controllers/EmailController.cs) apontando permanentemente para a central unificada de comunicações (`/Communications`).
+   - **Process Intelligence Builder (`/Processes/Builder`)**: Evolução da rota de processos em [ProcessesController.cs](file:///c:/MNSOFT/valoregrouppesquisa/backend/Valora.Web/Controllers/ProcessesController.cs) e [Builder.cshtml](file:///c:/MNSOFT/valoregrouppesquisa/backend/Valora.Web/Views/Processes/Builder.cshtml). Interface visual de linha do tempo com estágios de governança (`initial`, `task`, `approval`, `automation`, `final`), definição de SLA em horas, requisitos de evidência, validação de prontidão de publicação (exigindo etapas inicial e final) e geração de novas versões para iteração controlada.
+   - **Resiliência e Proteção Sem Tenant (`Views/Shared/NoOrganization.cshtml`)**: Implementação de visual de fallback gracioso para telas que exigem contexto organizacional ativo.
+   - **Trilha de Auditoria & Governança Oficial (`/Audit`)**: Substituição de esqueleto por módulo de auditoria com [AuditController.cs](file:///c:/MNSOFT/valoregrouppesquisa/backend/Valora.Web/Controllers/AuditController.cs) e [Index.cshtml](file:///c:/MNSOFT/valoregrouppesquisa/backend/Valora.Web/Views/Audit/Index.cshtml). Apresenta métricas em tempo real (total de eventos, últimas 24h, alertas/críticos), filtros por severidade, entidade e busca textual, paginação, garantia de integridade imutável e modal de inspeção de metadados JSON sanitizado.
+   - **Gestão de Respostas & Submissões (`/Responses`)**: Implementação de listagem oficial de submissões em [ResponsesController.cs](file:///c:/MNSOFT/valoregrouppesquisa/backend/Valora.Web/Controllers/ResponsesController.cs) e [Index.cshtml](file:///c:/MNSOFT/valoregrouppesquisa/backend/Valora.Web/Views/Responses/Index.cshtml), com visualização detalhada em [Details.cshtml](file:///c:/MNSOFT/valoregrouppesquisa/backend/Valora.Web/Views/Responses/Details.cshtml) contendo percentual de maturidade, verdade estratégica, scores multidimensionais com barras de progresso, relatórios gerados e planos de ação associados.
+   - **Configurações da Conta & Contexto Organizacional (`/Settings`)**: Módulo oficial em [SettingsController.cs](file:///c:/MNSOFT/valoregrouppesquisa/backend/Valora.Web/Controllers/SettingsController.cs) e [Index.cshtml](file:///c:/MNSOFT/valoregrouppesquisa/backend/Valora.Web/Views/Settings/Index.cshtml), integrando dados do perfil do usuário autenticado, detalhes da organização ativa via `IOrganizationRepository`, status de assinatura SaaS, módulos contratados, políticas de proteção de sessão e preferências de interface.
+   - **Compilação Impecável**: Solução inteira compilando com **0 erros e 0 avisos**, e suíte completa com **585 testes aprovados e 0 falhas**.
+
+

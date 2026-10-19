@@ -7,7 +7,9 @@ namespace Valora.Web.Controllers;
 
 /// <summary>Typed same-origin gateway for every dedicated intelligence workspace.</summary>
 [Authorize, ApiController, AutoValidateAntiforgeryToken, Route("bff/intelligence")]
-public sealed class BffIntelligenceController(IBffApiClient api, BffAuthenticationService authentication, ILogger<BffIntelligenceController> logger) : ControllerBase {
+public sealed class BffIntelligenceController(BffAuthenticationService authentication, ILogger<BffIntelligenceController> logger) : ControllerBase {
+    public BffIntelligenceController(IBffApiClient api, BffAuthenticationService authentication, ILogger<BffIntelligenceController> logger)
+        : this(authentication, logger) { _ = api; }
     [AcceptVerbs("GET", "POST", "PATCH", "DELETE")]
     [Route("{**resource}")]
     public async Task<IActionResult> Forward(string? resource, CancellationToken ct) {
@@ -23,6 +25,15 @@ public sealed class BffIntelligenceController(IBffApiClient api, BffAuthenticati
             response = await authentication.SendAuthorizedAsync(HttpContext, new HttpMethod(Request.Method),
                 $"/api/v1/intelligence/{resource}{Request.QueryString}", body, correlationId, ct);
         }
+        catch (OperationCanceledException) {
+            if (ct.IsCancellationRequested) return new EmptyResult();
+            return StatusCode(StatusCodes.Status504GatewayTimeout, new {
+                status = StatusCodes.Status504GatewayTimeout,
+                code = "API_TIMEOUT",
+                message = "A operação demorou mais que o esperado. Tente novamente.",
+                correlationId
+            });
+        }
         catch (BffApiUnavailableException exception) when (IsApiTimeout(exception, ct)) {
             logger.LogWarning(exception,
                 "Timeout while forwarding Intelligence request to Valora.Api. Method={Method} Resource={Resource} CorrelationId={CorrelationId}",
@@ -34,7 +45,8 @@ public sealed class BffIntelligenceController(IBffApiClient api, BffAuthenticati
                 correlationId
             });
         }
-        catch (BffApiUnavailableException exception) when (!ct.IsCancellationRequested) {
+        catch (BffApiUnavailableException exception) {
+            if (ct.IsCancellationRequested) return new EmptyResult();
             logger.LogWarning(exception,
                 "Valora.Api unavailable while forwarding Intelligence request. Method={Method} Resource={Resource} CorrelationId={CorrelationId}",
                 Request.Method, resource, correlationId);

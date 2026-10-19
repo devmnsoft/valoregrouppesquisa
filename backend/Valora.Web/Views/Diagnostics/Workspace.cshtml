@@ -27,7 +27,52 @@
 </section>
 <div class="alert alert-danger d-none" data-error></div><div class="alert alert-info d-none" data-message></div>
 <section class="metric-grid"><article class="metric-card"><span>Respostas</span><strong data-value="responses">—</strong><small>participações concluídas</small></article><article class="metric-card"><span>Evidências</span><strong data-value="evidence">—</strong><small>itens rastreáveis</small></article><article class="metric-card"><span>Cobertura</span><strong data-value="coverage">—</strong><small>mapeamento metodológico</small></article><article class="metric-card"><span>Processamento</span><strong data-value="processing">—</strong><small>último job do ciclo</small></article></section>
-<nav class="workspace-tabs d-flex flex-wrap gap-2 align-items-center" data-tabs>@foreach(var tab in new[]{("overview","Visão Geral"),("preparation","Preparação"),("campaign","Campanha & Links"),("participation","Participação"),("responses","Respostas"),("evidence","Evidências"),("insights","Achados & Revisão"),("metrics","Métricas"),("indices","Índices"),("inferences","Inferências"),("actions","Action™ (Planos)"),("evolution","Evolution™ (Reavaliação)"),("heatmap","Heatmap™"),("radar","Radar™"),("benchmark","Benchmark™"),("report","Executive Report™"),("certificates","Certificados"),("exports","Exportações"),("shares","Compartilhamentos")}){<button type="button" class="btn btn-sm btn-outline-secondary" data-tab="@tab.Item1">@tab.Item2</button>}</nav>
+<nav class="workspace-tabs workspace-tabs-bar" data-tabs aria-label="Navegação da Jornada Diagnóstica">
+  <div class="workspace-tab-cluster" data-cluster="coleta">
+    <div class="cluster-heading"><span class="cluster-num">1</span> <span class="cluster-title">Coleta & Campo</span></div>
+    <div class="cluster-actions">
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="overview">Visão Geral</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="preparation">Preparação</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="campaign">Campanha & Links</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="participation">Participação</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="responses">Respostas</button>
+    </div>
+  </div>
+  <div class="workspace-tab-cluster" data-cluster="inteligencia">
+    <div class="cluster-heading"><span class="cluster-num">2</span> <span class="cluster-title">Inteligência & Evidências</span></div>
+    <div class="cluster-actions">
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="evidence">Evidências</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="insights">Achados & Revisão</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="metrics">Métricas</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="indices">Índices</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="inferences">Inferências</button>
+    </div>
+  </div>
+  <div class="workspace-tab-cluster" data-cluster="visual">
+    <div class="cluster-heading"><span class="cluster-num">3</span> <span class="cluster-title">Visual & Benchmarks</span></div>
+    <div class="cluster-actions">
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="heatmap">Heatmap™</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="radar">Radar™</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="benchmark">Benchmark™</button>
+    </div>
+  </div>
+  <div class="workspace-tab-cluster" data-cluster="acao">
+    <div class="cluster-heading"><span class="cluster-num">4</span> <span class="cluster-title">Ação & Evolução</span></div>
+    <div class="cluster-actions">
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="actions">Action™ (Planos)</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="evolution">Evolution™ (Reavaliação)</button>
+    </div>
+  </div>
+  <div class="workspace-tab-cluster" data-cluster="entregaveis">
+    <div class="cluster-heading"><span class="cluster-num">5</span> <span class="cluster-title">Entregáveis & Governança</span></div>
+    <div class="cluster-actions">
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="report">Executive Report™</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="certificates">Certificados</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="exports">Exportações</button>
+      <button type="button" class="btn btn-sm btn-outline-secondary" data-tab="shares">Compartilhamentos</button>
+    </div>
+  </div>
+</nav>
 <section class="workspace-section mt-3" aria-live="polite"><div class="survey-skeleton" data-loading><span></span><span></span><span></span></div><div data-content></div></section>
 </main>
 @section Scripts{<script src="~/js/pages/diagnostic-workspace.js" asp-append-version="true"></script>}

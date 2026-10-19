@@ -9,7 +9,9 @@ namespace Valora.Web.Controllers;
 [AutoValidateAntiforgeryToken]
 [ApiController]
 [Route("bff")]
-public sealed class BffAdministrationController(IBffApiClient api, BffAuthenticationService authentication, ILogger<BffAdministrationController> logger) : ControllerBase {
+public sealed class BffAdministrationController(BffAuthenticationService authentication, ILogger<BffAdministrationController> logger) : ControllerBase {
+    public BffAdministrationController(IBffApiClient api, BffAuthenticationService authentication, ILogger<BffAdministrationController> logger)
+        : this(authentication, logger) { _ = api; }
     [AcceptVerbs("GET", "POST", "PUT", "PATCH", "DELETE")]
     [Route("organization/{**resource}")]
     public Task<IActionResult> Organization(string? resource, CancellationToken cancellationToken) =>
@@ -180,7 +182,17 @@ public sealed class BffAdministrationController(IBffApiClient api, BffAuthentica
             Response.Headers["X-Correlation-Id"] = response.Headers.TryGetValues("X-Correlation-Id", out var values) ? values.First() : correlationId;
             return new ContentResult { StatusCode = (int)response.StatusCode, ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/json", Content = payload };
         }
-        catch (BffApiUnavailableException exception) when (!cancellationToken.IsCancellationRequested) {
+        catch (OperationCanceledException) {
+            if (cancellationToken.IsCancellationRequested) return new EmptyResult();
+            Response.Headers["X-Correlation-Id"] = correlationId;
+            return StatusCode(StatusCodes.Status504GatewayTimeout, new {
+                code = "API_TIMEOUT",
+                message = "A solicitação excedeu o tempo limite. Tente novamente.",
+                correlationId
+            });
+        }
+        catch (BffApiUnavailableException exception) {
+            if (cancellationToken.IsCancellationRequested) return new EmptyResult();
             logger.LogWarning(exception, "Falha de conectividade ao encaminhar requisição. Path={Path} CorrelationId={CorrelationId}", path, correlationId);
             Response.Headers["X-Correlation-Id"] = correlationId;
             return StatusCode(StatusCodes.Status504GatewayTimeout, new {

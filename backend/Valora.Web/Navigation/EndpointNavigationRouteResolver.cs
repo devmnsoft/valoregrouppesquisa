@@ -18,7 +18,10 @@ public sealed class EndpointNavigationRouteResolver(
             return null;
         }
 
-        var path = links.GetPathByAction(accessor.HttpContext, destination.Action, destination.Controller);
+        var context = accessor.HttpContext;
+        var path = context is not null
+            ? links.GetPathByAction(context, destination.Action, destination.Controller)
+            : links.GetPathByAction(destination.Action, destination.Controller);
         if (string.IsNullOrWhiteSpace(path))
             logger.LogWarning("Navigation destination {Controller}.{Action} cannot generate a URL.", destination.Controller, destination.Action);
         return path;

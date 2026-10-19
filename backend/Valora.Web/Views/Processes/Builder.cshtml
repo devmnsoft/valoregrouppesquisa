@@ -1,0 +1,379 @@
+@model Valora.Web.Models.ViewModels.ProcessBuilderViewModel
+@{
+    ViewData["Title"] = "Process Builder — Valora";
+}
+<link rel="stylesheet" href="~/css/processes.css" asp-append-version="true" />
+
+<section class="process-page-head pb-3">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <a asp-action="Index">← Voltar ao Studio</a>
+            <span class="d-block mt-2">PROCESS BUILDER</span>
+            <h1 class="mb-1">Construtor de Fluxos e Etapas</h1>
+            <p class="mb-0">Estruture etapas sequenciais, pontos de decisão humana, requisitos de evidência e SLAs antes da publicação.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#modalNovoProcesso">
+                <i class="bi bi-plus-circle me-1"></i> Novo Processo
+            </button>
+            @if (Model.Definition is not null)
+            {
+                if (Model.IsPublished)
+                {
+                    <form method="post" asp-action="NewVersion" asp-route-id="@Model.Definition.Id" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-git me-1"></i> Criar Nova Versão (Rascunho)
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <form method="post" asp-action="Publish" asp-route-id="@Model.Definition.Id" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-success" @(Model.CanPublish ? "" : "disabled") title="@(Model.CanPublish ? "Publicar processo para execução" : "Exige ao menos uma etapa inicial e uma final")">
+                            <i class="bi bi-send-check me-1"></i> Publicar Processo
+                        </button>
+                    </form>
+                }
+            }
+        </div>
+    </div>
+</section>
+
+@if (TempData["ProcessSuccess"] is not null)
+{
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i> @TempData["ProcessSuccess"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+    </div>
+}
+
+@if (TempData["ProcessError"] is not null)
+{
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ProcessError"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+    </div>
+}
+
+<nav class="process-tabs mb-4" aria-label="Navegação do Studio">
+    <a asp-action="Definitions">Definições</a>
+    <a asp-action="Builder" class="fw-bold text-dark bg-white shadow-sm border">Builder</a>
+    <a asp-action="Instances">Instâncias</a>
+    <a asp-action="Approvals">Aprovações</a>
+    <a asp-action="Sla">SLA</a>
+    <a asp-action="Insights">Insights</a>
+    <a asp-action="Templates">Templates</a>
+</nav>
+
+@if (Model.Definition is null)
+{
+    <div class="process-panel text-center py-5">
+        <div class="display-6 text-muted mb-3"><i class="bi bi-diagram-3"></i></div>
+        <h2 class="h4 text-dark fw-bold mb-2">Nenhum processo em edição</h2>
+        <p class="text-muted max-w-md mx-auto mb-4">Crie um novo processo organizacional para começar a desenhar as etapas operacionais, aprovações e requisitos de evidência.</p>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalNovoProcesso">
+            <i class="bi bi-plus-lg me-1"></i> Criar Primeiro Processo
+        </button>
+    </div>
+}
+else
+{
+    <!-- Barra de Contexto do Processo -->
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-3 p-md-4">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-layers text-primary"></i>
+                            <span class="fw-semibold">@Model.Definition.Name</span>
+                        </button>
+                        <ul class="dropdown-menu shadow">
+                            <li class="dropdown-header text-uppercase small">Processos da Organização</li>
+                            @foreach (var def in Model.AllDefinitions)
+                            {
+                                <li>
+                                    <a class="dropdown-item d-flex justify-content-between align-items-center @(def.Id == Model.Definition.Id ? "active" : "")" asp-action="Builder" asp-route-id="@def.Id">
+                                        <span>@def.Name</span>
+                                        <span class="badge @(def.Status == "published" ? "bg-success" : "bg-warning text-dark") font-monospace ms-2">v@def.VersionNumber</span>
+                                    </a>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                    <span class="badge text-bg-light border px-2 py-1">@Model.Definition.Category</span>
+                    <span class="badge @(Model.IsPublished ? "text-bg-success" : "text-bg-warning text-dark") px-2 py-1">
+                        @(Model.IsPublished ? "Publicado" : "Rascunho") · v@Model.Definition.VersionNumber
+                    </span>
+                </div>
+
+                <!-- Status de Validação de Publicação -->
+                <div class="d-flex align-items-center gap-2 small">
+                    <span class="text-muted">Prontidão:</span>
+                    <span class="badge @(Model.HasInitialStep ? "bg-success-subtle text-success border border-success" : "bg-danger-subtle text-danger border border-danger")">
+                        <i class="bi @(Model.HasInitialStep ? "bi-check-circle" : "bi-x-circle") me-1"></i> Etapa Inicial
+                    </span>
+                    <span class="badge @(Model.HasFinalStep ? "bg-success-subtle text-success border border-success" : "bg-danger-subtle text-danger border border-danger")">
+                        <i class="bi @(Model.HasFinalStep ? "bi-check-circle" : "bi-x-circle") me-1"></i> Etapa Final
+                    </span>
+                </div>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.Definition.Description))
+            {
+                <p class="text-muted small mb-0 mt-3 pt-2 border-top">@Model.Definition.Description</p>
+            }
+        </div>
+    </div>
+
+    <!-- Grid do Builder: Etapas do Fluxo & Adicionar Nova Etapa -->
+    <div class="row g-4">
+        <!-- Coluna da Linha do Tempo de Etapas -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <h2 class="h5 mb-0 fw-bold text-dark">
+                        <i class="bi bi-bezier2 me-2 text-primary"></i>Fluxo Sequencial de Etapas (@Model.Steps.Count)
+                    </h2>
+                    @if (!Model.IsPublished)
+                    {
+                        <span class="badge bg-primary-subtle text-primary">Edição Habilitada</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary-subtle text-secondary">Bloqueado para Edição</span>
+                    }
+                </div>
+                <div class="card-body p-4">
+                    @if (Model.Steps.Count == 0)
+                    {
+                        <div class="text-center py-5">
+                            <div class="text-muted mb-2"><i class="bi bi-diagram-2 fs-1"></i></div>
+                            <h3 class="h5 text-dark">Nenhuma etapa configurada</h3>
+                            <p class="text-muted small mb-0">Utilize o formulário ao lado para cadastrar a primeira etapa do processo (tipo "initial").</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="position-relative ps-4 border-start border-2 border-primary border-opacity-25 ms-3 my-2">
+                            @foreach (var step in Model.Steps)
+                            {
+                                var typeBadgeClass = step.StepType switch {
+                                    "initial" => "text-bg-primary",
+                                    "final" => "text-bg-dark",
+                                    "approval" => "text-bg-warning text-dark",
+                                    "automation" => "text-bg-info text-white",
+                                    _ => "text-bg-secondary"
+                                };
+
+                                var typeIcon = step.StepType switch {
+                                    "initial" => "bi-play-circle-fill text-primary",
+                                    "final" => "bi-flag-fill text-dark",
+                                    "approval" => "bi-shield-check text-warning",
+                                    "automation" => "bi-gear-wide-connected text-info",
+                                    _ => "bi-check2-circle text-secondary"
+                                };
+
+                                <div class="position-relative mb-4">
+                                    <!-- Marcador na linha -->
+                                    <div class="position-absolute top-0 start-0 translate-middle bg-white rounded-circle p-1 border shadow-sm" style="margin-left: -1.5rem;">
+                                        <i class="bi @typeIcon fs-5"></i>
+                                    </div>
+
+                                    <div class="card border rounded-3 p-3 bg-light bg-opacity-25 shadow-sm">
+                                        <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                                            <div>
+                                                <span class="badge @typeBadgeClass text-uppercase font-monospace mb-1" style="font-size: 0.68rem;">@step.StepType</span>
+                                                <h3 class="h6 fw-bold mb-0 text-dark">@step.OrderIndex. @step.Name</h3>
+                                            </div>
+                                            <div class="d-flex gap-1 align-items-center">
+                                                @if (step.SlaHours.HasValue)
+                                                {
+                                                    <span class="badge bg-light text-dark border">
+                                                        <i class="bi bi-clock me-1 text-muted"></i>@step.SlaHours h SLA
+                                                    </span>
+                                                }
+                                                @if (step.EvidenceRequired)
+                                                {
+                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning" title="Requer evidência formal para transição">
+                                                        <i class="bi bi-paperclip me-1"></i>Evidência
+                                                    </span>
+                                                }
+                                                @if (step.RequiresApproval)
+                                                {
+                                                    <span class="badge bg-danger-subtle text-danger border border-danger">
+                                                        <i class="bi bi-person-check me-1"></i>Aprovação
+                                                    </span>
+                                                }
+                                            </div>
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(step.Description))
+                                        {
+                                            <p class="text-muted small mb-0 mt-1">@step.Description</p>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna de Adicionar Etapa / Governança -->
+        <div class="col-lg-4">
+            @if (!Model.IsPublished)
+            {
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white py-3 border-bottom">
+                        <h2 class="h6 mb-0 fw-bold text-dark">
+                            <i class="bi bi-plus-square me-2 text-primary"></i>Adicionar Etapa ao Fluxo
+                        </h2>
+                    </div>
+                    <div class="card-body p-3 p-md-4">
+                        <form method="post" asp-action="CreateStep" asp-route-processId="@Model.Definition.Id">
+                            @Html.AntiForgeryToken()
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold small" for="stepName">Nome da Etapa</label>
+                                <input type="text" class="form-control form-control-sm" id="stepName" name="Name" required placeholder="Ex.: Triagem Inicial de Evidências" maxlength="160" />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold small" for="stepType">Tipo da Etapa</label>
+                                <select class="form-select form-select-sm" id="stepType" name="StepType" required>
+                                    @if (!Model.HasInitialStep)
+                                    {
+                                        <option value="initial" selected>Etapa Inicial (initial) — Gatilho de início</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="task" selected>Tarefa Operacional (task)</option>
+                                    }
+                                    <option value="approval">Ponto de Aprovação Humana (approval)</option>
+                                    <option value="automation">Automação de Sistema (automation)</option>
+                                    <option value="final">Etapa de Encerramento (final)</option>
+                                    @if (Model.HasInitialStep)
+                                    {
+                                        <option value="initial">Etapa Inicial (initial)</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold small" for="stepOrder">Ordem</label>
+                                    <input type="number" class="form-control form-control-sm" id="stepOrder" name="OrderIndex" value="@(Model.Steps.Count + 1)" min="1" max="999" required />
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold small" for="stepSla">SLA (horas)</label>
+                                    <input type="number" class="form-control form-control-sm" id="stepSla" name="SlaHours" placeholder="Ex.: 24" min="1" max="8760" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold small" for="stepDescription">Orientações de Execução</label>
+                                <textarea class="form-control form-control-sm" id="stepDescription" name="Description" rows="2" placeholder="Descreva os requisitos para conclusão desta etapa..." maxlength="2000"></textarea>
+                            </div>
+
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" id="checkEvidence" name="EvidenceRequired" value="true" />
+                                <label class="form-check-label small fw-medium" for="checkEvidence">Exigir evidência comprobatória</label>
+                            </div>
+
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="checkApproval" name="RequiresApproval" value="true" />
+                                <label class="form-check-label small fw-medium" for="checkApproval">Exigir decisão formal de aprovação</label>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                <i class="bi bi-plus-circle me-1"></i> Incluir Etapa no Processo
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="card border-0 shadow-sm mb-4 bg-light">
+                    <div class="card-body p-4 text-center">
+                        <i class="bi bi-shield-lock text-success fs-1 mb-2 d-block"></i>
+                        <h3 class="h6 fw-bold text-dark mb-1">Processo Publicado e Bloqueado</h3>
+                        <p class="text-muted small mb-3">Esta versão do processo está ativa e disponível para execuções. Para alterar etapas, gere uma nova versão de rascunho.</p>
+                        <form method="post" asp-action="NewVersion" asp-route-id="@Model.Definition.Id">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-warning btn-sm w-100">
+                                <i class="bi bi-git me-1"></i> Criar Nova Versão Rascunho
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            }
+
+            <!-- Card de Regras de Governança -->
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3 border-bottom">
+                    <h2 class="h6 mb-0 fw-bold text-dark">
+                        <i class="bi bi-info-circle me-2 text-primary"></i>Regras de Publicação
+                    </h2>
+                </div>
+                <div class="card-body p-3 small text-muted">
+                    <ul class="ps-3 mb-0">
+                        <li class="mb-2">Todo processo publicável exige pelo menos uma etapa do tipo <strong>initial</strong> e uma etapa do tipo <strong>final</strong>.</li>
+                        <li class="mb-2">Etapas com exigência de aprovação preservam a justificativa e o identificador do decisor na trilha de auditoria.</li>
+                        <li>SLA definido monitora automaticamente prazos em risco e alerta a equipe de governança.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal Novo Processo -->
+<div class="modal fade" id="modalNovoProcesso" tabindex="-1" aria-labelledby="modalNovoProcessoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <form method="post" asp-action="CreateProcess">
+                @Html.AntiForgeryToken()
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold" id="modalNovoProcessoLabel">
+                        <i class="bi bi-diagram-3 me-2 text-primary"></i>Criar Novo Processo
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="processTitle">Nome do Processo</label>
+                        <input type="text" class="form-control" id="processTitle" name="Name" required placeholder="Ex.: Gestão de Incidentes de Segurança" maxlength="160" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="processCategory">Categoria</label>
+                        <select class="form-select" id="processCategory" name="Category" required>
+                            <option value="Operacional" selected>Operacional</option>
+                            <option value="Governança">Governança & Compliance</option>
+                            <option value="Gente & Cultura">Gente & Cultura</option>
+                            <option value="Estratégico">Estratégico & Decisão</option>
+                            <option value="Tecnologia">Tecnologia & Segurança</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="processDesc">Descrição e Objetivo</label>
+                        <textarea class="form-control" id="processDesc" name="Description" rows="3" placeholder="Explique o propósito deste fluxo de trabalho e quando ele deve ser disparado..." maxlength="2000"></textarea>
+                    </div>
+
+                    <div class="alert alert-light border small text-muted mb-0">
+                        <i class="bi bi-lightbulb me-1 text-primary"></i> O processo será criado em modo rascunho (v1), permitindo que você configure todas as etapas antes de torná-lo ativo.
+                    </div>
+                </div>
+                <div class="modal-footer border-top bg-light">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check2-circle me-1"></i> Criar Rascunho
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

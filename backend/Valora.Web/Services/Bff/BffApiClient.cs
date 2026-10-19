@@ -79,6 +79,10 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
         try {
             return await httpClient.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
         }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            message.Dispose();
+            throw;
+        }
         catch (TaskCanceledException exception) when (!cancellationToken.IsCancellationRequested) {
             message.Dispose();
             logger.LogWarning(exception, "Timeout ao acessar a API pelo BFF. Method={Method} Path={Path} CorrelationId={CorrelationId}", method, path, correlationId);
@@ -88,6 +92,10 @@ public sealed class BffApiClient(HttpClient httpClient, IOptions<ApiOptions> opt
             message.Dispose();
             logger.LogWarning(exception, "API indisponível para o BFF. Method={Method} Path={Path} CorrelationId={CorrelationId}", method, path, correlationId);
             throw new BffApiUnavailableException(options.Value.BaseUrl, exception);
+        }
+        catch {
+            message.Dispose();
+            throw;
         }
     }
 

@@ -32,11 +32,13 @@ public sealed class BffAccountController(BffAuthenticationService authentication
             if (selectedOrgId is null || selectedOrgId == Guid.Empty) {
                 effectiveOrgId = null;
                 effectiveOrgName = null;
-            } else {
+            }
+            else {
                 effectiveOrgId = selectedOrgId;
                 effectiveOrgName = organization?.TradeName ?? organization?.Name ?? "Organização selecionada";
             }
-        } else {
+        }
+        else {
             effectiveOrgId = organization?.Id ?? session.SafeSession.AccessContext.OrganizationId;
             effectiveOrgName = organization?.TradeName ?? organization?.Name;
         }

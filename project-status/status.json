@@ -93,7 +93,10 @@
       ],
       "changedFiles": [
         "backend/Valora.Web/Controllers/BffIntelligenceController.cs",
-        "backend/Valora.Web/Controllers/BffMethodologyController.cs"
+        "backend/Valora.Web/Controllers/BffMethodologyController.cs",
+        "backend/Valora.Web/Views/Intelligence/Benchmark.cshtml",
+        "backend/Valora.Web/Views/Intelligence/Heatmap.cshtml",
+        "backend/Valora.Web/Views/Intelligence/Index.cshtml"
       ],
       "updateState": "Revisão necessária"
     },
@@ -109,8 +112,11 @@
         "Remover textos que afirmam convergência sem evidência disponível.",
         "Validar autorização, concorrência e retorno ao contexto."
       ],
-      "changedFiles": [],
-      "updateState": "Sem alteração detectada desde a revisão"
+      "changedFiles": [
+        "backend/Valora.Web/Views/Insights/Details.cshtml",
+        "backend/Valora.Web/Views/Insights/Index.cshtml"
+      ],
+      "updateState": "Revisão necessária"
     },
     {
       "name": "Central de Ações",
@@ -238,6 +244,12 @@
         "Definir o conjunto mínimo a oferecer no lançamento."
       ],
       "changedFiles": [
+        "backend/Valora.Application/OneOnOne/OneOnOneServices.cs",
+        "backend/Valora.Web/Controllers/OneOnOneController.cs",
+        "backend/Valora.Web/Views/OneOnOne/Create.cshtml",
+        "backend/Valora.Web/Views/OneOnOne/Details.cshtml",
+        "backend/Valora.Web/Views/OneOnOne/Index.cshtml",
+        "backend/Valora.Web/Views/OneOnOne/Sessions.cshtml",
         "backend/Valora.Web/Views/People/Competencies.cshtml",
         "backend/Valora.Web/Views/People/Culture.cshtml",
         "backend/Valora.Web/Views/People/DevelopmentPlans.cshtml",
@@ -294,8 +306,11 @@
         "Validar restauração, monitoramento e procedimentos de lançamento.",
         "Não prometer operação comercial completa a partir da existência de telas."
       ],
-      "changedFiles": [],
-      "updateState": "Sem alteração detectada desde a revisão"
+      "changedFiles": [
+        "backend/Valora.Web/Views/Governance/Index.cshtml",
+        "backend/Valora.Web/Views/Governance/Meetings.cshtml"
+      ],
+      "updateState": "Revisão necessária"
     }
   ],
   "rules": [
@@ -606,10 +621,24 @@
   ],
   "calendarStatus": "Proposta não aprovada; estimativas dependem de equipe, ambiente e aceite.",
   "schemaVersion": 1,
-  "sourceCommit": "581ca7e5df5ca31383caa00c1df14aa9d64701b3",
-  "generatedAt": "2026-10-19T15:13:02.016547+00:00",
+  "sourceCommit": "eac212e0ea2789f01c1b57f5adf58e335c146e08",
+  "generatedAt": "2026-10-19T17:46:30.445271+00:00",
   "baselineAvailable": true,
   "sprintDocuments": [
+    {
+      "path": "backend/docs/execucao/OPERACAO_VALORA_EXCELLENCE_360.md",
+      "title": "OPERAÇÃO VALORA EXCELLENCE 360",
+      "headings": [
+        "1. Matriz Geral de Acompanhamento das 25 Sprints",
+        "2. Relatório Técnico das Sprints 01 a 06 (Execução Imediata)",
+        "Sprint 01 — Varredura Geral da Arquitetura",
+        "Sprint 02 — Inventário de Páginas e Eliminação de Rotas Quebradas",
+        "Sprints 03 a 06 — Design System, Acessibilidade e Reformulação das Páginas Críticas",
+        "Sprints 09 a 12 — Dashboards, Radar, Heatmap, Insights IA e One-on-One"
+      ],
+      "updatedAt": "2026-10-19T14:46:11-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
     {
       "path": "backend/docs/execucao/EVOLUCAO_30_SPRINTS_2026-10-18.md",
       "title": "Evolução Valora Insight — Plano Reconciliado de 30 Sprints",
@@ -2424,6 +2453,11 @@
   ],
   "recentCommits": [
     {
+      "sha": "eac212e0ea2789f01c1b57f5adf58e335c146e08",
+      "date": "2026-10-19T14:46:11-03:00",
+      "title": "ajustes"
+    },
+    {
       "sha": "581ca7e5df5ca31383caa00c1df14aa9d64701b3",
       "date": "2026-10-19T12:12:44-03:00",
       "title": "ajustes"
@@ -2917,14 +2951,9 @@
       "sha": "d86c411a39dc857cdd007feb1b2748f641f1df8d",
       "date": "2026-09-15T16:21:08-03:00",
       "title": "fix(action-center): preserve closure review drafts"
-    },
-    {
-      "sha": "8a1deff756c4597d2cf4f04ad7537e9b5776d310",
-      "date": "2026-09-15T15:58:35-03:00",
-      "title": "Merge pull request #576 from devmnsoft/codex/corrigir-regressoes-e-aprimorar-impressao"
     }
   ],
-  "changedFileCount": 135,
+  "changedFileCount": 154,
   "automation": {
     "mode": "push-main",
     "acceptanceAutomatic": false

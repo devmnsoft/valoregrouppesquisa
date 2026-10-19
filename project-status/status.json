@@ -202,6 +202,7 @@
       "changedFiles": [
         "backend/Valora.Web/Models/ViewModels/InDevelopmentViewModel.cs",
         "backend/Valora.Web/Navigation/EndpointNavigationRouteResolver.cs",
+        "backend/Valora.Web/Views/Onboarding/Checklist.cshtml",
         "backend/Valora.Web/Views/Shared/InDevelopment.cshtml"
       ],
       "updateState": "Revisão necessária"
@@ -236,8 +237,17 @@
         "Auditar toda a jornada, acesso a notas privadas e vínculo com ações.",
         "Definir o conjunto mínimo a oferecer no lançamento."
       ],
-      "changedFiles": [],
-      "updateState": "Sem alteração detectada desde a revisão"
+      "changedFiles": [
+        "backend/Valora.Web/Views/People/Competencies.cshtml",
+        "backend/Valora.Web/Views/People/Culture.cshtml",
+        "backend/Valora.Web/Views/People/DevelopmentPlans.cshtml",
+        "backend/Valora.Web/Views/People/Engagement.cshtml",
+        "backend/Valora.Web/Views/People/Index.cshtml",
+        "backend/Valora.Web/Views/People/Risks.cshtml",
+        "backend/Valora.Web/Views/People/Teams.cshtml",
+        "backend/Valora.Web/Views/People/_PeopleShell.cshtml"
+      ],
+      "updateState": "Revisão necessária"
     },
     {
       "name": "Processos e arquitetura",
@@ -596,8 +606,8 @@
   ],
   "calendarStatus": "Proposta não aprovada; estimativas dependem de equipe, ambiente e aceite.",
   "schemaVersion": 1,
-  "sourceCommit": "96f34ea3160fc7a08de330cb7d8fbac8580fda01",
-  "generatedAt": "2026-10-19T12:38:07.298151+00:00",
+  "sourceCommit": "581ca7e5df5ca31383caa00c1df14aa9d64701b3",
+  "generatedAt": "2026-10-19T15:13:02.016547+00:00",
   "baselineAvailable": true,
   "sprintDocuments": [
     {
@@ -606,7 +616,7 @@
       "headings": [
         "Evolução Valora Insight — Plano Reconciliado de 30 Sprints"
       ],
-      "updatedAt": "2026-10-19T09:37:42-03:00",
+      "updatedAt": "2026-10-19T12:12:44-03:00",
       "state": "Documentada · aceite a conferir"
     },
     {
@@ -2414,6 +2424,11 @@
   ],
   "recentCommits": [
     {
+      "sha": "581ca7e5df5ca31383caa00c1df14aa9d64701b3",
+      "date": "2026-10-19T12:12:44-03:00",
+      "title": "ajustes"
+    },
+    {
       "sha": "96f34ea3160fc7a08de330cb7d8fbac8580fda01",
       "date": "2026-10-19T09:37:42-03:00",
       "title": "correção"
@@ -2907,14 +2922,9 @@
       "sha": "8a1deff756c4597d2cf4f04ad7537e9b5776d310",
       "date": "2026-09-15T15:58:35-03:00",
       "title": "Merge pull request #576 from devmnsoft/codex/corrigir-regressoes-e-aprimorar-impressao"
-    },
-    {
-      "sha": "4b272694ed27b0bbaa5eaa218d5e8baac8b79ef0",
-      "date": "2026-09-15T15:57:52-03:00",
-      "title": "feat: concluir revisão e impressão dos planos"
     }
   ],
-  "changedFileCount": 106,
+  "changedFileCount": 135,
   "automation": {
     "mode": "push-main",
     "acceptanceAutomatic": false

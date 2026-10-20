@@ -11,21 +11,21 @@
 .valora-button[aria-busy="true"], button[data-loading="true"] { cursor: wait; opacity: .72; pointer-events: none; }
 
 /* Premium form composition: usable by strongly typed Razor forms and JS workspaces. */
-.form-shell { background: #fff; border: 1px solid var(--valora-line, #dce7e6); border-radius: 22px; box-shadow: 0 16px 42px rgb(7 47 55 / 8%); overflow: clip; }
-.form-shell__header, .form-shell__body { padding: clamp(1rem, 2.5vw, 1.75rem); }
-.form-shell__header { background: linear-gradient(135deg, #f7fbfa, #eef7f6); border-bottom: 1px solid var(--valora-line, #dce7e6); }
-.form-shell__header :is(h1, h2), .form-section h2 { margin: 0; color: var(--valora-navy, #102f43); }
-.form-shell__header p, .form-section p { color: var(--valora-muted, #60767b); margin: .35rem 0 0; max-width: 72ch; }
+.form-shell { background: #fff; border: 1px solid var(--valora-border, #e2e8f0); border-radius: var(--valora-radius, 10px); box-shadow: var(--valora-shadow-sm, 0 1px 3px rgba(15, 23, 42, 0.08)); overflow: clip; }
+.form-shell__header, .form-shell__body { padding: clamp(1rem, 2vw, 1.5rem); }
+.form-shell__header { background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-bottom: 1px solid var(--valora-border, #e2e8f0); }
+.form-shell__header :is(h1, h2), .form-section h2 { margin: 0; color: var(--valora-navy, #071b28); letter-spacing: -0.015em; }
+.form-shell__header p, .form-section p { color: var(--valora-muted, #64748b); margin: .35rem 0 0; max-width: 72ch; font-size: 0.875rem; }
 .form-grid { display: grid; gap: 1rem; grid-template-columns: repeat(12, minmax(0, 1fr)); }
 .form-grid > * { grid-column: span 6; min-width: 0; }
 .form-grid > .form-field--full, .form-grid > fieldset, .form-grid > .validation-summary-errors { grid-column: 1 / -1; }
-.form-section { border-bottom: 1px solid var(--valora-line, #dce7e6); margin: 0 0 1.15rem; padding: 0 0 1rem; }
-.field-hint, .form-text { color: var(--valora-muted, #60767b); display: block; font-size: .78rem; line-height: 1.45; margin-top: .35rem; }
-.form-control, .form-select { border-radius: 12px; min-height: 44px; }
+.form-section { border-bottom: 1px solid var(--valora-border, #e2e8f0); margin: 0 0 1.15rem; padding: 0 0 1rem; }
+.field-hint, .form-text { color: var(--valora-muted, #64748b); display: block; font-size: .78rem; line-height: 1.45; margin-top: .35rem; }
+.form-control, .form-select { border-radius: var(--valora-radius-sm, 6px); min-height: var(--valora-input-height, 40px); border: 1px solid var(--valora-border, #cbd5e1); font-size: 0.875rem; }
 textarea.form-control { min-height: 7rem; resize: vertical; }
-.form-control.input-validation-error, .form-select.input-validation-error, :is(.form-control, .form-select)[aria-invalid="true"] { background-color: #fffafa; border-color: var(--valora-danger, #b5262b); }
+.form-control.input-validation-error, .form-select.input-validation-error, :is(.form-control, .form-select)[aria-invalid="true"] { background-color: #fef2f2; border-color: var(--valora-danger, #dc2626); }
 .validation-summary-valid, .field-validation-valid { display: none; }
-.form-actions { background: #f8fbfa; border-top: 1px solid var(--valora-line, #dce7e6); justify-content: flex-end; margin: 1.5rem calc(clamp(1rem, 2.5vw, 1.75rem) * -1) calc(clamp(1rem, 2.5vw, 1.75rem) * -1); padding: 1rem clamp(1rem, 2.5vw, 1.75rem); position: sticky; bottom: 0; z-index: 3; }
+.form-actions { background: #f8fafc; border-top: 1px solid var(--valora-border, #e2e8f0); justify-content: flex-end; margin: 1.5rem calc(clamp(1rem, 2vw, 1.5rem) * -1) calc(clamp(1rem, 2vw, 1.5rem) * -1); padding: 0.85rem clamp(1rem, 2vw, 1.5rem); position: sticky; bottom: 0; z-index: 3; }
 form[data-submitting] { cursor: wait; }
 button[aria-busy="true"] .button-spinner { display: inline-block; }
 

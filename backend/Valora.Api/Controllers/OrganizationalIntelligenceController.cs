@@ -11,7 +11,16 @@ namespace Valora.Api.Controllers;
 public sealed class OrganizationalIntelligenceController(IOrganizationalIntelligenceService service,
     IValoraIntelligenceEngine deliverables, IOrganizationalIntelligencePipeline pipeline,
     IPermissionService permissions, IEntitlementService entitlements, IBenchmarkManagementService benchmarks,
-    Valora.Application.Heatmap.IHeatmapService heatmaps) : ControllerBase {
+    Valora.Application.Heatmap.IHeatmapService heatmaps,
+    IExplainableIntelligenceService explainable) : ControllerBase {
+    [HttpGet("explain/{insightId:guid}")]
+    public async Task<IActionResult> Explain(Guid insightId, [FromQuery] Guid? organizationId, CancellationToken ct) {
+        var access = await Validate(organizationId, "organizational_intelligence.read");
+        if (access.Error is not null) return access.Error;
+        var analysis = await explainable.ExplainInsightAsync(access.OrganizationId, UserId, insightId, IsAdmin, ct);
+        return analysis is null ? NotFound(new { code = "ANALYSIS_NOT_FOUND", message = "Análise explicável não encontrada para este insight." }) : Ok(analysis);
+    }
+
     /// <summary>Canonical evidence-first read model shared by Dashboard, Radar, Report, Action, Heatmap and Insights.</summary>
     [HttpGet("deliverables")]
     public async Task<IActionResult> Deliverables([FromQuery] Guid? organizationId, [FromQuery] Guid? surveyId, CancellationToken ct) {

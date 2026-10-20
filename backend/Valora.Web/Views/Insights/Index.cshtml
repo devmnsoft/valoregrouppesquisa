@@ -269,6 +269,9 @@
                                 </td>
                                 <td>@x.CreatedAt.ToString("dd/MM/yyyy")</td>
                                 <td class="text-end">
+                                    <button type="button" class="valora-button valora-button--ghost btn-sm me-1" data-action="open-explainability-modal" data-insight-id="@x.Id" title="Entenda esta análise">
+                                        Entenda esta análise
+                                    </button>
                                     <a class="valora-button valora-button--ghost btn-sm" asp-action="Details" asp-route-id="@x.Id" asp-route-returnUrl="@Model.CurrentUrl">
                                         @(x.Status == AiInsightStatuses.PendingReview && canReview ? "Analisar e Revisar" : "Ver Detalhes")
                                     </a>

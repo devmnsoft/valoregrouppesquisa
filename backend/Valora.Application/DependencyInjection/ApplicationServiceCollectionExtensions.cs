@@ -241,6 +241,7 @@ public static class ApplicationServiceCollectionExtensions {
         services.AddSingleton<ICnpjLookupService, DisabledCnpjLookupService>();
         services.AddSingleton<ICepLookupService, DisabledCepLookupService>();
         services.AddScoped<IOrganizationalIntelligenceService, OrganizationalIntelligenceService>();
+        services.AddScoped<IExplainableIntelligenceService, ExplainableIntelligenceService>();
         services.AddSingleton<IValoraIntelligenceEngine, ValoraIntelligenceEngine>();
         services.AddScoped<IEvidenceExtractionService, EvidenceExtractionService>();
         services.AddScoped<IMetricCalculationService, MetricCalculationService>();

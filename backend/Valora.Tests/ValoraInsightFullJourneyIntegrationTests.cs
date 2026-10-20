@@ -852,7 +852,7 @@ public sealed class ValoraInsightFullJourneyIntegrationTests {
         }
     }
 
-    [Fact]
+    [PostgresFact("regressão PostgreSQL da jornada completa não executada.")]
     public async Task Sprint2_Validation_Preparation_Parameters_Methodology_Lock_And_Concurrency() {
         var connectionString = Connection();
         var connFactory = new TestConnectionFactory(connectionString);
@@ -1016,7 +1016,7 @@ public sealed class ValoraInsightFullJourneyIntegrationTests {
         }
     }
 
-    [Fact]
+    [PostgresFact("regressão PostgreSQL da jornada completa não executada.")]
     public async Task Sprint3_Validation_Participation_Metrics_Transparency_And_NextAction_State() {
         var connectionString = Connection();
         var connFactory = new TestConnectionFactory(connectionString);
@@ -1093,7 +1093,7 @@ public sealed class ValoraInsightFullJourneyIntegrationTests {
         }
     }
 
-    [Fact]
+    [PostgresFact("regressão PostgreSQL da jornada completa não executada.")]
     public async Task Sprint4_Validation_Insights_Canonical_Origins_Editorial_Review_And_ActionCenter_Traceability() {
         var connectionString = Connection();
         var connFactory = new TestConnectionFactory(connectionString);
@@ -1216,7 +1216,7 @@ public sealed class ValoraInsightFullJourneyIntegrationTests {
         }
     }
 
-    [Fact]
+    [PostgresFact("regressão PostgreSQL da jornada completa não executada.")]
     public async Task Sprint5_Validation_Homologation_Seed_And_MultiTenant_Gate() {
         var connectionString = Connection();
         var hasher = new Valora.Infrastructure.Security.BCryptPasswordHasher();
@@ -1233,7 +1233,10 @@ public sealed class ValoraInsightFullJourneyIntegrationTests {
         await using var conn = new NpgsqlConnection(connectionString);
         await conn.OpenAsync();
 
-        // 1. Execute Seed (Run twice to prove idempotency)
+        // 1. Execute Seed with Secure Dynamic Provisioning (Run twice to prove idempotency)
+        var demoHash = hasher.Hash("Admin@123");
+        await ExecAsync(conn, "SET valora.allow_demo_seed = 'true';");
+        await ExecAsync(conn, $"SET valora.demo_password_hash = '{demoHash}';");
         await ExecAsync(conn, seedSql);
         await ExecAsync(conn, seedSql);
 
@@ -1249,15 +1252,17 @@ public sealed class ValoraInsightFullJourneyIntegrationTests {
         Assert.Equal(3, orgs.Count);
         Assert.All(orgs, o => Assert.Equal("active", o.Status));
 
-        // 3. Validate Users and BCrypt Passwords for Admin@123
-        var users = (await conn.QueryAsync<(Guid Id, string Email, string PasswordHash)>(
-            "SELECT id, email, password_hash FROM valorapesquisa.users WHERE organization_id IN (@o1, @o2, @o3)",
+        // 3. Validate Users, Provisioned Passwords and password_reset_required
+        var users = (await conn.QueryAsync<(Guid Id, string Email, string PasswordHash, bool PasswordResetRequired)>(
+            "SELECT id, email, password_hash, password_reset_required FROM valorapesquisa.users WHERE organization_id IN (@o1, @o2, @o3)",
             new { o1 = orgDemoId, o2 = orgInicioId, o3 = orgIsoId })).ToList();
 
         Assert.True(users.Count >= 6, "Seed deve conter no mínimo 6 usuários de homologação.");
         foreach (var user in users) {
             Assert.True(hasher.Verify("Admin@123", user.PasswordHash),
                 $"Senha de {user.Email} deve verificar com sucesso contra 'Admin@123'");
+            Assert.True(user.PasswordResetRequired,
+                $"Usuário {user.Email} deve ter password_reset_required = true no provisionamento de homologação.");
         }
 
         // 4. Validate Cliente Demonstração has full journey

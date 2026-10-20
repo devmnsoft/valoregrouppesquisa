@@ -6,6 +6,8 @@ using Valora.Application.Common;
 using Valora.Application.ValoraAi;
 using Valora.Web.Models.ViewModels;
 
+using Valora.Application.OrganizationalIntelligence;
+
 namespace Valora.Web.Controllers;
 
 [Authorize(Policy = ValoraPermissions.Insights.Read)]
@@ -15,6 +17,7 @@ public sealed class InsightsController(
     ApproveAiInsightUseCase approveInsight,
     RejectAiInsightUseCase rejectInsight,
     ICurrentRequestContext requestContext,
+    IExplainableIntelligenceService explainable,
     ILogger<InsightsController> logger) : Controller {
     [HttpGet("")]
     public async Task<IActionResult> Index([FromQuery] AiInsightListQuery query, CancellationToken ct) {
@@ -26,10 +29,23 @@ public sealed class InsightsController(
     [HttpGet("Details/{id:guid}")]
     public async Task<IActionResult> Details(Guid id, string? returnUrl, CancellationToken ct) {
         if (!TryGetOperationContext(out var organizationId, out var userId)) return OrganizationRequired();
-        var context = requestContext.GetCurrent(); var detail = await insights.DetailsAsync(organizationId, userId, id, context.IsGlobalAdministrator || context.Roles.Contains("admin_cliente", StringComparer.OrdinalIgnoreCase), ct);
+        var context = requestContext.GetCurrent();
+        var isOrgWide = context.IsGlobalAdministrator || context.Roles.Contains("admin_cliente", StringComparer.OrdinalIgnoreCase);
+        var detail = await insights.DetailsAsync(organizationId, userId, id, isOrgWide, ct);
         if (detail is null) return NotFound();
+        var analysis = await explainable.ExplainInsightAsync(organizationId, userId, id, isOrgWide, ct);
         var back = SafeInsightsReturn(returnUrl);
-        return View(new InsightDetailsPageViewModel(detail, back));
+        return View(new InsightDetailsPageViewModel(detail, back, analysis));
+    }
+
+    [HttpGet("Explain/{id:guid}")]
+    public async Task<IActionResult> Explain(Guid id, CancellationToken ct) {
+        if (!TryGetOperationContext(out var organizationId, out var userId)) return OrganizationRequired();
+        var context = requestContext.GetCurrent();
+        var isOrgWide = context.IsGlobalAdministrator || context.Roles.Contains("admin_cliente", StringComparer.OrdinalIgnoreCase);
+        var analysis = await explainable.ExplainInsightAsync(organizationId, userId, id, isOrgWide, ct);
+        if (analysis is null) return NotFound(new { code = "INSIGHT_NOT_FOUND", message = "Insight não encontrado ou inacessível." });
+        return Json(analysis);
     }
 
     [HttpPost("Details/{id:guid}/Approve")]
@@ -132,4 +148,4 @@ public sealed class InsightsController(
     }
 }
 public sealed record InsightListPageViewModel(AiInsightListResult Result, AiInsightListQuery Query, string CurrentUrl);
-public sealed record InsightDetailsPageViewModel(AiInsightDetails Details, string ReturnUrl);
+public sealed record InsightDetailsPageViewModel(AiInsightDetails Details, string ReturnUrl, ValoraExplainableAnalysis? ExplainableAnalysis = null);

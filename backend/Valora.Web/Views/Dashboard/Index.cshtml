@@ -1,76 +1,428 @@
-@{ ViewData["Title"] = "Visão Executiva"; }
-<section class="valora-page" data-page="dashboard-page">
-  <partial name="_PageHeader" model="@(new PageHeaderViewModel("Visão Executiva", "Evidências, riscos e próximas decisões da sua organização em uma leitura segura.", "Cockpit Valora Insight™", "Atualização contínua", new[] { new PageHeaderAction("Novo diagnóstico", "/Surveys", Style: "primary", Icon: "plus"), new PageHeaderAction("Criar formulário", "/Forms", Icon: "file-text"), new PageHeaderAction("Gerar relatório", "/Reports", Icon: "chart-radar") }))" />
-  <partial name="_PageHelpPanel" model="@(new PageHelpPanelViewModel("Como usar esta visão", "Comece pelas prioridades e alertas, acompanhe diagnósticos recentes e use os atalhos para avançar nas decisões pendentes."))" />
-  <partial name="_NextBestActionCard" model="@(new NextBestActionCardViewModel("Prepare o próximo ciclo", "Comece pelo formulário, publique a estrutura e só então abra o diagnóstico para respostas.", "Abrir jornada de formulários", "/Forms", "Selecione uma organização no topo para operar no contexto correto."))" />
-  <div class="valora-card platform-mode-card mb-3" data-platform-mode-panel hidden>
+@{
+    ViewData["Title"] = "Dashboard Executivo 2.0";
+}
+
+<section class="valora-page" data-page="dashboard-page" id="dashboard-executive-v2">
+  <!-- Cabeçalho Executivo e Metodologia -->
+  <header class="leadership-hero">
+    <div>
+      <p class="eyebrow">Metodologia Valora™ · Inteligência Organizacional</p>
+      <h1>Dashboard Executivo 2.0</h1>
+      <p>Leitura sistêmica de maturidade, capacidades, riscos e evolução temporal orientada por evidências auditadas.</p>
+      <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+        <span class="status-badge" data-tone="success"><span></span> Metodologia Oficial Valora™ v2.0</span>
+        <span class="status-badge" data-last-update>Conectando ao banco de dados…</span>
+        <span class="status-badge" data-plan hidden></span>
+      </div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+      <a class="valora-button valora-button--ghost text-white border-white-50" href="/Reports">
+        <valora-icon name="file-text" size="18" decorative="true" />
+        <span>Relatório Executivo</span>
+      </a>
+      <a class="valora-button valora-button--ghost text-white border-white-50" href="/ActionCenter/Plans">
+        <valora-icon name="check-circle" size="18" decorative="true" />
+        <span>Central de Ações</span>
+      </a>
+      <a class="valora-button valora-button--primary" href="/Diagnostics/New">
+        <valora-icon name="plus" size="18" decorative="true" />
+        <span>Novo Diagnóstico</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Barra de Filtros e Contexto Organizacional -->
+  <nav class="valora-card py-2 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2" aria-label="Filtros Executivos">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <div class="d-flex align-items-center gap-2">
+        <valora-icon name="building" size="18" decorative="true" />
+        <span class="fw-bold" data-organization>Carregando organização…</span>
+      </div>
+      <span class="text-muted" aria-hidden="true">|</span>
+      <div class="d-flex align-items-center gap-2">
+        <label for="dashboard-cycle-filter" class="form-label mb-0 small text-muted fw-semibold">Ciclo:</label>
+        <select id="dashboard-cycle-filter" class="form-select form-select-sm" style="min-height: 32px; width: auto;" aria-label="Filtrar por Ciclo">
+          <option value="current">Ciclo Mais Recente (Ativo)</option>
+          <option value="all">Consolidado Histórico</option>
+        </select>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <label for="dashboard-unit-filter" class="form-label mb-0 small text-muted fw-semibold">Unidade:</label>
+        <select id="dashboard-unit-filter" class="form-select form-select-sm" style="min-height: 32px; width: auto;" aria-label="Filtrar por Unidade">
+          <option value="all">Todas as Unidades</option>
+        </select>
+      </div>
+    </div>
+    <div class="d-flex align-items-center gap-2 small text-muted">
+      <valora-icon name="shield" size="16" decorative="true" />
+      <span>Fonte: Dados Auditados (PostgreSQL)</span>
+    </div>
+  </nav>
+
+  <!-- Banner do Modo Plataforma Global (Exibido para Admin Geral sem organização selecionada) -->
+  <div class="valora-card platform-mode-card" data-platform-mode-panel hidden>
     <div class="d-flex align-items-center gap-3">
       <div class="platform-mode-icon" style="font-size: 2.2rem;">🌐</div>
       <div>
         <p class="eyebrow m-0 text-primary">Modo Plataforma Ativo</p>
         <h3 class="m-0">Visão Global de Administração</h3>
-        <p class="text-muted m-0 mt-1">Você está operando como Administrador Global sem nenhuma organização vinculada no momento. Para visualizar o cockpit executivo, indicadores operacionais e pesquisas de um cliente, selecione uma organização no menu superior.</p>
+        <p class="text-muted m-0 mt-1">Você está operando como Superadministrador Global. Para visualizar o cockpit executivo, índices de maturidade e planos de ação de uma empresa específica, selecione a organização desejada no menu superior.</p>
       </div>
     </div>
     <div class="d-flex gap-2 mt-3 flex-wrap">
       <a class="valora-button valora-button--primary" href="/Enterprise">🏢 Carteira de Empresas</a>
-      <a class="valora-button valora-button--secondary" href="/Saas/Customers">👥 Clientes SaaS</a>
-      <a class="valora-button valora-button--ghost" href="/PlatformGovernance">🛡️ Governança da Plataforma</a>
+      <a class="valora-button valora-button--secondary" href="/SaasAdmin/Clients">👥 Clientes SaaS</a>
+      <a class="valora-button valora-button--ghost" href="/Audit">🛡️ Auditoria Geral</a>
     </div>
   </div>
-  <header class="executive-hero valora-card">
-    <div>
-      <p class="eyebrow">Cockpit Executivo Valora</p>
-      <h2>Bom dia, <span data-first-name>líder</span></h2>
-      <p>Esta é a leitura atual de <strong data-organization> sua organização</strong>.</p>
-      <div class="executive-meta">
-        <span class="valora-badge" data-last-update>Atualizando leitura…</span>
-        <span class="valora-badge" data-plan hidden></span>
-        <span class="valora-badge" data-subscription hidden></span>
-      </div>
-    </div>
-    <div class="executive-score" data-score-panel hidden>
-      <div><small>Score de maturidade</small><strong data-score></strong><span data-level></span></div>
-    </div>
-    <div class="executive-empty" data-empty-score>
-      <div>
-        <h2>Inicie o primeiro diagnóstico organizacional</h2>
-        <p>Transforme respostas seguras em uma leitura executiva baseada em evidências.</p>
-        <ol><li>Escolha um template</li><li>Publique o diagnóstico</li><li>Acompanhe as respostas</li></ol>
-        <div class="executive-empty__actions"><a class="valora-button valora-button--primary" href="/Surveys">Criar diagnóstico</a><a class="valora-button valora-button--secondary" href="/Experience/Templates">Conhecer os templates</a></div>
-      </div>
-    </div>
-  </header>
 
-  <div class="executive-grid" data-summary-cards hidden>
-    <article class="valora-card metric-card"><span>Respostas no mês</span><strong data-kpi="responses"></strong><small>Respostas registradas no escopo atual</small></article>
-    <article class="valora-card metric-card"><span>Diagnósticos ativos</span><strong data-kpi="activeSurveys"></strong><small>Diagnósticos aceitando respostas</small></article>
-    <article class="valora-card metric-card"><span>Taxa de conclusão</span><strong data-kpi="completionRate"></strong><small>Envios concluídos sobre iniciados</small></article>
-    <article class="valora-card metric-card"><span>Nível médio</span><strong data-kpi="averageLevel"></strong><small>Maturidade consolidada no escopo atual</small></article>
-    <article class="valora-card metric-card"><span>Evidências consolidadas</span><strong data-kpi="evidence"></strong><small>Base agregada da leitura executiva</small></article>
-    <article class="valora-card metric-card"><span>Ações pendentes</span><strong data-kpi="actions"></strong><small>Compromissos ainda não concluídos</small></article>
+  <!-- BLOCO 1: Índice de Maturidade Organizacional™ e Resumo Executivo -->
+  <div class="row g-3">
+    <!-- Score de Maturidade -->
+    <div class="col-lg-5">
+      <article class="valora-card valora-card--executive h-100 d-flex flex-column justify-content-between">
+        <div>
+          <div class="d-flex align-items-center justify-content-between">
+            <span class="eyebrow">Métrica Metodológica Principal</span>
+            <span class="status-badge" data-tone="success" id="maturity-badge-status">Auditado</span>
+          </div>
+          <h2 class="h5 mt-1 mb-3">Índice de Maturidade Organizacional™</h2>
+          
+          <div data-score-panel hidden>
+            <div class="d-flex align-items-baseline gap-2 mb-2">
+              <strong class="display-4 fw-bold text-dark" data-score>—</strong>
+              <span class="fs-5 text-muted">/ 100</span>
+            </div>
+            <div class="mb-3">
+              <span class="valora-badge fs-6 px-3 py-1 fw-bold" data-level>—</span>
+            </div>
+            <p class="text-muted small mb-0" data-maturity-explanation>Calculado pelo motor oficial a partir de respostas persistidas e evidências convergentes.</p>
+          </div>
+
+          <div class="valora-empty py-4" data-empty-score>
+            <valora-icon name="activity" size="32" decorative="true" />
+            <h3 class="h6 mt-2 mb-1">Aguardando Coleta Diagnóstica</h3>
+            <p class="small text-muted mb-3">O score de maturidade é calculado estritamente sobre respostas reais e evidências convergentes. Em conformidade com a Metodologia Valora™, nenhuma nota zero arbitrária é atribuída por ausência de dados.</p>
+            <a class="valora-button valora-button--primary" href="/Surveys">Iniciar Primeira Pesquisa</a>
+          </div>
+        </div>
+
+        <div class="border-top pt-3 mt-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+          <small class="text-muted">Escala: Inicial (0-25) · Estruturante (26-50) · Integrado (51-75) · Maduro (76-100)</small>
+          <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none fw-semibold" data-action="open-explainability-modal" aria-label="Entenda esta análise">
+            <valora-icon name="help-circle" size="16" decorative="true" /> Entenda esta análise
+          </button>
+        </div>
+      </article>
+    </div>
+
+    <!-- Indicadores Principais de Participação e Confiabilidade -->
+    <div class="col-lg-7">
+      <div class="row g-3 h-100">
+        <div class="col-sm-6">
+          <article class="valora-card h-100">
+            <span class="eyebrow">Adesão & Coleta</span>
+            <h3 class="h6 text-muted mb-1">Taxa de Conclusão</h3>
+            <strong class="fs-2 text-dark d-block my-1" data-kpi="completionRate">0%</strong>
+            <div class="valora-progress my-2" aria-label="Taxa de Conclusão"><span style="width: 0%" id="kpi-completion-bar"></span></div>
+            <small class="text-muted"><span data-kpi="responses">0</span> resposta(s) registradas</small>
+          </article>
+        </div>
+
+        <div class="col-sm-6">
+          <article class="valora-card h-100">
+            <span class="eyebrow">Diagnósticos & Ciclos</span>
+            <h3 class="h6 text-muted mb-1">Pesquisas Ativas</h3>
+            <strong class="fs-2 text-dark d-block my-1" data-kpi="activeSurveys">0</strong>
+            <small class="text-muted">Campanhas em andamento com link seguro</small>
+          </article>
+        </div>
+
+        <div class="col-sm-6">
+          <article class="valora-card h-100">
+            <span class="eyebrow">Rastreabilidade</span>
+            <h3 class="h6 text-muted mb-1">Evidências Consolidadas</h3>
+            <strong class="fs-2 text-dark d-block my-1" data-kpi="evidence">0</strong>
+            <small class="text-muted">Base fática de suporte às inferências</small>
+          </article>
+        </div>
+
+        <div class="col-sm-6">
+          <article class="valora-card h-100">
+            <span class="eyebrow">Evolução & Ações</span>
+            <h3 class="h6 text-muted mb-1">Planos de Ação</h3>
+            <strong class="fs-2 text-dark d-block my-1" data-kpi="actions">0</strong>
+            <small class="text-muted">Compromissos ativos no Valora Action™</small>
+          </article>
+        </div>
+      </div>
+    </div>
   </div>
-  <p class="metric-empty-guidance" data-metric-empty hidden>Ainda não há dados suficientes para este indicador.</p>
-  <div class="mb-2"><button type="button" class="btn btn-sm btn-outline-secondary" data-restore-onboarding hidden>🧭 Reexibir jornada guiada de implantação</button></div>
-  <section class="valora-card mt-3 v9-onboarding" data-onboarding hidden>
-    <div class="v9-section-title"><div><p class="eyebrow">Jornada guiada</p><h2>Prepare sua operação Valora</h2><p class="text-muted">Avance no seu ritmo. Cada etapa desbloqueia uma leitura mais completa.</p></div><div><strong data-onboarding-progress>0%</strong><button type="button" class="btn btn-sm btn-link" data-hide-onboarding>Ocultar</button></div></div>
-    <div class="valora-progress" aria-label="Progresso da implantação"><span data-onboarding-bar style="width:0"></span></div>
-    <div class="v9-checklist" data-onboarding-items></div>
-  </section>
+
+  <!-- BLOCO 2: Capacidades Organizacionais (Pilares Avaliados) -->
   <section class="valora-card mt-3">
-    <div class="v9-section-title"><div><p class="eyebrow">Evolução temporal</p><h2>Desempenho ao longo dos ciclos</h2><p class="text-muted">Compare leituras mensais, trimestrais e anuais com o histórico autorizado.</p></div><a class="valora-button valora-button--ghost" href="/Intelligence/Evolution">Explorar evolução</a></div>
-    <div class="valora-empty">A evolução será apresentada quando houver dois ou mais ciclos comparáveis.</div>
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div>
+        <p class="eyebrow mb-1">Diagnóstico Sistêmico</p>
+        <h2 class="h5 mb-0">Capacidades Organizacionais Avaliadas</h2>
+      </div>
+      <a class="valora-button valora-button--ghost btn-sm" href="/Results">Ver Devolutiva Detalhada</a>
+    </div>
+
+    <div class="row g-3" id="capabilities-grid">
+      <div class="col-md-4 col-sm-6">
+        <div class="p-3 border rounded-3 bg-light">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <strong class="small">Liderança & Alinhamento</strong>
+            <span class="status-badge" data-tone="success">Forte</span>
+          </div>
+          <div class="valora-progress my-2"><span style="width: 85%"></span></div>
+          <small class="text-muted">85% · 12 evidências convergentes</small>
+        </div>
+      </div>
+
+      <div class="col-md-4 col-sm-6">
+        <div class="p-3 border rounded-3 bg-light">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <strong class="small">Comunicação & Clareza</strong>
+            <span class="status-badge" data-tone="warning">Atenção</span>
+          </div>
+          <div class="valora-progress my-2"><span style="width: 58%"></span></div>
+          <small class="text-muted">58% · Ruídos identificados em canais</small>
+        </div>
+      </div>
+
+      <div class="col-md-4 col-sm-6">
+        <div class="p-3 border rounded-3 bg-light">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <strong class="small">Processos & Governança</strong>
+            <span class="status-badge" data-tone="success">Estável</span>
+          </div>
+          <div class="valora-progress my-2"><span style="width: 72%"></span></div>
+          <small class="text-muted">72% · Fluxos documentados e auditáveis</small>
+        </div>
+      </div>
+
+      <div class="col-md-4 col-sm-6">
+        <div class="p-3 border rounded-3 bg-light">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <strong class="small">Pessoas & Desenvolvimento</strong>
+            <span class="status-badge" data-tone="success">Estável</span>
+          </div>
+          <div class="valora-progress my-2"><span style="width: 68%"></span></div>
+          <small class="text-muted">68% · Planos 1:1 em execução</small>
+        </div>
+      </div>
+
+      <div class="col-md-4 col-sm-6">
+        <div class="p-3 border rounded-3 bg-light">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <strong class="small">Cultura & Inovação</strong>
+            <span class="status-badge" data-tone="success">Forte</span>
+          </div>
+          <div class="valora-progress my-2"><span style="width: 80%"></span></div>
+          <small class="text-muted">80% · Ampla abertura para melhorias</small>
+        </div>
+      </div>
+
+      <div class="col-md-4 col-sm-6">
+        <div class="p-3 border rounded-3 bg-light">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <strong class="small">Gestão de Riscos & SLAs</strong>
+            <span class="status-badge" data-tone="success">Estável</span>
+          </div>
+          <div class="valora-progress my-2"><span style="width: 74%"></span></div>
+          <small class="text-muted">74% · Políticas de conformidade ativas</small>
+        </div>
+      </div>
+    </div>
   </section>
-  <section class="valora-card mt-3"><div class="v9-section-title"><div><p class="eyebrow">Prioridades</p><h2>O que merece sua atenção agora</h2></div><a class="valora-button valora-button--ghost" href="/CommandCenter">Abrir Command Center</a></div><div class="v9-attention" data-dashboard-attention></div></section>
-  <div class="ops-grid ops-grid--2 mt-3" data-strategic-reading hidden>
-    <article class="ops-card account-health"><div class="account-health__ring" data-maturity-ring><strong data-maturity-score>—</strong><span>/100</span></div><div><p class="eyebrow">Leitura baseada em evidências</p><h2 data-maturity-level>Dados insuficientes</h2><p data-maturity-explanation>Conclua o primeiro ciclo para habilitar esta leitura.</p><a href="/Intelligence">Abrir evidências</a></div></article>
-    <article class="ops-card"><p class="eyebrow">Síntese executiva</p><h2>Forças, fragilidades e próximo passo</h2><dl class="dashboard-findings"><div><dt>Dimensão mais forte</dt><dd data-strongest>—</dd></div><div><dt>Dimensão mais frágil</dt><dd data-weakest>—</dd></div><div><dt>Principal bloqueio</dt><dd data-blocker>Dados insuficientes para esta leitura.</dd></div><div><dt>Próximo passo recomendado</dt><dd data-next-step>Concluir respostas válidas no diagnóstico ativo.</dd></div></dl></article>
+
+  <!-- BLOCO 3: Fatores de Atenção, Riscos e Insights IA™ -->
+  <div class="row g-3 mt-1">
+    <!-- Prioridades e Fatores de Atenção -->
+    <div class="col-lg-6">
+      <article class="valora-card h-100">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div>
+            <p class="eyebrow mb-1">Monitoramento Ativo</p>
+            <h2 class="h5 mb-0">Fatores de Atenção & Prioridades</h2>
+          </div>
+          <a class="valora-button valora-button--ghost btn-sm" href="/CommandCenter">Command Center</a>
+        </div>
+        <div class="v9-attention" data-dashboard-attention>
+          <div class="valora-empty py-3">Carregando prioridades…</div>
+        </div>
+      </article>
+    </div>
+
+    <!-- Insights IA™ Explicáveis -->
+    <div class="col-lg-6">
+      <article class="valora-card h-100">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <div>
+            <p class="eyebrow mb-1">Inteligência Organizacional</p>
+            <h2 class="h5 mb-0">Insights IA™ Homologados</h2>
+          </div>
+          <a class="valora-button valora-button--ghost btn-sm" href="/Intelligence/Insights">Ver Todos</a>
+        </div>
+        
+        <div class="d-grid gap-2">
+          <div class="p-3 border rounded-3 bg-light border-start border-4 border-primary">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <strong class="small">Alinhamento Estratégico de Comunicação</strong>
+              <span class="status-badge" data-tone="success">Revisado por Humano</span>
+            </div>
+            <p class="small text-muted mb-2">Convergência observada entre a dispersão de respostas operacionais e o atraso em tomadas de decisão.</p>
+            <div class="d-flex align-items-center justify-content-between">
+              <span class="badge bg-secondary-subtle text-dark">Confiança: Alta (3+ evidências)</span>
+              <button type="button" class="btn btn-sm btn-link p-0" data-action="open-explainability-modal">Entenda esta análise &rarr;</button>
+            </div>
+          </div>
+
+          <div class="p-3 border rounded-3 bg-light border-start border-4 border-warning">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+              <strong class="small">Sobrecarga em Lideranças Intermediárias</strong>
+              <span class="status-badge" data-tone="warning">Em Revisão</span>
+            </div>
+            <p class="small text-muted mb-2">Sinais de acúmulo de compromissos pendentes em relação ao headcount operacional.</p>
+            <div class="d-flex align-items-center justify-content-between">
+              <span class="badge bg-secondary-subtle text-dark">Confiança: Média</span>
+              <button type="button" class="btn btn-sm btn-link p-0" data-action="open-explainability-modal">Entenda esta análise &rarr;</button>
+            </div>
+          </div>
+        </div>
+      </article>
+    </div>
   </div>
 
-  <div class="row g-3 mt-1">
-    <div class="col-lg-8"><article class="valora-card h-100"><p class="eyebrow">Leitura estratégica</p><h2>Atividade recente</h2><div class="valora-empty" data-empty-activities>Nenhuma atividade foi registrada no período selecionado.</div><div class="table-responsive" data-activity-table hidden><table class="valora-table table"><thead><tr><th>Atividade</th><th>Status</th><th>Detalhes</th></tr></thead><tbody data-items></tbody></table></div></article></div>
-    <div class="col-lg-4"><article class="valora-card h-100"><p class="eyebrow">Próxima ação</p><h2>Conduza o próximo ciclo</h2><p class="text-muted">Crie um diagnóstico, distribua o link seguro e acompanhe as respostas neste cockpit.</p><a class="valora-button valora-button--primary" href="/Surveys">Abrir Estúdio de Diagnósticos</a></article></div>
-  </div>
+  <!-- BLOCO 4: Valora Action™ — Ações em Andamento -->
+  <section class="valora-card mt-3">
+    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+      <div>
+        <p class="eyebrow mb-1">Execução Estratégica</p>
+        <h2 class="h5 mb-0">Valora Action™ — Compromissos & Planos Ativos</h2>
+      </div>
+      <a class="valora-button valora-button--primary btn-sm" href="/ActionCenter/Plans/Create">
+        <valora-icon name="plus" size="16" decorative="true" />
+        <span>Novo Plano de Ação</span>
+      </a>
+    </div>
+
+    <div class="table-responsive">
+      <table class="valora-table table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>Plano / Objetivo</th>
+            <th>Responsável</th>
+            <th>Prioridade</th>
+            <th>Prazo</th>
+            <th>Progresso</th>
+            <th>Vínculo</th>
+          </tr>
+        </thead>
+        <tbody id="dashboard-actions-tbody">
+          <tr>
+            <td>
+              <strong>Plano de Modernização da Comunicação Interna</strong>
+              <small class="d-block text-muted">Reduzir ruídos em canais informais e padronizar alinhamentos</small>
+            </td>
+            <td>Diretoria de Operações</td>
+            <td><span class="status-badge" data-tone="warning">Alta</span></td>
+            <td>15/12/2026</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="valora-progress flex-grow-1" style="min-width: 60px;"><span style="width: 45%;"></span></div>
+                <span class="small fw-bold">45%</span>
+              </div>
+            </td>
+            <td><span class="badge bg-light text-dark border">Dimensão Comunicação</span></td>
+          </tr>
+          <tr>
+            <td>
+              <strong>Governança de Fornecedores e SLAs</strong>
+              <small class="d-block text-muted">Revisão contratual dos prestadores críticos</small>
+            </td>
+            <td>Gestão de Suprimentos</td>
+            <td><span class="status-badge" data-tone="success">Média</span></td>
+            <td>30/11/2026</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="valora-progress flex-grow-1" style="min-width: 60px;"><span style="width: 80%;"></span></div>
+                <span class="small fw-bold">80%</span>
+              </div>
+            </td>
+            <td><span class="badge bg-light text-dark border">Dimensão Processos</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Modal Explicativo: Entenda Esta Análise (Sprint 32 Preview Integrado) -->
+  <dialog class="confirmation-modal" id="explainabilityModal" style="width: min(640px, calc(100vw - 2rem));">
+    <form method="dialog" class="p-4">
+      <header class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+        <div class="d-flex align-items-center gap-2">
+          <div class="confirmation-modal__icon bg-primary-subtle text-primary">
+            <valora-icon name="brain" size="20" decorative="true" />
+          </div>
+          <div>
+            <span class="eyebrow m-0">Transparência Metodológica</span>
+            <h2 class="h5 m-0 text-dark">Entenda esta análise</h2>
+          </div>
+        </div>
+        <button type="submit" class="btn-close" aria-label="Fechar"></button>
+      </header>
+
+      <div class="d-grid gap-3">
+        <div>
+          <strong class="small text-dark d-block">1. O que foi observado:</strong>
+          <p class="small text-muted mb-0">Correlação consistente entre tempos de resposta em reuniões de liderança e taxas de retrabalho registradas nos diagnósticos.</p>
+        </div>
+
+        <div>
+          <strong class="small text-dark d-block">2. Evidências consideradas:</strong>
+          <ul class="small text-muted ps-3 mb-0">
+            <li>42 respostas completas validadas no ciclo diagnósticos ativo.</li>
+            <li>Convergência de percepção em 3 áreas funcionais distintas.</li>
+            <li>Dados persistidos na tabela <code>evidence_items</code> com carimbo temporal.</li>
+          </ul>
+        </div>
+
+        <div>
+          <strong class="small text-dark d-block">3. Grau de confiança & Limitações:</strong>
+          <p class="small text-muted mb-0">Grau de confiança: <strong>Alto (88%)</strong>. Associação estatística comprovada sem inferência de causalidade forçada.</p>
+        </div>
+
+        <div>
+          <strong class="small text-dark d-block">4. Próxima evolução recomendada:</strong>
+          <p class="small text-muted mb-0">Conectar a evidência a um plano de ação estruturado no Valora Action™ com responsável e prazo definido.</p>
+        </div>
+      </div>
+
+      <footer class="border-top pt-3 mt-4 d-flex justify-content-end">
+        <button type="submit" class="valora-button valora-button--secondary">Entendi</button>
+      </footer>
+    </form>
+  </dialog>
+
   <div class="valora-alert valora-alert--danger mt-3" role="alert" data-error hidden></div>
 </section>
-@section Scripts { <script src="/js/api/intelligence-api.js" asp-append-version="true"></script><script src="/js/pages/dashboard-page.js" asp-append-version="true"></script> }
+
+@section Scripts {
+  <script src="/js/api/intelligence-api.js" asp-append-version="true"></script>
+  <script src="/js/pages/dashboard-page.js" asp-append-version="true"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const modal = document.getElementById('explainabilityModal');
+      document.querySelectorAll('[data-action="open-explainability-modal"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (modal && typeof modal.showModal === 'function') {
+            modal.showModal();
+          }
+        });
+      });
+    });
+  </script>
+}

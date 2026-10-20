@@ -1,0 +1,138 @@
+<dialog class="confirmation-modal explainability-modal" id="valoraExplainabilityModal" aria-labelledby="explainabilityModalTitle" style="max-width: 820px; border-radius: var(--valora-radius-lg, 12px); border: 1px solid var(--valora-border, #e2e8f0); box-shadow: var(--valora-shadow-lg, 0 20px 25px -5px rgba(0,0,0,0.1)); padding: 0;">
+  <div class="modal-card d-flex flex-column" style="max-height: 88vh;">
+    <!-- Cabeçalho -->
+    <div class="d-flex justify-content-between align-items-center p-3 px-4 border-bottom bg-light">
+      <div>
+        <p class="eyebrow mb-1 text-primary">Metodologia Valora™ · Rastreabilidade Empírica</p>
+        <h2 class="h5 m-0 text-dark fw-bold" id="explainabilityModalTitle">Entenda esta análise</h2>
+      </div>
+      <button type="button" class="btn-close" data-action="close-explainability-modal" aria-label="Fechar janela"></button>
+    </div>
+
+    <!-- Conteúdo dos 7 Pilares -->
+    <div class="p-4 overflow-auto d-flex flex-column gap-3">
+      <!-- 1. O que foi observado -->
+      <section class="p-3 bg-white rounded-3 border">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-primary">1</span>
+          <h3 class="h6 m-0 text-dark fw-semibold">O que foi observado</h3>
+        </div>
+        <p class="text-muted small m-0" data-explainable="observation">
+          Carregando observação empírica da análise...
+        </p>
+      </section>
+
+      <!-- 2. Evidências consideradas -->
+      <section class="p-3 bg-white rounded-3 border">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary">2</span>
+            <h3 class="h6 m-0 text-dark fw-semibold">Evidências consideradas</h3>
+          </div>
+          <span class="badge bg-light text-dark border" data-explainable="evidence-count">0 evidência(s)</span>
+        </div>
+        <p class="text-muted small mb-2" data-explainable="evidence-rule">
+          A Metodologia Valora™ exige ao menos três evidências convergentes e independentes para fundamentar inferências com alta confiabilidade.
+        </p>
+        <ul class="list-unstyled small mb-0 d-flex flex-column gap-2" data-explainable="evidence-list">
+          <li class="p-2 bg-light rounded text-muted">Aguardando dados de evidências...</li>
+        </ul>
+      </section>
+
+      <!-- 3. Capacidades relacionadas -->
+      <section class="p-3 bg-white rounded-3 border">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-primary">3</span>
+          <h3 class="h6 m-0 text-dark fw-semibold">Capacidades relacionadas & Mapa Cognitivo</h3>
+        </div>
+        <div class="row g-2 small" data-explainable="capabilities">
+          <div class="col-sm-6">
+            <div class="p-2 bg-light rounded">
+              <strong class="text-dark d-block">Dimensão Principal</strong>
+              <span class="text-muted" data-explainable="capability-dimension">Consolidada</span>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="p-2 bg-light rounded">
+              <strong class="text-dark d-block">Conceito Mapeado</strong>
+              <span class="text-muted" data-explainable="capability-concept">Dicionário Cognitivo</span>
+            </div>
+          </div>
+        </div>
+        <div class="mt-2 pt-2 border-top small text-muted" data-explainable="cascading-effects">
+          <strong>Efeito Cascata:</strong> Relações de influência mapeadas pelo Mapa Cognitivo Valora™.
+        </div>
+      </section>
+
+      <!-- 4. Grau de confiança -->
+      <section class="p-3 bg-white rounded-3 border">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-primary">4</span>
+            <h3 class="h6 m-0 text-dark fw-semibold">Grau de confiança metodológica</h3>
+          </div>
+          <span class="badge bg-success" data-explainable="confidence-badge">Alta</span>
+        </div>
+        <p class="text-muted small m-0" data-explainable="confidence-text">
+          O cálculo do grau de confiança é determinístico, baseado na densidade amostral e no número de fontes convergentes. Não são atribuídos scores arbitrários sem evidência.
+        </p>
+      </section>
+
+      <!-- 5. Limitações metodológicas -->
+      <section class="p-3 bg-warning-subtle rounded-3 border border-warning">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-warning text-dark">5</span>
+          <h3 class="h6 m-0 text-dark fw-bold">Limitações e Princípio da Não-Causalidade</h3>
+        </div>
+        <div class="small text-dark d-flex flex-column gap-2">
+          <p class="m-0" data-explainable="limitations-association">
+            <strong>Associação vs Causalidade:</strong> A Metodologia Valora™ estabelece separação estrita entre correlação e causalidade comprovada. A associação entre indicadores aponta vulnerabilidades prováveis, mas requer validação contextual e não constitui causa definitiva isolada.
+          </p>
+          <p class="m-0 text-muted" data-explainable="limitations-scope">
+            <strong>Escopo:</strong> Análise restrita às evidências auditadas no ciclo vigente.
+          </p>
+          <p class="m-0 text-muted">
+            <strong>Proteção Conceitual:</strong> Os conceitos oficiais e definições do Dicionário Cognitivo são imutáveis à IA.
+          </p>
+        </div>
+      </section>
+
+      <!-- 6. Possível consequência -->
+      <section class="p-3 bg-white rounded-3 border">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-primary">6</span>
+          <h3 class="h6 m-0 text-dark fw-semibold">Possível consequência sistêmica</h3>
+        </div>
+        <p class="text-muted small m-0" data-explainable="consequence">
+          Identificação de riscos cascata ou fragilidades operacionais caso o fator de atenção persista sem intervenção.
+        </p>
+      </section>
+
+      <!-- 7. Evolução no Valora Action™ -->
+      <section class="p-3 bg-white rounded-3 border">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <span class="badge bg-primary">7</span>
+          <h3 class="h6 m-0 text-dark fw-semibold">Evolução recomendada & Supervisão humana</h3>
+        </div>
+        <p class="text-muted small mb-2" data-explainable="evolution-recommendation">
+          Iniciativas recomendadas para deliberação executiva.
+        </p>
+        <div class="p-2 bg-light rounded small border-start border-3 border-primary text-dark" data-explainable="human-supervision">
+          <strong>Supervisão Humana Obrigatória:</strong> As leituras analíticas são hipóteses orientadoras. A decisão e execução de planos no Valora Action™ dependem exclusivamente de líderes autorizados. A IA não executa decisões empresariais automaticamente.
+        </div>
+      </section>
+    </div>
+
+    <!-- Rodapé -->
+    <div class="d-flex justify-content-between align-items-center p-3 px-4 border-top bg-light">
+      <div class="small text-muted">
+        <span class="fw-semibold" data-explainable="version">Valora Insight™ v2.0 - Metodologia Oficial</span>
+        <span class="mx-1">·</span>
+        <span class="font-monospace text-truncate" style="max-width: 140px;" data-explainable="hash">Hash Rastreável</span>
+      </div>
+      <button type="button" class="valora-button valora-button--secondary btn-sm" data-action="close-explainability-modal">
+        Fechar
+      </button>
+    </div>
+  </div>
+</dialog>

@@ -96,6 +96,7 @@
         "backend/Valora.Application/Methodology/MethodologyService.cs",
         "backend/Valora.Application/OrganizationalIntelligence/ExplainableIntelligenceContracts.cs",
         "backend/Valora.Application/OrganizationalIntelligence/ExplainableIntelligenceService.cs",
+        "backend/Valora.Application/OrganizationalIntelligence/ValoraIntelligenceEngine.cs",
         "backend/Valora.Tests/ExplainableIntelligenceTests.cs",
         "backend/Valora.Web/Controllers/BffIntelligenceController.cs",
         "backend/Valora.Web/Controllers/BffMethodologyController.cs",
@@ -179,6 +180,7 @@
       "changedFiles": [
         "backend/Valora.Tests/CommercialVisualAndAccessibilityComplianceTests.cs",
         "backend/Valora.Tests/SeedHomologacaoSecurityTests.cs",
+        "backend/Valora.Tests/SprintR9SecurityAndTenantProvisioningTests.cs",
         "backend/Valora.Tests/TenantIsolationAndSecurityNegativeTests.cs",
         "backend/database/postgresql/security_roles_least_privilege.sql"
       ],
@@ -635,10 +637,48 @@
   ],
   "calendarStatus": "Proposta não aprovada; estimativas dependem de equipe, ambiente e aceite.",
   "schemaVersion": 1,
-  "sourceCommit": "214136414b8d4de80d345485c62261f9fdfed884",
-  "generatedAt": "2026-10-20T13:34:15.056007+00:00",
+  "sourceCommit": "e70d9b3e482aac7e701b17809bed61add94bae80",
+  "generatedAt": "2026-10-20T15:18:54.555627+00:00",
   "baselineAvailable": true,
   "sprintDocuments": [
+    {
+      "path": "backend/docs/release/VALORA_MATRIZ_FINAL_RELEASE_1_0.md",
+      "title": "VALORA INSIGHT™ — MATRIZ FINAL DE HOMOLOGAÇÃO E LIBERAÇÃO RELEASE 1.0 FINAL",
+      "headings": [
+        "3. Resumo dos Portões de Homologação das Sprints"
+      ],
+      "updatedAt": "2026-10-20T12:15:14-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/release/VALORA_AUDITORIA_QUALIDADE_OPERACAO_R12.md",
+      "title": "VALORA INSIGHT™ — AUDITORIA DE QUALIDADE VISUAL, INFRAESTRUTURA E OPERAÇÃO (SPRINT R12)",
+      "headings": [
+        "VALORA INSIGHT™ — AUDITORIA DE QUALIDADE VISUAL, INFRAESTRUTURA E OPERAÇÃO (SPRINT R12)",
+        "4. Matriz de Testes Executados e Resultados na Sprint R12"
+      ],
+      "updatedAt": "2026-10-20T12:10:02-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/release/VALORA_AUDITORIA_MOTOR_METODOLOGICO_R11.md",
+      "title": "VALORA INSIGHT™ — AUDITORIA DO MOTOR METODOLÓGICO (SPRINT R11)",
+      "headings": [
+        "VALORA INSIGHT™ — AUDITORIA DO MOTOR METODOLÓGICO (SPRINT R11)",
+        "4. Conclusão da Sprint R11"
+      ],
+      "updatedAt": "2026-10-20T12:01:21-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/release/VALORA_MATRIZ_HOMOLOGACAO_18_PASSOS_COMERCIAIS.md",
+      "title": "MATRIZ DE HOMOLOGAÇÃO REAL DOS 18 PASSOS COMERCIAIS (SPRINT R10)",
+      "headings": [
+        "MATRIZ DE HOMOLOGAÇÃO REAL DOS 18 PASSOS COMERCIAIS (SPRINT R10)"
+      ],
+      "updatedAt": "2026-10-20T11:51:30-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
     {
       "path": "backend/docs/release/DECLARACAO_FORMAL_PRONTIDAO_COMERCIAL_1_0.md",
       "title": "DECLARAÇÃO FORMAL DE PRONTIDÃO PARA HOMOLOGAÇÃO COMERCIAL",
@@ -2503,6 +2543,31 @@
   ],
   "recentCommits": [
     {
+      "sha": "e70d9b3e482aac7e701b17809bed61add94bae80",
+      "date": "2026-10-20T12:15:14-03:00",
+      "title": "release(v1.0.0): final commercial homologation matrix and release 1.0 sign-off"
+    },
+    {
+      "sha": "54b0fffd0daf52d995cc1a9206de8cec749dad62",
+      "date": "2026-10-20T12:10:02-03:00",
+      "title": "feat(r12): audit visual quality, accessibility, Release build, and disaster recovery SLA"
+    },
+    {
+      "sha": "c097e77f2a0ad8cc2c31ad1183fc8d59c0addc4e",
+      "date": "2026-10-20T12:01:21-03:00",
+      "title": "feat(r11): audit and validate Valora methodology engine with multi-source convergence"
+    },
+    {
+      "sha": "d43c03e98d1d6be71262ed587a4411ea199368cd",
+      "date": "2026-10-20T11:51:30-03:00",
+      "title": "feat(r10): full commercial customer journey 18-step homologation and execution matrix"
+    },
+    {
+      "sha": "15ff27cb7005e8a4ee9d23d99a3c095dc8efcf33",
+      "date": "2026-10-20T11:44:23-03:00",
+      "title": "feat(r9): security, multitenant provisioning, zero static passwords, and rbac audit"
+    },
+    {
       "sha": "214136414b8d4de80d345485c62261f9fdfed884",
       "date": "2026-10-20T08:20:06-03:00",
       "title": "feat(r8): release candidate 1.0 manuals, tenant provisioning, sanity check and declaration"
@@ -2976,34 +3041,9 @@
       "sha": "05ea816e1bb23f3a56b07fe0b4c3675850b19179",
       "date": "2026-09-15T19:21:01-03:00",
       "title": "Merge pull request #583 from devmnsoft/codex/implementar-fluxo-completo-de-diagnostico"
-    },
-    {
-      "sha": "6519ace8a1448c1aa1a69ea30af3dd9018553939",
-      "date": "2026-09-15T19:20:43-03:00",
-      "title": "fix(surveys): pin collection to published form version"
-    },
-    {
-      "sha": "e03a8a31e68f0fdd6d44dd2f4101b492b9b437bb",
-      "date": "2026-09-15T18:55:58-03:00",
-      "title": "Merge pull request #582 from devmnsoft/codex/completar-integracao-de-formularios-e-diagnosticos"
-    },
-    {
-      "sha": "5b7d812bc68f1dd10f3bacaeca767ea52b6906e0",
-      "date": "2026-09-15T18:53:59-03:00",
-      "title": "fix: integrate published forms into survey workflow"
-    },
-    {
-      "sha": "996a4d11a9c2f4a8aaf9e56025c667ed4e0a49d3",
-      "date": "2026-09-15T18:28:47-03:00",
-      "title": "Merge pull request #581 from devmnsoft/codex/completar-gestao-do-ciclo-de-vida-dos-formularios-ex76bb"
-    },
-    {
-      "sha": "e07803aa3dbf6ed15a8b384c6610a1b49a1e6dce",
-      "date": "2026-09-15T18:28:34-03:00",
-      "title": "feat(forms): complete builder review and ordering"
     }
   ],
-  "changedFileCount": 201,
+  "changedFileCount": 208,
   "automation": {
     "mode": "push-main",
     "acceptanceAutomatic": false

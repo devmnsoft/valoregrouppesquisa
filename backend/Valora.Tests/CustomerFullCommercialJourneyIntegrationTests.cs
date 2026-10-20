@@ -177,7 +177,7 @@ public sealed class CustomerFullCommercialJourneyIntegrationTests {
             await conn.ExecuteAsync("""
                 INSERT INTO valorapesquisa.diagnostic_participants (id, organization_id, diagnostic_id, email, display_name, status, created_at, updated_at)
                 VALUES (@diagPartId, @orgId, @diagnosticId, @email, @name, 'pending', now(), now());
-                """, new { diagPartId, orgId, diagnosticId, email = $"colaborador{i+1}-{suffix}@empresa.com.br", name = $"Colaborador {i+1}" });
+                """, new { diagPartId, orgId, diagnosticId, email = $"colaborador{i + 1}-{suffix}@empresa.com.br", name = $"Colaborador {i + 1}" });
         }
 
         var formId = Guid.NewGuid();

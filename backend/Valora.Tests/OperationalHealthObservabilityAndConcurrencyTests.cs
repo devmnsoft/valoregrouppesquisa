@@ -12,16 +12,13 @@ using Valora.Application.Contracts;
 using Valora.Application.Exports;
 using Xunit;
 
+using Valora.Tests.Support;
+
 namespace Valora.Tests;
 
 public sealed class OperationalHealthObservabilityAndConcurrencyTests {
-    private const string DefaultPostgresConnection =
-        "Host=localhost;Port=5433;Database=valora_clean_test;Username=postgres;Password=123456";
-
     private static string ConnectionString =>
-        Environment.GetEnvironmentVariable("VALORA_TEST_POSTGRES_CONNECTION")
-        ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
-        ?? DefaultPostgresConnection;
+        PostgresTestEnvironment.ConnectionString("OperationalHealthObservabilityAndConcurrencyTests");
 
     private static async Task<NpgsqlConnection> OpenConnectionAsync() {
         var conn = new NpgsqlConnection(ConnectionString);

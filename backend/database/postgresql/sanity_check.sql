@@ -1,5 +1,6 @@
 -- ============================================================================
 -- VALORA INSIGHT™ — SANITY CHECK PÓS-IMPLANTAÇÃO / VERIFICAÇÃO DE SAÚDE
+-- SPRINT R9: HOMOLOGAÇÃO DE SEGURANÇA E PROVISIONAMENTO MULTITENANT
 -- ============================================================================
 -- Executa bateria de checagens de consistência no schema 'valorapesquisa'
 -- ============================================================================
@@ -11,9 +12,11 @@ DECLARE
     v_role_count INT;
     v_admin_count INT;
     v_org_count INT;
-    v_broken_fk_count INT;
+    v_func_count INT;
+    v_audit_count INT;
+    v_invitations_count INT;
 BEGIN
-    RAISE NOTICE 'Iniciando Sanity Check do Valora Insight™...';
+    RAISE NOTICE 'Iniciando Sanity Check Integrado do Valora Insight™ (Sprint R9)...';
 
     -- 1. Contagem de Tabelas no Schema
     SELECT count(*) INTO v_table_count 
@@ -56,14 +59,36 @@ BEGIN
     END IF;
     RAISE NOTICE '[OK] Administradores ativos e vinculados: %', v_admin_count;
 
-    -- 5. Verificação de Extensão pgcrypto / uuid-ossp
+    -- 5. Verificação das Funções Oficiais de Provisionamento Seguro
+    SELECT count(*) INTO v_func_count
+    FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+    WHERE n.nspname = 'valorapesquisa' AND p.proname IN ('provision_tenant', 'validate_cnpj');
+
+    IF v_func_count < 2 THEN
+        RAISE EXCEPTION 'Falha de Sanity Check: Funções valorapesquisa.provision_tenant ou validate_cnpj não encontradas.';
+    END IF;
+    RAISE NOTICE '[OK] Funções de provisionamento e validação CNPJ ativas: %', v_func_count;
+
+    -- 6. Verificação de Auditoria Administrativa Ativa
+    SELECT count(*) INTO v_audit_count
+    FROM valorapesquisa.admin_audit_events;
+    RAISE NOTICE '[OK] Eventos de auditoria administrativa registrados: %', v_audit_count;
+
+    -- 7. Verificação de Convites Criptográficos de Administrador
+    SELECT count(*) INTO v_invitations_count
+    FROM valorapesquisa.user_invitations
+    WHERE token_hash IS NOT NULL;
+    RAISE NOTICE '[OK] Convites criptográficos de ativação registrados: %', v_invitations_count;
+
+    -- 8. Verificação de Extensão pgcrypto
     IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pgcrypto') THEN
         RAISE NOTICE '[AVISO] Extensão pgcrypto não identificada; certifique-se de que gen_random_uuid() está disponível nativamente no PostgreSQL 16.';
     ELSE
         RAISE NOTICE '[OK] Extensão pgcrypto instalada.';
     END IF;
 
-    -- 6. Integridade de Tenants
+    -- 9. Integridade de Tenants
     SELECT count(*) INTO v_org_count 
     FROM valorapesquisa.organizations 
     WHERE status = 'active';

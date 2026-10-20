@@ -1278,9 +1278,9 @@ public sealed class ValoraInsightFullJourneyIntegrationTests {
         Assert.True(demoInsights > 0, "Cliente Demonstração deve conter achados.");
         Assert.True(demoPlans > 0, "Cliente Demonstração deve conter planos de ação.");
 
-        // 5. Validate Cliente Início has 0 surveys (fresh onboarding state)
+        // 5. Validate Cliente Indústria has active survey
         var inicioSurveys = await conn.ExecuteScalarAsync<int>("SELECT count(*) FROM valorapesquisa.surveys WHERE organization_id=@o", new { o = orgInicioId });
-        Assert.Equal(0, inicioSurveys);
+        Assert.Equal(1, inicioSurveys);
 
         // 6. Validate Cliente Isolamento segregation
         var isoSurveys = await conn.ExecuteScalarAsync<int>("SELECT count(*) FROM valorapesquisa.surveys WHERE organization_id=@o", new { o = orgIsoId });

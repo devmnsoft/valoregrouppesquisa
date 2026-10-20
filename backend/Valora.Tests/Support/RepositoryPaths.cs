@@ -23,6 +23,7 @@ public static class RepositoryPaths {
     public static string TestsFile(params string[] segments) => SafeCombine(TestsRoot, segments);
     public static string RootFile(params string[] segments) => SafeCombine(RepositoryRoot, segments);
     public static string MigrationFile(string fileName) => SafeCombine(MigrationsDirectory, [fileName]);
+    public static string PostgresFile(string fileName) => BackendFile("database", "postgresql", fileName);
 
     private static string ResolveRepositoryRoot() {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);

@@ -10,20 +10,34 @@ DO $$
 DECLARE
   v_allow_seed text := current_setting('valora.allow_demo_seed', true);
   v_env text := current_setting('valora.environment', true);
+  v_is_prod boolean := false;
 BEGIN
-  -- 1. Bloqueio absoluto para ambientes identificados como produção
+  -- 1. Verifica se tabela de metadados de ambiente existe e se acusa produção
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'valorapesquisa' AND table_name = 'environment_metadata') THEN
+    SELECT is_production INTO v_is_prod FROM valorapesquisa.environment_metadata LIMIT 1;
+    IF v_is_prod IS TRUE THEN
+      RAISE EXCEPTION 'BLOQUEIO CRÍTICO DE SEGURANÇA: environment_metadata indica que este banco é de PRODUÇÃO. Seed de homologação cancelado.';
+    END IF;
+  END IF;
+
+  -- 2. Bloqueio absoluto para ambientes identificados como produção
   IF current_database() ~* '(prod|production|live|prd)' THEN
     RAISE EXCEPTION 'BLOQUEIO CRÍTICO DE SEGURANÇA: seed_homologacao.sql não pode ser executado em ambiente de produção (banco atual: %).', current_database();
   END IF;
 
-  -- 2. O nome do banco 'valora' sozinho NÃO é evidência suficiente de ambiente seguro
+  -- 3. Bloqueio para usuário de aplicação em runtime (least privilege)
+  IF current_user IN ('valora_app_runtime', 'valora_readonly') THEN
+    RAISE EXCEPTION 'BLOQUEIO DE SEGURANÇA: Usuário de aplicação em tempo de execução (%) não possui permissão para executar seeds.', current_user;
+  END IF;
+
+  -- 4. O nome do banco 'valora' sozinho NÃO é evidência suficiente de ambiente seguro
   IF current_database() ~* '^(valora|valora_db|valora_app|valora_insight)$' THEN
     IF v_allow_seed IS DISTINCT FROM 'true' THEN
       RAISE EXCEPTION 'BLOQUEIO DE SEGURANÇA: Banco de dados com nome padrão de produção (%) exige autorização explícita via valora.allow_demo_seed=true.', current_database();
     END IF;
   END IF;
 
-  -- 3. Exige identificação confiável de ambiente não-produtivo
+  -- 5. Exige identificação confiável de ambiente não-produtivo
   IF NOT (current_database() ~* '(test|teste|homolog|staging|qa|dev)' OR v_allow_seed = 'true' OR v_env IN ('Development', 'Testing', 'Homologation')) THEN
     RAISE EXCEPTION 'BLOQUEIO DE SEGURANÇA: seed_homologacao.sql exige identificação explícita de ambiente seguro (test/homolog/staging/qa/dev ou valora.allow_demo_seed=true). Banco atual: %', current_database();
   END IF;
@@ -132,6 +146,7 @@ FROM (VALUES
 CROSS JOIN demo_cfg cfg
 ON CONFLICT (id) DO UPDATE SET
   password_hash = CASE 
+    WHEN NULLIF(current_setting('valora.demo_password_hash', true), '') IS NOT NULL THEN EXCLUDED.password_hash
     WHEN valorapesquisa.users.password_hash IS NULL OR valorapesquisa.users.password_hash = '' THEN EXCLUDED.password_hash 
     ELSE valorapesquisa.users.password_hash 
   END,
@@ -394,39 +409,39 @@ ON CONFLICT (id) DO NOTHING;
 -- 16. PEOPLE PROFILES E TIMES (SPRINT 07 E 08)
 INSERT INTO valorapesquisa.people_profiles (id, organization_id, display_name, role_title, status, created_at, updated_at)
 VALUES
-  ('pp111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Mariana Silva', 'Diretoria de Operações & Logística', 'active', now() - interval '60 days', now()),
-  ('pp111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'Carlos Drummond', 'Coordenação de Gente & Cultura', 'active', now() - interval '50 days', now()),
-  ('pp111111-1111-1111-1111-111111111113', '11111111-1111-1111-1111-111111111111', 'Ana Beatriz Souza', 'Liderança Técnica de Engenharia', 'active', now() - interval '40 days', now()),
-  ('pp111111-1111-1111-1111-111111111114', '11111111-1111-1111-1111-111111111111', 'Roberto Albuquerque', 'Especialista em Qualidade & Processos', 'active', now() - interval '30 days', now())
+  ('b1111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Mariana Silva', 'Diretoria de Operações & Logística', 'active', now() - interval '60 days', now()),
+  ('b1111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'Carlos Drummond', 'Coordenação de Gente & Cultura', 'active', now() - interval '50 days', now()),
+  ('b1111111-1111-1111-1111-111111111113', '11111111-1111-1111-1111-111111111111', 'Ana Beatriz Souza', 'Liderança Técnica de Engenharia', 'active', now() - interval '40 days', now()),
+  ('b1111111-1111-1111-1111-111111111114', '11111111-1111-1111-1111-111111111111', 'Roberto Albuquerque', 'Especialista em Qualidade & Processos', 'active', now() - interval '30 days', now())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO valorapesquisa.people_teams (id, organization_id, name, responsible_profile_id, created_at, updated_at)
 VALUES
-  ('pt111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Engenharia & Arquitetura de Software', 'pp111111-1111-1111-1111-111111111113', now() - interval '40 days', now()),
-  ('pt111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'Gente, Cultura & Retenção de Talentos', 'pp111111-1111-1111-1111-111111111112', now() - interval '40 days', now()),
-  ('pt111111-1111-1111-1111-111111111113', '11111111-1111-1111-1111-111111111111', 'Operações, Logística & SLAs', 'pp111111-1111-1111-1111-111111111111', now() - interval '40 days', now())
+  ('b2111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Engenharia & Arquitetura de Software', 'b1111111-1111-1111-1111-111111111113', now() - interval '40 days', now()),
+  ('b2111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'Gente, Cultura & Retenção de Talentos', 'b1111111-1111-1111-1111-111111111112', now() - interval '40 days', now()),
+  ('b2111111-1111-1111-1111-111111111113', '11111111-1111-1111-1111-111111111111', 'Operações, Logística & SLAs', 'b1111111-1111-1111-1111-111111111111', now() - interval '40 days', now())
 ON CONFLICT (id) DO NOTHING;
 
 -- 17. FRAMEWORK DE COMPETÊNCIAS E AVALIAÇÕES HUMANAS
 INSERT INTO valorapesquisa.people_competency_frameworks (id, organization_id, name, description, scale_max, version, status, created_at, updated_at)
 VALUES
-  ('pf111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Framework de Liderança Valora 2026', 'Competências essenciais de visão estratégica, liderança e foco no cliente.', 5.0, 1, 'active', now() - interval '45 days', now())
+  ('b3111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Framework de Liderança Valora 2026', 'Competências essenciais de visão estratégica, liderança e foco no cliente.', 5.0, 1, 'active', now() - interval '45 days', now())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO valorapesquisa.people_competencies (id, organization_id, framework_id, name, description, created_at, updated_at)
 VALUES
-  ('pc111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'pf111111-1111-1111-1111-111111111111', 'Visão Sistêmica & Metas', 'Capacidade de conectar objetivos estratégicos da organização às rotinas diárias da equipe.', now() - interval '45 days', now()),
-  ('pc111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'pf111111-1111-1111-1111-111111111111', 'Feedback & Segurança Psicológica', 'Criação de ambiente propício ao aprendizado e escuta ativa de sugestões e riscos.', now() - interval '45 days', now()),
-  ('pc111111-1111-1111-1111-111111111113', '11111111-1111-1111-1111-111111111111', 'pf111111-1111-1111-1111-111111111111', 'Resolução de Problemas Complexos', 'Agilidade no tratamento de divergências operacionais e melhoria de processos.', now() - interval '45 days', now()),
-  ('pc111111-1111-1111-1111-111111111114', '11111111-1111-1111-1111-111111111111', 'pf111111-1111-1111-1111-111111111111', 'Foco no Cliente & Excelência', 'Compromisso com o cumprimento dos SLAs e qualidade percebida pelo usuário final.', now() - interval '45 days', now())
+  ('b4111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'b3111111-1111-1111-1111-111111111111', 'Visão Sistêmica & Metas', 'Capacidade de conectar objetivos estratégicos da organização às rotinas diárias da equipe.', now() - interval '45 days', now()),
+  ('b4111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'b3111111-1111-1111-1111-111111111111', 'Feedback & Segurança Psicológica', 'Criação de ambiente propício ao aprendizado e escuta ativa de sugestões e riscos.', now() - interval '45 days', now()),
+  ('b4111111-1111-1111-1111-111111111113', '11111111-1111-1111-1111-111111111111', 'b3111111-1111-1111-1111-111111111111', 'Resolução de Problemas Complexos', 'Agilidade no tratamento de divergências operacionais e melhoria de processos.', now() - interval '45 days', now()),
+  ('b4111111-1111-1111-1111-111111111114', '11111111-1111-1111-1111-111111111111', 'b3111111-1111-1111-1111-111111111111', 'Foco no Cliente & Excelência', 'Compromisso com o cumprimento dos SLAs e qualidade percebida pelo usuário final.', now() - interval '45 days', now())
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO valorapesquisa.people_competency_assessments (id, organization_id, competency_id, subject_type, profile_id, team_id, expected_level, observed_level, evidence_summary, human_reviewed, reviewed_by_user_id, assessed_at, created_at)
+INSERT INTO valorapesquisa.people_competency_assessments (id, organization_id, competency_id, subject_type, profile_id, team_id, expected_level, observed_level, evidence_summary, human_reviewed, reviewed_by_user_id, assessed_at)
 VALUES
-  ('pa111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'pc111111-1111-1111-1111-111111111111', 'team', null, 'pt111111-1111-1111-1111-111111111111', 4.5, 3.8, 'Alinhamento verificado nos comitês de sprint e notas do diagnóstico institucional.', true, 'a0000000-0000-0000-0000-000000000002', now() - interval '20 days', now()),
-  ('pa111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'pc111111-1111-1111-1111-111111111112', 'team', null, 'pt111111-1111-1111-1111-111111111112', 4.0, 4.2, 'Cadência quinzenal de check-ins 1-on-1 registrada com 92% de adesão.', true, 'a0000000-0000-0000-0000-000000000002', now() - interval '18 days', now()),
-  ('pa111111-1111-1111-1111-111111111113', '11111111-1111-1111-1111-111111111111', 'pc111111-1111-1111-1111-111111111113', 'team', null, 'pt111111-1111-1111-1111-111111111113', 4.0, 3.1, 'Tempo de resposta a incidentes fora da meta nos últimos 45 dias. Plano de ação criado.', true, 'a0000000-0000-0000-0000-000000000002', now() - interval '15 days', now()),
-  ('pa111111-1111-1111-1111-111111111114', '11111111-1111-1111-1111-111111111111', 'pc111111-1111-1111-1111-111111111114', 'person', 'pp111111-1111-1111-1111-111111111114', null, 5.0, 4.6, 'Índice de conformidade de entregas e auditorias com 96% de satisfação.', true, 'a0000000-0000-0000-0000-000000000002', now() - interval '10 days', now())
+  ('b5111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'b4111111-1111-1111-1111-111111111111', 'team', null, 'b2111111-1111-1111-1111-111111111111', 4.5, 3.8, 'Alinhamento verificado nos comitês de sprint e notas do diagnóstico institucional.', true, 'a0000000-0000-0000-0000-000000000002', now() - interval '20 days'),
+  ('b5111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'b4111111-1111-1111-1111-111111111112', 'team', null, 'b2111111-1111-1111-1111-111111111112', 4.0, 4.2, 'Cadência quinzenal de check-ins 1-on-1 registrada com 92% de adesão.', true, 'a0000000-0000-0000-0000-000000000002', now() - interval '18 days'),
+  ('b5111111-1111-1111-1111-111111111113', '11111111-1111-1111-1111-111111111111', 'b4111111-1111-1111-1111-111111111113', 'team', null, 'b2111111-1111-1111-1111-111111111113', 4.0, 3.1, 'Tempo de resposta a incidentes fora da meta nos últimos 45 dias. Plano de ação criado.', true, 'a0000000-0000-0000-0000-000000000002', now() - interval '15 days'),
+  ('b5111111-1111-1111-1111-111111111114', '11111111-1111-1111-1111-111111111111', 'b4111111-1111-1111-1111-111111111114', 'person', 'b1111111-1111-1111-1111-111111111114', null, 5.0, 4.6, 'Índice de conformidade de entregas e auditorias com 96% de satisfação.', true, 'a0000000-0000-0000-0000-000000000002', now() - interval '10 days')
 ON CONFLICT (id) DO NOTHING;
 
 -- 18. DIMENSÕES CULTURAIS AGREGADAS E SINAIS DE ENGAJAMENTO
@@ -436,23 +451,23 @@ VALUES
   ('cd111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'Alinhamento Estratégico & Propósito', 'Compreensão das metas corporativas e conexão com o trabalho do dia a dia.', 5, now() - interval '40 days', now())
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO valorapesquisa.people_culture_assessments (id, organization_id, dimension_id, source, evidence_summary, score, sample_size, confidence, limitations, assessed_at, created_at)
+INSERT INTO valorapesquisa.people_culture_assessments (id, organization_id, dimension_id, source, evidence_summary, score, sample_size, confidence, limitations, assessed_at)
 VALUES
-  ('ca111111-1111-1111-1111-111111111121', '11111111-1111-1111-1111-111111111111', 'cd111111-1111-1111-1111-111111111111', 'Diagnóstico Institucional 2026', '84% dos membros relatam ambiente seguro para manifestação de divergências.', 82.4, 45, 'high', 'Amostra cobre 90% das áreas técnicas.', now() - interval '8 days', now()),
-  ('ca111111-1111-1111-1111-111111111122', '11111111-1111-1111-1111-111111111111', 'cd111111-1111-1111-1111-111111111112', 'Diagnóstico Institucional 2026', 'Clareza consistente sobre metas corporativas e prioridades da gestão.', 78.0, 45, 'high', 'Participação homogênea entre turnos.', now() - interval '8 days', now())
+  ('ca111111-1111-1111-1111-111111111121', '11111111-1111-1111-1111-111111111111', 'cd111111-1111-1111-1111-111111111111', 'Diagnóstico Institucional 2026', '84% dos membros relatam ambiente seguro para manifestação de divergências.', 82.4, 45, 'high', 'Amostra cobre 90% das áreas técnicas.', now() - interval '8 days'),
+  ('ca111111-1111-1111-1111-111111111122', '11111111-1111-1111-1111-111111111111', 'cd111111-1111-1111-1111-111111111112', 'Diagnóstico Institucional 2026', 'Clareza consistente sobre metas corporativas e prioridades da gestão.', 78.0, 45, 'high', 'Participação homogênea entre turnos.', now() - interval '8 days')
 ON CONFLICT (id) DO NOTHING;
 
-INSERT INTO valorapesquisa.people_engagement_signals (id, organization_id, source, evidence_summary, score, confidence, limitations, observed_at, created_at)
+INSERT INTO valorapesquisa.people_engagement_signals (id, organization_id, source, evidence_summary, score, confidence, limitations, observed_at)
 VALUES
-  ('es111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Check-ins Quinzenais', '92% de participação contínua nas reuniões 1-on-1 de alinhamento com lideranças.', 88.0, 'high', 'Baseado em confirmações formais de pauta.', now() - interval '6 days', now()),
-  ('es111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'Pesquisa Pulso de Saúde', 'Queda pontual na percepção de equilíbrio em períodos de fechamento trimestral.', 58.0, 'medium', 'Amostra de 30 respondentes da área de operações.', now() - interval '4 days', now())
+  ('b6111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'Check-ins Quinzenais', '92% de participação contínua nas reuniões 1-on-1 de alinhamento com lideranças.', 88.0, 'high', 'Baseado em confirmações formais de pauta.', now() - interval '6 days'),
+  ('b6111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'Pesquisa Pulso de Saúde', 'Queda pontual na percepção de equilíbrio em períodos de fechamento trimestral.', 58.0, 'medium', 'Amostra de 30 respondentes da área de operações.', now() - interval '4 days')
 ON CONFLICT (id) DO NOTHING;
 
 -- 19. PLANOS DE DESENVOLVIMENTO INDIVIDUAL E DE EQUIPE
 INSERT INTO valorapesquisa.people_development_plans (id, organization_id, subject_type, profile_id, team_id, objective, responsible_profile_id, due_date, status, created_at, updated_at)
 VALUES
-  ('dp111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'team', null, 'pt111111-1111-1111-1111-111111111112', 'Capacitação em Liderança Situacional e Feedback Construtivo', 'pp111111-1111-1111-1111-111111111112', current_date + 40, 'active', now() - interval '14 days', now()),
-  ('dp111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'team', null, 'pt111111-1111-1111-1111-111111111113', 'Upskilling em Gestão de Incidentes Operacionais e SLAs', 'pp111111-1111-1111-1111-111111111111', current_date + 55, 'active', now() - interval '10 days', now())
+  ('b7111111-1111-1111-1111-111111111111', '11111111-1111-1111-1111-111111111111', 'team', null, 'b2111111-1111-1111-1111-111111111112', 'Capacitação em Liderança Situacional e Feedback Construtivo', 'b1111111-1111-1111-1111-111111111112', current_date + 40, 'active', now() - interval '14 days', now()),
+  ('b7111111-1111-1111-1111-111111111112', '11111111-1111-1111-1111-111111111111', 'team', null, 'b2111111-1111-1111-1111-111111111113', 'Upskilling em Gestão de Incidentes Operacionais e SLAs', 'b1111111-1111-1111-1111-111111111111', current_date + 55, 'active', now() - interval '10 days', now())
 ON CONFLICT (id) DO NOTHING;
 
 -- 20. PESQUISA HISTÓRICA ENCERRADA (JORNADA SPRINT 08)
@@ -464,16 +479,16 @@ ON CONFLICT (id) DO NOTHING;
 -- 21. CERTIFICADOS METODOLÓGICOS EMITIDOS (DERIVADOS DIRETAMENTE DE RESULT_SCORES CALCULADOS)
 INSERT INTO valorapesquisa.certificates (id, organization_id, response_id, certificate_code, participant_name, issuer_name, survey_name, maturity_label, status, validation_code, created_at)
 SELECT
-  ('ce000000-0000-0000-0000-' || right(replace(r.id::text, '-', ''), 12))::uuid,
+  ('ce' || substr(replace(r.id::text, '-', ''), 3))::uuid,
   r.organization_id,
   r.id,
-  'VAL-' || upper(left(replace(r.id::text, '-', ''), 10)),
-  'Participante ' || upper(left(replace(r.id::text, '-', ''), 6)),
+  'VAL-' || upper(left(replace(r.id::text, '-', ''), 4)) || '-' || upper(right(replace(r.id::text, '-', ''), 6)),
+  'Participante ' || upper(right(replace(r.id::text, '-', ''), 4)),
   'Valora Group',
   s.title,
   rs.maturity_label,
   'issued',
-  'VAL-' || upper(left(replace(r.id::text, '-', ''), 10)),
+  'VAL-' || upper(left(replace(r.id::text, '-', ''), 4)) || '-' || upper(right(replace(r.id::text, '-', ''), 6)),
   r.submitted_at
 FROM valorapesquisa.responses r
 JOIN valorapesquisa.result_scores rs ON rs.response_id = r.id
@@ -483,7 +498,7 @@ WHERE r.organization_id IN (
   '22222222-2222-2222-2222-222222222222',
   '33333333-3333-3333-3333-333333333333'
 )
-ON CONFLICT (certificate_code) DO NOTHING;
+ON CONFLICT (id) DO NOTHING;
 
 COMMIT;
 

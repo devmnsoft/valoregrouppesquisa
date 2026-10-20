@@ -1,6 +1,8 @@
 using Npgsql;
 using Xunit;
 
+[assembly: CollectionBehavior(DisableTestParallelization = true)]
+
 namespace Valora.Tests.Support;
 
 internal static class PostgresTestEnvironment {

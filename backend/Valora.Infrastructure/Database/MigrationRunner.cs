@@ -13,6 +13,11 @@ public sealed class MigrationRunner(IDbConnectionFactory factory, ILogger<Migrat
         var directory = Path.Combine(root, "database", "postgresql");
         logger.LogInformation("Migration scan started. Directory={Directory}", directory);
         var files = Directory.GetFiles(directory, "*.sql")
+            .Where(file => {
+                var fileName = Path.GetFileName(file);
+                return !fileName.StartsWith("reset_", StringComparison.OrdinalIgnoreCase)
+                    && !fileName.StartsWith("seed_", StringComparison.OrdinalIgnoreCase);
+            })
             .OrderBy(file => string.Equals(Path.GetFileName(file), "script_completo.sql", StringComparison.OrdinalIgnoreCase) ? 0 : 1)
             .ThenBy(Path.GetFileName)
             .ToList();

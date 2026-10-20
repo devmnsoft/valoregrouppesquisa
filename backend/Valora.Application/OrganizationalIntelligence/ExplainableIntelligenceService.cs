@@ -40,19 +40,22 @@ public sealed class ExplainableIntelligenceService(
 
         var evidenceCount = evidenceItems.Count;
         var distinctSources = evidenceItems.Select(e => e.SourceType).Distinct(StringComparer.OrdinalIgnoreCase).Count();
-        var meetsConvergence = evidenceCount >= 3;
+        var meetsConvergence = evidenceCount >= 3 && distinctSources >= 2;
 
         var confidenceLevel = (evidenceCount, distinctSources) switch {
-            (0, _) => "Insuficiente",
-            ( >= 3, >= 2) => "Alta",
-            ( >= 3, _) => "Moderada",
-            ( >= 2, _) => "Moderada",
-            _ => "Baixa"
+            ( <= 0, _) => "Insuficiente",
+            ( < 3, _) => "Baixa",
+            ( >= 3, < 2) => "Baixa", // Múltiplas evidências da mesma fonte não configuram convergência independente
+            ( >= 5, >= 3) => "Alta",
+            _ => "Moderada" // count >= 3 && distinctSources >= 2
         };
 
-        var rule = meetsConvergence
-            ? $"Atende ao critério metodológico de convergência com {evidenceCount} evidência(s) independente(s) e {distinctSources} fonte(s) identificada(s)."
-            : $"A Metodologia Valora™ exige ao menos 3 evidências convergentes para conclusões de média/alta certeza. Foram identificadas {evidenceCount} evidência(s); aguarda ampliação amostral.";
+        var rule = (evidenceCount, distinctSources) switch {
+            ( >= 3, >= 2) => $"Atende ao critério metodológico de convergência com {evidenceCount} evidências identificadas em {distinctSources} fontes independentes.",
+            ( >= 3, < 2) => $"Foram identificadas {evidenceCount} evidências, porém restritas a 1 única fonte ({evidenceItems.FirstOrDefault()?.SourceType ?? "fonte única"}). A Metodologia Valora™ exige ao menos 2 fontes independentes para confirmação convergente.",
+            (0, _) => "Nenhuma evidência empírica disponível para esta análise.",
+            _ => $"A Metodologia Valora™ exige ao menos 3 evidências convergentes para conclusões de média/alta certeza. Foram identificadas apenas {evidenceCount} evidência(s); aguarda ampliação amostral."
+        };
 
         // Link with Methodology Concepts & Cognitive Dictionary
         var dimensionName = x.RelatedDimension ?? "Geral";
@@ -125,7 +128,7 @@ public sealed class ExplainableIntelligenceService(
     public ValoraExplainableAnalysis ExplainInference(InferenceRequest request, InferenceResultDto result) {
         var count = result.Evidence.Count;
         var distinctSources = result.Evidence.Select(e => e.Source).Distinct(StringComparer.OrdinalIgnoreCase).Count();
-        var meetsConvergence = count >= 3;
+        var meetsConvergence = count >= 3 && distinctSources >= 2;
 
         var evidenceItems = result.Evidence.Select(e => new ExplainableEvidenceItem(
             Guid.NewGuid(),
@@ -156,13 +159,13 @@ public sealed class ExplainableIntelligenceService(
             EvidenceConsidered: evidenceItems,
             RelatedCapabilities: capabilities,
             Confidence: new(
-                Level: result.Confidence,
+                Level: meetsConvergence ? result.Confidence : "Baixa",
                 EvidenceCount: count,
                 ConvergentSourcesCount: distinctSources,
                 MeetsMinimumConvergentRule: meetsConvergence,
                 MethodologicalRule: meetsConvergence
-                    ? $"Atende à regra metodológica oficial com {count} evidências convergentes."
-                    : "Inferência não conclusiva. A Metodologia Valora™ exige ao menos 3 evidências convergentes para confirmar correlações causais."
+                    ? $"Atende à regra metodológica oficial com {count} evidências convergentes e {distinctSources} fontes independentes."
+                    : "Inferência não conclusiva. A Metodologia Valora™ exige ao menos 3 evidências convergentes e ao menos 2 fontes independentes para confirmar correlações causais."
             ),
             Limitations: new(
                 AssociationVsCausalityNotice: AssociationNotice,
@@ -191,7 +194,7 @@ public sealed class ExplainableIntelligenceService(
         var relevant = evidencePool.Where(e => insight.Evidence.Contains(e.Id)).ToList();
         var count = relevant.Count;
         var distinctSources = relevant.Select(e => e.Concept).Distinct(StringComparer.OrdinalIgnoreCase).Count();
-        var meetsConvergence = count >= 3;
+        var meetsConvergence = count >= 3 && distinctSources >= 2;
 
         var items = relevant.Select(e => new ExplainableEvidenceItem(
             e.Id,
@@ -225,13 +228,15 @@ public sealed class ExplainableIntelligenceService(
                 )
             ],
             Confidence: new(
-                Level: insight.ConfidenceLevel == "high" ? "Alta" : insight.ConfidenceLevel == "medium" ? "Moderada" : "Baixa",
+                Level: meetsConvergence
+                    ? (insight.ConfidenceLevel == "high" ? "Alta" : "Moderada")
+                    : "Baixa",
                 EvidenceCount: count,
                 ConvergentSourcesCount: distinctSources,
                 MeetsMinimumConvergentRule: meetsConvergence,
                 MethodologicalRule: meetsConvergence
-                    ? $"Evidências convergentes suficientes ({count} itens rastreados)."
-                    : $"Amostra com {count} evidências. Recomenda-se ampliação para maior sustentação metodológica."
+                    ? $"Evidências convergentes suficientes ({count} itens rastreados em {distinctSources} fontes independentes)."
+                    : $"Amostra com {count} evidências ({distinctSources} fontes). A Metodologia Valora™ exige ao menos 3 evidências convergentes e 2 fontes independentes; aguarda maior sustentação metodológica."
             ),
             Limitations: new(
                 AssociationVsCausalityNotice: AssociationNotice,

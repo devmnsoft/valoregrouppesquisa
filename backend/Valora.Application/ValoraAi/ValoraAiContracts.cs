@@ -79,9 +79,10 @@ public sealed record EvolutionInterpretation(StructuredAiItem Value);
 
 public static class ValoraConfidenceCalculator {
     public static AiConfidence Calculate(int evidenceCount, int convergentSources) => (evidenceCount, convergentSources) switch {
-        (0, _) => AiConfidence.Insufficient,
-        ( >= 3, >= 2) => AiConfidence.High,
-        ( >= 2, _) => AiConfidence.Medium,
-        _ => AiConfidence.Low
+        ( <= 0, _) => AiConfidence.Insufficient,
+        ( < 3, _) => AiConfidence.Low,
+        ( >= 3, < 2) => AiConfidence.Low, // Múltiplas evidências da mesma fonte não configuram convergência independente
+        ( >= 5, >= 3) => AiConfidence.High,
+        _ => AiConfidence.Medium // count >= 3 && convergentSources >= 2
     };
 }

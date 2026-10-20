@@ -95,7 +95,40 @@ public sealed class ExplainableIntelligenceTests {
         Assert.False(result.Confidence.MeetsMinimumConvergentRule);
         Assert.True(result.Limitations.RequiresAdditionalEvidence);
         Assert.Contains("ao menos 3 evidências convergentes", result.Confidence.MethodologicalRule);
-        Assert.Equal("Moderada", result.Confidence.Level);
+        Assert.Equal("Baixa", result.Confidence.Level);
+    }
+
+    [Fact]
+    public async Task ExplainInsight_WithAtLeast3Evidence_FromSingleSource_FailsConvergenceRule_AndReturnsLowConfidence() {
+        var orgId = Guid.NewGuid();
+        var insightId = Guid.NewGuid();
+        var insight = new AiInsight(
+            insightId, orgId, Guid.NewGuid(), null, Guid.NewGuid(),
+            "gap", "Comunicação Fragmentada", "Divergência de alinhamento",
+            "Evidência pontual", "Liderança", "LID_01", "medium", "high",
+            "low", "Amostra de fonte única", "Realizar alinhamento", "pending_review",
+            DateTime.UtcNow, DateTime.UtcNow
+        );
+
+        // 3 evidências, porém todas da mesma fonte ('formulario')
+        var evidence = new List<AiInsightEvidence> {
+            new(Guid.NewGuid(), "pesquisa", "formulario", Guid.NewGuid(), "Item 1", "Liderança", "LID", DateTime.UtcNow, true),
+            new(Guid.NewGuid(), "pesquisa", "formulario", Guid.NewGuid(), "Item 2", "Liderança", "LID", DateTime.UtcNow, true),
+            new(Guid.NewGuid(), "pesquisa", "formulario", Guid.NewGuid(), "Item 3", "Liderança", "LID", DateTime.UtcNow, true)
+        };
+
+        var service = new ExplainableIntelligenceService(
+            new MockInsightRepository(new AiInsightDetails(insight, evidence, [])),
+            new MockMethodologyRepository(),
+            new MockKnowledgeRepository()
+        );
+
+        var result = await service.ExplainInsightAsync(orgId, Guid.NewGuid(), insightId, true, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.False(result.Confidence.MeetsMinimumConvergentRule);
+        Assert.Equal("Baixa", result.Confidence.Level);
+        Assert.Contains("exige ao menos 2 fontes independentes", result.Confidence.MethodologicalRule);
     }
 
     [Fact]
@@ -128,7 +161,7 @@ public sealed class ExplainableIntelligenceTests {
         Assert.NotNull(result);
         Assert.True(result.Confidence.MeetsMinimumConvergentRule);
         Assert.False(result.Limitations.RequiresAdditionalEvidence);
-        Assert.Equal("Alta", result.Confidence.Level);
+        Assert.Equal("Moderada", result.Confidence.Level);
         Assert.Equal(3, result.Confidence.EvidenceCount);
         Assert.Equal(2, result.Confidence.ConvergentSourcesCount);
     }
@@ -256,6 +289,31 @@ public sealed class ExplainableIntelligenceTests {
         Assert.Equal("Canais descentralizados sem governança", result.ProbableCause);
         Assert.Equal("Perda de eficiência", result.Impact);
         Assert.Equal("Centralizar canais", result.NextStep);
+    }
+
+    [Fact]
+    public void ValoraInferenceEngine_With3Evidence_FromSingleSource_MarksNonConclusive() {
+        var engine = new ValoraInferenceEngine();
+        var request = new InferenceRequest(
+            "Ruído na comunicação interna",
+            "Canais descentralizados sem governança",
+            ["Comunicação", "Processos"],
+            [
+                new("COM_01", "Demora na resposta", "chat", 0.7m, DateTimeOffset.UtcNow),
+                new("COM_02", "Reclamação de retrabalho", "chat", 0.8m, DateTimeOffset.UtcNow),
+                new("COM_03", "Auditoria de chamados pendentes", "chat", 0.9m, DateTimeOffset.UtcNow)
+            ],
+            "Perda de eficiência",
+            "Alta",
+            "Centralizar canais"
+        );
+
+        var result = engine.Infer(request);
+
+        Assert.False(result.IsConclusive);
+        Assert.Equal("Baixa", result.Confidence);
+        Assert.Null(result.ProbableCause);
+        Assert.Contains("duas fontes independentes", result.NextStep);
     }
 
     [Fact]

@@ -92,6 +92,10 @@
         "Não apresentar ausência de dados como zero ou certeza."
       ],
       "changedFiles": [
+        "backend/Valora.Api/Controllers/OrganizationalIntelligenceController.cs",
+        "backend/Valora.Application/OrganizationalIntelligence/ExplainableIntelligenceContracts.cs",
+        "backend/Valora.Application/OrganizationalIntelligence/ExplainableIntelligenceService.cs",
+        "backend/Valora.Tests/ExplainableIntelligenceTests.cs",
         "backend/Valora.Web/Controllers/BffIntelligenceController.cs",
         "backend/Valora.Web/Controllers/BffMethodologyController.cs",
         "backend/Valora.Web/Views/Intelligence/Benchmark.cshtml",
@@ -113,6 +117,7 @@
         "Validar autorização, concorrência e retorno ao contexto."
       ],
       "changedFiles": [
+        "backend/Valora.Web/Controllers/InsightsController.cs",
         "backend/Valora.Web/Views/Insights/Details.cshtml",
         "backend/Valora.Web/Views/Insights/Index.cshtml"
       ],
@@ -169,8 +174,10 @@
         "Revisar cada rota administrativa e operações sensíveis.",
         "Confirmar login real de todas as contas de homologação."
       ],
-      "changedFiles": [],
-      "updateState": "Sem alteração detectada desde a revisão"
+      "changedFiles": [
+        "backend/Valora.Tests/SeedHomologacaoSecurityTests.cs"
+      ],
+      "updateState": "Revisão necessária"
     },
     {
       "name": "Relatórios e devolutivas",
@@ -621,10 +628,28 @@
   ],
   "calendarStatus": "Proposta não aprovada; estimativas dependem de equipe, ambiente e aceite.",
   "schemaVersion": 1,
-  "sourceCommit": "eac212e0ea2789f01c1b57f5adf58e335c146e08",
-  "generatedAt": "2026-10-19T17:46:30.445271+00:00",
+  "sourceCommit": "886d3a75d883dbe0f33b7c24c9d193fb6e1279ab",
+  "generatedAt": "2026-10-20T09:43:24.425605+00:00",
   "baselineAvailable": true,
   "sprintDocuments": [
+    {
+      "path": "backend/docs/execucao/OPERACAO_VALORA_PRIME_360.md",
+      "title": "OPERAÇÃO VALORA PRIME 360",
+      "headings": [
+        "Consolidação, Inteligência Organizacional e Experiência SaaS Premium (Sprints 26 a 45)",
+        "1. SPRINT 26 — Matriz de Reauditoria do Excellence 360 (Sprints 01 a 25)",
+        "2. Resumo da Reauditoria (Sprint 26)",
+        "3. SPRINT 27 — Correção Crítica dos Seeds e Credenciais (Concluída)",
+        "4. SPRINT 28 — Banco Demonstrativo Totalmente Integrado (Concluída)",
+        "5. SPRINT 29 — Redesign Global Premium V2 (Concluída)",
+        "6. SPRINT 30 — Operação Zero Páginas Quebradas (Concluída)",
+        "7. SPRINT 31 — Dashboard Executivo Valora 2.0 (Concluída)",
+        "8. SPRINT 32 — Inteligência Organizacional Explicável (CONCLUÍDA)",
+        "9. SPRINT 33 — Experiência de Pesquisa de Ponta a Ponta (Próxima)"
+      ],
+      "updatedAt": "2026-10-20T06:42:58-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
     {
       "path": "backend/docs/execucao/OPERACAO_VALORA_EXCELLENCE_360.md",
       "title": "OPERAÇÃO VALORA EXCELLENCE 360",
@@ -2453,6 +2478,11 @@
   ],
   "recentCommits": [
     {
+      "sha": "886d3a75d883dbe0f33b7c24c9d193fb6e1279ab",
+      "date": "2026-10-20T06:42:58-03:00",
+      "title": "itens"
+    },
+    {
       "sha": "eac212e0ea2789f01c1b57f5adf58e335c146e08",
       "date": "2026-10-19T14:46:11-03:00",
       "title": "ajustes"
@@ -2946,14 +2976,9 @@
       "sha": "9b1dbc9fb7ab7c877b339b10f173f6beb96b53fb",
       "date": "2026-09-15T16:21:25-03:00",
       "title": "Merge pull request #577 from devmnsoft/codex/corrigir-erros-razor-em-reviewclosure.cshtml"
-    },
-    {
-      "sha": "d86c411a39dc857cdd007feb1b2748f641f1df8d",
-      "date": "2026-09-15T16:21:08-03:00",
-      "title": "fix(action-center): preserve closure review drafts"
     }
   ],
-  "changedFileCount": 154,
+  "changedFileCount": 174,
   "automation": {
     "mode": "push-main",
     "acceptanceAutomatic": false

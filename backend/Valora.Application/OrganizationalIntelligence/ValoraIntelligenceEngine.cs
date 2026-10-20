@@ -22,7 +22,7 @@ public sealed class ValoraIntelligenceEngine : IValoraIntelligenceEngine {
         // Evidence weights apply within each dimension. The overall index gives each observed
         // dimension equal influence, avoiding questionnaire length as an accidental weight.
         decimal? score = dimensions.Count == 0 ? null : Math.Round(dimensions.Average(x => x.Score!.Value), 2);
-        var confidence = Confidence(allIds.Count);
+        var confidence = Confidence(valid);
         var risks = dimensions.Where(x => x.Score < 50).Select(x => new OrganizationalRisk(Guid.NewGuid(), organizationId,
             surveyId, x.Dimension, x.Concept, x.Score!.Value, x.MaturityLevel, x.ConfidenceLevel, x.Evidence,
             x.Interpretation, x.Risk!, x.Recommendation!, x.Priority, now)).ToList();
@@ -63,7 +63,7 @@ public sealed class ValoraIntelligenceEngine : IValoraIntelligenceEngine {
         var risk = score < 50 ? $"A baixa consistência observada em {name} pode comprometer capacidades relacionadas; a causa deve ser validada." : null;
         var recommendation = score < 75 ? $"Validar as evidências de {name}, definir responsável e executar uma intervenção mensurável antes do próximo ciclo." : null;
         return new(Guid.NewGuid(), org, survey, name, items.Select(x => x.Concept).FirstOrDefault(x => !string.IsNullOrWhiteSpace(x)) ?? "mapped",
-            score, Level(score), Confidence(ids.Count), ids,
+            score, Level(score), Confidence(items), ids,
             $"{name} registra {score:0.##}% em {ids.Count} evidência(s) válida(s); o resultado indica {Level(score)} e não identifica causa isoladamente.", risk, recommendation, priority, now);
     }
 
@@ -103,7 +103,19 @@ public sealed class ValoraIntelligenceEngine : IValoraIntelligenceEngine {
             ReportSections.Select((title, i) => new ExecutiveReportSection($"{i + 1:00}", title, Content(title), ids)).ToList(), now);
     }
 
-    private static string Confidence(int count) => count > 6 ? "high" : count >= 4 ? "medium" : "low";
+    private static string Confidence(List<DiagnosisEvidence> items) {
+        var count = items.Select(x => x.Id).Distinct().Count();
+        var sources = items.Select(x => string.IsNullOrWhiteSpace(x.Group) ? x.Concept : x.Group)
+                           .Where(s => !string.IsNullOrWhiteSpace(s))
+                           .Distinct(StringComparer.OrdinalIgnoreCase).Count();
+
+        // Critério Canônico Oficial Valora Insight™:
+        // Confiança moderada ou alta exige no mínimo 3 evidências E ao menos 2 fontes/conceitos convergentes
+        if (count < 3 || sources < 2) return "low";
+        if (count >= 5 && sources >= 3) return "high";
+        return "medium";
+    }
+
     private static string Level(decimal? score) => score is null ? "Não avaliado" : OrganizationalMaturity.Label(score.Value);
     private static int OfficialOrder(string name) { var i = ValoraOfficialDimensions.All.ToList().FindIndex(x => Equivalent(x, name)); return i < 0 ? int.MaxValue : i; }
     private static bool Equivalent(string left, string right) => Normalize(left) == Normalize(right);

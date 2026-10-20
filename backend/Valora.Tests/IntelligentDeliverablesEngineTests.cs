@@ -21,12 +21,14 @@ public sealed class IntelligentDeliverablesEngineTests {
     }
 
     [Theory]
-    [InlineData(3, "low")]
-    [InlineData(4, "medium")]
-    [InlineData(6, "medium")]
-    [InlineData(7, "high")]
-    public void Analyze_UsesOfficialConfidenceThresholds(int count, string expected) {
-        var result = _engine.Analyze(Organization, null, Enumerable.Range(0, count).Select(_ => E("Liderança", 30, 1)));
+    [InlineData(2, 2, "low")]       // Insuficiência amostral (< 3 evidências)
+    [InlineData(4, 1, "low")]       // Violação de convergência (fonte única)
+    [InlineData(4, 2, "medium")]    // >= 3 evidências E >= 2 fontes convergentes
+    [InlineData(6, 2, "medium")]    // >= 3 evidências E >= 2 fontes convergentes
+    [InlineData(7, 3, "high")]      // >= 5 evidências E >= 3 fontes convergentes
+    public void Analyze_UsesOfficialConfidenceThresholds(int count, int distinctSources, string expected) {
+        var result = _engine.Analyze(Organization, null,
+            Enumerable.Range(0, count).Select(i => E("Liderança", 30, 1, $"concept_{i % distinctSources}")));
         Assert.Equal(expected, result.ConfidenceLevel);
         Assert.All(result.Insights, insight => Assert.NotEmpty(insight.Evidence));
     }
@@ -63,6 +65,6 @@ public sealed class IntelligentDeliverablesEngineTests {
         Assert.All(ValoraAccessCatalog.CapabilitiesForStrict(permissions), capability => Assert.Equal("organizational_intelligence", capability));
     }
 
-    private static DiagnosisEvidence E(string dimension, decimal score, decimal weight) =>
-        new(Guid.NewGuid(), Organization, null, dimension, "mapped", score, weight, "Evidência observada e rastreável.", DateTime.UtcNow);
+    private static DiagnosisEvidence E(string dimension, decimal score, decimal weight, string concept = "mapped") =>
+        new(Guid.NewGuid(), Organization, null, dimension, concept, score, weight, "Evidência observada e rastreável.", DateTime.UtcNow);
 }

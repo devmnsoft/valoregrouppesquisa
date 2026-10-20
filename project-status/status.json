@@ -93,6 +93,7 @@
       ],
       "changedFiles": [
         "backend/Valora.Api/Controllers/OrganizationalIntelligenceController.cs",
+        "backend/Valora.Application/Methodology/MethodologyService.cs",
         "backend/Valora.Application/OrganizationalIntelligence/ExplainableIntelligenceContracts.cs",
         "backend/Valora.Application/OrganizationalIntelligence/ExplainableIntelligenceService.cs",
         "backend/Valora.Tests/ExplainableIntelligenceTests.cs",
@@ -117,6 +118,7 @@
         "Validar autorização, concorrência e retorno ao contexto."
       ],
       "changedFiles": [
+        "backend/Valora.Application/ValoraAi/ValoraAiContracts.cs",
         "backend/Valora.Web/Controllers/InsightsController.cs",
         "backend/Valora.Web/Views/Insights/Details.cshtml",
         "backend/Valora.Web/Views/Insights/Index.cshtml"
@@ -175,7 +177,10 @@
         "Confirmar login real de todas as contas de homologação."
       ],
       "changedFiles": [
-        "backend/Valora.Tests/SeedHomologacaoSecurityTests.cs"
+        "backend/Valora.Tests/CommercialVisualAndAccessibilityComplianceTests.cs",
+        "backend/Valora.Tests/SeedHomologacaoSecurityTests.cs",
+        "backend/Valora.Tests/TenantIsolationAndSecurityNegativeTests.cs",
+        "backend/database/postgresql/security_roles_least_privilege.sql"
       ],
       "updateState": "Revisão necessária"
     },
@@ -213,6 +218,8 @@
         "O checklist de onboarding usa marcação em cookie; falta comprovar etapas por registros do sistema."
       ],
       "changedFiles": [
+        "backend/Valora.Tests/CommercialPlansAndOnboardingValidationTests.cs",
+        "backend/Valora.Web/Controllers/OnboardingController.cs",
         "backend/Valora.Web/Models/ViewModels/InDevelopmentViewModel.cs",
         "backend/Valora.Web/Navigation/EndpointNavigationRouteResolver.cs",
         "backend/Valora.Web/Views/Onboarding/Checklist.cshtml",
@@ -628,10 +635,28 @@
   ],
   "calendarStatus": "Proposta não aprovada; estimativas dependem de equipe, ambiente e aceite.",
   "schemaVersion": 1,
-  "sourceCommit": "886d3a75d883dbe0f33b7c24c9d193fb6e1279ab",
-  "generatedAt": "2026-10-20T09:43:24.425605+00:00",
+  "sourceCommit": "214136414b8d4de80d345485c62261f9fdfed884",
+  "generatedAt": "2026-10-20T13:34:15.056007+00:00",
   "baselineAvailable": true,
   "sprintDocuments": [
+    {
+      "path": "backend/docs/release/DECLARACAO_FORMAL_PRONTIDAO_COMERCIAL_1_0.md",
+      "title": "DECLARAÇÃO FORMAL DE PRONTIDÃO PARA HOMOLOGAÇÃO COMERCIAL",
+      "headings": [
+        "2. Evidências de Conformidade por Sprint"
+      ],
+      "updatedAt": "2026-10-20T08:20:06-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
+    {
+      "path": "backend/docs/release/VALORA_SPRINT_R7_HOMOLOGACAO_OPERACIONAL.md",
+      "title": "RELATÓRIO OFICIAL DE HOMOLOGAÇÃO INTEGRADA E OPERACIONAL (SPRINT R7)",
+      "headings": [
+        "RELATÓRIO OFICIAL DE HOMOLOGAÇÃO INTEGRADA E OPERACIONAL (SPRINT R7)"
+      ],
+      "updatedAt": "2026-10-20T08:14:27-03:00",
+      "state": "Documentada · aceite a conferir"
+    },
     {
       "path": "backend/docs/execucao/OPERACAO_VALORA_PRIME_360.md",
       "title": "OPERAÇÃO VALORA PRIME 360",
@@ -2478,6 +2503,41 @@
   ],
   "recentCommits": [
     {
+      "sha": "214136414b8d4de80d345485c62261f9fdfed884",
+      "date": "2026-10-20T08:20:06-03:00",
+      "title": "feat(r8): release candidate 1.0 manuals, tenant provisioning, sanity check and declaration"
+    },
+    {
+      "sha": "afce2bb60a76e69cf5ba87b303b9b0885786f7b4",
+      "date": "2026-10-20T08:14:27-03:00",
+      "title": "feat(r7): integrated operational homologation, concurrency, health and recovery test suite"
+    },
+    {
+      "sha": "23fcb968b4258a3089f964c71daf281a3d63a8d3",
+      "date": "2026-10-20T08:09:25-03:00",
+      "title": "feat(r6): design system tokens, visual accessibility and compliance test suite"
+    },
+    {
+      "sha": "e7e3956119f5c1077b511539035ae14d8ac7915e",
+      "date": "2026-10-20T08:03:00-03:00",
+      "title": "feat(release-r5): persist guided onboarding progress to PostgreSQL and enforce commercial plan access rules"
+    },
+    {
+      "sha": "f072b80beb9c18c6452136ce282a371264d12644",
+      "date": "2026-10-20T07:56:31-03:00",
+      "title": "feat(release-r4): complete 18-step customer commercial lifecycle integration and E2E validation in PostgreSQL"
+    },
+    {
+      "sha": "1ff1f31f6a9a34495fb33bfaa510477fe0df0b58",
+      "date": "2026-10-20T07:41:07-03:00",
+      "title": "feat(r3): banco de dados, seguranca least-privilege e testes negativos de isolamento multitenant"
+    },
+    {
+      "sha": "14676eb53b391de428cf31907786fc598b6aacae",
+      "date": "2026-10-20T07:07:50-03:00",
+      "title": "feat(r1-r2): auditoria de prontidao e motor oficial de maturidade"
+    },
+    {
       "sha": "886d3a75d883dbe0f33b7c24c9d193fb6e1279ab",
       "date": "2026-10-20T06:42:58-03:00",
       "title": "itens"
@@ -2941,44 +3001,9 @@
       "sha": "e07803aa3dbf6ed15a8b384c6610a1b49a1e6dce",
       "date": "2026-09-15T18:28:34-03:00",
       "title": "feat(forms): complete builder review and ordering"
-    },
-    {
-      "sha": "fb17c495b449289a50debd283656ce66187a37fe",
-      "date": "2026-09-15T18:09:41-03:00",
-      "title": "Merge pull request #580 from devmnsoft/codex/completar-gestao-do-ciclo-de-vida-dos-formularios"
-    },
-    {
-      "sha": "d25d6fcb4627652f6ff9207426a2356a2b7cfd24",
-      "date": "2026-09-15T18:09:26-03:00",
-      "title": "feat(forms): complete library lifecycle operations"
-    },
-    {
-      "sha": "aafd9e59c1237c0676a4d42a3ff2810cb7c97e14",
-      "date": "2026-09-15T16:46:18-03:00",
-      "title": "Merge pull request #579 from devmnsoft/codex/completar-biblioteca-e-construtor-de-formularios"
-    },
-    {
-      "sha": "1606d75ce87cd5cd02c0c45ff446c5eaca88d9e4",
-      "date": "2026-09-15T16:45:50-03:00",
-      "title": "fix(forms): stabilize asynchronous form actions"
-    },
-    {
-      "sha": "1bd48f2b7341a829e8cf3310f754d03ead5dc34f",
-      "date": "2026-09-15T16:32:45-03:00",
-      "title": "Merge pull request #578 from devmnsoft/codex/evoluir-funcionalidades-e-templates-dos-formularios"
-    },
-    {
-      "sha": "b9b45eb5f752db551eb9082554ec0483505f4663",
-      "date": "2026-09-15T16:32:14-03:00",
-      "title": "fix(forms): tornar criação e builder confiáveis"
-    },
-    {
-      "sha": "9b1dbc9fb7ab7c877b339b10f173f6beb96b53fb",
-      "date": "2026-09-15T16:21:25-03:00",
-      "title": "Merge pull request #577 from devmnsoft/codex/corrigir-erros-razor-em-reviewclosure.cshtml"
     }
   ],
-  "changedFileCount": 174,
+  "changedFileCount": 201,
   "automation": {
     "mode": "push-main",
     "acceptanceAutomatic": false
